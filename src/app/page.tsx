@@ -14,6 +14,7 @@ import CameraViewer from '@/components/CameraViewer';
 import SharePanel from '@/components/SharePanel';
 import ViewPresets from '@/components/ViewPresets';
 import KeyboardShortcuts from '@/components/KeyboardShortcuts';
+import GlobalStatusBar from '@/components/GlobalStatusBar';
 
 const OsirisMap = dynamic(() => import('@/components/OsirisMap'), { ssr: false });
 
@@ -334,6 +335,9 @@ export default function Dashboard() {
           </div>
         </motion.div>
       )}
+
+      {/* ── GLOBAL STATUS TICKER ── */}
+      <GlobalStatusBar />
 
       {/* ── LEFT HUD (desktop) ── */}
       <div className="desktop-panel absolute left-5 top-20 bottom-24 w-72 flex flex-col gap-3 z-[200] pointer-events-none overflow-y-auto styled-scrollbar pr-1">
