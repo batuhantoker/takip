@@ -2,22 +2,24 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Shield, Globe, Server, Lock, AlertTriangle, ChevronDown, X, Loader2 } from 'lucide-react';
+import { Search, Shield, Globe, Server, Lock, AlertTriangle, X, Loader2, Radar } from 'lucide-react';
 
-type OsintTab = 'ip' | 'dns' | 'certs' | 'whois' | 'threats';
+type OsintTab = 'ip' | 'dns' | 'certs' | 'whois' | 'threats' | 'scanner';
 
 const TABS: { id: OsintTab; label: string; icon: any; placeholder: string }[] = [
-  { id: 'ip', label: 'IP LOOKUP', icon: Globe, placeholder: '8.8.8.8' },
+  { id: 'scanner', label: 'NMAP', icon: Radar, placeholder: 'IP or domain to scan' },
+  { id: 'ip', label: 'IP', icon: Globe, placeholder: '8.8.8.8' },
   { id: 'dns', label: 'DNS', icon: Server, placeholder: 'example.com' },
   { id: 'certs', label: 'CERTS', icon: Lock, placeholder: 'example.com' },
   { id: 'whois', label: 'WHOIS', icon: Shield, placeholder: 'example.com' },
-  { id: 'threats', label: 'THREATS', icon: AlertTriangle, placeholder: '8.8.8.8 or example.com' },
+  { id: 'threats', label: 'THREATS', icon: AlertTriangle, placeholder: '8.8.8.8 or domain' },
 ];
 
 export default function OsintPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<OsintTab>('ip');
   const [query, setQuery] = useState('');
+  const [scanType, setScanType] = useState('quick');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState('');
@@ -36,6 +38,7 @@ export default function OsintPanel() {
         case 'certs': url = `/api/osint/certs?domain=${encodeURIComponent(query)}`; break;
         case 'whois': url = `/api/osint/whois?domain=${encodeURIComponent(query)}`; break;
         case 'threats': url = `/api/osint/threats?query=${encodeURIComponent(query)}`; break;
+        case 'scanner': url = `/api/scanner?target=${encodeURIComponent(query)}&type=${scanType}`; break;
       }
       const res = await fetch(url);
       if (res.ok) {
@@ -49,7 +52,7 @@ export default function OsintPanel() {
     } finally {
       setLoading(false);
     }
-  }, [query, activeTab]);
+  }, [query, activeTab, scanType]);
 
   const renderResults = () => {
     if (!results) return null;
@@ -175,6 +178,52 @@ export default function OsintPanel() {
       );
     }
 
+    if (activeTab === 'scanner' && results.ports) {
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <ResultField label="TARGET" value={results.target} />
+            {results.ip && <ResultField label="IP" value={results.ip} />}
+          </div>
+          <ResultField label="OPEN PORTS" value={`${results.open_ports} found`} />
+          {results.os_guess && <ResultField label="OS" value={results.os_guess} />}
+          {results.ports.length > 0 && (
+            <div>
+              <span className="text-[7px] font-mono text-[var(--gold-primary)] tracking-widest">PORT SCAN RESULTS</span>
+              <div className="mt-1 space-y-1">
+                {results.ports.map((p: any) => (
+                  <div key={p.port} className="flex items-center gap-2 py-0.5 border-b border-[var(--border-secondary)]/30">
+                    <span className="text-[8px] font-mono text-[var(--cyan-primary)] font-bold w-10">{p.port}</span>
+                    <span className={`text-[6px] font-mono px-1 rounded ${p.state === 'open' ? 'bg-[var(--alert-green)]/15 text-[var(--alert-green)]' : 'bg-[#FF3D3D]/15 text-[#FF3D3D]'}`}>{p.state}</span>
+                    <span className="text-[7px] font-mono text-[var(--text-secondary)]">{p.service}</span>
+                    {p.product && <span className="text-[6px] font-mono text-[var(--text-muted)]">{p.product} {p.version}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {results.certificate && (
+            <div>
+              <span className="text-[7px] font-mono text-[var(--gold-primary)] tracking-widest">SSL CERTIFICATE</span>
+              {results.certificate.subject && <ResultField label="SUBJECT" value={results.certificate.subject} />}
+              {results.certificate.issuer && <ResultField label="ISSUER" value={results.certificate.issuer} />}
+              {results.certificate.not_after && <ResultField label="EXPIRES" value={results.certificate.not_after} />}
+            </div>
+          )}
+          {results.hops && (
+            <div>
+              <span className="text-[7px] font-mono text-[var(--gold-primary)] tracking-widest">TRACEROUTE ({results.hop_count} hops)</span>
+              <div className="mt-1 max-h-32 overflow-y-auto styled-scrollbar">
+                {results.hops.map((h: string, i: number) => (
+                  <div key={i} className="text-[6px] font-mono text-[var(--text-muted)]">{h}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return <pre className="text-[6px] font-mono text-[var(--text-muted)] overflow-auto max-h-40">{JSON.stringify(results, null, 2)}</pre>;
   };
 
@@ -227,6 +276,17 @@ export default function OsintPanel() {
               ))}
             </div>
 
+            {/* Scan type selector for NMAP tab */}
+            {activeTab === 'scanner' && (
+              <div className="flex gap-0.5 mb-2">
+                {['quick', 'ports', 'ssl', 'traceroute', 'headers'].map(t => (
+                  <button key={t} onClick={() => setScanType(t)}
+                    className={`px-1.5 py-0.5 rounded text-[5px] font-mono tracking-wider ${scanType === t ? 'bg-[var(--gold-primary)]/15 text-[var(--gold-primary)] border border-[var(--gold-primary)]/30' : 'text-[var(--text-muted)] border border-transparent hover:text-[var(--text-primary)]'}`}
+                  >{t.toUpperCase()}</button>
+                ))}
+              </div>
+            )}
+
             {/* Search Input */}
             <div className="flex gap-1.5 mb-2">
               <input
@@ -269,7 +329,7 @@ export default function OsintPanel() {
             )}
 
             <div className="mt-2 text-center text-[5px] font-mono text-[var(--text-muted)]/50 tracking-widest">
-              OSIRIS RECON v3.0 · NO API KEYS REQUIRED
+              OSIRIS RECON v3.0 · NMAP POWERED SCANNER
             </div>
           </motion.div>
         )}
