@@ -57,18 +57,18 @@ export default function Dashboard() {
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastGeocodedPos = useRef<{ lat: number; lng: number } | null>(null);
 
-  // ── DEFAULT: Most layers OFF — don't flood the user ──
+  // ── DEFAULT: Most layers OFF — fast initial load ──
   const [activeLayers, setActiveLayers] = useState({
     flights: false,
     private: false,
     jets: false,
     military: false,
     satellites: false,
-    cctv: true,
+    cctv: false,
     earthquakes: true,
     fires: false,
-    weather: true,
-    infrastructure: true,
+    weather: false,
+    infrastructure: false,
     global_incidents: false,
     gps_jamming: false,
     day_night: true,
@@ -179,7 +179,7 @@ export default function Dashboard() {
     } catch {} finally { setDossierLoading(false); }
   }, []);
 
-  // ── PROGRESSIVE DATA LOADING ──
+  // ── PROGRESSIVE DATA LOADING (performance-optimized) ──
   useEffect(() => {
     const fetchEndpoint = async (url: string, transform?: (d: any) => any) => {
       try {
@@ -194,60 +194,70 @@ export default function Dashboard() {
       } catch { setBackendStatus('error'); }
     };
 
-    // Priority 1: Lightweight feeds first
+    // Priority 1: Core lightweight feeds (always load)
     fetchEndpoint('/api/earthquakes');
     fetchEndpoint('/api/news');
-    setTimeout(() => fetchEndpoint('/api/markets'), 500);
+    setTimeout(() => fetchEndpoint('/api/markets'), 800);
 
-    // Priority 2: Flights — 2s delay
-    setTimeout(() => fetchEndpoint('/api/flights'), 2000);
+    // Priority 2: Visual layers (stagger by 2s+)
+    setTimeout(() => {
+      if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
+        fetchEndpoint('/api/flights');
+      }
+    }, 3000);
 
-    // Priority 3: CCTV — start with UK (TfL = most reliable)
-    setTimeout(() => fetchEndpoint('/api/cctv?region=uk'), 3000);
+    // Priority 3: CCTV — only if enabled
+    setTimeout(() => {
+      if (activeLayers.cctv) fetchEndpoint('/api/cctv?region=uk');
+    }, 4000);
 
-    // Priority 4: Fires + Sats — 5s delay
-    setTimeout(() => fetchEndpoint('/api/fires'), 5000);
-    setTimeout(() => fetchEndpoint('/api/satellites'), 6000);
+    // Priority 4: Secondary layers — 6s+
+    setTimeout(() => {
+      if (activeLayers.fires) fetchEndpoint('/api/fires');
+    }, 6000);
+    setTimeout(() => {
+      if (activeLayers.satellites) fetchEndpoint('/api/satellites');
+    }, 7000);
 
-    // Priority 5: GDELT — 8s delay
+    // Priority 5: Heavy layers — 8s+
     setTimeout(() => fetchEndpoint('/api/gdelt', d => ({ gdelt: d.events })), 8000);
+    setTimeout(() => fetchEndpoint('/api/weather', d => ({ weather_events: d.events })), 5000);
+    setTimeout(() => fetchEndpoint('/api/infrastructure', d => ({ infrastructure: d.infrastructure })), 5500);
 
-    // Priority 6: Weather (NASA EONET) + Infrastructure — 4s delay
-    setTimeout(() => fetchEndpoint('/api/weather', d => ({ weather_events: d.events })), 4000);
-    setTimeout(() => fetchEndpoint('/api/infrastructure', d => ({ infrastructure: d.infrastructure })), 4500);
-
-    // Priority 7: Space Weather + Air Quality — 7s delay
+    // Priority 6: Space Weather + Air Quality — 10s+
     setTimeout(async () => {
       try {
         const r = await fetch('/api/space-weather');
         if (r.ok) setSpaceWeather(await r.json());
       } catch {}
-    }, 7000);
-    setTimeout(() => fetchEndpoint('/api/air-quality', d => ({ air_quality: d.stations })), 9000);
+    }, 10000);
 
-    // Polling
+    // Polling — RELAXED intervals to reduce load
     const intervals = [
-      setInterval(() => fetchEndpoint('/api/flights'), 60000),
-      setInterval(() => fetchEndpoint('/api/earthquakes'), 120000),
-      setInterval(() => fetchEndpoint('/api/news'), 300000),
-      setInterval(() => fetchEndpoint('/api/markets'), 120000),
-      setInterval(() => fetchEndpoint('/api/fires'), 600000),
-      setInterval(() => fetchEndpoint('/api/weather', d => ({ weather_events: d.events })), 1800000),
-      setInterval(async () => { try { const r = await fetch('/api/space-weather'); if (r.ok) setSpaceWeather(await r.json()); } catch {} }, 300000),
+      setInterval(() => {
+        if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
+          fetchEndpoint('/api/flights');
+        }
+      }, 120000), // 2 min (was 60s)
+      setInterval(() => fetchEndpoint('/api/earthquakes'), 300000),  // 5 min (was 2 min)
+      setInterval(() => fetchEndpoint('/api/news'), 600000),         // 10 min (was 5 min)
+      setInterval(() => fetchEndpoint('/api/markets'), 300000),      // 5 min (was 2 min)
+      setInterval(() => {
+        if (activeLayers.fires) fetchEndpoint('/api/fires');
+      }, 900000), // 15 min (was 10 min)
     ];
     return () => intervals.forEach(clearInterval);
   }, []);
 
   // ── VIEWPORT-AWARE CCTV LOADING ──
-  // Reload cameras when the user pans to a new region
   const lastCctvRegion = useRef('');
   useEffect(() => {
     if (!activeLayers.cctv || !mouseCoords) return;
     const timer = setTimeout(async () => {
-      // Build region query from current view center
       const lat = mouseCoords.lat;
       const lng = mouseCoords.lng;
-      const regionKey = `${Math.round(lat/10)}_${Math.round(lng/10)}`;
+      // Larger region buckets (20° instead of 10°) — fewer fetches
+      const regionKey = `${Math.round(lat/20)}_${Math.round(lng/20)}`;
       if (regionKey === lastCctvRegion.current) return;
       lastCctvRegion.current = regionKey;
       
@@ -255,7 +265,6 @@ export default function Dashboard() {
         const res = await fetch(`/api/cctv?lat=${lat}&lng=${lng}&radius=10`);
         if (res.ok) {
           const json = await res.json();
-          // Merge with existing cameras (don't lose ones already loaded)
           const existing = dataRef.current.cameras || [];
           const existingIds = new Set(existing.map((c: any) => c.id));
           const newCams = json.cameras.filter((c: any) => !existingIds.has(c.id));
@@ -266,7 +275,7 @@ export default function Dashboard() {
           setDataVersion(v => v + 1);
         }
       } catch {}
-    }, 2000);
+    }, 5000); // 5s debounce (was 2s)
     return () => clearTimeout(timer);
   }, [mouseCoords?.lat, mouseCoords?.lng, activeLayers.cctv]);
 
