@@ -10,6 +10,9 @@ import SearchBar from '@/components/SearchBar';
 import ScaleBar from '@/components/ScaleBar';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import CameraViewer from '@/components/CameraViewer';
+import SharePanel from '@/components/SharePanel';
+import ViewPresets from '@/components/ViewPresets';
+import KeyboardShortcuts from '@/components/KeyboardShortcuts';
 
 const OsirisMap = dynamic(() => import('@/components/OsirisMap'), { ssr: false });
 
@@ -28,6 +31,11 @@ export default function Dashboard() {
   const [showSplash, setShowSplash] = useState(true);
   const [uptime, setUptime] = useState('00:00:00');
   const [activeCamera, setActiveCamera] = useState<any>(null);
+  const [spaceWeather, setSpaceWeather] = useState<any>(null);
+  const [showLayers, setShowLayers] = useState(true);
+  const [showMarkets, setShowMarkets] = useState(true);
+  const [showIntel, setShowIntel] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const startTime = useRef(Date.now());
   const geocodeCache = useRef<Map<string, string>>(new Map());
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,6 +69,63 @@ export default function Dashboard() {
 
   // Splash screen
   useEffect(() => { setTimeout(() => setShowSplash(false), 2500); }, []);
+
+  // URL state: parse on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const p = new URLSearchParams(window.location.search);
+    const lat = parseFloat(p.get('lat') || '');
+    const lon = parseFloat(p.get('lon') || '');
+    const zoom = parseFloat(p.get('zoom') || '');
+    if (!isNaN(lat) && !isNaN(lon)) {
+      setFlyToLocation({ lat, lng: lon, ts: Date.now() });
+      if (!isNaN(zoom)) setMapView(v => ({ ...v, zoom }));
+    }
+    const layers = p.get('layers');
+    if (layers) {
+      const active = layers.split(',');
+      setActiveLayers(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(k => { (next as any)[k] = active.includes(k); });
+        return next;
+      });
+    }
+  }, []);
+
+  // URL state: update URL on view change (debounced)
+  const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (urlTimer.current) clearTimeout(urlTimer.current);
+    urlTimer.current = setTimeout(() => {
+      const p = new URLSearchParams();
+      p.set('lat', (mouseCoords?.lat ?? mapView.latitude ?? 20).toFixed(4));
+      p.set('lon', (mouseCoords?.lng ?? 0).toFixed(4));
+      p.set('zoom', mapView.zoom.toFixed(2));
+      const active = Object.entries(activeLayers).filter(([,v]) => v).map(([k]) => k).join(',');
+      p.set('layers', active);
+      const url = `${window.location.pathname}?${p.toString()}`;
+      window.history.replaceState(null, '', url);
+    }, 1500);
+  }, [mapView, activeLayers, mouseCoords]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as Element)?.tagName)) return;
+      if (e.key === 'f' && !e.ctrlKey) {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+        setIsFullscreen(!!document.fullscreenElement);
+      }
+      if (e.key === 'l') setShowLayers(p => !p);
+      if (e.key === 'm') setShowMarkets(p => !p);
+      if (e.key === 'i') setShowIntel(p => !p);
+      if (e.key === 'r') setFlyToLocation({ lat: 20, lng: 0, ts: Date.now() });
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   // Mouse coords + reverse geocode
   const handleMouseCoords = useCallback((coords: { lat: number; lng: number }) => {
@@ -134,6 +199,15 @@ export default function Dashboard() {
     setTimeout(() => fetchEndpoint('/api/weather', d => ({ weather_events: d.events })), 4000);
     setTimeout(() => fetchEndpoint('/api/infrastructure', d => ({ infrastructure: d.infrastructure })), 4500);
 
+    // Priority 7: Space Weather + Air Quality — 7s delay
+    setTimeout(async () => {
+      try {
+        const r = await fetch('/api/space-weather');
+        if (r.ok) setSpaceWeather(await r.json());
+      } catch {}
+    }, 7000);
+    setTimeout(() => fetchEndpoint('/api/air-quality', d => ({ air_quality: d.stations })), 9000);
+
     // Polling
     const intervals = [
       setInterval(() => fetchEndpoint('/api/flights'), 60000),
@@ -142,6 +216,7 @@ export default function Dashboard() {
       setInterval(() => fetchEndpoint('/api/markets'), 120000),
       setInterval(() => fetchEndpoint('/api/fires'), 600000),
       setInterval(() => fetchEndpoint('/api/weather', d => ({ weather_events: d.events })), 1800000),
+      setInterval(async () => { try { const r = await fetch('/api/space-weather'); if (r.ok) setSpaceWeather(await r.json()); } catch {} }, 300000),
     ];
     return () => intervals.forEach(clearInterval);
   }, []);
@@ -231,29 +306,38 @@ export default function Dashboard() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="absolute top-4 right-5 z-[200] pointer-events-none flex items-center gap-4 text-[7px] font-mono tracking-widest text-[var(--text-muted)]">
         <span>SYS: <span className={backendStatus === 'connected' ? 'text-[var(--alert-green)]' : 'text-[var(--alert-red)]'}>{backendStatus.toUpperCase()}</span></span>
         <span>THREAT: <span style={{ color: threatColor, fontWeight: 700 }}>{threatLevel}</span></span>
+        {spaceWeather && <span>SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>Kp{spaceWeather.kp_index}</span></span>}
         <span>UPTIME: <span className="text-[var(--gold-primary)]">{uptime}</span></span>
-        <span>V1.3.0</span>
+        <span>V2.0.0</span>
       </motion.div>
 
       {/* ── LEFT HUD ── */}
       <div className="absolute left-5 top-20 bottom-24 w-72 flex flex-col gap-3 z-[200] pointer-events-none overflow-y-auto styled-scrollbar pr-1">
-        <LayerPanel data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} />
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="glass-panel px-3 py-2.5 pointer-events-auto">
-          <div className="grid grid-cols-5 gap-2 text-center">
-            <div><div className="hud-label">AIRCRAFT</div><div className="hud-value text-[10px]">{totalFlights.toLocaleString()}</div></div>
-            <div><div className="hud-label">SATS</div><div className="hud-value text-[10px]">{(data.satellites?.length||0).toLocaleString()}</div></div>
-            <div><div className="hud-label">CCTV</div><div className="hud-value text-[10px]">{(data.cameras?.length||0).toLocaleString()}</div></div>
-            <div><div className="hud-label">WEATHER</div><div className="hud-value text-[10px]" style={{ color: '#E040FB' }}>{(data.weather_events?.length||0)}</div></div>
-            <div><div className="hud-label">NUCLEAR</div><div className="hud-value text-[10px]" style={{ color: '#76FF03' }}>{(data.infrastructure?.length||0)}</div></div>
-          </div>
-        </motion.div>
+        {showLayers && (
+          <>
+            <LayerPanel data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} />
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="glass-panel px-3 py-2.5 pointer-events-auto">
+              <div className="grid grid-cols-5 gap-2 text-center">
+                <div><div className="hud-label">AIRCRAFT</div><div className="hud-value text-[10px]">{totalFlights.toLocaleString()}</div></div>
+                <div><div className="hud-label">SATS</div><div className="hud-value text-[10px]">{(data.satellites?.length||0).toLocaleString()}</div></div>
+                <div><div className="hud-label">CCTV</div><div className="hud-value text-[10px]">{(data.cameras?.length||0).toLocaleString()}</div></div>
+                <div><div className="hud-label">WEATHER</div><div className="hud-value text-[10px]" style={{ color: '#E040FB' }}>{(data.weather_events?.length||0)}</div></div>
+                <div><div className="hud-label">NUCLEAR</div><div className="hud-value text-[10px]" style={{ color: '#76FF03' }}>{(data.infrastructure?.length||0)}</div></div>
+              </div>
+            </motion.div>
+            <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMapView(v => ({ ...v, zoom })); }} />
+          </>
+        )}
       </div>
 
       {/* ── RIGHT HUD ── */}
       <div className="absolute right-5 top-20 bottom-24 w-80 flex flex-col gap-3 z-[200] pointer-events-auto overflow-y-auto styled-scrollbar pr-1">
-        <SearchBar onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />
-        <MarketsPanel data={data} />
-        <IntelFeed data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />
+        <div className="flex gap-2 items-start">
+          <div className="flex-1"><SearchBar onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} /></div>
+          <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} /></div>
+        </div>
+        {showMarkets && <MarketsPanel data={data} spaceWeather={spaceWeather} />}
+        {showIntel && <IntelFeed data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />}
       </div>
 
       {/* ── BOTTOM CENTER ── */}
@@ -332,6 +416,14 @@ export default function Dashboard() {
           <div className={`absolute ${pos.includes('top') ? 'top-0' : 'bottom-0'} ${pos.includes('left') ? 'left-0' : 'right-0'} w-[1px] h-full bg-gradient-to-${pos.includes('top') ? 'b' : 't'} from-[var(--gold-primary)]/30 to-transparent`} />
         </div>
       ))}
+
+      {/* Keyboard Shortcuts Overlay */}
+      <KeyboardShortcuts />
+
+      {/* Shortcut hint */}
+      <div className="absolute bottom-2 right-5 z-[200] pointer-events-none text-[6px] font-mono text-[var(--text-muted)]/40 tracking-widest">
+        [?] SHORTCUTS · [F] FULLSCREEN · [S] SHARE · [R] RESET VIEW
+      </div>
     </main>
   );
 }
