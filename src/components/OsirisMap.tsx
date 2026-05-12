@@ -125,11 +125,22 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
         'circle-color': '#FF6B00', 'circle-opacity': 0.5, 'circle-blur': 0.5,
       }});
 
-      // CCTV
-      map.addLayer({ id: 'cctv-dots', type: 'circle', source: 'cctv', paint: {
-        'circle-radius': ['interpolate',['linear'],['zoom'], 1,2, 8,4, 14,8],
-        'circle-color': '#39FF14', 'circle-opacity': 0.6, 'circle-stroke-width': 1, 'circle-stroke-color': '#39FF14', 'circle-stroke-opacity': 0.3,
+      // CCTV — outer glow ring
+      map.addLayer({ id: 'cctv-glow', type: 'circle', source: 'cctv', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,5, 5,8, 10,14, 14,20],
+        'circle-color': '#39FF14', 'circle-opacity': 0.08, 'circle-blur': 1,
       }});
+      // CCTV — main dot
+      map.addLayer({ id: 'cctv-dots', type: 'circle', source: 'cctv', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,3, 5,5, 10,8, 14,12],
+        'circle-color': '#39FF14', 'circle-opacity': 0.8,
+        'circle-stroke-width': 2, 'circle-stroke-color': '#39FF14', 'circle-stroke-opacity': 0.5,
+      }});
+      // CCTV — labels at zoom 10+
+      map.addLayer({ id: 'cctv-label', type: 'symbol', source: 'cctv', minzoom: 10, layout: {
+        'text-field': ['get','name'], 'text-size': 9, 'text-font': ['Open Sans Regular'],
+        'text-offset': [0, 1.8], 'text-max-width': 12, 'text-allow-overlap': false,
+      }, paint: { 'text-color': '#39FF14', 'text-halo-color': '#000', 'text-halo-width': 1, 'text-opacity': 0.7 }});
 
       // GDELT
       map.addLayer({ id: 'gdelt-dots', type: 'circle', source: 'gdelt', paint: {
@@ -209,20 +220,25 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
     });
 
-    // ── CCTV (with live feed + open link) ──
+    // ── CCTV (opens CameraViewer panel) ──
     map.on('click', 'cctv-dots', e => {
       if (!e.features?.length) return;
       const p = e.features[0].properties as any;
       const coords = (e.features[0].geometry as any).coordinates;
-      popup(coords, `<div style="${pStyle}border:1px solid rgba(57,255,20,0.3);">
-        <div style="color:#39FF14;font-size:12px;font-weight:700;letter-spacing:0.1em;margin-bottom:4px;">📷 ${p.name}</div>
-        <div style="font-size:8px;color:#9B978E;margin-bottom:8px;">${p.city}, ${p.country} · ${p.source}</div>
-        ${p.feed_url ? `<img src="${p.feed_url}" style="width:100%;border-radius:4px;border:1px solid rgba(57,255,20,0.2);margin-bottom:8px;" onerror="this.parentElement.querySelector('.img-err').style.display='block';this.style.display='none'" /><div class="img-err" style="display:none;font-size:8px;color:#666;text-align:center;padding:12px;">Camera feed unavailable</div>` : ''}
-        <div style="display:flex;gap:6px;">
-          ${p.feed_url ? `<a href="${p.feed_url}" target="_blank" style="${linkStyle}color:#39FF14;border:1px solid rgba(57,255,20,0.4);background:rgba(57,255,20,0.1);">🔗 OPEN FEED</a>` : ''}
-          <a href="https://www.google.com/maps/@${coords[1]},${coords[0]},17z" target="_blank" style="${linkStyle}color:#448AFF;border:1px solid rgba(68,138,255,0.4);background:rgba(68,138,255,0.1);">🗺️ STREET VIEW</a>
-        </div>
-      </div>`);
+      // Emit the camera data so the CameraViewer opens
+      onEntityClick?.({
+        type: 'cctv',
+        id: p.id,
+        name: p.name,
+        city: p.city,
+        country: p.country,
+        source: p.source,
+        feed_url: p.feed_url,
+        lat: coords[1],
+        lng: coords[0],
+      });
+      // Also fly to the camera
+      map.flyTo({ center: coords, zoom: Math.max(map.getZoom(), 13), duration: 1000 });
     });
 
     // ── Earthquakes (with USGS link) ──
@@ -358,7 +374,7 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
     setVis(['fl-private'], activeLayers.private);
     setVis(['fl-jets'], activeLayers.jets);
     setVis(['fl-military'], activeLayers.military);
-    setVis(['cctv-dots'], activeLayers.cctv);
+    setVis(['cctv-glow','cctv-dots','cctv-label'], activeLayers.cctv);
     setVis(['fires-heat'], activeLayers.fires);
   }, [mapReady, activeLayers]);
 

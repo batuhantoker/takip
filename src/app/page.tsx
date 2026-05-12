@@ -9,6 +9,7 @@ import MarketsPanel from '@/components/MarketsPanel';
 import SearchBar from '@/components/SearchBar';
 import ScaleBar from '@/components/ScaleBar';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import CameraViewer from '@/components/CameraViewer';
 
 const OsirisMap = dynamic(() => import('@/components/OsirisMap'), { ssr: false });
 
@@ -26,6 +27,7 @@ export default function Dashboard() {
   const [dossierLoading, setDossierLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [uptime, setUptime] = useState('00:00:00');
+  const [activeCamera, setActiveCamera] = useState<any>(null);
   const startTime = useRef(Date.now());
   const geocodeCache = useRef<Map<string, string>>(new Map());
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,7 +40,7 @@ export default function Dashboard() {
     jets: false,
     military: false,
     satellites: false,
-    cctv: false,
+    cctv: true,
     earthquakes: true,
     fires: false,
     global_incidents: false,
@@ -93,9 +95,9 @@ export default function Dashboard() {
     } catch {} finally { setDossierLoading(false); }
   }, []);
 
-  // ── PROGRESSIVE DATA LOADING — staggered fetches ──
+  // ── PROGRESSIVE DATA LOADING ──
   useEffect(() => {
-    const fetchEndpoint = async (url: string, key: string, transform?: (d: any) => any) => {
+    const fetchEndpoint = async (url: string, transform?: (d: any) => any) => {
       try {
         const res = await fetch(url);
         if (res.ok) {
@@ -108,37 +110,66 @@ export default function Dashboard() {
       } catch { setBackendStatus('error'); }
     };
 
-    // Priority 1: Earthquakes + News (lightweight, immediate value)
-    fetchEndpoint('/api/earthquakes', 'eq');
-    fetchEndpoint('/api/news', 'news');
+    // Priority 1: Lightweight feeds first
+    fetchEndpoint('/api/earthquakes');
+    fetchEndpoint('/api/news');
+    setTimeout(() => fetchEndpoint('/api/markets'), 500);
 
-    // Priority 2: Markets (small payload) — 500ms delay
-    setTimeout(() => fetchEndpoint('/api/markets', 'markets'), 500);
+    // Priority 2: Flights — 2s delay
+    setTimeout(() => fetchEndpoint('/api/flights'), 2000);
 
-    // Priority 3: Flights (large payload) — 1.5s delay
-    setTimeout(() => fetchEndpoint('/api/flights', 'flights'), 1500);
+    // Priority 3: CCTV — start with UK (TfL = most reliable)
+    setTimeout(() => fetchEndpoint('/api/cctv?region=uk'), 3000);
 
-    // Priority 4: CCTV + Fires — 3s delay
-    setTimeout(() => fetchEndpoint('/api/cctv', 'cctv'), 3000);
-    setTimeout(() => fetchEndpoint('/api/fires', 'fires'), 3500);
+    // Priority 4: Fires + Sats — 5s delay
+    setTimeout(() => fetchEndpoint('/api/fires'), 5000);
+    setTimeout(() => fetchEndpoint('/api/satellites'), 6000);
 
-    // Priority 5: Satellites + GDELT — 5s delay
-    setTimeout(() => fetchEndpoint('/api/satellites', 'sats'), 5000);
-    setTimeout(() => fetchEndpoint('/api/gdelt', 'gdelt', d => ({ gdelt: d.events })), 6000);
+    // Priority 5: GDELT — 8s delay
+    setTimeout(() => fetchEndpoint('/api/gdelt', d => ({ gdelt: d.events })), 8000);
 
-    // Polling intervals (after initial load)
+    // Polling
     const intervals = [
-      setInterval(() => fetchEndpoint('/api/flights', 'flights'), 60000),
-      setInterval(() => fetchEndpoint('/api/earthquakes', 'eq'), 120000),
-      setInterval(() => fetchEndpoint('/api/satellites', 'sats'), 120000),
-      setInterval(() => fetchEndpoint('/api/news', 'news'), 300000),
-      setInterval(() => fetchEndpoint('/api/markets', 'markets'), 120000),
-      setInterval(() => fetchEndpoint('/api/cctv', 'cctv'), 300000),
-      setInterval(() => fetchEndpoint('/api/fires', 'fires'), 600000),
-      setInterval(() => fetchEndpoint('/api/gdelt', 'gdelt', d => ({ gdelt: d.events })), 600000),
+      setInterval(() => fetchEndpoint('/api/flights'), 60000),
+      setInterval(() => fetchEndpoint('/api/earthquakes'), 120000),
+      setInterval(() => fetchEndpoint('/api/news'), 300000),
+      setInterval(() => fetchEndpoint('/api/markets'), 120000),
+      setInterval(() => fetchEndpoint('/api/fires'), 600000),
     ];
     return () => intervals.forEach(clearInterval);
   }, []);
+
+  // ── VIEWPORT-AWARE CCTV LOADING ──
+  // Reload cameras when the user pans to a new region
+  const lastCctvRegion = useRef('');
+  useEffect(() => {
+    if (!activeLayers.cctv || !mouseCoords) return;
+    const timer = setTimeout(async () => {
+      // Build region query from current view center
+      const lat = mouseCoords.lat;
+      const lng = mouseCoords.lng;
+      const regionKey = `${Math.round(lat/10)}_${Math.round(lng/10)}`;
+      if (regionKey === lastCctvRegion.current) return;
+      lastCctvRegion.current = regionKey;
+      
+      try {
+        const res = await fetch(`/api/cctv?lat=${lat}&lng=${lng}&radius=10`);
+        if (res.ok) {
+          const json = await res.json();
+          // Merge with existing cameras (don't lose ones already loaded)
+          const existing = dataRef.current.cameras || [];
+          const existingIds = new Set(existing.map((c: any) => c.id));
+          const newCams = json.cameras.filter((c: any) => !existingIds.has(c.id));
+          dataRef.current = {
+            ...dataRef.current,
+            cameras: [...existing, ...newCams],
+          };
+          setDataVersion(v => v + 1);
+        }
+      } catch {}
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [mouseCoords?.lat, mouseCoords?.lng, activeLayers.cctv]);
 
   const totalFlights = (data.commercial_flights?.length||0)+(data.private_flights?.length||0)+(data.private_jets?.length||0)+(data.military_flights?.length||0);
 
@@ -161,7 +192,9 @@ export default function Dashboard() {
 
       {/* ── MAP ── */}
       <ErrorBoundary name="Map">
-        <OsirisMap data={data} activeLayers={activeLayers} onEntityClick={() => {}} onMouseCoords={handleMouseCoords} onRightClick={handleRightClick} onViewStateChange={setMapView} flyToLocation={flyToLocation} />
+        <OsirisMap data={data} activeLayers={activeLayers} onEntityClick={(entity) => {
+          if (entity?.type === 'cctv') setActiveCamera(entity);
+        }} onMouseCoords={handleMouseCoords} onRightClick={handleRightClick} onViewStateChange={setMapView} flyToLocation={flyToLocation} />
       </ErrorBoundary>
 
       {/* ── HEADER ── */}
@@ -264,6 +297,13 @@ export default function Dashboard() {
           </div>
         </motion.div>
       )}
+
+      {/* ── Camera Viewer ── */}
+      <CameraViewer
+        camera={activeCamera}
+        onClose={() => setActiveCamera(null)}
+        onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })}
+      />
 
       {/* ── OVERLAYS ── */}
       <div className="vignette absolute inset-0 pointer-events-none z-[2]" />
