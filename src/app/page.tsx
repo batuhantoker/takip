@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X } from 'lucide-react';
+import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned } from 'lucide-react';
 import LayerPanel from '@/components/LayerPanel';
 import IntelFeed from '@/components/IntelFeed';
 import MarketsPanel from '@/components/MarketsPanel';
@@ -50,6 +50,7 @@ export default function Dashboard() {
   const [showIntel, setShowIntel] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<'layers'|'markets'|'intel'|'search'|null>(null);
+  const [mapProjection, setMapProjection] = useState<'globe'|'mercator'>('globe');
   const isMobile = useIsMobile();
   const startTime = useRef(Date.now());
   const geocodeCache = useRef<Map<string, string>>(new Map());
@@ -137,6 +138,7 @@ export default function Dashboard() {
       if (e.key === 'm') setShowMarkets(p => !p);
       if (e.key === 'i') setShowIntel(p => !p);
       if (e.key === 'r') setFlyToLocation({ lat: 20, lng: 0, ts: Date.now() });
+      if (e.key === 'g') setMapProjection(p => p === 'globe' ? 'mercator' : 'globe');
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -297,10 +299,27 @@ export default function Dashboard() {
 
       {/* ── MAP ── */}
       <ErrorBoundary name="Map">
-        <OsirisMap data={data} activeLayers={activeLayers} onEntityClick={(entity) => {
+        <OsirisMap data={data} activeLayers={activeLayers} projection={mapProjection} onEntityClick={(entity) => {
           if (entity?.type === 'cctv') setActiveCamera(entity);
         }} onMouseCoords={handleMouseCoords} onRightClick={handleRightClick} onViewStateChange={setMapView} flyToLocation={flyToLocation} />
       </ErrorBoundary>
+
+      {/* ── 3D/2D TOGGLE ── */}
+      <motion.button
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.5 }}
+        onClick={() => setMapProjection(p => p === 'globe' ? 'mercator' : 'globe')}
+        className="absolute bottom-20 md:bottom-24 left-3 md:left-5 z-[200] glass-panel p-2 pointer-events-auto hover:border-[var(--gold-primary)]/40 transition-colors group"
+        title={mapProjection === 'globe' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
+      >
+        {mapProjection === 'globe' ? (
+          <MapPinned className="w-4 h-4 text-[var(--gold-primary)] group-hover:scale-110 transition-transform" />
+        ) : (
+          <Globe className="w-4 h-4 text-[var(--cyan-primary)] group-hover:scale-110 transition-transform" />
+        )}
+        <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-[7px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+          {mapProjection === 'globe' ? '2D MAP' : '3D GLOBE'}
+        </span>
+      </motion.button>
 
       {/* ── HEADER ── */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 2.5 }} className={`absolute top-3 left-3 md:top-5 md:left-5 z-[200] pointer-events-none flex items-center gap-2 md:gap-3`}>

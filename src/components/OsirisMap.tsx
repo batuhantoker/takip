@@ -12,6 +12,7 @@ interface OsirisMapProps {
   onRightClick?: (coords: { lat: number; lng: number }) => void;
   onViewStateChange?: (vs: { zoom: number; latitude: number }) => void;
   flyToLocation?: { lat: number; lng: number; ts: number } | null;
+  projection?: 'mercator' | 'globe';
 }
 
 function computeSolarTerminator(): [number, number][] {
@@ -36,7 +37,7 @@ function computeSolarTerminator(): [number, number][] {
 
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] };
 
-export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, flyToLocation }: OsirisMapProps) {
+export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, flyToLocation, projection = 'globe' }: OsirisMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -85,6 +86,39 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
       style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       center: [20, 20], zoom: 2.5, minZoom: 1.5, maxZoom: 18,
       attributionControl: false, antialias: true,
+      pitch: projection === 'globe' ? 20 : 0,
+      maxPitch: 85,
+    });
+
+    // Set projection
+    map.once('style.load', () => {
+      try {
+        (map as any).setProjection({ type: projection });
+        // Add 3D terrain from Maptiler (free tier)
+        if (!map.getSource('terrain-source')) {
+          map.addSource('terrain-source', {
+            type: 'raster-dem',
+            url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json',
+            tileSize: 256,
+          });
+          map.setTerrain({ source: 'terrain-source', exaggeration: 1.5 });
+        }
+        // Atmosphere / sky for globe mode
+        if (projection === 'globe') {
+          try {
+            (map as any).setSky({
+              'sky-color': '#04040A',
+              'sky-horizon-blend': 0.4,
+              'horizon-color': '#0a0a1a',
+              'horizon-fog-blend': 0.2,
+              'fog-color': '#04040A',
+              'fog-ground-blend': 0.8,
+            });
+          } catch {}
+        }
+      } catch(e) {
+        console.warn('Globe/terrain not supported:', e);
+      }
     });
 
     map.on('load', () => {
