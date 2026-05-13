@@ -488,7 +488,13 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   {liveFeedUrl && (
                     <a
-                      href={liveFeedUrl.includes('/embed/') ? `https://www.youtube.com/watch?v=${liveFeedUrl.split('/embed/')[1].split('?')[0]}` : liveFeedUrl}
+                      href={
+                        liveFeedUrl.includes('channel=')
+                          ? `https://www.youtube.com/channel/${liveFeedUrl.split('channel=')[1].split('&')[0]}/live`
+                          : liveFeedUrl.includes('/embed/')
+                          ? `https://www.youtube.com/watch?v=${liveFeedUrl.split('/embed/')[1].split('?')[0]}`
+                          : liveFeedUrl
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--border-primary)] hover:bg-[var(--gold-primary)] hover:text-black text-white transition-colors text-[11px] font-mono"
