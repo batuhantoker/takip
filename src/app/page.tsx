@@ -358,39 +358,43 @@ export default function Dashboard() {
         }} onMouseCoords={handleMouseCoords} onRightClick={handleRightClick} onViewStateChange={setMapView} flyToLocation={flyToLocation} />
       </ErrorBoundary>
 
-      {/* ── 3D/2D TOGGLE ── */}
-      <motion.button
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.5 }}
-        onClick={() => setMapProjection(p => p === 'globe' ? 'mercator' : 'globe')}
-        className="absolute bottom-[75px] md:bottom-24 left-3 md:left-5 z-[200] glass-panel p-2 pointer-events-auto hover:border-[var(--gold-primary)]/40 transition-colors group"
-        title={mapProjection === 'globe' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
+      {/* ── MAP VIEW CONTROLS (3D/2D + SATELLITE TOGGLE) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3.5 }}
+        className="absolute bottom-[75px] md:bottom-6 left-3 md:left-[315px] z-[200] flex items-center gap-2 pointer-events-none"
       >
-        {mapProjection === 'globe' ? (
-          <MapPinned className="w-4 h-4 text-[var(--gold-primary)] group-hover:scale-110 transition-transform" />
-        ) : (
-          <Globe className="w-4 h-4 text-[var(--cyan-primary)] group-hover:scale-110 transition-transform" />
-        )}
-        <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-[7px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-          {mapProjection === 'globe' ? '2D MAP' : '3D GLOBE'}
-        </span>
-      </motion.button>
+        {/* 3D/2D Toggle */}
+        <button
+          onClick={() => setMapProjection(p => p === 'globe' ? 'mercator' : 'globe')}
+          className="glass-panel p-2.5 pointer-events-auto hover:border-[var(--gold-primary)]/40 transition-colors group relative"
+          title={mapProjection === 'globe' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
+        >
+          {mapProjection === 'globe' ? (
+            <MapPinned className="w-4 h-4 text-[var(--gold-primary)] group-hover:scale-110 transition-transform" />
+          ) : (
+            <Globe className="w-4 h-4 text-[var(--cyan-primary)] group-hover:scale-110 transition-transform" />
+          )}
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 text-[9px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity glass-panel px-2 py-1 z-[300]">
+            {mapProjection === 'globe' ? '2D MAP' : '3D GLOBE'}
+          </span>
+        </button>
 
-      {/* ── MAP STYLE TOGGLE ── */}
-      <motion.button
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.7 }}
-        onClick={() => setMapStyle(s => s === 'dark' ? 'satellite' : 'dark')}
-        className="absolute bottom-[120px] md:bottom-36 left-3 md:left-5 z-[200] glass-panel p-2 pointer-events-auto hover:border-[var(--gold-primary)]/40 transition-colors group"
-        title={mapStyle === 'dark' ? 'Satellite View' : 'Night View'}
-      >
-        {mapStyle === 'dark' ? (
-          <Satellite className="w-4 h-4 text-[var(--alert-green)] group-hover:scale-110 transition-transform" />
-        ) : (
-          <Moon className="w-4 h-4 text-[var(--cyan-primary)] group-hover:scale-110 transition-transform" />
-        )}
-        <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-          {mapStyle === 'dark' ? 'SATELLITE' : 'NIGHT MODE'}
-        </span>
-      </motion.button>
+        {/* Map Style Toggle */}
+        <button
+          onClick={() => setMapStyle(s => s === 'dark' ? 'satellite' : 'dark')}
+          className="glass-panel p-2.5 pointer-events-auto hover:border-[var(--gold-primary)]/40 transition-colors group relative"
+          title={mapStyle === 'dark' ? 'Satellite View' : 'Night View'}
+        >
+          {mapStyle === 'dark' ? (
+            <Satellite className="w-4 h-4 text-[var(--alert-green)] group-hover:scale-110 transition-transform" />
+          ) : (
+            <Moon className="w-4 h-4 text-[var(--cyan-primary)] group-hover:scale-110 transition-transform" />
+          )}
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 text-[9px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity glass-panel px-2 py-1 z-[300]">
+            {mapStyle === 'dark' ? 'SATELLITE' : 'NIGHT MODE'}
+          </span>
+        </button>
+      </motion.div>
 
       {/* ── HEADER ── */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 2.5 }} className={`absolute top-3 left-3 md:top-5 md:left-5 z-[200] pointer-events-none flex items-center gap-2 md:gap-3`}>
