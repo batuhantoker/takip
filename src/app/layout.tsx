@@ -3,8 +3,8 @@ import "./globals.css";
 
 const SITE_URL = "https://osirisai.live";
 const SITE_NAME = "OSIRIS";
-const SITE_TITLE = "OSIRIS — Free OSINT Toolkit & Global Intelligence Dashboard | Nmap, DNS, WHOIS & More";
-const SITE_DESCRIPTION = "Run Nmap scans, DNS lookups, WHOIS queries, SSL cert analysis, BGP routing, and threat intelligence — all from your browser. No installs. Plus real-time tracking of 10,000+ aircraft, 2,000 satellites, worldwide CCTV cameras, earthquakes, wildfires, nuclear facilities & 20+ live intelligence feeds. Your Linux OSINT toolkit, in the cloud. Free & open source.";
+const SITE_TITLE = "OSIRIS — Open Source Intelligence Platform | Live Flight Tracking, CCTV, OSINT Tools & More";
+const SITE_DESCRIPTION = "The open-source Palantir alternative. Track 10,000+ aircraft, 2,000 satellites, and worldwide CCTV cameras in real-time on a 3D globe. Run Nmap scans, DNS lookups, WHOIS queries, SSL cert analysis & threat intelligence — all from your browser. 20+ live data feeds including earthquakes, wildfires, nuclear facilities, cyber threats, and global conflicts. Free & open source.";
 
 export const viewport: Viewport = {
   themeColor: "#D4AF37",
@@ -80,8 +80,8 @@ export const metadata: Metadata = {
     canonical: SITE_URL,
   },
   openGraph: {
-    title: "OSIRIS — Free OSINT Toolkit in Your Browser | Nmap, DNS, WHOIS + 20 Live Intel Feeds",
-    description: "Run Nmap port scans, DNS/WHOIS lookups, SSL cert analysis & threat intel — no installs needed. Plus track 10K+ aircraft, satellites, CCTV, earthquakes & nuclear facilities in real-time. Free. Open Source.",
+    title: "OSIRIS — The Open-Source Palantir Alternative | Live Flights, CCTV, Satellites & OSINT Tools",
+    description: "Track 10K+ aircraft, 2K satellites & worldwide CCTV on a 3D globe. Run Nmap, DNS, WHOIS & threat intel scans from your browser. 20+ live intelligence feeds. Free. Open source.",
     type: "website",
     siteName: SITE_NAME,
     locale: "en_US",
@@ -91,15 +91,15 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "OSIRIS — Free OSINT Toolkit & Global Intelligence Platform",
+        alt: "OSIRIS — Open Source Intelligence Platform with Live Tracking & OSINT Tools",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "🛰️ OSIRIS — Free OSINT Toolkit + Global Intel Dashboard",
-    description: "Nmap scans, DNS, WHOIS, SSL certs, threat intel — all in your browser. Plus 10K+ flights, satellites, CCTV, earthquakes & more. No installs. Free & open source.",
+    title: "🛰️ OSIRIS — Open Source Palantir Alternative | Live Tracking + OSINT Tools",
+    description: "Track 10K+ flights, satellites & CCTV worldwide. Run Nmap, DNS, WHOIS scans from your browser. 20+ live intel feeds. Free & open source.",
     creator: "@simplifaisoul",
     site: "@simplifaisoul",
     images: [`${SITE_URL}/og-image.png`],
