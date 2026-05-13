@@ -191,7 +191,7 @@ export default function Dashboard() {
     } catch {} finally { setDossierLoading(false); }
   }, []);
 
-  // ── PROGRESSIVE DATA LOADING (performance-optimized) ──
+  // ── PROGRESSIVE DATA LOADING (request-optimized) ──
   useEffect(() => {
     const fetchEndpoint = async (url: string, transform?: (d: any) => any) => {
       try {
@@ -206,60 +206,105 @@ export default function Dashboard() {
       } catch { setBackendStatus('error'); }
     };
 
-    // Priority 1: Core lightweight feeds (always load)
+    // Priority 1: Core feeds (always needed for panels)
     fetchEndpoint('/api/earthquakes');
     fetchEndpoint('/api/news');
     setTimeout(() => fetchEndpoint('/api/markets'), 800);
 
-    // Priority 2: Visual layers (stagger by 2s+)
-    setTimeout(() => {
-      if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
-        fetchEndpoint('/api/flights');
-      }
-    }, 3000);
-
-    // Priority 3: CCTV — only if enabled
-    setTimeout(() => {
-      if (activeLayers.cctv) fetchEndpoint('/api/cctv?region=uk');
-    }, 4000);
-
-    // Priority 4: Secondary layers — 6s+
-    setTimeout(() => {
-      if (activeLayers.fires) fetchEndpoint('/api/fires');
-    }, 6000);
-    setTimeout(() => {
-      if (activeLayers.satellites) fetchEndpoint('/api/satellites');
-    }, 7000);
-
-    // Priority 5: Heavy layers — 8s+
-    setTimeout(() => fetchEndpoint('/api/gdelt', d => ({ gdelt: d.events })), 8000);
-    setTimeout(() => fetchEndpoint('/api/weather', d => ({ weather_events: d.events })), 5000);
-    setTimeout(() => fetchEndpoint('/api/infrastructure', d => ({ infrastructure: d.infrastructure })), 5500);
-
-    // Priority 6: Space Weather + Air Quality — 10s+
+    // Priority 2: Space Weather (needed for MarketsPanel)
     setTimeout(async () => {
       try {
         const r = await fetch('/api/space-weather');
         if (r.ok) setSpaceWeather(await r.json());
       } catch {}
-    }, 10000);
+    }, 5000);
 
-    // Polling — RELAXED intervals to reduce load
+    // Polling — relaxed intervals, core feeds only
     const intervals = [
-      setInterval(() => {
-        if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
-          fetchEndpoint('/api/flights');
-        }
-      }, 120000), // 2 min (was 60s)
-      setInterval(() => fetchEndpoint('/api/earthquakes'), 300000),  // 5 min (was 2 min)
-      setInterval(() => fetchEndpoint('/api/news'), 600000),         // 10 min (was 5 min)
-      setInterval(() => fetchEndpoint('/api/markets'), 300000),      // 5 min (was 2 min)
-      setInterval(() => {
-        if (activeLayers.fires) fetchEndpoint('/api/fires');
-      }, 900000), // 15 min (was 10 min)
+      setInterval(() => fetchEndpoint('/api/earthquakes'), 300000),  // 5 min
+      setInterval(() => fetchEndpoint('/api/news'), 600000),         // 10 min
+      setInterval(() => fetchEndpoint('/api/markets'), 300000),      // 5 min
     ];
     return () => intervals.forEach(clearInterval);
   }, []);
+
+  // ── LAYER-AWARE DATA LOADING — only fetch when layer is toggled ON ──
+  const layerFetchedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const fetchEndpoint = async (url: string, transform?: (d: any) => any) => {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          const d = transform ? transform(json) : json;
+          dataRef.current = { ...dataRef.current, ...d };
+          setDataVersion(v => v + 1);
+        }
+      } catch {}
+    };
+
+    // Flights
+    if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
+      if (!layerFetchedRef.current.has('flights')) {
+        fetchEndpoint('/api/flights');
+        layerFetchedRef.current.add('flights');
+      }
+    }
+    // Satellites
+    if (activeLayers.satellites && !layerFetchedRef.current.has('satellites')) {
+      fetchEndpoint('/api/satellites');
+      layerFetchedRef.current.add('satellites');
+    }
+    // Fires
+    if (activeLayers.fires && !layerFetchedRef.current.has('fires')) {
+      fetchEndpoint('/api/fires');
+      layerFetchedRef.current.add('fires');
+    }
+    // CCTV
+    if (activeLayers.cctv && !layerFetchedRef.current.has('cctv')) {
+      fetchEndpoint('/api/cctv?region=uk');
+      layerFetchedRef.current.add('cctv');
+    }
+    // Weather
+    if (activeLayers.weather && !layerFetchedRef.current.has('weather')) {
+      fetchEndpoint('/api/weather', d => ({ weather_events: d.events }));
+      layerFetchedRef.current.add('weather');
+    }
+    // Infrastructure
+    if (activeLayers.infrastructure && !layerFetchedRef.current.has('infrastructure')) {
+      fetchEndpoint('/api/infrastructure', d => ({ infrastructure: d.infrastructure }));
+      layerFetchedRef.current.add('infrastructure');
+    }
+    // Global Incidents (GDELT)
+    if (activeLayers.global_incidents && !layerFetchedRef.current.has('gdelt')) {
+      fetchEndpoint('/api/gdelt', d => ({ gdelt: d.events }));
+      layerFetchedRef.current.add('gdelt');
+    }
+  }, [activeLayers]);
+
+  // ── LAYER-AWARE POLLING — only poll data for active layers ──
+  useEffect(() => {
+    const fetchEndpoint = async (url: string, transform?: (d: any) => any) => {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          const d = transform ? transform(json) : json;
+          dataRef.current = { ...dataRef.current, ...d };
+          setDataVersion(v => v + 1);
+        }
+      } catch {}
+    };
+
+    const intervals: ReturnType<typeof setInterval>[] = [];
+    if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/flights'), 120000));
+    }
+    if (activeLayers.fires) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/fires'), 900000));
+    }
+    return () => intervals.forEach(clearInterval);
+  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private, activeLayers.fires]);
 
   // ── VIEWPORT-AWARE CCTV LOADING ──
   const lastCctvRegion = useRef('');
