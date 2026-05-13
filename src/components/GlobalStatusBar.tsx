@@ -60,7 +60,7 @@ export default function GlobalStatusBar() {
       <span className="text-[var(--border-primary)] mx-1">│</span>
       {topRisks.map(r => (
         <span key={r.code} className="inline-flex items-center gap-0.5 mx-1.5">
-          <span className="text-[8px]">{countryFlag(r.code)}</span>
+          <span className="text-[10px]">{countryFlag(r.code)}</span>
           <span style={{ color: riskColor(r.risk_level) }} className="font-bold">{r.risk_score}</span>
         </span>
       ))}
@@ -79,7 +79,7 @@ export default function GlobalStatusBar() {
       transition={{ delay: 4, duration: 0.8 }}
       className="hidden md:block absolute top-[42px] left-0 right-0 z-[198] pointer-events-none"
     >
-      <div className="h-[18px] overflow-hidden bg-[var(--bg-panel)]/50 border-y border-[var(--border-secondary)]/50 flex items-center text-[6px] font-mono tracking-wider">
+      <div className="h-[22px] overflow-hidden bg-[var(--bg-panel)]/50 border-y border-[var(--border-secondary)]/50 flex items-center text-[8px] font-mono tracking-wider">
         {/* Static label */}
         <div className="flex-shrink-0 px-2 h-full flex items-center gap-1 border-r border-[var(--border-secondary)]/50 bg-[var(--bg-panel)]">
           <span className="text-[var(--text-muted)]">MKT</span>

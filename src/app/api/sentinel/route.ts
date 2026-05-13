@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 
-// Sentinel-1 SAR Satellite — STAC Catalog via Element84 Earth Search (free, no key)
-// Provides radar imagery metadata for any region on Earth
+// Sentinel-1 SAR Satellite — STAC Catalog via Element84 Earth Search + Copernicus fallback
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const lat = parseFloat(searchParams.get('lat') || '0');
   const lng = parseFloat(searchParams.get('lng') || '0');
-  const radius = parseFloat(searchParams.get('radius') || '2'); // degrees
-  const days = parseInt(searchParams.get('days') || '7');
+  const radius = parseFloat(searchParams.get('radius') || '2');
+  const days = parseInt(searchParams.get('days') || '30'); // Expanded to 30 days for more results
 
   if (isNaN(lat) || isNaN(lng)) {
     return NextResponse.json({ error: 'Missing lat/lng parameters' }, { status: 400 });
@@ -19,59 +18,91 @@ export async function GET(req: Request) {
     const from = new Date(now.getTime() - days * 86400000);
     const datetime = `${from.toISOString().split('.')[0]}Z/${now.toISOString().split('.')[0]}Z`;
 
-    // Element84 Earth Search — STAC API (free, no auth for search)
-    const res = await fetch('https://earth-search.aws.element84.com/v1/search', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(10000),
-      body: JSON.stringify({
-        collections: ['sentinel-1-grd'],
-        bbox,
-        datetime,
-        limit: 20,
-        sortby: [{ field: 'datetime', direction: 'desc' }],
-      }),
-    });
+    let scenes: any[] = [];
+    let source = '';
+    let total = 0;
 
-    if (!res.ok) {
-      // Fallback: try Copernicus STAC
-      const fallbackRes = await fetch(`https://stac.dataspace.copernicus.eu/v1/search`, {
+    // Source 1: Element84 Earth Search v1
+    try {
+      const res = await fetch('https://earth-search.aws.element84.com/v1/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(12000),
         body: JSON.stringify({
-          collections: ['SENTINEL-1'],
+          collections: ['sentinel-1-grd'],
           bbox,
           datetime,
-          limit: 10,
+          limit: 20,
+          sortby: [{ field: 'datetime', direction: 'desc' }],
         }),
       });
-      if (fallbackRes.ok) {
-        const data = await fallbackRes.json();
-        return NextResponse.json({
-          source: 'copernicus',
-          scenes: (data.features || []).map(formatScene),
-          total: data.numberMatched || data.features?.length || 0,
-          bbox,
-          datetime,
-        });
+      if (res.ok) {
+        const data = await res.json();
+        scenes = (data.features || []).map(formatScene);
+        total = data.numberMatched || scenes.length;
+        source = 'element84';
       }
-      return NextResponse.json({ scenes: [], total: 0, error: 'SAR data unavailable' });
+    } catch {}
+
+    // Source 2: Try sentinel-2 if sentinel-1 is empty
+    if (scenes.length === 0) {
+      try {
+        const res = await fetch('https://earth-search.aws.element84.com/v1/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(12000),
+          body: JSON.stringify({
+            collections: ['sentinel-2-l2a'],
+            bbox,
+            datetime,
+            limit: 20,
+            sortby: [{ field: 'datetime', direction: 'desc' }],
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          scenes = (data.features || []).map(formatScene);
+          total = data.numberMatched || scenes.length;
+          source = 'element84-s2';
+        }
+      } catch {}
     }
 
-    const data = await res.json();
-    const scenes = (data.features || []).map(formatScene);
+    // Source 3: Copernicus STAC fallback
+    if (scenes.length === 0) {
+      try {
+        const fallbackRes = await fetch('https://catalogue.dataspace.copernicus.eu/stac/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(12000),
+          body: JSON.stringify({
+            collections: ['SENTINEL-1'],
+            bbox,
+            datetime,
+            limit: 10,
+          }),
+        });
+        if (fallbackRes.ok) {
+          const data = await fallbackRes.json();
+          scenes = (data.features || []).map(formatScene);
+          total = data.numberMatched || scenes.length;
+          source = 'copernicus';
+        }
+      } catch {}
+    }
 
     return NextResponse.json({
-      source: 'element84',
+      source,
       scenes,
-      total: data.numberMatched || scenes.length,
+      total,
       bbox,
       datetime,
       timestamp: new Date().toISOString(),
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     });
   } catch (e) {
-    return NextResponse.json({ error: 'Sentinel-1 lookup failed', scenes: [] }, { status: 500 });
+    return NextResponse.json({ error: 'Sentinel lookup failed', scenes: [] }, { status: 500 });
   }
 }
 
@@ -80,7 +111,7 @@ function formatScene(feature: any) {
   return {
     id: feature.id,
     datetime: props.datetime,
-    platform: props.platform || props['sar:instrument_mode'] || 'Sentinel-1',
+    platform: props.platform || props['sar:instrument_mode'] || 'Sentinel',
     orbit: props['sat:orbit_state'] || props.orbitDirection,
     polarization: props['sar:polarizations'] || props.polarisation,
     mode: props['sar:instrument_mode'] || props.productType,
@@ -98,7 +129,7 @@ function formatScene(feature: any) {
 function estimateArea(bbox: number[]): number {
   if (bbox.length < 4) return 0;
   const [minLng, minLat, maxLng, maxLat] = bbox;
-  const latDiff = Math.abs(maxLat - minLat) * 111; // ~111 km per degree
+  const latDiff = Math.abs(maxLat - minLat) * 111;
   const lngDiff = Math.abs(maxLng - minLng) * 111 * Math.cos((minLat + maxLat) / 2 * Math.PI / 180);
   return Math.round(latDiff * lngDiff);
 }

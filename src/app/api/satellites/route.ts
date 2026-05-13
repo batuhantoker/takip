@@ -2,14 +2,9 @@ import { NextResponse } from 'next/server';
 
 /**
  * OSIRIS — Satellite Tracking API
- * Fetches TLE data from CelesTrak, computes real-time positions using SGP4
- * No API key required
+ * Fetches TLE data from multiple sources with fallbacks
+ * Computes real-time positions using simplified SGP4
  */
-
-// Satellite catalog groups with mission classification
-const SAT_GROUPS = [
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle', type: 'active' },
-];
 
 // Mission classification by NORAD name keywords
 const MISSION_CLASSIFY: Record<string, { mission: string; color: string }> = {
@@ -61,24 +56,26 @@ function gmst(jd: number): number {
 }
 
 function parseTLE(tleText: string) {
-  const lines = tleText.trim().split('\n');
+  const lines = tleText.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const satellites: any[] = [];
 
-  for (let i = 0; i < lines.length - 2; i += 3) {
-    const name = lines[i].trim();
-    const line1 = lines[i + 1]?.trim();
-    const line2 = lines[i + 2]?.trim();
+  for (let i = 0; i < lines.length - 2; i++) {
+    // Find name + line1 + line2 pattern
+    const name = lines[i];
+    const line1 = lines[i + 1];
+    const line2 = lines[i + 2];
 
-    if (!line1?.startsWith('1') || !line2?.startsWith('2')) continue;
+    if (!line1?.startsWith('1 ') || !line2?.startsWith('2 ')) continue;
+    if (name.startsWith('1 ') || name.startsWith('2 ')) continue;
 
     satellites.push({ name, line1, line2 });
+    i += 2; // skip the TLE lines
   }
   return satellites;
 }
 
 function propagateSGP4Simple(line1: string, line2: string): { lat: number; lng: number; alt: number } | null {
   try {
-    // Manual SGP4 propagation using mean orbital elements
     const incDeg = parseFloat(line2.substring(8, 16));
     const raanDeg = parseFloat(line2.substring(17, 25));
     const eccStr = '0.' + line2.substring(26, 33).trim();
@@ -89,7 +86,6 @@ function propagateSGP4Simple(line1: string, line2: string): { lat: number; lng: 
 
     if (isNaN(meanMotion) || meanMotion === 0) return null;
 
-    // Compute current position using Keplerian elements
     const now = new Date();
     const epochYear = parseInt(line1.substring(18, 20));
     const epochDay = parseFloat(line1.substring(20, 32));
@@ -99,37 +95,33 @@ function propagateSGP4Simple(line1: string, line2: string): { lat: number; lng: 
     epochDate.setDate(epochDate.getDate() + epochDay - 1);
     const elapsedMin = (now.getTime() - epochDate.getTime()) / 60000;
 
-    // Mean anomaly at current time
-    const n = meanMotion * 2 * Math.PI / 1440; // rad/min
+    // Reject stale TLEs (> 30 days old)
+    if (Math.abs(elapsedMin) > 43200) return null;
+
+    const n = meanMotion * 2 * Math.PI / 1440;
     const M = ((meanAnomDeg * Math.PI / 180) + n * elapsedMin) % (2 * Math.PI);
 
-    // Solve Kepler's equation (simple iteration)
     let E = M;
     for (let j = 0; j < 10; j++) {
       E = M + ecc * Math.sin(E);
     }
 
-    // True anomaly
     const sinV = Math.sqrt(1 - ecc * ecc) * Math.sin(E) / (1 - ecc * Math.cos(E));
     const cosV = (Math.cos(E) - ecc) / (1 - ecc * Math.cos(E));
     const v = Math.atan2(sinV, cosV);
 
-    // Orbital radius
-    const a = Math.pow(398600.4418 / (meanMotion * 2 * Math.PI / 86400) ** 2, 1 / 3); // km
+    const a = Math.pow(398600.4418 / (meanMotion * 2 * Math.PI / 86400) ** 2, 1 / 3);
     const r = a * (1 - ecc * Math.cos(E));
 
-    // Position in orbital plane
     const inc = incDeg * Math.PI / 180;
     const raan = raanDeg * Math.PI / 180;
     const argPer = argPerDeg * Math.PI / 180;
     const u = v + argPer;
 
-    // ECI coordinates
     const x = r * (Math.cos(raan) * Math.cos(u) - Math.sin(raan) * Math.sin(u) * Math.cos(inc));
     const y = r * (Math.sin(raan) * Math.cos(u) + Math.cos(raan) * Math.sin(u) * Math.cos(inc));
     const z = r * Math.sin(u) * Math.sin(inc);
 
-    // Convert to geodetic
     const jd = 2440587.5 + now.getTime() / 86400000;
     const theta = gmst(jd);
 
@@ -138,9 +130,10 @@ function propagateSGP4Simple(line1: string, line2: string): { lat: number; lng: 
 
     const lng = Math.atan2(yRot, xRot) * 180 / Math.PI;
     const lat = Math.atan2(z, Math.sqrt(xRot * xRot + yRot * yRot)) * 180 / Math.PI;
-    const alt = r - 6371; // km above Earth surface
+    const alt = r - 6371;
 
     if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 90) return null;
+    if (alt < 100 || alt > 50000) return null; // sanity check
 
     return {
       lat: Math.round(lat * 10000) / 10000,
@@ -152,26 +145,90 @@ function propagateSGP4Simple(line1: string, line2: string): { lat: number; lng: 
   }
 }
 
+// Multiple TLE sources with fallback chain
+const TLE_SOURCES = [
+  // CelesTrak GP format (JSON-based, more reliable from cloud)
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle', type: 'tle' },
+  // CelesTrak alternative domain
+  { url: 'https://celestrak.com/NORAD/elements/gp.php?GROUP=active&FORMAT=tle', type: 'tle' },
+  // Curated smaller catalogs if full catalog fails
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle', type: 'tle', group: 'stations' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=tle', type: 'tle', group: 'visual' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=tle', type: 'tle', group: 'weather' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=resource&FORMAT=tle', type: 'tle', group: 'resource' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=sarsat&FORMAT=tle', type: 'tle', group: 'sarsat' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=tle', type: 'tle', group: 'gps' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=glo-ops&FORMAT=tle', type: 'tle', group: 'glonass' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=galileo&FORMAT=tle', type: 'tle', group: 'galileo' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=military&FORMAT=tle', type: 'tle', group: 'military' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=science&FORMAT=tle', type: 'tle', group: 'science' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=geodetic&FORMAT=tle', type: 'tle', group: 'geodetic' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=engineering&FORMAT=tle', type: 'tle', group: 'engineering' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=education&FORMAT=tle', type: 'tle', group: 'education' },
+];
+
+async function fetchTLEFromSource(source: typeof TLE_SOURCES[0]): Promise<string | null> {
+  try {
+    const res = await fetch(source.url, {
+      signal: AbortSignal.timeout(12000),
+      headers: { 'User-Agent': 'OSIRIS-Intelligence-Platform/3.4' },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (text.length < 100 || text.includes('<!DOCTYPE') || text.includes('<html')) return null;
+    return text;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET() {
   try {
-    // Fetch TLE data — use a curated subset for performance
-    const tleUrl = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle';
-    const res = await fetch(tleUrl, {
-      signal: AbortSignal.timeout(15000),
-      next: { revalidate: 300 }, // Cache for 5 minutes
-    });
+    let allSats: any[] = [];
+    let source = 'unknown';
 
-    if (!res.ok) {
-      return NextResponse.json({ satellites: [], error: 'CelesTrak unavailable' });
+    // Strategy 1: Try full active catalog first
+    for (const src of TLE_SOURCES.slice(0, 2)) {
+      const tleText = await fetchTLEFromSource(src);
+      if (tleText && tleText.length > 5000) {
+        allSats = parseTLE(tleText);
+        source = 'celestrak-active';
+        break;
+      }
     }
 
-    const tleText = await res.text();
-    const rawSats = parseTLE(tleText);
+    // Strategy 2: If full catalog fails, fetch individual groups in parallel
+    if (allSats.length < 50) {
+      const groupSources = TLE_SOURCES.slice(2);
+      const results = await Promise.allSettled(
+        groupSources.map(src => fetchTLEFromSource(src))
+      );
+      
+      const groupSats: any[] = [];
+      const seen = new Set<string>();
+      
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          const parsed = parseTLE(result.value);
+          for (const sat of parsed) {
+            if (!seen.has(sat.name)) {
+              seen.add(sat.name);
+              groupSats.push(sat);
+            }
+          }
+        }
+      }
+      
+      if (groupSats.length > allSats.length) {
+        allSats = groupSats;
+        source = 'celestrak-groups';
+      }
+    }
 
     // Sample for performance (max 2000 satellites)
-    const sampled = rawSats.length > 2000
-      ? rawSats.filter((_, i) => i % Math.ceil(rawSats.length / 2000) === 0)
-      : rawSats;
+    const sampled = allSats.length > 2000
+      ? allSats.filter((_, i) => i % Math.ceil(allSats.length / 2000) === 0)
+      : allSats;
 
     const satellites = [];
     for (const sat of sampled) {
@@ -192,10 +249,12 @@ export async function GET() {
     return NextResponse.json({
       satellites,
       total: satellites.length,
+      source,
+      raw_count: allSats.length,
       timestamp: new Date().toISOString(),
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
       },
     });
   } catch (error) {

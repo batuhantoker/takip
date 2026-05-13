@@ -3,40 +3,69 @@ import { NextResponse } from 'next/server';
 /**
  * OSIRIS — NASA FIRMS Active Fire Tracking
  * Real-time worldwide wildfire/fire detection from NASA satellites
- * Free, no API key required
+ * Multiple fallback sources for reliability
  */
 
 export async function GET() {
   try {
-    // NASA FIRMS VIIRS active fire data (last 24h)
-    const url = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv/d0a624db1bff890120a9bc74e81e4e46/VIIRS_SNPP_NRT/world/1';
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(20000),
-      next: { revalidate: 600 },
-    });
+    // Source 1: NASA FIRMS VIIRS (primary)
+    const firmsKey = 'd0a624db1bff890120a9bc74e81e4e46';
+    const sources = [
+      `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}/VIIRS_SNPP_NRT/world/1`,
+      `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}/MODIS_NRT/world/1`,
+      `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}/VIIRS_NOAA20_NRT/world/1`,
+    ];
 
-    if (!res.ok) {
-      // Fallback to MODIS
-      const fallbackUrl = 'https://firms.modaps.eosdis.nasa.gov/api/area/csv/d0a624db1bff890120a9bc74e81e4e46/MODIS_NRT/world/1';
-      const fallbackRes = await fetch(fallbackUrl, {
-        signal: AbortSignal.timeout(20000),
-      });
-      if (!fallbackRes.ok) {
-        return NextResponse.json({ fires: [], error: 'NASA FIRMS unavailable' });
-      }
-      const text = await fallbackRes.text();
-      return NextResponse.json({
-        fires: parseCSV(text),
-        timestamp: new Date().toISOString(),
-      });
+    let fires: any[] = [];
+    let source = '';
+
+    for (const url of sources) {
+      try {
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(20000),
+          headers: { 'User-Agent': 'OSIRIS-Intelligence-Platform/3.4' },
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.includes('latitude') && text.length > 100) {
+            fires = parseCSV(text);
+            source = url.includes('VIIRS_SNPP') ? 'VIIRS-SNPP' : url.includes('MODIS') ? 'MODIS' : 'VIIRS-NOAA20';
+            break;
+          }
+        }
+      } catch { continue; }
     }
 
-    const text = await res.text();
-    const fires = parseCSV(text);
+    // Source 2: Fallback to NASA EONET for active natural events (fires + volcanic)
+    if (fires.length === 0) {
+      try {
+        const eonetRes = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=200', {
+          signal: AbortSignal.timeout(15000),
+        });
+        if (eonetRes.ok) {
+          const eonetData = await eonetRes.json();
+          fires = (eonetData.events || []).map((e: any) => {
+            const geo = e.geometry?.[e.geometry.length - 1];
+            return {
+              lat: geo?.coordinates?.[1] || 0,
+              lng: geo?.coordinates?.[0] || 0,
+              brightness: 350,
+              confidence: 'high',
+              date: geo?.date?.split('T')[0] || '',
+              time: '',
+              frp: 50,
+              title: e.title,
+            };
+          }).filter((f: any) => f.lat !== 0);
+          source = 'NASA-EONET';
+        }
+      } catch {}
+    }
 
     return NextResponse.json({
       fires,
       total: fires.length,
+      source,
       timestamp: new Date().toISOString(),
     }, {
       headers: {

@@ -395,7 +395,7 @@ export default function Dashboard() {
         ) : (
           <Moon className="w-4 h-4 text-[var(--cyan-primary)] group-hover:scale-110 transition-transform" />
         )}
-        <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-[7px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
           {mapStyle === 'dark' ? 'SATELLITE' : 'NIGHT MODE'}
         </span>
       </motion.button>
@@ -411,23 +411,23 @@ export default function Dashboard() {
         </div>
         <div>
           <h1 className="text-base md:text-xl font-bold tracking-[0.4em] md:tracking-[0.5em] text-[var(--text-heading)] font-mono">OSIRIS</h1>
-          <span className="text-[6px] md:text-[7px] text-[var(--gold-primary)] font-mono tracking-[0.2em] md:tracking-[0.3em] opacity-80">GLOBAL INTELLIGENCE PLATFORM</span>
+          <span className="text-[8px] md:text-[9px] text-[var(--gold-primary)] font-mono tracking-[0.2em] md:tracking-[0.3em] opacity-80">GLOBAL INTELLIGENCE PLATFORM</span>
         </div>
       </motion.div>
 
       {/* ── TOP-RIGHT STATUS (desktop) ── */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="status-bar-desktop absolute top-3 right-3 md:top-4 md:right-5 z-[200] pointer-events-none flex items-center gap-2 md:gap-4 text-[6px] md:text-[7px] font-mono tracking-widest text-[var(--text-muted)]">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="status-bar-desktop absolute top-3 right-3 md:top-4 md:right-5 z-[200] pointer-events-none flex items-center gap-2 md:gap-4 text-[8px] md:text-[9px] font-mono tracking-widest text-[var(--text-muted)]">
         <span>SYS: <span className={backendStatus === 'connected' ? 'text-[var(--alert-green)]' : 'text-[var(--alert-red)]'}>{backendStatus.toUpperCase()}</span></span>
         <span>THREAT: <span style={{ color: threatColor, fontWeight: 700 }} className={threatLevel === 'CRITICAL' ? 'animate-threat-flash' : ''}>{threatLevel}</span></span>
         {spaceWeather && <span className="hidden lg:inline">SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>Kp{spaceWeather.kp_index}</span></span>}
         <span className="hidden lg:inline">UPTIME: <span className="text-[var(--gold-primary)]">{uptime}</span></span>
-        <span>V3.3</span>
+        <span>V3.4</span>
       </motion.div>
 
       {/* ── MOBILE: Compact top status ── */}
       {isMobile && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }} className="absolute top-3 right-3 z-[200] pointer-events-none flex items-center gap-2">
-          <div className="glass-panel px-2 py-1 flex items-center gap-2 text-[6px] font-mono tracking-wider">
+          <div className="glass-panel px-2.5 py-1.5 flex items-center gap-2 text-[8px] font-mono tracking-wider">
             <div className={`w-1.5 h-1.5 rounded-full ${backendStatus === 'connected' ? 'bg-[var(--alert-green)]' : 'bg-[var(--alert-red)]'} animate-osiris-pulse`} />
             <span style={{ color: threatColor, fontWeight: 700 }}>{threatLevel}</span>
           </div>
@@ -466,7 +466,7 @@ export default function Dashboard() {
             className="glass-panel px-3 py-1.5 flex items-center gap-1.5 pointer-events-auto hover:border-[var(--cyan-primary)]/40 transition-colors"
           >
             <Radar className="w-3.5 h-3.5 text-[var(--cyan-primary)]" />
-            <span className="text-[8px] font-mono text-[var(--cyan-primary)] tracking-widest font-bold">RECON</span>
+            <span className="text-[10px] font-mono text-[var(--cyan-primary)] tracking-widest font-bold">RECON</span>
           </motion.button>
           <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} /></div>
         </div>
