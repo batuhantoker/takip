@@ -23,12 +23,18 @@ export async function GET(req: Request) {
   // Map scan types to scanner endpoints
   const endpointMap: Record<string, string> = {
     quick: '/scan/quick',
+    deep: '/scan/deep',
     ports: '/scan/ports',
     banner: '/scan/banner',
     ssl: '/scan/ssl',
     traceroute: '/scan/traceroute',
     rdns: '/scan/rdns',
     headers: '/scan/headers',
+    vuln: '/scan/vuln',
+    subdomains: '/scan/subdomains',
+    tech: '/scan/tech',
+    whois: '/scan/whois',
+    geoloc: '/scan/geoloc',
   };
 
   const endpoint = endpointMap[scanType];
@@ -42,7 +48,7 @@ export async function GET(req: Request) {
     if (ports) params.set('ports', ports);
 
     const res = await fetch(`${SCANNER_URL}${endpoint}?${params.toString()}`, {
-      signal: AbortSignal.timeout(50000),
+      signal: AbortSignal.timeout(60000), // 60s for deep/vuln scans
     });
 
     const data = await res.json();

@@ -86,7 +86,7 @@ export async function GET() {
               date: geo.date?.split('T')[0] || '',
               time: '',
               frp: 100,
-              title: `🌋 ${e.title}`,
+              title: `[VOLCANO] ${e.title}`,
               type: 'volcano',
             };
           }).filter(Boolean);

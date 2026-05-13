@@ -2,16 +2,19 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, ChevronDown, ChevronUp, BarChart3, Zap, Globe } from 'lucide-react';
+import {
+  TrendingUp, TrendingDown, ChevronDown, ChevronUp, BarChart3,
+  Zap, Shield, Droplets, Gem, Bitcoin, LineChart,
+} from 'lucide-react';
 
 interface MarketsPanelProps { data: any; spaceWeather?: any; }
 
 const SECTIONS = [
-  { key: 'indices', label: 'INDICES', emoji: '📊' },
-  { key: 'stocks', label: 'DEFENSE', emoji: '🛡️' },
-  { key: 'oil', label: 'ENERGY', emoji: '🛢️' },
-  { key: 'commodities', label: 'COMMODITIES', emoji: '🏦' },
-  { key: 'crypto', label: 'CRYPTO', emoji: '₿' },
+  { key: 'indices', label: 'INDICES', icon: LineChart },
+  { key: 'stocks', label: 'DEFENSE', icon: Shield },
+  { key: 'oil', label: 'ENERGY', icon: Droplets },
+  { key: 'commodities', label: 'COMMODITIES', icon: Gem },
+  { key: 'crypto', label: 'CRYPTO', icon: Bitcoin },
 ];
 
 function Ticker({ name, data: d }: { name: string; data: any }) {
@@ -38,7 +41,7 @@ export default function MarketsPanel({ data, spaceWeather }: MarketsPanelProps) 
   const markets = data.markets || {};
 
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6, duration: 0.6 }} className="glass-panel p-3 pointer-events-auto">
+    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6, duration: 0.6 }} className="glass-panel p-3 pointer-events-auto">
       <button onClick={() => setExpanded(!expanded)} className="flex items-center justify-between w-full mb-2">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
@@ -66,21 +69,25 @@ export default function MarketsPanel({ data, spaceWeather }: MarketsPanelProps) 
                   </span>
                 </div>
                 {spaceWeather.solar_flares?.length > 0 && (
-                  <div className="mt-1 text-[7px] font-mono text-[var(--text-muted)]">
+                  <div className="mt-1 text-[8px] font-mono text-[var(--text-muted)]">
                     Latest flare: {spaceWeather.solar_flares[0].class}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Section Tabs */}
+            {/* Section Tabs — icons instead of emojis */}
             <div className="flex gap-0.5 mb-2 overflow-x-auto">
-              {SECTIONS.map(s => (
-                <button key={s.key} onClick={() => setActiveSection(s.key)}
-                  className={`px-2.5 py-1.5 rounded text-[9px] font-mono tracking-wider whitespace-nowrap transition-all ${activeSection === s.key ? 'bg-[var(--hover-accent)] text-[var(--gold-primary)] border border-[var(--border-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent'}`}>
-                  {s.emoji} {s.label}
-                </button>
-              ))}
+              {SECTIONS.map(s => {
+                const Icon = s.icon;
+                return (
+                  <button key={s.key} onClick={() => setActiveSection(s.key)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-[9px] font-mono tracking-wider whitespace-nowrap transition-all ${activeSection === s.key ? 'bg-[var(--hover-accent)] text-[var(--gold-primary)] border border-[var(--border-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent'}`}>
+                    <Icon className="w-3 h-3" />
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Ticker List */}

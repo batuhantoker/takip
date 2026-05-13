@@ -2,40 +2,43 @@
 
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Shield, Globe, Server, Lock, AlertTriangle, X, Loader2, Radar, ChevronRight } from 'lucide-react';
+import {
+  Search, Radar, Globe, Shield, FileText, Radio,
+  ChevronDown, ChevronUp, Loader2, AlertTriangle, Server,
+  Wifi, Lock, MapPin, Bug, Code, Layers, Network, Fingerprint,
+  CheckCircle, XCircle, Clock, ExternalLink,
+} from 'lucide-react';
 
-type OsintTab = 'scanner' | 'ip' | 'dns' | 'certs' | 'whois' | 'threats';
-
-const TABS: { id: OsintTab; label: string; icon: any; placeholder: string; desc: string }[] = [
-  { id: 'scanner', label: 'NMAP SCAN', icon: Radar, placeholder: 'IP or domain', desc: 'Port scan & service detection' },
-  { id: 'ip', label: 'IP INTEL', icon: Globe, placeholder: '8.8.8.8', desc: 'Geolocation & ISP lookup' },
-  { id: 'dns', label: 'DNS RECON', icon: Server, placeholder: 'example.com', desc: 'DNS record enumeration' },
-  { id: 'certs', label: 'CERT SCAN', icon: Lock, placeholder: 'example.com', desc: 'Subdomain discovery via CT logs' },
-  { id: 'whois', label: 'WHOIS', icon: Shield, placeholder: 'example.com', desc: 'Domain registration & security' },
-  { id: 'threats', label: 'THREAT INTEL', icon: AlertTriangle, placeholder: '8.8.8.8 or domain', desc: 'OTX reputation & Tor check' },
+const TABS = [
+  { id: 'scanner', label: 'PORT SCAN', icon: Radar, placeholder: 'IP or hostname', color: '#00E5FF' },
+  { id: 'vuln', label: 'VULN SCAN', icon: Bug, placeholder: 'IP or hostname', color: '#FF3D3D' },
+  { id: 'ip', label: 'IP INTEL', icon: Globe, placeholder: 'IP address', color: '#00E676' },
+  { id: 'dns', label: 'DNS', icon: Server, placeholder: 'Domain name', color: '#448AFF' },
+  { id: 'whois', label: 'WHOIS', icon: FileText, placeholder: 'Domain name', color: '#FFD700' },
+  { id: 'certs', label: 'CERTS', icon: Lock, placeholder: 'Domain name', color: '#E040FB' },
+  { id: 'threats', label: 'THREATS', icon: AlertTriangle, placeholder: 'IP, domain, or hash', color: '#FF9500' },
+  { id: 'headers', label: 'HEADERS', icon: Code, placeholder: 'URL to inspect', color: '#87CEEB' },
+  { id: 'ssl', label: 'SSL/TLS', icon: Shield, placeholder: 'Domain name', color: '#76FF03' },
+  { id: 'traceroute', label: 'TRACE', icon: Network, placeholder: 'IP or hostname', color: '#FF69B4' },
+  { id: 'subdomains', label: 'SUBDOMAINS', icon: Layers, placeholder: 'Domain to enumerate', color: '#00BCD4' },
+  { id: 'tech', label: 'TECH DETECT', icon: Fingerprint, placeholder: 'URL to fingerprint', color: '#9C27B0' },
 ];
 
-interface OsintPanelProps {
-  isOpen: boolean;
-  onClose: () => void;
-  isMobile?: boolean;
-}
+interface OsintPanelProps { isOpen?: boolean; onClose?: () => void; isMobile?: boolean; }
 
-export default function OsintPanel({ isOpen, onClose, isMobile = false }: OsintPanelProps) {
-  const [activeTab, setActiveTab] = useState<OsintTab>('scanner');
+export default function OsintPanel({ isMobile }: OsintPanelProps) {
+  const [activeTab, setActiveTab] = useState('scanner');
   const [query, setQuery] = useState('');
-  const [scanType, setScanType] = useState('quick');
-  const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [history, setHistory] = useState<{ tab: string; query: string; time: string }[]>([]);
+  const [scanType, setScanType] = useState('quick');
+  const [expanded, setExpanded] = useState(true);
+  const [history, setHistory] = useState<{tab:string;query:string;time:string}[]>([]);
 
   const runLookup = useCallback(async () => {
-    if (!query.trim()) return;
-    setLoading(true);
-    setError('');
-    setResults(null);
-
+    if (!query.trim() || loading) return;
+    setLoading(true); setError(''); setResults(null);
     try {
       let url = '';
       switch (activeTab) {
@@ -45,455 +48,365 @@ export default function OsintPanel({ isOpen, onClose, isMobile = false }: OsintP
         case 'whois': url = `/api/osint/whois?domain=${encodeURIComponent(query)}`; break;
         case 'threats': url = `/api/osint/threats?query=${encodeURIComponent(query)}`; break;
         case 'scanner': url = `/api/scanner?target=${encodeURIComponent(query)}&type=${scanType}`; break;
+        case 'vuln': url = `/api/scanner?target=${encodeURIComponent(query)}&type=vuln`; break;
+        case 'headers': url = `/api/scanner?target=${encodeURIComponent(query)}&type=headers`; break;
+        case 'ssl': url = `/api/scanner?target=${encodeURIComponent(query)}&type=ssl`; break;
+        case 'traceroute': url = `/api/scanner?target=${encodeURIComponent(query)}&type=traceroute`; break;
+        case 'subdomains': url = `/api/scanner?target=${encodeURIComponent(query)}&type=subdomains`; break;
+        case 'tech': url = `/api/scanner?target=${encodeURIComponent(query)}&type=tech`; break;
       }
       const res = await fetch(url);
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setResults(data);
         setHistory(prev => [{ tab: activeTab, query, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)]);
       } else {
-        const data = await res.json().catch(() => ({}));
         setError(data.error || 'Lookup failed');
       }
-    } catch {
-      setError('Network error');
-    } finally {
-      setLoading(false);
-    }
-  }, [query, activeTab, scanType]);
+    } catch { setError('Network error'); }
+    finally { setLoading(false); }
+  }, [query, activeTab, scanType, loading]);
 
-  // Mobile: render inline content without fixed overlay
-  if (isMobile) {
+  const currentTab = TABS.find(t => t.id === activeTab);
+
+  // ── Shodan-style structured result renderers ──
+
+  const ResultRow = ({ label, value, color, mono = true }: { label: string; value: any; color?: string; mono?: boolean }) => {
+    if (value === undefined || value === null || value === '') return null;
     return (
-      <div className="flex flex-col gap-2">
-        {/* Tab selector - horizontal scroll */}
-        <div className="flex gap-1.5 overflow-x-auto styled-scrollbar pb-1">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); }}
-              className={`flex items-center gap-1.5 px-2.5 py-2 rounded-md text-[9px] font-mono tracking-wider whitespace-nowrap transition-all border ${
-                activeTab === tab.id
-                  ? 'bg-[var(--cyan-primary)]/15 border-[var(--cyan-primary)]/40 text-[var(--cyan-primary)]'
-                  : 'border-[var(--border-primary)] text-[var(--text-muted)] hover:border-[var(--gold-primary)]/30'
-              }`}
-            >
-              <tab.icon className="w-3.5 h-3.5" />
-              {tab.label}
+      <div className="flex items-start gap-3 py-1.5 border-b border-[var(--border-secondary)]/20 last:border-0">
+        <span className="text-[9px] font-mono text-[var(--text-muted)] uppercase tracking-wider w-[90px] flex-shrink-0 pt-0.5">{label}</span>
+        <span className={`text-[10px] ${mono ? 'font-mono' : ''} break-all flex-1`} style={{ color: color || 'var(--text-primary)' }}>
+          {String(value)}
+        </span>
+      </div>
+    );
+  };
+
+  const StatusBadge = ({ ok, label }: { ok: boolean; label: string }) => (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-mono font-bold ${ok ? 'bg-green-500/15 text-green-400 border border-green-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
+      {ok ? <CheckCircle className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
+      {label}
+    </span>
+  );
+
+  const SectionHeader = ({ title, icon: Icon, color }: { title: string; icon: any; color: string }) => (
+    <div className="flex items-center gap-2 mt-3 mb-1.5 first:mt-0">
+      <Icon className="w-3.5 h-3.5" style={{ color }} />
+      <span className="text-[10px] font-mono font-bold tracking-widest" style={{ color }}>{title}</span>
+      <div className="flex-1 h-px" style={{ background: `${color}30` }} />
+    </div>
+  );
+
+  const PortRow = ({ port, state, service, version }: { port: number; state: string; service?: string; version?: string }) => (
+    <div className="flex items-center gap-2 py-1 px-2 rounded hover:bg-[var(--hover-accent)] transition-colors">
+      <span className="text-[11px] font-mono font-bold text-[var(--cyan-primary)] w-[60px]">{port}</span>
+      <StatusBadge ok={state === 'open'} label={state.toUpperCase()} />
+      <span className="text-[10px] font-mono text-[var(--text-secondary)] flex-1">{service || 'unknown'}</span>
+      {version && <span className="text-[9px] font-mono text-[var(--text-muted)]">{version}</span>}
+    </div>
+  );
+
+  const renderStructuredResults = () => {
+    if (!results) return null;
+    const r = results;
+
+    // ── PORT SCAN ──
+    if (activeTab === 'scanner') {
+      const ports = r.ports || r.open_ports || r.results || [];
+      const host = r.host || r.target || query;
+      return (
+        <div>
+          <SectionHeader title="HOST INFO" icon={Server} color="#00E5FF" />
+          <ResultRow label="Target" value={host} color="#00E5FF" />
+          <ResultRow label="Scan Type" value={r.scan_type || scanType} />
+          <ResultRow label="Duration" value={r.duration || r.scan_time} />
+          {Array.isArray(ports) && ports.length > 0 && (
+            <>
+              <SectionHeader title={`OPEN PORTS (${ports.length})`} icon={Wifi} color="#00E676" />
+              <div className="space-y-0.5">
+                {ports.map((p: any, i: number) => (
+                  <PortRow key={i} port={p.port || p} state={p.state || 'open'} service={p.service || p.name} version={p.version} />
+                ))}
+              </div>
+            </>
+          )}
+          {(!Array.isArray(ports) || ports.length === 0) && renderFallback()}
+        </div>
+      );
+    }
+
+    // ── VULN SCAN ──
+    if (activeTab === 'vuln') {
+      const vulns = r.vulnerabilities || r.vulns || r.cves || [];
+      return (
+        <div>
+          <SectionHeader title="VULNERABILITY ASSESSMENT" icon={Bug} color="#FF3D3D" />
+          <ResultRow label="Target" value={r.target || query} color="#FF3D3D" />
+          <ResultRow label="Total CVEs" value={Array.isArray(vulns) ? vulns.length : 0} color={Array.isArray(vulns) && vulns.length > 0 ? '#FF3D3D' : '#00E676'} />
+          <ResultRow label="Risk Level" value={r.risk_level || r.severity} />
+          {Array.isArray(vulns) && vulns.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {vulns.slice(0, 20).map((v: any, i: number) => (
+                <div key={i} className="p-2 rounded-lg border border-red-500/20 bg-red-500/5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-red-400">{v.id || v.cve || v.name}</span>
+                    {v.severity && <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded ${v.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-400' : v.severity === 'HIGH' ? 'bg-orange-500/20 text-orange-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{v.severity}</span>}
+                  </div>
+                  {v.description && <p className="text-[9px] font-mono text-[var(--text-muted)] mt-1 line-clamp-2">{v.description}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+          {(!Array.isArray(vulns) || vulns.length === 0) && renderFallback()}
+        </div>
+      );
+    }
+
+    // ── IP INTEL ──
+    if (activeTab === 'ip') {
+      return (
+        <div>
+          <SectionHeader title="IP INTELLIGENCE" icon={Globe} color="#00E676" />
+          <ResultRow label="IP" value={r.ip} color="#00E676" />
+          <ResultRow label="Hostname" value={r.hostname || r.rdns} />
+          <ResultRow label="Organization" value={r.org || r.organization} />
+          <ResultRow label="ISP" value={r.isp} />
+          <ResultRow label="ASN" value={r.asn} />
+          <SectionHeader title="GEOLOCATION" icon={MapPin} color="#FFD700" />
+          <ResultRow label="Country" value={r.country || r.country_name} />
+          <ResultRow label="Region" value={r.region || r.regionName} />
+          <ResultRow label="City" value={r.city} />
+          <ResultRow label="Timezone" value={r.timezone} />
+          <ResultRow label="Coordinates" value={r.lat && r.lon ? `${r.lat}, ${r.lon}` : undefined} />
+          {(r.proxy || r.hosting || r.mobile) && (
+            <>
+              <SectionHeader title="FLAGS" icon={AlertTriangle} color="#FF9500" />
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {r.proxy && <StatusBadge ok={false} label="PROXY" />}
+                {r.hosting && <StatusBadge ok={false} label="HOSTING" />}
+                {r.mobile && <StatusBadge ok={true} label="MOBILE" />}
+                {r.tor && <StatusBadge ok={false} label="TOR" />}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // ── DNS ──
+    if (activeTab === 'dns') {
+      return (
+        <div>
+          <SectionHeader title="DNS RECORDS" icon={Server} color="#448AFF" />
+          <ResultRow label="Domain" value={r.domain || query} color="#448AFF" />
+          {r.A && <ResultRow label="A Records" value={Array.isArray(r.A) ? r.A.join(', ') : r.A} />}
+          {r.AAAA && <ResultRow label="AAAA" value={Array.isArray(r.AAAA) ? r.AAAA.join(', ') : r.AAAA} />}
+          {r.MX && <ResultRow label="MX" value={Array.isArray(r.MX) ? r.MX.map((m:any) => m.exchange || m).join(', ') : r.MX} />}
+          {r.NS && <ResultRow label="NS" value={Array.isArray(r.NS) ? r.NS.join(', ') : r.NS} />}
+          {r.TXT && <ResultRow label="TXT" value={Array.isArray(r.TXT) ? r.TXT.join(' | ') : r.TXT} />}
+          {r.CNAME && <ResultRow label="CNAME" value={Array.isArray(r.CNAME) ? r.CNAME.join(', ') : r.CNAME} />}
+          {r.SOA && <ResultRow label="SOA" value={typeof r.SOA === 'object' ? `${r.SOA.nsname} (${r.SOA.hostmaster})` : r.SOA} />}
+          {renderFallbackExcluding(['domain','A','AAAA','MX','NS','TXT','CNAME','SOA','timestamp','cached'])}
+        </div>
+      );
+    }
+
+    // ── WHOIS ──
+    if (activeTab === 'whois') {
+      return (
+        <div>
+          <SectionHeader title="WHOIS INTELLIGENCE" icon={FileText} color="#FFD700" />
+          <ResultRow label="Domain" value={r.domain_name || r.domainName || query} color="#FFD700" />
+          <ResultRow label="Registrar" value={r.registrar} />
+          <ResultRow label="Created" value={r.creation_date || r.createdDate} />
+          <ResultRow label="Expires" value={r.expiration_date || r.expiresDate} />
+          <ResultRow label="Updated" value={r.updated_date || r.updatedDate} />
+          <ResultRow label="Status" value={Array.isArray(r.status) ? r.status.join(', ') : r.status} />
+          <ResultRow label="Nameservers" value={Array.isArray(r.name_servers || r.nameServers) ? (r.name_servers || r.nameServers).join(', ') : r.name_servers} />
+          {renderFallbackExcluding(['domain_name','domainName','registrar','creation_date','createdDate','expiration_date','expiresDate','updated_date','updatedDate','status','name_servers','nameServers','timestamp','cached','raw'])}
+        </div>
+      );
+    }
+
+    // ── CERTS ──
+    if (activeTab === 'certs') {
+      const certs = r.certificates || r.certs || (Array.isArray(r) ? r : []);
+      return (
+        <div>
+          <SectionHeader title="CERTIFICATE TRANSPARENCY" icon={Lock} color="#E040FB" />
+          <ResultRow label="Domain" value={query} color="#E040FB" />
+          <ResultRow label="Certificates" value={Array.isArray(certs) ? certs.length : 0} />
+          {Array.isArray(certs) && certs.slice(0, 15).map((c: any, i: number) => (
+            <div key={i} className="mt-1.5 p-2 rounded border border-[var(--border-secondary)]/30 bg-[var(--bg-tertiary)]/30">
+              <ResultRow label="Issuer" value={c.issuer_name || c.issuer} />
+              <ResultRow label="Common Name" value={c.common_name || c.name_value} />
+              <ResultRow label="Not Before" value={c.not_before} />
+              <ResultRow label="Not After" value={c.not_after} />
+            </div>
+          ))}
+          {(!Array.isArray(certs) || certs.length === 0) && renderFallback()}
+        </div>
+      );
+    }
+
+    // ── THREATS ──
+    if (activeTab === 'threats') {
+      return (
+        <div>
+          <SectionHeader title="THREAT INTELLIGENCE" icon={AlertTriangle} color="#FF9500" />
+          <ResultRow label="Query" value={query} color="#FF9500" />
+          <ResultRow label="Risk Score" value={r.risk_score || r.score} color={
+            (r.risk_score || r.score || 0) > 70 ? '#FF3D3D' : (r.risk_score || r.score || 0) > 40 ? '#FF9500' : '#00E676'
+          } />
+          <ResultRow label="Malicious" value={r.malicious !== undefined ? (r.malicious ? 'YES' : 'NO') : undefined} color={r.malicious ? '#FF3D3D' : '#00E676'} />
+          <ResultRow label="Category" value={r.category || r.type} />
+          <ResultRow label="Reports" value={r.total_reports || r.reports} />
+          <ResultRow label="Last Seen" value={r.last_seen || r.last_analysis} />
+          {r.tags && <ResultRow label="Tags" value={Array.isArray(r.tags) ? r.tags.join(', ') : r.tags} />}
+          {renderFallbackExcluding(['risk_score','score','malicious','category','type','total_reports','reports','last_seen','last_analysis','tags','timestamp','cached','query'])}
+        </div>
+      );
+    }
+
+    // ── SSL ──
+    if (activeTab === 'ssl') {
+      return (
+        <div>
+          <SectionHeader title="SSL/TLS ANALYSIS" icon={Shield} color="#76FF03" />
+          <ResultRow label="Target" value={query} color="#76FF03" />
+          <ResultRow label="Protocol" value={r.protocol || r.tls_version} />
+          <ResultRow label="Cipher" value={r.cipher || r.cipher_suite} />
+          <ResultRow label="Valid" value={r.valid !== undefined ? (r.valid ? 'YES' : 'NO') : undefined} color={r.valid ? '#00E676' : '#FF3D3D'} />
+          <ResultRow label="Issuer" value={r.issuer} />
+          <ResultRow label="Subject" value={r.subject} />
+          <ResultRow label="Expires" value={r.expires || r.not_after} />
+          <ResultRow label="SANs" value={Array.isArray(r.sans) ? r.sans.join(', ') : r.sans} />
+          {renderFallback()}
+        </div>
+      );
+    }
+
+    // Fallback for other tools
+    return renderFallback();
+  };
+
+  const renderFallback = () => {
+    if (!results) return null;
+    return (
+      <div className="space-y-1">
+        {Object.entries(results).filter(([k]) => !['timestamp','cached'].includes(k)).map(([key, value]) => (
+          <ResultRow key={key} label={key.replace(/_/g, ' ')} value={typeof value === 'object' ? JSON.stringify(value, null, 1) : String(value)} />
+        ))}
+      </div>
+    );
+  };
+
+  const renderFallbackExcluding = (exclude: string[]) => {
+    if (!results) return null;
+    const extra = Object.entries(results).filter(([k]) => !exclude.includes(k));
+    if (extra.length === 0) return null;
+    return (
+      <div className="mt-2 space-y-1">
+        {extra.map(([key, value]) => (
+          <ResultRow key={key} label={key.replace(/_/g, ' ')} value={typeof value === 'object' ? JSON.stringify(value, null, 1) : String(value)} />
+        ))}
+      </div>
+    );
+  };
+
+  const renderContent = () => (
+    <div className="flex flex-col gap-2.5">
+      {/* Tool Grid */}
+      <div className="grid grid-cols-4 gap-1">
+        {TABS.map(tab => (
+          <button key={tab.id} onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); }}
+            className={`flex flex-col items-center gap-1 px-1.5 py-2 rounded-lg text-[9px] font-mono tracking-wider transition-all border ${activeTab === tab.id ? 'border-opacity-40 bg-opacity-15' : 'border-transparent hover:bg-[var(--hover-accent)]'}`}
+            style={{ borderColor: activeTab === tab.id ? tab.color : 'transparent', backgroundColor: activeTab === tab.id ? `${tab.color}15` : undefined, color: activeTab === tab.id ? tab.color : 'var(--text-muted)' }}>
+            <tab.icon className="w-3.5 h-3.5" />
+            <span className="leading-none">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Search Input */}
+      <div className="flex gap-1.5">
+        <div className="flex-1 relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+          <input type="text" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runLookup()}
+            placeholder={currentTab?.placeholder}
+            className="w-full bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg pl-8 pr-3 py-2.5 text-[11px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-colors"
+            style={{ borderColor: query ? `${currentTab?.color}40` : undefined }} />
+        </div>
+        {activeTab === 'scanner' && (
+          <select value={scanType} onChange={e => setScanType(e.target.value)}
+            className="bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg px-2 text-[10px] font-mono text-[var(--text-muted)] outline-none">
+            <option value="quick">QUICK</option><option value="deep">DEEP</option><option value="ports">TOP 1000</option>
+          </select>
+        )}
+        <button onClick={runLookup} disabled={loading || !query.trim()}
+          className="px-4 py-2 rounded-lg text-[10px] font-mono font-bold tracking-wider disabled:opacity-30 transition-all"
+          style={{ backgroundColor: `${currentTab?.color}20`, border: `1px solid ${currentTab?.color}40`, color: currentTab?.color }}>
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'SCAN'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-2.5 rounded-lg border border-red-500/30 bg-red-500/10 text-[11px] font-mono text-red-400 flex items-center gap-2">
+          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />{error}
+        </div>
+      )}
+
+      {results && (
+        <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-primary)] rounded-lg p-3 max-h-[50vh] overflow-y-auto styled-scrollbar">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[9px] font-mono tracking-widest" style={{ color: currentTab?.color }}>{currentTab?.label} RESULTS</span>
+            <span className="text-[8px] font-mono text-[var(--text-muted)] flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{new Date().toLocaleTimeString()}</span>
+          </div>
+          {renderStructuredResults()}
+        </div>
+      )}
+
+      {history.length > 0 && !results && (
+        <div className="space-y-1">
+          <span className="text-[9px] font-mono tracking-widest text-[var(--text-muted)]">RECENT SCANS</span>
+          {history.slice(0, 5).map((h, i) => (
+            <button key={i} onClick={() => { setActiveTab(h.tab); setQuery(h.query); }}
+              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-[var(--hover-accent)] transition-colors text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-mono" style={{ color: TABS.find(t => t.id === h.tab)?.color }}>{TABS.find(t => t.id === h.tab)?.label}</span>
+                <span className="text-[10px] font-mono text-[var(--text-secondary)]">{h.query}</span>
+              </div>
+              <span className="text-[8px] font-mono text-[var(--text-muted)]">{h.time}</span>
             </button>
           ))}
         </div>
-
-        {/* Search input */}
-        <div className="flex gap-1.5">
-          <div className="flex-1 relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" />
-            <input
-              type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && runLookup()}
-              placeholder={TABS.find(t => t.id === activeTab)?.placeholder}
-              className="w-full bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-md pl-7 pr-3 py-2.5 text-[12px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:border-[var(--cyan-primary)]/50 outline-none"
-            />
-          </div>
-          {activeTab === 'scanner' && (
-            <select
-              value={scanType}
-              onChange={e => setScanType(e.target.value)}
-              className="bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-md px-2 text-[10px] font-mono text-[var(--text-muted)] outline-none"
-            >
-              <option value="quick">QUICK</option>
-              <option value="deep">DEEP</option>
-              <option value="stealth">STEALTH</option>
-            </select>
-          )}
-          <button
-            onClick={runLookup}
-            disabled={loading || !query.trim()}
-            className="px-4 py-2 bg-[var(--cyan-primary)]/20 border border-[var(--cyan-primary)]/40 rounded-md text-[10px] font-mono font-bold text-[var(--cyan-primary)] tracking-wider hover:bg-[var(--cyan-primary)]/30 disabled:opacity-30 transition-all"
-          >
-            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'SCAN'}
-          </button>
-        </div>
-
-        {/* Results */}
-        {error && (
-          <div className="p-2.5 rounded-md border border-red-500/30 bg-red-500/10 text-[11px] font-mono text-red-400">
-            ⚠ {error}
-          </div>
-        )}
-        {results && (
-          <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-primary)] rounded-md p-2 max-h-[35vh] overflow-y-auto styled-scrollbar">
-            <pre className="text-[10px] font-mono text-[var(--text-secondary)] whitespace-pre-wrap break-all leading-relaxed">
-              {JSON.stringify(results, null, 2)}
-            </pre>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Desktop: fixed right panel
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ x: '100%', opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: '100%', opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed right-0 top-0 bottom-0 w-full md:w-[420px] z-[500] flex flex-col"
-          style={{ background: 'linear-gradient(180deg, rgba(4,4,10,0.98) 0%, rgba(8,8,18,0.98) 100%)', borderLeft: '1px solid rgba(212,175,55,0.15)' }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-primary)]">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[var(--cyan-primary)]/10 border border-[var(--cyan-primary)]/30 flex items-center justify-center">
-                <Radar className="w-4 h-4 text-[var(--cyan-primary)]" />
-              </div>
-              <div>
-                <h2 className="text-[11px] font-mono font-bold text-[var(--text-primary)] tracking-[0.3em]">OSIRIS RECON</h2>
-                <span className="text-[7px] font-mono text-[var(--text-muted)] tracking-widest">NMAP POWERED · SHODAN-CLASS OSINT</span>
-              </div>
-            </div>
-            <button onClick={onClose} className="w-7 h-7 rounded-lg border border-[var(--border-primary)] flex items-center justify-center hover:border-[var(--gold-primary)] transition-colors">
-              <X className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-            </button>
-          </div>
-
-          {/* Scan Type Tabs — vertical list */}
-          <div className="px-3 py-2 border-b border-[var(--border-secondary)]/50">
-            <div className="grid grid-cols-3 gap-1">
-              {TABS.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => { setActiveTab(t.id); setResults(null); setError(''); setQuery(''); }}
-                  className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-center transition-all ${
-                    activeTab === t.id
-                      ? 'bg-[var(--cyan-primary)]/10 border border-[var(--cyan-primary)]/30'
-                      : 'border border-transparent hover:border-[var(--border-primary)] hover:bg-[var(--bg-panel)]/50'
-                  }`}
-                >
-                  <t.icon className={`w-3.5 h-3.5 ${activeTab === t.id ? 'text-[var(--cyan-primary)]' : 'text-[var(--text-muted)]'}`} />
-                  <span className={`text-[6px] font-mono tracking-wider ${activeTab === t.id ? 'text-[var(--cyan-primary)]' : 'text-[var(--text-muted)]'}`}>{t.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Scan Type sub-selector for NMAP */}
-          {activeTab === 'scanner' && (
-            <div className="px-3 py-1.5 border-b border-[var(--border-secondary)]/30 flex gap-1">
-              {['quick', 'ports', 'ssl', 'traceroute', 'headers', 'banner'].map(t => (
-                <button key={t} onClick={() => setScanType(t)}
-                  className={`px-2 py-1 rounded text-[6px] font-mono tracking-wider transition-all ${
-                    scanType === t
-                      ? 'bg-[var(--gold-primary)]/15 text-[var(--gold-primary)] border border-[var(--gold-primary)]/30'
-                      : 'text-[var(--text-muted)] border border-transparent hover:text-[var(--text-primary)] hover:border-[var(--border-primary)]'
-                  }`}
-                >{t.toUpperCase()}</button>
-              ))}
-            </div>
-          )}
-
-          {/* Search Bar */}
-          <div className="px-3 py-2.5 border-b border-[var(--border-secondary)]/50">
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && runLookup()}
-                  placeholder={TABS.find(t => t.id === activeTab)?.placeholder}
-                  className="w-full pl-8 pr-3 py-2 rounded-lg bg-[var(--bg-void)] border border-[var(--border-primary)] text-[9px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none focus:border-[var(--cyan-primary)]/50 transition-colors"
-                />
-              </div>
-              <button
-                onClick={runLookup}
-                disabled={loading || !query.trim()}
-                className="px-4 py-2 rounded-lg bg-[var(--cyan-primary)]/15 border border-[var(--cyan-primary)]/40 text-[8px] font-mono font-bold text-[var(--cyan-primary)] tracking-[0.2em] hover:bg-[var(--cyan-primary)]/25 disabled:opacity-30 transition-all"
-              >
-                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'EXECUTE'}
-              </button>
-            </div>
-            <p className="text-[6px] font-mono text-[var(--text-muted)]/60 mt-1 tracking-wider">{TABS.find(t => t.id === activeTab)?.desc}</p>
-          </div>
-
-          {/* Results Area */}
-          <div className="flex-1 overflow-y-auto styled-scrollbar px-3 py-2">
-            {error && (
-              <div className="p-3 rounded-lg bg-[#FF3D3D]/10 border border-[#FF3D3D]/20 text-[8px] font-mono text-[#FF3D3D] mb-2">{error}</div>
-            )}
-
-            {loading && (
-              <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <div className="w-12 h-12 rounded-full border-2 border-[var(--cyan-primary)]/30 border-t-[var(--cyan-primary)] animate-spin" />
-                <span className="text-[9px] font-mono text-[var(--cyan-primary)] tracking-[0.3em] animate-pulse">SCANNING TARGET...</span>
-                <span className="text-[7px] font-mono text-[var(--text-muted)]">{query}</span>
-              </div>
-            )}
-
-            {results && !loading && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
-                {/* Scanner results */}
-                {activeTab === 'scanner' && results.ports && (
-                  <>
-                    <SectionHeader title="TARGET INFO" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <ResultCard label="TARGET" value={results.target} />
-                      <ResultCard label="IP" value={results.ip} />
-                      <ResultCard label="OPEN PORTS" value={results.open_ports} highlight />
-                      {results.os_guess && <ResultCard label="OS DETECTION" value={results.os_guess} />}
-                    </div>
-                    {results.ports.length > 0 && (
-                      <>
-                        <SectionHeader title={`PORT SCAN — ${results.ports.length} SERVICES`} />
-                        <div className="space-y-1">
-                          {results.ports.map((p: any) => (
-                            <div key={p.port} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--bg-void)]/50 border border-[var(--border-secondary)]/30">
-                              <span className="text-[10px] font-mono text-[var(--cyan-primary)] font-bold w-12">{p.port}</span>
-                              <span className={`text-[6px] font-mono px-1.5 py-0.5 rounded ${p.state === 'open' ? 'bg-[var(--alert-green)]/15 text-[var(--alert-green)]' : 'bg-[#FF3D3D]/15 text-[#FF3D3D]'}`}>{p.state.toUpperCase()}</span>
-                              <span className="text-[8px] font-mono text-[var(--text-secondary)] flex-1">{p.service}</span>
-                              {p.product && <span className="text-[7px] font-mono text-[var(--text-muted)]">{p.product} {p.version}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                    {results.certificate && (
-                      <>
-                        <SectionHeader title="SSL CERTIFICATE" />
-                        <div className="grid grid-cols-1 gap-2">
-                          <ResultCard label="SUBJECT" value={results.certificate.subject} />
-                          <ResultCard label="ISSUER" value={results.certificate.issuer} />
-                          <ResultCard label="EXPIRES" value={results.certificate.not_after} />
-                        </div>
-                      </>
-                    )}
-                    {results.hops && (
-                      <>
-                        <SectionHeader title={`TRACEROUTE — ${results.hop_count} HOPS`} />
-                        <div className="space-y-0.5 max-h-40 overflow-y-auto styled-scrollbar">
-                          {results.hops.map((h: string, i: number) => (
-                            <div key={i} className="text-[7px] font-mono text-[var(--text-muted)] px-2 py-0.5 hover:bg-[var(--bg-panel)]/30 rounded">{h}</div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                    {results.headers && (
-                      <>
-                        <SectionHeader title="HTTP HEADERS" />
-                        {Object.entries(results.headers).map(([k, v]: [string, any]) => (
-                          <div key={k} className="text-[7px] font-mono px-2 py-0.5">
-                            <span className="text-[var(--gold-primary)]">{k}:</span> <span className="text-[var(--text-muted)]">{v}</span>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* IP results */}
-                {activeTab === 'ip' && results.geo && (
-                  <>
-                    <SectionHeader title="GEOLOCATION" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <ResultCard label="COUNTRY" value={`${results.geo.country} (${results.geo.country_code})`} />
-                      <ResultCard label="CITY" value={`${results.geo.city}, ${results.geo.region}`} />
-                      <ResultCard label="COORDS" value={`${results.geo.lat}, ${results.geo.lon}`} />
-                      <ResultCard label="TIMEZONE" value={results.geo.timezone} />
-                    </div>
-                    <SectionHeader title="NETWORK" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <ResultCard label="ISP" value={results.geo.isp} />
-                      <ResultCard label="ORG" value={results.geo.org} />
-                      <ResultCard label="ASN" value={results.geo.as_number} />
-                      <ResultCard label="AS NAME" value={results.geo.as_name} />
-                    </div>
-                    <SectionHeader title="RISK ASSESSMENT" />
-                    <div className="flex flex-wrap gap-2">
-                      <FlagBadge label="PROXY/VPN" active={results.reputation?.is_proxy} />
-                      <FlagBadge label="HOSTING" active={results.reputation?.is_hosting} />
-                      <FlagBadge label="MOBILE" active={results.reputation?.is_mobile} />
-                    </div>
-                    <RiskLevel level={results.reputation?.risk_level || 'LOW'} />
-                  </>
-                )}
-
-                {/* DNS results */}
-                {activeTab === 'dns' && results.summary && (
-                  <>
-                    <SectionHeader title={`DNS RECORDS — ${results.summary.total_records} FOUND`} />
-                    {results.summary.ip_addresses?.length > 0 && <ResultCard label="A RECORDS" value={results.summary.ip_addresses.join(', ')} />}
-                    {results.summary.mail_servers?.length > 0 && <ResultCard label="MAIL SERVERS" value={results.summary.mail_servers.join(', ')} />}
-                    {results.summary.nameservers?.length > 0 && <ResultCard label="NAMESERVERS" value={results.summary.nameservers.join(', ')} />}
-                    {Object.entries(results.records || {}).map(([type, records]: [string, any]) => (
-                      records.length > 0 && (
-                        <div key={type}>
-                          <span className="text-[7px] font-mono text-[var(--gold-primary)] tracking-widest">{type}</span>
-                          {records.slice(0, 5).map((r: any, i: number) => (
-                            <div key={i} className="text-[7px] font-mono text-[var(--text-muted)] pl-3 truncate">{r.data}</div>
-                          ))}
-                        </div>
-                      )
-                    ))}
-                  </>
-                )}
-
-                {/* Cert results */}
-                {activeTab === 'certs' && (
-                  <>
-                    <SectionHeader title="CERTIFICATE TRANSPARENCY" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <ResultCard label="TOTAL CERTS" value={results.total_certs} highlight />
-                      <ResultCard label="SUBDOMAINS" value={results.unique_subdomains} highlight />
-                    </div>
-                    {results.subdomains?.length > 0 && (
-                      <>
-                        <SectionHeader title={`DISCOVERED SUBDOMAINS (${results.subdomains.length})`} />
-                        <div className="max-h-48 overflow-y-auto styled-scrollbar space-y-0.5">
-                          {results.subdomains.map((s: string) => (
-                            <div key={s} className="text-[8px] font-mono text-[var(--cyan-primary)] px-2 py-0.5 rounded hover:bg-[var(--bg-panel)]/30 cursor-pointer">{s}</div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* WHOIS results */}
-                {activeTab === 'whois' && (
-                  <>
-                    <SectionHeader title="DOMAIN REGISTRATION" />
-                    <div className="grid grid-cols-2 gap-2">
-                      {results.registration && <ResultCard label="REGISTERED" value={new Date(results.registration).toLocaleDateString()} />}
-                      {results.expiration && <ResultCard label="EXPIRES" value={new Date(results.expiration).toLocaleDateString()} />}
-                    </div>
-                    {results.rdap?.nameservers?.length > 0 && <ResultCard label="NAMESERVERS" value={results.rdap.nameservers.join(', ')} />}
-                    {results.security_score && (
-                      <>
-                        <SectionHeader title="SECURITY ASSESSMENT" />
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-void)] border border-[var(--border-primary)]">
-                          <span className={`text-2xl font-bold font-mono ${
-                            results.security_score.grade === 'A' ? 'text-[var(--alert-green)]' :
-                            results.security_score.grade === 'B' ? 'text-[var(--gold-primary)]' : 'text-[#FF3D3D]'
-                          }`}>{results.security_score.grade}</span>
-                          <div>
-                            <div className="text-[8px] font-mono text-[var(--text-primary)]">{results.security_score.score}/{results.security_score.max} checks passed</div>
-                            <div className="text-[6px] font-mono text-[var(--text-muted)]">HTTP security headers analysis</div>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* Threat results */}
-                {activeTab === 'threats' && (
-                  <>
-                    <SectionHeader title="THREAT ASSESSMENT" />
-                    <RiskLevel level={results.threat_level || 'LOW'} />
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {results.tor_exit_node !== undefined && <FlagBadge label="TOR EXIT NODE" active={results.tor_exit_node} />}
-                    </div>
-                    {results.otx && (
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        <ResultCard label="OTX PULSES" value={results.otx.pulse_count} highlight />
-                        {results.otx.country && <ResultCard label="COUNTRY" value={results.otx.country} />}
-                        {results.otx.asn && <ResultCard label="ASN" value={results.otx.asn} />}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Fallback */}
-                {!['scanner', 'ip', 'dns', 'certs', 'whois', 'threats'].some(t => activeTab === t && results) && (
-                  <pre className="text-[7px] font-mono text-[var(--text-muted)] overflow-auto">{JSON.stringify(results, null, 2)}</pre>
-                )}
-              </motion.div>
-            )}
-
-            {!results && !loading && !error && (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-16 h-16 rounded-full border border-[var(--border-primary)] flex items-center justify-center mb-4 opacity-30">
-                  <Radar className="w-8 h-8 text-[var(--cyan-primary)]" />
-                </div>
-                <p className="text-[9px] font-mono text-[var(--text-muted)] tracking-widest mb-1">READY TO SCAN</p>
-                <p className="text-[7px] font-mono text-[var(--text-muted)]/50">Enter a target and press EXECUTE</p>
-              </div>
-            )}
-          </div>
-
-          {/* History bar */}
-          {history.length > 0 && (
-            <div className="px-3 py-2 border-t border-[var(--border-secondary)]/50">
-              <span className="text-[6px] font-mono text-[var(--text-muted)] tracking-widest">RECENT</span>
-              <div className="flex gap-1 mt-1 overflow-x-auto">
-                {history.slice(0, 5).map((h, i) => (
-                  <button key={i} onClick={() => { setQuery(h.query); setActiveTab(h.tab as OsintTab); }}
-                    className="px-2 py-0.5 rounded bg-[var(--bg-void)] border border-[var(--border-secondary)]/30 text-[6px] font-mono text-[var(--text-muted)] hover:text-[var(--cyan-primary)] transition-colors whitespace-nowrap"
-                  >{h.query}</button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Footer */}
-          <div className="px-4 py-2 border-t border-[var(--border-primary)] flex items-center justify-between">
-            <span className="text-[5px] font-mono text-[var(--text-muted)]/40 tracking-[0.2em]">OSIRIS RECON v3.2 · NMAP POWERED</span>
-            <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[var(--alert-green)] animate-osiris-pulse" />
-              <span className="text-[6px] font-mono text-[var(--alert-green)]">SCANNER ONLINE</span>
-            </div>
-          </div>
-        </motion.div>
       )}
-    </AnimatePresence>
-  );
-}
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-2 mt-2 mb-1">
-      <div className="h-[1px] flex-1 bg-[var(--border-secondary)]/30" />
-      <span className="text-[7px] font-mono text-[var(--gold-primary)] tracking-[0.2em] font-bold">{title}</span>
-      <div className="h-[1px] flex-1 bg-[var(--border-secondary)]/30" />
     </div>
   );
-}
 
-function ResultCard({ label, value, highlight }: { label: string; value: any; highlight?: boolean }) {
-  if (!value && value !== 0) return null;
-  return (
-    <div className="px-2.5 py-1.5 rounded-lg bg-[var(--bg-void)]/50 border border-[var(--border-secondary)]/30">
-      <div className="text-[6px] font-mono text-[var(--text-muted)] tracking-widest">{label}</div>
-      <div className={`text-[9px] font-mono truncate ${highlight ? 'text-[var(--cyan-primary)] font-bold' : 'text-[var(--text-primary)]'}`}>{String(value)}</div>
-    </div>
-  );
-}
+  if (isMobile) return renderContent();
 
-function FlagBadge({ label, active }: { label: string; active: boolean }) {
   return (
-    <span className={`px-2 py-1 rounded-lg text-[7px] font-mono tracking-wider border ${
-      active
-        ? 'bg-[#FF3D3D]/10 text-[#FF3D3D] border-[#FF3D3D]/30'
-        : 'bg-[var(--alert-green)]/10 text-[var(--alert-green)] border-[var(--alert-green)]/20'
-    }`}>
-      {active ? '⚠' : '✓'} {label}
-    </span>
-  );
-}
-
-function RiskLevel({ level }: { level: string }) {
-  const color = level === 'HIGH' ? '#FF3D3D' : level === 'MEDIUM' ? '#FF9500' : '#00E676';
-  return (
-    <div className="flex items-center gap-2 p-2.5 rounded-lg border" style={{ background: `${color}08`, borderColor: `${color}25` }}>
-      <div className="w-2.5 h-2.5 rounded-full" style={{ background: color, boxShadow: `0 0 8px ${color}60` }} />
-      <span className="text-[10px] font-mono font-bold tracking-[0.2em]" style={{ color }}>{level}</span>
-      <span className="text-[7px] font-mono text-[var(--text-muted)]">THREAT LEVEL</span>
-    </div>
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.6 }} className="glass-panel flex flex-col overflow-hidden pointer-events-auto">
+      <button onClick={() => setExpanded(!expanded)} className="flex items-center justify-between px-4 py-3 hover:bg-[var(--hover-accent)] transition-colors">
+        <div className="flex items-center gap-2">
+          <Radar className="w-4 h-4 text-[var(--cyan-primary)]" />
+          <span className="hud-text text-[12px] text-[var(--text-primary)]">RECON TOOLKIT</span>
+          <span className="text-[9px] font-mono text-[var(--text-muted)]">{TABS.length} TOOLS</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--cyan-primary)] animate-osiris-pulse" />
+          {expanded ? <ChevronUp className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
+        </div>
+      </button>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden px-3 pb-3">
+            {renderContent()}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

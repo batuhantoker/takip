@@ -62,7 +62,7 @@ export default function Dashboard() {
   const [mobilePanel, setMobilePanel] = useState<'layers'|'markets'|'intel'|'search'|'recon'|null>(null);
   const [mapProjection, setMapProjection] = useState<'globe'|'mercator'>('globe');
   const [mapStyle, setMapStyle] = useState<'dark'|'satellite'>('dark');
-  const [showOsint, setShowOsint] = useState(false);
+
   const isMobile = useIsMobile();
   const startTime = useRef(Date.now());
   const geocodeCache = useRef<Map<string, string>>(new Map());
@@ -209,7 +209,7 @@ export default function Dashboard() {
     // Priority 1: Core feeds (always needed for panels)
     fetchEndpoint('/api/earthquakes');
     fetchEndpoint('/api/news');
-    setTimeout(() => fetchEndpoint('/api/markets'), 800);
+    setTimeout(() => fetchEndpoint('/api/markets', d => ({ markets: d })), 800);
 
     // Priority 2: Space Weather (needed for MarketsPanel)
     setTimeout(async () => {
@@ -223,7 +223,7 @@ export default function Dashboard() {
     const intervals = [
       setInterval(() => fetchEndpoint('/api/earthquakes'), 300000),  // 5 min
       setInterval(() => fetchEndpoint('/api/news'), 600000),         // 10 min
-      setInterval(() => fetchEndpoint('/api/markets'), 300000),      // 5 min
+      setInterval(() => fetchEndpoint('/api/markets', d => ({ markets: d })), 300000),      // 5 min
     ];
     return () => intervals.forEach(clearInterval);
   }, []);
@@ -482,7 +482,7 @@ export default function Dashboard() {
       {/* ── GLOBAL STATUS TICKER ── */}
       <GlobalStatusBar />
 
-      {/* ── LEFT HUD (desktop) ── */}
+      {/* ── LEFT HUD (desktop): Layers + Stats + Markets + Intel ── */}
       <div className="desktop-panel absolute left-5 top-20 bottom-24 w-72 flex flex-col gap-3 z-[200] pointer-events-none overflow-y-auto styled-scrollbar pr-1">
         {showLayers && (
           <>
@@ -499,24 +499,17 @@ export default function Dashboard() {
             <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMapView(v => ({ ...v, zoom })); }} />
           </>
         )}
+        {showMarkets && <MarketsPanel data={data} spaceWeather={spaceWeather} />}
+        {showIntel && <IntelFeed data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />}
       </div>
 
-      {/* ── RIGHT HUD (desktop) ── */}
+      {/* ── RIGHT HUD (desktop): Search + RECON Toolkit ── */}
       <div className="desktop-panel absolute right-5 top-20 bottom-24 w-80 flex flex-col gap-3 z-[200] pointer-events-auto overflow-y-auto styled-scrollbar pr-1">
         <div className="flex gap-2 items-start">
           <div className="flex-1"><SearchBar onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} /></div>
-          <motion.button
-            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-            onClick={() => setShowOsint(true)}
-            className="glass-panel px-3 py-1.5 flex items-center gap-1.5 pointer-events-auto hover:border-[var(--cyan-primary)]/40 transition-colors"
-          >
-            <Radar className="w-3.5 h-3.5 text-[var(--cyan-primary)]" />
-            <span className="text-[10px] font-mono text-[var(--cyan-primary)] tracking-widest font-bold">RECON</span>
-          </motion.button>
           <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} /></div>
         </div>
-        {showMarkets && <MarketsPanel data={data} spaceWeather={spaceWeather} />}
-        {showIntel && <IntelFeed data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />}
+        <OsintPanel />
       </div>
 
       {/* ═══ MOBILE UI ═══ */}
@@ -682,8 +675,7 @@ export default function Dashboard() {
         [?] SHORTCUTS · [F] FULLSCREEN · [S] SHARE · [R] RESET VIEW
       </div>
 
-      {/* ── OSINT RECON PANEL ── */}
-      <OsintPanel isOpen={showOsint} onClose={() => setShowOsint(false)} />
+
     </main>
   );
 }
