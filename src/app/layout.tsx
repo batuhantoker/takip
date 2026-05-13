@@ -3,8 +3,8 @@ import "./globals.css";
 
 const SITE_URL = "https://osirisai.live";
 const SITE_NAME = "OSIRIS";
-const SITE_TITLE = "OSIRIS — Global Intelligence Platform | Real-Time OSINT Dashboard";
-const SITE_DESCRIPTION = "The world's most advanced open-source intelligence (OSINT) platform. Real-time tracking of 10,000+ aircraft, 2,000 satellites, worldwide CCTV cameras, earthquakes, wildfires, nuclear facilities, severe weather, cyber threats, and global conflicts across 20+ live data feeds. The #1 open-source Palantir alternative.";
+const SITE_TITLE = "OSIRIS — Free OSINT Toolkit & Global Intelligence Dashboard | Nmap, DNS, WHOIS & More";
+const SITE_DESCRIPTION = "Run Nmap scans, DNS lookups, WHOIS queries, SSL cert analysis, BGP routing, and threat intelligence — all from your browser. No installs. Plus real-time tracking of 10,000+ aircraft, 2,000 satellites, worldwide CCTV cameras, earthquakes, wildfires, nuclear facilities & 20+ live intelligence feeds. Your Linux OSINT toolkit, in the cloud. Free & open source.";
 
 export const viewport: Viewport = {
   themeColor: "#D4AF37",
@@ -22,17 +22,35 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   keywords: [
+    // OSINT Tools - Primary focus
+    "OSINT tools", "free OSINT tools", "online OSINT toolkit", "OSINT framework",
+    "nmap online", "nmap scanner online", "free nmap scan", "port scanner online",
+    "DNS lookup tool", "WHOIS lookup", "reverse DNS", "DNS records",
+    "SSL certificate checker", "certificate transparency", "cert lookup",
+    "BGP routing lookup", "ASN lookup", "IP geolocation",
+    "threat intelligence", "threat intel lookup", "IP reputation check",
+    "network reconnaissance", "recon tools", "penetration testing tools",
+    "cybersecurity tools", "infosec tools", "security scanner",
+    "linux OSINT tools", "kali linux tools online", "OSINT browser tools",
+    
+    // Intelligence Platform
     "OSINT", "open source intelligence", "intelligence platform", "global intelligence",
     "geospatial intelligence", "GEOINT", "SIGINT", "real-time tracking",
-    "flight tracker", "aircraft tracking", "ADS-B", "satellite tracking",
-    "CCTV surveillance", "security cameras", "earthquake monitor",
-    "wildfire tracker", "nuclear facilities", "severe weather",
-    "cyber threats", "threat intelligence", "palantir alternative",
-    "open source palantir", "intelligence dashboard", "NMAP scanner",
-    "network reconnaissance", "DNS lookup", "WHOIS lookup",
-    "geopolitical intelligence", "defense analytics", "commodities tracker",
-    "space weather", "GPS jamming", "air quality monitoring",
-    "global risk assessment", "security operations center", "SOC dashboard",
+    "palantir alternative", "open source palantir", "intelligence dashboard",
+    
+    // Tracking & Data
+    "flight tracker", "aircraft tracking", "ADS-B tracker", "live flight radar",
+    "satellite tracking", "ISS tracker", "space station tracker",
+    "CCTV cameras live", "security cameras worldwide", "live cameras",
+    "earthquake monitor", "seismic activity", "USGS earthquake",
+    "wildfire tracker", "NASA FIRMS", "active fires",
+    "nuclear facilities map", "nuclear power plants",
+    "severe weather alerts", "weather radar",
+    "cyber threats dashboard", "CVE tracker",
+    "space weather", "solar storm", "GPS jamming",
+    "defense stocks", "commodities tracker",
+    
+    // Brand
     "osiris", "osirisai", "osirisai.live",
   ],
   authors: [{ name: "Osiris Project", url: SITE_URL }],
@@ -62,8 +80,8 @@ export const metadata: Metadata = {
     canonical: SITE_URL,
   },
   openGraph: {
-    title: "OSIRIS — The World's Most Advanced Open-Source Intelligence Platform",
-    description: "Track 10,000+ aircraft, 2,000 satellites, worldwide CCTV, earthquakes, wildfires, nuclear facilities & global conflicts in real-time. 20+ live data feeds. Free. Open Source.",
+    title: "OSIRIS — Free OSINT Toolkit in Your Browser | Nmap, DNS, WHOIS + 20 Live Intel Feeds",
+    description: "Run Nmap port scans, DNS/WHOIS lookups, SSL cert analysis & threat intel — no installs needed. Plus track 10K+ aircraft, satellites, CCTV, earthquakes & nuclear facilities in real-time. Free. Open Source.",
     type: "website",
     siteName: SITE_NAME,
     locale: "en_US",
@@ -73,15 +91,15 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "OSIRIS Global Intelligence Platform — Real-time OSINT Dashboard",
+        alt: "OSIRIS — Free OSINT Toolkit & Global Intelligence Platform",
         type: "image/png",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "🛰️ OSIRIS — Global Intelligence Platform",
-    description: "20+ live feeds. Aircraft, CCTV, satellites, nuclear facilities, weather, cyber threats & more. The #1 open-source Palantir alternative.",
+    title: "🛰️ OSIRIS — Free OSINT Toolkit + Global Intel Dashboard",
+    description: "Nmap scans, DNS, WHOIS, SSL certs, threat intel — all in your browser. Plus 10K+ flights, satellites, CCTV, earthquakes & more. No installs. Free & open source.",
     creator: "@simplifaisoul",
     site: "@simplifaisoul",
     images: [`${SITE_URL}/og-image.png`],
@@ -102,12 +120,13 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: SITE_NAME,
-  alternateName: "OSIRIS Intelligence Platform",
+  name: "OSIRIS — OSINT Toolkit & Intelligence Platform",
+  alternateName: ["OSIRIS", "OsirisAI", "Osiris OSINT"],
   url: SITE_URL,
   description: SITE_DESCRIPTION,
   applicationCategory: "SecurityApplication",
   operatingSystem: "Web",
+  browserRequirements: "Requires a modern web browser",
   offers: {
     "@type": "Offer",
     price: "0",
@@ -115,22 +134,26 @@ const jsonLd = {
     availability: "https://schema.org/InStock",
   },
   featureList: [
-    "Real-time flight tracking (10,000+ aircraft)",
-    "Satellite tracking (2,000+ objects)",
-    "Worldwide CCTV camera monitoring",
-    "Earthquake monitoring (USGS feed)",
-    "Wildfire detection (NASA FIRMS)",
-    "Nuclear facility mapping",
-    "Severe weather alerts",
-    "Cyber threat intelligence",
-    "NMAP network scanner",
-    "DNS/WHOIS/BGP reconnaissance",
-    "Space weather monitoring",
+    "Nmap port scanning from the browser — no install required",
+    "DNS record lookup (A, AAAA, MX, NS, TXT, CNAME)",
+    "WHOIS domain registration lookup",
+    "SSL/TLS certificate transparency search",
+    "BGP routing & ASN lookup",
+    "IP geolocation & threat intelligence",
+    "Real-time flight tracking (10,000+ aircraft via ADS-B)",
+    "Satellite tracking (2,000+ objects including ISS)",
+    "Worldwide CCTV camera monitoring (1,400+ feeds)",
+    "Earthquake monitoring (USGS live feed)",
+    "Wildfire detection (NASA FIRMS satellite data)",
+    "Nuclear facility mapping (worldwide)",
+    "Severe weather alerts & tracking",
+    "Cyber threat & CVE intelligence",
+    "Space weather & solar storm monitoring",
     "GPS jamming detection",
-    "Defense & commodity markets",
-    "SIGINT news feed",
-    "3D interactive globe",
-    "Region dossier reports",
+    "Defense & commodity market tracking",
+    "SIGINT news aggregation feed",
+    "Interactive 3D globe with day/night cycle",
+    "Region intelligence dossier reports",
   ],
   screenshot: `${SITE_URL}/og-image.png`,
   author: {
