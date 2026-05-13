@@ -94,7 +94,7 @@ export default function OsintPanel({ isOpen, onClose }: OsintPanelProps) {
               {TABS.map(t => (
                 <button
                   key={t.id}
-                  onClick={() => { setActiveTab(t.id); setResults(null); setError(''); }}
+                  onClick={() => { setActiveTab(t.id); setResults(null); setError(''); setQuery(''); }}
                   className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-center transition-all ${
                     activeTab === t.id
                       ? 'bg-[var(--cyan-primary)]/10 border border-[var(--cyan-primary)]/30'
@@ -369,7 +369,7 @@ export default function OsintPanel({ isOpen, onClose }: OsintPanelProps) {
 
           {/* Footer */}
           <div className="px-4 py-2 border-t border-[var(--border-primary)] flex items-center justify-between">
-            <span className="text-[5px] font-mono text-[var(--text-muted)]/40 tracking-[0.2em]">OSIRIS RECON v3.1 · NMAP POWERED</span>
+            <span className="text-[5px] font-mono text-[var(--text-muted)]/40 tracking-[0.2em]">OSIRIS RECON v3.2 · NMAP POWERED</span>
             <div className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-[var(--alert-green)] animate-osiris-pulse" />
               <span className="text-[6px] font-mono text-[var(--alert-green)]">SCANNER ONLINE</span>
