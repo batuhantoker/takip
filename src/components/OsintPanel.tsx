@@ -18,9 +18,10 @@ const TABS: { id: OsintTab; label: string; icon: any; placeholder: string; desc:
 interface OsintPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  isMobile?: boolean;
 }
 
-export default function OsintPanel({ isOpen, onClose }: OsintPanelProps) {
+export default function OsintPanel({ isOpen, onClose, isMobile = false }: OsintPanelProps) {
   const [activeTab, setActiveTab] = useState<OsintTab>('scanner');
   const [query, setQuery] = useState('');
   const [scanType, setScanType] = useState('quick');
@@ -61,6 +62,79 @@ export default function OsintPanel({ isOpen, onClose }: OsintPanelProps) {
     }
   }, [query, activeTab, scanType]);
 
+  // Mobile: render inline content without fixed overlay
+  if (isMobile) {
+    return (
+      <div className="flex flex-col gap-2">
+        {/* Tab selector - horizontal scroll */}
+        <div className="flex gap-1 overflow-x-auto styled-scrollbar pb-1">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); }}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-[7px] font-mono tracking-wider whitespace-nowrap transition-all border ${
+                activeTab === tab.id
+                  ? 'bg-[var(--cyan-primary)]/15 border-[var(--cyan-primary)]/40 text-[var(--cyan-primary)]'
+                  : 'border-[var(--border-primary)] text-[var(--text-muted)] hover:border-[var(--gold-primary)]/30'
+              }`}
+            >
+              <tab.icon className="w-3 h-3" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search input */}
+        <div className="flex gap-1.5">
+          <div className="flex-1 relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[var(--text-muted)]" />
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && runLookup()}
+              placeholder={TABS.find(t => t.id === activeTab)?.placeholder}
+              className="w-full bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-md pl-7 pr-3 py-2 text-[10px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:border-[var(--cyan-primary)]/50 outline-none"
+            />
+          </div>
+          {activeTab === 'scanner' && (
+            <select
+              value={scanType}
+              onChange={e => setScanType(e.target.value)}
+              className="bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-md px-1.5 text-[8px] font-mono text-[var(--text-muted)] outline-none"
+            >
+              <option value="quick">QUICK</option>
+              <option value="deep">DEEP</option>
+              <option value="stealth">STEALTH</option>
+            </select>
+          )}
+          <button
+            onClick={runLookup}
+            disabled={loading || !query.trim()}
+            className="px-3 py-1.5 bg-[var(--cyan-primary)]/20 border border-[var(--cyan-primary)]/40 rounded-md text-[8px] font-mono font-bold text-[var(--cyan-primary)] tracking-wider hover:bg-[var(--cyan-primary)]/30 disabled:opacity-30 transition-all"
+          >
+            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'SCAN'}
+          </button>
+        </div>
+
+        {/* Results */}
+        {error && (
+          <div className="p-2 rounded-md border border-red-500/30 bg-red-500/10 text-[9px] font-mono text-red-400">
+            ⚠ {error}
+          </div>
+        )}
+        {results && (
+          <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-primary)] rounded-md p-2 max-h-[35vh] overflow-y-auto styled-scrollbar">
+            <pre className="text-[8px] font-mono text-[var(--text-secondary)] whitespace-pre-wrap break-all leading-relaxed">
+              {JSON.stringify(results, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop: fixed right panel
   return (
     <AnimatePresence>
       {isOpen && (
