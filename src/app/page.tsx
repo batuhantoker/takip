@@ -168,9 +168,9 @@ export default function Dashboard() {
     geocodeTimer.current = setTimeout(async () => {
       if (lastGeocodedPos.current) {
         const d = Math.abs(coords.lat - lastGeocodedPos.current.lat) + Math.abs(coords.lng - lastGeocodedPos.current.lng);
-        if (d < 0.1) return;
+        if (d < 0.5) return; // increased threshold — fewer geocode calls
       }
-      const gk = `${coords.lat.toFixed(2)},${coords.lng.toFixed(2)}`;
+      const gk = `${coords.lat.toFixed(1)},${coords.lng.toFixed(1)}`; // coarser grid = more cache hits
       if (geocodeCache.current.has(gk)) { setLocationLabel(geocodeCache.current.get(gk)!); lastGeocodedPos.current = coords; return; }
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json&zoom=10&addressdetails=1`, { headers: { 'Accept-Language': 'en' } });
@@ -184,7 +184,7 @@ export default function Dashboard() {
           lastGeocodedPos.current = coords;
         }
       } catch {}
-    }, 1500);
+    }, 3000); // 3s debounce (was 1.5s)
   }, []);
 
   // Region dossier (right-click)
@@ -224,11 +224,11 @@ export default function Dashboard() {
       } catch {}
     }, 5000);
 
-    // Polling — relaxed intervals, core feeds only
+    // Polling — OPTIMIZED intervals to minimize edge requests
     const intervals = [
-      setInterval(() => fetchEndpoint('/api/earthquakes'), 300000),  // 5 min
-      setInterval(() => fetchEndpoint('/api/news'), 600000),         // 10 min
-      setInterval(() => fetchEndpoint('/api/markets', d => ({ markets: d })), 300000),      // 5 min
+      setInterval(() => fetchEndpoint('/api/earthquakes'), 900000),  // 15 min (was 5)
+      setInterval(() => fetchEndpoint('/api/news'), 1800000),        // 30 min (was 10)
+      setInterval(() => fetchEndpoint('/api/markets', d => ({ markets: d })), 900000), // 15 min (was 5)
     ];
     return () => intervals.forEach(clearInterval);
   }, []);
@@ -313,84 +313,15 @@ export default function Dashboard() {
 
     const intervals: ReturnType<typeof setInterval>[] = [];
     if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
-      intervals.push(setInterval(() => fetchEndpoint('/api/flights'), 120000));
+      intervals.push(setInterval(() => fetchEndpoint('/api/flights'), 300000)); // 5 min (was 2 min)
     }
-    if (activeLayers.fires) {
-      intervals.push(setInterval(() => fetchEndpoint('/api/fires'), 900000));
-    }
+    // Fires: no polling needed (data changes very slowly, initial fetch is enough)
     return () => intervals.forEach(clearInterval);
-  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private, activeLayers.fires]);
+  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private]);
 
-  // ── VIEWPORT-AWARE CCTV LOADING ──
-  const lastCctvRegion = useRef('');
-  useEffect(() => {
-    if (!activeLayers.cctv || !mouseCoords) return;
-    const timer = setTimeout(async () => {
-      const lat = mouseCoords.lat;
-      const lng = mouseCoords.lng;
-      // Larger region buckets (20° instead of 10°) — fewer fetches
-      const regionKey = `${Math.round(lat/20)}_${Math.round(lng/20)}`;
-      if (regionKey === lastCctvRegion.current) return;
-      lastCctvRegion.current = regionKey;
-      
-      try {
-        const res = await fetch(`/api/cctv?lat=${lat}&lng=${lng}&radius=10`);
-        if (res.ok) {
-          const json = await res.json();
-          const existing = dataRef.current.cameras || [];
-          const existingIds = new Set(existing.map((c: any) => c.id));
-          const newCams = json.cameras.filter((c: any) => !existingIds.has(c.id));
-          dataRef.current = {
-            ...dataRef.current,
-            cameras: [...existing, ...newCams],
-          };
-          setDataVersion(v => v + 1);
-        }
-      } catch {}
-    }, 5000); // 5s debounce (was 2s)
-    return () => clearTimeout(timer);
-  }, [mouseCoords?.lat, mouseCoords?.lng, activeLayers.cctv]);
+  // CCTV: loaded once on layer toggle via layerFetchedRef (no viewport polling)
 
-  // ── REACTIVE: Fetch data when layers are toggled ON ──
-  const prevLayersRef = useRef(activeLayers);
-  useEffect(() => {
-    const prev = prevLayersRef.current;
-    prevLayersRef.current = activeLayers;
-
-    const fetchEndpoint = async (url: string, transform?: (d: any) => any) => {
-      try {
-        const res = await fetch(url);
-        if (res.ok) {
-          const json = await res.json();
-          const d = transform ? transform(json) : json;
-          dataRef.current = { ...dataRef.current, ...d };
-          setDataVersion(v => v + 1);
-        }
-      } catch {}
-    };
-
-    // Flights: any flight layer turned ON
-    const anyFlightNow = activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private;
-    const anyFlightBefore = prev.flights || prev.military || prev.jets || prev.private;
-    if (anyFlightNow && !anyFlightBefore && !dataRef.current.commercial_flights) {
-      fetchEndpoint('/api/flights');
-    }
-
-    // CCTV turned ON
-    if (activeLayers.cctv && !prev.cctv && !dataRef.current.cameras?.length) {
-      fetchEndpoint('/api/cctv?region=all');
-    }
-
-    // Fires turned ON
-    if (activeLayers.fires && !prev.fires && !dataRef.current.fires?.length) {
-      fetchEndpoint('/api/fires');
-    }
-
-    // Satellites turned ON
-    if (activeLayers.satellites && !prev.satellites && !dataRef.current.satellites?.length) {
-      fetchEndpoint('/api/satellites');
-    }
-  }, [activeLayers]);
+  // Reactive layer fetch: handled by layerFetchedRef above (no duplicate)
 
   const totalFlights = (data.commercial_flights?.length||0)+(data.private_flights?.length||0)+(data.private_jets?.length||0)+(data.military_flights?.length||0);
 

@@ -489,7 +489,7 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
       src.setData({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [computeSolarTerminator()] }, properties: {} }] });
     };
     update();
-    const iv = setInterval(update, 60000);
+    const iv = setInterval(update, 300000); // 5 min (was 1 min — shadow barely moves)
     return () => clearInterval(iv);
   }, [mapReady, activeLayers.day_night]);
 

@@ -39,7 +39,7 @@ export default function GlobalStatusBar() {
       } catch {}
     };
     fetchData();
-    const iv = setInterval(fetchData, 300000);
+    const iv = setInterval(fetchData, 1800000); // 30 min (was 5 min)
     return () => clearInterval(iv);
   }, []);
 

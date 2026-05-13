@@ -31,7 +31,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
   // Auto-refresh every 10 seconds for live feeds
   useEffect(() => {
     if (!camera) return;
-    const iv = setInterval(() => setRefreshKey(k => k + 1), 10000);
+    const iv = setInterval(() => setRefreshKey(k => k + 1), 30000); // 30s (was 10s)
     return () => clearInterval(iv);
   }, [camera]);
 
