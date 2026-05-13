@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon } from 'lucide-react';
+import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle } from 'lucide-react';
 import LayerPanel from '@/components/LayerPanel';
 import IntelFeed from '@/components/IntelFeed';
 import MarketsPanel from '@/components/MarketsPanel';
@@ -476,25 +476,49 @@ export default function Dashboard() {
             <motion.div
               initial={{ y: 20 }}
               animate={{ y: 0 }}
-              className="w-[90vw] max-w-[900px] aspect-video relative rounded-xl overflow-hidden border border-[var(--border-primary)] shadow-2xl"
+              className="w-[90vw] max-w-[900px] flex flex-col relative rounded-xl overflow-hidden border border-[var(--border-primary)] shadow-2xl bg-black"
               onClick={e => e.stopPropagation()}
             >
-              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2 bg-gradient-to-b from-black/80 to-transparent">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-[#111] border-b border-[var(--border-primary)]">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-[#FF4081] animate-osiris-pulse" />
-                  <span className="text-[11px] font-mono font-bold text-white tracking-wider">{liveFeedName}</span>
-                  <span className="text-[9px] font-mono text-white/50">LIVE</span>
+                  <span className="text-[12px] font-mono font-bold text-white tracking-wider">{liveFeedName}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-mono text-[9px] font-bold">LIVE STREAM</span>
                 </div>
-                <button onClick={() => setLiveFeedUrl(null)} className="text-white/70 hover:text-white transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-3">
+                  {liveFeedUrl && (
+                    <a
+                      href={liveFeedUrl.includes('/embed/') ? `https://www.youtube.com/watch?v=${liveFeedUrl.split('/embed/')[1].split('?')[0]}` : liveFeedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--border-primary)] hover:bg-[var(--gold-primary)] hover:text-black text-white transition-colors text-[11px] font-mono"
+                      title="Open stream directly on YouTube if playback is blocked by owner"
+                    >
+                      <span>Watch on YouTube</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                  <button onClick={() => setLiveFeedUrl(null)} className="text-white/70 hover:text-white transition-colors p-1">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <iframe
-                src={liveFeedUrl}
-                className="w-full h-full"
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-              />
+              
+              <div className="w-full aspect-video relative bg-black">
+                <iframe
+                  src={liveFeedUrl}
+                  className="w-full h-full absolute inset-0"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                />
+              </div>
+
+              <div className="bg-[#111]/90 px-4 py-2.5 border-t border-[var(--border-primary)] flex items-center gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-[var(--gold-primary)] shrink-0" />
+                <span className="text-[11px] font-mono text-white/70 leading-relaxed">
+                  Note: Broadcasters frequently restrict third-party embedding. If you see "Video unavailable", use the <strong className="text-[var(--gold-primary)]">Watch on YouTube</strong> button above to open the stream directly.
+                </span>
+              </div>
             </motion.div>
           </motion.div>
         )}
