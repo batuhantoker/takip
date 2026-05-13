@@ -16,6 +16,7 @@ import ViewPresets from '@/components/ViewPresets';
 import KeyboardShortcuts from '@/components/KeyboardShortcuts';
 import GlobalStatusBar from '@/components/GlobalStatusBar';
 import OsintPanel from '@/components/OsintPanel';
+import LiveAlerts from '@/components/LiveAlerts';
 
 const OsirisMap = dynamic(() => import('@/components/OsirisMap'), { ssr: false });
 
@@ -75,8 +76,10 @@ export default function Dashboard() {
     private: false,
     jets: false,
     military: false,
+    maritime: false,
     satellites: false,
     cctv: false,
+    live_news: false,
     earthquakes: true,
     fires: false,
     weather: false,
@@ -85,6 +88,8 @@ export default function Dashboard() {
     gps_jamming: false,
     day_night: true,
   });
+  const [liveFeedUrl, setLiveFeedUrl] = useState<string | null>(null);
+  const [liveFeedName, setLiveFeedName] = useState('');
 
   // Uptime clock
   useEffect(() => {
@@ -265,6 +270,16 @@ export default function Dashboard() {
       fetchEndpoint('/api/cctv?region=uk');
       layerFetchedRef.current.add('cctv');
     }
+    // Maritime
+    if (activeLayers.maritime && !layerFetchedRef.current.has('maritime')) {
+      fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints }));
+      layerFetchedRef.current.add('maritime');
+    }
+    // Live News
+    if (activeLayers.live_news && !layerFetchedRef.current.has('live_news')) {
+      fetchEndpoint('/api/live-news', d => ({ live_feeds: d.feeds }));
+      layerFetchedRef.current.add('live_news');
+    }
     // Weather
     if (activeLayers.weather && !layerFetchedRef.current.has('weather')) {
       fetchEndpoint('/api/weather', d => ({ weather_events: d.events }));
@@ -408,6 +423,7 @@ export default function Dashboard() {
       <ErrorBoundary name="Map">
         <OsirisMap data={data} activeLayers={activeLayers} projection={mapProjection} mapStyle={mapStyle === 'satellite' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'dark'} onEntityClick={(entity) => {
           if (entity?.type === 'cctv') setActiveCamera(entity);
+          if (entity?.type === 'live_news' && entity.url) { setLiveFeedUrl(entity.url); setLiveFeedName(entity.name); }
         }} onMouseCoords={handleMouseCoords} onRightClick={handleRightClick} onViewStateChange={setMapView} flyToLocation={flyToLocation} />
       </ErrorBoundary>
 
@@ -479,8 +495,7 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* ── GLOBAL STATUS TICKER ── */}
-      <GlobalStatusBar />
+
 
       {/* ── LEFT HUD (desktop): Layers + Stats + Markets + Intel ── */}
       <div className="desktop-panel absolute left-5 top-20 bottom-24 w-72 flex flex-col gap-3 z-[200] pointer-events-none overflow-y-auto styled-scrollbar pr-1">
@@ -503,14 +518,52 @@ export default function Dashboard() {
         {showIntel && <IntelFeed data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />}
       </div>
 
-      {/* ── RIGHT HUD (desktop): Search + RECON Toolkit ── */}
+      {/* ── RIGHT HUD (desktop): Search + RECON + Live Alerts ── */}
       <div className="desktop-panel absolute right-5 top-20 bottom-24 w-80 flex flex-col gap-3 z-[200] pointer-events-auto overflow-y-auto styled-scrollbar pr-1">
         <div className="flex gap-2 items-start">
           <div className="flex-1"><SearchBar onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} /></div>
           <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} /></div>
         </div>
         <OsintPanel />
+        <LiveAlerts data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} onWatchFeed={(url, name) => { setLiveFeedUrl(url); setLiveFeedName(name); }} />
       </div>
+
+      {/* ── LIVE FEED VIEWER OVERLAY ── */}
+      <AnimatePresence>
+        {liveFeedUrl && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed inset-0 z-[500] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+            onClick={() => setLiveFeedUrl(null)}
+          >
+            <motion.div
+              initial={{ y: 20 }}
+              animate={{ y: 0 }}
+              className="w-[90vw] max-w-[900px] aspect-video relative rounded-xl overflow-hidden border border-[var(--border-primary)] shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-2 bg-gradient-to-b from-black/80 to-transparent">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#FF4081] animate-osiris-pulse" />
+                  <span className="text-[11px] font-mono font-bold text-white tracking-wider">{liveFeedName}</span>
+                  <span className="text-[9px] font-mono text-white/50">LIVE</span>
+                </div>
+                <button onClick={() => setLiveFeedUrl(null)} className="text-white/70 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <iframe
+                src={liveFeedUrl}
+                className="w-full h-full"
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ═══ MOBILE UI ═══ */}
       {isMobile && (
@@ -670,8 +723,11 @@ export default function Dashboard() {
       {/* Keyboard Shortcuts Overlay */}
       <KeyboardShortcuts />
 
+      {/* ── GLOBAL STATUS TICKER (bottom) ── */}
+      <GlobalStatusBar />
+
       {/* Shortcut hint */}
-      <div className="desktop-only absolute bottom-2 right-5 z-[200] pointer-events-none text-[6px] font-mono text-[var(--text-muted)]/40 tracking-widest">
+      <div className="desktop-only absolute bottom-[26px] right-5 z-[200] pointer-events-none text-[6px] font-mono text-[var(--text-muted)]/40 tracking-widest">
         [?] SHORTCUTS · [F] FULLSCREEN · [S] SHARE · [R] RESET VIEW
       </div>
 

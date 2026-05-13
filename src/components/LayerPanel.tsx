@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Plane, Satellite, Activity, Globe, Radio, Eye,
   Shield, Sun, AlertTriangle, Camera, Flame,
-  CloudLightning, Radiation,
+  CloudLightning, Radiation, Tv, Anchor, Ship,
 } from 'lucide-react';
 
 interface LayerPanelProps {
@@ -18,8 +18,10 @@ const LAYER_CONFIG = [
   { key: 'private', label: 'Private Aircraft', icon: Plane, color: '#00E676', dataKey: 'private_flights' },
   { key: 'jets', label: 'Private Jets', icon: Plane, color: '#FF69B4', dataKey: 'private_jets' },
   { key: 'military', label: 'Military Flights', icon: Shield, color: '#FF3D3D', dataKey: 'military_flights' },
+  { key: 'maritime', label: 'Maritime / Naval', icon: Ship, color: '#00BCD4', dataKey: 'maritime_ports' },
   { key: 'satellites', label: 'Satellites', icon: Satellite, color: '#D4AF37', dataKey: 'satellites' },
   { key: 'cctv', label: 'CCTV Cameras', icon: Camera, color: '#39FF14', dataKey: 'cameras' },
+  { key: 'live_news', label: 'Live News Feeds', icon: Tv, color: '#FF4081', dataKey: 'live_feeds' },
   { key: 'earthquakes', label: 'Earthquakes (24h)', icon: Activity, color: '#FF9500', dataKey: 'earthquakes' },
   { key: 'fires', label: 'Active Fires', icon: Flame, color: '#FF6B00', dataKey: 'fires' },
   { key: 'weather', label: 'Severe Weather', icon: CloudLightning, color: '#E040FB', dataKey: 'weather_events' },

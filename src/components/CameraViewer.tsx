@@ -93,7 +93,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             {error ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/90">
                 <div className="text-center">
-                  <div className="text-[24px] mb-2">📷</div>
+                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center mb-2"><Camera className="w-4 h-4 text-red-400" /></div>
                   <span className="text-[9px] font-mono text-red-400 tracking-widest block mb-1">FEED UNAVAILABLE</span>
                   <span className="text-[7px] font-mono text-[var(--text-muted)]">Camera may be offline or restricted</span>
                   <button onClick={() => { setError(false); setRefreshKey(k => k + 1); }} className="block mx-auto mt-3 px-3 py-1 text-[8px] font-mono text-[#39FF14] border border-[#39FF14]/30 rounded hover:bg-[#39FF14]/10 transition-colors tracking-wider">
@@ -109,7 +109,6 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
                 className={`w-full ${fullscreen ? 'h-full object-contain' : 'h-full object-cover'}`}
                 onLoad={() => setLoading(false)}
                 onError={() => { setLoading(false); setError(true); }}
-                crossOrigin="anonymous"
               />
             )}
 
