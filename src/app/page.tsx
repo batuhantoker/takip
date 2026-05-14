@@ -267,7 +267,7 @@ export default function Dashboard() {
     }
     // CCTV
     if (activeLayers.cctv && !layerFetchedRef.current.has('cctv')) {
-      fetchEndpoint('/api/cctv?region=uk');
+      fetchEndpoint('/api/cctv?region=all');
       layerFetchedRef.current.add('cctv');
     }
     // Maritime
