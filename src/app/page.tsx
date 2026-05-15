@@ -236,6 +236,24 @@ export default function Dashboard() {
     return () => intervals.forEach(clearInterval);
   }, []);
 
+  // ── FLIGHT POLLING (Every 60s to sync interpolation) ──
+  useEffect(() => {
+    if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
+      const fetchFlights = async () => {
+        try {
+          const res = await fetch('/api/flights');
+          if (res.ok) {
+            const d = await res.json();
+            dataRef.current = { ...dataRef.current, ...d };
+            setDataVersion(v => v + 1);
+          }
+        } catch {}
+      };
+      const iv = setInterval(fetchFlights, 60000);
+      return () => clearInterval(iv);
+    }
+  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private]);
+
   // ── LAYER-AWARE DATA LOADING — only fetch when layer is toggled ON ──
   const layerFetchedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
