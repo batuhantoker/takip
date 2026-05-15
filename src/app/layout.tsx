@@ -165,6 +165,8 @@ const jsonLd = {
 
 import { Analytics } from "@vercel/analytics/next";
 
+import ErrorBoundary from '@/components/ErrorBoundary';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -187,7 +189,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        {children}
+        <ErrorBoundary name="OSIRIS Core">
+          {children}
+        </ErrorBoundary>
         <Analytics />
       </body>
     </html>

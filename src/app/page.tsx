@@ -186,7 +186,7 @@ export default function Dashboard() {
           setLocationLabel(label);
           lastGeocodedPos.current = coords;
         }
-      } catch {}
+      } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
     }, 3000); // 3s debounce (was 1.5s)
   }, []);
 
@@ -196,7 +196,7 @@ export default function Dashboard() {
     try {
       const res = await fetch(`/api/region-dossier?lat=${coords.lat}&lng=${coords.lng}`);
       if (res.ok) setRegionDossier(await res.json());
-    } catch {} finally { setDossierLoading(false); }
+    } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); } finally { setDossierLoading(false); }
   }, []);
 
   // ── PROGRESSIVE DATA LOADING (request-optimized) ──
@@ -224,7 +224,7 @@ export default function Dashboard() {
       try {
         const r = await fetch('/api/space-weather');
         if (r.ok) setSpaceWeather(await r.json());
-      } catch {}
+      } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
     }, 5000);
 
     // Polling — OPTIMIZED intervals to minimize edge requests
@@ -235,24 +235,6 @@ export default function Dashboard() {
     ];
     return () => intervals.forEach(clearInterval);
   }, []);
-
-  // ── FLIGHT POLLING (Every 60s to sync interpolation) ──
-  useEffect(() => {
-    if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
-      const fetchFlights = async () => {
-        try {
-          const res = await fetch('/api/flights');
-          if (res.ok) {
-            const d = await res.json();
-            dataRef.current = { ...dataRef.current, ...d };
-            setDataVersion(v => v + 1);
-          }
-        } catch {}
-      };
-      const iv = setInterval(fetchFlights, 60000);
-      return () => clearInterval(iv);
-    }
-  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private]);
 
   // ── LAYER-AWARE DATA LOADING — only fetch when layer is toggled ON ──
   const layerFetchedRef = useRef<Set<string>>(new Set());
@@ -266,7 +248,7 @@ export default function Dashboard() {
           dataRef.current = { ...dataRef.current, ...d };
           setDataVersion(v => v + 1);
         }
-      } catch {}
+      } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
     };
 
     // Flights
@@ -329,7 +311,7 @@ export default function Dashboard() {
           dataRef.current = { ...dataRef.current, ...d };
           setDataVersion(v => v + 1);
         }
-      } catch {}
+      } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
     };
 
     const intervals: ReturnType<typeof setInterval>[] = [];

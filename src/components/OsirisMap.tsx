@@ -590,103 +590,18 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
     ids.forEach(id => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none'); });
   }, []);
 
-  // Flight data → GeoJSON (Animated Interpolation)
-  const lastFlightDataRef = useRef<any>(null);
-  const flightTimestampRef = useRef<number>(Date.now());
-  const animFrameRef = useRef<number>(0);
-  const lastRenderTimeRef = useRef<number>(0);
-
+  // Flight data → GeoJSON (GPU rendered)
   useEffect(() => {
     if (!mapReady) return;
-
-    // Detect if new data arrived by comparing references
-    if (data.commercial_flights !== lastFlightDataRef.current?.commercial ||
-        data.private_flights !== lastFlightDataRef.current?.private ||
-        data.private_jets !== lastFlightDataRef.current?.jets ||
-        data.military_flights !== lastFlightDataRef.current?.military) {
-      lastFlightDataRef.current = {
-        commercial: data.commercial_flights,
-        private: data.private_flights,
-        jets: data.private_jets,
-        military: data.military_flights,
-      };
-      flightTimestampRef.current = Date.now();
-    }
-
-    const animateFlights = (timestamp: number) => {
-      // Throttle to ~20 FPS (every 50ms) to save CPU
-      if (timestamp - lastRenderTimeRef.current < 50) {
-        animFrameRef.current = requestAnimationFrame(animateFlights);
-        return;
-      }
-      lastRenderTimeRef.current = timestamp;
-
-      const now = Date.now();
-      const elapsedSec = (now - flightTimestampRef.current) / 1000;
-
-      const interpolate = (arr: any[]) => {
-        if (!arr) return [];
-        return arr.map((f: any) => {
-          let lng = f.lng;
-          let lat = f.lat;
-          if (f.speed_knots && f.heading !== undefined && !f.grounded) {
-            const speed_ms = f.speed_knots * 0.51444;
-            const dist_m = speed_ms * elapsedSec;
-            const heading_rad = f.heading * (Math.PI / 180);
-            
-            // Note: In aviation, 0 is North, 90 is East.
-            // cos(0) = 1 (North/Y), sin(0) = 0 (East/X)
-            const delta_y = dist_m * Math.cos(heading_rad);
-            const delta_x = dist_m * Math.sin(heading_rad);
-            
-            const delta_lat = delta_y / 111320;
-            const delta_lng = delta_x / (111320 * Math.cos(lat * (Math.PI / 180)));
-            
-            lat += delta_lat;
-            lng += delta_lng;
-          }
-          return {
-            type: 'Feature' as const,
-            geometry: { type: 'Point' as const, coordinates: [lng, lat] },
-            properties: { 
-              callsign: f.callsign, heading: f.heading || 0, alt: f.alt, 
-              model: f.model, speed_knots: f.speed_knots, 
-              registration: f.registration, icao24: f.icao24 
-            },
-          };
-        });
-      };
-
-      if (activeLayers.flights) setGeo('flights', interpolate(lastFlightDataRef.current?.commercial));
-      else setGeo('flights', []);
-
-      if (activeLayers.private) setGeo('private-fl', interpolate(lastFlightDataRef.current?.private));
-      else setGeo('private-fl', []);
-
-      if (activeLayers.jets) setGeo('jets', interpolate(lastFlightDataRef.current?.jets));
-      else setGeo('jets', []);
-
-      if (activeLayers.military) setGeo('military', interpolate(lastFlightDataRef.current?.military));
-      else setGeo('military', []);
-
-      animFrameRef.current = requestAnimationFrame(animateFlights);
-    };
-
-    // Start animation if any flight layer is active
-    if (activeLayers.flights || activeLayers.private || activeLayers.jets || activeLayers.military) {
-      animFrameRef.current = requestAnimationFrame(animateFlights);
-    } else {
-      // Clear data if turned off
-      setGeo('flights', []);
-      setGeo('private-fl', []);
-      setGeo('jets', []);
-      setGeo('military', []);
-    }
-
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    };
-  }, [mapReady, data.commercial_flights, data.private_flights, data.private_jets, data.military_flights, activeLayers.flights, activeLayers.private, activeLayers.jets, activeLayers.military, setGeo]);
+    const toFeatures = (arr: any[]) => (arr || []).map((f: any) => ({
+      type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [f.lng, f.lat] },
+      properties: { callsign: f.callsign, heading: f.heading || 0, alt: f.alt, model: f.model, speed_knots: f.speed_knots, registration: f.registration, icao24: f.icao24 },
+    }));
+    setGeo('flights', activeLayers.flights ? toFeatures(data.commercial_flights) : []);
+    setGeo('private-fl', activeLayers.private ? toFeatures(data.private_flights) : []);
+    setGeo('jets', activeLayers.jets ? toFeatures(data.private_jets) : []);
+    setGeo('military', activeLayers.military ? toFeatures(data.military_flights) : []);
+  }, [mapReady, data.commercial_flights, data.private_flights, data.private_jets, data.military_flights, activeLayers.flights, activeLayers.private, activeLayers.jets, activeLayers.military]);
 
   // Other layers
   useEffect(() => {
@@ -771,7 +686,7 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
             'fog-color': '#04040A',
             'fog-ground-blend': 0.9,
           });
-        } catch {}
+        } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
       } else {
         map.easeTo({ pitch: 0, duration: 800 });
       }
