@@ -14,7 +14,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
+  // request.ip is not available in all Next.js runtimes, safely fallback
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
   const now = Date.now();
 
   let limitData = rateLimitMap.get(ip);

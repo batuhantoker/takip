@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Building2 } from 'lucide-react';
@@ -20,6 +20,7 @@ const LayerPanel = dynamic(() => import('@/components/LayerPanel'));
 const CameraViewer = dynamic(() => import('@/components/CameraViewer'));
 const OsintPanel = dynamic(() => import('@/components/OsintPanel'));
 const CompanyIntel = dynamic(() => import('@/components/CompanyIntel'));
+const WarSimulatorPanel = dynamic(() => import('@/components/WarSimulatorPanel'));
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -71,6 +72,7 @@ export default function Dashboard() {
   const [showLayers, setShowLayers] = useState(true);
   const [showMarkets, setShowMarkets] = useState(true);
   const [showIntel, setShowIntel] = useState(true);
+  const [showWarSim, setShowWarSim] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<'layers'|'markets'|'intel'|'search'|'recon'|'company'|null>(null);
   const [mapProjection, setMapProjection] = useState<'globe'|'mercator'>('globe');
@@ -326,13 +328,17 @@ export default function Dashboard() {
 
   // Reactive layer fetch: handled by layerFetchedRef above (no duplicate)
 
-  const totalFlights = (data.commercial_flights?.length||0)+(data.private_flights?.length||0)+(data.private_jets?.length||0)+(data.military_flights?.length||0);
+  const totalFlights = useMemo(() => (
+    (data.commercial_flights?.length||0)+(data.private_flights?.length||0)+(data.private_jets?.length||0)+(data.military_flights?.length||0)
+  ), [data.commercial_flights, data.private_flights, data.private_jets, data.military_flights]);
 
   // Dynamic Threat Level based on active global incidents
-  const threatScore = (data.earthquakes?.filter((e: any) => e.magnitude >= 5).length || 0)
+  const threatScore = useMemo(() => (
+    (data.earthquakes?.filter((e: any) => e.magnitude >= 5).length || 0)
     + (data.weather_events?.filter((w: any) => w.severity === 'high').length || 0) * 2
     + (data.gdelt?.length || 0) * 0.1
-    + (data.fires?.length || 0) * 0.01;
+    + (data.fires?.length || 0) * 0.01
+  ), [data.earthquakes, data.weather_events, data.gdelt, data.fires]);
   const threatLevel = threatScore >= 10 ? 'CRITICAL' : threatScore >= 5 ? 'HIGH' : threatScore >= 2 ? 'ELEVATED' : 'NOMINAL';
   const threatColor = threatLevel === 'CRITICAL' ? '#FF1744' : threatLevel === 'HIGH' ? '#FF9500' : threatLevel === 'ELEVATED' ? '#FFD700' : '#00E676';
 
@@ -355,10 +361,21 @@ export default function Dashboard() {
 
       {/* ── MAP ── */}
       <ErrorBoundary name="Map">
-        <OsirisMap data={data} activeLayers={activeLayers} projection={mapProjection} mapStyle={mapStyle === 'satellite' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'dark'} onEntityClick={(entity) => {
-          if (entity?.type === 'cctv') setActiveCamera(entity);
-          if (entity?.type === 'live_news' && entity.url) { setLiveFeedUrl(entity.url); setLiveFeedName(entity.name); }
-        }} onMouseCoords={handleMouseCoords} onRightClick={handleRightClick} onViewStateChange={setMapView} flyToLocation={flyToLocation} />
+        <OsirisMap 
+          data={data} 
+          activeLayers={activeLayers} 
+          showWarSim={showWarSim}
+          projection={mapProjection} 
+          mapStyle={mapStyle === 'satellite' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'dark'} 
+          onEntityClick={useCallback((entity: any) => {
+            if (entity?.type === 'cctv') setActiveCamera(entity);
+            if (entity?.type === 'live_news' && entity.url) { setLiveFeedUrl(entity.url); setLiveFeedName(entity.name); }
+          }, [])} 
+          onMouseCoords={handleMouseCoords} 
+          onRightClick={handleRightClick} 
+          onViewStateChange={setMapView} 
+          flyToLocation={flyToLocation} 
+        />
       </ErrorBoundary>
 
       {/* ── MAP VIEW CONTROLS (3D/2D + SATELLITE TOGGLE) ── */}
@@ -466,9 +483,17 @@ export default function Dashboard() {
           <div className="flex-1"><SearchBar onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} /></div>
           <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} /></div>
         </div>
+        <button onClick={() => setShowWarSim(p => !p)} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg transition-colors group">
+          <Radar className="w-4 h-4 text-red-500 group-hover:animate-pulse" />
+          <span className="text-[11px] font-mono font-bold text-red-400 tracking-widest">{showWarSim ? 'CLOSE WAR SIM' : 'ENGAGE WAR SIMULATOR'}</span>
+        </button>
         <OsintPanel />
         <CompanyIntel />
-        <LiveAlerts data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} onWatchFeed={(url, name) => { setLiveFeedUrl(url); setLiveFeedName(name); }} />
+        {showWarSim ? (
+          <WarSimulatorPanel onClose={() => setShowWarSim(false)} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />
+        ) : (
+          <LiveAlerts data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} onWatchFeed={(url, name) => { setLiveFeedUrl(url); setLiveFeedName(name); }} />
+        )}
       </div>
 
       {/* ── LIVE FEED VIEWER OVERLAY ── */}

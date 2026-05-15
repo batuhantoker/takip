@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Plane, Satellite, Activity, Globe, Radio, Eye,
@@ -9,8 +10,8 @@ import {
 
 interface LayerPanelProps {
   data: any;
-  activeLayers: Record<string, boolean>;
-  setActiveLayers: (fn: (prev: Record<string, boolean>) => Record<string, boolean>) => void;
+  activeLayers: any;
+  setActiveLayers: React.Dispatch<React.SetStateAction<any>>;
 }
 
 const LAYER_CONFIG = [
@@ -31,8 +32,8 @@ const LAYER_CONFIG = [
   { key: 'day_night', label: 'Day / Night Cycle', icon: Sun, color: '#448AFF', dataKey: null },
 ];
 
-export default function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
-  const toggle = (key: string) => setActiveLayers(prev => ({ ...prev, [key]: !prev[key] }));
+function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
+  const toggle = (key: string) => setActiveLayers((prev: any) => ({ ...prev, [key]: !prev[key] }));
   const getCount = (dk: string | null): number | null => {
     if (!dk || !data[dk]) return null;
     return Array.isArray(data[dk]) ? data[dk].length : null;
@@ -70,3 +71,5 @@ export default function LayerPanel({ data, activeLayers, setActiveLayers }: Laye
     </motion.div>
   );
 }
+
+export default memo(LayerPanel);

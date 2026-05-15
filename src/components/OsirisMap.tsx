@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -12,6 +12,7 @@ interface OsirisMapProps {
   onRightClick?: (coords: { lat: number; lng: number }) => void;
   onViewStateChange?: (vs: { zoom: number; latitude: number }) => void;
   flyToLocation?: { lat: number; lng: number; ts: number } | null;
+  showWarSim?: boolean;
   projection?: 'mercator' | 'globe';
   mapStyle?: string;
 }
@@ -38,7 +39,7 @@ function computeSolarTerminator(): [number, number][] {
 
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] };
 
-export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, flyToLocation, projection = 'globe', mapStyle = 'dark' }: OsirisMapProps) {
+function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, flyToLocation, showWarSim, projection = 'globe', mapStyle = 'dark' }: OsirisMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -87,7 +88,7 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
       container: containerRef.current,
       style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
       center: [20, 20], zoom: 2.5, minZoom: 1.5, maxZoom: 18,
-      attributionControl: false, antialias: true,
+      attributionControl: false,
       maxPitch: 85,
     });
 
@@ -107,7 +108,7 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
       createDot(map, 'dot-cctv', '#39FF14', 10);
 
       // Sources
-      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','live-news','conflict-zones'];
+      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines'];
       sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
       // ── CONFLICT ZONES — small warning markers (not polygons) ──
@@ -178,6 +179,50 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
         'text-color': ['match', ['get','severity'], 'war','#FF1744', 'high','#FF9500', '#FFD500'],
         'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9,
       }});
+
+      // ── WAR SIMULATOR LAYERS ──
+      // Trajectory lines
+      map.addLayer({
+        id: 'war-alerts-lines',
+        type: 'line',
+        source: 'war-alerts-lines',
+        paint: {
+          'line-color': '#FF1744',
+          'line-width': 2,
+          'line-dasharray': [2, 4],
+          'line-opacity': 0.6
+        }
+      });
+      
+      // Impact target circles (expanding pulse effect simulated by changing radius via react state)
+      map.addLayer({
+        id: 'war-alerts-targets-glow',
+        type: 'circle',
+        source: 'war-alerts-targets',
+        paint: {
+          'circle-radius': 40,
+          'circle-color': '#FF1744',
+          'circle-opacity': 0.15,
+          'circle-blur': 0.5
+        }
+      });
+      
+      map.addLayer({
+        id: 'war-alerts-targets',
+        type: 'circle',
+        source: 'war-alerts-targets',
+        paint: {
+          'circle-radius': 8,
+          'circle-color': '#FF1744',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff',
+          'circle-opacity': 0.9
+        }
+      });
+      
+      map.addLayer({ id: 'war-alerts-label', type: 'symbol', source: 'war-alerts-targets', layout: {
+        'text-field': ['get', 'city'], 'text-size': 11, 'text-font': ['Open Sans Bold'], 'text-offset': [0, 1.8],
+      }, paint: { 'text-color': '#FF1744', 'text-halo-color': '#000', 'text-halo-width': 1.5 }});
 
       // Day/Night
       map.addLayer({ id: 'day-night-fill', type: 'fill', source: 'day-night', paint: { 'fill-color': '#000022', 'fill-opacity': 0.35 }});
@@ -329,7 +374,14 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
     });
 
     // Events
-    map.on('mousemove', e => onMouseCoords?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
+    let lastMove = 0;
+    map.on('mousemove', e => {
+      const now = Date.now();
+      if (now - lastMove > 100) {
+        lastMove = now;
+        onMouseCoords?.({ lat: e.lngLat.lat, lng: e.lngLat.lng });
+      }
+    });
     map.on('contextmenu', e => { e.preventDefault(); onRightClick?.({ lat: e.lngLat.lat, lng: e.lngLat.lng }); });
     map.on('moveend', () => { const c = map.getCenter(); onViewStateChange?.({ zoom: map.getZoom(), latitude: c.lat }); });
 
@@ -682,6 +734,44 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
     setGeo('conflict-zones', conflictFeatures);
   }, [mapReady, setGeo]);
 
+  // ── WAR SIMULATOR DATA SYNC ──
+  useEffect(() => {
+    if (!mapReady || !showWarSim) {
+      setGeo('war-alerts-targets', []);
+      setGeo('war-alerts-lines', []);
+      return;
+    }
+    const fetchWarAlerts = async () => {
+      try {
+        const res = await fetch('/api/war-simulator');
+        if (res.ok) {
+          const data = await res.json();
+          const alerts = data.alerts || [];
+          
+          const targetFeatures = alerts.map((a: any) => ({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: a.target },
+            properties: { city: a.city, type: a.type }
+          }));
+
+          const lineFeatures = alerts.map((a: any) => ({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: [a.origin, a.target] },
+            properties: {}
+          }));
+
+          setGeo('war-alerts-targets', targetFeatures);
+          setGeo('war-alerts-lines', lineFeatures);
+        }
+      } catch (e) {
+        console.warn('War Simulator Map Sync Error:', e);
+      }
+    };
+    fetchWarAlerts();
+    const iv = setInterval(fetchWarAlerts, 3000);
+    return () => clearInterval(iv);
+  }, [mapReady, showWarSim, setGeo]);
+
   // Visibility
   useEffect(() => {
     if (!mapReady) return;
@@ -701,7 +791,9 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
     setVis(['maritime-glow','maritime-dots','maritime-label'], activeLayers.maritime);
     setVis(['choke-glow','choke-dots','choke-label'], activeLayers.maritime);
     setVis(['news-glow','news-dots','news-label'], activeLayers.live_news);
-  }, [mapReady, activeLayers]);
+    setVis(['conflict-icons'], activeLayers.conflict_zones !== false);
+    setVis(['war-alerts-targets-glow','war-alerts-targets','war-alerts-label','war-alerts-lines'], !!showWarSim);
+  }, [mapReady, activeLayers, showWarSim, setVis]);
 
   // Fly-to
   useEffect(() => {
@@ -768,3 +860,5 @@ export default function OsirisMap({ data, activeLayers, onEntityClick, onMouseCo
 
   return <div ref={containerRef} className="absolute inset-0 w-full h-full" />;
 }
+
+export default memo(OsirisMap);
