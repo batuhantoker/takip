@@ -40,6 +40,18 @@ function useIsMobile() {
   }, []);
   return isMobile;
 }
+const UptimeClock = () => {
+  const [uptime, setUptime] = useState('00:00:00');
+  const startTime = useRef(Date.now());
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const e = Math.floor((Date.now() - startTime.current) / 1000);
+      setUptime(`${String(Math.floor(e/3600)).padStart(2,'0')}:${String(Math.floor((e%3600)/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`);
+    }, 1000);
+    return () => clearInterval(iv);
+  }, []);
+  return <span className="hidden lg:inline">UPTIME: <span className="text-[var(--gold-primary)]">{uptime}</span></span>;
+};
 
 export default function Dashboard() {
   const dataRef = useRef<any>({});
@@ -54,7 +66,6 @@ export default function Dashboard() {
   const [regionDossier, setRegionDossier] = useState<any>(null);
   const [dossierLoading, setDossierLoading] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
-  const [uptime, setUptime] = useState('00:00:00');
   const [activeCamera, setActiveCamera] = useState<any>(null);
   const [spaceWeather, setSpaceWeather] = useState<any>(null);
   const [showLayers, setShowLayers] = useState(true);
@@ -91,15 +102,6 @@ export default function Dashboard() {
   });
   const [liveFeedUrl, setLiveFeedUrl] = useState<string | null>(null);
   const [liveFeedName, setLiveFeedName] = useState('');
-
-  // Uptime clock
-  useEffect(() => {
-    const iv = setInterval(() => {
-      const e = Math.floor((Date.now() - startTime.current) / 1000);
-      setUptime(`${String(Math.floor(e/3600)).padStart(2,'0')}:${String(Math.floor((e%3600)/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`);
-    }, 1000);
-    return () => clearInterval(iv);
-  }, []);
 
   // Splash screen
   useEffect(() => { setTimeout(() => setShowSplash(false), 2500); }, []);
@@ -421,7 +423,7 @@ export default function Dashboard() {
           </span>
         </span>
         {spaceWeather && <span className="hidden lg:inline">SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>Kp{spaceWeather.kp_index}</span></span>}
-        <span className="hidden lg:inline">UPTIME: <span className="text-[var(--gold-primary)]">{uptime}</span></span>
+        <UptimeClock />
         <span>V4.1</span>
       </motion.div>
 

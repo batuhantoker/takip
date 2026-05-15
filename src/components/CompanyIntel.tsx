@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Building2, Users, Globe, Mail, Phone, MapPin,
@@ -48,7 +48,7 @@ interface CompanyResult {
   source: string;
 }
 
-export default function CompanyIntel({ isMobile }: { isMobile?: boolean }) {
+function CompanyIntelInner({ isMobile }: { isMobile?: boolean }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<CompanyResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -104,8 +104,9 @@ export default function CompanyIntel({ isMobile }: { isMobile?: boolean }) {
   };
 
   // ── Company Card (search results list) ──
-  const CompanyCard = ({ company, index }: { company: CompanyResult; index: number }) => (
+  const renderCompanyCard = (company: CompanyResult, index: number) => (
     <motion.button
+      key={company.company_number || `card-${index}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
@@ -124,7 +125,7 @@ export default function CompanyIntel({ isMobile }: { isMobile?: boolean }) {
               src={company.logo_url}
               alt=""
               className="w-full h-full object-contain"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>'; }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
             <Building2 className="w-4 h-4 text-[var(--gold-primary)]" />
@@ -163,8 +164,9 @@ export default function CompanyIntel({ isMobile }: { isMobile?: boolean }) {
   );
 
   // ── Company Detail View ──
-  const CompanyDetail = ({ company }: { company: CompanyResult }) => (
+  const renderCompanyDetail = (company: CompanyResult) => (
     <motion.div
+      key="detail"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-3"
@@ -398,12 +400,10 @@ export default function CompanyIntel({ isMobile }: { isMobile?: boolean }) {
       {/* Results */}
       <AnimatePresence mode="wait">
         {selectedCompany ? (
-          <CompanyDetail key="detail" company={selectedCompany} />
+          renderCompanyDetail(selectedCompany)
         ) : results.length > 0 ? (
           <motion.div key="list" className="space-y-2 max-h-[55vh] overflow-y-auto styled-scrollbar pr-1">
-            {results.map((company, i) => (
-              <CompanyCard key={company.company_number || i} company={company} index={i} />
-            ))}
+            {results.map((company, i) => renderCompanyCard(company, i))}
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -475,3 +475,6 @@ export default function CompanyIntel({ isMobile }: { isMobile?: boolean }) {
     </motion.div>
   );
 }
+
+const CompanyIntel = memo(CompanyIntelInner);
+export default CompanyIntel;
