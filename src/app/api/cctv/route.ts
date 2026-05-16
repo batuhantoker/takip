@@ -142,21 +142,26 @@ async function fetchUSCentralCameras(): Promise<any[]> {
 // ── US-EAST: NYC, DC, Florida, Georgia ──
 async function fetchUSEastCameras(): Promise<any[]> {
   const cams: any[] = [];
-  // NYC DOT
+  // NYC DOT (via proxy to bypass IP blocking)
   try {
-    const res = await fetch('https://webcams.nyctmc.org/api/cameras', { signal: AbortSignal.timeout(10000) });
+    const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://webcams.nyctmc.org/api/cameras'), { signal: AbortSignal.timeout(10000) });
     if (res.ok) {
-      const data = await res.json();
-      for (const cam of (data || []).slice(0, 500)) {
-        if (!cam.latitude || !cam.longitude) continue;
-        cams.push({
-          id: `nyc-${cam.id || cam.cameraID || cams.length}`, lat: cam.latitude, lng: cam.longitude,
-          name: cam.name || cam.cameraName || 'NYC Camera', city: 'New York', country: 'US',
-          feed_url: cam.imageUrl || cam.url || `https://webcams.nyctmc.org/api/cameras/${cam.id}/image`, source: 'NYC DOT',
-        });
+      const wrapper = await res.json();
+      if (wrapper.contents) {
+        const data = JSON.parse(wrapper.contents);
+        for (const cam of (data || []).slice(0, 500)) {
+          if (!cam.latitude || !cam.longitude) continue;
+          cams.push({
+            id: `nyc-${cam.id || cam.cameraID || cams.length}`, lat: cam.latitude, lng: cam.longitude,
+            name: cam.name || cam.cameraName || 'NYC Camera', city: 'New York', country: 'US',
+            feed_url: cam.imageUrl || cam.url || `https://webcams.nyctmc.org/api/cameras/${cam.id}/image`, source: 'NYC DOT',
+          });
+        }
       }
     }
-  } catch { /* silent */ }
+  } catch (e) {
+    console.error('NYC cameras fetch error:', e);
+  }
 
   // Florida 511
   try {
