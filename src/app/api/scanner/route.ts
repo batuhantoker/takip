@@ -63,14 +63,14 @@ const ALLOWED_SCANS: Record<string, { endpoint: string; timeout: number }> = {
   tech:       { endpoint: '/scan/tech',       timeout: 15000 },
   whois:      { endpoint: '/scan/whois',      timeout: 10000 },
   geoloc:     { endpoint: '/scan/geoloc',     timeout: 8000  },
+  vuln:       { endpoint: '/scan/vuln',       timeout: 30000 },
 };
 
-// REMOVED from public access: deep, ports, banner, traceroute, vuln
+// REMOVED from public access: deep, ports, banner, traceroute
 // These are dangerous in an unauthenticated context:
 //   deep     → scans 65,535 ports (DDoS amplifier)
 //   banner   → harvests software versions from targets using our IP
 //   traceroute → reveals hosting infrastructure
-//   vuln     → active vulnerability probing from our server
 //   ports    → arbitrary port range scanning
 
 export async function GET(req: Request) {
