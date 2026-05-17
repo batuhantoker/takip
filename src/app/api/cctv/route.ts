@@ -114,6 +114,22 @@ async function fetchCanadaCameras(): Promise<any[]> {
   ];
   cams.push(...curated);
 
+  // Alberta 511
+  try {
+    const res = await fetch('https://511.alberta.ca/api/v2/get/cameras', { signal: AbortSignal.timeout(10000), headers: { 'Accept': 'application/json' } });
+    if (res.ok) {
+      const data = await res.json();
+      for (const cam of (data || [])) {
+        if (!cam.Latitude || !cam.Longitude || !cam.Views?.[0]?.Url) continue;
+        cams.push({
+          id: `ab-${cam.Id || cams.length}`, lat: cam.Latitude, lng: cam.Longitude,
+          name: cam.Location || 'Alberta Camera', city: 'Alberta', country: 'Canada',
+          feed_url: cam.Views[0].Url, source: 'Alberta 511',
+        });
+      }
+    }
+  } catch { /* silent */ }
+
   return cams.filter((c: any) => c.lat && c.lng);
 }
 
@@ -125,7 +141,7 @@ async function fetchUSCentralCameras(): Promise<any[]> {
     const res = await fetch('https://www.travelmidwest.com/lmiga/cameraReport.json', { signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       const data = await res.json();
-      for (const cam of (data?.cameraReports || data || []).slice(0, 300)) {
+      for (const cam of (data?.cameraReports || data || []).slice(0, 800)) {
         if (!cam.latitude || !cam.longitude) continue;
         cams.push({
           id: `ildot-${cams.length}`, lat: cam.latitude, lng: cam.longitude,
@@ -149,7 +165,7 @@ async function fetchUSEastCameras(): Promise<any[]> {
       const wrapper = await res.json();
       if (wrapper.contents) {
         const data = JSON.parse(wrapper.contents);
-        for (const cam of (data || []).slice(0, 500)) {
+        for (const cam of (data || []).slice(0, 1000)) {
           if (!cam.latitude || !cam.longitude) continue;
           cams.push({
             id: `nyc-${cam.id || cam.cameraID || cams.length}`, lat: cam.latitude, lng: cam.longitude,
@@ -168,7 +184,7 @@ async function fetchUSEastCameras(): Promise<any[]> {
     const res = await fetch('https://fl511.com/api/v2/cameras', { signal: AbortSignal.timeout(8000), headers: { 'Accept': 'application/json' } });
     if (res.ok) {
       const data = await res.json();
-      for (const cam of (data || []).slice(0, 300)) {
+      for (const cam of (data || []).slice(0, 800)) {
         if (!cam.latitude || !cam.longitude) continue;
         cams.push({
           id: `fl-${cams.length}`, lat: cam.latitude, lng: cam.longitude,
@@ -191,7 +207,7 @@ async function fetchEuropeCameras(): Promise<any[]> {
     const res = await fetch('https://opendata.ndw.nu/cameras.json', { signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       const data = await res.json();
-      for (const cam of (data || []).slice(0, 400)) {
+      for (const cam of (data || []).slice(0, 1000)) {
         if (!cam.lat || !cam.lng) continue;
         cams.push({
           id: `nl-${cams.length}`, lat: cam.lat, lng: cam.lng,
