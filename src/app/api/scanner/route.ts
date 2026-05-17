@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
  * Rate-limited, target-validated, scope-restricted
  */
 
-const SCANNER_URL = process.env.SCANNER_URL || 'http://100.68.100.15:7700';
+const SCANNER_URL = process.env.SCANNER_URL || 'http://100.89.48.10:7700';
 const SCANNER_KEY = process.env.SCANNER_KEY || '';
 
 // ── RATE LIMITER (in-memory, per-IP) ──
