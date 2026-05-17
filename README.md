@@ -12,7 +12,7 @@
 
 **A real-time global intelligence dashboard that aggregates live flight tracking, CCTV networks, earthquake monitoring, conflict zone mapping, and 24/7 news feeds into a single GPU-accelerated interface.**
 
-[Live Demo](https://osirisai.live) · [Report Bug](https://github.com/simplifaisoul/osiris/issues) · [Request Feature](https://github.com/simplifaisoul/osiris/issues)
+[Live Demo](https://osirisai.live) · [Report Bug](https://github.com/simplifaisoul/osiris/issues) · [Request Feature](https://github.com/simplifaisoul/osiris/issues) · [Join Discord](https://discord.gg/umBykEpb98)
 
 </div>
 
@@ -163,5 +163,7 @@ MIT — see [LICENSE](LICENSE) for details.
 <div align="center">
 
 **Built by [simplifaisoul](https://github.com/simplifaisoul)**
+
+[Join our Discord to be a part of this movement!](https://discord.gg/umBykEpb98)
 
 </div>
