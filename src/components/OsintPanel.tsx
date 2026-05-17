@@ -163,27 +163,28 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
 
     // ── IP INTEL ──
     if (activeTab === 'ip') {
+      const geo = r.geo || {};
       return (
         <div>
           <SectionHeader title="IP INTELLIGENCE" icon={Globe} color="#00E676" />
           <ResultRow label="IP" value={r.ip} color="#00E676" />
           <ResultRow label="Hostname" value={r.hostname || r.rdns} />
-          <ResultRow label="Organization" value={r.org || r.organization} />
-          <ResultRow label="ISP" value={r.isp} />
-          <ResultRow label="ASN" value={r.asn} />
+          <ResultRow label="Organization" value={geo.org || r.organization} />
+          <ResultRow label="ISP" value={geo.isp || r.isp} />
+          <ResultRow label="ASN" value={geo.as_number || geo.as || r.asn} />
           <SectionHeader title="GEOLOCATION" icon={MapPin} color="#FFD700" />
-          <ResultRow label="Country" value={r.country || r.country_name} />
-          <ResultRow label="Region" value={r.region || r.regionName} />
-          <ResultRow label="City" value={r.city} />
-          <ResultRow label="Timezone" value={r.timezone} />
-          <ResultRow label="Coordinates" value={r.lat && r.lon ? `${r.lat}, ${r.lon}` : undefined} />
-          {(r.proxy || r.hosting || r.mobile) && (
+          <ResultRow label="Country" value={geo.country || r.country || r.country_name} />
+          <ResultRow label="Region" value={geo.region || r.region || r.regionName} />
+          <ResultRow label="City" value={geo.city || r.city} />
+          <ResultRow label="Timezone" value={geo.timezone || r.timezone} />
+          <ResultRow label="Coordinates" value={geo.lat && geo.lon ? `${geo.lat}, ${geo.lon}` : undefined} />
+          {(geo.is_proxy || geo.is_hosting || geo.is_mobile || r.proxy || r.hosting || r.mobile) && (
             <>
               <SectionHeader title="FLAGS" icon={AlertTriangle} color="#FF9500" />
               <div className="flex flex-wrap gap-1.5 mt-1">
-                {r.proxy && <StatusBadge ok={false} label="PROXY" />}
-                {r.hosting && <StatusBadge ok={false} label="HOSTING" />}
-                {r.mobile && <StatusBadge ok={true} label="MOBILE" />}
+                {(geo.is_proxy || r.proxy) && <StatusBadge ok={false} label="PROXY" />}
+                {(geo.is_hosting || r.hosting) && <StatusBadge ok={false} label="HOSTING" />}
+                {(geo.is_mobile || r.mobile) && <StatusBadge ok={true} label="MOBILE" />}
                 {r.tor && <StatusBadge ok={false} label="TOR" />}
               </div>
             </>
