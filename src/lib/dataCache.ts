@@ -42,7 +42,7 @@ export const DEFAULT_PROVIDERS: CacheProvider[] = [
   { key: 'weather_events', name: 'Severe Weather', url: '/api/weather-events', ttl: 600000, refreshInterval: 600000, enabled: false, priority: 'low' },
   { key: 'infrastructure', name: 'Nuclear Facilities', url: '/api/infrastructure', ttl: Infinity, refreshInterval: Infinity, enabled: false, priority: 'low' },
   { key: 'gdelt', name: 'Global Incidents', url: '/api/gdelt', ttl: 900000, refreshInterval: 900000, enabled: false, priority: 'low' },
-  { key: 'war_alerts', name: 'War Alerts', url: '/api/war-alerts', ttl: 300000, refreshInterval: 300000, enabled: false, priority: 'critical' },
+  { key: 'war_alerts', name: 'War Alerts', url: '/api/conflict-simulator', ttl: 300000, refreshInterval: 300000, enabled: false, priority: 'critical' },
 ];
 
 const CACHE_KEY = 'osiris_data_cache_v1';

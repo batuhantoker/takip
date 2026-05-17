@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 
 /**
- * OSIRIS — War Simulator / Kinetic OSINT Feed
+ * OSIRIS — Conflict Visualiser (Simulated) / Kinetic OSINT Feed
  * Fetches real-time GDELT data for kinetic strikes & conflict news pings.
- * Uses geopolitical inference to calculate origin coordinates.
+ * Uses geopolitical inference to calculate deterministic origin coordinates.
  */
 
-// Geopolitical Inference Engine
+// Geopolitical Inference Engine (Deterministic)
 function inferOrigin(targetLat: number, targetLng: number): { lat: number; lng: number; name: string } {
   // Iran targets (Lat 25-40, Lng 44-63)
   if (targetLat >= 25.0 && targetLat <= 40.0 && targetLng >= 44.0 && targetLng <= 63.0) {
@@ -16,9 +16,7 @@ function inferOrigin(targetLat: number, targetLng: number): { lat: number; lng: 
   if (targetLat >= 29.5 && targetLat <= 33.5 && targetLng >= 34.0 && targetLng <= 36.0) {
     if (targetLat > 32.5) return { lat: 33.3, lng: 35.4, name: 'Southern Lebanon' }; // North Israel
     if (targetLat < 30.0) return { lat: 15.3, lng: 44.2, name: 'Yemen (Houthi)' }; // Eilat
-    // If not north/south, could be Iran or Gaza. Let's add random chance for Iran.
-    if (Math.random() > 0.7) return { lat: 35.6892, lng: 51.3890, name: 'Tehran (Iran)' };
-    return { lat: 31.5, lng: 34.4, name: 'Gaza Strip' }; // Central/South Israel
+    return { lat: 35.6892, lng: 51.3890, name: 'Unknown Origin' };
   }
   // Lebanon targets
   if (targetLat >= 33.0 && targetLat <= 34.5 && targetLng >= 35.0 && targetLng <= 36.5) {
@@ -48,14 +46,14 @@ function inferOrigin(targetLat: number, targetLng: number): { lat: number; lng: 
 
   // Default fallback (local skirmish / unknown origin)
   return { 
-    lat: targetLat + (Math.random() - 0.5) * 5, 
-    lng: targetLng + (Math.random() - 0.5) * 5, 
+    lat: targetLat + 1, 
+    lng: targetLng + 1, 
     name: 'Unknown Origin' 
   };
 }
 
 function generateId() {
-  return Math.random().toString(36).substr(2, 9);
+  return crypto.randomUUID();
 }
 
 // Simple XML parsing for RSS
@@ -122,8 +120,13 @@ async function getLiveFallbacks() {
 let liveAlertsState: any[] = [];
 let lastFetch = 0;
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const authHeader = req.headers.get('Authorization') || req.headers.get('x-sim-auth');
+    if (authHeader !== `Bearer ${process.env.NEXT_PUBLIC_SIM_TOKEN || 'osiris-sim-token'}` && authHeader !== (process.env.NEXT_PUBLIC_SIM_TOKEN || 'osiris-sim-token')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const now = Date.now();
     
     // Only fetch from GDELT every 60 seconds to avoid API bans
@@ -182,8 +185,8 @@ export async function GET() {
         else if (text.includes('rocket')) type = 'ROCKET';
         else if (text.includes('attack') || text.includes('strike')) type = 'KINETIC_EVENT';
 
-        // Flight duration between 2 to 4 minutes
-        const flightDuration = 120000 + Math.random() * 120000;
+        // Flight duration between 2 to 4 minutes (now deterministic)
+        const flightDuration = 180000;
 
         return {
           id: `alert-${generateId()}`,
@@ -217,7 +220,9 @@ export async function GET() {
     return NextResponse.json({
       alerts: formattedAlerts,
       defcon: formattedAlerts.some(a => a.threatLevel === 'CRITICAL') ? 2 : formattedAlerts.length > 0 ? 3 : 4,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      simulated: true,
+      data_quality: 'simulated'
     }, {
       headers: {
         'Cache-Control': 'no-store, max-age=0'

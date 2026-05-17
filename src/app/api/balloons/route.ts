@@ -98,8 +98,8 @@ function generateBalloon(site: typeof LAUNCH_SITES[0], id: number, isAmateur = f
   const age = Math.floor(Math.random() * 240); // 0-4 hours old
   const flight = simulateBalloonFlight(site, age);
   
-  const isLanding = flight.altitude < 1000 && flight.verticalRate < 0;
-  const isOnGround = flight.altitude < 100;
+  const isLanding = flight.altitude! < 1000 && flight.verticalRate! < 0;
+  const isOnGround = flight.altitude! < 100;
   
   let status: Balloon['status'] = 'flying';
   if (isOnGround) status = 'on-ground';

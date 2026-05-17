@@ -101,11 +101,13 @@ export default function Dashboard() {
     military: false,
     maritime: false,
     satellites: false,
+    balloons: false,
     cctv: true,
     live_news: true,
     earthquakes: true,
     fires: false,
     weather: false,
+    radiation: false,
     infrastructure: false,
     global_incidents: true,
     war_alerts: false,
@@ -251,9 +253,9 @@ export default function Dashboard() {
   // ── LAYER-AWARE DATA LOADING — only fetch when layer is toggled ON ──
   const layerFetchedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const fetchEndpoint = async (url: string, transform?: (d: any) => any) => {
+    const fetchEndpoint = async (url: string, transform?: (d: any) => any, options?: RequestInit) => {
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, options);
         if (res.ok) {
           const json = await res.json();
           const d = transform ? transform(json) : json;
@@ -287,8 +289,18 @@ export default function Dashboard() {
     }
     // Maritime
     if (activeLayers.maritime && !layerFetchedRef.current.has('maritime')) {
-      fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints }));
+      fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships }));
       layerFetchedRef.current.add('maritime');
+    }
+    // Balloons
+    if (activeLayers.balloons && !layerFetchedRef.current.has('balloons')) {
+      fetchEndpoint('/api/balloons', d => ({ balloons: d.balloons }));
+      layerFetchedRef.current.add('balloons');
+    }
+    // Radiation
+    if (activeLayers.radiation && !layerFetchedRef.current.has('radiation')) {
+      fetchEndpoint('/api/radiation', d => ({ radiation: d.stations }));
+      layerFetchedRef.current.add('radiation');
     }
     // Live News
     if (activeLayers.live_news && !layerFetchedRef.current.has('live_news')) {
@@ -312,16 +324,18 @@ export default function Dashboard() {
     }
     // War Alerts (Global Conflicts)
     if (activeLayers.war_alerts && !layerFetchedRef.current.has('war_alerts')) {
-      fetchEndpoint('/api/war-simulator', d => ({ war_alerts: d.alerts }));
+      fetchEndpoint('/api/conflict-simulator', d => ({ war_alerts: d.alerts }), {
+        headers: { 'x-sim-auth': 'osiris-sim-token' }
+      });
       layerFetchedRef.current.add('war_alerts');
     }
   }, [activeLayers]);
 
   // ── LAYER-AWARE POLLING — only poll data for active layers ──
   useEffect(() => {
-    const fetchEndpoint = async (url: string, transform?: (d: any) => any) => {
+    const fetchEndpoint = async (url: string, transform?: (d: any) => any, options?: RequestInit) => {
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, options);
         if (res.ok) {
           const json = await res.json();
           const d = transform ? transform(json) : json;
@@ -336,11 +350,22 @@ export default function Dashboard() {
       intervals.push(setInterval(() => fetchEndpoint('/api/flights'), 300000)); // 5 min (was 2 min)
     }
     if (activeLayers.war_alerts) {
-      intervals.push(setInterval(() => fetchEndpoint('/api/war-simulator', d => ({ war_alerts: d.alerts })), 60000)); // 1 min
+      intervals.push(setInterval(() => fetchEndpoint('/api/conflict-simulator', d => ({ war_alerts: d.alerts }), {
+        headers: { 'x-sim-auth': 'osiris-sim-token' }
+      }), 60000)); // 1 min
+    }
+    if (activeLayers.balloons) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/balloons', d => ({ balloons: d.balloons })), 30000)); // 30s
+    }
+    if (activeLayers.radiation) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/radiation', d => ({ radiation: d.stations })), 60000)); // 1m
+    }
+    if (activeLayers.maritime) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships })), 60000)); // 1m
     }
     // Fires: no polling needed (data changes very slowly, initial fetch is enough)
     return () => intervals.forEach(clearInterval);
-  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private, activeLayers.war_alerts]);
+  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private, activeLayers.war_alerts, activeLayers.balloons, activeLayers.radiation, activeLayers.maritime]);
 
   // CCTV: loaded once on layer toggle via layerFetchedRef (no viewport polling)
 
