@@ -6,114 +6,9 @@ import { NextResponse } from 'next/server';
  * Uses geopolitical inference to calculate deterministic origin coordinates.
  */
 
-// Geopolitical Inference Engine (Deterministic)
-function inferOrigin(targetLat: number, targetLng: number): { lat: number; lng: number; name: string } {
-  // Iran targets (Lat 25-40, Lng 44-63)
-  if (targetLat >= 25.0 && targetLat <= 40.0 && targetLng >= 44.0 && targetLng <= 63.0) {
-    return { lat: 31.5, lng: 34.8, name: 'Israel' }; // Assume Israel/US strikes
-  }
-  // Israel targets
-  if (targetLat >= 29.5 && targetLat <= 33.5 && targetLng >= 34.0 && targetLng <= 36.0) {
-    if (targetLat > 32.5) return { lat: 33.3, lng: 35.4, name: 'Southern Lebanon' }; // North Israel
-    if (targetLat < 30.0) return { lat: 15.3, lng: 44.2, name: 'Yemen (Houthi)' }; // Eilat
-    return { lat: 35.6892, lng: 51.3890, name: 'Unknown Origin' };
-  }
-  // Lebanon targets
-  if (targetLat >= 33.0 && targetLat <= 34.5 && targetLng >= 35.0 && targetLng <= 36.5) {
-    return { lat: 32.8, lng: 34.98, name: 'Israel' };
-  }
-  // Gaza targets
-  if (targetLat >= 31.3 && targetLat <= 31.6 && targetLng >= 34.2 && targetLng <= 34.6) {
-    return { lat: 31.65, lng: 34.6, name: 'Israel' };
-  }
-  // Yemen targets
-  if (targetLat >= 12.0 && targetLat <= 17.0 && targetLng >= 42.0 && targetLng <= 50.0) {
-    return { lat: 29.55, lng: 34.95, name: 'Israel / US / UK Coalition' };
-  }
-  // Ukraine targets
-  if (targetLat >= 44.0 && targetLat <= 52.0 && targetLng >= 22.0 && targetLng <= 40.0) {
-    if (targetLat < 47.0) return { lat: 44.5, lng: 33.5, name: 'Black Sea Fleet (Russia)' }; // Odesa/South
-    return { lat: 50.6, lng: 36.6, name: 'Belgorod (Russia)' }; // North/East
-  }
-  // Russia targets (near border)
-  if (targetLat >= 50.0 && targetLat <= 55.0 && targetLng >= 30.0 && targetLng <= 45.0) {
-    return { lat: 50.0, lng: 36.2, name: 'Kharkiv (Ukraine)' };
-  }
-  // Syria targets
-  if (targetLat >= 32.5 && targetLat <= 37.5 && targetLng >= 35.5 && targetLng <= 42.5) {
-    return { lat: 33.1, lng: 35.8, name: 'Israel (Golan Heights)' };
-  }
-
-  // Default fallback (local skirmish / unknown origin)
-  return { 
-    lat: targetLat + 1, 
-    lng: targetLng + 1, 
-    name: 'Unknown Origin' 
-  };
-}
-
+// Geopolitical inference removed per Issue #96 to prevent fabricated attribution.
 function generateId() {
   return crypto.randomUUID();
-}
-
-// Simple XML parsing for RSS
-function parseRSSItems(xml: string): any[] {
-  const items: any[] = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-  let match;
-
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const itemXml = match[1];
-    const getTag = (tag: string) => {
-      const m = itemXml.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
-      return (m?.[1] || m?.[2] || '').trim();
-    };
-
-    items.push({
-      title: getTag('title').replace(/<[^>]+>/g, ''),
-      link: getTag('link'),
-    });
-  }
-  return items;
-}
-
-// Simulated fallback events if GDELT is truly dead, augmented with live RSS links if possible
-let cachedFallbacks: any[] | null = null;
-let lastFallbackFetch = 0;
-
-async function getLiveFallbacks() {
-  const now = Date.now();
-  if (cachedFallbacks && now - lastFallbackFetch < 300000) return cachedFallbacks; // cache 5 mins
-
-  const defaultFallbacks = [
-    { targetLat: 31.7, targetLng: 35.2, name: 'Jerusalem, Israel', url: 'https://reuters.com/world/middle-east' },
-    { targetLat: 35.68, targetLng: 51.38, name: 'Tehran, Iran', url: 'https://reuters.com/world/middle-east' },
-    { targetLat: 33.88, targetLng: 35.49, name: 'Beirut, Lebanon', url: 'https://reuters.com/world/middle-east' },
-    { targetLat: 50.45, targetLng: 30.52, name: 'Kyiv, Ukraine', url: 'https://reuters.com/world/europe' }
-  ];
-
-  try {
-    const res = await fetch('https://www.aljazeera.com/xml/rss/all.xml', { signal: AbortSignal.timeout(4000) });
-    if (res.ok) {
-      const xml = await res.text();
-      const items = parseRSSItems(xml);
-      
-      const matchItem = (kw: string) => items.find(i => i.title.toLowerCase().includes(kw) || i.link.toLowerCase().includes(kw))?.link;
-
-      cachedFallbacks = [
-        { targetLat: 31.7, targetLng: 35.2, name: 'Jerusalem, Israel', url: matchItem('israel') || matchItem('gaza') || defaultFallbacks[0].url },
-        { targetLat: 35.68, targetLng: 51.38, name: 'Tehran, Iran', url: matchItem('iran') || matchItem('tehran') || defaultFallbacks[1].url },
-        { targetLat: 33.88, targetLng: 35.49, name: 'Beirut, Lebanon', url: matchItem('lebanon') || matchItem('beirut') || matchItem('hezbollah') || defaultFallbacks[2].url },
-        { targetLat: 50.45, targetLng: 30.52, name: 'Kyiv, Ukraine', url: matchItem('ukraine') || matchItem('russia') || defaultFallbacks[3].url }
-      ];
-      lastFallbackFetch = now;
-      return cachedFallbacks;
-    }
-  } catch (e) {
-    console.warn('Live fallback RSS fetch failed', e);
-  }
-
-  return defaultFallbacks;
 }
 
 
@@ -151,21 +46,14 @@ export async function GET(req: Request) {
         console.warn('GDELT fetch timed out or failed, using fallback.');
       }
 
-      // If GDELT returns 0 features or fails, use fallback
-      if (features.length === 0) {
-        const fallbacks = await getLiveFallbacks();
-        features = fallbacks.map(e => ({
-          geometry: { coordinates: [e.targetLng, e.targetLat] },
-          properties: { name: e.name, url: e.url, html: 'Simulated News Ping due to API silence.' }
-        }));
-      }
+
 
       const newAlerts = features.map((f: any) => {
         const targetLng = f.geometry?.coordinates?.[0];
         const targetLat = f.geometry?.coordinates?.[1];
         if (!targetLat || !targetLng) return null;
 
-        const originData = inferOrigin(targetLat, targetLng);
+        const originData = { lat: targetLat + 1, lng: targetLng + 1, name: 'Simulated Origin' };
         const nameStr = (f.properties?.name || 'Unknown Location').split(',')[0];
         const htmlContent = f.properties?.html || '';
         
@@ -199,7 +87,7 @@ export async function GET(req: Request) {
           target: [targetLng, targetLat],
           threatLevel: type.includes('MISSILE') ? 'CRITICAL' : type === 'NEWS_PING' ? 'ELEVATED' : 'HIGH',
           status: 'ACTIVE',
-          source: f.properties?.url ? 'GDELT_LIVE_OSINT' : 'SIMULATED_PING',
+          source: 'SIMULATED',
           sourceUrl: cleanUrl
         };
       }).filter(Boolean);

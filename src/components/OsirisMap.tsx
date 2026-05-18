@@ -179,49 +179,6 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9,
       }});
 
-      // ── WAR SIMULATOR LAYERS ──
-      // Trajectory lines
-      map.addLayer({
-        id: 'war-alerts-lines',
-        type: 'line',
-        source: 'war-alerts-lines',
-        paint: {
-          'line-color': '#FF1744',
-          'line-width': 2,
-          'line-dasharray': [2, 4],
-          'line-opacity': 0.6
-        }
-      });
-      
-      // Impact target circles (expanding pulse effect simulated by changing radius via react state)
-      map.addLayer({
-        id: 'war-alerts-targets-glow',
-        type: 'circle',
-        source: 'war-alerts-targets',
-        paint: {
-          'circle-radius': 40,
-          'circle-color': '#FF1744',
-          'circle-opacity': 0.15,
-          'circle-blur': 0.5
-        }
-      });
-      
-      map.addLayer({
-        id: 'war-alerts-targets',
-        type: 'circle',
-        source: 'war-alerts-targets',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#FF1744',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff',
-          'circle-opacity': 0.9
-        }
-      });
-      
-      map.addLayer({ id: 'war-alerts-label', type: 'symbol', source: 'war-alerts-targets', layout: {
-        'text-field': ['get', 'city'], 'text-size': 11, 'text-font': ['Open Sans Bold'], 'text-offset': [0, 1.8],
-      }, paint: { 'text-color': '#FF1744', 'text-halo-color': '#000', 'text-halo-width': 1.5 }});
 
       // Day/Night
       map.addLayer({ id: 'day-night-fill', type: 'fill', source: 'day-night', paint: { 'fill-color': '#000022', 'fill-opacity': 0.35 }});
@@ -562,32 +519,9 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       </div>`);
     });
 
-    // ── War Alerts ──
-    map.on('click', 'war-alerts-targets', e => {
-      if (!e.features?.length) return;
-      const p = e.features[0].properties as any;
-      const coords = (e.features[0].geometry as any).coordinates;
-      popup(coords, `<div style="${pStyle}border:1px solid rgba(255,23,68,0.3);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <span style="color:#FF1744;font-size:16px;font-weight:700;letter-spacing:0.1em;">${p.city}</span>
-          <span style="color:#FF1744;font-size:10px;">${p.type}</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr;gap:8px;font-size:11px;">
-          <div><span style="color:#5C5A54;font-size:9px;">ORIGIN</span><br/><span style="color:#E8E6E0;">${p.originName || 'UNKNOWN'}</span></div>
-          <div><span style="color:#5C5A54;font-size:9px;">THREAT LEVEL</span><br/><span style="color:#FF1744;font-weight:bold;">${p.threatLevel}</span></div>
-          <div><span style="color:#5C5A54;font-size:9px;">STATUS</span><br/><span style="color:#00E5FF;">${p.status}</span></div>
-        </div>
-        ${p.sourceUrl ? `
-        <div style="margin-top:12px;">
-          <a href="${p.sourceUrl}" target="_blank" style="${linkStyle}color:#FF1744;border:1px solid rgba(255,23,68,0.4);background:rgba(255,23,68,0.1);">📰 VERIFY SOURCE</a>
-        </div>
-        ` : ''}
-      </div>`);
-      onEntityClick?.(p);
-    });
 
     // ── Generic hover for clickables ──
-    ['conflict-icons','cctv-dots','eq-circles','sat-dots','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','war-alerts-targets','balloon-dots','rad-dots','ship-dots'].forEach(layer => {
+    ['conflict-icons','cctv-dots','eq-circles','sat-dots','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','rad-dots','ship-dots'].forEach(layer => {
       map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
     });
@@ -862,26 +796,6 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     setGeo('conflict-zones', conflictFeatures);
   }, [mapReady, setGeo]);
 
-  // ── WAR SIMULATOR DATA SYNC ──
-  useEffect(() => {
-    if (!mapReady) return;
-    const alerts = data.war_alerts || [];
-    
-    const targetFeatures = alerts.map((a: any) => ({
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: a.target },
-      properties: { city: a.city, type: a.type, originName: a.originName, threatLevel: a.threatLevel, status: a.status, sourceUrl: a.sourceUrl }
-    }));
-
-    const lineFeatures = alerts.map((a: any) => ({
-      type: 'Feature',
-      geometry: { type: 'LineString', coordinates: [a.origin, a.target] },
-      properties: {}
-    }));
-
-    setGeo('war-alerts-targets', activeLayers.war_alerts ? targetFeatures : []);
-    setGeo('war-alerts-lines', activeLayers.war_alerts ? lineFeatures : []);
-  }, [mapReady, data.war_alerts, activeLayers.war_alerts, setGeo]);
 
   // Visibility
   useEffect(() => {
@@ -904,7 +818,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     setVis(['ship-dots','ship-label'], activeLayers.maritime);
     setVis(['news-glow','news-dots','news-label'], activeLayers.live_news);
     setVis(['conflict-icons'], activeLayers.conflict_zones !== false);
-    setVis(['war-alerts-targets-glow','war-alerts-targets','war-alerts-label','war-alerts-lines'], !!activeLayers.war_alerts);
+
     setVis(['balloon-dots','balloon-label'], activeLayers.balloons);
     setVis(['rad-glow','rad-dots','rad-label'], activeLayers.radiation);
   }, [mapReady, activeLayers, setVis]);

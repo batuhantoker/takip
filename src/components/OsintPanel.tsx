@@ -12,7 +12,7 @@ import {
 const TABS = [
   { id: 'scanner', label: 'PORT SCAN', icon: Radar, placeholder: 'IP or hostname', color: '#00E5FF' },
   { id: 'vuln', label: 'VULN SCAN', icon: Bug, placeholder: 'IP or hostname', color: '#FF3D3D' },
-  { id: 'ip', label: 'IP INTEL', icon: Globe, placeholder: 'IP address', color: '#00E676' },
+
   { id: 'dns', label: 'DNS', icon: Server, placeholder: 'Domain name', color: '#448AFF' },
   { id: 'whois', label: 'WHOIS', icon: FileText, placeholder: 'Domain name', color: '#FFD700' },
   { id: 'certs', label: 'CERTS', icon: Lock, placeholder: 'Domain name', color: '#E040FB' },
@@ -41,7 +41,7 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
     try {
       let url = '';
       switch (activeTab) {
-        case 'ip': url = `/api/osint/ip?ip=${encodeURIComponent(query)}`; break;
+
         case 'dns': url = `/api/osint/dns?domain=${encodeURIComponent(query)}`; break;
         case 'certs': url = `/api/osint/certs?domain=${encodeURIComponent(query)}`; break;
         case 'whois': url = `/api/osint/whois?domain=${encodeURIComponent(query)}`; break;
@@ -186,37 +186,7 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
       );
     }
 
-    // ── IP INTEL ──
-    if (activeTab === 'ip') {
-      const geo = r.geo || {};
-      return (
-        <div>
-          <SectionHeader title="IP INTELLIGENCE" icon={Globe} color="#00E676" />
-          <ResultRow label="IP" value={r.ip} color="#00E676" />
-          <ResultRow label="Hostname" value={r.hostname || r.rdns} />
-          <ResultRow label="Organization" value={geo.org || r.organization} />
-          <ResultRow label="ISP" value={geo.isp || r.isp} />
-          <ResultRow label="ASN" value={geo.as_number || geo.as || r.asn} />
-          <SectionHeader title="GEOLOCATION" icon={MapPin} color="#FFD700" />
-          <ResultRow label="Country" value={geo.country || r.country || r.country_name} />
-          <ResultRow label="Region" value={geo.region || r.region || r.regionName} />
-          <ResultRow label="City" value={geo.city || r.city} />
-          <ResultRow label="Timezone" value={geo.timezone || r.timezone} />
-          <ResultRow label="Coordinates" value={geo.lat && geo.lon ? `${geo.lat}, ${geo.lon}` : undefined} />
-          {(geo.is_proxy || geo.is_hosting || geo.is_mobile || r.proxy || r.hosting || r.mobile) && (
-            <>
-              <SectionHeader title="FLAGS" icon={AlertTriangle} color="#FF9500" />
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {(geo.is_proxy || r.proxy) && <StatusBadge ok={false} label="PROXY" />}
-                {(geo.is_hosting || r.hosting) && <StatusBadge ok={false} label="HOSTING" />}
-                {(geo.is_mobile || r.mobile) && <StatusBadge ok={true} label="MOBILE" />}
-                {r.tor && <StatusBadge ok={false} label="TOR" />}
-              </div>
-            </>
-          )}
-        </div>
-      );
-    }
+
 
     // ── DNS ──
     if (activeTab === 'dns') {

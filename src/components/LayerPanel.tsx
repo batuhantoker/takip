@@ -28,7 +28,6 @@ const LAYER_CONFIG = [
   { key: 'weather', label: 'Severe Weather', icon: CloudLightning, color: '#E040FB', dataKey: 'weather_events' },
   { key: 'infrastructure', label: 'Nuclear Facilities', icon: Radiation, color: '#76FF03', dataKey: 'infrastructure' },
   { key: 'global_incidents', label: 'Global Incidents', icon: AlertTriangle, color: '#FF3D3D', dataKey: 'gdelt' },
-  { key: 'war_alerts', label: 'Global Conflicts (Simulated)', icon: Target, color: '#FF1744', dataKey: 'war_alerts' },
   { key: 'gps_jamming', label: 'GPS Jamming', icon: Radio, color: '#FF4444', dataKey: 'gps_jamming' },
   { key: 'day_night', label: 'Day / Night Cycle', icon: Sun, color: '#448AFF', dataKey: null },
 ];

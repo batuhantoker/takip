@@ -155,29 +155,9 @@ async function fetchUSCentralCameras(): Promise<any[]> {
   return cams.filter((c: any) => c.lat && c.lng);
 }
 
-// ── US-EAST: NYC, DC, Florida, Georgia ──
+// ── US-EAST: DC, Florida, Georgia ──
 async function fetchUSEastCameras(): Promise<any[]> {
   const cams: any[] = [];
-  // NYC DOT (via proxy to bypass IP blocking)
-  try {
-    const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://webcams.nyctmc.org/api/cameras'), { signal: AbortSignal.timeout(10000) });
-    if (res.ok) {
-      const wrapper = await res.json();
-      if (wrapper.contents) {
-        const data = JSON.parse(wrapper.contents);
-        for (const cam of (data || []).slice(0, 1000)) {
-          if (!cam.latitude || !cam.longitude) continue;
-          cams.push({
-            id: `nyc-${cam.id || cam.cameraID || cams.length}`, lat: cam.latitude, lng: cam.longitude,
-            name: cam.name || cam.cameraName || 'NYC Camera', city: 'New York', country: 'US',
-            feed_url: cam.imageUrl || cam.url || `https://webcams.nyctmc.org/api/cameras/${cam.id}/image`, source: 'NYC DOT',
-          });
-        }
-      }
-    }
-  } catch (e) {
-    console.error('NYC cameras fetch error:', e);
-  }
 
   // Florida 511
   try {
@@ -252,6 +232,40 @@ async function fetchAsiaCameras(): Promise<any[]> {
   return cams;
 }
 
+// ── CHINA / HONG KONG ──
+async function fetchChinaCameras(): Promise<any[]> {
+  const cams: any[] = [];
+  
+  // Hong Kong Transport Department Traffic Cameras (Sample Curated List)
+  const hkCameras = [
+    { id: 'hk-1', tc_id: 'H429F', lat: 22.2818, lng: 114.1585, name: 'Connaught Road Central', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-2', tc_id: 'H430F', lat: 22.2825, lng: 114.1560, name: 'Connaught Road West', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-3', tc_id: 'K801F', lat: 22.2988, lng: 114.1722, name: 'Nathan Road (Tsim Sha Tsui)', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-4', tc_id: 'K805F', lat: 22.3193, lng: 114.1694, name: 'Argyle Street', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-5', tc_id: 'T201F', lat: 22.3768, lng: 114.1837, name: 'Tolo Highway', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-6', tc_id: 'H209F', lat: 22.2778, lng: 114.1772, name: 'Gloucester Road', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-7', tc_id: 'H117F', lat: 22.2882, lng: 114.1953, name: 'Island Eastern Corridor', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-8', tc_id: 'K708F', lat: 22.3411, lng: 114.1542, name: 'Cheung Sha Wan Road', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-9', tc_id: 'TM302F', lat: 22.3831, lng: 113.9712, name: 'Tuen Mun Road', city: 'Hong Kong', country: 'China' },
+    { id: 'hk-10',tc_id: 'L101F', lat: 22.3102, lng: 113.9351, name: 'North Lantau Highway', city: 'Hong Kong', country: 'China' }
+  ];
+
+  for (const cam of hkCameras) {
+    cams.push({
+      id: cam.id,
+      lat: cam.lat,
+      lng: cam.lng,
+      name: cam.name,
+      city: cam.city,
+      country: cam.country,
+      feed_url: `https://tdcctv.data.one.gov.hk/${cam.tc_id}.JPG`,
+      source: 'HK TD'
+    });
+  }
+
+  return cams;
+}
+
 // ═══ REGION MAPPING ═══
 const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'uk': fetchTfLCameras,
@@ -261,6 +275,7 @@ const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'canada': fetchCanadaCameras,
   'europe': fetchEuropeCameras,
   'asia': fetchAsiaCameras,
+  'china': fetchChinaCameras,
 };
 
 // Determine which regions to fetch based on viewport bounds
@@ -278,7 +293,9 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (lat > 42 && lat < 70 && lng > -141 && lng < -52) regions.push('canada');
   // Europe
   if (lat > 35 && lat < 72 && lng > -11 && lng < 40) regions.push('europe');
-  // Asia (includes Middle East, SE Asia)
+  // China / Hong Kong specifically (greater china bounds)
+  if (lat > 18 && lat < 53 && lng > 73 && lng < 135) regions.push('china');
+  // Asia (includes Middle East, SE Asia, overriding parts of china but that's ok they can both load)
   if ((lat > -10 && lat < 60 && lng > 60 && lng < 150)) regions.push('asia');
   // Australia explicitly
   if (lat > -45 && lat < -10 && lng > 110 && lng < 155) regions.push('asia');

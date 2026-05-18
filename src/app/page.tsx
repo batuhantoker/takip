@@ -310,13 +310,7 @@ export default function Dashboard() {
       fetchEndpoint('/api/gdelt', d => ({ gdelt: d.events }));
       layerFetchedRef.current.add('gdelt');
     }
-    // War Alerts (Global Conflicts)
-    if (activeLayers.war_alerts && !layerFetchedRef.current.has('war_alerts')) {
-      fetchEndpoint('/api/conflict-simulator', d => ({ war_alerts: d.alerts }), {
-        headers: { 'x-sim-auth': 'osiris-sim-token' }
-      });
-      layerFetchedRef.current.add('war_alerts');
-    }
+
   }, [activeLayers]);
 
   // ── LAYER-AWARE POLLING — only poll data for active layers ──
@@ -337,11 +331,7 @@ export default function Dashboard() {
     if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
       intervals.push(setInterval(() => fetchEndpoint('/api/flights'), 300000)); // 5 min (was 2 min)
     }
-    if (activeLayers.war_alerts) {
-      intervals.push(setInterval(() => fetchEndpoint('/api/conflict-simulator', d => ({ war_alerts: d.alerts }), {
-        headers: { 'x-sim-auth': 'osiris-sim-token' }
-      }), 60000)); // 1 min
-    }
+
     if (activeLayers.balloons) {
       intervals.push(setInterval(() => fetchEndpoint('/api/balloons', d => ({ balloons: d.balloons })), 30000)); // 30s
     }
@@ -353,7 +343,7 @@ export default function Dashboard() {
     }
     // Fires: no polling needed (data changes very slowly, initial fetch is enough)
     return () => intervals.forEach(clearInterval);
-  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private, activeLayers.war_alerts, activeLayers.balloons, activeLayers.radiation, activeLayers.maritime]);
+  }, [activeLayers.flights, activeLayers.military, activeLayers.jets, activeLayers.private, activeLayers.balloons, activeLayers.radiation, activeLayers.maritime]);
 
   // CCTV: loaded once on layer toggle via layerFetchedRef (no viewport polling)
 
@@ -389,6 +379,8 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+
 
       {/* ── MAP ── */}
       <ErrorBoundary name="Map">
