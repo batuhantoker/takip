@@ -16,24 +16,33 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
   const [error, setError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
+  const externalFeedUrl = camera?.external_url || camera?.feed_url;
+  const externalOnly = Boolean(camera?.external_url && !camera?.feed_url);
 
   useEffect(() => {
     if (!camera) return;
     setLoading(true);
     setError(false);
+    setImageUrl(null);
+
+    if (!camera.feed_url) {
+      setLoading(false);
+      return;
+    }
+
     // Add cache-busting for live feeds
-    const url = camera.feed_url?.includes('?')
+    const url = camera.feed_url.includes('?')
       ? `${camera.feed_url}&_t=${Date.now()}`
       : `${camera.feed_url}?_t=${Date.now()}`;
     setImageUrl(url);
   }, [camera, refreshKey]);
 
-  // Auto-refresh every 10 seconds for live feeds
+  // Auto-refresh every 30 seconds for live feeds (skip for external-only)
   useEffect(() => {
-    if (!camera) return;
-    const iv = setInterval(() => setRefreshKey(k => k + 1), 30000); // 30s (was 10s)
+    if (!camera?.feed_url) return;
+    const iv = setInterval(() => setRefreshKey(k => k + 1), 30000);
     return () => clearInterval(iv);
-  }, [camera]);
+  }, [camera?.feed_url]);
 
   if (!camera) return null;
 
@@ -81,7 +90,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
 
           {/* Camera Feed */}
           <div className={`relative bg-black ${fullscreen ? 'flex-1' : 'aspect-video max-h-[35vh] md:max-h-none'}`}>
-            {loading && !error && (
+            {loading && !error && !externalOnly && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
                 <div className="text-center">
                   <div className="w-6 h-6 border-2 border-[#39FF14] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -90,7 +99,20 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
               </div>
             )}
 
-            {error ? (
+            {externalOnly ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90">
+                <div className="text-center px-6">
+                  <div className="w-8 h-8 rounded-full bg-[#39FF14]/15 flex items-center justify-center mx-auto mb-2"><ExternalLink className="w-4 h-4 text-[#39FF14]" /></div>
+                  <span className="text-[9px] font-mono text-[#39FF14] tracking-widest block mb-1">EXTERNAL FEED</span>
+                  <span className="text-[7px] font-mono text-[var(--text-muted)]">Live stream opens in source viewer</span>
+                  {externalFeedUrl && (
+                    <a href={externalFeedUrl} target="_blank" rel="noopener noreferrer" className="block mx-auto mt-3 px-3 py-1 text-[8px] font-mono text-[#39FF14] border border-[#39FF14]/30 rounded hover:bg-[#39FF14]/10 transition-colors tracking-wider">
+                      OPEN FEED
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : error ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/90">
                 <div className="text-center">
                   <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center mb-2"><Camera className="w-4 h-4 text-red-400" /></div>
@@ -134,8 +156,8 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
               {camera.lat?.toFixed(4)}, {camera.lng?.toFixed(4)}
             </div>
             <div className="flex gap-2">
-              {camera.feed_url && (
-                <a href={camera.feed_url} target="_blank" rel="noopener noreferrer"
+              {(camera.feed_url || camera.external_url) && (
+                <a href={camera.external_url || camera.feed_url} target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1 text-[7px] font-mono text-[#39FF14] hover:underline tracking-wider">
                   <ExternalLink className="w-2.5 h-2.5" /> FEED
                 </a>

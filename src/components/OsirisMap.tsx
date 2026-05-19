@@ -435,6 +435,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         country: p.country,
         source: p.source,
         feed_url: p.feed_url,
+        external_url: p.external_url,
         lat: coords[1],
         lng: coords[0],
       });
@@ -660,6 +661,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         country: p.country,
         url: p.url,
         category: p.category,
+        embed_allowed: p.embed_allowed !== false && p.embed_allowed !== 'false',
       });
     });
 
@@ -730,7 +732,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('cctv', activeLayers.cctv && data.cameras ? data.cameras.map((c: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: { name: c.name, city: c.city, country: c.country, source: c.source, feed_url: c.feed_url } })) : []);
+    setGeo('cctv', activeLayers.cctv && data.cameras ? data.cameras.map((c: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: { name: c.name, city: c.city, country: c.country, source: c.source, feed_url: c.feed_url, external_url: c.external_url } })) : []);
   }, [mapReady, data.cameras, activeLayers.cctv, setGeo]);
 
   useEffect(() => {
@@ -767,7 +769,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('live-news', activeLayers.live_news && data.live_feeds ? data.live_feeds.map((f: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [f.lng, f.lat] }, properties: { name: f.name, city: f.city, country: f.country, url: f.url, category: f.category } })) : []);
+    setGeo('live-news', activeLayers.live_news && data.live_feeds ? data.live_feeds.map((f: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [f.lng, f.lat] }, properties: { name: f.name, city: f.city, country: f.country, url: f.url, category: f.category, embed_allowed: f.embed_allowed !== false } })) : []);
   }, [mapReady, data.live_feeds, activeLayers.live_news, setGeo]);
 
   useEffect(() => {

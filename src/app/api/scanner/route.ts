@@ -9,12 +9,22 @@ const SCANNER_URL = process.env.SCANNER_URL || 'http://100.89.48.10:7700';
 const SCANNER_KEY = process.env.SCANNER_KEY || '';
 
 // ── RATE LIMITER (in-memory, per-IP) ──
+// NOTE: In serverless environments (Vercel), this map is per-isolate and not shared
+// across instances. This is acceptable as a best-effort rate limiter; for strict
+// distributed limiting, use Vercel KV or similar.
 const rateMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;          // max requests per window
 const RATE_WINDOW_MS = 60_000; // 1 minute window
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
+
+  // Inline cleanup: prune expired entries to prevent memory growth
+  // Runs on every call but the Map is small (bounded by concurrent IPs per isolate)
+  for (const [key, entry] of rateMap) {
+    if (now > entry.resetAt) rateMap.delete(key);
+  }
+
   const entry = rateMap.get(ip);
   if (!entry || now > entry.resetAt) {
     rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
@@ -23,14 +33,6 @@ function isRateLimited(ip: string): boolean {
   entry.count++;
   return entry.count > RATE_LIMIT;
 }
-
-// Cleanup stale entries every 5 min
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateMap) {
-    if (now > entry.resetAt) rateMap.delete(ip);
-  }
-}, 300_000);
 
 // ── TARGET VALIDATION ──
 function isPrivateOrReserved(target: string): boolean {

@@ -51,24 +51,9 @@ function findCoords(text: string): [number, number] | null {
   return null;
 }
 
-function generateAssessment(title: string, riskScore: number): string | null {
-  if (riskScore < 8) return null;
-  const keywords = title.toLowerCase().split(' ');
-  let assessment = 'ANALYSIS: ';
-
-  if (keywords.some(k => ['strike','missile','attack','bomb','drone'].includes(k))) {
-    assessment += `${75 + Math.floor(Math.random() * 20)}% probability of kinetic escalation within 24 hours.`;
-  } else if (keywords.some(k => ['sanction','trade','economy','tariff'].includes(k))) {
-    assessment += `Economic severing detected. ${60 + Math.floor(Math.random() * 25)}% chance of reciprocal sanctions.`;
-  } else if (keywords.some(k => ['cyber','hack','breach','ransomware'].includes(k))) {
-    assessment += `Digital warfare signature matched. ${80 + Math.floor(Math.random() * 19)}% probability of infrastructure probing.`;
-  } else if (keywords.some(k => ['troop','deploy','border','navy','carrier'].includes(k))) {
-    assessment += `Force projection detected. ${70 + Math.floor(Math.random() * 20)}% probability of theater escalation.`;
-  } else {
-    assessment += `Anomalous geopolitical shift detected. Confidence: ${60 + Math.floor(Math.random() * 30)}%.`;
-  }
-  return assessment;
-}
+// generateAssessment() REMOVED — was fabricating fake probabilistic threat
+// percentages using Math.random(). See Issue #116.
+// The risk_score field (from scoreRisk()) is deterministic and retained.
 
 // Simple XML parsing for RSS (no external dependency needed in serverless)
 function parseRSSItems(xml: string): any[] {
@@ -129,7 +114,7 @@ export async function GET() {
         source: article.source,
         risk_score: riskScore,
         coords: coords ? [coords[0], coords[1]] : null,
-        machine_assessment: generateAssessment(article.title, riskScore),
+        machine_assessment: null,
       };
     });
 

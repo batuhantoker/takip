@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 /**
  * OSIRIS — Region Dossier API
  * Provides country intelligence for any coordinate (right-click on map)
+ * Fix #115: Steps 2-4 now run in parallel via Promise.allSettled
  */
 
 export async function GET(request: Request) {
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   const lng = parseFloat(searchParams.get('lng') || '0');
 
   try {
-    // Step 1: Reverse geocode to get country
+    // Step 1: Reverse geocode to get country (must complete first — other steps depend on it)
     const geoRes = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=5&addressdetails=1`,
       {
@@ -38,73 +39,81 @@ export async function GET(request: Request) {
       };
     }
 
-    // Step 2: Fetch country details from RestCountries
-    let countryData: any = null;
-    if (countryCode) {
-      try {
-        const countryRes = await fetch(
-          `https://restcountries.com/v3.1/alpha/${countryCode}?fields=name,capital,population,area,region,subregion,languages,currencies,flag,flags,timezones`,
-          { signal: AbortSignal.timeout(5000) }
-        );
-        if (countryRes.ok) {
-          countryData = await countryRes.json();
-        }
-      } catch (e) { console.warn('[OSIRIS] Suppressed error in ' + __filename.split(/[/\\]/).pop(), e); }
-    }
+    // Steps 2–4: Run in PARALLEL after geocode (Fixes #115 — was a sequential waterfall)
+    const [countryResult, wikiResult, hosResult] = await Promise.allSettled([
 
-    // Step 3: Fetch Wikipedia summary
-    let wikiSummary: any = null;
-    const wikiQuery = locationInfo.city || countryName;
-    if (wikiQuery) {
-      try {
-        const wikiRes = await fetch(
-          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiQuery)}`,
-          { signal: AbortSignal.timeout(5000) }
-        );
-        if (wikiRes.ok) {
-          const wiki = await wikiRes.json();
-          wikiSummary = {
-            title: wiki.title,
-            extract: wiki.extract?.substring(0, 500),
-            thumbnail: wiki.thumbnail?.source,
-          };
-        }
-      } catch (e) { console.warn('[OSIRIS] Suppressed error in ' + __filename.split(/[/\\]/).pop(), e); }
-    }
+      // Step 2: Fetch country details from RestCountries
+      (async () => {
+        if (!countryCode) return null;
+        try {
+          const res = await fetch(
+            `https://restcountries.com/v3.1/alpha/${countryCode}?fields=name,capital,population,area,region,subregion,languages,currencies,flag,flags,timezones`,
+            { signal: AbortSignal.timeout(5000) }
+          );
+          if (res.ok) return await res.json();
+        } catch (e) { console.warn('[OSIRIS] Country fetch error:', e instanceof Error ? e.message : e); }
+        return null;
+      })(),
 
-    // Step 4: Fetch head of state from Wikidata
-    let headOfState: any = null;
-    if (countryName) {
-      try {
-        const safeCountryName = countryName.replace(/[\\"]/g, '\\$&');
-        const sparql = `
-          SELECT ?leader ?leaderLabel ?positionLabel WHERE {
+      // Step 3: Fetch Wikipedia summary
+      (async () => {
+        const wikiQuery = locationInfo.city || countryName;
+        if (!wikiQuery) return null;
+        try {
+          const res = await fetch(
+            `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiQuery)}`,
+            { signal: AbortSignal.timeout(5000) }
+          );
+          if (res.ok) {
+            const wiki = await res.json();
+            return {
+              title: wiki.title,
+              extract: wiki.extract?.substring(0, 500),
+              thumbnail: wiki.thumbnail?.source,
+            };
+          }
+        } catch (e) { console.warn('[OSIRIS] Wikipedia fetch error:', e instanceof Error ? e.message : e); }
+        return null;
+      })(),
+
+      // Step 4: Fetch head of state from Wikidata SPARQL
+      (async () => {
+        if (!countryName) return null;
+        try {
+          // Sanitize country name for SPARQL string literal
+          const safe = countryName.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const sparql = `SELECT ?leader ?leaderLabel ?positionLabel WHERE {
             ?country wdt:P31 wd:Q6256;
-                     rdfs:label "${safeCountryName}"@en;
+                     rdfs:label "${safe}"@en;
                      wdt:P6 ?leader.
             OPTIONAL { ?leader wdt:P39 ?position. }
             SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
-          } LIMIT 1
-        `;
-        const wdRes = await fetch(
-          `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`,
-          {
-            signal: AbortSignal.timeout(5000),
-            headers: { 'User-Agent': 'OsirisIntelPlatform/1.0' },
+          } LIMIT 1`;
+          const res = await fetch(
+            `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`,
+            {
+              signal: AbortSignal.timeout(5000),
+              headers: { 'User-Agent': 'OsirisIntelPlatform/1.0' },
+            }
+          );
+          if (res.ok) {
+            const wd = await res.json();
+            const binding = wd.results?.bindings?.[0];
+            if (binding) {
+              return {
+                name: binding.leaderLabel?.value,
+                position: binding.positionLabel?.value || 'Head of State',
+              };
+            }
           }
-        );
-        if (wdRes.ok) {
-          const wd = await wdRes.json();
-          const binding = wd.results?.bindings?.[0];
-          if (binding) {
-            headOfState = {
-              name: binding.leaderLabel?.value,
-              position: binding.positionLabel?.value || 'Head of State',
-            };
-          }
-        }
-      } catch (e) { console.warn('[OSIRIS] Suppressed error in ' + __filename.split(/[/\\]/).pop(), e); }
-    }
+        } catch (e) { console.warn('[OSIRIS] Wikidata fetch error:', e instanceof Error ? e.message : e); }
+        return null;
+      })(),
+    ]);
+
+    const countryData = countryResult.status === 'fulfilled' ? countryResult.value : null;
+    const wikiSummary  = wikiResult.status   === 'fulfilled' ? wikiResult.value   : null;
+    const headOfState  = hosResult.status    === 'fulfilled' ? hosResult.value    : null;
 
     return NextResponse.json({
       coordinates: { lat, lng },
@@ -118,7 +127,9 @@ export async function GET(request: Request) {
         region: countryData.region,
         subregion: countryData.subregion,
         languages: countryData.languages ? Object.values(countryData.languages) : [],
-        currencies: countryData.currencies ? Object.entries(countryData.currencies).map(([code, info]: [string, any]) => `${info.name} (${info.symbol || code})`) : [],
+        currencies: countryData.currencies
+          ? Object.entries(countryData.currencies).map(([code, info]: [string, any]) => `${info.name} (${info.symbol || code})`)
+          : [],
         flag: countryData.flag,
         flag_url: countryData.flags?.svg,
         timezones: countryData.timezones,

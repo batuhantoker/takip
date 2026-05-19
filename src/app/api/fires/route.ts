@@ -38,8 +38,8 @@ export async function GET() {
     } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
 
     // Source 2: If EONET returned few results, try NASA FIRMS CSV endpoints
-    if (fires.length < 20) {
-      const firmsKey = 'd0a624db1bff890120a9bc74e81e4e46';
+    const firmsKey = process.env.FIRMS_API_KEY || '';
+    if (fires.length < 20 && firmsKey) {
       const firmsSources = [
         `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}/VIIRS_SNPP_NRT/world/1`,
         `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}/MODIS_NRT/world/1`,

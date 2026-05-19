@@ -124,6 +124,11 @@ function classifyFlight(f: any) {
 }
 
 // In-memory cache to prevent global fan-out abuse
+// NOTE (Issue #110): This cache is per-isolate in serverless environments (Vercel).
+// Multiple isolates may each hold their own cache, but this is acceptable because:
+// 1. It coalesces concurrent requests within the same isolate
+// 2. It prevents hammering adsb.lol which would cause rate-limit bans
+// For a globally shared cache, migrate to Vercel KV or similar persistent store.
 let cachedData: any = null;
 let lastFetchTime = 0;
 const CACHE_TTL = 45000; // 45 seconds cache window
