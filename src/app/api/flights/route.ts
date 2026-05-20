@@ -157,6 +157,8 @@ export async function GET() {
     }
   }
 
+  const JAMMING_NACAP_THRESHOLD = 4;
+
   // Start new global fetch
   fetchPromise = (async () => {
     // Fetch all 6 regions in parallel
@@ -191,7 +193,7 @@ export async function GET() {
       if (!flight) continue;
 
       // GPS jamming detection
-      if (typeof flight.nac_p === 'number' && flight.nac_p <= 4 && !flight.grounded) {
+      if (typeof flight.nac_p === 'number' && flight.nac_p <= JAMMING_NACAP_THRESHOLD && !flight.grounded) {
         gpsJamming.push({
           lat: flight.lat,
           lng: flight.lng,
@@ -209,7 +211,7 @@ export async function GET() {
     }
 
     // Aggregate GPS jamming zones (grid-based)
-    const jammingZones = aggregateJamming(gpsJamming);
+    const jammingZones = aggregateJamming(gpsJamming, JAMMING_NACAP_THRESHOLD);
 
     return {
       commercial_flights: commercial,
@@ -243,7 +245,7 @@ export async function GET() {
   }
 }
 
-function aggregateJamming(points: any[]) {
+function aggregateJamming(points: any[], threshold: number) {
   if (points.length === 0) return [];
   const grid = new Map<string, { lat: number; lng: number; count: number; total_nac_p: number }>();
   const GRID_SIZE = 2; // degrees
@@ -266,7 +268,7 @@ function aggregateJamming(points: any[]) {
     .map(z => ({
       lat: z.lat,
       lng: z.lng,
-      severity: Math.round((1 - (z.total_nac_p / z.count) / 11) * 100),
+      severity: Math.round((1 - (z.total_nac_p / z.count) / threshold) * 100),
       count: z.count,
     }));
 }

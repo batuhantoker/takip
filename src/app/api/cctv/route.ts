@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import { fetchAsfinagCameras } from './asfinag';
+import { fetchBulgariaCameras } from './bulgaria';
+import { fetchGreeceCameras } from './greece';
+import { fetchSerbiaCameras } from './serbia';
+import { fetchMacedoniaCameras } from './macedonia';
+import { fetchTurkeyCameras } from './turkey';
+import { fetchRomaniaCameras } from './romania';
 
 /**
  * OSIRIS — Worldwide CCTV Camera API v2
@@ -275,6 +281,12 @@ const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'canada': fetchCanadaCameras,
   'europe': fetchEuropeCameras,
   'asia': fetchAsiaCameras,
+  'bulgaria': fetchBulgariaCameras,
+  'greece': fetchGreeceCameras,
+  'serbia': fetchSerbiaCameras,
+  'macedonia': fetchMacedoniaCameras,
+  'turkey': fetchTurkeyCameras,
+  'romania': fetchRomaniaCameras,
 };
 
 // Determine which regions to fetch based on viewport bounds
@@ -291,7 +303,23 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   // Canada
   if (lat > 42 && lat < 70 && lng > -141 && lng < -52) regions.push('canada');
   // Europe
-  if (lat > 35 && lat < 72 && lng > -11 && lng < 40) regions.push('europe');
+  const inBulgaria = lat > 41 && lat < 44.5 && lng > 22 && lng < 29.5;
+  const inGreece = lat > 34.5 && lat < 41.8 && lng > 19 && lng < 30;
+  const inSerbia = lat > 42 && lat < 46.5 && lng > 18.8 && lng < 23.3;
+  const inMacedonia = lat > 40.8 && lat < 42.8 && lng > 20.4 && lng < 23.2;
+  const inRomania = lat > 43.5 && lat < 48.5 && lng > 20 && lng < 29.8;
+  const inTurkey = lat > 35.5 && lat < 42.5 && lng > 25.5 && lng < 45;
+  const inBalkans = inBulgaria || inGreece || inSerbia || inMacedonia || inRomania || inTurkey;
+
+  if (lat > 35 && lat < 72 && lng > -11 && lng < 40 && !inBalkans) {
+    regions.push('europe');
+  }
+  if (inBulgaria) regions.push('bulgaria');
+  if (inGreece) regions.push('greece');
+  if (inSerbia) regions.push('serbia');
+  if (inMacedonia) regions.push('macedonia');
+  if (inRomania) regions.push('romania');
+  if (inTurkey) regions.push('turkey');
 
   // Asia (includes Middle East, SE Asia, overriding parts of china but that's ok they can both load)
   if ((lat > -10 && lat < 60 && lng > 60 && lng < 150)) regions.push('asia');

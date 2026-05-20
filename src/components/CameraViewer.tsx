@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, RefreshCw, MapPin, Camera, Maximize2 } from 'lucide-react';
+import Hls from 'hls.js';
 
 interface CameraViewerProps {
   camera: any | null;
@@ -16,8 +17,13 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
   const [error, setError] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+
+  const streamType = camera?.stream_type || 'jpg';
   const externalFeedUrl = camera?.external_url || camera?.feed_url;
-  const externalOnly = Boolean(camera?.external_url && !camera?.feed_url);
+  const externalOnly = Boolean(camera?.external_url && !camera?.feed_url && !camera?.stream_url);
 
   useEffect(() => {
     if (!camera) return;
@@ -25,24 +31,61 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
     setError(false);
     setImageUrl(null);
 
-    if (!camera.feed_url) {
+    // Cleanup previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (externalOnly) {
       setLoading(false);
       return;
     }
 
-    // Add cache-busting for live feeds
-    const url = camera.feed_url.includes('?')
-      ? `${camera.feed_url}&_t=${Date.now()}`
-      : `${camera.feed_url}?_t=${Date.now()}`;
-    setImageUrl(url);
-  }, [camera, refreshKey]);
+    if (streamType === 'hls' && camera.stream_url) {
+      if (Hls.isSupported() && videoRef.current) {
+        const hls = new Hls({ enableWorker: false });
+        hlsRef.current = hls;
+        hls.loadSource(camera.stream_url);
+        hls.attachMedia(videoRef.current);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          setLoading(false);
+          videoRef.current?.play().catch(() => {});
+        });
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) setError(true);
+        });
+      } else if (videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
+        videoRef.current.src = camera.stream_url;
+        videoRef.current.addEventListener('loadedmetadata', () => {
+          setLoading(false);
+          videoRef.current?.play().catch(() => {});
+        });
+      }
+      return;
+    }
 
-  // Auto-refresh every 30 seconds for live feeds (skip for external-only)
+    if (streamType === 'iframe' && camera.stream_url) {
+      setLoading(false);
+      return;
+    }
+
+    // JPG fallback
+    if (camera.feed_url) {
+      const url = camera.feed_url.includes('?') ? `${camera.feed_url}&_t=${Date.now()}` : `${camera.feed_url}?_t=${Date.now()}`;
+      setImageUrl(url);
+    } else {
+      setError(true);
+      setLoading(false);
+    }
+  }, [camera, refreshKey, streamType, externalOnly]);
+
+  // Auto-refresh for JPGs
   useEffect(() => {
-    if (!camera?.feed_url) return;
-    const iv = setInterval(() => setRefreshKey(k => k + 1), 30000);
+    if (streamType !== 'jpg' || !camera?.feed_url) return;
+    const iv = setInterval(() => setRefreshKey(k => k + 1), 5000); // 5s refresh for JPG
     return () => clearInterval(iv);
-  }, [camera?.feed_url]);
+  }, [camera?.feed_url, streamType]);
 
   if (!camera) return null;
 
@@ -61,7 +104,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
       >
         <div className="glass-panel osiris-glow overflow-hidden h-full flex flex-col" style={{ borderColor: 'rgba(57, 255, 20, 0.3)' }}>
           {/* Header */}
-          <div className="flex items-center justify-between px-3 md:px-4 py-2 md:py-3 border-b border-[var(--border-secondary)]">
+          <div className="flex items-center justify-between px-3 md:px-4 py-2 md:py-3 border-b border-[var(--border-secondary)] bg-black/40">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="w-2 h-2 rounded-full bg-[#39FF14] animate-osiris-pulse flex-shrink-0" />
               <Camera className="w-3.5 h-3.5 text-[#39FF14] flex-shrink-0" />
@@ -71,16 +114,18 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => setRefreshKey(k => k + 1)} className="p-1.5 rounded hover:bg-[var(--hover-accent)] transition-colors" title="Refresh feed">
-                <RefreshCw className="w-3 h-3 text-[var(--text-muted)] hover:text-[#39FF14]" />
-              </button>
+              {streamType === 'jpg' && (
+                <button onClick={() => setRefreshKey(k => k + 1)} className="p-1.5 rounded hover:bg-[var(--hover-accent)] transition-colors" title="Refresh feed">
+                  <RefreshCw className="w-3 h-3 text-[var(--text-muted)] hover:text-[#39FF14]" />
+                </button>
+              )}
               {camera.lat && camera.lng && (
                 <button onClick={() => onLocate?.(camera.lat, camera.lng)} className="p-1.5 rounded hover:bg-[var(--hover-accent)] transition-colors" title="Fly to location">
                   <MapPin className="w-3 h-3 text-[var(--text-muted)] hover:text-[var(--gold-primary)]" />
                 </button>
               )}
               <button onClick={() => setFullscreen(!fullscreen)} className="hidden md:block p-1.5 rounded hover:bg-[var(--hover-accent)] transition-colors" title="Toggle fullscreen">
-                <Maximize2 className="w-3 h-3 text-[var(--text-muted)]" />
+                <Maximize2 className="w-3 h-3 text-[var(--text-muted)] hover:text-white" />
               </button>
               <button onClick={onClose} className="p-1.5 rounded hover:bg-red-900/30 transition-colors">
                 <X className="w-4 h-4 md:w-3 md:h-3 text-[var(--text-muted)] hover:text-red-400" />
@@ -115,7 +160,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             ) : error ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/90">
                 <div className="text-center">
-                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center mb-2"><Camera className="w-4 h-4 text-red-400" /></div>
+                  <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center mb-2 mx-auto"><Camera className="w-4 h-4 text-red-400" /></div>
                   <span className="text-[9px] font-mono text-red-400 tracking-widest block mb-1">FEED UNAVAILABLE</span>
                   <span className="text-[7px] font-mono text-[var(--text-muted)]">Camera may be offline or restricted</span>
                   <button onClick={() => { setError(false); setRefreshKey(k => k + 1); }} className="block mx-auto mt-3 px-3 py-1 text-[8px] font-mono text-[#39FF14] border border-[#39FF14]/30 rounded hover:bg-[#39FF14]/10 transition-colors tracking-wider">
@@ -123,6 +168,21 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
                   </button>
                 </div>
               </div>
+            ) : streamType === 'hls' ? (
+              <video
+                ref={videoRef}
+                className={`w-full ${fullscreen ? 'h-full object-contain' : 'h-full object-cover'}`}
+                autoPlay
+                muted
+                playsInline
+              />
+            ) : streamType === 'iframe' && camera.stream_url ? (
+              <iframe
+                src={camera.stream_url}
+                className="w-full h-full border-0"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+              />
             ) : imageUrl ? (
               <img
                 key={refreshKey}
@@ -135,23 +195,18 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             ) : null}
 
             {/* Live indicator */}
-            {!error && !loading && (
+            {!error && !loading && !externalOnly && (
               <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/70 backdrop-blur-sm px-2 py-1 rounded">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-osiris-pulse" />
-                <span className="text-[7px] font-mono text-white tracking-widest">LIVE</span>
-              </div>
-            )}
-
-            {/* Timestamp */}
-            {!error && !loading && (
-              <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm px-2 py-1 rounded">
-                <span className="text-[7px] font-mono text-[var(--text-muted)]">{new Date().toLocaleTimeString()}</span>
+                <span className="text-[7px] font-mono text-white tracking-widest">
+                  {streamType === 'jpg' ? 'LIVE SNAPSHOT' : 'LIVE VIDEO'}
+                </span>
               </div>
             )}
           </div>
 
           {/* Footer with coords + links */}
-          <div className="px-3 md:px-4 py-2 border-t border-[var(--border-secondary)] flex items-center justify-between">
+          <div className="px-3 md:px-4 py-2 border-t border-[var(--border-secondary)] bg-black/40 flex items-center justify-between">
             <div className="text-[7px] md:text-[8px] font-mono text-[var(--text-muted)]">
               {camera.lat?.toFixed(4)}, {camera.lng?.toFixed(4)}
             </div>

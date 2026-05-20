@@ -70,7 +70,7 @@ const LAYER_GROUPS = [
     icon: Sun,
     color: '#448AFF',
     layers: [
-      { key: 'day_night', label: 'Day / Night Cycle', icon: Sun, color: '#448AFF', dataKey: null },
+      { key: 'day_night', label: 'Day / Night Cycle', icon: Sun, color: '#448AFF', dataKey: '' },
     ],
   },
 ];
@@ -86,11 +86,11 @@ function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
   });
 
   const toggle = (key: string) => setActiveLayers((prev: any) => ({ ...prev, [key]: !prev[key] }));
-  const getCount = (dk: string | null): number | null => {
+  const getCount = (dk: string): number | null => {
     if (!dk || !data[dk]) return null;
     return Array.isArray(data[dk]) ? data[dk].length : null;
   };
-  const totalEntities = ALL_LAYERS.reduce((s, l) => s + (getCount(l.dataKey) || 0), 0);
+  const totalEntities = ALL_LAYERS.reduce((s: number, l: any) => s + (getCount(l.dataKey) || 0), 0);
   const activeCount = Object.values(activeLayers).filter(Boolean).length;
 
   const toggleGroup = (groupLabel: string) => {
