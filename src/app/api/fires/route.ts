@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 /**
  * OSIRIS — Active Fire & Wildfire Tracking
- * Multi-source: NASA EONET (primary), NASA FIRMS (secondary), fallback static
+ * Multi-source: NASA FIRMS Open Data (primary for global fires), NASA EONET (volcanoes)
  */
 
 export async function GET() {
@@ -10,96 +10,63 @@ export async function GET() {
     let fires: any[] = [];
     let source = '';
 
-    // Source 1: NASA EONET — most reliable, always works, no API key needed
+    // Source 1: NASA FIRMS Open Data (Global 24h CSV) - no API key needed
+    const firmsSources = [
+      'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv',
+      'https://firms.modaps.eosdis.nasa.gov/data/active_fire/modis-c6.1/csv/MODIS_C6_1_Global_24h.csv'
+    ];
+
+    for (const url of firmsSources) {
+      try {
+        const res = await fetch(url, {
+          signal: AbortSignal.timeout(15000),
+          headers: { 'User-Agent': 'OSIRIS-Intelligence-Platform/3.5' },
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.includes('latitude') && text.length > 200) {
+            const parsed = parseCSV(text);
+            if (parsed.length > 0) {
+              fires = parsed;
+              source = url.includes('SUOMI') ? 'NASA-FIRMS (VIIRS)' : 'NASA-FIRMS (MODIS)';
+              break;
+            }
+          }
+        }
+      } catch { continue; }
+    }
+
+    // Source 2: Pull volcanoes from EONET for richer data
     try {
-      const eonetRes = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=wildfires&limit=500', {
-        signal: AbortSignal.timeout(15000),
-        headers: { 'User-Agent': 'OSIRIS-Intelligence-Platform/3.4' },
+      const volcRes = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=volcanoes&limit=50', {
+        signal: AbortSignal.timeout(10000),
       });
-      if (eonetRes.ok) {
-        const eonetData = await eonetRes.json();
-        fires = (eonetData.events || []).map((e: any) => {
+      if (volcRes.ok) {
+        const volcData = await volcRes.json();
+        const volcanoes = (volcData.events || []).map((e: any) => {
           const geo = e.geometry?.[e.geometry.length - 1];
           if (!geo?.coordinates) return null;
           return {
             lat: geo.coordinates[1],
             lng: geo.coordinates[0],
-            brightness: 350,
+            brightness: 500,
             confidence: 'high',
             date: geo.date?.split('T')[0] || '',
-            time: geo.date?.split('T')[1]?.substring(0, 5) || '',
-            frp: 50,
-            title: e.title,
-            source_event: e.sources?.[0]?.url || '',
+            time: '',
+            frp: 100,
+            title: `[VOLCANO] ${e.title}`,
+            type: 'volcano',
           };
         }).filter(Boolean);
-        source = 'NASA-EONET';
+        fires = [...fires, ...volcanoes];
+        if (!source) source = 'NASA-EONET';
       }
-    } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
-
-    // Source 2: If EONET returned few results, try NASA FIRMS CSV endpoints
-    const firmsKey = process.env.FIRMS_API_KEY || '';
-    if (fires.length < 20 && firmsKey) {
-      const firmsSources = [
-        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}/VIIRS_SNPP_NRT/world/1`,
-        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}/MODIS_NRT/world/1`,
-        `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${firmsKey}/VIIRS_NOAA20_NRT/world/1`,
-      ];
-
-      for (const url of firmsSources) {
-        try {
-          const res = await fetch(url, {
-            signal: AbortSignal.timeout(15000),
-            headers: { 'User-Agent': 'OSIRIS-Intelligence-Platform/3.4' },
-          });
-          if (res.ok) {
-            const text = await res.text();
-            if (text && text.includes('latitude') && text.length > 200) {
-              const parsed = parseCSV(text);
-              if (parsed.length > fires.length) {
-                fires = parsed;
-                source = url.includes('VIIRS_SNPP') ? 'VIIRS-SNPP' : url.includes('MODIS') ? 'MODIS' : 'VIIRS-NOAA20';
-              }
-              break;
-            }
-          }
-        } catch { continue; }
-      }
-    }
-
-    // Source 3: Also pull volcanoes from EONET for richer data
-    if (fires.length < 100) {
-      try {
-        const volcRes = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=volcanoes&limit=50', {
-          signal: AbortSignal.timeout(10000),
-        });
-        if (volcRes.ok) {
-          const volcData = await volcRes.json();
-          const volcanoes = (volcData.events || []).map((e: any) => {
-            const geo = e.geometry?.[e.geometry.length - 1];
-            if (!geo?.coordinates) return null;
-            return {
-              lat: geo.coordinates[1],
-              lng: geo.coordinates[0],
-              brightness: 500,
-              confidence: 'high',
-              date: geo.date?.split('T')[0] || '',
-              time: '',
-              frp: 100,
-              title: `[VOLCANO] ${e.title}`,
-              type: 'volcano',
-            };
-          }).filter(Boolean);
-          fires = [...fires, ...volcanoes];
-          if (!source) source = 'NASA-EONET';
-        }
-      } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
-    }
+    } catch (e) { console.warn('[OSIRIS] Suppressed EONET error:', e instanceof Error ? e.message : e); }
 
     return NextResponse.json({
       fires,
       total: fires.length,
-      source,
+      source: source || 'Unknown',
       timestamp: new Date().toISOString(),
     }, {
       headers: {
@@ -126,7 +93,9 @@ function parseCSV(csv: string): any[] {
   const frpIdx = header.indexOf('frp');
 
   const fires: any[] = [];
-  const step = lines.length > 3000 ? Math.ceil(lines.length / 3000) : 1;
+  // Sample the data if there are too many rows to avoid browser lag. Limit to ~2000 points globally.
+  const maxPoints = 2000;
+  const step = lines.length > maxPoints ? Math.ceil(lines.length / maxPoints) : 1;
 
   for (let i = 1; i < lines.length; i += step) {
     const cols = lines[i].split(',');
@@ -142,6 +111,7 @@ function parseCSV(csv: string): any[] {
       date: cols[dateIdx] || '',
       time: cols[timeIdx] || '',
       frp: parseFloat(cols[frpIdx]) || 0,
+      type: 'fire'
     });
   }
 
