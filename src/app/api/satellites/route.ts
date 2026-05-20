@@ -145,26 +145,26 @@ function propagateSGP4Simple(line1: string, line2: string): { lat: number; lng: 
   }
 }
 
-// Multiple TLE sources with fallback chain
+// Multiple TLE sources — individual groups fetched in parallel for resilience
+// NOTE: The full 'active' catalog often returns empty from cloud/serverless IPs
+// due to Celestrak rate-limiting. Individual groups are smaller and more reliable.
 const TLE_SOURCES = [
-  // CelesTrak GP format (JSON-based, more reliable from cloud)
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle', type: 'tle' },
-  // CelesTrak alternative domain
-  { url: 'https://celestrak.com/NORAD/elements/gp.php?GROUP=active&FORMAT=tle', type: 'tle' },
-  // Curated smaller catalogs if full catalog fails
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle', type: 'tle', group: 'stations' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=tle', type: 'tle', group: 'visual' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=tle', type: 'tle', group: 'weather' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=resource&FORMAT=tle', type: 'tle', group: 'resource' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=sarsat&FORMAT=tle', type: 'tle', group: 'sarsat' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=tle', type: 'tle', group: 'gps' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=glo-ops&FORMAT=tle', type: 'tle', group: 'glonass' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=galileo&FORMAT=tle', type: 'tle', group: 'galileo' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=military&FORMAT=tle', type: 'tle', group: 'military' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=science&FORMAT=tle', type: 'tle', group: 'science' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=geodetic&FORMAT=tle', type: 'tle', group: 'geodetic' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=engineering&FORMAT=tle', type: 'tle', group: 'engineering' },
-  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=education&FORMAT=tle', type: 'tle', group: 'education' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle', group: 'stations' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=visual&FORMAT=tle', group: 'visual' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=weather&FORMAT=tle', group: 'weather' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=resource&FORMAT=tle', group: 'resource' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=sarsat&FORMAT=tle', group: 'sarsat' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=gps-ops&FORMAT=tle', group: 'gps' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=glo-ops&FORMAT=tle', group: 'glonass' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=galileo&FORMAT=tle', group: 'galileo' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=beidou&FORMAT=tle', group: 'beidou' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=military&FORMAT=tle', group: 'military' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=science&FORMAT=tle', group: 'science' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=geodetic&FORMAT=tle', group: 'geodetic' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=engineering&FORMAT=tle', group: 'engineering' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=education&FORMAT=tle', group: 'education' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=tle', group: 'starlink' },
+  { url: 'https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=tle', group: 'active-fallback' },
 ];
 
 async function fetchTLEFromSource(source: typeof TLE_SOURCES[0]): Promise<string | null> {
@@ -184,46 +184,27 @@ async function fetchTLEFromSource(source: typeof TLE_SOURCES[0]): Promise<string
 
 export async function GET() {
   try {
-    let allSats: any[] = [];
-    let source = 'unknown';
+    // Fetch all groups in parallel for maximum speed & resilience
+    const results = await Promise.allSettled(
+      TLE_SOURCES.map(src => fetchTLEFromSource(src))
+    );
 
-    // Strategy 1: Try full active catalog first
-    for (const src of TLE_SOURCES.slice(0, 2)) {
-      const tleText = await fetchTLEFromSource(src);
-      if (tleText && tleText.length > 5000) {
-        allSats = parseTLE(tleText);
-        source = 'celestrak-active';
-        break;
-      }
-    }
+    const allSats: any[] = [];
+    const seen = new Set<string>();
 
-    // Strategy 2: If full catalog fails, fetch individual groups in parallel
-    if (allSats.length < 50) {
-      const groupSources = TLE_SOURCES.slice(2);
-      const results = await Promise.allSettled(
-        groupSources.map(src => fetchTLEFromSource(src))
-      );
-      
-      const groupSats: any[] = [];
-      const seen = new Set<string>();
-      
-      for (const result of results) {
-        if (result.status === 'fulfilled' && result.value) {
-          const parsed = parseTLE(result.value);
-          for (const sat of parsed) {
-            if (!seen.has(sat.name)) {
-              seen.add(sat.name);
-              groupSats.push(sat);
-            }
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        const parsed = parseTLE(result.value);
+        for (const sat of parsed) {
+          if (!seen.has(sat.name)) {
+            seen.add(sat.name);
+            allSats.push(sat);
           }
         }
       }
-      
-      if (groupSats.length > allSats.length) {
-        allSats = groupSats;
-        source = 'celestrak-groups';
-      }
     }
+
+    const source = allSats.length > 0 ? 'celestrak-groups' : 'none';
 
     // Sample for performance (max 2000 satellites)
     const sampled = allSats.length > 2000

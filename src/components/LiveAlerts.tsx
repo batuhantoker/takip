@@ -22,7 +22,7 @@ const RISK_COLORS: Record<string, string> = {
 };
 
 export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [filter, setFilter] = useState<'all' | 'news' | 'quakes' | 'feeds'>('all');
 
   // Built-in live feeds — verified video IDs (synced with /api/live-news)

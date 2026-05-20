@@ -8,18 +8,18 @@ interface ViewPresetsProps {
 }
 
 const PRESETS = [
-  { label: 'GLOBAL', lat: 20, lng: 0, zoom: 2.5 },
-  { label: 'EUROPE', lat: 48, lng: 10, zoom: 4 },
-  { label: 'MIDDLE EAST', lat: 30, lng: 45, zoom: 4.5 },
-  { label: 'EAST ASIA', lat: 35, lng: 120, zoom: 4 },
-  { label: 'AMERICAS', lat: 25, lng: -90, zoom: 3 },
-  { label: 'UKRAINE', lat: 49, lng: 32, zoom: 6 },
-  { label: 'AFRICA', lat: 5, lng: 20, zoom: 3.5 },
-  { label: 'S.E. ASIA', lat: 10, lng: 110, zoom: 4.5 },
-  { label: 'ARCTIC', lat: 75, lng: 0, zoom: 3.5 },
-  { label: 'INDIA', lat: 22, lng: 78, zoom: 4.5 },
-  { label: 'AUSTRALIA', lat: -25, lng: 134, zoom: 4 },
-  { label: 'SUDAN', lat: 15, lng: 30, zoom: 5.5 },
+  { label: 'GLOBAL', lat: 20, lng: 0, zoom: 2.5, icon: '🌍' },
+  { label: 'EUROPE', lat: 48, lng: 10, zoom: 4, icon: '🇪🇺' },
+  { label: 'MIDDLE EAST', lat: 30, lng: 45, zoom: 4.5, icon: '🔥', hot: true },
+  { label: 'EAST ASIA', lat: 35, lng: 120, zoom: 4, icon: '🌏' },
+  { label: 'AMERICAS', lat: 25, lng: -90, zoom: 3, icon: '🌎' },
+  { label: 'UKRAINE', lat: 49, lng: 32, zoom: 6, icon: '⚔️', hot: true },
+  { label: 'AFRICA', lat: 5, lng: 20, zoom: 3.5, icon: '🌍' },
+  { label: 'S.E. ASIA', lat: 10, lng: 110, zoom: 4.5, icon: '🌏' },
+  { label: 'ARCTIC', lat: 75, lng: 0, zoom: 3.5, icon: '❄️' },
+  { label: 'INDIA', lat: 22, lng: 78, zoom: 4.5, icon: '🇮🇳' },
+  { label: 'AUSTRALIA', lat: -25, lng: 134, zoom: 4, icon: '🇦🇺' },
+  { label: 'SUDAN', lat: 15, lng: 30, zoom: 5.5, icon: '⚠️', hot: true },
 ];
 
 export default function ViewPresets({ onNavigate }: ViewPresetsProps) {
@@ -39,10 +39,11 @@ export default function ViewPresets({ onNavigate }: ViewPresetsProps) {
           <button
             key={p.label}
             onClick={() => onNavigate(p.lat, p.lng, p.zoom)}
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-mono tracking-wider text-[var(--text-muted)] border border-transparent hover:border-[var(--border-primary)] hover:bg-[var(--hover-accent)] hover:text-[var(--gold-primary)] transition-all"
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-mono tracking-wider border border-transparent hover:border-[var(--border-primary)] hover:text-[var(--gold-primary)] transition-all hover:scale-[1.02] active:scale-[0.98] ${(p as any).hot ? 'text-[var(--alert-red)] hover:border-[var(--alert-red)]/30 hover:bg-[var(--alert-red)]/5' : 'text-[var(--text-muted)] hover:bg-[var(--hover-accent)]'}`}
           >
-            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <span className="text-[11px] flex-shrink-0">{p.icon}</span>
             <span>{p.label}</span>
+            {(p as any).hot && <span className="w-1.5 h-1.5 rounded-full bg-[var(--alert-red)] animate-osiris-pulse ml-auto flex-shrink-0" />}
           </button>
         ))}
       </div>
