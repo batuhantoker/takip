@@ -74,6 +74,7 @@ export default function Dashboard() {
   const [mobilePanel, setMobilePanel] = useState<'layers'|'markets'|'intel'|'search'|'recon'|null>(null);
   const [mapProjection, setMapProjection] = useState<'globe'|'mercator'>('globe');
   const [mapStyle, setMapStyle] = useState<'dark'|'satellite'>('dark');
+  const [sweepData, setSweepData] = useState<any>(null);
 
   const isMobile = useIsMobile();
   const startTime = useRef(Date.now());
@@ -353,17 +354,6 @@ export default function Dashboard() {
     (data.commercial_flights?.length||0)+(data.private_flights?.length||0)+(data.private_jets?.length||0)+(data.military_flights?.length||0)
   ), [data.commercial_flights, data.private_flights, data.private_jets, data.military_flights]);
 
-  // Dynamic Threat Level based on active global incidents
-  const majorQuakes = data.earthquakes?.filter((e: any) => e.magnitude >= 5).length || 0;
-  const severeWeather = data.weather_events?.filter((w: any) => w.severity === 'high').length || 0;
-  const conflictEvents = data.gdelt?.length || 0;
-  const activeFires = data.fires?.length || 0;
-  const threatScore = useMemo(() => (
-    majorQuakes + severeWeather * 2 + conflictEvents * 0.1 + activeFires * 0.01
-  ), [majorQuakes, severeWeather, conflictEvents, activeFires]);
-  const threatLevel = threatScore >= 10 ? 'CRITICAL' : threatScore >= 5 ? 'HIGH' : threatScore >= 2 ? 'ELEVATED' : 'NOMINAL';
-  const threatColor = threatLevel === 'CRITICAL' ? '#FF1744' : threatLevel === 'HIGH' ? '#FF9500' : threatLevel === 'ELEVATED' ? '#FFD700' : '#00E676';
-  const [threatHovered, setThreatHovered] = useState(false);
 
   return (
     <main className="fixed inset-0 w-full h-full bg-[var(--bg-void)] overflow-hidden">
@@ -395,7 +385,8 @@ export default function Dashboard() {
           onMouseCoords={handleMouseCoords} 
           onRightClick={handleRightClick} 
           onViewStateChange={setMapView} 
-          flyToLocation={flyToLocation} 
+          flyToLocation={flyToLocation}
+          sweepData={sweepData}
         />
       </ErrorBoundary>
 
@@ -461,56 +452,7 @@ export default function Dashboard() {
 
       {/* ── TOP-RIGHT STATUS (desktop) ── */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="status-bar-desktop absolute top-3 right-3 md:top-4 md:right-5 z-[200] pointer-events-none flex items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-mono tracking-widest text-[var(--text-muted)]">
-        {/* Threat Level Badge with hover breakdown */}
-        <span
-          className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full relative pointer-events-auto cursor-help"
-          style={{ background: `${threatColor}12`, border: `1px solid ${threatColor}30` }}
-          onMouseEnter={() => setThreatHovered(true)}
-          onMouseLeave={() => setThreatHovered(false)}
-        >
-          <span className="w-1.5 h-1.5 rounded-full animate-osiris-pulse" style={{ backgroundColor: threatColor, boxShadow: `0 0 6px ${threatColor}` }} />
-          <span className="text-[9px] font-bold tracking-wider" style={{ color: threatColor }}>{threatLevel}</span>
 
-          {/* Hover tooltip breakdown */}
-          {threatHovered && (
-            <div className="absolute top-full mt-2 right-0 z-[500] pointer-events-none" style={{ minWidth: 260 }}>
-              <div className="glass-panel p-3 osiris-glow text-left" style={{ borderColor: `${threatColor}40` }}>
-                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[var(--border-secondary)]">
-                  <span className="w-2 h-2 rounded-full animate-osiris-pulse" style={{ backgroundColor: threatColor }} />
-                  <span className="text-[11px] font-mono font-bold tracking-wider" style={{ color: threatColor }}>THREAT LEVEL: {threatLevel}</span>
-                </div>
-                <div className="text-[9px] font-mono text-[var(--text-secondary)] mb-2">
-                  Composite score: <span className="text-[var(--text-primary)] font-bold">{threatScore.toFixed(1)}</span>
-                  <span className="text-[var(--text-muted)]"> / 10 threshold</span>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-mono text-[var(--text-muted)]">🌍 M5.0+ Earthquakes</span>
-                    <span className={`text-[10px] font-mono font-bold ${majorQuakes > 0 ? 'text-[var(--alert-red)]' : 'text-[var(--alert-green)]'}`}>{majorQuakes}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-mono text-[var(--text-muted)]">⛈️ Severe Weather</span>
-                    <span className={`text-[10px] font-mono font-bold ${severeWeather > 0 ? 'text-[var(--alert-orange)]' : 'text-[var(--alert-green)]'}`}>{severeWeather} <span className="text-[var(--text-muted)] font-normal">×2</span></span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-mono text-[var(--text-muted)]">⚔️ Conflict Events</span>
-                    <span className={`text-[10px] font-mono font-bold ${conflictEvents > 20 ? 'text-[var(--alert-red)]' : conflictEvents > 0 ? 'text-[var(--alert-orange)]' : 'text-[var(--alert-green)]'}`}>{conflictEvents}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-mono text-[var(--text-muted)]">🔥 Active Fires</span>
-                    <span className={`text-[10px] font-mono font-bold ${activeFires > 100 ? 'text-[var(--alert-orange)]' : 'text-[var(--alert-green)]'}`}>{activeFires.toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-[var(--border-secondary)] text-[8px] font-mono text-[var(--text-muted)] leading-relaxed">
-                  {threatLevel === 'CRITICAL' ? 'Multiple severe global events detected. Elevated geopolitical and natural disaster risk across monitored regions.' :
-                   threatLevel === 'HIGH' ? 'Significant global incidents active. Monitor regional developments closely.' :
-                   threatLevel === 'ELEVATED' ? 'Moderate activity detected across intelligence feeds. Standard monitoring advised.' :
-                   'All monitored feeds within normal parameters. No significant threats detected.'}
-                </div>
-              </div>
-            </div>
-          )}
-        </span>
         <span>SYS: <span className={backendStatus === 'connected' ? 'text-[var(--alert-green)]' : 'text-[var(--alert-red)]'}>{backendStatus.toUpperCase()}</span></span>
 
         {spaceWeather && <span className="hidden lg:inline">SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>Kp{spaceWeather.kp_index}</span></span>}
@@ -523,7 +465,7 @@ export default function Dashboard() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }} className="absolute top-3 right-3 z-[200] pointer-events-none flex items-center gap-2">
           <div className="glass-panel px-2.5 py-1.5 flex items-center gap-2 text-[8px] font-mono tracking-wider">
             <div className={`w-1.5 h-1.5 rounded-full ${backendStatus === 'connected' ? 'bg-[var(--alert-green)]' : 'bg-[var(--alert-red)]'} animate-osiris-pulse`} />
-            <span style={{ color: threatColor, fontWeight: 700 }}>{threatLevel}</span>
+            <span style={{ color: backendStatus === 'connected' ? 'var(--alert-green)' : 'var(--alert-red)', fontWeight: 700 }}>{backendStatus.toUpperCase()}</span>
           </div>
         </motion.div>
       )}
@@ -557,7 +499,7 @@ export default function Dashboard() {
           <div className="flex-1"><SearchBar onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} /></div>
           <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} /></div>
         </div>
-        <OsintPanel />
+        <OsintPanel onSweepVisualize={setSweepData} />
         <LiveAlerts data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} onWatchFeed={(url, name) => { setLiveFeedUrl(url); setLiveFeedName(name); }} />
       </div>
 
@@ -728,7 +670,7 @@ export default function Dashboard() {
                   )}
                   {mobilePanel === 'recon' && (
                     <div className="space-y-2">
-                      <OsintPanel isOpen={true} onClose={() => setMobilePanel(null)} isMobile={true} />
+                      <OsintPanel isOpen={true} onClose={() => setMobilePanel(null)} isMobile={true} onSweepVisualize={setSweepData} />
                     </div>
                   )}
                 </div>
@@ -742,15 +684,7 @@ export default function Dashboard() {
       {!isMobile && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3, duration: 0.8 }} className="desktop-only absolute bottom-5 left-1/2 -translate-x-1/2 z-[200] pointer-events-auto">
           <div className="glass-panel px-5 py-2.5 flex items-center gap-5 osiris-glow" style={{ borderImage: 'linear-gradient(90deg, rgba(212,175,55,0.05), rgba(212,175,55,0.2), rgba(212,175,55,0.05)) 1', borderImageSlice: 1, borderWidth: '1px', borderStyle: 'solid' }}>
-            {/* Threat Level */}
-            <div className="flex flex-col items-center min-w-[70px]">
-              <div className="hud-label">THREAT</div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full animate-osiris-pulse" style={{ backgroundColor: threatColor, boxShadow: `0 0 6px ${threatColor}` }} />
-                <span className="text-[10px] font-mono font-bold tracking-wide" style={{ color: threatColor }}>{threatLevel}</span>
-              </div>
-            </div>
-            <div className="w-px h-7 bg-[var(--border-primary)]" />
+
             <div className="flex flex-col items-center min-w-[110px]">
               <div className="hud-label">COORDINATES</div>
               <div className="text-[10px] font-mono font-bold text-[var(--gold-primary)] tracking-wide">{mouseCoords ? `${mouseCoords.lat.toFixed(4)}, ${mouseCoords.lng.toFixed(4)}` : '—'}</div>

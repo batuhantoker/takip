@@ -14,6 +14,7 @@ interface OsirisMapProps {
   flyToLocation?: { lat: number; lng: number; ts: number } | null;
   projection?: 'mercator' | 'globe';
   mapStyle?: string;
+  sweepData?: any;
 }
 
 function computeSolarTerminator(): [number, number][] {
@@ -38,7 +39,7 @@ function computeSolarTerminator(): [number, number][] {
 
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] };
 
-function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, flyToLocation, projection = 'globe', mapStyle = 'dark' }: OsirisMapProps) {
+function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, flyToLocation, projection = 'globe', mapStyle = 'dark', sweepData }: OsirisMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -107,7 +108,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       createDot(map, 'dot-cctv', '#39FF14', 10);
 
       // Sources
-      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','sigint-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation'];
+      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','sigint-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections'];
       sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
       // ── CONFLICT ZONES — small warning markers (not polygons) ──
@@ -327,6 +328,32 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'text-offset': [0, 1.6], 'text-max-width': 10, 'text-allow-overlap': false,
       }, paint: { 'text-color': '#D4AF37', 'text-halo-color': '#000', 'text-halo-width': 1, 'text-opacity': 0.85 }});
 
+      // ══ IP SWEEP — Neighborhood device visualization ══
+      map.addLayer({ id: 'sweep-connections', type: 'line', source: 'ip-sweep-connections', paint: {
+        'line-color': ['get', 'color'], 'line-width': 1, 'line-opacity': 0.3, 'line-dasharray': [2, 4],
+      }});
+      map.addLayer({ id: 'sweep-pulse-ring', type: 'circle', source: 'ip-sweep-pulse', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 8,40, 12,80, 16,160],
+        'circle-color': 'transparent', 'circle-opacity': 0.6,
+        'circle-stroke-width': 2, 'circle-stroke-color': '#FF3D3D', 'circle-stroke-opacity': 0.4,
+      }});
+      map.addLayer({ id: 'sweep-device-glow', type: 'circle', source: 'ip-sweep-devices', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 8,8, 12,16, 16,30],
+        'circle-color': ['get', 'color'], 'circle-opacity': 0.15, 'circle-blur': 1,
+      }});
+      map.addLayer({ id: 'sweep-device-dots', type: 'circle', source: 'ip-sweep-devices', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 8,3, 12,6, 16,10],
+        'circle-color': ['get', 'color'], 'circle-opacity': 0.95,
+        'circle-stroke-width': 1.5, 'circle-stroke-color': '#FFFFFF', 'circle-stroke-opacity': 0.6,
+      }});
+      map.addLayer({ id: 'sweep-device-labels', type: 'symbol', source: 'ip-sweep-devices', minzoom: 13, layout: {
+        'text-field': ['concat', ['get', 'device_type'], '\n', ['get', 'ip']],
+        'text-size': 9, 'text-font': ['Open Sans Regular'],
+        'text-offset': [0, 2.2], 'text-max-width': 12, 'text-allow-overlap': false,
+      }, paint: {
+        'text-color': ['get', 'color'], 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9,
+      }});
+
       // Flight layers (WebGL symbol — GPU rendered, handles 50K+ smooth)
       const flightLayers = [
         { id: 'fl-commercial', src: 'flights', icon: 'plane-cyan' },
@@ -539,9 +566,31 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
 
     // ── Generic hover for clickables ──
-    ['conflict-icons','cctv-dots','eq-circles','sat-dots','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','sigint-news-dots','balloon-dots','rad-dots','ship-dots'].forEach(layer => {
+    ['conflict-icons','cctv-dots','eq-circles','sat-dots','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','sigint-news-dots','balloon-dots','rad-dots','ship-dots','sweep-device-dots'].forEach(layer => {
       map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
+    });
+
+    // ── IP Sweep device click ──
+    map.on('click', 'sweep-device-dots', (e: any) => {
+      const p = e.features?.[0]?.properties;
+      if (!p) return;
+      const coords = e.features[0].geometry.coordinates.slice();
+      const ports = JSON.parse(p.ports || '[]');
+      const vulns = JSON.parse(p.vulns || '[]');
+      const hostnames = JSON.parse(p.hostnames || '[]');
+      const riskColors: Record<string, string> = { CRITICAL: '#FF3D3D', HIGH: '#FF6B00', MEDIUM: '#FFD700', LOW: '#76FF03', INFO: '#5C5A54' };
+      popup(coords, `<div style="font-family:monospace;font-size:11px;color:#E8E6E0;">
+        <div style="font-size:13px;font-weight:bold;margin-bottom:6px;color:${p.color};">${p.device_type}</div>
+        <div style="font-size:12px;margin-bottom:8px;color:#fff;">${p.ip}</div>
+        ${hostnames.length > 0 ? `<div style="font-size:9px;color:#8A8880;margin-bottom:6px;">${hostnames.join(', ')}</div>` : ''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div><span style="color:#5C5A54;">PORTS</span><br/><span style="color:#E8E6E0;">${ports.length}</span></div>
+          <div><span style="color:#5C5A54;">RISK</span><br/><span style="color:${riskColors[p.risk_level] || '#666'};">${p.risk_level}</span></div>
+        </div>
+        <div style="font-size:9px;color:#8A8880;margin-bottom:6px;">Open: ${ports.slice(0, 12).join(', ')}${ports.length > 12 ? ' ...' : ''}</div>
+        ${vulns.length > 0 ? `<div style="font-size:9px;color:#FF3D3D;margin-bottom:6px;">⚠ CVEs: ${vulns.slice(0, 5).join(', ')}${vulns.length > 5 ? ` +${vulns.length - 5} more` : ''}</div>` : ''}
+      </div>`);
     });
 
     // ── Balloons / Sondes ──
@@ -853,7 +902,80 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
     setVis(['balloon-dots','balloon-label'], activeLayers.balloons);
     setVis(['rad-glow','rad-dots','rad-label'], activeLayers.radiation);
+    // Sweep layers always visible when data is present (controlled by useEffect)
+    setVis(['sweep-connections','sweep-pulse-ring','sweep-device-glow','sweep-device-dots','sweep-device-labels'], true);
   }, [mapReady, activeLayers, setVis]);
+
+  // IP Sweep visualization
+  useEffect(() => {
+    if (!mapReady) return;
+    if (!sweepData?.devices?.length) {
+      setGeo('ip-sweep-devices', []);
+      setGeo('ip-sweep-pulse', []);
+      setGeo('ip-sweep-connections', []);
+      return;
+    }
+
+    const map = mapRef.current;
+    if (!map) return;
+
+    const { center, devices } = sweepData;
+    const centerCoord: [number, number] = [center.lng, center.lat];
+
+    // Switch to globe and fly to the sweep location
+    try {
+      (map as any).setProjection({ type: 'globe' });
+      map.setSky({ 'sky-color': '#0A0A0F', 'sky-horizon-blend': 0.02, 'horizon-color': '#0A0A0F', 'horizon-fog-blend': 0.02 });
+    } catch { /* projection may not be supported */ }
+
+    map.flyTo({ center: centerCoord, zoom: 14, pitch: 50, bearing: -20, duration: 3000, essential: true });
+
+    // Set center pulse
+    setGeo('ip-sweep-pulse', [{
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: centerCoord },
+      properties: { ip: sweepData.target_ip },
+    }]);
+
+    // Build device features spread in a circle around center
+    const allDeviceFeatures = devices.map((d: any, i: number) => {
+      const angle = (i / devices.length) * Math.PI * 2;
+      const radius = 0.001 + (Math.random() * 0.003);
+      const dLng = centerCoord[0] + Math.cos(angle) * radius * (1 / Math.cos(center.lat * Math.PI / 180));
+      const dLat = centerCoord[1] + Math.sin(angle) * radius;
+      return {
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [dLng, dLat] },
+        properties: {
+          ip: d.ip, device_type: d.device_type, device_icon: d.device_icon,
+          color: d.device_color, risk_level: d.risk_level,
+          ports: JSON.stringify(d.ports), hostnames: JSON.stringify(d.hostnames),
+          vulns: JSON.stringify(d.vulns), cpes: JSON.stringify(d.cpes), tags: JSON.stringify(d.tags),
+        },
+      };
+    });
+
+    // Connection lines from center to each device
+    const connectionFeatures = allDeviceFeatures.map((f: any) => ({
+      type: 'Feature' as const,
+      geometry: { type: 'LineString' as const, coordinates: [centerCoord, f.geometry.coordinates] },
+      properties: { color: f.properties.color },
+    }));
+
+    // Stagger the appearance after 3s flyTo completes
+    const timer = setTimeout(() => {
+      setGeo('ip-sweep-connections', connectionFeatures);
+      const batchSize = 5;
+      const batches = Math.ceil(allDeviceFeatures.length / batchSize);
+      for (let b = 0; b < batches; b++) {
+        setTimeout(() => {
+          setGeo('ip-sweep-devices', allDeviceFeatures.slice(0, (b + 1) * batchSize));
+        }, b * 100);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [mapReady, sweepData, setGeo]);
 
   // Fly-to
   useEffect(() => {

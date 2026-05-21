@@ -6,7 +6,7 @@ import {
   Search, Radar, Globe, Shield, FileText, Radio,
   ChevronDown, ChevronUp, Loader2, AlertTriangle, Server,
   Wifi, Lock, MapPin, Bug, Code, Layers, Network, Fingerprint,
-  CheckCircle, XCircle, Clock, ExternalLink,
+  CheckCircle, XCircle, Clock, ExternalLink, Crosshair,
 } from 'lucide-react';
 
 const TABS = [
@@ -21,11 +21,12 @@ const TABS = [
   { id: 'ssl', label: 'SSL/TLS', icon: Shield, placeholder: 'Domain name', color: '#76FF03' },
   { id: 'subdomains', label: 'SUBDOMAINS', icon: Layers, placeholder: 'Domain to enumerate', color: '#00BCD4' },
   { id: 'tech', label: 'TECH DETECT', icon: Fingerprint, placeholder: 'URL to fingerprint', color: '#9C27B0' },
+  { id: 'sweep', label: 'IP SWEEP', icon: Crosshair, placeholder: 'Enter IP address (e.g. 8.8.8.8)', color: '#FF3D3D' },
 ];
 
-interface OsintPanelProps { isOpen?: boolean; onClose?: () => void; isMobile?: boolean; }
+interface OsintPanelProps { isOpen?: boolean; onClose?: () => void; isMobile?: boolean; onSweepVisualize?: (data: any) => void; }
 
-function OsintPanelInner({ isMobile }: OsintPanelProps) {
+function OsintPanelInner({ isMobile, onSweepVisualize }: OsintPanelProps) {
   const [activeTab, setActiveTab] = useState('scanner');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any>(null);
@@ -34,10 +35,34 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
   const [scanType, setScanType] = useState('quick');
   const [expanded, setExpanded] = useState(true);
   const [history, setHistory] = useState<{tab:string;query:string;time:string}[]>([]);
+  const [sweepResult, setSweepResult] = useState<any>(null);
+  const [sweepProgress, setSweepProgress] = useState<{ current: number; total: number } | null>(null);
+  const [sweepCidr, setSweepCidr] = useState(24);
 
   const runLookup = useCallback(async () => {
     if (!query.trim() || loading) return;
     setLoading(true); setError(''); setResults(null);
+
+    // IP Sweep — separate flow
+    if (activeTab === 'sweep') {
+      setSweepResult(null);
+      setSweepProgress({ current: 0, total: Math.pow(2, 32 - sweepCidr) });
+      try {
+        const res = await fetch(`/api/osint/sweep?ip=${encodeURIComponent(query)}&cidr=${sweepCidr}`);
+        if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `Sweep failed (${res.status})`); }
+        const data = await res.json();
+        setSweepResult(data);
+        setSweepProgress(null);
+        setHistory(prev => [{ tab: 'sweep', query, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)]);
+      } catch (err: any) {
+        setError(err.message);
+        setSweepProgress(null);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       let url = '';
       switch (activeTab) {
@@ -63,7 +88,7 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
       }
     } catch { setError('Network error'); }
     finally { setLoading(false); }
-  }, [query, activeTab, scanType, loading]);
+  }, [query, activeTab, scanType, loading, sweepCidr]);
 
   const currentTab = TABS.find(t => t.id === activeTab);
 
@@ -312,37 +337,72 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
   const renderContent = () => (
     <div className="flex flex-col gap-2.5">
       {/* Tool Grid */}
-      <div className="grid grid-cols-4 gap-1">
-        {TABS.map(tab => (
+      <div className="flex flex-col gap-1">
+        {/* Sweep - Main Action */}
+        {TABS.filter(t => t.id === 'sweep').map(tab => (
           <button key={tab.id} onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); }}
-            className={`flex flex-col items-center gap-1 px-1.5 py-2 rounded-lg text-[9px] font-mono tracking-wider transition-all border ${activeTab === tab.id ? 'border-opacity-40 bg-opacity-15' : 'border-transparent hover:bg-[var(--hover-accent)]'}`}
-            style={{ borderColor: activeTab === tab.id ? tab.color : 'transparent', backgroundColor: activeTab === tab.id ? `${tab.color}15` : undefined, color: activeTab === tab.id ? tab.color : 'var(--text-muted)' }}>
-            <tab.icon className="w-3.5 h-3.5" />
-            <span className="leading-none">{tab.label}</span>
+            className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg text-[12px] font-mono tracking-widest font-bold transition-all border ${activeTab === tab.id ? 'border-opacity-60 bg-opacity-20' : 'border-[var(--border-secondary)] hover:bg-[var(--hover-accent)]'}`}
+            style={{ 
+              borderColor: activeTab === tab.id ? tab.color : 'rgba(255,61,61,0.3)', 
+              backgroundColor: activeTab === tab.id ? `${tab.color}20` : 'rgba(255,61,61,0.05)', 
+              color: activeTab === tab.id ? tab.color : tab.color,
+              boxShadow: activeTab === tab.id ? `0 0 15px ${tab.color}30` : 'none'
+            }}>
+            <tab.icon className="w-5 h-5" />
+            <span>GLOBAL {tab.label}</span>
           </button>
         ))}
+        {/* Other Tools */}
+        <div className="grid grid-cols-5 gap-1 mt-1">
+          {TABS.filter(t => t.id !== 'sweep').map(tab => (
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); }}
+              className={`flex flex-col items-center gap-1 px-1 py-2 rounded-lg text-[8px] font-mono tracking-wider transition-all border ${activeTab === tab.id ? 'border-opacity-40 bg-opacity-15' : 'border-transparent hover:bg-[var(--hover-accent)]'}`}
+              style={{ borderColor: activeTab === tab.id ? tab.color : 'transparent', backgroundColor: activeTab === tab.id ? `${tab.color}15` : undefined, color: activeTab === tab.id ? tab.color : 'var(--text-muted)' }}>
+              <tab.icon className="w-3.5 h-3.5" />
+              <span className="leading-none text-center truncate w-full">{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Search Input */}
-      <div className="flex gap-1.5">
-        <div className="flex-1 relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
-          <input type="text" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runLookup()}
-            placeholder={currentTab?.placeholder}
-            className="w-full bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg pl-8 pr-3 py-2.5 text-[11px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-colors"
-            style={{ borderColor: query ? `${currentTab?.color}40` : undefined }} />
+      {/* Input Area */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex gap-1.5">
+          <div className="flex-1 relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+            <input type="text" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runLookup()}
+              placeholder={currentTab?.placeholder}
+              className="w-full bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg pl-8 pr-3 py-2.5 text-[11px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/40 focus:outline-none transition-colors"
+              style={{ borderColor: query ? `${currentTab?.color}40` : undefined }} />
+          </div>
+          <button onClick={runLookup} disabled={loading || !query.trim()}
+            className="px-4 py-2 rounded-lg text-[10px] font-mono font-bold tracking-wider disabled:opacity-30 transition-all flex items-center justify-center min-w-[70px]"
+            style={{ backgroundColor: `${currentTab?.color}20`, border: `1px solid ${currentTab?.color}40`, color: currentTab?.color }}>
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'SCAN'}
+          </button>
         </div>
+        
+        {/* Secondary Controls */}
         {activeTab === 'scanner' && (
           <select value={scanType} onChange={e => setScanType(e.target.value)}
-            className="bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg px-2 text-[10px] font-mono text-[var(--text-muted)] outline-none">
-            <option value="quick">QUICK</option><option value="deep">DEEP</option><option value="ports">TOP 1000</option>
+            className="bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg px-2 py-1.5 text-[10px] font-mono text-[var(--text-muted)] outline-none w-full">
+            <option value="quick">QUICK SCAN</option><option value="deep">DEEP SCAN</option><option value="ports">TOP 1000 PORTS</option>
           </select>
         )}
-        <button onClick={runLookup} disabled={loading || !query.trim()}
-          className="px-4 py-2 rounded-lg text-[10px] font-mono font-bold tracking-wider disabled:opacity-30 transition-all"
-          style={{ backgroundColor: `${currentTab?.color}20`, border: `1px solid ${currentTab?.color}40`, color: currentTab?.color }}>
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'SCAN'}
-        </button>
+        {activeTab === 'sweep' && (
+          <div className="flex items-center justify-between bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg p-1">
+            <span className="text-[9px] font-mono text-[var(--text-muted)] pl-2">SUBNET MASK:</span>
+            <div className="flex items-center gap-0.5">
+              {[24, 25, 26, 27, 28].map(c => (
+                <button key={c} onClick={() => setSweepCidr(c)}
+                  className={`px-2 py-1 text-[10px] font-mono rounded transition-all ${
+                    sweepCidr === c ? 'bg-[#FF3D3D]/20 text-[#FF3D3D]' : 'text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+                  }`}
+                >/{c}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -351,7 +411,89 @@ function OsintPanelInner({ isMobile }: OsintPanelProps) {
         </div>
       )}
 
-      {results && (
+      {/* Sweep Progress */}
+      {sweepProgress && loading && (
+        <div className="p-3 rounded-lg border border-[#FF3D3D]/30 bg-[#FF3D3D]/5">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-mono tracking-wider text-[#FF3D3D]">SWEEPING SUBNET...</span>
+            <span className="text-[10px] font-mono text-[#E8E6E0]">{sweepProgress.total} hosts</span>
+          </div>
+          <div className="w-full h-1.5 bg-[#1A1A18] rounded-full overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: '100%', background: 'linear-gradient(90deg, #FF3D3D, #FF6B00, #FFD700)', animation: 'sweep-pulse 1.5s ease-in-out infinite' }} />
+          </div>
+        </div>
+      )}
+
+      {/* Sweep Results */}
+      {sweepResult && !loading && (
+        <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-primary)] rounded-lg overflow-hidden max-h-[55vh] overflow-y-auto styled-scrollbar">
+          {/* Summary */}
+          <div className="p-3 border-b border-[#2A2A28]">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-[11px] font-mono tracking-wider text-[#E8E6E0]">{sweepResult.subnet}</div>
+                <div className="text-[9px] font-mono text-[#5C5A54]">{sweepResult.center.city}, {sweepResult.center.country} · {sweepResult.center.isp}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[18px] font-mono font-bold text-[#FF3D3D]">{sweepResult.summary.total_responsive}</div>
+                <div className="text-[8px] font-mono text-[#5C5A54] tracking-wider">DEVICES FOUND</div>
+              </div>
+            </div>
+            {/* Breakdown Bar */}
+            <div className="flex h-2 rounded-full overflow-hidden bg-[#1A1A18] mb-2">
+              {Object.entries(sweepResult.summary.device_breakdown).map(([type, count]: [string, any]) => {
+                const device = sweepResult.devices.find((d: any) => d.device_type === type);
+                return <div key={type} style={{ width: `${(count / sweepResult.summary.total_responsive) * 100}%`, backgroundColor: device?.device_color || '#666' }} title={`${type}: ${count}`} />;
+              })}
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {Object.entries(sweepResult.summary.device_breakdown).map(([type, count]: [string, any]) => {
+                const device = sweepResult.devices.find((d: any) => d.device_type === type);
+                return (
+                  <div key={type} className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: device?.device_color || '#666' }} />
+                    <span className="text-[9px] font-mono text-[#8A8880]">{type}</span>
+                    <span className="text-[9px] font-mono text-[#E8E6E0] font-bold">{String(count)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          {/* Visualize Button */}
+          <div className="p-3 border-b border-[#2A2A28]">
+            <button onClick={() => onSweepVisualize?.(sweepResult)}
+              className="w-full py-2.5 rounded-lg font-mono text-[11px] tracking-wider font-bold transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+              style={{ background: 'linear-gradient(135deg, rgba(255,61,61,0.2), rgba(255,107,0,0.2))', border: '1px solid rgba(255,61,61,0.5)', color: '#FF3D3D', textShadow: '0 0 10px rgba(255,61,61,0.5)' }}
+            >
+              <Globe className="w-4 h-4" /> VISUALIZE ON GLOBE
+            </button>
+          </div>
+          {/* Device List */}
+          <div className="divide-y divide-[#2A2A28]">
+            {sweepResult.devices.map((device: any) => (
+              <div key={device.ip} className="px-3 py-2.5 hover:bg-[rgba(255,255,255,0.02)] transition-colors">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: device.device_color }} />
+                    <span className="text-[11px] font-mono text-[#E8E6E0]">{device.ip}</span>
+                  </div>
+                  <span className="text-[8px] font-mono px-1.5 py-0.5 rounded" style={{ backgroundColor: device.device_color + '20', color: device.device_color, border: `1px solid ${device.device_color}40` }}>{device.device_type}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[9px] font-mono text-[#5C5A54]">
+                  <span>Ports: {device.ports.slice(0, 8).join(', ')}{device.ports.length > 8 ? ` +${device.ports.length - 8}` : ''}</span>
+                  {device.vulns.length > 0 && <span className="text-[#FF3D3D] flex items-center gap-1"><AlertTriangle className="w-2.5 h-2.5" /> {device.vulns.length} CVEs</span>}
+                </div>
+                {device.hostnames.length > 0 && <div className="text-[9px] font-mono text-[#8A8880] mt-0.5 truncate">{device.hostnames[0]}</div>}
+              </div>
+            ))}
+          </div>
+          <div className="px-3 py-2 border-t border-[#2A2A28]">
+            <div className="text-[8px] font-mono text-[#5C5A54] tracking-wider">SWEPT {sweepResult.summary.total_hosts} HOSTS IN {(sweepResult.sweep_time_ms / 1000).toFixed(1)}s · ASN {sweepResult.center.asn}</div>
+          </div>
+        </div>
+      )}
+
+      {results && !(sweepResult && !loading) && (
         <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-primary)] rounded-lg p-3 max-h-[50vh] overflow-y-auto styled-scrollbar">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[9px] font-mono tracking-widest" style={{ color: currentTab?.color }}>{currentTab?.label} RESULTS</span>
