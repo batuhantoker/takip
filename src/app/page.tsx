@@ -687,16 +687,19 @@ export default function Dashboard() {
         </span>
 
         <UptimeClock />
-        <span className="px-1.5 py-0.5 rounded-sm border border-[var(--border-primary)] bg-black/20 text-[var(--text-muted)]">V4.2 BUILD 2026.05.21</span>
+        
+        <a href='https://ko-fi.com/M8D41ZYW4Z' target='_blank' className="pointer-events-auto hover:opacity-80 transition-opacity ml-1 flex items-center">
+          <span className="px-3 py-1 rounded-sm border border-[var(--gold-primary)]/40 bg-[var(--gold-primary)]/10 text-[var(--gold-primary)] text-[11px] font-bold tracking-[0.2em]">SUPPORT PROJECT</span>
+        </a>
       </motion.div>
 
       {/* ── MOBILE: Compact top status ── */}
       {isMobile && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }} className="absolute top-3 right-3 z-[200] pointer-events-none flex items-center gap-2">
-          <div className="glass-panel px-2.5 py-1.5 flex items-center gap-2 text-[8px] font-mono tracking-wider">
-            <div className={`w-1.5 h-1.5 rounded-full ${backendStatus === 'connected' ? 'bg-[var(--alert-green)]' : 'bg-[var(--alert-red)]'} animate-osiris-pulse`} />
-            <span style={{ color: backendStatus === 'connected' ? 'var(--alert-green)' : 'var(--alert-red)', fontWeight: 700 }}>{backendStatus.toUpperCase()}</span>
-          </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }} className="absolute top-3 right-3 z-[200] pointer-events-auto flex items-center gap-2">
+          <a href='https://ko-fi.com/M8D41ZYW4Z' target='_blank' className="glass-panel px-3 py-2 flex items-center gap-2 text-[9px] font-mono tracking-widest hover:opacity-80 transition-opacity border-[var(--gold-primary)]/40 bg-[var(--gold-primary)]/10">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--gold-primary)] animate-osiris-pulse" />
+            <span className="text-[var(--gold-primary)] font-bold">SUPPORT PROJECT</span>
+          </a>
         </motion.div>
       )}
 
