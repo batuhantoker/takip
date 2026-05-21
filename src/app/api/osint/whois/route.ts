@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
+import { safeFetch, isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 
 // WHOIS + Domain Intelligence via RDAP (free, standardized)
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const domain = searchParams.get('domain');
   if (!domain) return NextResponse.json({ error: 'Missing domain parameter' }, { status: 400 });
+
+  const clientIp = getClientIp(req);
+  if (isRateLimited(clientIp, 20, 60_000)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  }
 
   if (!/^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain)) {
     return NextResponse.json({ error: 'Invalid domain format' }, { status: 400 });
@@ -46,12 +52,15 @@ export async function GET(req: Request) {
       }
     } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
 
-    // HTTP headers for tech fingerprinting
+    // HTTP headers for tech fingerprinting — go through safeFetch so the
+    // attacker can't aim a HEAD request at internal infrastructure with a
+    // hostname that resolves to a reserved range, or chain a redirect from a
+    // public host to one. Redirects are followed manually with re-validation.
     try {
-      const res = await fetch(`https://${domain}`, {
+      const res = await safeFetch(`https://${domain}`, {
         method: 'HEAD',
         signal: AbortSignal.timeout(5000),
-        redirect: 'follow',
+        maxRedirects: 3,
       });
       const headers: Record<string, string> = {};
       ['server', 'x-powered-by', 'x-frame-options', 'strict-transport-security',

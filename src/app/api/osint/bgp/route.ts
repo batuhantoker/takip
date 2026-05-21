@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
+import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 
 // BGP/ASN Lookup via bgpview.io (free, no key)
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('query'); // Can be IP, ASN, or prefix
   if (!query) return NextResponse.json({ error: 'Missing query parameter (IP, ASN number, or prefix)' }, { status: 400 });
+
+  const clientIp = getClientIp(req);
+  if (isRateLimited(clientIp, 20, 60_000)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  }
 
   try {
     const results: any = { query, timestamp: new Date().toISOString() };

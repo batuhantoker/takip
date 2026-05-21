@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
+import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 
 // Threat Intelligence — AlienVault OTX public pulse feed + Tor exit nodes
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('query'); // Optional: IP or domain to check
+  
+  const clientIp = getClientIp(req);
+  if (isRateLimited(clientIp, 20, 60_000)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  }
   
   try {
     const results: any = { timestamp: new Date().toISOString() };
@@ -71,7 +77,7 @@ export async function GET(req: Request) {
       } else {
         // Domain check
         try {
-          const res = await fetch(`https://otx.alienvault.com/api/v1/indicators/domain/${query}/general`, {
+          const res = await fetch(`https://otx.alienvault.com/api/v1/indicators/domain/${encodeURIComponent(query)}/general`, {
             signal: AbortSignal.timeout(5000),
           });
           if (res.ok) {

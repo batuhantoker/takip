@@ -1,59 +1,20 @@
 import { NextResponse } from 'next/server';
+import { validateHost, isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 
 /**
  * OSIRIS — Scanner Proxy (Hardened)
  * Rate-limited, target-validated, scope-restricted
  */
 
-const SCANNER_URL = process.env.SCANNER_URL || 'http://100.89.48.10:7700';
+const SCANNER_URL = process.env.SCANNER_URL || '';
 const SCANNER_KEY = process.env.SCANNER_KEY || '';
 
-// ── RATE LIMITER (in-memory, per-IP) ──
-// NOTE: In serverless environments (Vercel), this map is per-isolate and not shared
-// across instances. This is acceptable as a best-effort rate limiter; for strict
-// distributed limiting, use Vercel KV or similar.
-const rateMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 5;          // max requests per window
-const RATE_WINDOW_MS = 60_000; // 1 minute window
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-
-  // Inline cleanup: prune expired entries to prevent memory growth
-  // Runs on every call but the Map is small (bounded by concurrent IPs per isolate)
-  for (const [key, entry] of rateMap) {
-    if (now > entry.resetAt) rateMap.delete(key);
-  }
-
-  const entry = rateMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return false;
-  }
-  entry.count++;
-  return entry.count > RATE_LIMIT;
-}
-
-// ── TARGET VALIDATION ──
-function isPrivateOrReserved(target: string): boolean {
-  // Block scanning of private/internal IPs and localhost
-  const blocked = [
-    /^10\./,
-    /^172\.(1[6-9]|2[0-9]|3[01])\./,
-    /^192\.168\./,
-    /^127\./,
-    /^0\./,
-    /^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\./,  // CGNAT / Tailscale
-    /^169\.254\./,   // Link-local
-    /^224\./,        // Multicast
-    /^255\./,
-    /^localhost$/i,
-    /^host\.docker\.internal$/i,
-    /\.local$/i,
-    /\.internal$/i,
-  ];
-  return blocked.some(re => re.test(target));
-}
+// The string-based regex previously here matched only literal dotted-quad
+// IPv4, missed every IPv6 form, and never resolved hostnames — so an attacker
+// could bypass it with `target=metadata.example.com` (DNS A → 169.254.169.254),
+// `target=2130706433` (decimal 127.0.0.1), or `target=::1`. Validation now
+// canonicalises the input and resolves hostnames before deciding. See
+// `src/lib/ssrf-guard.ts`.
 
 // ── ALLOWED SCAN TYPES (safe subset only) ──
 const ALLOWED_SCANS: Record<string, { endpoint: string; timeout: number }> = {
@@ -82,12 +43,11 @@ export async function GET(req: Request) {
   }
 
   // 2. Rate limit by client IP
-  const forwarded = req.headers.get('x-forwarded-for');
-  const clientIp = forwarded?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
-  if (isRateLimited(clientIp)) {
+  const clientIp = getClientIp(req);
+  if (isRateLimited(clientIp, 5, 60_000)) {
     return NextResponse.json({
       error: 'Rate limit exceeded',
-      detail: `Maximum ${RATE_LIMIT} scans per minute. Please wait before scanning again.`,
+      detail: `Maximum 5 scans per minute. Please wait before scanning again.`,
     }, { status: 429 });
   }
 
@@ -100,11 +60,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Missing target parameter' }, { status: 400 });
   }
 
-  // 4. Block private/internal targets
-  if (isPrivateOrReserved(target)) {
+  // 4. Block private/internal targets (DNS-resolves before deciding so a
+  //    hostname pointing at a reserved range is rejected, and IPv6 + non-
+  //    canonical IPv4 forms are no longer free bypasses).
+  const guard = await validateHost(target);
+  if (!guard.ok) {
     return NextResponse.json({
       error: 'Target blocked',
-      detail: 'Scanning private, internal, or reserved addresses is not permitted.',
+      detail: `Target validation failed: ${guard.reason}`,
     }, { status: 403 });
   }
 

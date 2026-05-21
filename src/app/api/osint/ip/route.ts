@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
+import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 
 // IP Geolocation + Reputation — combines multiple free sources
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const ip = searchParams.get('ip');
   if (!ip) return NextResponse.json({ error: 'Missing ip parameter' }, { status: 400 });
+
+  const clientIp = getClientIp(req);
+  if (isRateLimited(clientIp, 20, 60_000)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  }
 
   // Validate IP format
   const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
