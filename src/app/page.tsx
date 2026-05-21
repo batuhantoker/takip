@@ -408,16 +408,7 @@ export default function Dashboard() {
               V4.2
             </motion.div>
 
-            {/* ── CLASSIFIED badge — top-right ── */}
-            <motion.div
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1.0, duration: 0.5 }}
-              className="absolute top-6 right-6 z-[2] font-mono text-[9px] tracking-[0.4em] px-3 py-1 border"
-              style={{ color: '#FF4060', borderColor: 'rgba(255,64,96,0.4)', background: 'rgba(255,64,96,0.06)' }}
-            >
-              CLASSIFIED
-            </motion.div>
+
 
             {/* ── Geometric tactical logo ── */}
             <div className="relative w-40 h-40 mb-8 flex items-center justify-center z-[2]">
@@ -575,19 +566,7 @@ export default function Dashboard() {
               />
             ))}
 
-            {/* ── Bottom-center classification bar ── */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              transition={{ delay: 1.4, duration: 0.5 }}
-              className="absolute bottom-6 z-[2] font-mono text-[8px] tracking-[0.5em] text-[var(--text-muted)] flex items-center gap-4"
-            >
-              <span>SEC//LEVEL-5</span>
-              <span style={{ color: 'var(--gold-primary)', opacity: 0.5 }}>◆</span>
-              <span>EYES ONLY</span>
-              <span style={{ color: 'var(--gold-primary)', opacity: 0.5 }}>◆</span>
-              <span>COMPARTMENTED</span>
-            </motion.div>
+
 
             {/* ── Inline keyframe for scanline drift ── */}
             <style>{`
@@ -677,9 +656,9 @@ export default function Dashboard() {
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
             <h1 className="text-base md:text-xl font-bold tracking-[0.4em] md:tracking-[0.5em] text-[var(--text-heading)] font-mono">OSIRIS</h1>
-            <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-[1px] rounded-sm border border-[var(--alert-red)]/40 bg-[var(--alert-red)]/10 text-[7px] font-mono font-bold tracking-[0.15em] text-[var(--alert-red)] uppercase" style={{ lineHeight: '1.4' }}>
-              <Shield className="w-2.5 h-2.5" />
-              RESTRICTED
+            <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-[1px] rounded-sm border border-[var(--cyan-primary)]/40 bg-[var(--cyan-primary)]/10 text-[7px] font-mono font-bold tracking-[0.15em] text-[var(--cyan-primary)] uppercase" style={{ lineHeight: '1.4' }}>
+              <Globe className="w-2.5 h-2.5" />
+              OPEN SOURCE
             </span>
           </div>
           <span className="text-[8px] md:text-[9px] text-[var(--gold-primary)] font-mono tracking-[0.2em] md:tracking-[0.3em] opacity-80">GLOBAL INTELLIGENCE COMMAND</span>
@@ -728,39 +707,13 @@ export default function Dashboard() {
         {showLayers && (
           <>
             <LayerPanel data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} />
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="glass-panel px-3 py-3 pointer-events-auto">
-              {/* Section divider */}
-              <div className="gotham-divider mb-2">
-                <span className="gotham-divider__label">LIVE TELEMETRY</span>
-              </div>
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="glass-panel px-3 py-2.5 pointer-events-auto">
               <div className="grid grid-cols-5 gap-2 text-center">
-                <div className="gotham-stat">
-                  <div className="gotham-stat__value text-[14px]" style={{ color: 'var(--cyan-primary)', textShadow: '0 0 10px rgba(0,229,255,0.3)' }}>{totalFlights.toLocaleString()}</div>
-                  <div className="gotham-stat__label">AIRCRAFT</div>
-                </div>
-                <div className="gotham-stat">
-                  <div className="gotham-stat__value text-[14px]" style={{ color: 'var(--gold-primary)' }}>{(data.satellites?.length||0).toLocaleString()}</div>
-                  <div className="gotham-stat__label">SATS</div>
-                </div>
-                <div className="gotham-stat">
-                  <div className="gotham-stat__value text-[14px]" style={{ color: '#39FF14', textShadow: '0 0 8px rgba(57,255,20,0.2)' }}>{(data.cameras?.length||0).toLocaleString()}</div>
-                  <div className="gotham-stat__label">CCTV</div>
-                </div>
-                <div className="gotham-stat">
-                  <div className="gotham-stat__value text-[14px]" style={{ color: '#E040FB' }}>{(data.weather_events?.length||0)}</div>
-                  <div className="gotham-stat__label">WEATHER</div>
-                </div>
-                <div className="gotham-stat">
-                  <div className="gotham-stat__value text-[14px]" style={{ color: '#76FF03', textShadow: '0 0 8px rgba(118,255,3,0.2)' }}>{(data.infrastructure?.length||0)}</div>
-                  <div className="gotham-stat__label">NUCLEAR</div>
-                </div>
-              </div>
-              {/* Classification strip */}
-              <div className="mt-2 flex items-center justify-center gap-3 pt-2 border-t border-[var(--border-secondary)]">
-                <span className="gotham-tag gotham-tag--classified">TS//SCI</span>
-                <span className="text-[7px] font-mono tracking-[0.15em] text-[var(--text-muted)]">
-                  {Object.values(activeLayers).filter(Boolean).length} ACTIVE FEEDS
-                </span>
+                <div><div className="hud-label">AIRCRAFT</div><div className="hud-value text-[10px] animate-data-pulse">{totalFlights.toLocaleString()}</div></div>
+                <div><div className="hud-label">SATS</div><div className="hud-value text-[10px]">{(data.satellites?.length||0).toLocaleString()}</div></div>
+                <div><div className="hud-label">CCTV</div><div className="hud-value text-[10px]">{(data.cameras?.length||0).toLocaleString()}</div></div>
+                <div><div className="hud-label">WEATHER</div><div className="hud-value text-[10px]" style={{ color: '#E040FB' }}>{(data.weather_events?.length||0)}</div></div>
+                <div><div className="hud-label">NUCLEAR</div><div className="hud-value text-[10px]" style={{ color: '#76FF03' }}>{(data.infrastructure?.length||0)}</div></div>
               </div>
             </motion.div>
             <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMapView(v => ({ ...v, zoom })); }} />
