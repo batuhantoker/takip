@@ -1,3 +1,4 @@
+export const revalidate = 300;
 import { NextResponse } from 'next/server';
 
 /**
@@ -148,3 +149,4 @@ export async function GET() {
     return NextResponse.json({ stocks: {}, oil: {}, commodities: {}, crypto: {}, indices: {}, error: 'Failed' }, { status: 500 });
   }
 }
+

@@ -1,3 +1,4 @@
+export const revalidate = 900;
 import { NextResponse } from 'next/server';
 
 /**
@@ -76,3 +77,4 @@ export async function GET() {
     return NextResponse.json({ events: [], error: 'Failed to fetch NASA EONET data' }, { status: 500 });
   }
 }
+

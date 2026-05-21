@@ -1,3 +1,4 @@
+export const revalidate = 3600;
 import { NextResponse } from 'next/server';
 
 /**
@@ -32,3 +33,4 @@ export async function GET() {
     return NextResponse.json({ frontlines: null, error: 'Failed to fetch frontline data' }, { status: 500 });
   }
 }
+

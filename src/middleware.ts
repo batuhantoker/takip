@@ -14,8 +14,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // request.ip is not available in all Next.js runtimes, safely fallback
-  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  // request.ip is populated securely by the hosting platform (Vercel).
+  // Fallback to the leftmost x-forwarded-for if running locally/custom node server.
+  const forwarded = request.headers.get('x-forwarded-for');
+  const ip = (request as any).ip || (forwarded ? forwarded.split(',')[0].trim() : 'unknown');
   const now = Date.now();
 
   let limitData = rateLimitMap.get(ip);

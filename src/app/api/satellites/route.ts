@@ -1,3 +1,4 @@
+export const revalidate = 600;
 import { NextResponse } from 'next/server';
 
 /**
@@ -243,3 +244,4 @@ export async function GET() {
     return NextResponse.json({ satellites: [], error: 'Failed to fetch satellite data' }, { status: 500 });
   }
 }
+

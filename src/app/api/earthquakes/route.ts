@@ -1,3 +1,4 @@
+export const revalidate = 300;
 import { NextResponse } from 'next/server';
 
 /**
@@ -54,3 +55,4 @@ export async function GET() {
     return NextResponse.json({ earthquakes: [], error: 'Failed to fetch earthquake data' }, { status: 500 });
   }
 }
+

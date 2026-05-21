@@ -1,3 +1,4 @@
+export const revalidate = 60;
 import { NextResponse } from 'next/server';
 
 /**
@@ -272,3 +273,4 @@ function aggregateJamming(points: any[], threshold: number) {
       count: z.count,
     }));
 }
+

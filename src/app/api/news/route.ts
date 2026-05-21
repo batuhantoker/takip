@@ -1,3 +1,4 @@
+export const revalidate = 900;
 import { NextResponse } from 'next/server';
 
 /**
@@ -157,3 +158,4 @@ export async function GET() {
     return NextResponse.json({ news: [], error: 'Failed to fetch news' }, { status: 500 });
   }
 }
+
