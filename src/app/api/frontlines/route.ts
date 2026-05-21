@@ -1,4 +1,4 @@
-export const revalidate = 3600;
+
 import { NextResponse } from 'next/server';
 
 /**
@@ -10,8 +10,7 @@ export async function GET() {
   try {
     const url = 'https://deepstatemap.live/api/history/last';
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
-      next: { revalidate: 1800 }, // Cache 30 min
+      signal: AbortSignal.timeout(10000), // Cache 30 min
     });
 
     if (!res.ok) {

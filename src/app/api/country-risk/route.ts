@@ -66,7 +66,7 @@ export async function GET() {
     // Enrich risk with live earthquake proximity
     let quakeRisks: Record<string, number> = {};
     try {
-      const res = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson', { next: { revalidate: 300 } });
+      const res = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson', {  });
       if (res.ok) {
         const data = await res.json();
         // Count significant quakes per rough region

@@ -20,7 +20,6 @@ export async function GET(req: Request) {
         'User-Agent': 'Mozilla/5.0 (compatible; OSIRIS/1.0; +https://github.com/simplifaisoul/osiris)',
         Accept: 'text/html,application/xhtml+xml',
       },
-      next: { revalidate: 300 },
     });
 
     if (!res.ok) {

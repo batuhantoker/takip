@@ -20,7 +20,6 @@ export async function GET() {
         fetch(url, {
           signal: AbortSignal.timeout(10000),
           headers: { 'Accept': 'application/json' },
-          next: { revalidate: 1800 },
         }).then(r => r.json())
       )
     );

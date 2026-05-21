@@ -1,4 +1,4 @@
-export const revalidate = 900;
+
 import { NextResponse } from 'next/server';
 
 /**
@@ -13,15 +13,12 @@ export async function GET() {
     const [kpRes, alertsRes, flareRes] = await Promise.allSettled([
       fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json', {
         signal: AbortSignal.timeout(8000),
-        next: { revalidate: 300 },
       }).then(r => r.json()),
       fetch('https://services.swpc.noaa.gov/json/alerts.json', {
         signal: AbortSignal.timeout(8000),
-        next: { revalidate: 600 },
       }).then(r => r.json()),
       fetch('https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json', {
         signal: AbortSignal.timeout(8000),
-        next: { revalidate: 600 },
       }).then(r => r.json()),
     ]);
 

@@ -1,4 +1,4 @@
-export const revalidate = 300;
+
 import { NextResponse } from 'next/server';
 
 /**

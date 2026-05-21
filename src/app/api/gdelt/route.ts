@@ -61,7 +61,7 @@ export async function GET() {
 
     for (const feed of RSS_FEEDS) {
       try {
-        const res = await fetch(feed.url, { signal: AbortSignal.timeout(5000), next: { revalidate: 300 } });
+        const res = await fetch(feed.url, { signal: AbortSignal.timeout(5000) });
         if (!res.ok) continue;
         const xml = await res.text();
         

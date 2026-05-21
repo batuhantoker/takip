@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 
     // Source 1: Element84 Earth Search v1
     try {
-      const res = await fetch('https://earth-search.aws.element84.com/v1/search', { next: { revalidate: 3600 },
+      const res = await fetch('https://earth-search.aws.element84.com/v1/search', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(12000),
@@ -47,7 +47,7 @@ export async function GET(req: Request) {
     // Source 2: Try sentinel-2 if sentinel-1 is empty
     if (scenes.length === 0) {
       try {
-        const res = await fetch('https://earth-search.aws.element84.com/v1/search', { next: { revalidate: 3600 },
+        const res = await fetch('https://earth-search.aws.element84.com/v1/search', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(12000),
@@ -71,7 +71,7 @@ export async function GET(req: Request) {
     // Source 3: Copernicus STAC fallback
     if (scenes.length === 0) {
       try {
-        const fallbackRes = await fetch('https://catalogue.dataspace.copernicus.eu/stac/search', { next: { revalidate: 3600 },
+        const fallbackRes = await fetch('https://catalogue.dataspace.copernicus.eu/stac/search', { 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(12000),
