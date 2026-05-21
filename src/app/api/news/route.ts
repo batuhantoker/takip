@@ -12,6 +12,19 @@ const FEEDS: Record<string, string> = {
   NPR: 'https://feeds.npr.org/1004/rss.xml',
   GDACS: 'https://www.gdacs.org/xml/rss.xml',
   NHK: 'https://www3.nhk.or.jp/nhkworld/rss/world.xml',
+  BBCEurope: 'https://feeds.bbci.co.uk/news/world/europe/rss.xml',
+  Dnevnik: 'https://www.dnevnik.bg/rss/',
+  Actualno: 'https://www.actualno.com/rss/actualno.xml',
+  Mediapool: 'https://www.mediapool.bg/rss/',
+};
+
+const BG_NEWS_SOURCES = new Set(['Dnevnik', 'Actualno', 'Mediapool']);
+
+const SOFIA_COORDS: [number, number] = [42.698, 25.485];
+
+const RSS_FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (compatible; OSIRIS/1.0; +https://github.com/simplifaisoul/osiris)',
+  Accept: 'application/rss+xml, application/xml, text/xml, */*',
 };
 
 const RISK_KEYWORDS = ['war','missile','strike','attack','crisis','tension','military','conflict','defense','clash','nuclear','invasion','bomb','drone','weapon','sanctions','ceasefire','escalation'];
@@ -32,6 +45,13 @@ const KEYWORD_COORDS: Record<string, [number, number]> = {
   'south china sea': [15.000, 115.000], 'red sea': [20.000, 38.500],
   'persian gulf': [26.500, 51.500], 'strait of hormuz': [26.600, 56.300],
   'black sea': [43.500, 34.000], 'arctic': [75.000, 0.000],
+  // Balkans
+  'bulgaria': [42.698, 25.485], 'sofia': [42.698, 25.485],
+  'plovdiv': [42.136, 24.745], 'varna': [43.214, 27.915],
+  'burgas': [42.504, 27.462], 'ruse': [43.835, 25.965],
+  'balkans': [42.000, 22.000], 'greece': [39.074, 21.824],
+  'serbia': [44.016, 21.005], 'romania': [45.943, 24.967],
+  'turkey': [39.000, 35.000],
 };
 
 function scoreRisk(title: string, summary: string): number {
@@ -83,7 +103,7 @@ export async function GET() {
     // Fetch all feeds in parallel
     const feedPromises = Object.entries(FEEDS).map(async ([source, url]) => {
       try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: RSS_FETCH_HEADERS });
         if (!res.ok) return [];
         const xml = await res.text();
         const items = parseRSSItems(xml);
@@ -105,7 +125,8 @@ export async function GET() {
     // Score, classify, and sort
     const newsItems = allArticles.map(article => {
       const riskScore = scoreRisk(article.title, article.description || '');
-      const coords = findCoords(article.title + ' ' + (article.description || ''));
+      const keywordCoords = findCoords(article.title + ' ' + (article.description || ''));
+      const coords = keywordCoords ?? (BG_NEWS_SOURCES.has(article.source) ? SOFIA_COORDS : null);
 
       return {
         title: article.title,
@@ -114,6 +135,7 @@ export async function GET() {
         source: article.source,
         risk_score: riskScore,
         coords: coords ? [coords[0], coords[1]] : null,
+        coords_default: !keywordCoords && BG_NEWS_SOURCES.has(article.source),
         machine_assessment: null,
       };
     });

@@ -16,14 +16,7 @@ const BULGARIA_MANUAL: CctvCamera[] = [
     feed_url: 'https://meteo.chavo.biz/Camera_streem/live_snap.jpg',
     source: 'meteo.chavo.biz',
   },
-  {
-    id: 'bg-gkpp-kulata-1',
-    lat: 41.395, lng: 23.361,
-    name: 'GKPP Kulata – Promachon (BG)', city: 'Kulata', country: 'Bulgaria',
-    feed_url: 'https://cdn.uab.org/images/cctv/images/cctv/cctv_01/cctv.jpg',
-    external_url: 'https://weather-webcam.eu/kameri-ot-gkpp-kulata-promahon-sledete-trafika-na-grackata-granica/',
-    source: 'UAB / GKPP',
-  },
+  
   {
     id: 'bg-gkpp-makaza-1',
     lat: 41.297, lng: 24.133,

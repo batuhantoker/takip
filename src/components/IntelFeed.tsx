@@ -52,7 +52,7 @@ export default function IntelFeed({ data, onLocate }: IntelFeedProps) {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.6, duration: 0.6 }}
-      className="glass-panel flex flex-col overflow-hidden"
+      className="glass-panel flex flex-col overflow-hidden pointer-events-auto"
     >
       {/* Header */}
       <button
@@ -90,8 +90,11 @@ export default function IntelFeed({ data, onLocate }: IntelFeedProps) {
                 news.slice(0, 25).map((item: any, i: number) => (
                   <div
                     key={i}
+                    role="button"
+                    tabIndex={0}
                     className="px-4 py-2.5 hover:bg-[var(--hover-accent)] transition-colors cursor-pointer"
-                    onClick={() => setSelectedIdx(selectedIdx === i ? null : i)}
+                    onClick={() => { if (item.link) window.open(item.link, '_blank', 'noopener,noreferrer'); else setSelectedIdx(selectedIdx === i ? null : i); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && item.link) window.open(item.link, '_blank', 'noopener,noreferrer'); }}
                   >
                     {/* Top row: risk badge + source + time */}
                     <div className="flex items-center gap-2 mb-1">

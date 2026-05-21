@@ -40,6 +40,11 @@ function toAsfinagCamera(cam: AsfinagWebcam): CctvCamera | null {
     return null;
   }
 
+  // Skip Hungarian road authority (Utinform) cameras — feeds are unavailable
+  if (cam.wcs_id.startsWith('Utinform')) {
+    return null;
+  }
+
   return {
     id: `asfinag-${cam.wcs_id}`,
     lat: cam.wgs84_lat,

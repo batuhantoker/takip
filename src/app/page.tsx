@@ -92,6 +92,7 @@ export default function Dashboard() {
     balloons: false,
     cctv: true,
     live_news: true,
+    news_intel: true,
     earthquakes: true,
     fires: false,
     weather: false,

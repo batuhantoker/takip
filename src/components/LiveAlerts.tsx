@@ -62,13 +62,14 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
   const alerts: any[] = [];
 
   // News articles with locations (from /api/news)
-  if (data.articles) {
-    data.articles.slice(0, 10).forEach((a: any) => {
-      if (a.lat && a.lng) {
+  if (data.news) {
+    data.news.slice(0, 10).forEach((a: any) => {
+      if (a.coords?.length === 2) {
         alerts.push({
           type: 'news', title: a.title, source: a.source,
-          lat: a.lat, lng: a.lng, time: a.published,
-          severity: a.risk_label || 'MODERATE', url: a.url,
+          lat: a.coords[0], lng: a.coords[1], time: a.published,
+          severity: (a.risk_score ?? 1) >= 8 ? 'CRITICAL' : (a.risk_score ?? 1) >= 6 ? 'HIGH' : (a.risk_score ?? 1) >= 4 ? 'ELEVATED' : 'LOW',
+          url: a.link,
         });
       }
     });
