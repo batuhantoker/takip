@@ -31,8 +31,11 @@ export default function ViewPresets({ onNavigate }: ViewPresetsProps) {
       className="glass-panel p-2.5 pointer-events-auto"
     >
       <div className="flex items-center gap-2 mb-2">
-        <Globe className="w-4 h-4 text-[var(--gold-primary)]" />
+        <Globe className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
         <span className="hud-text text-[12px] text-[var(--text-primary)] tracking-widest">REGION PRESETS</span>
+        <span className="gotham-tag gotham-tag--critical" style={{ fontSize: '7px', padding: '1px 4px', marginLeft: 'auto' }}>
+          {PRESETS.filter(p => (p as any).hot).length} HOT
+        </span>
       </div>
       <div className="grid grid-cols-2 gap-1">
         {PRESETS.map(p => (

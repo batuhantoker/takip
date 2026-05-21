@@ -113,20 +113,16 @@ function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Eye className="w-4 h-4 text-[var(--gold-primary)]" />
+            <Eye className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
             <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--alert-green)] animate-osiris-pulse" />
           </div>
           <span className="hud-text text-[12px] text-[var(--text-primary)] tracking-widest">DATA LAYERS</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full" style={{
-            background: activeCount > 10 ? 'rgba(255,61,61,0.12)' : activeCount > 5 ? 'rgba(255,149,0,0.12)' : 'rgba(0,230,118,0.12)',
-            color: activeCount > 10 ? '#FF3D3D' : activeCount > 5 ? '#FF9500' : '#00E676',
-            border: `1px solid ${activeCount > 10 ? 'rgba(255,61,61,0.25)' : activeCount > 5 ? 'rgba(255,149,0,0.25)' : 'rgba(0,230,118,0.25)'}`,
-          }}>
+          <span className={`gotham-tag ${activeCount > 10 ? 'gotham-tag--critical' : activeCount > 5 ? 'gotham-tag--high' : 'gotham-tag--low'}`} style={{ fontSize: '8px', padding: '1px 6px' }}>
             {activeCount}/{ALL_LAYERS.length}
           </span>
-          <span className="text-[8px] font-mono text-[var(--text-muted)]">{totalEntities.toLocaleString()} ENT</span>
+          <span className="gotham-tag gotham-tag--info" style={{ fontSize: '7px', padding: '1px 5px' }}>{totalEntities.toLocaleString()} ENT</span>
         </div>
       </div>
 

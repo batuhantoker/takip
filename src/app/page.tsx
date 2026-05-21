@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Building2, RadioTower, Activity } from 'lucide-react';
+import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Building2, RadioTower, Activity, Shield, Database, Wifi } from 'lucide-react';
 import IntelFeed from '@/components/IntelFeed';
 import MarketsPanel from '@/components/MarketsPanel';
 import SearchBar from '@/components/SearchBar';
@@ -50,6 +50,30 @@ const UptimeClock = () => {
     return () => clearInterval(iv);
   }, []);
   return <span className="hidden lg:inline">UPTIME: <span className="text-[var(--gold-primary)]">{uptime}</span></span>;
+};
+
+const ZuluClock = () => {
+  const [time, setTime] = useState('');
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const now = new Date();
+      setTime(`ZULU ${String(now.getUTCHours()).padStart(2,'0')}:${String(now.getUTCMinutes()).padStart(2,'0')}:${String(now.getUTCSeconds()).padStart(2,'0')}Z`);
+    }, 1000);
+    return () => clearInterval(iv);
+  }, []);
+  return <span className="text-[var(--cyan-primary)] font-bold tabular-nums">{time || 'ZULU --:--:--Z'}</span>;
+};
+
+const DataThroughput = () => {
+  const [throughput, setThroughput] = useState('0.0');
+  useEffect(() => {
+    const iv = setInterval(() => {
+      // Simulated realistic data throughput between 1.2 and 4.8 MB/s
+      setThroughput((1.2 + Math.random() * 3.6).toFixed(1));
+    }, 2500);
+    return () => clearInterval(iv);
+  }, []);
+  return <span className="text-[var(--alert-green)] font-bold tabular-nums">{throughput} MB/s</span>;
 };
 
 export default function Dashboard() {
@@ -361,13 +385,217 @@ export default function Dashboard() {
       {/* ── SPLASH ── */}
       <AnimatePresence>
         {showSplash && (
-          <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} className="absolute inset-0 z-[999] bg-[var(--bg-void)] flex flex-col items-center justify-center">
-            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6 }} className="w-16 h-16 rounded-full border-2 border-[var(--gold-primary)] flex items-center justify-center mb-4 animate-glow-pulse">
-              <div className="w-8 h-8 rounded-full bg-[var(--gold-primary)]/20 border border-[var(--gold-primary)]/40" />
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+            className="absolute inset-0 z-[999] flex flex-col items-center justify-center overflow-hidden"
+            style={{ background: 'radial-gradient(ellipse at center, #0a0a14 0%, var(--bg-void) 70%)' }}
+          >
+            {/* ── Scanline CRT overlay ── */}
+            <div className="absolute inset-0 pointer-events-none z-[1]" style={{
+              backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(212,175,55,0.015) 2px, rgba(212,175,55,0.015) 4px)',
+              animation: 'splashScanDrift 8s linear infinite',
+            }} />
+
+            {/* ── V4.2 badge — top-left ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+              className="absolute top-6 left-6 z-[2] font-mono text-[10px] tracking-[0.3em] text-[var(--gold-primary)]"
+            >
+              V4.2
             </motion.div>
-            <motion.h1 initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="text-3xl font-bold tracking-[0.6em] text-[var(--text-heading)] font-mono">OSIRIS</motion.h1>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-[9px] text-[var(--gold-primary)] font-mono tracking-[0.3em] mt-2">INITIALIZING GLOBAL INTELLIGENCE FEEDS...</motion.p>
-            <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ delay: 0.8, duration: 1.5 }} className="w-48 h-[2px] bg-gradient-to-r from-transparent via-[var(--gold-primary)] to-transparent mt-6 origin-left" />
+
+            {/* ── CLASSIFIED badge — top-right ── */}
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 1.0, duration: 0.5 }}
+              className="absolute top-6 right-6 z-[2] font-mono text-[9px] tracking-[0.4em] px-3 py-1 border"
+              style={{ color: '#FF4060', borderColor: 'rgba(255,64,96,0.4)', background: 'rgba(255,64,96,0.06)' }}
+            >
+              CLASSIFIED
+            </motion.div>
+
+            {/* ── Geometric tactical logo ── */}
+            <div className="relative w-40 h-40 mb-8 flex items-center justify-center z-[2]">
+              {/* Outer ring — slow clockwise */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.6, rotate: 0 }}
+                animate={{ opacity: 1, scale: 1, rotate: 360 }}
+                transition={{ opacity: { duration: 0.6 }, scale: { duration: 0.8, ease: 'easeOut' }, rotate: { duration: 20, repeat: Infinity, ease: 'linear' } }}
+                className="absolute inset-0 rounded-full"
+                style={{ border: '1px solid rgba(212,175,55,0.2)' }}
+              >
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full" style={{ background: 'var(--gold-primary)', boxShadow: '0 0 12px var(--gold-primary), 0 0 24px rgba(212,175,55,0.3)' }} />
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-1 h-1 rounded-full" style={{ background: 'rgba(212,175,55,0.5)', boxShadow: '0 0 6px rgba(212,175,55,0.3)' }} />
+              </motion.div>
+
+              {/* Middle ring — faster counter-clockwise */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.4, rotate: 0 }}
+                animate={{ opacity: 1, scale: 1, rotate: -360 }}
+                transition={{ opacity: { duration: 0.6, delay: 0.15 }, scale: { duration: 0.8, delay: 0.15, ease: 'easeOut' }, rotate: { duration: 12, repeat: Infinity, ease: 'linear' } }}
+                className="absolute rounded-full"
+                style={{ inset: '18px', border: '1px solid rgba(0,229,255,0.15)' }}
+              >
+                <div className="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full" style={{ background: 'var(--cyan-primary)', boxShadow: '0 0 10px var(--cyan-primary), 0 0 20px rgba(0,229,255,0.2)' }} />
+                <div className="absolute bottom-0 left-1/4 translate-y-1/2 w-1 h-1 rounded-full" style={{ background: 'rgba(0,229,255,0.4)' }} />
+              </motion.div>
+
+              {/* Inner ring — fastest clockwise */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.2, rotate: 0 }}
+                animate={{ opacity: 1, scale: 1, rotate: 360 }}
+                transition={{ opacity: { duration: 0.6, delay: 0.3 }, scale: { duration: 0.8, delay: 0.3, ease: 'easeOut' }, rotate: { duration: 7, repeat: Infinity, ease: 'linear' } }}
+                className="absolute rounded-full"
+                style={{ inset: '40px', border: '1px solid rgba(212,175,55,0.25)' }}
+              >
+                <div className="absolute top-0 left-1/4 -translate-y-1/2 w-1.5 h-1.5 rounded-full" style={{ background: 'var(--gold-primary)', boxShadow: '0 0 8px var(--gold-primary)' }} />
+              </motion.div>
+
+              {/* Core circle + crosshair */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+                className="relative w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ border: '2px solid var(--gold-primary)', boxShadow: '0 0 20px rgba(212,175,55,0.15), inset 0 0 20px rgba(212,175,55,0.05)' }}
+              >
+                <motion.div
+                  animate={{ opacity: [0.3, 0.8, 0.3] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="w-5 h-5 rounded-full"
+                  style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.4) 0%, rgba(212,175,55,0.05) 70%)' }}
+                />
+                {/* Crosshair lines */}
+                <div className="absolute w-[1px] h-full" style={{ background: 'linear-gradient(to bottom, transparent, rgba(212,175,55,0.3), transparent)' }} />
+                <div className="absolute w-full h-[1px]" style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.3), transparent)' }} />
+              </motion.div>
+
+              {/* Faint pulsing radar sweep */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 0.15, 0], rotate: [0, 360] }}
+                transition={{ opacity: { duration: 3, repeat: Infinity }, rotate: { duration: 3, repeat: Infinity, ease: 'linear' }, delay: 0.6 }}
+                className="absolute inset-[10px] rounded-full"
+                style={{ background: 'conic-gradient(from 0deg, transparent 0deg, rgba(212,175,55,0.15) 40deg, transparent 80deg)' }}
+              />
+            </div>
+
+            {/* ── OSIRIS title — letter-by-letter stagger ── */}
+            <div className="flex items-center gap-[2px] mb-3 z-[2]">
+              {'OSIRIS'.split('').map((letter, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
+                  animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                  transition={{ delay: 0.5 + i * 0.08, duration: 0.5, ease: 'easeOut' }}
+                  className="text-4xl md:text-5xl font-bold tracking-[0.5em] font-mono"
+                  style={{ color: 'var(--text-heading)', textShadow: '0 0 30px rgba(212,175,55,0.2)' }}
+                >
+                  {letter}
+                </motion.span>
+              ))}
+            </div>
+
+            {/* ── Subtitle — typewriter reveal ── */}
+            <div className="overflow-hidden mb-8 z-[2]">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ delay: 1.2, duration: 0.8, ease: 'easeInOut' }}
+                className="overflow-hidden whitespace-nowrap"
+              >
+                <p className="text-[10px] md:text-[11px] font-mono tracking-[0.5em] text-[var(--gold-primary)]" style={{ opacity: 0.8 }}>
+                  GLOBAL INTELLIGENCE PLATFORM
+                </p>
+              </motion.div>
+            </div>
+
+            {/* ── Multi-stage progress bar ── */}
+            <div className="w-64 md:w-80 z-[2]">
+              {/* Thin progress track */}
+              <div className="relative w-full h-[2px] rounded-full overflow-hidden" style={{ background: 'rgba(212,175,55,0.1)' }}>
+                <motion.div
+                  initial={{ width: '0%' }}
+                  animate={{ width: ['0%', '25%', '50%', '78%', '100%'] }}
+                  transition={{ duration: 2.2, delay: 0.5, times: [0, 0.25, 0.5, 0.75, 1], ease: 'easeInOut' }}
+                  className="absolute inset-y-0 left-0 rounded-full"
+                  style={{ background: 'linear-gradient(90deg, var(--gold-primary), var(--cyan-primary), var(--gold-primary))', boxShadow: '0 0 12px rgba(212,175,55,0.4)' }}
+                />
+              </div>
+
+              {/* Status messages — cycling */}
+              <div className="mt-3 h-4 flex items-center justify-center">
+                {[
+                  { text: 'ESTABLISHING SECURE CONNECTION...', delay: 0.5 },
+                  { text: 'INITIALIZING FEEDS...', delay: 1.1 },
+                  { text: 'CALIBRATING SENSORS...', delay: 1.7 },
+                  { text: 'SYSTEM READY', delay: 2.2 },
+                ].map((stage, i) => (
+                  <motion.span
+                    key={i}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 1, 1, 0] }}
+                    transition={{ delay: stage.delay, duration: 0.6, times: [0, 0.1, 0.7, 1] }}
+                    className="absolute text-[9px] font-mono tracking-[0.25em]"
+                    style={{ color: i === 3 ? 'var(--cyan-primary)' : 'var(--text-muted)' }}
+                  >
+                    {stage.text}
+                  </motion.span>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Decorative grid lines ── */}
+            <div className="absolute inset-0 pointer-events-none z-[0]" style={{ opacity: 0.03 }}>
+              <div className="absolute inset-0" style={{
+                backgroundImage: 'linear-gradient(rgba(212,175,55,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,55,0.5) 1px, transparent 1px)',
+                backgroundSize: '60px 60px',
+              }} />
+            </div>
+
+            {/* ── Corner frame accents ── */}
+            {[
+              { t: '10px', l: '10px', bw: '2px 0 0 2px' },
+              { t: '10px', r: '10px', bw: '2px 2px 0 0' },
+              { b: '10px', l: '10px', bw: '0 0 2px 2px' },
+              { b: '10px', r: '10px', bw: '0 2px 2px 0' },
+            ].map((pos, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.3 }}
+                transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
+                className="absolute w-8 h-8 z-[2]"
+                style={{ top: pos.t, bottom: pos.b, left: pos.l, right: pos.r, borderWidth: pos.bw, borderStyle: 'solid', borderColor: 'var(--gold-primary)' }}
+              />
+            ))}
+
+            {/* ── Bottom-center classification bar ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              transition={{ delay: 1.4, duration: 0.5 }}
+              className="absolute bottom-6 z-[2] font-mono text-[8px] tracking-[0.5em] text-[var(--text-muted)] flex items-center gap-4"
+            >
+              <span>SEC//LEVEL-5</span>
+              <span style={{ color: 'var(--gold-primary)', opacity: 0.5 }}>◆</span>
+              <span>EYES ONLY</span>
+              <span style={{ color: 'var(--gold-primary)', opacity: 0.5 }}>◆</span>
+              <span>COMPARTMENTED</span>
+            </motion.div>
+
+            {/* ── Inline keyframe for scanline drift ── */}
+            <style>{`
+              @keyframes splashScanDrift {
+                0% { background-position: 0 0; }
+                100% { background-position: 0 100vh; }
+              }
+            `}</style>
           </motion.div>
         )}
       </AnimatePresence>
@@ -444,20 +672,43 @@ export default function Dashboard() {
           <div className="absolute w-[1px] h-full bg-[var(--gold-primary)]/30" />
           <div className="absolute w-full h-[1px] bg-[var(--gold-primary)]/30" />
         </div>
-        <div>
-          <h1 className="text-base md:text-xl font-bold tracking-[0.4em] md:tracking-[0.5em] text-[var(--text-heading)] font-mono">OSIRIS</h1>
-          <span className="text-[8px] md:text-[9px] text-[var(--gold-primary)] font-mono tracking-[0.2em] md:tracking-[0.3em] opacity-80">GLOBAL INTELLIGENCE PLATFORM</span>
+        {/* Horizontal rule extending from logo */}
+        <div className="hidden md:block absolute top-1/2 left-[52px] w-[200px] h-[1px] bg-gradient-to-r from-[var(--gold-primary)]/40 via-[var(--gold-primary)]/15 to-transparent" />
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <h1 className="text-base md:text-xl font-bold tracking-[0.4em] md:tracking-[0.5em] text-[var(--text-heading)] font-mono">OSIRIS</h1>
+            <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-[1px] rounded-sm border border-[var(--alert-red)]/40 bg-[var(--alert-red)]/10 text-[7px] font-mono font-bold tracking-[0.15em] text-[var(--alert-red)] uppercase" style={{ lineHeight: '1.4' }}>
+              <Shield className="w-2.5 h-2.5" />
+              RESTRICTED
+            </span>
+          </div>
+          <span className="text-[8px] md:text-[9px] text-[var(--gold-primary)] font-mono tracking-[0.2em] md:tracking-[0.3em] opacity-80">GLOBAL INTELLIGENCE COMMAND</span>
         </div>
       </motion.div>
 
-      {/* ── TOP-RIGHT STATUS (desktop) ── */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="status-bar-desktop absolute top-3 right-3 md:top-4 md:right-5 z-[200] pointer-events-none flex items-center gap-2 md:gap-4 text-[9px] md:text-[10px] font-mono tracking-widest text-[var(--text-muted)]">
+      {/* ── TOP-RIGHT STATUS (desktop) — C2 DISPLAY ── */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3 }} className="status-bar-desktop absolute top-3 right-3 md:top-4 md:right-5 z-[200] pointer-events-none flex items-center gap-1.5 md:gap-3 text-[9px] md:text-[10px] font-mono tracking-widest text-[var(--text-muted)]">
 
-        <span>SYS: <span className={backendStatus === 'connected' ? 'text-[var(--alert-green)]' : 'text-[var(--alert-red)]'}>{backendStatus.toUpperCase()}</span></span>
+        {/* Zulu Clock */}
+        <span className="hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm border border-[var(--border-primary)] bg-black/30">
+          <ZuluClock />
+        </span>
+
+        <span className="hidden lg:inline text-[var(--border-primary)]">│</span>
+
+        <span className="flex items-center gap-1">SYS: <span className={backendStatus === 'connected' ? 'text-[var(--alert-green)]' : 'text-[var(--alert-red)]'}>{backendStatus.toUpperCase()}</span></span>
 
         {spaceWeather && <span className="hidden lg:inline">SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>Kp{spaceWeather.kp_index}</span></span>}
+
+        {/* Active Data Feeds */}
+        <span className="hidden lg:inline-flex items-center gap-1">
+          <Wifi className="w-3 h-3 text-[var(--cyan-primary)]" />
+          <span className="text-[var(--cyan-primary)] font-bold">{Object.values(activeLayers).filter(Boolean).length}</span>
+          <span className="text-[var(--text-muted)]/60">FEEDS</span>
+        </span>
+
         <UptimeClock />
-        <span>V4.1</span>
+        <span className="px-1.5 py-0.5 rounded-sm border border-[var(--border-primary)] bg-black/20 text-[var(--text-muted)]">V4.2 BUILD 2026.05.21</span>
       </motion.div>
 
       {/* ── MOBILE: Compact top status ── */}
@@ -477,13 +728,39 @@ export default function Dashboard() {
         {showLayers && (
           <>
             <LayerPanel data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} />
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="glass-panel px-3 py-2.5 pointer-events-auto">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="glass-panel px-3 py-3 pointer-events-auto">
+              {/* Section divider */}
+              <div className="gotham-divider mb-2">
+                <span className="gotham-divider__label">LIVE TELEMETRY</span>
+              </div>
               <div className="grid grid-cols-5 gap-2 text-center">
-                <div><div className="hud-label">AIRCRAFT</div><div className="hud-value text-[10px] animate-data-pulse">{totalFlights.toLocaleString()}</div></div>
-                <div><div className="hud-label">SATS</div><div className="hud-value text-[10px]">{(data.satellites?.length||0).toLocaleString()}</div></div>
-                <div><div className="hud-label">CCTV</div><div className="hud-value text-[10px]">{(data.cameras?.length||0).toLocaleString()}</div></div>
-                <div><div className="hud-label">WEATHER</div><div className="hud-value text-[10px]" style={{ color: '#E040FB' }}>{(data.weather_events?.length||0)}</div></div>
-                <div><div className="hud-label">NUCLEAR</div><div className="hud-value text-[10px]" style={{ color: '#76FF03' }}>{(data.infrastructure?.length||0)}</div></div>
+                <div className="gotham-stat">
+                  <div className="gotham-stat__value text-[14px]" style={{ color: 'var(--cyan-primary)', textShadow: '0 0 10px rgba(0,229,255,0.3)' }}>{totalFlights.toLocaleString()}</div>
+                  <div className="gotham-stat__label">AIRCRAFT</div>
+                </div>
+                <div className="gotham-stat">
+                  <div className="gotham-stat__value text-[14px]" style={{ color: 'var(--gold-primary)' }}>{(data.satellites?.length||0).toLocaleString()}</div>
+                  <div className="gotham-stat__label">SATS</div>
+                </div>
+                <div className="gotham-stat">
+                  <div className="gotham-stat__value text-[14px]" style={{ color: '#39FF14', textShadow: '0 0 8px rgba(57,255,20,0.2)' }}>{(data.cameras?.length||0).toLocaleString()}</div>
+                  <div className="gotham-stat__label">CCTV</div>
+                </div>
+                <div className="gotham-stat">
+                  <div className="gotham-stat__value text-[14px]" style={{ color: '#E040FB' }}>{(data.weather_events?.length||0)}</div>
+                  <div className="gotham-stat__label">WEATHER</div>
+                </div>
+                <div className="gotham-stat">
+                  <div className="gotham-stat__value text-[14px]" style={{ color: '#76FF03', textShadow: '0 0 8px rgba(118,255,3,0.2)' }}>{(data.infrastructure?.length||0)}</div>
+                  <div className="gotham-stat__label">NUCLEAR</div>
+                </div>
+              </div>
+              {/* Classification strip */}
+              <div className="mt-2 flex items-center justify-center gap-3 pt-2 border-t border-[var(--border-secondary)]">
+                <span className="gotham-tag gotham-tag--classified">TS//SCI</span>
+                <span className="text-[7px] font-mono tracking-[0.15em] text-[var(--text-muted)]">
+                  {Object.values(activeLayers).filter(Boolean).length} ACTIVE FEEDS
+                </span>
               </div>
             </motion.div>
             <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMapView(v => ({ ...v, zoom })); }} />
@@ -683,31 +960,68 @@ export default function Dashboard() {
       {/* ── BOTTOM CENTER (desktop) ── */}
       {!isMobile && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3, duration: 0.8 }} className="desktop-only absolute bottom-5 left-1/2 -translate-x-1/2 z-[200] pointer-events-auto">
-          <div className="glass-panel px-5 py-2.5 flex items-center gap-5 osiris-glow" style={{ borderImage: 'linear-gradient(90deg, rgba(212,175,55,0.05), rgba(212,175,55,0.2), rgba(212,175,55,0.05)) 1', borderImageSlice: 1, borderWidth: '1px', borderStyle: 'solid' }}>
+          <div className="glass-panel px-5 py-2.5 flex items-center gap-0 osiris-glow relative overflow-hidden" style={{ borderImage: 'linear-gradient(90deg, rgba(212,175,55,0.05), rgba(212,175,55,0.2), rgba(212,175,55,0.05)) 1', borderImageSlice: 1, borderWidth: '1px', borderStyle: 'solid' }}>
 
-            <div className="flex flex-col items-center min-w-[110px]">
-              <div className="hud-label">COORDINATES</div>
-              <div className="text-[10px] font-mono font-bold text-[var(--gold-primary)] tracking-wide">{mouseCoords ? `${mouseCoords.lat.toFixed(4)}, ${mouseCoords.lng.toFixed(4)}` : '—'}</div>
+            {/* Animated scan line sweeping across the bar */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+              <div className="absolute top-0 bottom-0 w-[60px] bg-gradient-to-r from-transparent via-[var(--gold-primary)]/[0.07] to-transparent" style={{ animation: 'hud-scanline 4s ease-in-out infinite' }} />
             </div>
-            <div className="w-px h-7 bg-[var(--border-primary)]" />
-            <div className="flex flex-col items-center min-w-[160px] max-w-[280px]">
+
+            {/* COORDINATES */}
+            <div className="flex flex-col items-center min-w-[110px] px-3">
+              <div className="hud-label">COORDINATES</div>
+              <div className="text-[10px] font-mono font-bold text-[var(--gold-primary)] tracking-wide tabular-nums">{mouseCoords ? `${mouseCoords.lat.toFixed(4)}, ${mouseCoords.lng.toFixed(4)}` : '—'}</div>
+            </div>
+
+            <div className="w-px h-8 bg-gradient-to-b from-transparent via-[var(--border-primary)] to-transparent flex-shrink-0" />
+
+            {/* LOCATION */}
+            <div className="flex flex-col items-center min-w-[160px] max-w-[280px] px-3">
               <div className="hud-label">LOCATION</div>
               <div className="text-[9px] text-[var(--text-secondary)] font-mono truncate max-w-[280px]">{locationLabel || 'Hover over map...'}</div>
             </div>
-            <div className="w-px h-7 bg-[var(--border-primary)]" />
-            <div className="flex flex-col items-center">
+
+            <div className="w-px h-8 bg-gradient-to-b from-transparent via-[var(--border-primary)] to-transparent flex-shrink-0" />
+
+            {/* ZOOM */}
+            <div className="flex flex-col items-center px-3">
               <div className="hud-label">ZOOM</div>
-              <div className="text-[10px] font-mono font-bold text-[var(--gold-primary)]">{mapView.zoom.toFixed(1)}</div>
+              <div className="text-[10px] font-mono font-bold text-[var(--gold-primary)] tabular-nums">{mapView.zoom.toFixed(1)}</div>
             </div>
-            <div className="w-px h-7 bg-[var(--border-primary)]" />
-            {/* Data Feeds Count */}
-            <div className="flex flex-col items-center min-w-[60px]">
+
+            <div className="w-px h-8 bg-gradient-to-b from-transparent via-[var(--border-primary)] to-transparent flex-shrink-0" />
+
+            {/* ACTIVE LAYERS */}
+            <div className="flex flex-col items-center px-3 min-w-[60px]">
+              <div className="hud-label">ACTIVE LAYERS</div>
+              <div className="flex items-center gap-1">
+                <Layers className="w-3 h-3 text-[var(--gold-primary)]" />
+                <span className="text-[10px] font-mono font-bold text-[var(--gold-primary)] tabular-nums">{Object.values(activeLayers).filter(Boolean).length}</span>
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-gradient-to-b from-transparent via-[var(--border-primary)] to-transparent flex-shrink-0" />
+
+            {/* DATA FEEDS */}
+            <div className="flex flex-col items-center px-3 min-w-[60px]">
               <div className="hud-label">FEEDS</div>
               <div className="flex items-center gap-1">
                 <Activity className="w-3 h-3 text-[var(--cyan-primary)]" />
-                <span className="text-[10px] font-mono font-bold text-[var(--cyan-primary)]">{Object.values(activeLayers).filter(Boolean).length}</span>
+                <span className="text-[10px] font-mono font-bold text-[var(--cyan-primary)] tabular-nums">{Object.values(activeLayers).filter(Boolean).length}</span>
               </div>
             </div>
+
+            <div className="w-px h-8 bg-gradient-to-b from-transparent via-[var(--border-primary)] to-transparent flex-shrink-0" />
+
+            {/* THROUGHPUT */}
+            <div className="flex flex-col items-center px-3 min-w-[70px]">
+              <div className="hud-label">THROUGHPUT</div>
+              <div className="flex items-center gap-1">
+                <Database className="w-3 h-3 text-[var(--alert-green)]" />
+                <DataThroughput />
+              </div>
+            </div>
+
           </div>
         </motion.div>
       )}

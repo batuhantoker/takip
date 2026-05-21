@@ -62,7 +62,10 @@ export default function IntelFeed({ data, onLocate }: IntelFeedProps) {
         <div className="flex items-center gap-2">
           <Newspaper className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
           <span className="hud-text text-[12px] text-[var(--text-primary)]">SIGINT FEED</span>
-          <span className="text-[9px] font-mono text-[var(--text-muted)]">{news.length}</span>
+          <span className="gotham-tag gotham-tag--info" style={{ fontSize: '8px', padding: '1px 5px' }}>{news.length}</span>
+          {news.some((n: any) => n.risk_score >= 8) && (
+            <span className="gotham-tag gotham-tag--critical" style={{ fontSize: '7px', padding: '1px 4px' }}>ALERTS</span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-[var(--alert-green)] animate-osiris-pulse" />

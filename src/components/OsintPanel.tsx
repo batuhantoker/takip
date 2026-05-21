@@ -699,7 +699,8 @@ function OsintPanelInner({ isMobile, onSweepVisualize }: OsintPanelProps) {
           <div className="flex items-center gap-3">
             <Radar className="w-5 h-5 text-[var(--cyan-primary)]" />
             <span className="hud-text text-[16px] text-[var(--text-primary)]">OSIRIS RECON TOOLKIT</span>
-            <span className="px-2 py-1 rounded bg-[var(--cyan-primary)]/10 text-[var(--cyan-primary)] font-mono text-[10px] tracking-widest border border-[var(--cyan-primary)]/30">FULL SCREEN MODE</span>
+            <span className="gotham-tag gotham-tag--info" style={{ fontSize: '9px' }}>FULL SCREEN</span>
+            <span className="gotham-tag gotham-tag--classified" style={{ fontSize: '8px' }}>{TABS.length} MODULES</span>
           </div>
           <button onClick={() => setIsFullScreen(false)} className="p-2 hover:bg-white/5 rounded transition-colors text-[var(--text-muted)] hover:text-white">
             <Minimize2 className="w-5 h-5" />
@@ -719,9 +720,9 @@ function OsintPanelInner({ isMobile, onSweepVisualize }: OsintPanelProps) {
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.6 }} className="glass-panel flex flex-col overflow-hidden pointer-events-auto">
       <div className="flex items-center justify-between px-4 py-3 border-b border-transparent hover:bg-[var(--hover-accent)] transition-colors">
         <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 flex-1">
-          <Radar className="w-4 h-4 text-[var(--cyan-primary)]" />
+          <Radar className="w-3.5 h-3.5 text-[var(--cyan-primary)]" />
           <span className="hud-text text-[12px] text-[var(--text-primary)]">RECON TOOLKIT</span>
-          <span className="text-[9px] font-mono text-[var(--text-muted)]">{TABS.length} TOOLS</span>
+          <span className="gotham-tag gotham-tag--info" style={{ fontSize: '7px', padding: '1px 5px' }}>{TABS.length} TOOLS</span>
         </button>
         <div className="flex items-center gap-3">
           <button onClick={() => setIsFullScreen(true)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" title="Full Screen">

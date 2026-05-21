@@ -45,7 +45,8 @@ export default function MarketsPanel({ data, spaceWeather }: MarketsPanelProps) 
       <button onClick={() => setExpanded(!expanded)} className="flex items-center justify-between w-full mb-2">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
-          <span className="hud-text text-[14px] text-[var(--text-primary)]">MARKETS & INTEL</span>
+          <span className="hud-text text-[12px] text-[var(--text-primary)]">MARKETS & INTEL</span>
+          <span className="gotham-tag gotham-tag--low" style={{ fontSize: '7px', padding: '1px 4px' }}>LIVE</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-[var(--alert-green)] animate-osiris-pulse" />
