@@ -6,6 +6,7 @@ import { fetchSerbiaCameras } from './serbia';
 import { fetchMacedoniaCameras } from './macedonia';
 import { fetchTurkeyCameras } from './turkey';
 import { fetchRomaniaCameras } from './romania';
+import { fetchAustraliaCameras } from './australia';
 
 /**
  * OSIRIS — Worldwide CCTV Camera API v2
@@ -52,7 +53,7 @@ async function fetchWSDOTCameras(): Promise<any[]> {
 // ── US-WEST: Caltrans California Districts ──
 async function fetchCaltransCameras(): Promise<any[]> {
   const allCams: any[] = [];
-  for (const dist of ['d03','d04','d05','d06','d07','d08','d10','d11','d12']) {
+  for (const dist of ['d03', 'd04', 'd05', 'd06', 'd07', 'd08', 'd10', 'd11', 'd12']) {
     try {
       const res = await fetch(`https://cwwp2.dot.ca.gov/data/${dist}/cctv/cctvStatus${dist.toUpperCase()}.json`, { signal: AbortSignal.timeout(8000) });
       if (!res.ok) continue;
@@ -72,7 +73,7 @@ async function fetchCaltransCameras(): Promise<any[]> {
 // ── CANADA: Ottawa, Toronto, Montreal ──
 async function fetchCanadaCameras(): Promise<any[]> {
   const cams: any[] = [];
-  
+
   // Ottawa MTO Highway Cameras
   try {
     const res = await fetch('https://511on.ca/api/v2/get/cameras', { signal: AbortSignal.timeout(10000), headers: { 'Accept': 'application/json' } });
@@ -220,7 +221,7 @@ async function fetchUSEastCameras(): Promise<any[]> {
 // ── EUROPE: Netherlands, Germany, France ──
 async function fetchEuropeCameras(): Promise<any[]> {
   const cams: any[] = [];
-  
+
   // Netherlands Rijkswaterstaat
   try {
     const res = await fetch('https://opendata.ndw.nu/cameras.json', { signal: AbortSignal.timeout(8000) });
@@ -245,7 +246,7 @@ async function fetchEuropeCameras(): Promise<any[]> {
 // ── ASIA/PACIFIC ──
 async function fetchAsiaCameras(): Promise<any[]> {
   const cams: any[] = [];
-  
+
   // Singapore Live Traffic Images
   try {
     const res = await fetch('https://api.data.gov.sg/v1/transport/traffic-images', { signal: AbortSignal.timeout(10000) });
@@ -287,6 +288,7 @@ const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'macedonia': fetchMacedoniaCameras,
   'turkey': fetchTurkeyCameras,
   'romania': fetchRomaniaCameras,
+  'australia': fetchAustraliaCameras,
 };
 
 // Determine which regions to fetch based on viewport bounds
@@ -325,7 +327,7 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if ((lat > -10 && lat < 60 && lng > 60 && lng < 150)) regions.push('asia');
   // Australia explicitly
   if (lat > -45 && lat < -10 && lng > 110 && lng < 155) regions.push('asia');
-  
+
   return regions.length > 0 ? regions : ['uk', 'us-east']; // Default fallback
 }
 
@@ -338,7 +340,7 @@ export async function GET(request: Request) {
     const radius = parseFloat(searchParams.get('radius') || '10');
 
     let regionsToFetch: string[];
-    
+
     if (region === 'all') {
       regionsToFetch = Object.keys(REGION_FETCHERS);
     } else if (region) {
