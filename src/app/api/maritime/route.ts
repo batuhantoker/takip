@@ -162,12 +162,49 @@ export async function GET() {
 
   const ships = Array.from(shipsCache.values());
 
+  // Dynamically calculate live traffic (Fast approximation of Haversine)
+  const getDistanceKm = (lat1: number, lng1: number, lat2: number, lng2: number) => {
+    const dx = (lng1 - lng2) * Math.cos((lat1 + lat2) / 2 * Math.PI / 180);
+    const dy = lat1 - lat2;
+    return Math.sqrt(dx * dx + dy * dy) * 111.32;
+  };
+
+  const dynamicPorts = PORTS.map(port => {
+    let nearbyCount = 0;
+    for (let i = 0; i < ships.length; i++) {
+      if (getDistanceKm(port.lat, port.lng, ships[i].lat, ships[i].lng) < 50) nearbyCount++;
+    }
+    return {
+      ...port,
+      volume: `${port.volume} | LIVE SHIPS: ${nearbyCount}`
+    };
+  });
+
+  const dynamicChokepoints = CHOKEPOINTS.map(choke => {
+    let nearbyCount = 0;
+    for (let i = 0; i < ships.length; i++) {
+      if (getDistanceKm(choke.lat, choke.lng, ships[i].lat, ships[i].lng) < 100) nearbyCount++;
+    }
+    
+    // Dynamically adjust risk based on live ship concentration
+    let dynamicRisk = choke.risk;
+    if (nearbyCount > 50) dynamicRisk = 'CRITICAL';
+    else if (nearbyCount > 20 && dynamicRisk !== 'CRITICAL') dynamicRisk = 'HIGH';
+    else if (nearbyCount > 5 && dynamicRisk === 'LOW') dynamicRisk = 'ELEVATED';
+
+    return {
+      ...choke,
+      traffic: `${choke.traffic} | LIVE SHIPS: ${nearbyCount}`,
+      risk: dynamicRisk
+    };
+  });
+
   return NextResponse.json({
-    ports: PORTS,
-    chokepoints: CHOKEPOINTS,
+    ports: dynamicPorts,
+    chokepoints: dynamicChokepoints,
     ships: ships,
-    total_ports: PORTS.length,
-    total_chokepoints: CHOKEPOINTS.length,
+    total_ports: dynamicPorts.length,
+    total_chokepoints: dynamicChokepoints.length,
     total_ships: ships.length,
     timestamp: new Date().toISOString(),
   }, {
