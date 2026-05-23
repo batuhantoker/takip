@@ -195,12 +195,36 @@ export async function GET() {
 
   const dynamicPorts = PORTS.map(port => {
     let nearbyCount = 0;
+    let waitingCount = 0;
+
     for (let i = 0; i < ships.length; i++) {
-      if (getDistanceKm(port.lat, port.lng, ships[i].lat, ships[i].lng) < 50) nearbyCount++;
+      if (getDistanceKm(port.lat, port.lng, ships[i].lat, ships[i].lng) < 50) {
+        nearbyCount++;
+        // If speed is less than 0.5 knots, consider it anchored/waiting
+        if (ships[i].speed < 0.5 && ships[i].type !== 'military') {
+          waitingCount++;
+        }
+      }
     }
+
+    // Heuristic: More than 40% waiting indicates congestion
+    const congestionRatio = nearbyCount > 0 ? waitingCount / nearbyCount : 0;
+    let congestionStatus = 'NORMAL';
+    let estDwellTime = '1-2 Days';
+    
+    if (congestionRatio > 0.6 || waitingCount > 30) {
+      congestionStatus = 'SEVERE';
+      estDwellTime = '7+ Days';
+    } else if (congestionRatio > 0.4 || waitingCount > 15) {
+      congestionStatus = 'CONGESTED';
+      estDwellTime = '3-5 Days';
+    }
+
     return {
       ...port,
-      volume: `${port.volume} | LIVE SHIPS: ${nearbyCount}`
+      volume: `${port.volume} | LIVE: ${nearbyCount} (WAITING: ${waitingCount})`,
+      congestion: congestionStatus,
+      dwell_time: estDwellTime
     };
   });
 

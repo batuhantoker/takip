@@ -366,6 +366,9 @@ export default function Dashboard() {
     if (activeLayers.maritime) {
       intervals.push(setInterval(() => fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships })), 10000)); // 10s
     }
+    if (activeLayers.scm_suppliers) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/scm-suppliers', d => ({ scm_suppliers: d.suppliers })), 30000)); // 30s
+    }
     // Fires: no polling needed (data changes very slowly, initial fetch is enough)
     return () => intervals.forEach(clearInterval);
   }, [activeLayers, fetchEndpoint]);
