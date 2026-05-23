@@ -188,6 +188,7 @@ export default function Dashboard() {
       }
       if (e.key === 'l') setShowLayers(p => !p);
       if (e.key === 'm') setShowMarkets(p => !p);
+      if (e.key === 'c') setShowScmPanel(p => !p);
       if (e.key === 'i') setShowIntel(p => !p);
       if (e.key === 'r') setFlyToLocation({ lat: 20, lng: 0, ts: Date.now() });
       if (e.key === 'g') setMapProjection(p => p === 'globe' ? 'mercator' : 'globe');
@@ -725,6 +726,7 @@ export default function Dashboard() {
             <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMapView(v => ({ ...v, zoom })); }} />
           </>
         )}
+        {showScmPanel && <ScmPanel data={data} />}
         {showMarkets && <MarketsPanel data={data} spaceWeather={spaceWeather} />}
         {showIntel && <IntelFeed data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />}
       </div>
