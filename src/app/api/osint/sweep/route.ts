@@ -331,9 +331,9 @@ export async function GET(req: Request) {
   let cidr = 24;
   if (cidrParam) {
     cidr = parseInt(cidrParam, 10);
-    if (isNaN(cidr) || cidr < 24 || cidr > 28) {
+    if (isNaN(cidr) || cidr < 24 || cidr > 32) {
       return NextResponse.json(
-        { error: 'CIDR must be between 24 and 28' },
+        { error: 'CIDR must be between 24 and 32' },
         { status: 400 },
       );
     }

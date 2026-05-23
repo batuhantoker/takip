@@ -32,7 +32,7 @@ const LAYER_GROUPS = [
     icon: Ship,
     color: '#00BCD4',
     layers: [
-      { key: 'maritime', label: 'Maritime / Naval', icon: Ship, color: '#00BCD4', dataKey: 'maritime_ships' },
+      { key: 'maritime', label: 'Maritime / Naval', icon: Ship, color: '#00BCD4', dataKey: 'maritime_ships,maritime_ports,maritime_chokepoints' },
       { key: 'satellites', label: 'Satellites', icon: Satellite, color: '#D4AF37', dataKey: 'satellites' },
     ],
   },
@@ -88,8 +88,16 @@ function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
 
   const toggle = (key: string) => setActiveLayers((prev: any) => ({ ...prev, [key]: !prev[key] }));
   const getCount = (dk: string): number | null => {
-    if (!dk || !data[dk]) return null;
-    return Array.isArray(data[dk]) ? data[dk].length : null;
+    if (!dk) return null;
+    let total = 0;
+    let found = false;
+    for (const k of dk.split(',')) {
+      if (data[k] && Array.isArray(data[k])) {
+        total += data[k].length;
+        found = true;
+      }
+    }
+    return found ? total : null;
   };
   const totalEntities = ALL_LAYERS.reduce((s: number, l: any) => s + (getCount(l.dataKey) || 0), 0);
   const activeCount = Object.values(activeLayers).filter(Boolean).length;
