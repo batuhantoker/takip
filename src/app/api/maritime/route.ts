@@ -103,35 +103,59 @@ function connectAisStream() {
       APIKey: apiKey,
       // Global bounding box to catch major movement
       BoundingBoxes: [[[-90, -180], [90, 180]]],
-      FilterMessageTypes: ["PositionReport"]
+      FilterMessageTypes: ["PositionReport", "ShipStaticData"]
     };
     ws.send(JSON.stringify(subscriptionMessage));
   });
 
+  // Map AIS ship types to OSIRIS categories
+  const getOsirisShipType = (typeCode: number) => {
+    if (!typeCode) return 'cargo';
+    if (typeCode >= 80 && typeCode <= 89) return 'tanker';
+    if (typeCode >= 70 && typeCode <= 79) return 'cargo';
+    if (typeCode === 35) return 'military';
+    return 'cargo';
+  };
+
   ws.on("message", (data) => {
     try {
       const parsed = JSON.parse(data.toString());
+      const mmsi = parsed.MetaData?.MMSI;
+      if (!mmsi) return;
+
+      let existing = shipsCache.get(mmsi) || {
+        id: mmsi, mmsi: mmsi, timestamp: Date.now()
+      };
+
+      // Extract Name from MetaData if available (present in most messages)
+      if (parsed.MetaData?.ShipName) {
+        existing.name = parsed.MetaData.ShipName.trim();
+      }
+
       if (parsed.MessageType === "PositionReport" && parsed.Message?.PositionReport) {
         const report = parsed.Message.PositionReport;
-        const mmsi = parsed.MetaData?.MMSI || report.UserID;
-        
-        if (!mmsi) return;
+        existing.lat = report.Latitude;
+        existing.lng = report.Longitude;
+        existing.speed = report.Sog;
+        existing.heading = report.TrueHeading || report.Cog;
+        existing.timestamp = Date.now();
+      } 
+      else if (parsed.MessageType === "ShipStaticData" && parsed.Message?.ShipStaticData) {
+        const staticData = parsed.Message.ShipStaticData;
+        existing.name = staticData.Name ? staticData.Name.trim() : existing.name;
+        existing.destination = staticData.Destination ? staticData.Destination.trim() : existing.destination;
+        existing.type = getOsirisShipType(staticData.Type);
+      }
 
-        shipsCache.set(mmsi, {
-          id: mmsi,
-          mmsi: mmsi,
-          lat: report.Latitude,
-          lng: report.Longitude,
-          speed: report.Sog,
-          heading: report.TrueHeading || report.Cog,
-          timestamp: Date.now()
-        });
+      // Only store if we have coordinates
+      if (existing.lat && existing.lng) {
+        shipsCache.set(mmsi, existing);
+      }
 
-        // Limit cache size to prevent memory leak (latest 5000 ships)
-        if (shipsCache.size > 5000) {
-          const firstKey = shipsCache.keys().next().value;
-          if (firstKey) shipsCache.delete(firstKey);
-        }
+      // Limit cache size to prevent memory leak (allow up to 20,000 ships)
+      if (shipsCache.size > 20000) {
+        const firstKey = shipsCache.keys().next().value;
+        if (firstKey) shipsCache.delete(firstKey);
       }
     } catch (e) {
       // ignore parse errors
