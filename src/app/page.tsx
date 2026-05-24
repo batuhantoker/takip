@@ -125,6 +125,7 @@ export default function Dashboard() {
     radiation: false,
     infrastructure: false,
     global_incidents: true,
+    telegram_intel: false,
     war_alerts: false,
     gps_jamming: false,
     day_night: true,
@@ -348,6 +349,11 @@ export default function Dashboard() {
     if (activeLayers.global_incidents && !layerFetchedRef.current.has('gdelt')) {
       fetchEndpoint('/api/gdelt', d => ({ gdelt: d.events }));
       layerFetchedRef.current.add('gdelt');
+    }
+    // Telegram OSINT public-channel feed
+    if (activeLayers.telegram_intel && !layerFetchedRef.current.has('telegram')) {
+      fetchEndpoint('/api/telegram-feed', d => ({ telegram: d.events }));
+      layerFetchedRef.current.add('telegram');
     }
 
   }, [activeLayers]);
