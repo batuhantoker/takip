@@ -172,8 +172,9 @@ export async function GET() {
     timestamp: new Date().toISOString(),
   }, {
     headers: { 
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Pragma': 'no-cache'
-    },
+      'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+      'Pragma': 'public',
+      'Expires': '30',
+    }
   });
 }
