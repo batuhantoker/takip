@@ -1,9 +1,30 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 
 export async function POST(request: Request) {
     try {
-        // Parse the incoming GitHub Webhook payload
-        const payload = await request.json();
+        const payloadText = await request.text();
+        const signature = request.headers.get('x-hub-signature-256');
+        const secret = process.env.GITHUB_WEBHOOK_SECRET;
+
+        if (secret) {
+            if (!signature) {
+                return NextResponse.json({ error: 'Unauthorized: Missing signature' }, { status: 401 });
+            }
+            const hmac = crypto.createHmac('sha256', secret);
+            const digest = 'sha256=' + hmac.update(payloadText).digest('hex');
+            
+            // Use timingSafeEqual to prevent timing attacks
+            try {
+                if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))) {
+                    return NextResponse.json({ error: 'Unauthorized: Invalid signature' }, { status: 401 });
+                }
+            } catch {
+                return NextResponse.json({ error: 'Unauthorized: Invalid signature format' }, { status: 401 });
+            }
+        }
+
+        const payload = JSON.parse(payloadText);
 
         // Forward the payload to the local OSIRIS Discord Bot running on Port 3005
         // Using the Tailscale internal IP of the host server
@@ -11,8 +32,9 @@ export async function POST(request: Request) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                ...(signature ? { 'x-hub-signature-256': signature } : {})
             },
-            body: JSON.stringify(payload),
+            body: payloadText,
         });
 
         if (!response.ok) {

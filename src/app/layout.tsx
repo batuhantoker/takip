@@ -173,8 +173,6 @@ const jsonLd = {
   },
 };
 
-import { Analytics } from "@vercel/analytics/next";
-
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function RootLayout({
@@ -204,7 +202,6 @@ export default function RootLayout({
         <ErrorBoundary name="OSIRIS Core">
           {children}
         </ErrorBoundary>
-        <Analytics />
       </body>
     </html>
   );

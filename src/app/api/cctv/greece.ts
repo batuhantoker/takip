@@ -1,6 +1,6 @@
 import type { CctvCamera } from './types';
 
-const IPCAMLIVE_API_SECRET = '65586c9ba88ef';
+const IPCAMLIVE_API_SECRET = process.env.IPCAMLIVE_API_SECRET || '';
 
 const ATTiki_ODOS_CAMERAS = [
   { alias: 'cam128', name: 'I/C D. Plakentias', city: 'Athens', lat: 38.0208, lng: 23.8578 },

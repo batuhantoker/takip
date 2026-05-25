@@ -14,7 +14,7 @@ export function middleware(request: NextRequest, event: NextFetchEvent) {
     screen: "1920x1080",
     title: "OSIRIS",
     url: url,
-    website: "cd8f216c-fc3f-45f5-ba1a-e10309a61d18"
+    website: process.env.UMAMI_WEBSITE_ID || "cd8f216c-fc3f-45f5-ba1a-e10309a61d18"
   };
 
   const pageView = fetch('http://umami-umami-1:3000/api/send', {

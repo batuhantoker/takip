@@ -183,29 +183,42 @@ async function fetchTLEFromSource(source: typeof TLE_SOURCES[0]): Promise<string
   }
 }
 
+let globalCachedSats: any[] = [];
+let globalCacheTime = 0;
+
 export async function GET() {
   try {
-    // Fetch all groups in parallel for maximum speed & resilience
-    const results = await Promise.allSettled(
-      TLE_SOURCES.map(src => fetchTLEFromSource(src))
-    );
+    const nowTime = Date.now();
+    let allSats: any[] = globalCachedSats;
+    let source = 'memory-cache';
 
-    const allSats: any[] = [];
-    const seen = new Set<string>();
+    if (globalCachedSats.length === 0 || nowTime - globalCacheTime > 3600000) { // 1 hour cache
+      const results = await Promise.allSettled(
+        TLE_SOURCES.map(src => fetchTLEFromSource(src))
+      );
 
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value) {
-        const parsed = parseTLE(result.value);
-        for (const sat of parsed) {
-          if (!seen.has(sat.name)) {
-            seen.add(sat.name);
-            allSats.push(sat);
+      const fetchedSats: any[] = [];
+      const seen = new Set<string>();
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          const parsed = parseTLE(result.value);
+          for (const sat of parsed) {
+            if (!seen.has(sat.name)) {
+              seen.add(sat.name);
+              fetchedSats.push(sat);
+            }
           }
         }
       }
+      
+      if (fetchedSats.length > 0) {
+        globalCachedSats = fetchedSats;
+        globalCacheTime = nowTime;
+        allSats = fetchedSats;
+        source = 'celestrak-groups';
+      }
     }
-
-    const source = allSats.length > 0 ? 'celestrak-groups' : 'none';
 
     // Sample for performance (max 2000 satellites)
     const sampled = allSats.length > 2000
