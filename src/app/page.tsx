@@ -64,15 +64,29 @@ const ZuluClock = () => {
   return <span className="text-[var(--cyan-primary)] font-bold tabular-nums">{time || 'ZULU --:--:--Z'}</span>;
 };
 
-const DataThroughput = () => {
-  const [throughput, setThroughput] = useState('0.0');
+const DataThroughput = ({ data }: { data: any }) => {
+  const [throughput, setThroughput] = useState('0.00');
+  const [pingTime, setPingTime] = useState<number | null>(null);
+
   useEffect(() => {
     const iv = setInterval(() => {
-      // Simulated realistic data throughput between 1.2 and 4.8 MB/s
-      setThroughput((1.2 + Math.random() * 3.6).toFixed(1));
+      let estimatedBytes = 0;
+      if (data) {
+        if (data.satellites) estimatedBytes += data.satellites.length * 150;
+        if (data.commercial_flights) estimatedBytes += data.commercial_flights.length * 120;
+        if (data.cameras) estimatedBytes += data.cameras.length * 80;
+        if (data.gdelt) estimatedBytes += data.gdelt.length * 300;
+        if (data.live_feeds) estimatedBytes += data.live_feeds.length * 500;
+      }
+      
+      const megabytes = estimatedBytes / 1024 / 1024;
+      setThroughput(megabytes > 0 ? (megabytes * 1.5).toFixed(2) : "0.00");
+      
+      setPingTime(prev => prev === null ? Math.floor(45 + Math.random() * 20) : Math.max(20, prev + Math.floor((Math.random() - 0.5) * 10)));
     }, 2500);
     return () => clearInterval(iv);
-  }, []);
+  }, [data]);
+
   return <span className="text-[var(--alert-green)] font-bold tabular-nums">{throughput} MB/s</span>;
 };
 
@@ -84,7 +98,9 @@ export default function Dashboard() {
   const [backendStatus, setBackendStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [mapView, setMapView] = useState({ zoom: 2.5, latitude: 20 });
   const [flyToLocation, setFlyToLocation] = useState<{ lat: number; lng: number; ts: number } | null>(null);
-  const [mouseCoords, setMouseCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [globalStats, setGlobalStats] = useState<any>(null);
+  const mouseCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+  const coordsDisplayRef = useRef<HTMLDivElement>(null);
   const [locationLabel, setLocationLabel] = useState('');
   const [regionDossier, setRegionDossier] = useState<any>(null);
   const [dossierLoading, setDossierLoading] = useState(false);
@@ -168,15 +184,25 @@ export default function Dashboard() {
     if (urlTimer.current) clearTimeout(urlTimer.current);
     urlTimer.current = setTimeout(() => {
       const p = new URLSearchParams();
-      p.set('lat', (mouseCoords?.lat ?? mapView.latitude ?? 20).toFixed(4));
-      p.set('lon', (mouseCoords?.lng ?? 0).toFixed(4));
+      p.set('lat', (mouseCoordsRef.current?.lat ?? mapView.latitude ?? 20).toFixed(4));
+      p.set('lon', (mouseCoordsRef.current?.lng ?? 0).toFixed(4));
       p.set('zoom', mapView.zoom.toFixed(2));
       const active = Object.entries(activeLayers).filter(([,v]) => v).map(([k]) => k).join(',');
       p.set('layers', active);
       const url = `${window.location.pathname}?${p.toString()}`;
       window.history.replaceState(null, '', url);
     }, 1500);
-  }, [mapView, activeLayers, mouseCoords]);
+  }, [mapView, activeLayers]);
+
+  // Global Stats Fetch
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(d => {
+        if (d.stats) setGlobalStats(d.stats);
+      })
+      .catch(console.error);
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -197,9 +223,12 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Mouse coords + reverse geocode
+  // Mouse coords + reverse geocode (Zero-Render)
   const handleMouseCoords = useCallback((coords: { lat: number; lng: number }) => {
-    setMouseCoords(coords);
+    mouseCoordsRef.current = coords;
+    if (coordsDisplayRef.current) {
+      coordsDisplayRef.current.innerText = `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`;
+    }
     if (geocodeTimer.current) clearTimeout(geocodeTimer.current);
     geocodeTimer.current = setTimeout(async () => {
       if (lastGeocodedPos.current) {
@@ -716,11 +745,11 @@ export default function Dashboard() {
             <LayerPanel data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} />
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="glass-panel px-3 py-2.5 pointer-events-auto">
               <div className="grid grid-cols-5 gap-2 text-center">
-                <div><div className="hud-label">AIRCRAFT</div><div className="hud-value text-[10px] animate-data-pulse">{totalFlights.toLocaleString()}</div></div>
-                <div><div className="hud-label">SATS</div><div className="hud-value text-[10px]">{(data.satellites?.length||0).toLocaleString()}</div></div>
-                <div><div className="hud-label">CCTV</div><div className="hud-value text-[10px]">{(data.cameras?.length||0).toLocaleString()}</div></div>
-                <div><div className="hud-label">WEATHER</div><div className="hud-value text-[10px]" style={{ color: '#E040FB' }}>{(data.weather_events?.length||0)}</div></div>
-                <div><div className="hud-label">NUCLEAR</div><div className="hud-value text-[10px]" style={{ color: '#76FF03' }}>{(data.infrastructure?.length||0)}</div></div>
+                <div><div className="hud-label">AIRCRAFT</div><div className="hud-value text-[10px] animate-data-pulse">{globalStats ? globalStats.flights.toLocaleString() : '0'}</div></div>
+                <div><div className="hud-label">SATS</div><div className="hud-value text-[10px]">{globalStats ? globalStats.sats.toLocaleString() : '0'}</div></div>
+                <div><div className="hud-label">CCTV</div><div className="hud-value text-[10px]">{globalStats ? globalStats.cctv.toLocaleString() : '0'}</div></div>
+                <div><div className="hud-label">WEATHER</div><div className="hud-value text-[10px]" style={{ color: '#E040FB' }}>{globalStats ? globalStats.weather.toLocaleString() : '0'}</div></div>
+                <div><div className="hud-label">NUCLEAR</div><div className="hud-value text-[10px]" style={{ color: '#76FF03' }}>{globalStats ? globalStats.nuclear.toLocaleString() : '0'}</div></div>
               </div>
             </motion.div>
             <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMapView(v => ({ ...v, zoom })); }} />
@@ -734,7 +763,7 @@ export default function Dashboard() {
       <div className="desktop-panel absolute right-5 top-20 bottom-24 w-80 flex flex-col gap-3 z-[200] pointer-events-auto overflow-y-auto styled-scrollbar pr-1">
         <div className="flex gap-2 items-start">
           <div className="flex-1"><SearchBar onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} /></div>
-          <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} /></div>
+          <div className="relative"><SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={null} /></div>
         </div>
         <OsintPanel onSweepVisualize={setSweepData} onScanGeolocate={(target, data) => {
           setScanTargets(prev => {
@@ -908,7 +937,7 @@ export default function Dashboard() {
                   {mobilePanel === 'search' && (
                     <div className="space-y-2">
                       <SearchBar onLocate={(lat, lng) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMobilePanel(null); }} />
-                      <SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={mouseCoords} />
+                      <SharePanel mapView={mapView} activeLayers={activeLayers} mouseCoords={null} />
                     </div>
                   )}
                   {mobilePanel === 'recon' && (
@@ -936,7 +965,7 @@ export default function Dashboard() {
             {/* COORDINATES */}
             <div className="flex flex-col items-center min-w-[110px] px-3">
               <div className="hud-label">COORDINATES</div>
-              <div className="text-[10px] font-mono font-bold text-[var(--gold-primary)] tracking-wide tabular-nums">{mouseCoords ? `${mouseCoords.lat.toFixed(4)}, ${mouseCoords.lng.toFixed(4)}` : '—'}</div>
+              <div ref={coordsDisplayRef} className="text-[10px] font-mono font-bold text-[var(--gold-primary)] tracking-wide tabular-nums">—</div>
             </div>
 
             <div className="w-px h-8 bg-gradient-to-b from-transparent via-[var(--border-primary)] to-transparent flex-shrink-0" />
@@ -984,7 +1013,7 @@ export default function Dashboard() {
               <div className="hud-label">THROUGHPUT</div>
               <div className="flex items-center gap-1">
                 <Database className="w-3 h-3 text-[var(--alert-green)]" />
-                <DataThroughput />
+                <DataThroughput data={data} />
               </div>
             </div>
 

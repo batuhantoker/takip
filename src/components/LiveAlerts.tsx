@@ -61,17 +61,15 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
   // Build unified alert feed
   const alerts: any[] = [];
 
-  // News articles with locations (from /api/news)
+  // OSINT Telegram News Feed (from /api/news)
   if (data.news) {
-    data.news.slice(0, 10).forEach((a: any) => {
-      if (a.coords?.length === 2) {
-        alerts.push({
-          type: 'news', title: a.title, source: a.source,
-          lat: a.coords[0], lng: a.coords[1], time: a.published,
-          severity: (a.risk_score ?? 1) >= 8 ? 'CRITICAL' : (a.risk_score ?? 1) >= 6 ? 'HIGH' : (a.risk_score ?? 1) >= 4 ? 'ELEVATED' : 'LOW',
-          url: a.link,
-        });
-      }
+    data.news.forEach((a: any) => {
+      alerts.push({
+        type: 'news', title: a.title, description: a.description, source: a.source,
+        lat: a.coords?.[0], lng: a.coords?.[1], time: a.published,
+        severity: (a.risk_score ?? 1) >= 8 ? 'CRITICAL' : (a.risk_score ?? 1) >= 6 ? 'HIGH' : (a.risk_score ?? 1) >= 4 ? 'ELEVATED' : 'LOW',
+        url: a.link,
+      });
     });
   }
 
@@ -161,15 +159,17 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
                 const Icon = getIcon(alert.type);
                 const sevColor = RISK_COLORS[alert.severity] || '#FFD700';
                 return (
-                  <button
+                  <div
                     key={i}
                     onClick={() => {
-                      onLocate(alert.lat, alert.lng);
+                      if (alert.lat !== undefined && alert.lng !== undefined) {
+                        onLocate(alert.lat, alert.lng);
+                      }
                       if (alert.feedUrl && onWatchFeed) {
                         onWatchFeed(alert.feedUrl, alert.title);
                       }
                     }}
-                    className="w-full text-left p-2 rounded-lg hover:bg-[var(--hover-accent)] transition-all border border-transparent hover:border-[var(--border-primary)] group"
+                    className="w-full text-left p-2 rounded-lg hover:bg-[var(--hover-accent)] transition-all border border-transparent hover:border-[var(--border-primary)] group cursor-default"
                   >
                     <div className="flex items-start gap-2">
                       {/* Severity indicator */}
@@ -178,25 +178,42 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
+                        <div className="flex items-center gap-1.5 mb-1">
                           <Icon className="w-3 h-3 flex-shrink-0" style={{ color: sevColor }} />
-                          <span className="text-[10px] font-mono text-[var(--text-primary)] truncate leading-tight">{alert.title}</span>
+                          <span className={`text-[10px] font-mono text-[var(--text-primary)] ${alert.type === 'news' ? 'line-clamp-4 leading-snug' : 'truncate leading-tight'}`}>
+                            {alert.description || alert.title}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[8px] font-mono text-[var(--text-muted)]">{alert.source}</span>
-                          {alert.time && (
-                            <span className="text-[8px] font-mono text-[var(--text-muted)] flex items-center gap-0.5">
-                              <Clock className="w-2 h-2" />
-                              {new Date(alert.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[8px] font-mono text-[var(--text-muted)]">{alert.source}</span>
+                            {alert.time && (
+                              <span className="text-[8px] font-mono text-[var(--text-muted)] flex items-center gap-0.5">
+                                <Clock className="w-2 h-2" />
+                                {new Date(alert.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            )}
+                          </div>
+                          {alert.url && (
+                            <a 
+                              href={alert.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-[8px] font-mono text-[var(--cyan-primary)] hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              SOURCE
+                            </a>
                           )}
                         </div>
                       </div>
 
                       {/* Fly-to icon */}
-                      <MapPin className="w-3 h-3 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
+                      {alert.lat !== undefined && (
+                        <MapPin className="w-3 h-3 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
+                      )}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
               {filtered.length === 0 && (
