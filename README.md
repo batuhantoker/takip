@@ -139,7 +139,7 @@ editing the compose file.
 
 ### Environment Variables
 
-OSIRIS works **fully without any API keys** — all core feeds use public,
+OSIRIS works **partially without any API keys** — all core feeds use public,
 keyless sources. Copy [`.env.template`](.env.template) to `.env` and set only
 what you need:
 
