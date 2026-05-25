@@ -1,74 +1,44 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextRequest, NextFetchEvent } from 'next/server';
 
-// In-memory store for rate limiting (Note: in Edge environment, this is per-isolate)
-// For a fully distributed cache across all instances, Redis/Vercel KV should be used.
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 100;
-
-export function middleware(request: NextRequest) {
-  // Only apply to API routes
-  if (!request.nextUrl.pathname.startsWith('/api')) {
-    return NextResponse.next();
-  }
-
-  // request.ip is populated securely by the hosting platform (Vercel).
-  // Fallback to the leftmost x-forwarded-for if running locally/custom node server.
-  const forwarded = request.headers.get('x-forwarded-for');
-  const ip = (request as any).ip || (forwarded ? forwarded.split(',')[0].trim() : 'unknown');
-  const now = Date.now();
-
-  let limitData = rateLimitMap.get(ip);
-
-  // Clean up expired entry
-  if (limitData && now > limitData.resetTime) {
-    limitData = undefined;
-  }
-
-  if (!limitData) {
-    limitData = { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS };
-    rateLimitMap.set(ip, limitData);
-  } else {
-    limitData.count++;
-  }
-
-  // Periodic cleanup of the Map to prevent memory leaks in long-running isolates
-  if (Math.random() < 0.01) { // 1% chance to run cleanup on request
-    for (const [key, value] of rateLimitMap.entries()) {
-      if (now > value.resetTime) {
-        rateLimitMap.delete(key);
-      }
-    }
-  }
-
-  if (limitData.count > MAX_REQUESTS_PER_WINDOW) {
-    return new NextResponse(
-      JSON.stringify({
-        error: 'Too Many Requests',
-        message: `Rate limit exceeded. Try again in ${Math.ceil((limitData.resetTime - now) / 1000)} seconds.`,
-      }),
-      {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': Math.ceil((limitData.resetTime - now) / 1000).toString(),
-        },
-      }
-    );
-  }
-
-  const response = NextResponse.next();
+export function middleware(request: NextRequest, event: NextFetchEvent) {
+  const url = request.nextUrl.pathname;
   
-  // Attach rate limit headers
-  response.headers.set('X-RateLimit-Limit', MAX_REQUESTS_PER_WINDOW.toString());
-  response.headers.set('X-RateLimit-Remaining', Math.max(0, MAX_REQUESTS_PER_WINDOW - limitData.count).toString());
-  response.headers.set('X-RateLimit-Reset', limitData.resetTime.toString());
+  const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || '127.0.0.1';
+  const userAgent = request.headers.get('user-agent') || 'Unknown OSIRIS Client';
+  
+  const basePayload = {
+    hostname: request.nextUrl.hostname,
+    language: "en-US",
+    referrer: request.headers.get('referer') || "",
+    screen: "1920x1080",
+    title: "OSIRIS",
+    url: url,
+    website: "cd8f216c-fc3f-45f5-ba1a-e10309a61d18"
+  };
 
-  return response;
+  const pageView = fetch('http://umami-umami-1:3000/api/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'User-Agent': userAgent, 'x-forwarded-for': ip },
+    body: JSON.stringify({ payload: basePayload, type: "event" })
+  }).catch(() => {});
+
+  const ipEvent = fetch('http://umami-umami-1:3000/api/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'User-Agent': userAgent, 'x-forwarded-for': ip },
+    body: JSON.stringify({
+      payload: { ...basePayload, name: "Network Log", data: { IP: ip } },
+      type: "event"
+    })
+  }).catch(() => {});
+
+  event.waitUntil(Promise.all([pageView, ipEvent]));
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: '/api/:path*',
-};
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}

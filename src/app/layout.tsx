@@ -198,6 +198,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+
       </head>
       <body className="antialiased">
         <ErrorBoundary name="OSIRIS Core">
