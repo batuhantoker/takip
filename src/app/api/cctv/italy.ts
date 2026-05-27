@@ -1,11 +1,10 @@
 import type { CctvCamera } from './types';
 
-/** Windy embed + JPG snapshot helper */
-function windy(id: string) {
+/** Windy embed helper — iframe only, no broken image URLs */
+function windy(id: string): Pick<CctvCamera, 'stream_url' | 'stream_type' | 'external_url' | 'source'> {
   return {
     stream_url: `https://www.windy.com/webcams/${id}/embed`,
-    stream_type: 'iframe' as const,
-    feed_url: `https://images-webcams.windy.com/37/${id}/current/full/${id}.jpg`,
+    stream_type: 'iframe',
     external_url: `https://www.windy.com/webcams/${id}`,
     source: 'Windy',
   };
@@ -107,7 +106,7 @@ const ITALY_CAMERAS: CctvCamera[] = [
 ];
 
 export async function fetchItalyCameras(): Promise<CctvCamera[]> {
-  return ITALY_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url);
+  return ITALY_CAMERAS;
 }
 
 export default ITALY_CAMERAS;

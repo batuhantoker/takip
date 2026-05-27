@@ -1,11 +1,10 @@
 import type { CctvCamera } from './types';
 
-/** Windy embed + JPG snapshot helper */
-function windy(id: string) {
+/** Windy embed helper — iframe only, no broken image URLs */
+function windy(id: string): Pick<CctvCamera, 'stream_url' | 'stream_type' | 'external_url' | 'source'> {
   return {
     stream_url: `https://www.windy.com/webcams/${id}/embed`,
-    stream_type: 'iframe' as const,
-    feed_url: `https://images-webcams.windy.com/37/${id}/current/full/${id}.jpg`,
+    stream_type: 'iframe',
     external_url: `https://www.windy.com/webcams/${id}`,
     source: 'Windy',
   };
@@ -41,7 +40,7 @@ const TURKEY_CAMERAS: CctvCamera[] = [
     city: 'Istanbul', country: 'Turkey',
     ...windy('1601452975'),
   },
-  // Edirne — Border crossings (Windy cams)
+  // Edirne — Border crossings
   {
     id: 'tr-kapikule-windy',
     lat: 41.717, lng: 26.33,
@@ -71,7 +70,7 @@ const TURKEY_CAMERAS: CctvCamera[] = [
     city: 'Tekirdag', country: 'Turkey',
     ...windy('1610814488'),
   },
-  // Makaza / Nymfea (GR-TR border, Rhodopes) — YouTube live
+  // Makaza / Nymfea (GR-TR border) — YouTube live
   {
     id: 'tr-makaza-nymfea-1',
     lat: 41.295, lng: 24.137,
@@ -111,7 +110,7 @@ const TURKEY_CAMERAS: CctvCamera[] = [
 ];
 
 export async function fetchTurkeyCameras(): Promise<CctvCamera[]> {
-  return TURKEY_CAMERAS.filter((cam) => cam.feed_url || cam.stream_url || cam.external_url);
+  return TURKEY_CAMERAS;
 }
 
 export default TURKEY_CAMERAS;
