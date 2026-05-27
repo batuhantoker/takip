@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, ChevronDown, ChevronUp, BarChart3,
-  Zap, Shield, Droplets, Gem, Bitcoin, LineChart,
+  Zap, Shield, Droplets, Gem, Bitcoin, LineChart, Maximize2, Minimize2
 } from 'lucide-react';
 
 interface MarketsPanelProps { data: any; spaceWeather?: any; }
@@ -37,6 +37,7 @@ function Ticker({ name, data: d }: { name: string; data: any }) {
 
 export default function MarketsPanel({ data, spaceWeather }: MarketsPanelProps) {
   const [expanded, setExpanded] = useState(true);
+  const [maximized, setMaximized] = useState(false);
   const [activeSection, setActiveSection] = useState('stocks');
   const markets = data.markets || {};
 
@@ -103,7 +104,7 @@ export default function MarketsPanel({ data, spaceWeather }: MarketsPanelProps) 
             )}
 
             {/* Ticker List */}
-            <div className="space-y-0.5 max-h-[200px] overflow-y-auto styled-scrollbar">
+            <div className="space-y-0.5 overflow-y-auto styled-scrollbar mt-2">
               {markets[activeSection] && Object.entries(markets[activeSection]).map(([name, d]) => (
                 <Ticker key={name} name={name} data={d} />
               ))}

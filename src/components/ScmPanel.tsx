@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, ChevronDown, ChevronUp, AlertTriangle, Ship, Anchor, AlertCircle } from 'lucide-react';
+import { Target, ChevronDown, ChevronUp, AlertTriangle, Ship, Anchor, AlertCircle, Maximize2, Minimize2 } from 'lucide-react';
 
 interface ScmPanelProps {
   data: any;
@@ -10,6 +10,7 @@ interface ScmPanelProps {
 
 export default function ScmPanel({ data }: ScmPanelProps) {
   const [expanded, setExpanded] = useState(true);
+  const [maximized, setMaximized] = useState(false);
 
   const suppliers = data.scm_suppliers || [];
   const criticalSuppliers = suppliers.filter((s: any) => s.risk_level === 'CRITICAL' || s.risk_level === 'HIGH');
@@ -41,8 +42,8 @@ export default function ScmPanel({ data }: ScmPanelProps) {
 
       <AnimatePresence>
         {expanded && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-            <div className="space-y-3 mt-2 max-h-[250px] overflow-y-auto styled-scrollbar pr-1">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden flex flex-col flex-1 min-h-0">
+            <div className="space-y-3 mt-2 overflow-y-auto styled-scrollbar pr-1 flex-1 pb-4">
 
               {/* Market Alerts */}
               {marketAlerts.length > 0 && (

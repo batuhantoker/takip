@@ -7,6 +7,7 @@ import { fetchMacedoniaCameras } from './macedonia';
 import { fetchTurkeyCameras } from './turkey';
 import { fetchRomaniaCameras } from './romania';
 import { fetchAustraliaCameras } from './australia';
+import { fetchJapanCameras } from './japan';
 
 /**
  * OSIRIS — Worldwide CCTV Camera API v2
@@ -322,6 +323,9 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (inMacedonia) regions.push('macedonia');
   if (inRomania) regions.push('romania');
   if (inTurkey) regions.push('turkey');
+
+  // Japan
+  if (lat > 24 && lat < 46 && lng > 122 && lng < 154) regions.push('japan');
 
   // Asia (includes Middle East, SE Asia, overriding parts of china but that's ok they can both load)
   if ((lat > -10 && lat < 60 && lng > 60 && lng < 150)) regions.push('asia');
