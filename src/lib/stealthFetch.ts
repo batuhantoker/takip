@@ -74,11 +74,7 @@ export function stealthHeaders(extraHeaders?: Record<string, string>): Record<st
   const ip = generateResidentialIP();
   return {
     'User-Agent': randomUA(),
-    'X-Forwarded-For': ip,
-    'X-Real-IP': ip,
-    'Client-IP': ip,
     'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
     ...extraHeaders,
   };
 }
