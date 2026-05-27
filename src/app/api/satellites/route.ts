@@ -173,6 +173,7 @@ async function fetchTLEFromSource(source: typeof TLE_SOURCES[0]): Promise<string
   try {
     const res = await stealthFetch(source.url, {
       signal: AbortSignal.timeout(12000),
+      headers: { 'Accept': 'text/plain, */*; q=0.5' },
     });
     if (!res.ok) return null;
     const text = await res.text();
