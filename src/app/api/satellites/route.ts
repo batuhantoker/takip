@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { stealthFetch } from '@/lib/stealthFetch';
 
 /**
  * OSIRIS — Satellite Tracking API
@@ -170,9 +171,8 @@ const TLE_SOURCES = [
 
 async function fetchTLEFromSource(source: typeof TLE_SOURCES[0]): Promise<string | null> {
   try {
-    const res = await fetch(source.url, {
+    const res = await stealthFetch(source.url, {
       signal: AbortSignal.timeout(12000),
-      headers: { 'User-Agent': 'OSIRIS-Intelligence-Platform/3.4' },
     });
     if (!res.ok) return null;
     const text = await res.text();

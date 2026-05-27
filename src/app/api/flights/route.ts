@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { stealthFetch } from '@/lib/stealthFetch';
 
 /**
  * OSIRIS — Flight Data API
@@ -56,9 +57,8 @@ const AIRLINE_CODE_RE = /^([A-Z]{3})\d/;
 async function fetchRegion(region: typeof REGIONS[0]): Promise<any[]> {
   try {
     const url = `https://api.adsb.lol/v2/lat/${region.lat}/lon/${region.lon}/dist/${region.dist}`;
-    const res = await fetch(url, {
+    const res = await stealthFetch(url, {
       signal: AbortSignal.timeout(12000),
-      headers: { 'Accept': 'application/json' },
     });
     if (res.ok) {
       const data = await res.json();

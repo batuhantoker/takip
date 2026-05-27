@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { stealthFetch } from '@/lib/stealthFetch';
 
 /**
  * OSIRIS — Severe Weather & Anomalies API
@@ -10,8 +11,8 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     // Fetch currently open events from EONET v3
-    const res = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100', {
-      signal: AbortSignal.timeout(10000), // Cache for 30 minutes (events don't change by the second)
+    const res = await stealthFetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100', {
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!res.ok) throw new Error(`NASA EONET API returned ${res.status}`);
