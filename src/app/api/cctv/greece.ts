@@ -7,26 +7,7 @@ const ATTiki_ODOS_CAMERAS = [
   { alias: 'cam231', name: 'I/C Papagou', city: 'Athens', lat: 37.9906, lng: 23.7947 },
 ];
 
-const GREECE_REGIONAL_CAMERAS: CctvCamera[] = [
-  {
-    id: 'gr-thessaloniki-center-live',
-    lat: 40.6401, lng: 22.9444,
-    name: 'Thessaloniki – Center (live)', city: 'Thessaloniki', country: 'Greece',
-    stream_url: 'https://www.youtube.com/embed/7V0IRFbzRFI?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0',
-    stream_type: 'iframe',
-    external_url: 'https://www.webcameras.gr/loc_wc/webcameras.asp?ID=510&lang=en',
-    source: 'meteothes.gr',
-  },
-  {
-    id: 'gr-kavala-live',
-    lat: 40.939, lng: 24.408,
-    name: 'Kavala – City View (live)', city: 'Kavala', country: 'Greece',
-    stream_url: 'https://city-view-of-kavala.click2stream.com/',
-    stream_type: 'iframe',
-    external_url: 'https://www.webcameras.gr/loc_wc/webcameras.asp?ID=286&lang=en',
-    source: 'click2stream',
-  },
-];
+const GREECE_REGIONAL_CAMERAS: CctvCamera[] = [];
 
 async function fetchIpcamLiveHls(alias: string): Promise<string | null> {
   try {
