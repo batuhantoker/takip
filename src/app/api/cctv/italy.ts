@@ -17,14 +17,7 @@ const ITALY_CAMERAS: CctvCamera[] = [
     stream_type: 'iframe',
     source: 'YouTube Live',
   },
-  {
-    id: 'it-milan-2',
-    lat: 45.4650, lng: 9.1850,
-    name: 'Milan - City View', city: 'Milan', country: 'Italy',
-    stream_url: 'https://www.youtube.com/embed/wMT2aNcP4Wg?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0',
-    stream_type: 'iframe',
-    source: 'YouTube Live',
-  },
+
   {
     id: 'it-venice-1',
     lat: 45.4343, lng: 12.3388,
