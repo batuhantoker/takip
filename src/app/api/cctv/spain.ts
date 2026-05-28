@@ -2,14 +2,6 @@ import type { CctvCamera } from './types';
 
 const SPAIN_CAMERAS: CctvCamera[] = [
   {
-    id: 'es-barcelona-1',
-    lat: 41.3851, lng: 2.1734,
-    name: 'Barcelona - City View', city: 'Barcelona', country: 'Spain',
-    stream_url: 'https://www.youtube.com/embed/NHRDdaH4LpU?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0',
-    stream_type: 'iframe',
-    source: 'YouTube Live',
-  },
-  {
     id: 'es-barcelona-2',
     lat: 41.3800, lng: 2.1800,
     name: 'Barcelona - Beach Area', city: 'Barcelona', country: 'Spain',

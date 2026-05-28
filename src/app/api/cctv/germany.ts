@@ -9,14 +9,7 @@ const GERMANY_CAMERAS: CctvCamera[] = [
     stream_type: 'iframe',
     source: 'YouTube Live',
   },
-  {
-    id: 'de-berlin-2',
-    lat: 52.5150, lng: 13.3800,
-    name: 'Berlin - City View', city: 'Berlin', country: 'Germany',
-    stream_url: 'https://www.youtube.com/embed/Li3Dvqlo5uE?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0',
-    stream_type: 'iframe',
-    source: 'YouTube Live',
-  },
+
   {
     id: 'de-munich-1',
     lat: 48.1351, lng: 11.5820,
