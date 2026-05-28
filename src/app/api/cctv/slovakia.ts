@@ -9,14 +9,7 @@ const SLOVAKIA_CAMERAS: CctvCamera[] = [
     stream_type: 'iframe',
     source: 'YouTube Live',
   },
-  {
-    id: 'sk-bratislava-2',
-    lat: 48.1400, lng: 17.1100,
-    name: 'Bratislava - Castle View', city: 'Bratislava', country: 'Slovakia',
-    stream_url: 'https://www.youtube.com/embed/6V39eDpTyas?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0',
-    stream_type: 'iframe',
-    source: 'YouTube Live',
-  },
+
   {
     id: 'sk-bratislava-3',
     lat: 48.1450, lng: 17.1000,

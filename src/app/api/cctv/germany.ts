@@ -18,14 +18,6 @@ const GERMANY_CAMERAS: CctvCamera[] = [
     stream_type: 'iframe',
     source: 'YouTube Live',
   },
-  {
-    id: 'de-munich-2',
-    lat: 48.1400, lng: 11.5700,
-    name: 'Munich - City View', city: 'Munich', country: 'Germany',
-    stream_url: 'https://www.youtube.com/embed/AiNCbGzabVo?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0',
-    stream_type: 'iframe',
-    source: 'YouTube Live',
-  }
 ];
 
 export async function fetchGermanyCameras(): Promise<CctvCamera[]> {
