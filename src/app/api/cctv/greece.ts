@@ -12,7 +12,7 @@ const GREECE_REGIONAL_CAMERAS: CctvCamera[] = [
     id: 'gr-thessaloniki-center-live',
     lat: 40.6401, lng: 22.9444,
     name: 'Thessaloniki – Center (live)', city: 'Thessaloniki', country: 'Greece',
-    stream_url: 'https://www.youtube.com/embed/7V0IRFbzRFI?autoplay=1&mute=1',
+    stream_url: 'https://www.youtube.com/embed/7V0IRFbzRFI?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0',
     stream_type: 'iframe',
     external_url: 'https://www.webcameras.gr/loc_wc/webcameras.asp?ID=510&lang=en',
     source: 'meteothes.gr',

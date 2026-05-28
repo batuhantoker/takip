@@ -8,6 +8,13 @@ import { fetchMacedoniaCameras } from './macedonia';
 import { fetchTurkeyCameras } from './turkey';
 import { fetchRomaniaCameras } from './romania';
 import { fetchAustraliaCameras } from './australia';
+import { fetchItalyCameras } from './italy';
+import { fetchCzechiaCameras } from './czechia';
+import { fetchSlovakiaCameras } from './slovakia';
+import { fetchGermanyCameras } from './germany';
+import { fetchFranceCameras } from './france';
+import { fetchSpainCameras } from './spain';
+import { fetchPolandCameras } from './poland';
 
 /**
  * OSIRIS — Worldwide CCTV Camera API v2
@@ -290,6 +297,13 @@ const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'turkey': fetchTurkeyCameras,
   'romania': fetchRomaniaCameras,
   'australia': fetchAustraliaCameras,
+  'italy': fetchItalyCameras,
+  'czechia': fetchCzechiaCameras,
+  'slovakia': fetchSlovakiaCameras,
+  'germany': fetchGermanyCameras,
+  'france': fetchFranceCameras,
+  'spain': fetchSpainCameras,
+  'poland': fetchPolandCameras,
 };
 
 // Determine which regions to fetch based on viewport bounds
@@ -312,9 +326,17 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   const inMacedonia = lat > 40.8 && lat < 42.8 && lng > 20.4 && lng < 23.2;
   const inRomania = lat > 43.5 && lat < 48.5 && lng > 20 && lng < 29.8;
   const inTurkey = lat > 35.5 && lat < 42.5 && lng > 25.5 && lng < 45;
+  const inItaly = lat > 36 && lat < 47.5 && lng > 6.5 && lng < 18.5;
+  const inCzechia = lat > 48.5 && lat < 51.1 && lng > 12 && lng < 18.9;
+  const inSlovakia = lat > 47.7 && lat < 49.6 && lng > 16.8 && lng < 22.6;
+  const inGermany = lat > 47 && lat < 55.1 && lng > 5.8 && lng < 15.1;
+  const inFrance = lat > 42.3 && lat < 51.1 && lng > -5 && lng < 8.3;
+  const inSpain = lat > 27 && lat < 43.8 && lng > -18.2 && lng < 4.4;
+  const inPoland = lat > 49.0 && lat < 54.8 && lng > 14.1 && lng < 24.1;
   const inBalkans = inBulgaria || inGreece || inSerbia || inMacedonia || inRomania || inTurkey;
+  const inWesternEurope = inItaly || inCzechia || inSlovakia || inGermany || inFrance || inSpain || inPoland;
 
-  if (lat > 35 && lat < 72 && lng > -11 && lng < 40 && !inBalkans) {
+  if (lat > 35 && lat < 72 && lng > -11 && lng < 40 && !inBalkans && !inWesternEurope) {
     regions.push('europe');
   }
   if (inBulgaria) regions.push('bulgaria');
@@ -323,6 +345,13 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (inMacedonia) regions.push('macedonia');
   if (inRomania) regions.push('romania');
   if (inTurkey) regions.push('turkey');
+  if (inItaly) regions.push('italy');
+  if (inCzechia) regions.push('czechia');
+  if (inSlovakia) regions.push('slovakia');
+  if (inGermany) regions.push('germany');
+  if (inFrance) regions.push('france');
+  if (inSpain) regions.push('spain');
+  if (inPoland) regions.push('poland');
 
   // Asia (includes Middle East, SE Asia, overriding parts of china but that's ok they can both load)
   if ((lat > -10 && lat < 60 && lng > 60 && lng < 150)) regions.push('asia');
