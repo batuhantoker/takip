@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Loader2, AlertTriangle, Server,
   Wifi, Lock, MapPin, Bug, Code, Layers, Network, Fingerprint,
   CheckCircle, XCircle, Clock, ExternalLink, Crosshair,
-  Maximize2, Minimize2
+  Maximize2, Minimize2, Gavel
 } from 'lucide-react';
 
 const TABS = [
@@ -22,6 +22,7 @@ const TABS = [
   { id: 'ssl', label: 'SSL/TLS', icon: Shield, placeholder: 'Domain name', color: '#76FF03' },
   { id: 'subdomains', label: 'SUBDOMAINS', icon: Layers, placeholder: 'Domain to enumerate', color: '#00BCD4' },
   { id: 'tech', label: 'TECH DETECT', icon: Fingerprint, placeholder: 'URL to fingerprint', color: '#9C27B0' },
+  { id: 'sanctions', label: 'SANCTIONS', icon: Gavel, placeholder: 'Person / org / vessel name', color: '#FF1744' },
   { id: 'sweep', label: 'IP SWEEP', icon: Crosshair, placeholder: 'Enter IP address (e.g. 8.8.8.8)', color: '#FF3D3D' },
 ];
 
@@ -106,6 +107,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         case 'ssl': url = `/api/scanner?target=${encodeURIComponent(query)}&type=ssl`; break;
         case 'subdomains': url = `/api/scanner?target=${encodeURIComponent(query)}&type=subdomains`; break;
         case 'tech': url = `/api/scanner?target=${encodeURIComponent(query)}&type=tech`; break;
+        case 'sanctions': url = `/api/osint/sanctions?query=${encodeURIComponent(query)}`; break;
       }
       const res = await fetch(url);
       const data = await res.json();
@@ -114,7 +116,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         setHistory(prev => [{ tab: activeTab, query, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)]);
         
         // Geolocate the target in the background
-        if (activeTab !== 'sweep' && activeTab !== 'vuln') {
+        if (activeTab !== 'sweep' && activeTab !== 'vuln' && activeTab !== 'sanctions') {
           fetch(`/api/osint/ip?ip=${encodeURIComponent(query)}`)
             .then(r => r.json())
             .then(locData => {
@@ -154,6 +156,28 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
       {label}
     </span>
   );
+
+  // Surfaces an inline OFAC-SDN hit (used by the WHOIS and IP-intel routes
+  // when their cross-check finds a sanctioned registrant / ASN owner).
+  const SanctionsBadge = ({ match }: { match: any }) => {
+    if (!match || !Array.isArray(match.hits) || match.hits.length === 0) return null;
+    return (
+      <div className="mb-2 px-2 py-2 rounded border border-red-500/40 bg-red-500/15">
+        <div className="flex items-center gap-2 mb-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+          <span className="text-[10px] font-mono font-bold text-red-400 tracking-wider">
+            SANCTIONED — {match.source || 'OFAC SDN'}
+          </span>
+        </div>
+        {match.hits.slice(0, 5).map((h: any, i: number) => (
+          <div key={i} className="text-[9px] font-mono text-red-200 break-all leading-tight">
+            <span className="text-[var(--text-muted)]">↳ {h.matched_value}:</span>{' '}
+            {(h.entries || []).slice(0, 2).map((e: any) => e.name).join('; ')}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const SectionHeader = ({ title, icon: Icon, color }: { title: string; icon: any; color: string }) => (
     <div className="flex items-center gap-2 mt-3 mb-1.5 first:mt-0">
@@ -278,6 +302,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
       return (
         <div>
           <SectionHeader title="WHOIS INTELLIGENCE" icon={FileText} color="#FFD700" />
+          <SanctionsBadge match={r.sanctions_match} />
           <ResultRow label="Domain" value={r.domain_name || r.domainName || query} color="#FFD700" />
           <ResultRow label="Registrar" value={r.registrar} />
           <ResultRow label="Created" value={r.creation_date || r.createdDate} />
@@ -285,7 +310,35 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
           <ResultRow label="Updated" value={r.updated_date || r.updatedDate} />
           <ResultRow label="Status" value={Array.isArray(r.status) ? r.status.join(', ') : r.status} />
           <ResultRow label="Nameservers" value={Array.isArray(r.name_servers || r.nameServers) ? (r.name_servers || r.nameServers).join(', ') : r.name_servers} />
-          {renderFallbackExcluding(['domain_name','domainName','registrar','creation_date','createdDate','expiration_date','expiresDate','updated_date','updatedDate','status','name_servers','nameServers','timestamp','cached','raw'])}
+          {renderFallbackExcluding(['domain_name','domainName','registrar','creation_date','createdDate','expiration_date','expiresDate','updated_date','updatedDate','status','name_servers','nameServers','timestamp','cached','raw','sanctions_match'])}
+        </div>
+      );
+    }
+
+    // ── SANCTIONS ──
+    if (activeTab === 'sanctions') {
+      const matches = Array.isArray(r.matches) ? r.matches : [];
+      return (
+        <div>
+          <SectionHeader title="OFAC SDN SEARCH" icon={Gavel} color="#FF1744" />
+          <ResultRow label="Query" value={r.query || query} color="#FF1744" />
+          <ResultRow label="Source" value={r.source} />
+          <ResultRow label="Matches" value={r.total ?? matches.length} color={matches.length ? '#FF1744' : '#00E676'} />
+          {matches.slice(0, 20).map((m: any) => (
+            <div key={m.id} className="mt-2 p-2 rounded border border-red-500/30 bg-red-500/5">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-mono font-bold text-red-400 break-all">{m.name}</span>
+                <span className="text-[8px] font-mono uppercase tracking-wider text-[var(--text-muted)] ml-2 flex-shrink-0">{m.schema}</span>
+              </div>
+              <ResultRow label="Aliases" value={Array.isArray(m.aliases) && m.aliases.length ? m.aliases.slice(0, 4).join(' • ') : undefined} />
+              <ResultRow label="Countries" value={Array.isArray(m.countries) && m.countries.length ? m.countries.join(', ').toUpperCase() : undefined} />
+              <ResultRow label="Programs" value={Array.isArray(m.programs) && m.programs.length ? m.programs.slice(0, 3).join(', ') : undefined} />
+              <ResultRow label="First Seen" value={m.first_seen ? m.first_seen.slice(0, 10) : undefined} />
+            </div>
+          ))}
+          {matches.length === 0 && (
+            <div className="mt-2 px-2 py-1.5 text-[10px] font-mono text-green-400">No OFAC SDN matches for that query.</div>
+          )}
         </div>
       );
     }
