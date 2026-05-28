@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Loader2, AlertTriangle, Server,
   Wifi, Lock, MapPin, Bug, Code, Layers, Network, Fingerprint,
   CheckCircle, XCircle, Clock, ExternalLink, Crosshair,
-  Maximize2, Minimize2, Gavel
+  Maximize2, Minimize2, Gavel, Bitcoin
 } from 'lucide-react';
 
 const TABS = [
@@ -23,6 +23,7 @@ const TABS = [
   { id: 'subdomains', label: 'SUBDOMAINS', icon: Layers, placeholder: 'Domain to enumerate', color: '#00BCD4' },
   { id: 'tech', label: 'TECH DETECT', icon: Fingerprint, placeholder: 'URL to fingerprint', color: '#9C27B0' },
   { id: 'sanctions', label: 'SANCTIONS', icon: Gavel, placeholder: 'Person / org / vessel name', color: '#FF1744' },
+  { id: 'crypto', label: 'CRYPTO TRACE', icon: Bitcoin, placeholder: 'BTC or ETH address', color: '#F7931A' },
   { id: 'sweep', label: 'IP SWEEP', icon: Crosshair, placeholder: 'Enter IP address (e.g. 8.8.8.8)', color: '#FF3D3D' },
 ];
 
@@ -108,6 +109,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         case 'subdomains': url = `/api/scanner?target=${encodeURIComponent(query)}&type=subdomains`; break;
         case 'tech': url = `/api/scanner?target=${encodeURIComponent(query)}&type=tech`; break;
         case 'sanctions': url = `/api/osint/sanctions?query=${encodeURIComponent(query)}`; break;
+        case 'crypto': url = `/api/osint/crypto?address=${encodeURIComponent(query)}`; break;
       }
       const res = await fetch(url);
       const data = await res.json();
@@ -116,7 +118,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         setHistory(prev => [{ tab: activeTab, query, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)]);
         
         // Geolocate the target in the background
-        if (activeTab !== 'sweep' && activeTab !== 'vuln' && activeTab !== 'sanctions') {
+        if (activeTab !== 'sweep' && activeTab !== 'vuln' && activeTab !== 'sanctions' && activeTab !== 'crypto') {
           fetch(`/api/osint/ip?ip=${encodeURIComponent(query)}`)
             .then(r => r.json())
             .then(locData => {
@@ -397,6 +399,41 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
           <ResultRow label="Expires" value={r.expires || r.not_after} />
           <ResultRow label="SANs" value={Array.isArray(r.sans) ? r.sans.join(', ') : r.sans} />
           {renderFallback()}
+        </div>
+      );
+    }
+
+    // ── CRYPTO ──
+    if (activeTab === 'crypto') {
+      const sanctioned = !!r.sanctioned;
+      return (
+        <div>
+          <SectionHeader title="CRYPTO WALLET INTELLIGENCE" icon={Bitcoin} color="#F7931A" />
+          {sanctioned && (
+            <div className="mb-2 px-2 py-1.5 rounded border border-red-500/40 bg-red-500/15 flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+              <span className="text-[10px] font-mono font-bold text-red-400 tracking-wider">
+                SANCTIONED — {r.sanctions?.source || 'OFAC SDN'}
+              </span>
+            </div>
+          )}
+          <ResultRow label="Address" value={r.address} color="#F7931A" />
+          <ResultRow label="Chain" value={r.chain} color={r.chain === 'BTC' ? '#F7931A' : '#627EEA'} />
+          <ResultRow label="Balance" value={`${r.balance} ${r.balance_unit}`} />
+          <ResultRow label="TX Count" value={r.tx_count} />
+          {r.total_received !== undefined && <ResultRow label="Total Recv" value={`${r.total_received} ${r.balance_unit}`} />}
+          {r.total_sent !== undefined && <ResultRow label="Total Sent" value={`${r.total_sent} ${r.balance_unit}`} />}
+          <ResultRow label="First Seen" value={r.first_seen} />
+          <ResultRow label="Last Seen" value={r.last_seen} />
+          {r.explorer && (
+            <div className="mt-2">
+              <a href={r.explorer} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] font-mono text-[#F7931A] hover:underline">
+                <ExternalLink className="w-2.5 h-2.5" /> Open in block explorer
+              </a>
+            </div>
+          )}
+          {renderFallbackExcluding(['address','chain','balance','balance_unit','balance_satoshis','balance_wei','tx_count','total_received','total_sent','first_seen','last_seen','explorer','sanctioned','sanctions','timestamp'])}
         </div>
       );
     }
