@@ -15,6 +15,7 @@ import { fetchGermanyCameras } from './germany';
 import { fetchFranceCameras } from './france';
 import { fetchSpainCameras } from './spain';
 import { fetchPolandCameras } from './poland';
+import { fetchJapanCameras } from './japan';
 
 /**
  * OSIRIS — Worldwide CCTV Camera API v2
@@ -304,6 +305,7 @@ const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'france': fetchFranceCameras,
   'spain': fetchSpainCameras,
   'poland': fetchPolandCameras,
+  'japan': fetchJapanCameras,
 };
 
 // Determine which regions to fetch based on viewport bounds
@@ -352,6 +354,9 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (inFrance) regions.push('france');
   if (inSpain) regions.push('spain');
   if (inPoland) regions.push('poland');
+
+  // Japan
+  if (lat > 24 && lat < 46 && lng > 122 && lng < 154) regions.push('japan');
 
   // Asia (includes Middle East, SE Asia, overriding parts of china but that's ok they can both load)
   if ((lat > -10 && lat < 60 && lng > 60 && lng < 150)) regions.push('asia');

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Building2, RadioTower, Activity, Shield, Database, Wifi } from 'lucide-react';
 import IntelFeed from '@/components/IntelFeed';
 import MarketsPanel from '@/components/MarketsPanel';
+import ScmPanel from '@/components/ScmPanel';
 import SearchBar from '@/components/SearchBar';
 import ScaleBar from '@/components/ScaleBar';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -109,6 +110,7 @@ export default function Dashboard() {
   const [spaceWeather, setSpaceWeather] = useState<any>(null);
   const [showLayers, setShowLayers] = useState(true);
   const [showMarkets, setShowMarkets] = useState(true);
+  const [showScmPanel, setShowScmPanel] = useState(true);
   const [showIntel, setShowIntel] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<'layers'|'markets'|'intel'|'search'|'recon'|null>(null);
@@ -215,6 +217,7 @@ export default function Dashboard() {
       }
       if (e.key === 'l') setShowLayers(p => !p);
       if (e.key === 'm') setShowMarkets(p => !p);
+      if (e.key === 'c') setShowScmPanel(p => !p);
       if (e.key === 'i') setShowIntel(p => !p);
       if (e.key === 'r') setFlyToLocation({ lat: 20, lng: 0, ts: Date.now() });
       if (e.key === 'g') setMapProjection(p => p === 'globe' ? 'mercator' : 'globe');
@@ -395,7 +398,10 @@ export default function Dashboard() {
       intervals.push(setInterval(() => fetchEndpoint('/api/radiation', d => ({ radiation: d.stations })), 300000)); // 5m
     }
     if (activeLayers.maritime) {
-      intervals.push(setInterval(() => fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships })), 60000)); // 1m
+      intervals.push(setInterval(() => fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships })), 10000)); // 10s
+    }
+    if (activeLayers.scm_suppliers) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/scm-suppliers', d => ({ scm_suppliers: d.suppliers })), 30000)); // 30s
     }
     // Fires: no polling needed (data changes very slowly, initial fetch is enough)
     return () => intervals.forEach(clearInterval);
@@ -755,6 +761,7 @@ export default function Dashboard() {
             <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMapView(v => ({ ...v, zoom })); }} />
           </>
         )}
+        {showScmPanel && <ScmPanel data={data} />}
         {showMarkets && <MarketsPanel data={data} spaceWeather={spaceWeather} />}
         {showIntel && <IntelFeed data={data} onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })} />}
       </div>

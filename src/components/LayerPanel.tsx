@@ -63,6 +63,7 @@ const LAYER_GROUPS = [
       { key: 'infrastructure', label: 'Nuclear Facilities', icon: Radiation, color: '#76FF03', dataKey: 'infrastructure' },
       { key: 'global_incidents', label: 'Global Incidents', icon: AlertTriangle, color: '#FF3D3D', dataKey: 'gdelt' },
       { key: 'gps_jamming', label: 'GPS Jamming', icon: Radio, color: '#FF4444', dataKey: 'gps_jamming' },
+      { key: 'scm_suppliers', label: 'SCM Suppliers', icon: Target, color: '#00BCD4', dataKey: 'scm_suppliers' },
     ],
   },
   {

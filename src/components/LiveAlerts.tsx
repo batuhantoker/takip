@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown, ChevronUp, MapPin, ExternalLink, AlertTriangle,
-  Newspaper, Clock, Radio,
+  Newspaper, Clock, Radio, Maximize2, Minimize2
 } from 'lucide-react';
 
 interface LiveAlertsProps {
@@ -23,6 +23,7 @@ const RISK_COLORS: Record<string, string> = {
 
 export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsProps) {
   const [expanded, setExpanded] = useState(true);
+  const [maximized, setMaximized] = useState(false);
   const [filter, setFilter] = useState<'all' | 'news' | 'quakes' | 'feeds'>('all');
 
   // Built-in live feeds — verified video IDs (synced with /api/live-news)
@@ -113,7 +114,7 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.5, duration: 0.6 }}
-      className="glass-panel flex flex-col overflow-hidden pointer-events-auto"
+      className={`glass-panel flex flex-col overflow-hidden pointer-events-auto resize-y min-h-[200px] transition-all duration-300 ${maximized ? 'fixed inset-4 z-[9999] bg-[#0a0a09]/95 backdrop-blur-3xl' : ''}`}
     >
       <button
         onClick={() => setExpanded(!expanded)}
@@ -127,6 +128,9 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-[#FF4081] animate-osiris-pulse" />
+          <button onClick={(e) => { e.stopPropagation(); setMaximized(!maximized); if (!expanded && !maximized) setExpanded(true); }} className="hover:text-white transition-colors" title={maximized ? "Restore" : "Maximize"}>
+            {maximized ? <Minimize2 className="w-3 h-3 text-[var(--text-muted)]" /> : <Maximize2 className="w-3 h-3 text-[var(--text-muted)]" />}
+          </button>
           {expanded ? <ChevronUp className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
         </div>
       </button>
@@ -138,7 +142,7 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden px-2 pb-2"
+            className="overflow-hidden px-2 pb-2 flex flex-col flex-1 h-full min-h-0"
           >
             {/* Filters */}
             <div className="flex gap-1 mb-2">
@@ -154,7 +158,7 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
             </div>
 
             {/* Alert List */}
-            <div className="space-y-0.5 max-h-[180px] overflow-y-auto styled-scrollbar">
+            <div className="space-y-0.5 overflow-y-auto styled-scrollbar flex-1 pb-4">
               {filtered.map((alert, i) => {
                 const Icon = getIcon(alert.type);
                 const sevColor = RISK_COLORS[alert.severity] || '#FFD700';

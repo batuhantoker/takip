@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, ChevronDown, ChevronUp, BarChart3,
-  Zap, Shield, Droplets, Gem, Bitcoin, LineChart,
+  Zap, Shield, Droplets, Gem, Bitcoin, LineChart, Maximize2, Minimize2
 } from 'lucide-react';
 
 interface MarketsPanelProps { data: any; spaceWeather?: any; }
@@ -37,6 +37,7 @@ function Ticker({ name, data: d }: { name: string; data: any }) {
 
 export default function MarketsPanel({ data, spaceWeather }: MarketsPanelProps) {
   const [expanded, setExpanded] = useState(true);
+  const [maximized, setMaximized] = useState(false);
   const [activeSection, setActiveSection] = useState('stocks');
   const markets = data.markets || {};
 
@@ -91,8 +92,19 @@ export default function MarketsPanel({ data, spaceWeather }: MarketsPanelProps) 
               })}
             </div>
 
+            {/* SCM Alerts from Markets API */}
+            {markets.scm_alerts && markets.scm_alerts.length > 0 && (
+              <div className="mb-2 space-y-1">
+                {markets.scm_alerts.map((alert: string, i: number) => (
+                  <div key={i} className="px-2 py-1.5 rounded border border-[#FF9500] bg-[#FF9500]/10 text-[#FF9500] text-[9px] font-mono leading-tight shadow-[0_0_8px_rgba(255,149,0,0.15)]">
+                    {alert}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Ticker List */}
-            <div className="space-y-0.5 max-h-[200px] overflow-y-auto styled-scrollbar">
+            <div className="space-y-0.5 overflow-y-auto styled-scrollbar mt-2">
               {markets[activeSection] && Object.entries(markets[activeSection]).map(([name, d]) => (
                 <Ticker key={name} name={name} data={d} />
               ))}
