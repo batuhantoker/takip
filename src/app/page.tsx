@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, BarChart3, Newspaper, Search, Share2, Map as MapIcon, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Building2, RadioTower, Activity, Shield, Database, Wifi } from 'lucide-react';
+import { Layers, BarChart3, Newspaper, Search, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Activity, Database, Wifi } from 'lucide-react';
 import IntelFeed from '@/components/IntelFeed';
 import MarketsPanel from '@/components/MarketsPanel';
 import ScmPanel from '@/components/ScmPanel';
@@ -65,31 +65,21 @@ const ZuluClock = () => {
   return <span className="text-[var(--cyan-primary)] font-bold tabular-nums">{time || 'ZULU --:--:--Z'}</span>;
 };
 
-const DataThroughput = ({ data }: { data: any }) => {
-  const [throughput, setThroughput] = useState('0.00');
-  const [pingTime, setPingTime] = useState<number | null>(null);
-
-  useEffect(() => {
-    const iv = setInterval(() => {
-      let estimatedBytes = 0;
-      if (data) {
-        if (data.satellites) estimatedBytes += data.satellites.length * 150;
-        if (data.commercial_flights) estimatedBytes += data.commercial_flights.length * 120;
-        if (data.cameras) estimatedBytes += data.cameras.length * 80;
-        if (data.gdelt) estimatedBytes += data.gdelt.length * 300;
-        if (data.live_feeds) estimatedBytes += data.live_feeds.length * 500;
-      }
-      
-      const megabytes = estimatedBytes / 1024 / 1024;
-      setThroughput(megabytes > 0 ? (megabytes * 1.5).toFixed(2) : "0.00");
-      
-      setPingTime(Math.floor(30 + estimatedBytes / 100000));
-    }, 2500);
-    return () => clearInterval(iv);
+/** Real entity count — no fake throughput metrics */
+const ActiveEntityCount = ({ data }: { data: Record<string, unknown[]> }) => {
+  const count = useMemo(() => {
+    if (!data) return 0;
+    return Object.values(data).reduce((sum, v) => sum + (Array.isArray(v) ? v.length : 0), 0);
   }, [data]);
-
-  return <span className="text-[var(--alert-green)] font-bold tabular-nums">{throughput} MB/s</span>;
+  return <span className="text-[var(--alert-green)] font-bold tabular-nums">{count.toLocaleString()}</span>;
 };
+
+/** Extracts a watchable YouTube URL from embed/channel URLs */
+function getYouTubeWatchUrl(url: string): string {
+  if (url.includes('channel=')) return `https://www.youtube.com/channel/${url.split('channel=')[1].split('&')[0]}/live`;
+  if (url.includes('/embed/')) return `https://www.youtube.com/watch?v=${url.split('/embed/')[1].split('?')[0]}`;
+  return url;
+}
 
 export default function Dashboard() {
   const dataRef = useRef<any>({});
@@ -186,8 +176,8 @@ export default function Dashboard() {
     if (urlTimer.current) clearTimeout(urlTimer.current);
     urlTimer.current = setTimeout(() => {
       const p = new URLSearchParams();
-      p.set('lat', (mouseCoordsRef.current?.lat ?? mapView.latitude ?? 20).toFixed(4));
-      p.set('lon', (mouseCoordsRef.current?.lng ?? 0).toFixed(4));
+      p.set('lat', (mapView.latitude ?? 20).toFixed(4));
+      p.set('lon', '0');
       p.set('zoom', mapView.zoom.toFixed(2));
       const active = Object.entries(activeLayers).filter(([,v]) => v).map(([k]) => k).join(',');
       p.set('layers', active);
@@ -213,7 +203,6 @@ export default function Dashboard() {
       if (e.key === 'f' && !e.ctrlKey) {
         if (document.fullscreenElement) document.exitFullscreen();
         else document.documentElement.requestFullscreen();
-        setIsFullscreen(!!document.fullscreenElement);
       }
       if (e.key === 'l') setShowLayers(p => !p);
       if (e.key === 'm') setShowMarkets(p => !p);
@@ -222,8 +211,10 @@ export default function Dashboard() {
       if (e.key === 'r') setFlyToLocation({ lat: 20, lng: 0, ts: Date.now() });
       if (e.key === 'g') setMapProjection(p => p === 'globe' ? 'mercator' : 'globe');
     };
+    const fsHandler = () => setIsFullscreen(!!document.fullscreenElement);
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    document.addEventListener('fullscreenchange', fsHandler);
+    return () => { window.removeEventListener('keydown', handler); document.removeEventListener('fullscreenchange', fsHandler); };
   }, []);
 
   // Mouse coords + reverse geocode (Zero-Render)
@@ -343,7 +334,7 @@ export default function Dashboard() {
     }
     // CCTV
     if (activeLayers.cctv && !layerFetchedRef.current.has('cctv')) {
-      fetchEndpoint('/api/cctv?region=all');
+      fetchEndpoint('/api/cctv?region=all&v=2');
       layerFetchedRef.current.add('cctv');
     }
     // Maritime
@@ -400,10 +391,6 @@ export default function Dashboard() {
     if (activeLayers.maritime) {
       intervals.push(setInterval(() => fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships })), 10000)); // 10s
     }
-    if (activeLayers.scm_suppliers) {
-      intervals.push(setInterval(() => fetchEndpoint('/api/scm-suppliers', d => ({ scm_suppliers: d.suppliers })), 30000)); // 30s
-    }
-    // Fires: no polling needed (data changes very slowly, initial fetch is enough)
     return () => intervals.forEach(clearInterval);
   }, [activeLayers, fetchEndpoint]);
 
@@ -606,12 +593,7 @@ export default function Dashboard() {
 
 
             {/* ── Inline keyframe for scanline drift ── */}
-            <style>{`
-              @keyframes splashScanDrift {
-                0% { background-position: 0 0; }
-                100% { background-position: 0 100vh; }
-              }
-            `}</style>
+
           </motion.div>
         )}
       </AnimatePresence>
@@ -754,8 +736,8 @@ export default function Dashboard() {
                 <div><div className="hud-label">AIRCRAFT</div><div className="hud-value text-[10px] animate-data-pulse">{globalStats ? globalStats.flights.toLocaleString() : '0'}</div></div>
                 <div><div className="hud-label">SATS</div><div className="hud-value text-[10px]">{globalStats ? globalStats.sats.toLocaleString() : '0'}</div></div>
                 <div><div className="hud-label">CCTV</div><div className="hud-value text-[10px]">{globalStats ? globalStats.cctv.toLocaleString() : '0'}</div></div>
-                <div><div className="hud-label">WEATHER</div><div className="hud-value text-[10px]" style={{ color: '#E040FB' }}>{globalStats ? globalStats.weather.toLocaleString() : '0'}</div></div>
-                <div><div className="hud-label">NUCLEAR</div><div className="hud-value text-[10px]" style={{ color: '#76FF03' }}>{globalStats ? globalStats.nuclear.toLocaleString() : '0'}</div></div>
+                <div><div className="hud-label">WEATHER</div><div className="hud-value text-[10px]" style={{ color: 'var(--accent-weather)' }}>{globalStats ? globalStats.weather.toLocaleString() : '0'}</div></div>
+                <div><div className="hud-label">NUCLEAR</div><div className="hud-value text-[10px]" style={{ color: 'var(--accent-nuclear)' }}>{globalStats ? globalStats.nuclear.toLocaleString() : '0'}</div></div>
               </div>
             </motion.div>
             <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, ts: Date.now() }); setMapView(v => ({ ...v, zoom })); }} />
@@ -810,13 +792,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center gap-3">
                   <a
-                    href={
-                      liveFeedUrl.includes('channel=')
-                        ? `https://www.youtube.com/channel/${liveFeedUrl.split('channel=')[1].split('&')[0]}/live`
-                        : liveFeedUrl.includes('/embed/')
-                        ? `https://www.youtube.com/watch?v=${liveFeedUrl.split('/embed/')[1].split('?')[0]}`
-                        : liveFeedUrl
-                    }
+                    href={getYouTubeWatchUrl(liveFeedUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[var(--border-primary)] hover:bg-[var(--gold-primary)] hover:text-black text-white transition-colors text-[11px] font-mono"
@@ -851,13 +827,7 @@ export default function Dashboard() {
                       {liveFeedName} does not allow third-party embedding. Click below to open the live stream directly.
                     </p>
                     <a
-                      href={
-                        liveFeedUrl.includes('channel=')
-                          ? `https://www.youtube.com/channel/${liveFeedUrl.split('channel=')[1].split('&')[0]}/live`
-                          : liveFeedUrl.includes('/embed/')
-                          ? `https://www.youtube.com/watch?v=${liveFeedUrl.split('/embed/')[1].split('?')[0]}`
-                          : liveFeedUrl
-                      }
+                      href={getYouTubeWatchUrl(liveFeedUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-6 py-2.5 rounded border border-[#39FF14]/40 text-[#39FF14] font-mono text-[12px] hover:bg-[#39FF14]/10 transition-colors tracking-wider"
@@ -929,8 +899,8 @@ export default function Dashboard() {
                           <div><div className="hud-label" style={{fontSize:'6px'}}>AIR</div><div className="hud-value text-[9px]">{totalFlights.toLocaleString()}</div></div>
                           <div><div className="hud-label" style={{fontSize:'6px'}}>SAT</div><div className="hud-value text-[9px]">{(data.satellites?.length||0)}</div></div>
                           <div><div className="hud-label" style={{fontSize:'6px'}}>CAM</div><div className="hud-value text-[9px]">{(data.cameras?.length||0)}</div></div>
-                          <div><div className="hud-label" style={{fontSize:'6px'}}>WX</div><div className="hud-value text-[9px]" style={{color:'#E040FB'}}>{(data.weather_events?.length||0)}</div></div>
-                          <div><div className="hud-label" style={{fontSize:'6px'}}>NUC</div><div className="hud-value text-[9px]" style={{color:'#76FF03'}}>{(data.infrastructure?.length||0)}</div></div>
+                          <div><div className="hud-label" style={{fontSize:'6px'}}>WX</div><div className="hud-value text-[9px]" style={{color:'var(--accent-weather)'}}>{(data.weather_events?.length||0)}</div></div>
+                          <div><div className="hud-label" style={{fontSize:'6px'}}>NUC</div><div className="hud-value text-[9px]" style={{color:'var(--accent-nuclear)'}}>{(data.infrastructure?.length||0)}</div></div>
                         </div>
                       </div>
                       <LayerPanel data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} />
@@ -1015,12 +985,12 @@ export default function Dashboard() {
 
             <div className="w-px h-8 bg-gradient-to-b from-transparent via-[var(--border-primary)] to-transparent flex-shrink-0" />
 
-            {/* THROUGHPUT */}
+            {/* ENTITIES */}
             <div className="flex flex-col items-center px-3 min-w-[70px]">
-              <div className="hud-label">THROUGHPUT</div>
+              <div className="hud-label">ENTITIES</div>
               <div className="flex items-center gap-1">
                 <Database className="w-3 h-3 text-[var(--alert-green)]" />
-                <DataThroughput data={data} />
+                <ActiveEntityCount data={data} />
               </div>
             </div>
 
@@ -1074,14 +1044,20 @@ export default function Dashboard() {
         onLocate={(lat, lng) => setFlyToLocation({ lat, lng, ts: Date.now() })}
       />
 
+
       {/* ── OVERLAYS ── */}
       <div className="vignette absolute inset-0 pointer-events-none z-[2]" />
       <div className="crt-scanlines absolute inset-0 pointer-events-none z-[3] opacity-[0.02]" />
-      {/* Corner frames */}
-      {['top-0 left-0','top-0 right-0','bottom-0 left-0','bottom-0 right-0'].map((pos, i) => (
-        <div key={i} className={`absolute ${pos} w-16 h-16 pointer-events-none z-[1]`}>
-          <div className={`absolute ${pos.includes('top') ? 'top-0' : 'bottom-0'} ${pos.includes('left') ? 'left-0' : 'right-0'} w-full h-[1px] bg-gradient-to-${pos.includes('left') ? 'r' : 'l'} from-[var(--gold-primary)]/30 to-transparent`} />
-          <div className={`absolute ${pos.includes('top') ? 'top-0' : 'bottom-0'} ${pos.includes('left') ? 'left-0' : 'right-0'} w-[1px] h-full bg-gradient-to-${pos.includes('top') ? 'b' : 't'} from-[var(--gold-primary)]/30 to-transparent`} />
+      {/* Corner frames — using explicit classes for Tailwind JIT compatibility */}
+      {[
+        { pos: 'top-0 left-0', vAnchor: 'top-0', hAnchor: 'left-0', hGrad: 'bg-gradient-to-r', vGrad: 'bg-gradient-to-b' },
+        { pos: 'top-0 right-0', vAnchor: 'top-0', hAnchor: 'right-0', hGrad: 'bg-gradient-to-l', vGrad: 'bg-gradient-to-b' },
+        { pos: 'bottom-0 left-0', vAnchor: 'bottom-0', hAnchor: 'left-0', hGrad: 'bg-gradient-to-r', vGrad: 'bg-gradient-to-t' },
+        { pos: 'bottom-0 right-0', vAnchor: 'bottom-0', hAnchor: 'right-0', hGrad: 'bg-gradient-to-l', vGrad: 'bg-gradient-to-t' },
+      ].map((c, i) => (
+        <div key={i} className={`absolute ${c.pos} w-16 h-16 pointer-events-none z-[1]`}>
+          <div className={`absolute ${c.vAnchor} ${c.hAnchor} w-full h-[1px] ${c.hGrad} from-[var(--gold-primary)]/30 to-transparent`} />
+          <div className={`absolute ${c.vAnchor} ${c.hAnchor} w-[1px] h-full ${c.vGrad} from-[var(--gold-primary)]/30 to-transparent`} />
         </div>
       ))}
 

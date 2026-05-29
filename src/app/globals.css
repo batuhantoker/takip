@@ -32,6 +32,10 @@
   --alert-green: #00E676;
   --alert-blue: #448AFF;
 
+  /* ── Accent Colors (layer-specific) ── */
+  --accent-weather: #E040FB;
+  --accent-nuclear: #76FF03;
+
   /* ── Borders ── */
   --border-primary: rgba(212, 175, 55, 0.15);
   --border-secondary: rgba(212, 175, 55, 0.08);
@@ -195,6 +199,12 @@ html, body {
 .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
 .animate-data-pulse { animation: data-pulse 2s ease-in-out infinite; }
 .animate-threat-flash { animation: threat-flash 1.5s ease-in-out infinite; }
+
+/* Splash screen scanline drift */
+@keyframes splashScanDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100vh; }
+}
 
 /* Ticker scroll — pure CSS, GPU-accelerated */
 @keyframes ticker-scroll {
@@ -392,29 +402,6 @@ html, body {
 @media (min-width: 3440px) {
   :root { font-size: 20px; }
   .glass-panel { min-width: 320px; }
-}
-
-/* Ensure popups scale properly on all displays */
-.maplibregl-popup-content {
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  border: none !important;
-}
-
-.maplibregl-popup-close-button {
-  color: var(--text-muted) !important;
-  font-size: 18px !important;
-  padding: 4px 8px !important;
-  right: 4px !important;
-  top: 4px !important;
-  z-index: 10;
-}
-
-.maplibregl-popup-close-button:hover {
-  color: var(--gold-primary) !important;
-  background: rgba(212, 175, 55, 0.1) !important;
-  border-radius: 4px;
 }
 
 /* ═══════════════════════════════════════════════════════════════

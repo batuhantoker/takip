@@ -112,60 +112,28 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','sigint-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets'];
       sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
-      // ── CONFLICT ZONES — small warning markers (not polygons) ──
-      // Create warning triangle icon
-      const warnSize = 20;
-      const warnCanvas = document.createElement('canvas');
-      warnCanvas.width = warnSize; warnCanvas.height = warnSize;
-      const warnCtx = warnCanvas.getContext('2d')!;
-      // Triangle
-      warnCtx.fillStyle = '#FF1744';
-      warnCtx.beginPath();
-      warnCtx.moveTo(warnSize/2, 1);
-      warnCtx.lineTo(warnSize - 1, warnSize - 1);
-      warnCtx.lineTo(1, warnSize - 1);
-      warnCtx.closePath();
-      warnCtx.fill();
-      // Exclamation mark
-      warnCtx.fillStyle = '#000';
-      warnCtx.font = 'bold 11px sans-serif';
-      warnCtx.textAlign = 'center';
-      warnCtx.fillText('!', warnSize/2, warnSize - 4);
-      map.addImage('warn-icon', { width: warnSize, height: warnSize, data: new Uint8Array(warnCtx.getImageData(0, 0, warnSize, warnSize).data) });
-
-      // Orange warning
-      const warnOCanvas = document.createElement('canvas');
-      warnOCanvas.width = warnSize; warnOCanvas.height = warnSize;
-      const warnOCtx = warnOCanvas.getContext('2d')!;
-      warnOCtx.fillStyle = '#FF9500';
-      warnOCtx.beginPath();
-      warnOCtx.moveTo(warnSize/2, 1);
-      warnOCtx.lineTo(warnSize - 1, warnSize - 1);
-      warnOCtx.lineTo(1, warnSize - 1);
-      warnOCtx.closePath();
-      warnOCtx.fill();
-      warnOCtx.fillStyle = '#000';
-      warnOCtx.font = 'bold 11px sans-serif';
-      warnOCtx.textAlign = 'center';
-      warnOCtx.fillText('!', warnSize/2, warnSize - 4);
-      map.addImage('warn-orange', { width: warnSize, height: warnSize, data: new Uint8Array(warnOCtx.getImageData(0, 0, warnSize, warnSize).data) });
-
-      // Yellow warning
-      const warnYCanvas = document.createElement('canvas');
-      warnYCanvas.width = warnSize; warnYCanvas.height = warnSize;
-      const warnYCtx = warnYCanvas.getContext('2d')!;
-      warnYCtx.fillStyle = '#FFD500';
-      warnYCtx.beginPath();
-      warnYCtx.moveTo(warnSize/2, 1);
-      warnYCtx.lineTo(warnSize - 1, warnSize - 1);
-      warnYCtx.lineTo(1, warnSize - 1);
-      warnYCtx.closePath();
-      warnYCtx.fill();
-      warnYCtx.fillStyle = '#000';
-      warnYCtx.font = 'bold 11px sans-serif';
-      warnYCtx.textAlign = 'center';
-      warnYCtx.fillText('!', warnSize/2, warnSize - 4);
-      map.addImage('warn-yellow', { width: warnSize, height: warnSize, data: new Uint8Array(warnYCtx.getImageData(0, 0, warnSize, warnSize).data) });
+      // Warning icon generator (parameterized — eliminates 3x copy-paste)
+      const createWarningIcon = (id: string, color: string) => {
+        const s = 20;
+        const c = document.createElement('canvas');
+        c.width = s; c.height = s;
+        const ctx = c.getContext('2d')!;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(s/2, 1);
+        ctx.lineTo(s - 1, s - 1);
+        ctx.lineTo(1, s - 1);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('!', s/2, s - 4);
+        map.addImage(id, { width: s, height: s, data: new Uint8Array(ctx.getImageData(0, 0, s, s).data) });
+      };
+      createWarningIcon('warn-icon', '#FF1744');
+      createWarningIcon('warn-orange', '#FF9500');
+      createWarningIcon('warn-yellow', '#FFD500');
 
       map.addLayer({ id: 'conflict-icons', type: 'symbol', source: 'conflict-zones', layout: {
         'icon-image': ['match', ['get','severity'], 'war','warn-icon', 'high','warn-orange', 'warn-yellow'],
@@ -592,7 +560,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
 
     // ── Generic hover for clickables ──
-    ['conflict-icons','cctv-dots','eq-circles','sat-dots','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','sigint-news-dots','balloon-dots','rad-dots','ship-dots','sweep-device-dots','scan-targets-dots','scm-dots'].forEach(layer => {
+    ['conflict-icons','cctv-dots','eq-circles','sat-dots','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','sigint-news-dots','balloon-dots','rad-dots','ship-dots','sweep-device-dots','scan-targets-dots'].forEach(layer => {
       map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
     });
