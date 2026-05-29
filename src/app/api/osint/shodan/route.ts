@@ -11,6 +11,7 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(`https://internetdb.shodan.io/${encodeURIComponent(ip)}`, {
       signal: AbortSignal.timeout(8000),
+      cache: 'no-store'
     });
 
     if (res.status === 404) {

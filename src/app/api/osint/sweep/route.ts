@@ -403,11 +403,15 @@ export async function GET(req: Request) {
       20,
       async (url) => {
         try {
-          const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+          const res = await fetch(url, { 
+            signal: AbortSignal.timeout(5000),
+            cache: 'no-store'
+          });
           if (res.status === 404) return null; // Non-responsive host
           if (!res.ok) return null;
           return (await res.json()) as ShodanInternetDBResponse;
-        } catch {
+        } catch (e) {
+          console.error(`[OSIRIS] Shodan fetch error for ${url}:`, e);
           return null;
         }
       },
