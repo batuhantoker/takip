@@ -6,8 +6,8 @@ import { isSanctioned } from '@/lib/ofac-crypto';
 // (free, no key for either). Cross-checks the OFAC SDN sanctioned crypto
 // address lists and flags hits with the source so the UI can warn the user.
 
-const BTC_RE = /^([13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[ac-hj-np-z02-9]{11,87})$/;
-const ETH_RE = /^0x[a-fA-F0-9]{40}$/;
+const BTC_RE = /^[a-zA-Z0-9]{25,90}$/;
+const ETH_RE = /^0x[a-fA-F0-9]{40}$/i;
 
 type Chain = 'BTC' | 'ETH';
 
@@ -128,11 +128,18 @@ async function lookupETH(address: string) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const address = (searchParams.get('address') || '').trim();
+  let address = (searchParams.get('address') || '').trim();
   const chainParam = (searchParams.get('chain') || 'auto').toUpperCase();
 
   if (!address) {
     return NextResponse.json({ error: 'Missing address parameter' }, { status: 400 });
+  }
+
+  // Robust cleaning
+  address = address.replace(/^(ethereum|bitcoin|bitcoincash):/i, '');
+  address = address.replace(/\s+/g, '');
+  if (/^[a-fA-F0-9]{40}$/.test(address)) {
+    address = '0x' + address;
   }
 
   const clientIp = getClientIp(req);

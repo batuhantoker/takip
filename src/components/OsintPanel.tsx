@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Loader2, AlertTriangle, Server,
   Wifi, Lock, MapPin, Bug, Code, Layers, Network, Fingerprint,
   CheckCircle, XCircle, Clock, ExternalLink, Crosshair,
-  Maximize2, Minimize2, Gavel, Bitcoin
+  Maximize2, Minimize2, Gavel, Bitcoin, Phone, Terminal, ShieldAlert
 } from 'lucide-react';
 
 const TABS = [
@@ -21,8 +21,13 @@ const TABS = [
   { id: 'headers', label: 'HEADERS', icon: Code, placeholder: 'URL to inspect', color: '#87CEEB' },
   { id: 'ssl', label: 'SSL/TLS', icon: Shield, placeholder: 'Domain name', color: '#76FF03' },
   { id: 'subdomains', label: 'SUBDOMAINS', icon: Layers, placeholder: 'Domain to enumerate', color: '#00BCD4' },
-  { id: 'tech', label: 'TECH DETECT', icon: Fingerprint, placeholder: 'URL to fingerprint', color: '#9C27B0' },
-  { id: 'sanctions', label: 'SANCTIONS', icon: Gavel, placeholder: 'Person / org / vessel name', color: '#FF1744' },
+  { id: 'tech', label: 'TECH DETECT', icon: Code, placeholder: 'URL to fingerprint', color: '#9C27B0' },
+  { id: 'shodan', label: 'SHODAN IOT', icon: Network, placeholder: 'IP address', color: '#FF3D3D' },
+  { id: 'bgp', label: 'BGP ROUTE', icon: Globe, placeholder: 'IP or ASN', color: '#00E5FF' },
+  { id: 'mac', label: 'MAC ADDR', icon: Fingerprint, placeholder: 'MAC address', color: '#FFD700' },
+  { id: 'phone', label: 'PHONE INTEL', icon: Phone, placeholder: 'Phone number (e.g. +1...)', color: '#FF9500' },
+  { id: 'leaks', label: 'DATA LEAKS', icon: ShieldAlert, placeholder: 'Email address', color: '#E040FB' },
+  { id: 'github', label: 'GITHUB RECON', icon: Terminal, placeholder: 'GitHub username', color: '#87CEEB' },
   { id: 'crypto', label: 'CRYPTO TRACE', icon: Bitcoin, placeholder: 'BTC or ETH address', color: '#F7931A' },
   { id: 'sweep', label: 'IP SWEEP', icon: Crosshair, placeholder: 'Enter IP address (e.g. 8.8.8.8)', color: '#FF3D3D' },
 ];
@@ -103,13 +108,18 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         case 'certs': url = `/api/osint/certs?domain=${encodeURIComponent(query)}`; break;
         case 'whois': url = `/api/osint/whois?domain=${encodeURIComponent(query)}`; break;
         case 'threats': url = `/api/osint/threats?query=${encodeURIComponent(query)}`; break;
+        case 'bgp': url = `/api/osint/bgp?query=${encodeURIComponent(query)}`; break;
+        case 'mac': url = `/api/osint/mac?mac=${encodeURIComponent(query)}`; break;
+        case 'phone': url = `/api/osint/phone?number=${encodeURIComponent(query)}`; break;
+        case 'leaks': url = `/api/osint/leaks?email=${encodeURIComponent(query)}`; break;
+        case 'crypto': url = `/api/osint/crypto?address=${encodeURIComponent(query)}`; break;
+        case 'github': url = `/api/osint/github?user=${encodeURIComponent(query)}`; break;
         case 'scanner': url = `/api/scanner?target=${encodeURIComponent(query)}&type=${scanType}`; break;
         case 'headers': url = `/api/scanner?target=${encodeURIComponent(query)}&type=headers`; break;
         case 'ssl': url = `/api/scanner?target=${encodeURIComponent(query)}&type=ssl`; break;
         case 'subdomains': url = `/api/scanner?target=${encodeURIComponent(query)}&type=subdomains`; break;
         case 'tech': url = `/api/scanner?target=${encodeURIComponent(query)}&type=tech`; break;
-        case 'sanctions': url = `/api/osint/sanctions?query=${encodeURIComponent(query)}`; break;
-        case 'crypto': url = `/api/osint/crypto?address=${encodeURIComponent(query)}`; break;
+        case 'shodan': url = `/api/osint/shodan?ip=${encodeURIComponent(query)}`; break;
       }
       const res = await fetch(url);
       const data = await res.json();
@@ -118,7 +128,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         setHistory(prev => [{ tab: activeTab, query, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)]);
         
         // Geolocate the target in the background
-        if (activeTab !== 'sweep' && activeTab !== 'vuln' && activeTab !== 'sanctions' && activeTab !== 'crypto') {
+        if (activeTab !== 'sweep' && activeTab !== 'vuln' && activeTab !== 'crypto' && activeTab !== 'mac' && activeTab !== 'bgp' && activeTab !== 'github' && activeTab !== 'leaks' && activeTab !== 'phone') {
           fetch(`/api/osint/ip?ip=${encodeURIComponent(query)}`)
             .then(r => r.json())
             .then(locData => {
@@ -317,29 +327,144 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
       );
     }
 
-    // ── SANCTIONS ──
-    if (activeTab === 'sanctions') {
-      const matches = Array.isArray(r.matches) ? r.matches : [];
+    // ── SHODAN ──
+    if (activeTab === 'shodan') {
       return (
         <div>
-          <SectionHeader title="OFAC SDN SEARCH" icon={Gavel} color="#FF1744" />
-          <ResultRow label="Query" value={r.query || query} color="#FF1744" />
-          <ResultRow label="Source" value={r.source} />
-          <ResultRow label="Matches" value={r.total ?? matches.length} color={matches.length ? '#FF1744' : '#00E676'} />
-          {matches.slice(0, 20).map((m: any) => (
-            <div key={m.id} className="mt-2 p-2 rounded border border-red-500/30 bg-red-500/5">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-mono font-bold text-red-400 break-all">{m.name}</span>
-                <span className="text-[8px] font-mono uppercase tracking-wider text-[var(--text-muted)] ml-2 flex-shrink-0">{m.schema}</span>
+          <SectionHeader title="SHODAN IOT INTELLIGENCE" icon={Network} color="#FF3D3D" />
+          <ResultRow label="Target IP" value={r.ip || query} color="#FF3D3D" />
+          {r.hostnames?.length > 0 && <ResultRow label="Hostnames" value={r.hostnames.join(', ')} />}
+          {r.ports?.length > 0 && <ResultRow label="Open Ports" value={r.ports.join(', ')} color="#00E5FF" />}
+          {r.tags?.length > 0 && <ResultRow label="Tags" value={r.tags.join(', ')} color="#FF9500" />}
+          {r.vulns?.length > 0 && (
+            <div className="mt-2 p-2 border border-red-500/30 bg-red-500/10 rounded">
+              <span className="text-[10px] font-mono text-red-400 font-bold mb-1 block">VULNERABILITIES ({r.vulns.length})</span>
+              <div className="flex flex-wrap gap-1">
+                {r.vulns.slice(0, 10).map((v: string) => (
+                  <a key={v} href={`https://nvd.nist.gov/vuln/detail/${v}`} target="_blank" rel="noreferrer" className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#1A1A18] text-[#8A8880] hover:text-[#FF3D3D]">{v}</a>
+                ))}
+                {r.vulns.length > 10 && <span className="text-[9px] font-mono text-[#8A8880]">+{r.vulns.length - 10} more</span>}
               </div>
-              <ResultRow label="Aliases" value={Array.isArray(m.aliases) && m.aliases.length ? m.aliases.slice(0, 4).join(' • ') : undefined} />
-              <ResultRow label="Countries" value={Array.isArray(m.countries) && m.countries.length ? m.countries.join(', ').toUpperCase() : undefined} />
-              <ResultRow label="Programs" value={Array.isArray(m.programs) && m.programs.length ? m.programs.slice(0, 3).join(', ') : undefined} />
-              <ResultRow label="First Seen" value={m.first_seen ? m.first_seen.slice(0, 10) : undefined} />
             </div>
-          ))}
-          {matches.length === 0 && (
-            <div className="mt-2 px-2 py-1.5 text-[10px] font-mono text-green-400">No OFAC SDN matches for that query.</div>
+          )}
+          {renderFallbackExcluding(['ip','hostnames','ports','tags','vulns','cpes'])}
+        </div>
+      );
+    }
+
+    // ── BGP ──
+    if (activeTab === 'bgp') {
+      return (
+        <div>
+          <SectionHeader title="BGP ROUTING INTELLIGENCE" icon={Globe} color="#00E5FF" />
+          <ResultRow label="Query" value={r.query} color="#00E5FF" />
+          {r.type === 'ip' && r.ip && (
+            <>
+              {r.ip.prefixes?.map((p: any, i: number) => (
+                <div key={i} className="mt-2 p-2 border border-[#00E5FF]/20 bg-[#00E5FF]/5 rounded">
+                  <ResultRow label="ASN" value={`AS${p.asn.asn} - ${p.asn.name}`} color="#00E5FF" />
+                  <ResultRow label="Prefix" value={p.prefix} />
+                  <ResultRow label="Country" value={p.asn.country_code} />
+                  <ResultRow label="Description" value={p.asn.description} />
+                </div>
+              ))}
+            </>
+          )}
+          {r.type === 'asn' && r.asn && (
+            <div className="mt-2 p-2 border border-[#00E5FF]/20 bg-[#00E5FF]/5 rounded">
+              <ResultRow label="ASN" value={`AS${r.asn.asn}`} color="#00E5FF" />
+              <ResultRow label="Name" value={r.asn.name} />
+              <ResultRow label="Description" value={r.asn.description} />
+              <ResultRow label="Country" value={r.asn.country_code} />
+              {r.prefixes && <ResultRow label="Prefixes" value={`IPv4: ${r.prefixes.total_v4} | IPv6: ${r.prefixes.total_v6}`} />}
+              {r.peers && <ResultRow label="Peers" value={r.peers.total} />}
+            </div>
+          )}
+          {renderFallbackExcluding(['query', 'type', 'ip', 'asn', 'prefixes', 'peers', 'timestamp'])}
+        </div>
+      );
+    }
+
+    // ── MAC ──
+    if (activeTab === 'mac') {
+      return (
+        <div>
+          <SectionHeader title="MAC VENDOR LOOKUP" icon={Fingerprint} color="#FFD700" />
+          <ResultRow label="MAC Address" value={r.mac} color="#FFD700" />
+          <ResultRow label="Vendor" value={r.vendor} color={r.vendor === 'Not Found' ? '#FF3D3D' : '#00E676'} />
+        </div>
+      );
+    }
+
+    // ── PHONE ──
+    if (activeTab === 'phone') {
+      return (
+        <div>
+          <SectionHeader title="PHONE INTELLIGENCE" icon={Phone} color="#FF9500" />
+          <ResultRow label="Query" value={r.query} color="#FF9500" />
+          <ResultRow label="Valid" value={r.valid ? 'YES' : 'NO'} color={r.valid ? '#00E676' : '#FF3D3D'} />
+          {r.valid && (
+            <>
+              <ResultRow label="E.164 Format" value={r.number} />
+              <ResultRow label="Intl Format" value={r.international} />
+              <ResultRow label="Nat Format" value={r.national} />
+              <ResultRow label="Country" value={`${r.region} (${r.country_code})`} />
+              <ResultRow label="Line Type" value={r.line_type} color={r.line_type === 'MOBILE' ? '#00E5FF' : r.line_type === 'VOIP' ? '#FF9500' : undefined} />
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // ── GITHUB ──
+    if (activeTab === 'github') {
+      return (
+        <div>
+          <SectionHeader title="GITHUB RECON" icon={Terminal} color="#87CEEB" />
+          <div className="flex items-center gap-3 mb-2">
+            {r.avatar_url && <img src={r.avatar_url} alt="avatar" className="w-10 h-10 rounded-full border border-[#87CEEB]/30" />}
+            <div>
+              <div className="text-[12px] font-mono font-bold text-[#87CEEB]">{r.name || r.username}</div>
+              <div className="text-[9px] font-mono text-[var(--text-muted)]">@{r.username} • {r.followers} followers</div>
+            </div>
+          </div>
+          <ResultRow label="Company" value={r.company} />
+          <ResultRow label="Location" value={r.location} />
+          <ResultRow label="Email" value={r.email} color="#00E676" />
+          <ResultRow label="Twitter" value={r.twitter} color="#448AFF" />
+          <ResultRow label="Website" value={r.blog} />
+          <ResultRow label="Bio" value={r.bio} />
+          {r.recent_repos?.length > 0 && (
+            <div className="mt-2 p-2 border border-[#87CEEB]/20 bg-[#87CEEB]/5 rounded">
+              <span className="text-[9px] font-mono text-[#87CEEB] block mb-1">RECENT REPOS</span>
+              {r.recent_repos.map((repo: any, i: number) => (
+                <div key={i} className="flex justify-between text-[9px] font-mono mb-0.5">
+                  <span className="text-[#E8E6E0]">{repo.name}</span>
+                  <span className="text-[var(--text-muted)]">{repo.language || 'Unknown'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── LEAKS ──
+    if (activeTab === 'leaks') {
+      return (
+        <div>
+          <SectionHeader title="DATA LEAK SWEEP" icon={ShieldAlert} color="#E040FB" />
+          <ResultRow label="Email Target" value={r.email} color="#E040FB" />
+          <ResultRow label="Status" value={r.breached ? 'COMPROMISED' : 'SECURE'} color={r.breached ? '#FF1744' : '#00E676'} />
+          {r.breached && r.breaches?.length > 0 && (
+            <div className="mt-2 p-2 border border-red-500/30 bg-red-500/10 rounded">
+              <span className="text-[10px] font-mono text-red-400 font-bold mb-1 block">KNOWN BREACHES ({r.breaches.length})</span>
+              <div className="flex flex-wrap gap-1">
+                {r.breaches.map((b: string) => (
+                  <span key={b} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#1A1A18] text-red-300">{b}</span>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       );
@@ -820,7 +945,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
   }
 
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.6 }} className="glass-panel flex flex-col overflow-hidden pointer-events-auto">
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.6 }} className="glass-panel flex flex-col overflow-hidden pointer-events-auto shrink-0">
       <div className="flex items-center justify-between px-4 py-3 border-b border-transparent hover:bg-[var(--hover-accent)] transition-colors">
         <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 flex-1">
           <Radar className="w-3.5 h-3.5 text-[var(--cyan-primary)]" />
