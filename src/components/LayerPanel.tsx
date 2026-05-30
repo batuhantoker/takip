@@ -6,7 +6,7 @@ import {
   Plane, Satellite, Activity, Globe, Radio, Eye,
   Shield, Sun, AlertTriangle, Camera, Flame, Target,
   CloudLightning, Radiation, Tv, Anchor, Ship, Newspaper,
-  ChevronDown, ChevronUp, ToggleLeft, ToggleRight,
+  ChevronDown, ChevronUp, ToggleLeft, ToggleRight, Network,
 } from 'lucide-react';
 
 interface LayerPanelProps {
@@ -16,6 +16,14 @@ interface LayerPanelProps {
 }
 
 const LAYER_GROUPS = [
+  {
+    label: 'OSIRIS SDK',
+    icon: Network,
+    color: '#1565C0',
+    layers: [
+      { key: 'sdk_stream', label: 'Intelligence Stream', icon: Network, color: '#1565C0', dataKey: 'sdk_entities' },
+    ],
+  },
   {
     label: 'AVIATION',
     icon: Plane,
@@ -120,7 +128,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Eye className="w-3.5 h-3.5 text-[var(--gold-primary)]" />
+            <Eye className="w-3.5 h-3.5 stroke-[1.5] text-[var(--gold-primary)]" />
             <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--alert-green)] animate-osiris-pulse" />
           </div>
           <span className="hud-text text-[12px] text-[var(--text-primary)] tracking-widest">DATA LAYERS</span>
@@ -149,15 +157,15 @@ function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
                   onClick={() => toggleGroup(group.label)}
                   className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/[0.03] transition-colors"
                 >
-                  <GroupIcon className="w-3 h-3 flex-shrink-0" style={{ color: group.color }} />
+                  <GroupIcon className="w-3 h-3 stroke-[1.5] flex-shrink-0" style={{ color: group.color }} />
                   <span className="text-[9px] font-mono tracking-[0.15em] text-[var(--text-secondary)] font-bold flex-1 text-left">{group.label}</span>
                   <span className="text-[8px] font-mono tabular-nums" style={{ color: groupActiveCount > 0 ? group.color : 'var(--text-muted)' }}>
                     {groupActiveCount}/{group.layers.length}
                   </span>
                   {isExpanded ? (
-                    <ChevronUp className="w-3 h-3 text-[var(--text-muted)]" />
+                    <ChevronUp className="w-3 h-3 stroke-[1.5] text-[var(--text-muted)]" />
                   ) : (
-                    <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
+                    <ChevronDown className="w-3 h-3 stroke-[1.5] text-[var(--text-muted)]" />
                   )}
                 </button>
                 {/* Toggle all in group */}
@@ -167,9 +175,9 @@ function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
                   title={allActive ? 'Disable all' : 'Enable all'}
                 >
                   {allActive ? (
-                    <ToggleRight className="w-3.5 h-3.5" style={{ color: group.color }} />
+                    <ToggleRight className="w-3.5 h-3.5 stroke-[1.5]" style={{ color: group.color }} />
                   ) : (
-                    <ToggleLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                    <ToggleLeft className="w-3.5 h-3.5 stroke-[1.5] text-[var(--text-muted)]" />
                   )}
                 </button>
               </div>
@@ -208,7 +216,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
                               }}
                             />
                             <Icon
-                              className="w-3.5 h-3.5 flex-shrink-0 transition-colors duration-200"
+                              className="w-3.5 h-3.5 stroke-[1.5] flex-shrink-0 transition-colors duration-200"
                               style={{ color: isActive ? layer.color : 'var(--text-muted)' }}
                             />
                             <span className={`text-[11px] font-mono tracking-wide flex-1 text-left transition-colors duration-200 ${
