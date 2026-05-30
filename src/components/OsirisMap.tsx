@@ -1016,12 +1016,8 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     ], { fromName:'Gibraltar', toName:'Rotterdam', domain:'SEA', source:'AIS Maritime' }));
 
     links.push(route([
-      [121.47,31.23], [123.0,30.5], [130.0,30.0], [140.0,34.0], [150.0,40.0], [165.0,43.0], [179.9,44.0]
-    ], { fromName:'Shanghai', toName:'Mid-Pacific', domain:'SEA', source:'AIS Maritime' }));
-
-    links.push(route([
-      [-179.9,44.0], [-160.0,43.0], [-140.0,38.0], [-125.0,34.0], [-118.27,33.74]
-    ], { fromName:'Mid-Pacific', toName:'Los Angeles', domain:'SEA', source:'AIS Maritime' }));
+      [121.47,31.23], [123.0,30.5], [130.0,30.0], [140.0,34.0], [150.0,40.0], [165.0,43.0], [180.0,44.0], [200.0,43.0], [220.0,38.0], [235.0,34.0], [241.73,33.74]
+    ], { fromName:'Shanghai', toName:'Los Angeles', domain:'SEA', source:'AIS Maritime' }));
 
     links.push(route([
       [103.84,1.26], [105.0,4.0], [109.0,10.0], [111.0,15.0], [116.0,21.0], [119.0,24.0], [120.0,26.0], [124.0,30.0], [127.0,32.0], [129.04,35.10]
@@ -1070,12 +1066,8 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     ], { fromName:'Dubai', toName:'Tokyo', domain:'AIR', source:'ADS-B / OpenSky' }));
 
     links.push(route([
-      [139.79,35.61], [148.0,38.0], [158.0,41.0], [170.0,43.0], [179.9,44.0]
-    ], { fromName:'Tokyo', toName:'Mid-Pacific', domain:'AIR', source:'ADS-B / OpenSky' }));
-    
-    links.push(route([
-      [-179.9,44.0], [-165.0,43.0], [-150.0,41.0], [-135.0,38.0], [-125.0,36.0], [-118.41,33.94]
-    ], { fromName:'Mid-Pacific', toName:'LAX', domain:'AIR', source:'ADS-B / OpenSky' }));
+      [139.79,35.61], [148.0,38.0], [158.0,41.0], [170.0,43.0], [180.0,44.0], [195.0,43.0], [210.0,41.0], [225.0,38.0], [235.0,36.0], [241.59,33.94]
+    ], { fromName:'Tokyo', toName:'LAX', domain:'AIR', source:'ADS-B / OpenSky' }));
 
     links.push(route([
       [-118.41,33.94], [-110.0,35.0], [-100.0,37.0], [-90.0,39.0], [-80.0,40.0], [-73.78,40.64]
@@ -1096,12 +1088,8 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     ], { fromName:'Norfolk NAS', toName:'Tartus (Russian Base)', domain:'INTEL', source:'Naval Intelligence' }));
 
     links.push(route([
-      [-117.15,32.69], [-130.0,29.0], [-145.0,25.0], [-157.97,21.35], [-170.0,25.0], [-179.9,29.0]
-    ], { fromName:'San Diego NB', toName:'Mid-Pacific (7th Fleet)', domain:'INTEL', source:'Naval Intelligence' }));
-    
-    links.push(route([
-      [179.9,29.0], [168.0,31.0], [155.0,33.0], [145.0,34.0], [139.67,35.28]
-    ], { fromName:'Mid-Pacific', toName:'Yokosuka (7th Fleet)', domain:'INTEL', source:'Naval Intelligence' }));
+      [-117.15,32.69], [-130.0,29.0], [-145.0,25.0], [-157.97,21.35], [-170.0,25.0], [-180.0,29.0], [-192.0,31.0], [-205.0,33.0], [-215.0,34.0], [-220.33,35.28]
+    ], { fromName:'San Diego NB', toName:'Yokosuka (7th Fleet)', domain:'INTEL', source:'Naval Intelligence' }));
 
     links.push(route([
       [139.67,35.28], [130.0,30.0], [120.0,22.0], [110.0,12.0], [104.01,1.33], [95.0,5.0], [85.0,10.0], [78.0,15.0], [72.84,18.93]
@@ -1130,13 +1118,9 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       [-122.42,37.77], [-130.0,34.0], [-140.0,29.0], [-150.0,24.0], [-157.86,21.31]
     ], { fromName:'San Francisco', toName:'Honolulu', domain:'SEA', source:'AIS Maritime', url:'https://www.marinetraffic.com/en/ais/home/centerx:-140/centery:29/zoom:4' }));
     
-    // Split Honolulu to Guam at antimeridian
     links.push(route([
-      [-157.86,21.31], [-170.0,18.0], [-179.9,16.5]
-    ], { fromName:'Honolulu', toName:'Mid-Pacific', domain:'SEA', source:'AIS Maritime', url:'https://www.marinetraffic.com/en/ais/home/centerx:-170/centery:18/zoom:4' }));
-    links.push(route([
-      [179.9,16.5], [160.0,14.0], [144.75,13.44]
-    ], { fromName:'Mid-Pacific', toName:'Guam', domain:'SEA', source:'AIS Maritime', url:'https://www.marinetraffic.com/en/ais/home/centerx:160/centery:15/zoom:4' }));
+      [-157.86,21.31], [-170.0,18.0], [-180.0,16.5], [-200.0,14.0], [-215.25,13.44]
+    ], { fromName:'Honolulu', toName:'Guam', domain:'SEA', source:'AIS Maritime', url:'https://www.marinetraffic.com/en/ais/home/centerx:-170/centery:18/zoom:4' }));
     
     links.push(route([
       [144.75,13.44], [135.0,18.0], [125.0,23.0], [121.5,25.04]
@@ -1188,7 +1172,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
     // Intel: Trans-Pacific Subsea Data Cable (FASTER equivalent)
     links.push(route([
-      [-124.0,43.0], [-135.0,45.0], [-150.0,47.0], [-165.0,48.0], [175.0,47.0], [155.0,42.0], [140.0,35.0]
+      [-124.0,43.0], [-135.0,45.0], [-150.0,47.0], [-165.0,48.0], [-185.0,47.0], [-205.0,42.0], [-220.0,35.0]
     ], { fromName:'Oregon Landing', toName:'Japan Landing', domain:'INTEL', source:'Global Subsea Cable Network', url:'https://www.submarinecablemap.com/' }));
 
     // Intel: Mediterranean Subsea Cable (SEA-ME-WE)
