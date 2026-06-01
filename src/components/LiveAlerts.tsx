@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown, ChevronUp, MapPin, ExternalLink, AlertTriangle,
@@ -95,7 +96,7 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
     });
   });
 
-  const filtered = filter === 'all' ? alerts :
+  const filtered = filter === 'all' ? alerts.filter(a => a.type !== 'feed') :
     filter === 'news' ? alerts.filter(a => a.type === 'news') :
     filter === 'quakes' ? alerts.filter(a => a.type === 'quake') :
     alerts.filter(a => a.type === 'feed');
@@ -109,16 +110,22 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
     }
   };
 
-  return (
+  // Ensure portal only renders on client
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const content = (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.5, duration: 0.6 }}
-      className={`glass-panel flex flex-col overflow-hidden pointer-events-auto shrink-0 resize-y min-h-[200px] transition-all duration-300 ${maximized ? 'fixed inset-4 z-[9999] bg-[#0a0a09]/95 backdrop-blur-3xl' : ''}`}
+      className={`glass-panel flex flex-col overflow-hidden pointer-events-auto transition-all duration-300 ${maximized ? 'fixed inset-4 z-[9999] bg-[#0a0a09]/95 backdrop-blur-3xl' : 'shrink-0 resize-y min-h-[200px]'}`}
     >
-      <button
+      <div
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between px-3 py-2 hover:bg-[var(--hover-accent)] transition-colors"
+        role="button"
+        tabIndex={0}
+        className="flex items-center justify-between px-3 py-2 hover:bg-[var(--hover-accent)] transition-colors cursor-pointer outline-none"
       >
         <div className="flex items-center gap-2">
           <Radio className="w-3.5 h-3.5 text-[#FF4081]" />
@@ -133,7 +140,7 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
           </button>
           {expanded ? <ChevronUp className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
         </div>
-      </button>
+      </div>
 
       <AnimatePresence>
         {expanded && (
@@ -231,4 +238,10 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed }: LiveAlertsPr
       </AnimatePresence>
     </motion.div>
   );
+
+  if (maximized && mounted && typeof document !== 'undefined') {
+    return createPortal(content, document.body);
+  }
+
+  return content;
 }
