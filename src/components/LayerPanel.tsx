@@ -12,6 +12,7 @@ interface LayerPanelProps {
   data: any;
   activeLayers: any;
   setActiveLayers: React.Dispatch<React.SetStateAction<any>>;
+  isMobile?: boolean;
 }
 
 const LAYER_GROUPS = [
@@ -95,7 +96,7 @@ function Shield(props: any) {
   );
 }
 
-function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
+function LayerPanel({ data, activeLayers, setActiveLayers, isMobile }: LayerPanelProps) {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
 
   const toggle = (key: string) => setActiveLayers((prev: any) => ({ ...prev, [key]: !prev[key] }));
@@ -112,6 +113,62 @@ function LayerPanel({ data, activeLayers, setActiveLayers }: LayerPanelProps) {
     }
     return found ? total : null;
   };
+
+  if (isMobile) {
+    return (
+      <div className="flex flex-col gap-4 py-2">
+        {LAYER_GROUPS.map((group) => (
+          <div key={group.label} className="flex flex-col gap-2">
+            <div 
+              className="text-[10px] font-bold font-mono tracking-widest border-b border-white/10 pb-1"
+              style={{ color: group.color }}
+            >
+              {group.fullLabel}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {group.layers.map((layer) => {
+                const isLayerActive = activeLayers[layer.key];
+                const count = getCount(layer.dataKey);
+                
+                return (
+                  <button
+                    key={layer.key}
+                    onClick={() => {
+                      if (layer.key === 'sdk_ransomware') {
+                        alert('Ransomware Feed - Coming Soon');
+                      } else {
+                        toggle(layer.key);
+                      }
+                    }}
+                    className={`flex items-center gap-2 px-2 py-2 rounded border transition-colors ${
+                      isLayerActive 
+                        ? 'bg-white/10 border-white/20' 
+                        : 'bg-transparent border-white/5 hover:border-white/10'
+                    }`}
+                  >
+                    <div 
+                      className={`w-2 h-2 rounded-full border flex-shrink-0 transition-all ${
+                        isLayerActive ? 'bg-current border-current scale-100' : 'bg-transparent border-white/30 scale-75'
+                      }`}
+                      style={{ color: isLayerActive ? layer.color : 'inherit', boxShadow: isLayerActive ? `0 0 8px ${layer.color}` : 'none' }}
+                    />
+                    <span className={`text-[9px] font-mono uppercase tracking-wider flex-1 text-left ${isLayerActive ? 'text-white' : 'text-white/60'}`}>
+                      {layer.label}
+                    </span>
+                    {count !== null && (
+                      <span className="text-[8px] font-mono tabular-nums opacity-60">
+                        {count.toLocaleString()}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="absolute top-0 left-0 h-full w-[80px] border-r border-white/5 flex flex-col pt-32 pb-8 z-50 pointer-events-auto bg-black/20 backdrop-blur-[2px]">
