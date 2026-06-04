@@ -140,6 +140,13 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       center: [25.48, 42.70], zoom: 6.5, minZoom: 1.5, maxZoom: 18,
       attributionControl: false,
       maxPitch: 85,
+      transformRequest: (url: string) => {
+        // Route all CARTO CDN requests through the Cloudflare edge worker
+        if (url.includes('cartocdn.com')) {
+          return { url: url.replace('https://', 'https://osiris-tiles.soulsimplifai.workers.dev/') };
+        }
+        return { url };
+      },
     });
 
     map.on('load', () => {
