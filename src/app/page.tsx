@@ -142,6 +142,8 @@ export default function Dashboard() {
     sdk_sea: true,
     sdk_air: true,
     sdk_naval: true,
+    internet_outages: false,
+    malware: false,
   });
   const [liveFeedUrl, setLiveFeedUrl] = useState<string | null>(null);
   const [liveFeedName, setLiveFeedName] = useState('');
@@ -394,6 +396,17 @@ export default function Dashboard() {
         } catch (e) { console.warn('Cables fetch failed'); }
       })();
       layerFetchedRef.current.add('cables');
+    }
+
+    // Internet Outages (IODA)
+    if (activeLayers.internet_outages && !layerFetchedRef.current.has('ioda')) {
+      fetchEndpoint('/api/radar', d => ({ ioda_outages: d.outages }));
+      layerFetchedRef.current.add('ioda');
+    }
+    // Live Malware (abuse.ch)
+    if (activeLayers.malware && !layerFetchedRef.current.has('malware')) {
+      fetchEndpoint('/api/malware', d => ({ malware_threats: d.threats }));
+      layerFetchedRef.current.add('malware');
     }
 
 
