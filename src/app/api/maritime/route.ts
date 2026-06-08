@@ -212,50 +212,7 @@ connectAisStream();
 // --- SCM Integration: VesselAPI Hybrid Fallback (Satellite AIS) ---
 let lastVesselApiFetch = 0;
 async function fetchVesselApiFallback() {
-  const now = Date.now();
-  if (now - lastVesselApiFetch < 60000) return; // Poll every 60s max
-  lastVesselApiFetch = now;
-
-  try {
-    const ghostShips = [];
-    const numHormuz = Math.floor(Math.random() * 20) + 45; // 45-65 ships
-    const numSuez = Math.floor(Math.random() * 15) + 30; // 30-45 ships
-    const numMalacca = Math.floor(Math.random() * 30) + 80; // 80-110 ships
-    const numTaiwan = Math.floor(Math.random() * 25) + 60; // 60-85 ships
-    
-    // Helper to generate ships in an area
-    const generateArea = (count: number, baseLat: number, baseLng: number, latRange: number, lngRange: number, mmsiStart: number) => {
-      for (let i=0; i<count; i++) {
-        ghostShips.push({
-          mmsi: mmsiStart + i,
-          lat: baseLat + Math.random() * latRange - (latRange/2),
-          lng: baseLng + Math.random() * lngRange - (lngRange/2),
-          speed: Math.random() * 14,
-          heading: Math.random() * 360,
-          type: Math.random() > 0.6 ? 'tanker' : 'cargo',
-          name: `VESSEL-${Math.floor(Math.random()*9000)+1000}`,
-          destination: 'TRANSIT',
-          flag: 'SIM'
-        });
-      }
-    };
-
-    generateArea(numHormuz, 26.0, 55.5, 1.5, 2.5, 900000000);
-    generateArea(numSuez, 29.5, 32.5, 3.5, 1.0, 910000000);
-    generateArea(numMalacca, 2.0, 102.0, 3.0, 4.0, 920000000);
-    generateArea(numTaiwan, 24.0, 119.5, 4.0, 2.0, 930000000);
-
-    // Merge into global cache
-    for (const ship of ghostShips) {
-      shipsCache.set(ship.mmsi, {
-        id: ship.mmsi, mmsi: ship.mmsi, lat: ship.lat, lng: ship.lng, speed: ship.speed,
-        heading: ship.heading, timestamp: Date.now(), type: ship.type,
-        name: ship.name, destination: ship.destination, flag: ship.flag
-      });
-    }
-  } catch (e) {
-    console.warn("Vessel Fallback Error:", e);
-  }
+  // Mock data removed per user request. We only rely on real live stream data.
 }
 
 export async function GET() {
