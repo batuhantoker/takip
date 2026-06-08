@@ -145,7 +145,7 @@ export default function Dashboard() {
     sdk_sea: true,
     sdk_air: true,
     sdk_naval: true,
-    internet_outages: false,
+    
     malware: false,
   });
   const [liveFeedUrl, setLiveFeedUrl] = useState<string | null>(null);
@@ -421,7 +421,7 @@ export default function Dashboard() {
     }
 
     // Internet Outages (IODA)
-    if (activeLayers.internet_outages && !layerFetchedRef.current.has('ioda')) {
+    if (false) {
       fetchEndpoint('/api/radar', d => ({ ioda_outages: d.outages }));
       layerFetchedRef.current.add('ioda');
     }
