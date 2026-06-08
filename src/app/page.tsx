@@ -43,7 +43,8 @@ function useIsMobile() {
 }
 const UptimeClock = () => {
   const [uptime, setUptime] = useState('00:00:00');
-  const startTime = useRef(Date.now());
+  const startTime = useRef(0);
+  if (startTime.current === 0) startTime.current = Date.now();
   useEffect(() => {
     const iv = setInterval(() => {
       const e = Math.floor((Date.now() - startTime.current) / 1000);
