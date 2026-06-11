@@ -163,10 +163,10 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       const phantomPurple = '#B388FF';
       const phantomDark = '#1A0040';
       const cameraColor = isGhost ? '#B388FF' : '#00E676';
-      const flightCom = isGhost ? phantomPurple : '#64B5F6';
-      const flightPriv = isGhost ? phantomPurple : '#B0BEC5';
-      const flightGov = isGhost ? phantomPurple : '#7E57C2';
-      const flightMil = isGhost ? phantomPurple : '#D32F2F';
+      const flightCom = isGhost ? phantomPurple : '#00E5FF';
+      const flightPriv = isGhost ? phantomPurple : '#FFD700';
+      const flightGov = isGhost ? phantomPurple : '#FF9500';
+      const flightMil = isGhost ? phantomPurple : '#FF3D3D';
 
       // Create icons — OSIRIS Unified Palette
       createIcon(map, 'plane-cyan', flightCom, 24);   
@@ -1062,6 +1062,51 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     setGeo('jets', activeLayers.jets ? toFeatures(data.private_jets, 2) : []);
     setGeo('military', activeLayers.military ? toFeatures(data.military_flights) : []);
   }, [mapReady, data.commercial_flights, data.private_flights, data.private_jets, data.military_flights, activeLayers.flights, activeLayers.private, activeLayers.jets, activeLayers.military]);
+
+    // Update aircraft icon colors dynamically on theme switch
+    useEffect(() => {
+      if (!mapReady || !mapRef.current) return;
+      const map = mapRef.current;
+      
+      const isGhost = theme === 'ghost';
+      const phantomPurple = '#B388FF';
+      const ghostPriv = '#CE93D8';
+      const ghostGov = '#D500F9';
+
+      const flightCom = isGhost ? phantomPurple : '#00E5FF';
+      const flightPriv = isGhost ? ghostPriv : '#FFD700';
+      const flightGov = isGhost ? ghostGov : '#FF9500';
+      const flightMil = '#FF0000';
+
+      const updateMapIcon = (id: string, color: string, size: number) => {
+        if (!map.hasImage(id)) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d')!;
+        const cx = size / 2, cy = size / 2;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size * 0.4);
+        ctx.lineTo(cx - size * 0.12, cy + size * 0.1);
+        ctx.lineTo(cx - size * 0.4, cy + size * 0.2);
+        ctx.lineTo(cx - size * 0.4, cy + size * 0.3);
+        ctx.lineTo(cx - size * 0.12, cy + size * 0.15);
+        ctx.lineTo(cx, cy + size * 0.35);
+        ctx.lineTo(cx + size * 0.12, cy + size * 0.15);
+        ctx.lineTo(cx + size * 0.4, cy + size * 0.3);
+        ctx.lineTo(cx + size * 0.4, cy + size * 0.2);
+        ctx.lineTo(cx + size * 0.12, cy + size * 0.1);
+        ctx.closePath();
+        ctx.fill();
+        map.updateImage(id, { width: size, height: size, data: new Uint8Array(ctx.getImageData(0, 0, size, size).data) });
+      };
+
+      updateMapIcon('plane-cyan', flightCom, 24);
+      updateMapIcon('plane-green', flightPriv, 24);
+      updateMapIcon('plane-pink', flightGov, 24);
+      updateMapIcon('plane-red', flightMil, 24);
+      updateMapIcon('plane-grey', isGhost ? phantomPurple : '#546E7A', 24);
+    }, [mapReady, theme]);
 
   // ── DECOUPLED LAYER RENDERERS (Performance Optimized) ──
 

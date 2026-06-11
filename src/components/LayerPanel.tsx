@@ -17,7 +17,18 @@ interface LayerPanelProps {
   setTheme?: (theme: 'core' | 'ghost') => void;
 }
 
-const LAYER_GROUPS = [
+const getLayerGroups = (theme: 'core' | 'ghost') => {
+  const isGhost = theme === 'ghost';
+  const phantomPurple = '#B388FF';
+  const ghostPriv = '#CE93D8';
+  const ghostGov = '#D500F9';
+
+  const flightCom = isGhost ? phantomPurple : '#00E5FF';
+  const flightPriv = isGhost ? ghostPriv : '#FFD700';
+  const flightGov = isGhost ? ghostGov : '#FF9500';
+  const flightMil = '#FF0000';
+
+  return [
   {
     label: 'SDK',
     fullLabel: 'OSIRIS SDK',
@@ -30,12 +41,12 @@ const LAYER_GROUPS = [
   {
     label: 'AVIATION',
     fullLabel: 'AVIATION',
-    color: '#64B5F6',
+    color: flightCom,
     layers: [
-      { key: 'flights', label: 'Commercial', icon: Plane, color: '#64B5F6', dataKey: 'commercial_flights' },
-      { key: 'private', label: 'Private', icon: Plane, color: '#B0BEC5', dataKey: 'private_flights' },
-      { key: 'jets', label: 'Private Jets', icon: Plane, color: '#7E57C2', dataKey: 'private_jets' },
-      { key: 'military', label: 'Military', icon: Shield, color: '#D32F2F', dataKey: 'military_flights' },
+      { key: 'flights', label: 'Commercial', icon: Plane, color: flightCom, dataKey: 'commercial_flights' },
+      { key: 'private', label: 'Private', icon: Plane, color: flightPriv, dataKey: 'private_flights' },
+      { key: 'jets', label: 'Private Jets', icon: Plane, color: flightGov, dataKey: 'private_jets' },
+      { key: 'military', label: 'Military', icon: Shield, color: flightMil, dataKey: 'military_flights' },
     ],
   },
   {
@@ -93,9 +104,8 @@ const LAYER_GROUPS = [
       { key: 'day_night', label: 'Day / Night Cycle', icon: Sun, color: '#448AFF', dataKey: '' },
     ],
   },
-];
-
-const ALL_LAYERS = LAYER_GROUPS.flatMap(g => g.layers);
+  ];
+};
 
 // SVG component for Shield which was missing in the imports above
 function Shield(props: any) {
@@ -108,6 +118,9 @@ function Shield(props: any) {
 
 function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'core', setTheme }: LayerPanelProps) {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
+
+  const LAYER_GROUPS = getLayerGroups(theme);
+  const ALL_LAYERS = LAYER_GROUPS.flatMap(g => g.layers);
 
   const toggle = (key: string) => setActiveLayers((prev: any) => ({ ...prev, [key]: !prev[key] }));
   
