@@ -207,7 +207,7 @@ async function fetchCanadaCameras(): Promise<any[]> {
         cams.push({
           id: `bc-cam-${cam.id}`, lat, lng,
           name: cam.name || cam.caption || 'BC Highway Camera', city: 'British Columbia', country: 'Canada',
-          feed_url: `https://images.drivebc.ca${cam.links.imageDisplay}`, source: 'DriveBC',
+          feed_url: `https://drivebc.ca${cam.links.imageDisplay}`, source: 'DriveBC',
         });
       }
     }
