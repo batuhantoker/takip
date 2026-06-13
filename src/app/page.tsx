@@ -164,7 +164,7 @@ export default function Dashboard() {
     return () => clearTimeout(splashTimer);
   }, []);
 
-  // URL state: parse on mount
+  // URL state: parse on mount + IP geolocation fallback
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const p = new URLSearchParams(window.location.search);
@@ -172,8 +172,20 @@ export default function Dashboard() {
     const lon = parseFloat(p.get('lon') || '');
     const zoom = parseFloat(p.get('zoom') || '');
     if (!isNaN(lat) && !isNaN(lon)) {
+      // URL params take priority
       setFlyToLocation({ lat, lng: lon, ts: Date.now() });
       if (!isNaN(zoom)) setMapView(v => ({ ...v, zoom }));
+    } else {
+      // No URL coords — geolocate by IP and fly to user's city
+      fetch('http://ip-api.com/json/?fields=status,lat,lon,city,regionName,country')
+        .then(r => r.json())
+        .then(geo => {
+          if (geo.status === 'success' && geo.lat && geo.lon) {
+            setFlyToLocation({ lat: geo.lat, lng: geo.lon, ts: Date.now() });
+            setMapView(v => ({ ...v, zoom: 12 }));
+          }
+        })
+        .catch(() => { /* silent — keep default global view */ });
     }
     const layers = p.get('layers');
     if (layers) {
