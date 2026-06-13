@@ -164,19 +164,15 @@ export default function Dashboard() {
     return () => clearTimeout(splashTimer);
   }, []);
 
-  // URL state: parse on mount + IP geolocation fallback
+  // URL state: parse on mount + IP geolocation for fresh sessions
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    const isFreshSession = !sessionStorage.getItem('osiris_session');
     const p = new URLSearchParams(window.location.search);
-    const lat = parseFloat(p.get('lat') || '');
-    const lon = parseFloat(p.get('lon') || '');
-    const zoom = parseFloat(p.get('zoom') || '');
-    if (!isNaN(lat) && !isNaN(lon)) {
-      // URL params take priority
-      setFlyToLocation({ lat, lng: lon, ts: Date.now() });
-      if (!isNaN(zoom)) setMapView(v => ({ ...v, zoom }));
-    } else {
-      // No URL coords — geolocate by IP and fly to user's city
+
+    if (isFreshSession) {
+      // Brand new session — always geolocate by IP to user's city
+      sessionStorage.setItem('osiris_session', '1');
       fetch('http://ip-api.com/json/?fields=status,lat,lon,city,regionName,country')
         .then(r => r.json())
         .then(geo => {
@@ -186,7 +182,17 @@ export default function Dashboard() {
           }
         })
         .catch(() => { /* silent — keep default global view */ });
+    } else {
+      // Same session refresh — restore from URL params
+      const lat = parseFloat(p.get('lat') || '');
+      const lon = parseFloat(p.get('lon') || '');
+      const zoom = parseFloat(p.get('zoom') || '');
+      if (!isNaN(lat) && !isNaN(lon)) {
+        setFlyToLocation({ lat, lng: lon, ts: Date.now() });
+        if (!isNaN(zoom)) setMapView(v => ({ ...v, zoom }));
+      }
     }
+
     const layers = p.get('layers');
     if (layers) {
       const active = layers.split(',');
