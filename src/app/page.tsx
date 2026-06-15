@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, BarChart3, Newspaper, Search, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Activity, Database, Wifi, Play, Network } from 'lucide-react';
+import { Layers, BarChart3, Newspaper, Search, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Activity, Database, Wifi, Play, Network, Crosshair } from 'lucide-react';
 import IntelFeed from '@/components/IntelFeed';
 import MarketsPanel from '@/components/MarketsPanel';
 import ScmPanel from '@/components/ScmPanel';
@@ -164,35 +164,12 @@ export default function Dashboard() {
     return () => clearTimeout(splashTimer);
   }, []);
 
-  // URL state: parse on mount + IP geolocation for fresh sessions
+  // On mount: geolocate by IP and fly to user's city (after splash/map init)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const isFreshSession = !sessionStorage.getItem('osiris_session');
+
+    // Restore active layers from URL if present
     const p = new URLSearchParams(window.location.search);
-
-    if (isFreshSession) {
-      // Brand new session — always geolocate by IP to user's city
-      sessionStorage.setItem('osiris_session', '1');
-      fetch('http://ip-api.com/json/?fields=status,lat,lon,city,regionName,country')
-        .then(r => r.json())
-        .then(geo => {
-          if (geo.status === 'success' && geo.lat && geo.lon) {
-            setFlyToLocation({ lat: geo.lat, lng: geo.lon, ts: Date.now() });
-            setMapView(v => ({ ...v, zoom: 12 }));
-          }
-        })
-        .catch(() => { /* silent — keep default global view */ });
-    } else {
-      // Same session refresh — restore from URL params
-      const lat = parseFloat(p.get('lat') || '');
-      const lon = parseFloat(p.get('lon') || '');
-      const zoom = parseFloat(p.get('zoom') || '');
-      if (!isNaN(lat) && !isNaN(lon)) {
-        setFlyToLocation({ lat, lng: lon, ts: Date.now() });
-        if (!isNaN(zoom)) setMapView(v => ({ ...v, zoom }));
-      }
-    }
-
     const layers = p.get('layers');
     if (layers) {
       const active = layers.split(',');
@@ -202,24 +179,34 @@ export default function Dashboard() {
         return next;
       });
     }
+
+    // Delay geolocation until map is ready (after splash screen clears)
+    const geoTimer = setTimeout(() => {
+      fetch('http://ip-api.com/json/?fields=status,lat,lon,city,regionName,country,query,isp,org,as')
+        .then(r => r.json())
+        .then(geo => {
+          if (geo.status === 'success' && geo.lat && geo.lon) {
+            setFlyToLocation({ lat: geo.lat, lng: geo.lon, ts: Date.now() });
+            setMapView(v => ({ ...v, zoom: 12 }));
+          }
+        })
+        .catch(() => { /* silent — keep default global view */ });
+    }, 3000);
+
+    return () => clearTimeout(geoTimer);
   }, []);
 
-  // URL state: update URL on view change (debounced)
+  // URL state: persist active layers only (lat/lon comes from IP geolocation on each load)
   const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (urlTimer.current) clearTimeout(urlTimer.current);
     urlTimer.current = setTimeout(() => {
-      const p = new URLSearchParams();
-      p.set('lat', (mapView.latitude ?? 20).toFixed(4));
-      p.set('lon', '0');
-      p.set('zoom', mapView.zoom.toFixed(2));
       const active = Object.entries(activeLayers).filter(([,v]) => v).map(([k]) => k).join(',');
-      p.set('layers', active);
-      const url = `${window.location.pathname}?${p.toString()}`;
+      const url = `${window.location.pathname}?layers=${active}`;
       window.history.replaceState(null, '', url);
     }, 1500);
-  }, [mapView, activeLayers]);
+  }, [activeLayers]);
 
   // Global Stats Fetch
   useEffect(() => {
@@ -925,6 +912,34 @@ export default function Dashboard() {
         <div className="relative group">
           <button onClick={() => { setShowEntityGraph(!showEntityGraph); setShowIntel(false); setShowMarkets(false); setShowAlerts(false); }} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showEntityGraph ? 'bg-[#D4AF37]/20' : 'hover:bg-white/10'}`}>
             <Network className={`w-4 h-4 ${showEntityGraph ? 'text-[#D4AF37]' : 'text-white/60'}`} />
+          </button>
+        </div>
+
+        {/* Self Track — IP Geolocation */}
+        <div className="w-6 border-t border-white/10 mx-auto" />
+        <div className="relative group">
+          <button 
+            onClick={() => {
+              fetch('http://ip-api.com/json/?fields=status,lat,lon,city,regionName,country,query,isp,org,as')
+                .then(r => r.json())
+                .then(geo => {
+                  if (geo.status === 'success' && geo.lat && geo.lon) {
+                    // Fly to user location
+                    setFlyToLocation({ lat: geo.lat, lng: geo.lon, ts: Date.now() });
+                    setMapView(v => ({ ...v, zoom: 14 }));
+                    // Also trigger a scan target marker at user location
+                    setScanTargets(prev => [
+                      { id: geo.query, timestamp: Date.now(), lat: geo.lat, lng: geo.lon, city: geo.city, country: geo.country, isp: geo.isp, org: geo.org, as: geo.as },
+                      ...prev.filter(t => t.id !== geo.query)
+                    ].slice(0, 10));
+                  }
+                })
+                .catch(() => {});
+            }}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-[#39FF14]/20 group"
+            title="Self Track — Locate your IP"
+          >
+            <Crosshair className="w-4 h-4 text-white/60 group-hover:text-[#39FF14] transition-colors" />
           </button>
         </div>
       </div>}

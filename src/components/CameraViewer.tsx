@@ -173,7 +173,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             </div>
 
           {/* Camera Feed */}
-          <div className={`relative bg-[#020202] ${fullscreen ? 'flex-1' : 'aspect-video max-h-[35vh] md:max-h-none'}`}>
+          <div className={`relative bg-[#020202] ${fullscreen ? 'flex-1 overflow-hidden' : 'aspect-video max-h-[35vh] md:max-h-none'}`}>
             {/* Tactical CRT Overlay */}
             <div className="absolute inset-0 pointer-events-none z-20" style={{
               backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 2px)',
@@ -219,7 +219,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             ) : streamType === 'hls' ? (
               <video
                 ref={videoRef}
-                className={`w-full ${fullscreen ? 'h-full object-contain' : 'h-full object-cover'}`}
+                className={`w-full h-full ${fullscreen ? 'object-contain' : 'object-cover'}`}
                 autoPlay
                 muted
                 playsInline
@@ -227,7 +227,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
             ) : streamType === 'mp4' && camera.stream_url ? (
               <video
                 src={camera.stream_url}
-                className={`w-full ${fullscreen ? 'h-full object-contain' : 'h-full object-cover'}`}
+                className={`w-full h-full ${fullscreen ? 'object-contain' : 'object-cover'}`}
                 autoPlay
                 muted
                 playsInline
@@ -245,7 +245,7 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
                 key={refreshKey}
                 src={imageUrl}
                 alt={camera.name}
-                className={`w-full ${fullscreen ? 'h-full object-contain' : 'h-full object-cover'}`}
+                className={`w-full h-full ${fullscreen ? 'object-contain' : 'object-cover'}`}
                 onLoad={() => setLoading(false)}
                 onError={() => { setLoading(false); setError(true); }}
               />
