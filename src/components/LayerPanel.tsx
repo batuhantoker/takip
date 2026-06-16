@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plane, Satellite, Activity, Sun, AlertTriangle, Camera, Flame, Target,
   CloudLightning, Radiation, Tv, Anchor, Ship, Newspaper,
-  Network, Share2, Radio
+  Network, Share2, Radio, Mountain
 } from 'lucide-react';
 
 interface LayerPanelProps {
@@ -102,6 +102,7 @@ const getLayerGroups = (theme: 'core' | 'ghost') => {
     color: '#448AFF',
     layers: [
       { key: 'day_night', label: 'Day / Night Cycle', icon: Sun, color: '#448AFF', dataKey: '' },
+      { key: 'terrain_3d', label: '3D Terrain & Buildings', icon: Mountain, color: '#8D6E63', dataKey: '' },
     ],
   },
   ];

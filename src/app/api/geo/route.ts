@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
-  // Get IP from headers
-  let ip = req.headers.get('x-forwarded-for') || '';
-  if (ip) {
-    ip = ip.split(',')[0].trim();
-  }
+  // Get the REAL client IP — check multiple header sources
+  // Cloudflare sets cf-connecting-ip, proxies set x-forwarded-for, x-real-ip
+  let ip = 
+    req.headers.get('cf-connecting-ip') ||
+    req.headers.get('x-real-ip') ||
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    '';
+
+  // On localhost, these headers are empty — fall back to fetching without IP
+  // which returns the machine's own public IP (correct for local dev)
+  // On production behind Cloudflare, cf-connecting-ip is the USER's real IP
+  const isLocal = !ip || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('192.168.') || ip.startsWith('10.');
   
-  // Use freeipapi (HTTPS enabled) to avoid backend fetch errors
-  const url = (ip && ip !== '::1' && ip !== '127.0.0.1')
-    ? `https://freeipapi.com/api/json/${ip}`
-    : `https://freeipapi.com/api/json`;
+  const url = isLocal
+    ? `https://freeipapi.com/api/json`
+    : `https://freeipapi.com/api/json/${ip}`;
 
   try {
     const res = await fetch(url);

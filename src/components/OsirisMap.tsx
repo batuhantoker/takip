@@ -1436,6 +1436,72 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     }
   }, [mapReady, projection]);
 
+  // 3D Terrain & Buildings layer
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const enabled = activeLayers.terrain_3d;
+
+    try {
+      if (enabled) {
+        // ── 3D BUILDINGS SOURCE (OpenFreeMap CDN — no API key, globally cached) ──
+        if (!map.getSource('osiris-buildings')) {
+          map.addSource('osiris-buildings', {
+            type: 'vector',
+            url: 'https://tiles.openfreemap.org/planet',
+          });
+        }
+
+        // ── 3D BUILDING EXTRUSION LAYER ──
+        if (!map.getLayer('osiris-3d-buildings')) {
+          map.addLayer({
+            id: 'osiris-3d-buildings',
+            source: 'osiris-buildings',
+            'source-layer': 'building',
+            type: 'fill-extrusion',
+            minzoom: 14.5,
+            paint: {
+              'fill-extrusion-color': [
+                'interpolate', ['linear'], ['get', 'render_height'],
+                0, '#1a1a2e',
+                20, '#16213e',
+                50, '#0f3460',
+                120, '#533483',
+                300, '#e94560',
+              ],
+              'fill-extrusion-height': [
+                'interpolate', ['linear'], ['zoom'],
+                14.5, 0,
+                15.5, ['get', 'render_height']
+              ],
+              'fill-extrusion-base': [
+                'interpolate', ['linear'], ['zoom'],
+                14.5, 0,
+                15.5, ['get', 'render_min_height']
+              ],
+              'fill-extrusion-opacity': [
+                'interpolate', ['linear'], ['zoom'],
+                14.5, 0,
+                15, 0.7,
+              ],
+            },
+          });
+        }
+
+        // Pitch the camera to reveal the 3D skyline
+        if (map.getPitch() < 40) {
+          map.easeTo({ pitch: 50, duration: 1200 });
+        }
+
+      } else {
+        // ── DISABLE 3D ──
+        if (map.getLayer('osiris-3d-buildings')) map.removeLayer('osiris-3d-buildings');
+      }
+    } catch (e) {
+      console.warn('[OSIRIS] 3D terrain toggle error:', e);
+    }
+  }, [mapReady, activeLayers.terrain_3d]);
+
   // Satellite / Dark style switching
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;

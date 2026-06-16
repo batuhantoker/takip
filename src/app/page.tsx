@@ -151,7 +151,7 @@ export default function Dashboard() {
     sdk_sea: true,
     sdk_air: true,
     sdk_naval: true,
-    
+    terrain_3d: false,
     malware: false,
   });
   const [liveFeedUrl, setLiveFeedUrl] = useState<string | null>(null);
