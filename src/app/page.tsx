@@ -920,17 +920,25 @@ export default function Dashboard() {
         <div className="relative group">
           <button 
             onClick={() => {
-              fetch('http://ip-api.com/json/?fields=status,lat,lon,city,regionName,country,query,isp,org,as')
+              fetch('/api/geo')
                 .then(r => r.json())
                 .then(geo => {
-                  if (geo.status === 'success' && geo.lat && geo.lon) {
-                    // Fly to user location
+                  if (geo.lat && geo.lon) {
                     setFlyToLocation({ lat: geo.lat, lng: geo.lon, ts: Date.now() });
                     setMapView(v => ({ ...v, zoom: 14 }));
-                    // Also trigger a scan target marker at user location
                     setScanTargets(prev => [
-                      { id: geo.query, timestamp: Date.now(), lat: geo.lat, lng: geo.lon, city: geo.city, country: geo.country, isp: geo.isp, org: geo.org, as: geo.as },
-                      ...prev.filter(t => t.id !== geo.query)
+                      { 
+                        id: geo.query || 'local', 
+                        timestamp: Date.now(), 
+                        lat: geo.lat, 
+                        lng: geo.lon, 
+                        city: geo.city || 'Unknown', 
+                        country: geo.country || 'Unknown', 
+                        isp: geo.isp || 'Unknown', 
+                        org: geo.org || 'Unknown', 
+                        as: geo.as || 'Unknown' 
+                      },
+                      ...prev.filter(t => t.id !== (geo.query || 'local'))
                     ].slice(0, 10));
                   }
                 })
