@@ -56,7 +56,7 @@ const AIRLINE_CODE_RE = /^([A-Z]{3})\d/;
 
 async function fetchRegion(region: typeof REGIONS[0]): Promise<any[]> {
   try {
-    const url = `https://api.adsb.lol/v2/lat/${region.lat}/lon/${region.lon}/dist/${region.dist}`;
+    const url = `https://api.airplanes.live/v2/point/${region.lat}/${region.lon}/${region.dist}`;
     const res = await stealthFetch(url, {
       signal: AbortSignal.timeout(12000),
     });
@@ -87,8 +87,13 @@ function classifyFlight(f: any) {
   const altMeters = typeof altRaw === 'number' ? altRaw * 0.3048 : 0;
   const speedKnots = typeof f.gs === 'number' ? Math.round(f.gs * 10) / 10 : null;
   const heading = f.track || 0;
-  const isHeli = HELI_TYPES.has(modelUpper);
+  const isHeli = HELI_TYPES.has(modelUpper) || f.category_os === 8;
   const isGrounded = typeof altRaw === 'number' && altRaw < 100;
+
+  // OpenSky specific categorizations
+  const isOsMilitary = f.category_os === 14; // UAVs often default to military in OSINT context
+  const isOsJet = f.category_os === 7 || f.category_os === 3;
+  const isOsPrivate = f.category_os === 2;
 
   // Extract airline code
   const airlineMatch = AIRLINE_CODE_RE.exec(callsign);
@@ -96,11 +101,11 @@ function classifyFlight(f: any) {
 
   // Classification
   let category: 'commercial' | 'private' | 'jet' | 'military' = 'commercial';
-  if (dbFlags & 1 || MILITARY_INDICATORS.has(modelUpper) || (f.flight || '').match(/^(RCH|KING|DUKE|EVAC|JAKE|REACH|CONVOY)\d/i)) {
+  if (isOsMilitary || dbFlags & 1 || MILITARY_INDICATORS.has(modelUpper) || (f.flight || '').match(/^(RCH|KING|DUKE|EVAC|JAKE|REACH|CONVOY)\d/i)) {
     category = 'military';
-  } else if (PRIVATE_JET_TYPES.has(modelUpper)) {
+  } else if (isOsJet || PRIVATE_JET_TYPES.has(modelUpper)) {
     category = 'jet';
-  } else if (!airlineCode && modelUpper && !['A319','A320','A321','A332','A333','A339','A343','A359','A388','B737','B738','B739','B38M','B39M','B752','B753','B763','B764','B772','B77L','B77W','B788','B789','B78X','E170','E175','E190','E195','CRJ7','CRJ9','AT43','AT72','DH8D'].includes(modelUpper)) {
+  } else if (isOsPrivate || (!airlineCode && modelUpper && !['A319','A320','A321','A332','A333','A339','A343','A359','A388','B737','B738','B739','B38M','B39M','B752','B753','B763','B764','B772','B77L','B77W','B788','B789','B78X','E170','E175','E190','E195','CRJ7','CRJ9','AT43','AT72','DH8D'].includes(modelUpper))) {
     category = 'private';
   }
 
@@ -162,24 +167,67 @@ export async function GET() {
 
   // Start new global fetch
   fetchPromise = (async () => {
-    // Fetch all 6 regions in parallel
-    const regionResults = await Promise.allSettled(
-      REGIONS.map(r => fetchRegion(r))
-    );
+    // Fetch OpenSky for global traffic and airplanes.live for military & private jets
+    const [osRes, milRes, laddRes] = await Promise.allSettled([
+      stealthFetch('https://opensky-network.org/api/states/all', { signal: AbortSignal.timeout(15000) }),
+      stealthFetch('https://api.airplanes.live/v2/mil', { signal: AbortSignal.timeout(12000) }),
+      stealthFetch('https://api.airplanes.live/v2/ladd', { signal: AbortSignal.timeout(12000) })
+    ]);
 
     const allRaw: any[] = [];
     const seenHex = new Set<string>();
 
-    for (const result of regionResults) {
-      if (result.status === 'fulfilled') {
-        for (const ac of result.value) {
+    // Process military flights first so they take precedence (preserves nac_p for jamming)
+    if (milRes.status === 'fulfilled' && milRes.value.ok) {
+      try {
+        const data = await milRes.value.json();
+        for (const ac of (data.ac || [])) {
           const hex = (ac.hex || '').toLowerCase().trim();
           if (hex && !seenHex.has(hex)) {
             seenHex.add(hex);
             allRaw.push(ac);
           }
         }
-      }
+      } catch(e) {}
+    }
+
+    // Process LADD (Private Jets) flights
+    if (laddRes.status === 'fulfilled' && laddRes.value.ok) {
+      try {
+        const data = await laddRes.value.json();
+        for (const ac of (data.ac || [])) {
+          const hex = (ac.hex || '').toLowerCase().trim();
+          if (hex && !seenHex.has(hex)) {
+            seenHex.add(hex);
+            allRaw.push(ac);
+          }
+        }
+      } catch(e) {}
+    }
+
+    // Process OpenSky flights globally
+    if (osRes.status === 'fulfilled' && osRes.value.ok) {
+      try {
+        const data = await osRes.value.json();
+        for (const s of (data.states || [])) {
+          const hex = (s[0] || '').toLowerCase().trim();
+          if (hex && !seenHex.has(hex)) {
+            seenHex.add(hex);
+            // Translate OpenSky to tar1090 format
+            allRaw.push({
+              hex: s[0],
+              flight: s[1]?.trim(),
+              lon: s[5],
+              lat: s[6],
+              alt_baro: typeof s[7] === 'number' ? s[7] * 3.28084 : null, // meters to feet
+              gs: typeof s[9] === 'number' ? s[9] * 1.94384 : null, // m/s to knots
+              track: s[10],
+              squawk: s[14],
+              category_os: s[17], // OpenSky category
+            });
+          }
+        }
+      } catch(e) {}
     }
 
     // Classify all flights
