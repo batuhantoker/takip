@@ -134,6 +134,11 @@ export default function Dashboard() {
     military: false,
     maritime: true,
     satellites: false,
+    sat_comms: false,
+    sat_military: false,
+    sat_navigation: false,
+    sat_earth: false,
+    sat_science: false,
     balloons: false,
     cctv: true,
     live_news: true,
@@ -364,8 +369,9 @@ export default function Dashboard() {
         layerFetchedRef.current.add('flights');
       }
     }
-    // Satellites
-    if (activeLayers.satellites && !layerFetchedRef.current.has('satellites')) {
+    // Satellites (any satellite sub-layer triggers fetch)
+    const anySatLayer = activeLayers.satellites || activeLayers.sat_comms || activeLayers.sat_military || activeLayers.sat_navigation || activeLayers.sat_earth || activeLayers.sat_science;
+    if (anySatLayer && !layerFetchedRef.current.has('satellites')) {
       fetchEndpoint('/api/satellites');
       layerFetchedRef.current.add('satellites');
     }

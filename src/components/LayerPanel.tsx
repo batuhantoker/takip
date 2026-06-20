@@ -51,11 +51,23 @@ const getLayerGroups = (theme: 'core' | 'ghost') => {
   },
   {
     label: 'MARITIME',
-    fullLabel: 'MARITIME & SPACE',
+    fullLabel: 'MARITIME',
     color: '#26C6DA',
     layers: [
       { key: 'maritime', label: 'Maritime / Naval', icon: Ship, color: '#26C6DA', dataKey: 'maritime_ships,maritime_ports,maritime_chokepoints' },
-      { key: 'satellites', label: 'Satellites', icon: Satellite, color: '#D4AF37', dataKey: 'satellites' },
+    ],
+  },
+  {
+    label: 'SPACE',
+    fullLabel: 'SPACE TRACKING',
+    color: '#D4AF37',
+    layers: [
+      { key: 'satellites', label: 'All Satellites', icon: Satellite, color: '#D4AF37', dataKey: 'satellites' },
+      { key: 'sat_comms', label: 'Starlink / Comms', icon: Satellite, color: '#00E676', dataKey: 'satellites', catKey: 'comms' },
+      { key: 'sat_military', label: 'Military / Intel', icon: Satellite, color: '#FF3D3D', dataKey: 'satellites', catKey: 'military' },
+      { key: 'sat_navigation', label: 'GPS / Navigation', icon: Satellite, color: '#448AFF', dataKey: 'satellites', catKey: 'navigation' },
+      { key: 'sat_earth', label: 'Earth Observation', icon: Satellite, color: '#90EE90', dataKey: 'satellites', catKey: 'earth_obs' },
+      { key: 'sat_science', label: 'Stations / Telescopes', icon: Satellite, color: '#FFD700', dataKey: 'satellites', catKey: 'science' },
     ],
   },
   {
@@ -125,8 +137,12 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
 
   const toggle = (key: string) => setActiveLayers((prev: any) => ({ ...prev, [key]: !prev[key] }));
   
-  const getCount = (dk: string): number | null => {
+  const getCount = (dk: string, catKey?: string): number | null => {
     if (!dk) return null;
+    // For satellite sub-layers, use category_counts from the API
+    if (catKey && data.category_counts) {
+      return data.category_counts[catKey] || 0;
+    }
     let total = 0;
     let found = false;
     for (const k of dk.split(',')) {
@@ -152,7 +168,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
             <div className="grid grid-cols-2 gap-2">
               {group.layers.map((layer) => {
                 const isLayerActive = activeLayers[layer.key];
-                const count = getCount(layer.dataKey);
+                const count = getCount(layer.dataKey, layer.catKey);
                 
                 return (
                   <button
@@ -286,7 +302,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
                     <div className="flex flex-col gap-1.5">
                       {group.layers.map((layer) => {
                         const isLayerActive = activeLayers[layer.key];
-                        const count = getCount(layer.dataKey);
+                        const count = getCount(layer.dataKey, layer.catKey);
                         const Icon = layer.icon || Shield;
                         
                         return (
