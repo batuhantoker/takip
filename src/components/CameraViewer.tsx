@@ -77,6 +77,11 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
       return;
     }
 
+    if (streamType === 'mjpeg' && camera.stream_url) {
+      setLoading(false);
+      return;
+    }
+
     if ((streamType === 'iframe' || streamType === 'mp4') && camera.stream_url) {
       setLoading(false);
       return;
@@ -224,6 +229,14 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
                 autoPlay
                 muted
                 playsInline
+              />
+            ) : streamType === 'mjpeg' && camera.stream_url ? (
+              <img
+                src={camera.stream_url}
+                alt={camera.name}
+                className={`w-full h-full ${fullscreen ? 'object-contain' : 'object-cover'}`}
+                onLoad={() => setLoading(false)}
+                onError={() => { setLoading(false); setError(true); }}
               />
             ) : streamType === 'mp4' && camera.stream_url ? (
               <video
