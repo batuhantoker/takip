@@ -19,6 +19,7 @@ import { fetchJapanCameras } from './japan';
 import { fetchSwitzerlandCameras } from './switzerland';
 import { fetchFinlandCameras } from './finland';
 import { fetchHongKongCameras } from './hongkong';
+import { fetchUtahCameras } from './utah';
 
 /**
  * OSIRIS — Worldwide CCTV Camera API v2
@@ -423,6 +424,7 @@ const REGION_FETCHERS: Record<string, () => Promise<any[]>> = {
   'switzerland': fetchSwitzerlandCameras,
   'finland': fetchFinlandCameras,
   'hongkong': fetchHongKongCameras,
+  'utah': fetchUtahCameras,
 };
 
 // Determine which regions to fetch based on viewport bounds
@@ -434,6 +436,8 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (lat > 24 && lat < 49 && lng > -85 && lng < -66) regions.push('us-east');
   // US-West
   if (lat > 24 && lat < 49 && lng > -125 && lng < -100) regions.push('us-west');
+  // Utah (UDOT) — explicit, since us-west only covers WA + CA
+  if (lat > 36.9 && lat < 42.1 && lng > -114.2 && lng < -108.9) regions.push('utah');
   // US-Central
   if (lat > 24 && lat < 49 && lng > -105 && lng < -80) regions.push('us-central');
   // Canada
