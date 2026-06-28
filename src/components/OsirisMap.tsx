@@ -1292,7 +1292,8 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     (async () => {
       try {
         const res = await fetch('/api/conflicts');
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const conflictData = await res.json();
         if (cancelled) return;
 

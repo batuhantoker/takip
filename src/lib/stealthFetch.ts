@@ -75,6 +75,8 @@ export function stealthHeaders(extraHeaders?: Record<string, string>): Record<st
   return {
     'User-Agent': randomUA(),
     'Accept-Language': 'en-US,en;q=0.9',
+    'X-Forwarded-For': ip,
+    'X-Real-IP': ip,
     ...extraHeaders,
   };
 }

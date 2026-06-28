@@ -144,100 +144,127 @@ function parsePointDataCSV(csv: string): ConflictEvent[] {
   return events;
 }
 
-// Main comprehensive conflict query — fetches from GDELT DOC API (pointdata mode)
 async function fetchAllLiveConflictData(): Promise<{ events: ConflictEvent[]; eventsByRegion: Record<string, number> }> {
-  // Use fewer, broader queries with proper delays to avoid 429
-  const conflictQueries = [
-    'airstrike OR missile OR shelling',
-    'military attack OR bombing OR frontline',
-    'drone strike OR war casualties',
-  ];
-
   const allEvents: ConflictEvent[] = [];
   const eventsByRegion: Record<string, number> = {};
 
-  // Sequential requests with 6s delay between each (GDELT enforces 1 per 5s)
-  for (let i = 0; i < conflictQueries.length; i++) {
-    if (i > 0) await new Promise(resolve => setTimeout(resolve, 6000));
-    
-    try {
-      const query = conflictQueries[i];
-      const encodedQuery = encodeURIComponent(query);
-      
-      // Try GEO API first (returns GeoJSON with coordinates)
-      const geoUrl = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&format=GeoJSON&timespan=72h&maxpoints=100`;
-      const geoRes = await stealthFetch(geoUrl, { signal: AbortSignal.timeout(10000) });
-      
-      if (geoRes.ok) {
-        const contentType = geoRes.headers.get('content-type') || '';
-        const text = await geoRes.text();
-        
-        // Check if it's actually JSON (not HTML error page)
-        if (text.startsWith('{') || contentType.includes('json')) {
-          try {
-            const data = JSON.parse(text);
-            if (data?.features) {
-              for (const feature of data.features) {
-                const coords = feature.geometry?.coordinates;
-                if (!coords || coords.length < 2) continue;
-                
-                const lat = coords[1];
-                const lng = coords[0];
-                const title = feature.properties?.name || 
-                  feature.properties?.html?.replace(/<[^>]*>/g, '').slice(0, 150) || 
-                  'Conflict Event';
-                
-                // Deduplicate by proximity
-                const isDupe = allEvents.some(e => 
-                  Math.abs(e.lat - lat) < 0.3 && Math.abs(e.lng - lng) < 0.3
-                );
-                if (isDupe) continue;
+  const RSS_FEEDS = [
+    'http://feeds.bbci.co.uk/news/world/rss.xml',
+    'https://www.aljazeera.com/xml/rss/all.xml',
+    'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'
+  ];
 
-                allEvents.push({
-                  id: `gdelt-live-${allEvents.length}`,
-                  lat, lng,
-                  title: title.substring(0, 150),
-                  url: feature.properties?.url || '',
-                  type: 'conflict',
-                  timestamp: new Date().toISOString(),
-                });
-              }
-              continue; // GEO worked, skip DOC fallback
-            }
-          } catch { /* parse failed, try DOC fallback */ }
-        }
-      }
+  try {
+    const https = require('https');
+    const http = require('http');
 
-      // Fallback: DOC API pointdata mode (CSV with lat/lng)
-      await new Promise(resolve => setTimeout(resolve, 6000)); // extra delay
-      const docUrl = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodedQuery}&mode=pointdata&format=csv&timespan=72h&maxrecords=80`;
-      const docRes = await stealthFetch(docUrl, { signal: AbortSignal.timeout(10000) });
-      
-      if (docRes.ok) {
-        const csv = await docRes.text();
-        if (!csv.includes('<!DOCTYPE') && !csv.includes('limit requests')) {
-          const parsed = parsePointDataCSV(csv);
-          for (const event of parsed) {
-            const isDupe = allEvents.some(e => 
-              Math.abs(e.lat - event.lat) < 0.3 && Math.abs(e.lng - event.lng) < 0.3
-            );
-            if (!isDupe) allEvents.push(event);
+    const fetchRSS = (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const client = url.startsWith('https') ? https : http;
+        const req = client.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, family: 4 }, (res: any) => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+             return fetchRSS(url.startsWith('https') && res.headers.location.startsWith('/') ? `https://${new URL(url).host}${res.headers.location}` : res.headers.location).then(resolve).catch(reject);
           }
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            return reject(new Error(`Status: ${res.statusCode}`));
+          }
+          let data = '';
+          res.on('data', (chunk: string) => data += chunk);
+          res.on('end', () => resolve(data));
+        });
+        req.on('error', reject);
+        req.setTimeout(5000, () => {
+          req.destroy();
+          reject(new Error('Timeout'));
+        });
+      });
+    };
+
+    const feedPromises = RSS_FEEDS.map(async (url) => {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5'
+          },
+          signal: AbortSignal.timeout(8000),
+          cache: 'no-store'
+        });
+        
+        if (!res.ok) {
+          console.log(`[OSIRIS] RSS Fetch Failed for ${url}: ${res.status}`);
+          return [];
+        }
+        
+        const xml = await res.text();
+        const rawItems = xml.split(/<item>/i).slice(1);
+        console.log(`[OSIRIS] RSS ${url} returned ${rawItems.length} items`);
+        
+        return rawItems.map(rawItem => {
+          const item = rawItem.split(/<\/item>/i)[0];
+          const titleMatch = item.match(/<title>(.*?)<\/title>/i) || item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/i);
+          const linkMatch = item.match(/<link>(.*?)<\/link>/i);
+          const descMatch = item.match(/<description>(.*?)<\/description>/i) || item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/i);
+          
+          if (!titleMatch) return null;
+          return {
+            title: titleMatch[1].replace(/<[^>]*>/g, '').trim(),
+            link: linkMatch ? linkMatch[1] : '',
+            desc: descMatch ? descMatch[1].replace(/<[^>]*>/g, '').trim() : ''
+          };
+        }).filter(Boolean);
+      } catch (err) {
+        console.log(`[OSIRIS] RSS Fetch Error for ${url}:`, (err as Error).message);
+        return [];
+      }
+    });
+
+    const feedResults = await Promise.all(feedPromises);
+    const combinedItems = feedResults.flat();
+
+    // Map RSS items to known conflict zones
+    let eventId = 0;
+    for (const item of combinedItems) {
+      if (!item) continue;
+      
+      const searchText = `${item.title} ${item.desc}`.toLowerCase();
+      
+      for (const zone of KNOWN_CONFLICTS) {
+        // Check if any query keywords match
+        const matchesZone = zone.queries.some(q => {
+          const terms = q.toLowerCase().split(' ');
+          return terms.every(term => searchText.includes(term)) || searchText.includes(zone.region);
+        });
+
+        if (matchesZone) {
+          eventsByRegion[zone.id] = (eventsByRegion[zone.id] || 0) + 1;
+          
+          // Deterministic tiny offset based on eventId so dots don't exactly overlap the anchor
+          const offsetLat = (eventId % 5 - 2) * 0.1;
+          const offsetLng = ((eventId * 3) % 5 - 2) * 0.1;
+
+          // Deduplicate by title to avoid multiple feeds reporting the same event
+          const isDupe = allEvents.some(e => e.title === item.title.substring(0, 150));
+          if (isDupe) break;
+
+          allEvents.push({
+            id: `osint-live-${eventId++}`,
+            lat: zone.lat + offsetLat,
+            lng: zone.lng + offsetLng,
+            title: item.title.substring(0, 150),
+            url: item.link,
+            type: 'conflict',
+            timestamp: new Date().toISOString(),
+          });
+          
+          break; // Match only one zone per news item
         }
       }
-    } catch {
-      // Individual query failure is non-fatal
     }
-  }
-
-  // Classify events into conflict regions
-  for (const event of allEvents) {
-    for (const zone of KNOWN_CONFLICTS) {
-      if (event.lat >= zone.bounds.minLat && event.lat <= zone.bounds.maxLat &&
-          event.lng >= zone.bounds.minLng && event.lng <= zone.bounds.maxLng) {
-        eventsByRegion[zone.id] = (eventsByRegion[zone.id] || 0) + 1;
-      }
-    }
+    console.log(`[OSIRIS] Mapped ${allEvents.length} conflict events from RSS.`);
+  } catch (e) {
+    console.error('OSINT Conflict Fetch Error:', e);
   }
 
   return { events: allEvents, eventsByRegion };
@@ -278,7 +305,7 @@ export async function GET() {
       totalLiveEvents: liveEvents.length,
       activeWarzones: zones.filter(z => z.severity === 'war').length,
       timestamp: new Date().toISOString(),
-      sources: ['GDELT GEO 2.0', 'GDELT DOC 2.0'],
+      sources: ['OSINT RSS News'],
       refreshInterval: 300, // suggest 5 min refresh
     }, {
       headers: {

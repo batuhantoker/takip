@@ -52,8 +52,36 @@ export default function GlobalStatusBar() {
     const fetchData = async () => {
       try {
         const [cryptoRes, quakeRes] = await Promise.allSettled([
-          fetch('/api/crypto'),
-          fetch('/api/earthquakes'),
+          fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd')
+            .then(res => res.ok ? res.json() : Promise.reject('CoinGecko error'))
+            .then(data => {
+              const prices: CryptoPrice[] = [];
+              if (data.bitcoin?.usd) prices.push({ symbol: 'BTC', price: data.bitcoin.usd });
+              if (data.ethereum?.usd) prices.push({ symbol: 'ETH', price: data.ethereum.usd });
+              if (data.solana?.usd) prices.push({ symbol: 'SOL', price: data.solana.usd });
+              return { ok: true, json: async () => prices };
+            }),
+          fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson')
+            .then(res => res.ok ? res.json() : Promise.reject('USGS error'))
+            .then(data => ({
+              ok: true,
+              json: async () => ({
+                earthquakes: (data.features || []).map((f: any) => ({
+                  id: f.id,
+                  lat: f.geometry?.coordinates?.[1] || 0,
+                  lng: f.geometry?.coordinates?.[0] || 0,
+                  depth: f.geometry?.coordinates?.[2] || 0,
+                  magnitude: f.properties?.mag,
+                  place: f.properties?.place,
+                  time: f.properties?.time,
+                  url: f.properties?.url,
+                  tsunami: f.properties?.tsunami,
+                  type: f.properties?.type,
+                  felt: f.properties?.felt,
+                  alert: f.properties?.alert,
+                }))
+              })
+            })),
         ]);
 
         if (cryptoRes.status === 'fulfilled' && cryptoRes.value.ok) {

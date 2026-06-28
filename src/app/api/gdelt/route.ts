@@ -11,79 +11,67 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // GDELT GEO 2.0 API — returns real events with actual coordinates
-    const queries = [
-      'protest OR riot OR unrest',
-      'conflict OR military OR attack OR strike',
-      'coup OR revolution OR emergency',
-    ];
-    
+    const res = await fetch('https://www.gdacs.org/xml/rss.xml', {
+      next: { revalidate: 300 }, // Cache 5 min
+    });
+
+    if (!res.ok) {
+      return NextResponse.json({ events: [], error: 'GDACS unavailable' });
+    }
+
+    const xml = await res.text();
+    // Split by <item> instead of using regex to avoid ReDoS on large XML
+    const rawItems = xml.split(/<item>/i).slice(1);
     const allEvents: any[] = [];
     let eventId = 0;
 
-    for (const query of queries) {
-      try {
-        const encodedQuery = encodeURIComponent(query);
-        const url = `https://api.gdeltproject.org/api/v2/geo/geo?query=${encodedQuery}&format=GeoJSON&timespan=24h&maxpoints=100`;
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+    for (const rawItem of rawItems) {
+      const item = rawItem.split(/<\/item>/i)[0]; // get content up to </item>
+      
+      const titleMatch = item.match(/<title>(.*?)<\/title>/i) || item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/i);
+      const linkMatch = item.match(/<link>(.*?)<\/link>/i);
+      const descMatch = item.match(/<description>(.*?)<\/description>/i) || item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/i);
+      const latMatch = item.match(/<geo:lat>(.*?)<\/geo:lat>/i);
+      const lngMatch = item.match(/<geo:long>(.*?)<\/geo:long>/i);
+      const typeMatch = item.match(/<gdacs:eventtype>(.*?)<\/gdacs:eventtype>/i);
 
-        const geojson = await Promise.race([
-          (async () => {
-            const res = await stealthFetch(url, { signal: controller.signal, cache: 'no-store' });
-            if (!res.ok) throw new Error('Not OK');
-            return await res.json();
-          })(),
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('GDELT Timeout')), 5000))
-        ]).finally(() => clearTimeout(timeoutId));
+      if (!titleMatch || !latMatch || !lngMatch) continue;
 
-        if (!geojson?.features) continue;
+      const title = titleMatch[1];
+      const link = linkMatch ? linkMatch[1] : '';
+      const desc = descMatch ? descMatch[1] : '';
+      const lat = parseFloat(latMatch[1]);
+      const lng = parseFloat(lngMatch[1]);
+      const eventType = typeMatch ? typeMatch[1] : 'UNK';
 
-        for (const feature of geojson.features) {
-          const coords = feature.geometry?.coordinates;
-          if (!coords || coords.length < 2) continue;
+      // Map GDACS event types to Osiris types
+      let type = 'conflict';
+      if (eventType === 'EQ') type = 'earthquake';
+      else if (eventType === 'TC') type = 'weather';
+      else if (eventType === 'FL') type = 'weather';
+      else if (eventType === 'VO') type = 'volcano';
 
-          const props = feature.properties || {};
-          const name = props.name || props.html?.replace(/<[^>]*>/g, '').slice(0, 120) || 'GDELT Event';
-          const url = props.url || props.shareimage || '';
-
-          // Deduplicate by proximity (within 0.5 degrees)
-          const isDupe = allEvents.some(e => 
-            Math.abs(e.lat - coords[1]) < 0.5 && Math.abs(e.lng - coords[0]) < 0.5 && e.name === name
-          );
-          if (isDupe) continue;
-
-          allEvents.push({
-            id: `gdelt-${eventId++}`,
-            lat: coords[1],
-            lng: coords[0],
-            name,
-            url,
-            html: props.html || '',
-            type: query.includes('protest') ? 'unrest' : query.includes('conflict') ? 'conflict' : 'political',
-            count: props.count || 1,
-            shareimage: props.shareimage || '',
-          });
-        }
-      } catch {
-        // Individual query failure is non-fatal
-      }
+      allEvents.push({
+        id: `gdacs-${eventId++}`,
+        lat,
+        lng,
+        name: title,
+        url: link,
+        html: `<a href="${link}" target="_blank">${title}</a><br/><i>${desc}</i>`,
+        type,
+      });
     }
-
-    // Fail honest: never fabricate events. Return empty when upstream is unavailable.
-    // (Previously this block generated synthetic incidents at random coordinates.)
 
     return NextResponse.json({
       events: allEvents,
       total: allEvents.length,
       timestamp: new Date().toISOString(),
-      source: 'GDELT 2.0 GeoJSON API',
+      source: 'GDACS RSS API',
     }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     });
   } catch (error) {
-    console.error('[OSIRIS] GDELT fetch error:', error);
-    return NextResponse.json({ events: [], total: 0, error: 'GDELT unavailable' }, { status: 500 });
+    console.error('[OSIRIS] GDACS fetch error:', error);
+    return NextResponse.json({ events: [], total: 0, error: 'GDACS unavailable' }, { status: 500 });
   }
 }
