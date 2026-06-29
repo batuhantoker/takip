@@ -57,18 +57,46 @@ const MILITARY_INDICATORS = new Set([
 
 const AIRLINE_CODE_RE = /^([A-Z]{3})\d/;
 
-async function fetchRegion(region: typeof REGIONS[0]): Promise<any[]> {
+// Free, keyless, datacenter-friendly ADS-B providers used for the regional fallback when
+// OpenSky is unavailable. Each exposes the same tar1090/ADSBexchange-v2 aircraft shape, so
+// classifyFlight() consumes them unchanged. They're independent feeder networks, so trying a
+// second one gives genuine redundancy (and extra coverage) if the first is down or limited.
+// These point APIs cap the search radius at 250 nm regardless of what's requested (adsb.lol
+// caps silently; adsb.fi rejects an oversized value), so requests are clamped to that.
+// `sequential` providers must be queried one region at a time to respect their rate limit.
+type AdsbProvider = {
+  name: string;
+  url: (lat: number, lon: number, dist: number) => string;
+  arrayKey: 'ac' | 'aircraft';
+  sequential?: boolean; // adsb.fi public API is limited to 1 request/sec
+};
+const ADSB_MAX_DIST = 250;
+const ADSB_PROVIDERS: AdsbProvider[] = [
+  {
+    name: 'adsb.lol',
+    url: (lat, lon, dist) => `https://api.adsb.lol/v2/point/${lat}/${lon}/${dist}`,
+    arrayKey: 'ac',
+  },
+  {
+    name: 'adsb.fi',
+    url: (lat, lon, dist) => `https://opendata.adsb.fi/api/v2/lat/${lat}/lon/${lon}/dist/${dist}`,
+    arrayKey: 'aircraft',
+    sequential: true,
+  },
+];
+
+async function fetchRegion(region: typeof REGIONS[0], provider: AdsbProvider): Promise<any[]> {
   try {
-    const url = `https://api.adsb.lol/v2/point/${region.lat}/${region.lon}/${region.dist}`;
-    const res = await stealthFetch(url, {
+    const dist = Math.min(region.dist, ADSB_MAX_DIST);
+    const res = await stealthFetch(provider.url(region.lat, region.lon, dist), {
       signal: AbortSignal.timeout(12000),
     });
     if (res.ok) {
       const data = await res.json();
-      return data.ac || [];
+      return data[provider.arrayKey] || data.ac || [];
     }
   } catch (e) {
-    console.warn(`Region fetch failed for lat=${region.lat}:`, e);
+    console.warn(`[OSIRIS] ${provider.name} region fetch failed for lat=${region.lat}:`, e);
   }
   return [];
 }
@@ -310,20 +338,37 @@ export async function GET() {
       } catch(e) {}
     }
 
-    // Fallback: If OpenSky failed (429 rate limit / blocked datacenter IP), fan out to adsb.lol regions
+    // Fallback: If OpenSky failed (429 rate limit / blocked datacenter IP), fan out across the
+    // regional ADS-B providers. We try them in order and stop once one returns a healthy result,
+    // so the second provider only gets hit when the first is down or limited (true redundancy).
     if (!openSkyWorked) {
-      console.warn('[OSIRIS] OpenSky unavailable — falling back to adsb.lol regional fetch');
-      const regionResults = await Promise.allSettled(REGIONS.map(r => fetchRegion(r)));
-      for (const result of regionResults) {
-        if (result.status === 'fulfilled') {
-          for (const ac of result.value) {
+      console.warn('[OSIRIS] OpenSky unavailable — falling back to regional ADS-B providers');
+      let fallbackAdded = 0;
+      for (const provider of ADSB_PROVIDERS) {
+        let regionLists: any[][];
+        if (provider.sequential) {
+          // Rate-limited provider: one region at a time with a gap between calls.
+          regionLists = [];
+          for (const r of REGIONS) {
+            regionLists.push(await fetchRegion(r, provider));
+            await new Promise(res => setTimeout(res, 1100));
+          }
+        } else {
+          regionLists = (await Promise.allSettled(REGIONS.map(r => fetchRegion(r, provider))))
+            .map(x => (x.status === 'fulfilled' ? x.value : []));
+        }
+        for (const list of regionLists) {
+          for (const ac of list) {
             const hex = (ac.hex || '').toLowerCase().trim();
             if (hex && !seenHex.has(hex)) {
               seenHex.add(hex);
               allRaw.push(ac);
+              fallbackAdded++;
             }
           }
         }
+        // Healthy result from this provider — no need to hit the next one.
+        if (fallbackAdded > 200) break;
       }
     }
 
