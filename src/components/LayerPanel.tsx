@@ -24,7 +24,6 @@ const LAYER_GROUPS = [
     icon: Database,
     layers: [
       { key: 'sdk_sea', label: 'Maritime Lines', dataKey: 'sdk_entities' },
-      { key: 'sdk_ransomware', label: 'Ransomware Feed', dataKey: 'sdk_entities' },
     ],
   },
   {
@@ -177,13 +176,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
                   <div key={layer.key} className="flex items-center gap-3 px-1 py-1.5">
                     <ToggleSwitch
                       active={!!isLayerActive}
-                      onClick={() => {
-                        if (layer.key === 'sdk_ransomware') {
-                          alert('Ransomware Feed - Coming Soon');
-                        } else {
-                          toggle(layer.key);
-                        }
-                      }}
+                      onClick={() => toggle(layer.key)}
                     />
                     <span className={`text-[10px] font-mono uppercase tracking-wider flex-1 transition-colors ${isLayerActive ? 'text-white/80' : 'text-white/40'}`}>
                       {layer.label}
@@ -297,13 +290,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
                           <div
                             key={layer.key}
                             className="flex items-center gap-3 px-1 py-[5px] rounded-md hover:bg-white/[0.03] transition-colors cursor-pointer"
-                            onClick={() => {
-                              if (layer.key === 'sdk_ransomware') {
-                                alert('Ransomware Feed - Coming Soon');
-                              } else {
-                                toggle(layer.key);
-                              }
-                            }}
+                            onClick={() => toggle(layer.key)}
                           >
                             <ToggleSwitch active={!!isLayerActive} onClick={() => {}} />
                             <span className={`text-[10px] font-mono uppercase tracking-wider flex-1 transition-colors duration-200 ${isLayerActive ? 'text-white/70' : 'text-white/35'}`}>
