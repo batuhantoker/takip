@@ -209,10 +209,13 @@ export async function GET() {
     }
 
     // Process OpenSky flights globally
+    let openSkyWorked = false;
     if (osRes.status === 'fulfilled' && osRes.value.ok) {
       try {
         const data = await osRes.value.json();
-        for (const s of (data.states || [])) {
+        const states = data.states || [];
+        if (states.length > 100) openSkyWorked = true;
+        for (const s of states) {
           const hex = (s[0] || '').toLowerCase().trim();
           if (hex && !seenHex.has(hex)) {
             seenHex.add(hex);
@@ -231,6 +234,23 @@ export async function GET() {
           }
         }
       } catch(e) {}
+    }
+
+    // Fallback: If OpenSky failed (429 rate limit / timeout), fan out to adsb.lol regions
+    if (!openSkyWorked) {
+      console.warn('[OSIRIS] OpenSky unavailable — falling back to adsb.lol regional fetch');
+      const regionResults = await Promise.allSettled(REGIONS.map(r => fetchRegion(r)));
+      for (const result of regionResults) {
+        if (result.status === 'fulfilled') {
+          for (const ac of result.value) {
+            const hex = (ac.hex || '').toLowerCase().trim();
+            if (hex && !seenHex.has(hex)) {
+              seenHex.add(hex);
+              allRaw.push(ac);
+            }
+          }
+        }
+      }
     }
 
     // Classify all flights
