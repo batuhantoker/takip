@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { stealthFetch } from '@/lib/stealthFetch';
 
+export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 /**

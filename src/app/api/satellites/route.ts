@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { stealthFetch } from '@/lib/stealthFetch';
 
+export const maxDuration = 60;
+
 /**
  * OSIRIS — Satellite Tracking API
  * Fetches TLE data from multiple sources with fallbacks

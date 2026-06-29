@@ -2,6 +2,9 @@
 import { NextResponse } from 'next/server';
 import { stealthFetch } from '@/lib/stealthFetch';
 
+// Vercel serverless config — extend timeout so all 3 data sources can respond
+export const maxDuration = 60;
+
 /**
  * OSIRIS — Flight Data API
  * Fetches real-time aircraft positions from adsb.lol (no API key required)
@@ -169,9 +172,9 @@ export async function GET() {
   fetchPromise = (async () => {
     // Fetch OpenSky for global traffic and airplanes.live for military & private jets
     const [osRes, milRes, laddRes] = await Promise.allSettled([
-      stealthFetch('https://opensky-network.org/api/states/all', { signal: AbortSignal.timeout(15000) }),
-      stealthFetch('https://api.airplanes.live/v2/mil', { signal: AbortSignal.timeout(12000) }),
-      stealthFetch('https://api.airplanes.live/v2/ladd', { signal: AbortSignal.timeout(12000) })
+      stealthFetch('https://opensky-network.org/api/states/all', { signal: AbortSignal.timeout(30000) }),
+      stealthFetch('https://api.airplanes.live/v2/mil', { signal: AbortSignal.timeout(20000) }),
+      stealthFetch('https://api.airplanes.live/v2/ladd', { signal: AbortSignal.timeout(20000) })
     ]);
 
     const allRaw: any[] = [];
