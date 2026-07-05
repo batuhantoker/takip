@@ -112,8 +112,8 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
     if (!query.trim() || loading) return;
     setLoading(true); setError(''); setResults(null);
 
-    // IP Sweep / Vuln Scan — separate flow
-    if (activeTab === 'sweep' || activeTab === 'vuln') {
+    // IP Sweep — separate flow (only for the sweep tab)
+    if (activeTab === 'sweep') {
       setSweepResult(null);
       const cidr = sweepCidr;
       const totalHosts = Math.pow(2, 32 - cidr);
@@ -196,6 +196,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         case 'leaks': url = `https://api.xposedornot.com/v1/breach-analytics?email=${encodeURIComponent(query)}`; break;
         case 'crypto': url = `/api/osint/crypto?address=${encodeURIComponent(query)}`; break;
         case 'github': url = `/api/osint/github?user=${encodeURIComponent(query)}`; break;
+        case 'vuln': url = `/api/scanner?target=${encodeURIComponent(query)}&type=vuln`; break;
         case 'scanner': url = `/api/scanner?target=${encodeURIComponent(query)}&type=${scanType}`; break;
         case 'headers': url = `/api/scanner?target=${encodeURIComponent(query)}&type=headers`; break;
         case 'ssl': url = `/api/scanner?target=${encodeURIComponent(query)}&type=ssl`; break;
@@ -700,7 +701,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         <div className="grid grid-cols-2 gap-2">
           {TABS.filter(t => t.id === 'sweep').map(tab => (
             <button key={tab.id} onClick={() => { 
-                  setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); 
+                  setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); setSweepResult(null); 
                 }}
                 className={`w-full py-4 rounded-lg border flex flex-col items-center justify-center gap-2 transition-all ${
                   activeTab === tab.id ? 'bg-[var(--bg-tertiary)] border-opacity-50' : 'bg-[#0D0D0C] hover:bg-[var(--hover-accent)] border-transparent'
@@ -727,7 +728,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
         {/* Other Tools */}
         <div className="grid grid-cols-5 gap-1 mt-1">
           {TABS.filter(t => t.id !== 'sweep').map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); }}
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setQuery(''); setResults(null); setError(''); setSweepResult(null); }}
               className={`flex flex-col items-center gap-1 px-1 py-2 rounded-lg text-[8px] font-mono tracking-wider transition-all border ${activeTab === tab.id ? 'border-opacity-40 bg-opacity-15' : 'border-transparent hover:bg-[var(--hover-accent)]'}`}
               style={{ borderColor: activeTab === tab.id ? tab.color : 'transparent', backgroundColor: activeTab === tab.id ? `${tab.color}15` : undefined, color: activeTab === tab.id ? tab.color : 'var(--text-muted)' }}>
               <tab.icon className="w-3.5 h-3.5" />
@@ -761,7 +762,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
             <option value="quick">QUICK SCAN</option><option value="deep">DEEP SCAN</option><option value="ports">TOP 1000 PORTS</option>
           </select>
         )}
-        {(activeTab === 'sweep' || activeTab === 'vuln') && (
+        {activeTab === 'sweep' && (
           <div className="flex items-center justify-between bg-[var(--bg-primary)]/60 border border-[var(--border-primary)] rounded-lg p-1">
             <span className="text-[9px] font-mono text-[var(--text-muted)] pl-2">SUBNET MASK:</span>
             <div className="flex items-center gap-0.5">
@@ -797,7 +798,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
       )}
 
       {/* Sweep Results */}
-      {sweepResult && !loading && (
+      {sweepResult && !loading && activeTab === 'sweep' && (
         <div className="bg-[var(--bg-primary)]/40 border border-[var(--border-primary)] rounded-lg overflow-hidden max-h-[55vh] overflow-y-auto styled-scrollbar">
           {/* Summary */}
           <div className="p-3 border-b border-[#2A2A28]">
