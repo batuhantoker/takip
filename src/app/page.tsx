@@ -780,48 +780,74 @@ export default function Dashboard() {
       </ErrorBoundary>
 
 
-      {/* ── MAP VIEW CONTROLS (3D/2D + SATELLITE TOGGLE + SCALE BAR) ── */}
+      {/* ── MAP VIEW CONTROLS ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 3.5 }}
-        className="absolute bottom-[75px] md:bottom-[100px] z-[200] flex flex-col gap-2 pointer-events-none"
+        className="absolute bottom-[75px] md:bottom-[100px] z-[200] flex flex-col gap-1.5 pointer-events-none"
         style={{ left: isMobile ? '12px' : '120px' }}
       >
-        {/* Toggle Buttons Row */}
-        <div className="flex items-center gap-2">
-          {/* 3D/2D Toggle */}
-          <button
-            onClick={() => setMapProjection(p => p === 'globe' ? 'mercator' : 'globe')}
-            className="glass-panel p-3.5 pointer-events-auto hover:border-[var(--gold-primary)]/40 transition-colors group relative"
-            title={mapProjection === 'globe' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
-          >
-            {mapProjection === 'globe' ? (
-              <Globe className="w-5 h-5 text-[var(--cyan-primary)] group-hover:scale-110 transition-transform" />
-            ) : (
-              <MapPinned className="w-5 h-5 text-[var(--gold-primary)] group-hover:scale-110 transition-transform" />
-            )}
-            <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 text-[9px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity glass-panel px-2 py-1 z-[300]">
-              {mapProjection === 'globe' ? '3D GLOBE' : '2D MAP'}
-            </span>
-          </button>
+        {/* Unified Control Strip */}
+        <div className="flex items-center gap-1.5 pointer-events-auto">
+          {/* Projection Toggle (Globe / 2D) */}
+          <div className="flex items-center rounded-xl overflow-hidden border border-[var(--border-primary)] bg-[var(--bg-panel)] backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+            <button
+              onClick={() => setMapProjection('globe')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-[9px] font-mono tracking-wider transition-all duration-200 ${
+                mapProjection === 'globe'
+                  ? 'bg-[var(--cyan-primary)]/15 text-[var(--cyan-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+              title="3D Globe"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">3D</span>
+            </button>
+            <div className="w-px h-4 bg-[var(--border-primary)]" />
+            <button
+              onClick={() => setMapProjection('mercator')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-[9px] font-mono tracking-wider transition-all duration-200 ${
+                mapProjection === 'mercator'
+                  ? 'bg-[var(--gold-primary)]/15 text-[var(--gold-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+              title="2D Map"
+            >
+              <MapPinned className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">2D</span>
+            </button>
+          </div>
 
-          {/* Map Style Toggle */}
-          <button
-            onClick={() => setMapStyle(s => s === 'dark' ? 'satellite' : 'dark')}
-            className="glass-panel p-3.5 pointer-events-auto hover:border-[var(--gold-primary)]/40 transition-colors group relative"
-            title={mapStyle === 'dark' ? 'Satellite View' : 'Night View'}
-          >
-            {mapStyle === 'dark' ? (
-              <Moon className="w-5 h-5 text-[var(--cyan-primary)] group-hover:scale-110 transition-transform" />
-            ) : (
-              <Satellite className="w-5 h-5 text-[var(--alert-green)] group-hover:scale-110 transition-transform" />
-            )}
-            <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 text-[9px] font-mono text-[var(--text-muted)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity glass-panel px-2 py-1 z-[300]">
-              {mapStyle === 'dark' ? 'NIGHT MODE' : 'SATELLITE'}
-            </span>
-          </button>
+          {/* Style Toggle (Night / Satellite) */}
+          <div className="flex items-center rounded-xl overflow-hidden border border-[var(--border-primary)] bg-[var(--bg-panel)] backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
+            <button
+              onClick={() => setMapStyle('dark')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-[9px] font-mono tracking-wider transition-all duration-200 ${
+                mapStyle === 'dark'
+                  ? 'bg-[var(--cyan-primary)]/15 text-[var(--cyan-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+              title="Night Mode"
+            >
+              <Moon className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">MAP</span>
+            </button>
+            <div className="w-px h-4 bg-[var(--border-primary)]" />
+            <button
+              onClick={() => setMapStyle('satellite')}
+              className={`flex items-center gap-1.5 px-3 py-2 text-[9px] font-mono tracking-wider transition-all duration-200 ${
+                mapStyle === 'satellite'
+                  ? 'bg-[var(--alert-green)]/15 text-[var(--alert-green)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+              }`}
+              title="Satellite View"
+            >
+              <Satellite className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">SAT</span>
+            </button>
+          </div>
         </div>
 
-        {/* Scale Bar — directly under toggle buttons */}
+        {/* Scale Bar */}
         {!isMobile && (
           <div className="pl-0.5">
             <ScaleBar zoom={mapView.zoom} latitude={mapView.latitude} />

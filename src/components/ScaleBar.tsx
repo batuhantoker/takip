@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 
 /* ═══════════════════════════════════════════════════════════════
    OSIRIS — Scale Bar
-   Dynamic map scale indicator
+   Dynamic map scale indicator — professional cartographic style
    ═══════════════════════════════════════════════════════════════ */
 
 interface ScaleBarProps {
@@ -18,7 +18,7 @@ export default function ScaleBar({ zoom, latitude }: ScaleBarProps) {
   const scaleInfo = useMemo(() => {
     // Meters per pixel at given zoom and latitude
     const metersPerPx = 156543.03392 * Math.cos(latitude * Math.PI / 180) / Math.pow(2, zoom);
-    const maxWidth = 120; // Max bar width in pixels
+    const maxWidth = 100; // Max bar width in pixels
     const maxMeters = metersPerPx * maxWidth;
     const maxKm = maxMeters / 1000;
 
@@ -28,27 +28,27 @@ export default function ScaleBar({ zoom, latitude }: ScaleBarProps) {
       if (step <= maxKm) { bestStep = step; break; }
     }
 
-    const barWidth = Math.round((bestStep * 1000) / metersPerPx);
+    const barWidth = Math.max(24, Math.round((bestStep * 1000) / metersPerPx));
     const label = bestStep >= 1 ? `${bestStep} km` : `${bestStep * 1000} m`;
 
     return { barWidth, label };
   }, [zoom, latitude]);
 
   return (
-    <div className="flex items-end gap-2 pointer-events-none">
+    <div className="flex items-center gap-1.5 pointer-events-none select-none">
       <div className="flex flex-col items-start">
-        <span className="text-[7px] font-mono text-[var(--text-muted)] tracking-wider mb-0.5">
-          {scaleInfo.label}
-        </span>
-        <div
-          className="h-[2px] bg-[var(--gold-primary)] rounded-full"
-          style={{ width: scaleInfo.barWidth }}
-        />
-        <div className="flex justify-between w-full">
-          <div className="w-[1px] h-1 bg-[var(--gold-primary)]" />
-          <div className="w-[1px] h-1 bg-[var(--gold-primary)]" />
+        {/* Scale line with ticks */}
+        <div className="relative" style={{ width: scaleInfo.barWidth }}>
+          {/* Ticks */}
+          <div className="absolute left-0 top-0 w-px h-[5px] bg-[var(--text-muted)] opacity-50" />
+          <div className="absolute right-0 top-0 w-px h-[5px] bg-[var(--text-muted)] opacity-50" />
+          {/* Bar */}
+          <div className="mt-[4px] h-px bg-[var(--text-muted)] opacity-60 w-full" />
         </div>
       </div>
+      <span className="text-[8px] font-mono text-[var(--text-muted)] tracking-widest opacity-70 leading-none">
+        {scaleInfo.label}
+      </span>
     </div>
   );
 }

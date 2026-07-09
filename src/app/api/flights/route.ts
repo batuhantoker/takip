@@ -253,20 +253,25 @@ export async function GET() {
       ? { signal: AbortSignal.timeout(30000), headers: { Authorization: `Bearer ${token}` } }
       : { signal: AbortSignal.timeout(30000) };
 
-    const [apl_mil, apl_ladd, lol_mil, lol_ladd, lol_pia, osRes] = await Promise.allSettled([
-      stealthFetch('https://api.airplanes.live/v2/mil',  { signal: AbortSignal.timeout(15000) }),
-      stealthFetch('https://api.airplanes.live/v2/ladd', { signal: AbortSignal.timeout(15000) }),
-      stealthFetch('https://api.adsb.lol/v2/mil',        { signal: AbortSignal.timeout(15000) }),
-      stealthFetch('https://api.adsb.lol/v2/ladd',       { signal: AbortSignal.timeout(15000) }),
-      stealthFetch('https://api.adsb.lol/v2/pia',        { signal: AbortSignal.timeout(15000) }),
+    const [apl_mil, apl_ladd, apl_pia, apl_emg, lol_mil, lol_ladd, lol_pia, lol_emg, osRes] = await Promise.allSettled([
+      stealthFetch('https://api.airplanes.live/v2/mil',          { signal: AbortSignal.timeout(15000) }),
+      stealthFetch('https://api.airplanes.live/v2/ladd',         { signal: AbortSignal.timeout(15000) }),
+      stealthFetch('https://api.airplanes.live/v2/pia',          { signal: AbortSignal.timeout(15000) }),
+      stealthFetch('https://api.airplanes.live/v2/squawk/7700',  { signal: AbortSignal.timeout(15000) }),
+      stealthFetch('https://api.adsb.lol/v2/mil',                { signal: AbortSignal.timeout(15000) }),
+      stealthFetch('https://api.adsb.lol/v2/ladd',               { signal: AbortSignal.timeout(15000) }),
+      stealthFetch('https://api.adsb.lol/v2/pia',                { signal: AbortSignal.timeout(15000) }),
+      stealthFetch('https://api.adsb.lol/v2/squawk/7700',        { signal: AbortSignal.timeout(15000) }),
       skipOpenSky
         ? Promise.reject(new Error('OpenSky in cooldown'))
         : stealthFetch('https://opensky-network.org/api/states/all', osInit),
     ]);
 
     // Drain global type feeds — parse ok responses, discard body on non-ok to free TCP connections.
+    // Covers: military, LADD (limited display), PIA (privacy ICAO), and emergency squawk 7700
+    // from two independent feeder networks (airplanes.live + adsb.lol).
     const globalFeeds = await Promise.allSettled(
-      [apl_mil, apl_ladd, lol_mil, lol_ladd, lol_pia].map(async r => {
+      [apl_mil, apl_ladd, apl_pia, apl_emg, lol_mil, lol_ladd, lol_pia, lol_emg].map(async r => {
         if (r.status !== 'fulfilled') return;
         if (r.value.ok) {
           const data = await r.value.json();
@@ -390,6 +395,13 @@ export async function GET() {
   } catch (error) {
     console.error('[OSIRIS] Flight fetch error:', error);
     fetchPromise = null;
+    // Stale-cache fallback: return last known good data instead of blank map
+    if (cachedData) {
+      console.warn('[OSIRIS] Returning stale flight cache as fallback');
+      return NextResponse.json({ ...cachedData, source: (cachedData.source || 'unknown') + '+stale' }, {
+        headers: { 'Cache-Control': 'no-store, max-age=0' },
+      });
+    }
     return NextResponse.json({ error: 'Failed to fetch flight data' }, { status: 500 });
   }
 }
