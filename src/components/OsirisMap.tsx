@@ -181,7 +181,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       createDot(map, 'dot-fire', isGhost ? phantomPurple : '#E65100', 10);
       createDot(map, 'dot-cctv', cameraColor, 10);
 
-      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','sigint-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'network-mesh'];
+      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','sigint-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'network-mesh', 'cyber-arcs', 'cyber-heads', 'cyber-impacts'];
       sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
       // Warning icon generator (parameterized — eliminates 3x copy-paste)
@@ -297,6 +297,37 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'line-opacity': 0.4,
       }});
 
+      // ══ LIVE CYBER ATTACKS — threat network (source → target mesh) ══
+      map.addLayer({ id: 'cyber-arcs-atmo', type: 'line', source: 'cyber-arcs', paint: {
+        'line-color': '#FF1744', 'line-width': ['interpolate',['linear'],['zoom'], 1,2, 5,4, 10,8],
+        'line-opacity': 0.06, 'line-blur': 4,
+      }});
+      map.addLayer({ id: 'cyber-arcs-glow', type: 'line', source: 'cyber-arcs', paint: {
+        'line-color': '#FF1744', 'line-width': ['interpolate',['linear'],['zoom'], 1,1, 5,2, 10,4],
+        'line-opacity': 0.18, 'line-blur': 1.5,
+      }});
+      map.addLayer({ id: 'cyber-arcs-core', type: 'line', source: 'cyber-arcs', paint: {
+        'line-color': '#FF5252', 'line-width': ['interpolate',['linear'],['zoom'], 1,0.3, 5,0.6, 10,1.2],
+        'line-opacity': 0.5,
+      }});
+      // Animated dashed flow line — marching ants effect showing data direction
+      map.addLayer({ id: 'cyber-arcs-flow', type: 'line', source: 'cyber-arcs', paint: {
+        'line-color': '#FFFFFF', 'line-width': ['interpolate',['linear'],['zoom'], 1,0.4, 5,0.8, 10,1.5],
+        'line-opacity': 0.35, 'line-dasharray': [2, 4],
+      }});
+      map.addLayer({ id: 'cyber-impacts', type: 'circle', source: 'cyber-impacts', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,5, 5,10, 10,16],
+        'circle-color': '#FF1744', 'circle-opacity': 0.05, 'circle-blur': 0.5,
+      }});
+      map.addLayer({ id: 'cyber-heads', type: 'circle', source: 'cyber-heads', paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,2, 5,3.5, 10,5],
+        'circle-color': '#FF1744', 'circle-opacity': 0.9,
+        'circle-stroke-width': 1, 'circle-stroke-color': '#000', 'circle-stroke-opacity': 0.8,
+      }});
+      map.addLayer({ id: 'cyber-labels', type: 'symbol', source: 'cyber-heads', minzoom: 3, layout: {
+        'text-field': ['get','malware'], 'text-size': 8, 'text-font': ['JetBrains Mono Bold', 'Open Sans Bold'],
+        'text-offset': [0, 1.5], 'text-max-width': 10, 'text-allow-overlap': false,
+      }, paint: { 'text-color': '#FF5252', 'text-halo-color': '#111', 'text-halo-width': 1.5, 'text-opacity': 0.8 }});
 
       map.addLayer({ id: 'gdelt-dots', type: 'circle', source: 'gdelt', paint: {
         'circle-radius': 4, 'circle-color': '#D32F2F', 'circle-opacity': 0.5, 'circle-stroke-width': 1, 'circle-stroke-color': '#D32F2F', 'circle-stroke-opacity': 0.25,
@@ -797,8 +828,36 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       });
     });
 
+    // ⚡ Live Cyber Attack Arcs (click on flying heads) ⚡
+    map.on('click', 'cyber-heads', e => {
+      if (!e.features?.length) return;
+      const p = e.features[0].properties as any;
+      const coords = (e.features[0].geometry as any).coordinates;
+      const sevColor = (p.severity || 5) >= 8 ? '#FF1744' : (p.severity || 5) >= 6 ? '#FF6D00' : '#FFD600';
+      const sevLabel = (p.severity || 5) >= 8 ? 'CRITICAL' : (p.severity || 5) >= 6 ? 'HIGH' : 'MEDIUM';
+      popup(coords, `<div style="${pStyle}border:1px solid ${sevColor}40;box-shadow:inset 0 0 20px ${sevColor}10, 0 0 15px ${sevColor}15;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${sevColor}30;padding-bottom:6px;margin-bottom:8px;">
+          <div style="color:${sevColor};font-size:12px;font-weight:700;letter-spacing:0.12em;text-shadow:0 0 6px ${sevColor}60;">⚡ ${htmlEsc((p.action || 'ATTACK').toUpperCase())}</div>
+          <div style="font-size:8px;padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:0.1em;background:${sevColor}20;color:${sevColor};border:1px solid ${sevColor}50;">${sevLabel}</div>
+        </div>
+        <div style="color:#E8E6E0;font-size:11px;font-weight:bold;margin-bottom:10px;">${htmlEsc(p.malware || 'Unknown Payload')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:9px;margin-bottom:8px;background:rgba(0,0,0,0.35);padding:8px;border-radius:4px;border:1px solid rgba(255,255,255,0.04);">
+          <div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">SOURCE ORIGIN</span><br/><span style="color:#FF5252;font-family:monospace;">${p.src_lat || '?'}°, ${p.src_lng || '?'}°</span></div>
+          <div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">TARGET</span><br/><span style="color:#00E5FF;font-family:monospace;">${htmlEsc(p.target_ip || '—')}</span></div>
+          <div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">TARGET COUNTRY</span><br/><span style="color:#E8E6E0;">${htmlEsc(p.target_country || '—')}</span></div>
+          <div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">PORT</span><br/><span style="color:#FFD600;font-family:monospace;">${p.port || '—'}</span></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <div style="flex:1;height:3px;border-radius:2px;background:linear-gradient(90deg, ${sevColor}00, ${sevColor});opacity:0.5;"></div>
+          <span style="font-size:7px;color:#5C5A54;letter-spacing:0.15em;">SEVERITY ${p.severity || '?'}/10</span>
+          <div style="flex:1;height:3px;border-radius:2px;background:linear-gradient(90deg, ${sevColor}, ${sevColor}00);opacity:0.5;"></div>
+        </div>
+        <div style="margin-top:8px;font-size:7px;color:#5C5A54;text-align:center;letter-spacing:0.1em;">SOURCE: ABUSE.CH FEODO TRACKER</div>
+      </div>`);
+    });
+
     // ── Generic hover for clickables ──
-    ['conflict-icons','cctv-dots','eq-circles','sat-dots','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','sigint-news-dots','balloon-dots','rad-dots','ship-dots','sweep-device-dots','scan-targets-dots','sdk-sea','sdk-sea-glow','sdk-sea-atmo','sdk-air','sdk-air-glow','sdk-air-atmo','sdk-intel','sdk-intel-glow','sdk-intel-atmo','malware-dots'].forEach(layer => {
+    ['conflict-icons','cctv-dots','eq-circles','sat-dots','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','sigint-news-dots','balloon-dots','rad-dots','ship-dots','sweep-device-dots','scan-targets-dots','sdk-sea','sdk-sea-glow','sdk-sea-atmo','sdk-air','sdk-air-glow','sdk-air-atmo','sdk-intel','sdk-intel-glow','sdk-intel-atmo','malware-dots','cyber-heads'].forEach(layer => {
       map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
     });
@@ -1182,6 +1241,85 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     setGeo('network-mesh', meshLinks);
   }, [mapReady, activeLayers.malware, data.malware_threats, setGeo]);
 
+  // ══ LIVE CYBER ATTACKS — Threat network with real-time flow animation ══
+  const cyberAnimRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const al = activeLayers as any;
+    const attacks = data.cyber_attacks;
+
+    // Clean up when toggled off or no data
+    if (!al.cyber_attacks || !attacks?.length) {
+      cancelAnimationFrame(cyberAnimRef.current);
+      setGeo('cyber-arcs', []);
+      setGeo('cyber-heads', []);
+      setGeo('cyber-impacts', []);
+      return;
+    }
+
+    // Build static GeoJSON features (dots stay clickable)
+    const dots: any[] = [];
+    const srcGlows: any[] = [];
+    const lines: any[] = [];
+
+    for (const a of attacks) {
+      dots.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [a.dst_lng, a.dst_lat] },
+        properties: {
+          malware: a.malware, action: a.action, target_ip: a.target_ip,
+          target_country: a.target_country, port: a.port, severity: a.severity,
+          status: a.status,
+          src_lat: a.src_lat.toFixed(2), src_lng: a.src_lng.toFixed(2),
+          dst_lat: a.dst_lat.toFixed(2), dst_lng: a.dst_lng.toFixed(2),
+        },
+      });
+      srcGlows.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [a.src_lng, a.src_lat] },
+        properties: { severity: a.severity },
+      });
+      lines.push({
+        type: 'Feature',
+        geometry: { type: 'LineString', coordinates: [[a.src_lng, a.src_lat], [a.dst_lng, a.dst_lat]] },
+        properties: { malware: a.malware, severity: a.severity },
+      });
+    }
+
+    setGeo('cyber-heads', dots);
+    setGeo('cyber-impacts', srcGlows);
+    setGeo('cyber-arcs', lines);
+
+    // Animate: marching-ants dash flow + pulsing target dots
+    const map = mapRef.current;
+    let step = 0;
+    function animateFlow() {
+      step++;
+      if (!map) return;
+      try {
+        // Shift dash pattern to create flowing motion (source → target)
+        const dashPhase = (step % 60) / 10; // cycles 0—6
+        map.setPaintProperty('cyber-arcs-flow', 'line-dasharray', [2, 4 + dashPhase * 0.5]);
+
+        // Pulse target dot radius
+        const pulse = 1 + Math.sin(step * 0.08) * 0.3; // 0.7–1.3 range
+        map.setPaintProperty('cyber-heads', 'circle-stroke-width', pulse);
+        map.setPaintProperty('cyber-heads', 'circle-stroke-color', 
+          step % 40 < 20 ? '#FF1744' : '#FF5252'
+        );
+
+        // Pulse source glow opacity  
+        const glowPulse = 0.04 + Math.sin(step * 0.06) * 0.03;
+        map.setPaintProperty('cyber-impacts', 'circle-opacity', glowPulse);
+      } catch {}
+      cyberAnimRef.current = requestAnimationFrame(animateFlow);
+    }
+    cyberAnimRef.current = requestAnimationFrame(animateFlow);
+
+    return () => cancelAnimationFrame(cyberAnimRef.current);
+  }, [mapReady, (activeLayers as any).cyber_attacks, data.cyber_attacks, setGeo]);
+
 
   useEffect(() => {
     if (!mapReady) return;
@@ -1356,6 +1494,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
     setVis(['malware-glow','malware-dots','malware-label'], activeLayers.malware);
     setVis(['network-mesh-atmo', 'network-mesh-glow', 'network-mesh-core'], activeLayers.internet_outages || activeLayers.malware);
+    setVis(['cyber-arcs-atmo','cyber-arcs-glow','cyber-arcs-core','cyber-arcs-flow','cyber-heads','cyber-impacts','cyber-labels'], (activeLayers as any).cyber_attacks);
     setVis(['jam-fill','jam-label'], activeLayers.gps_jamming);
     setVis(['day-night-fill'], activeLayers.day_night);
     setVis(['fl-commercial'], activeLayers.flights);

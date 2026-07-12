@@ -159,6 +159,7 @@ export default function Dashboard() {
     sdk_naval: true,
     terrain_3d: false,
     malware: false,
+    cyber_attacks: false,
   });
   const [liveFeedUrl, setLiveFeedUrl] = useState<string | null>(null);
   const [liveFeedName, setLiveFeedName] = useState('');
@@ -452,6 +453,12 @@ export default function Dashboard() {
       layerFetchedRef.current.add('malware');
     }
 
+    // Live Cyber Attacks (animated arcs)
+    if ((activeLayers as any).cyber_attacks && !layerFetchedRef.current.has('cyber_attacks')) {
+      fetchEndpoint('/api/cyber-attacks', d => ({ cyber_attacks: d.attacks }));
+      layerFetchedRef.current.add('cyber_attacks');
+    }
+
 
   }, [activeLayers]);
 
@@ -470,6 +477,13 @@ export default function Dashboard() {
     }
     if (activeLayers.maritime) {
       intervals.push(setInterval(() => fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships })), 10000)); // 10s
+    }
+    if ((activeLayers as any).cyber_attacks) {
+      intervals.push(setInterval(() => {
+        layerFetchedRef.current.delete('cyber_attacks');
+        fetchEndpoint('/api/cyber-attacks', d => ({ cyber_attacks: d.attacks }));
+        layerFetchedRef.current.add('cyber_attacks');
+      }, 60000)); // 60s — refresh attack network
     }
     return () => intervals.forEach(clearInterval);
   }, [activeLayers, fetchEndpoint]);
