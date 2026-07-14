@@ -59,7 +59,7 @@ const ATTACK_VERBS = [
 
 let cachedAttacks: any = null;
 let cacheTime = 0;
-const CACHE_TTL = 60_000; // 60s — each request gets a fresh batch
+const CACHE_TTL = 10_000; // 10s — rapid refresh for live feel
 
 export async function GET() {
   const now = Date.now();
@@ -86,7 +86,7 @@ export async function GET() {
     );
 
     // Ensure minimum 60 arcs for visual density — multiply entries with varied params
-    const TARGET_ARCS = 60;
+    const TARGET_ARCS = 15;
     const multiplier = entries.length > 0 ? Math.max(1, Math.ceil(TARGET_ARCS / entries.length)) : 0;
     const attacks: any[] = [];
     let id = 0;
@@ -97,7 +97,7 @@ export async function GET() {
       const dst = COUNTRY_COORDS[entry.country];
       if (!dst) continue;
 
-      for (let m = 0; m < multiplier && attacks.length < 80; m++) {
+      for (let m = 0; m < multiplier && attacks.length < 20; m++) {
         const origin = origins[(id + m) % origins.length];
         // Vary jitter per clone so arcs fan out
         const jSrc = [(Math.random() - 0.5) * 8, (Math.random() - 0.5) * 5];

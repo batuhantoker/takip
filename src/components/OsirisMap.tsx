@@ -297,37 +297,37 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'line-opacity': 0.4,
       }});
 
-      // ══ LIVE CYBER ATTACKS — threat network (source → target mesh) ══
+      // ══ LIVE CYBER ATTACKS — dark wire network (source → target) ══
       map.addLayer({ id: 'cyber-arcs-atmo', type: 'line', source: 'cyber-arcs', paint: {
-        'line-color': '#FF1744', 'line-width': ['interpolate',['linear'],['zoom'], 1,2, 5,4, 10,8],
-        'line-opacity': 0.06, 'line-blur': 4,
+        'line-color': '#000000', 'line-width': ['interpolate',['linear'],['zoom'], 1,4, 5,7, 10,12],
+        'line-opacity': 0.12, 'line-blur': 6,
       }});
       map.addLayer({ id: 'cyber-arcs-glow', type: 'line', source: 'cyber-arcs', paint: {
-        'line-color': '#FF1744', 'line-width': ['interpolate',['linear'],['zoom'], 1,1, 5,2, 10,4],
-        'line-opacity': 0.18, 'line-blur': 1.5,
+        'line-color': '#111111', 'line-width': ['interpolate',['linear'],['zoom'], 1,2, 5,3.5, 10,6],
+        'line-opacity': 0.3, 'line-blur': 2,
       }});
       map.addLayer({ id: 'cyber-arcs-core', type: 'line', source: 'cyber-arcs', paint: {
-        'line-color': '#FF5252', 'line-width': ['interpolate',['linear'],['zoom'], 1,0.3, 5,0.6, 10,1.2],
-        'line-opacity': 0.5,
+        'line-color': '#000000', 'line-width': ['interpolate',['linear'],['zoom'], 1,0.8, 5,1.4, 10,2.2],
+        'line-opacity': 0.7,
       }});
-      // Animated dashed flow line — marching ants effect showing data direction
+      // Animated dashed flow line — fast marching ants in black
       map.addLayer({ id: 'cyber-arcs-flow', type: 'line', source: 'cyber-arcs', paint: {
-        'line-color': '#FFFFFF', 'line-width': ['interpolate',['linear'],['zoom'], 1,0.4, 5,0.8, 10,1.5],
-        'line-opacity': 0.35, 'line-dasharray': [2, 4],
+        'line-color': '#1a1a1a', 'line-width': ['interpolate',['linear'],['zoom'], 1,1.0, 5,1.8, 10,3],
+        'line-opacity': 0.55, 'line-dasharray': [2, 3],
       }});
       map.addLayer({ id: 'cyber-impacts', type: 'circle', source: 'cyber-impacts', paint: {
-        'circle-radius': ['interpolate',['linear'],['zoom'], 1,5, 5,10, 10,16],
-        'circle-color': '#FF1744', 'circle-opacity': 0.05, 'circle-blur': 0.5,
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,6, 5,12, 10,18],
+        'circle-color': '#000000', 'circle-opacity': 0.08, 'circle-blur': 0.6,
       }});
       map.addLayer({ id: 'cyber-heads', type: 'circle', source: 'cyber-heads', paint: {
-        'circle-radius': ['interpolate',['linear'],['zoom'], 1,2, 5,3.5, 10,5],
-        'circle-color': '#FF1744', 'circle-opacity': 0.9,
-        'circle-stroke-width': 1, 'circle-stroke-color': '#000', 'circle-stroke-opacity': 0.8,
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,2.5, 5,4, 10,6],
+        'circle-color': '#111111', 'circle-opacity': 0.95,
+        'circle-stroke-width': 1.5, 'circle-stroke-color': '#333', 'circle-stroke-opacity': 0.9,
       }});
       map.addLayer({ id: 'cyber-labels', type: 'symbol', source: 'cyber-heads', minzoom: 3, layout: {
-        'text-field': ['get','malware'], 'text-size': 8, 'text-font': ['JetBrains Mono Bold', 'Open Sans Bold'],
+        'text-field': ['get','malware'], 'text-size': 9, 'text-font': ['JetBrains Mono Bold', 'Open Sans Bold'],
         'text-offset': [0, 1.5], 'text-max-width': 10, 'text-allow-overlap': false,
-      }, paint: { 'text-color': '#FF5252', 'text-halo-color': '#111', 'text-halo-width': 1.5, 'text-opacity': 0.8 }});
+      }, paint: { 'text-color': '#333333', 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.85 }});
 
       map.addLayer({ id: 'gdelt-dots', type: 'circle', source: 'gdelt', paint: {
         'circle-radius': 4, 'circle-color': '#D32F2F', 'circle-opacity': 0.5, 'circle-stroke-width': 1, 'circle-stroke-color': '#D32F2F', 'circle-stroke-opacity': 0.25,
@@ -1291,26 +1291,30 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     setGeo('cyber-impacts', srcGlows);
     setGeo('cyber-arcs', lines);
 
-    // Animate: marching-ants dash flow + pulsing target dots
+    // Animate: aggressive marching-ants with fast dash cycling
     const map = mapRef.current;
     let step = 0;
     function animateFlow() {
       step++;
       if (!map) return;
       try {
-        // Shift dash pattern to create flowing motion (source → target)
-        const dashPhase = (step % 60) / 10; // cycles 0—6
-        map.setPaintProperty('cyber-arcs-flow', 'line-dasharray', [2, 4 + dashPhase * 0.5]);
+        // Fast cycling dash pattern — creates visible movement along the line
+        const phase = (step * 0.15) % 6;
+        map.setPaintProperty('cyber-arcs-flow', 'line-dasharray', [2, 3 + phase * 0.4]);
 
-        // Pulse target dot radius
-        const pulse = 1 + Math.sin(step * 0.08) * 0.3; // 0.7–1.3 range
+        // Alternate opacity on the core line for flicker effect
+        const coreFlicker = 0.55 + Math.sin(step * 0.05) * 0.15;
+        map.setPaintProperty('cyber-arcs-core', 'line-opacity', coreFlicker);
+
+        // Pulse target dots — breathing black nodes
+        const pulse = 1.5 + Math.sin(step * 0.1) * 0.6;
         map.setPaintProperty('cyber-heads', 'circle-stroke-width', pulse);
-        map.setPaintProperty('cyber-heads', 'circle-stroke-color', 
-          step % 40 < 20 ? '#FF1744' : '#FF5252'
+        map.setPaintProperty('cyber-heads', 'circle-stroke-color',
+          step % 30 < 15 ? '#222222' : '#444444'
         );
 
-        // Pulse source glow opacity  
-        const glowPulse = 0.04 + Math.sin(step * 0.06) * 0.03;
+        // Pulse source glow — dark breathing aura
+        const glowPulse = 0.06 + Math.sin(step * 0.07) * 0.04;
         map.setPaintProperty('cyber-impacts', 'circle-opacity', glowPulse);
       } catch {}
       cyberAnimRef.current = requestAnimationFrame(animateFlow);

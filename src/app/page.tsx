@@ -483,7 +483,7 @@ export default function Dashboard() {
         layerFetchedRef.current.delete('cyber_attacks');
         fetchEndpoint('/api/cyber-attacks', d => ({ cyber_attacks: d.attacks }));
         layerFetchedRef.current.add('cyber_attacks');
-      }, 60000)); // 60s — refresh attack network
+      }, 10000)); // 10s — rapid refresh
     }
     return () => intervals.forEach(clearInterval);
   }, [activeLayers, fetchEndpoint]);
