@@ -6,9 +6,9 @@ import {
   Bluetooth, BluetoothSearching, Tv, Speaker, X, WifiOff,
   Volume2, VolumeX, Plus, Minus, Power, ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
   SkipForward, SkipBack, Play, Pause, Fan, Snowflake, Sun, Wind,
-  MonitorSpeaker, Gamepad2, Lightbulb, Watch, Headphones, Mouse, Keyboard, Smartphone,
+  Gamepad2, Lightbulb, Watch, Headphones, Mouse, Keyboard, Smartphone,
   RefreshCw, Unplug, Zap, BatteryMedium, Home, ArrowLeft, Info, Cpu, Tag, Hash,
-  Eye, Send, Bell, BellOff, ChevronRight as ChevRight, Copy, Check, Terminal
+  Eye, Send, Bell, BellOff, ChevronRight as ChevRight, Copy, Check, Terminal, AlertTriangle
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -16,144 +16,95 @@ import {
 // ═══════════════════════════════════════════════════════════════
 
 /** Standard BLE GATT Service UUIDs for device probing */
-const BLE_SERVICE = {
-  GENERIC_ACCESS:       0x1800,
-  GENERIC_ATTRIBUTE:    0x1801,
-  DEVICE_INFORMATION:   0x180A,
-  BATTERY:              0x180F,
-  HEART_RATE:           0x180D,
-  BLOOD_PRESSURE:       0x1810,
-  HEALTH_THERMOMETER:   0x1809,
-  HID:                  0x1812,  // Human Interface Device (keyboard/mouse/gamepad)
-  RUNNING_SPEED:        0x1814,
-  CYCLING_SPEED:        0x1816,
-  CYCLING_POWER:        0x1818,
-  ENVIRONMENTAL_SENSING:0x181A,
-  BODY_COMPOSITION:     0x181B,
-  USER_DATA:            0x181C,
-  WEIGHT_SCALE:         0x181D,
-  BOND_MANAGEMENT:      0x181E,
-  GLUCOSE:              0x1808,
-  TX_POWER:             0x1804,
-  LINK_LOSS:            0x1803,
-  IMMEDIATE_ALERT:      0x1802,
-  CURRENT_TIME:         0x1805,
-  PHONE_ALERT_STATUS:   0x180E,
-  ALERT_NOTIFICATION:   0x1811,
-  AUTOMATION_IO:        0x1815,
-  AUDIO_INPUT_CONTROL:  0xFE2C, // Common for audio devices
-  MEDIA_CONTROL:        0x1848,
+const BLE_SERVICES = {
+  GENERIC_ACCESS:        0x1800,
+  GENERIC_ATTRIBUTE:     0x1801,
+  DEVICE_INFORMATION:    0x180A,
+  BATTERY:               0x180F,
+  HEART_RATE:            0x180D,
+  BLOOD_PRESSURE:        0x1810,
+  HEALTH_THERMOMETER:    0x1809,
+  HID:                   0x1812,
+  RUNNING_SPEED:         0x1814,
+  CYCLING_SPEED:         0x1816,
+  CYCLING_POWER:         0x1818,
+  ENVIRONMENTAL_SENSING: 0x181A,
+  BODY_COMPOSITION:      0x181B,
+  USER_DATA:             0x181C,
+  WEIGHT_SCALE:          0x181D,
+  GLUCOSE:               0x1808,
+  TX_POWER:              0x1804,
+  LINK_LOSS:             0x1803,
+  IMMEDIATE_ALERT:       0x1802,
+  CURRENT_TIME:          0x1805,
+  PHONE_ALERT_STATUS:    0x180E,
+  ALERT_NOTIFICATION:    0x1811,
+  AUTOMATION_IO:         0x1815,
+  MEDIA_CONTROL:         0x1848,
 } as const;
 
 /** Standard BLE GATT Characteristic UUIDs */
-const BLE_CHAR = {
-  DEVICE_NAME:          0x2A00,
-  APPEARANCE:           0x2A01,
-  PERIPHERAL_PRIVACY:   0x2A02,
-  MANUFACTURER_NAME:    0x2A29,
-  MODEL_NUMBER:         0x2A24,
-  SERIAL_NUMBER:        0x2A25,
-  HARDWARE_REVISION:    0x2A27,
-  FIRMWARE_REVISION:    0x2A26,
-  SOFTWARE_REVISION:    0x2A28,
-  SYSTEM_ID:            0x2A23,
-  PNP_ID:               0x2A50,
-  BATTERY_LEVEL:        0x2A19,
+const BLE_CHARS = {
+  DEVICE_NAME:        0x2A00,
+  APPEARANCE:         0x2A01,
+  MANUFACTURER_NAME:  0x2A29,
+  MODEL_NUMBER:       0x2A24,
+  SERIAL_NUMBER:      0x2A25,
+  HARDWARE_REVISION:  0x2A27,
+  FIRMWARE_REVISION:  0x2A26,
+  SOFTWARE_REVISION:  0x2A28,
+  SYSTEM_ID:          0x2A23,
+  PNP_ID:             0x2A50,
+  BATTERY_LEVEL:      0x2A19,
 } as const;
 
+/** All service UUIDs we request in optionalServices — required by Web Bluetooth spec */
+const ALL_OPTIONAL_SERVICES = Object.values(BLE_SERVICES);
+
 /** BLE GAP Appearance values → device type mapping
- *  From Bluetooth SIG Assigned Numbers:
- *  https://www.bluetooth.com/specifications/assigned-numbers/ */
+ *  Bluetooth SIG Assigned Numbers: https://www.bluetooth.com/specifications/assigned-numbers/ */
 const APPEARANCE_MAP: Record<number, DeviceType> = {
-  // Phone (0x0040–0x007F)
   0x0040: 'phone',
-  // Computer (0x0080–0x00BF)
-  0x0080: 'unknown', // generic computer
-  // Watch (0x00C0–0x00FF)
+  0x0080: 'unknown',
   0x00C0: 'wearable', 0x00C1: 'wearable', 0x00C2: 'wearable',
-  // Display (0x0140–0x017F) → TV/Monitor
   0x0140: 'tv',
-  // Remote Control (0x0180–0x01BF)
   0x0180: 'unknown',
-  // Thermometer (0x0300)
   0x0300: 'ac',
-  // HID (0x03C0–0x03FF)
-  0x03C0: 'unknown', // generic HID
-  0x03C1: 'keyboard',
-  0x03C2: 'mouse',
-  0x03C3: 'unknown', // joystick
-  0x03C4: 'gamepad',
-  0x03C5: 'unknown', // digitizer
-  // Pulse Oximeter (0x0C40)
+  0x03C0: 'unknown', 0x03C1: 'keyboard', 0x03C2: 'mouse',
+  0x03C3: 'unknown', 0x03C4: 'gamepad', 0x03C5: 'unknown',
+  0x0840: 'speaker', 0x0841: 'speaker', 0x0842: 'headphones', 0x0843: 'headphones',
   0x0C40: 'wearable',
-  // Outdoor Sports (0x1440–)
   0x1440: 'wearable',
-  // Audio Sink (0x0841–0x0842)
-  0x0841: 'speaker',  // Standalone Speaker
-  0x0842: 'headphones', // Headphones
-  0x0843: 'headphones', // Earbuds
-  // Generic Audio
-  0x0840: 'speaker',
 };
 
-/** Classify using BLE Appearance category ranges */
-function classifyByAppearance(appearance: number): DeviceType | null {
-  // Direct match first
-  if (APPEARANCE_MAP[appearance]) return APPEARANCE_MAP[appearance];
+/** Well-known GATT UUID names (services + characteristics) */
+const KNOWN_UUID_NAMES: Record<number, string> = {
+  // Services
+  0x1800: 'Generic Access', 0x1801: 'Generic Attribute', 0x180A: 'Device Information',
+  0x180F: 'Battery', 0x180D: 'Heart Rate', 0x1810: 'Blood Pressure',
+  0x1809: 'Health Thermometer', 0x1812: 'HID', 0x1814: 'Running Speed',
+  0x1816: 'Cycling Speed', 0x1818: 'Cycling Power', 0x181A: 'Environmental Sensing',
+  0x181B: 'Body Composition', 0x181C: 'User Data', 0x181D: 'Weight Scale',
+  0x1802: 'Immediate Alert', 0x1803: 'Link Loss', 0x1804: 'TX Power',
+  0x1805: 'Current Time', 0x180E: 'Phone Alert Status', 0x1811: 'Alert Notification',
+  0x1815: 'Automation IO', 0x1848: 'Media Control',
+  // Characteristics
+  0x2A00: 'Device Name', 0x2A01: 'Appearance', 0x2A19: 'Battery Level',
+  0x2A24: 'Model Number', 0x2A25: 'Serial Number', 0x2A26: 'Firmware Revision',
+  0x2A27: 'Hardware Revision', 0x2A28: 'Software Revision', 0x2A29: 'Manufacturer Name',
+  0x2A23: 'System ID', 0x2A50: 'PnP ID', 0x2A37: 'Heart Rate Measurement',
+  0x2A38: 'Body Sensor Location', 0x2A39: 'Heart Rate Control Point',
+  0x2A6E: 'Temperature', 0x2A6F: 'Humidity', 0x2A6D: 'Pressure',
+  0x2A6C: 'Elevation', 0x2A77: 'Irradiance',
+};
 
-  // Range-based classification
-  const cat = appearance & 0xFFC0; // category bits (upper 10 bits)
-  if (cat >= 0x0040 && cat <= 0x007F) return 'phone';
-  if (cat >= 0x00C0 && cat <= 0x00FF) return 'wearable';  // Watch
-  if (cat >= 0x0140 && cat <= 0x017F) return 'tv';         // Display
-  if (cat >= 0x0300 && cat <= 0x033F) return 'ac';         // Thermometer
-  if (cat >= 0x03C0 && cat <= 0x03FF) {                    // HID subtype
-    const sub = appearance & 0x003F;
-    if (sub === 1) return 'keyboard';
-    if (sub === 2) return 'mouse';
-    if (sub === 4) return 'gamepad';
-    return 'unknown';
-  }
-  if (cat >= 0x0840 && cat <= 0x087F) return 'speaker';    // Audio
-  if (cat >= 0x0940 && cat <= 0x097F) return 'wearable';   // Outdoor Sports
-  return null;
-}
+// ═══════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════
 
-/** Classify based on which BLE services the device exposes */
-function classifyByServices(serviceUUIDs: number[]): DeviceType | null {
-  const has = (uuid: number) => serviceUUIDs.includes(uuid);
+type DeviceType = 'tv' | 'speaker' | 'ac' | 'light' | 'wearable' | 'headphones' | 'gamepad' | 'keyboard' | 'mouse' | 'phone' | 'unknown';
+type RemoteView = 'home' | 'tv' | 'speaker' | 'ac' | 'explorer';
 
-  if (has(BLE_SERVICE.MEDIA_CONTROL) || has(BLE_SERVICE.AUDIO_INPUT_CONTROL)) return 'speaker';
-  if (has(BLE_SERVICE.HID)) {
-    // HID could be keyboard, mouse, or gamepad — return generic, name will refine
-    return 'gamepad'; // most common BLE HID is game controllers
-  }
-  if (has(BLE_SERVICE.HEART_RATE) || has(BLE_SERVICE.RUNNING_SPEED) ||
-      has(BLE_SERVICE.CYCLING_SPEED) || has(BLE_SERVICE.CYCLING_POWER)) return 'wearable';
-  if (has(BLE_SERVICE.ENVIRONMENTAL_SENSING) || has(BLE_SERVICE.HEALTH_THERMOMETER)) return 'ac';
-  if (has(BLE_SERVICE.BLOOD_PRESSURE) || has(BLE_SERVICE.GLUCOSE) ||
-      has(BLE_SERVICE.BODY_COMPOSITION) || has(BLE_SERVICE.WEIGHT_SCALE)) return 'wearable';
-  if (has(BLE_SERVICE.PHONE_ALERT_STATUS)) return 'phone';
-  return null;
-}
-
-/** Classify by device name (fallback) */
-function classifyByName(name: string): DeviceType {
-  const n = name.toLowerCase();
-  if (/\btv\b|samsung.*(ue|qn|un)|lg.*(oled|nano|uk|um)|sony.*(bravia|kd)|roku|fire.?stick|chromecast|shield|apple.?tv|vizio|tcl|hisense/i.test(n)) return 'tv';
-  if (/speaker|soundbar|bose.*(sound|revolve|micro|portable)|jbl.*(flip|charge|go|xtreme|partybox|pulse)|sonos|marshall|harman.?kardon|bang.?olufsen|echo.?dot|echo.?show|homepod|ue.?(boom|megaboom|wonderboom)|pill|anker.?soundcore|tribit|sony.?(srs|xb)|beats.?pill/i.test(n)) return 'speaker';
-  if (/\bac\b|air.?con|daikin|mitsubishi.?electric|carrier|trane|gree|haier|fujitsu|panasonic.?cs|midea|hisense.?ac|thermostat|nest|ecobee|honeywell|sensibo|cielo|ambi.?climate|tado/i.test(n)) return 'ac';
-  if (/bulb|light|hue|lifx|wiz|nanoleaf|govee|yeelight|lamp|led.?strip|tradfri|sengled|feit|kasa|tuya|magic.?home/i.test(n)) return 'light';
-  if (/\bwatch\b|band|fitbit|garmin|mi.?band|galaxy.?watch|apple.?watch|whoop|amazfit|polar|suunto|coros|withings|huawei.?band|vivosmart|vivoactive|fenix|forerunner/i.test(n)) return 'wearable';
-  if (/headphone|airpod|buds|earphone|earbud|wh-1000|wf-1000|qc.?[234]|qc.?ultra|momentum|px[78]|aeroex|galaxy.?buds|freebuds|jabra.?elite|nothing.?ear|beats.?(solo|studio|flex|fit)|sennheiser|bowers|b&w|b.?&.?o|sony.?wh|sony.?wf|anc/i.test(n)) return 'headphones';
-  if (/gamepad|controller|xbox|playstation|dualsense|dualshock|pro.?controller|joy.?con|stadia|luna|8bitdo|steelseries.?stratus|razer.?(kishi|wolverine)/i.test(n)) return 'gamepad';
-  if (/keyboard|keychron|hhkb|nuphy|logitech.?(k[0-9]|mx.?keys|craft)|anne.?pro|ducky|royal.?kludge|rk[0-9]|tofu|gmmk|corsair.?k/i.test(n)) return 'keyboard';
-  if (/mouse|mx.?master|mx.?anywhere|trackpad|logitech.?(m[0-9]|g.?pro|gpx|g502)|razer.?(deathadder|viper|basilisk|orochi)|pulsar|zowie|endgame/i.test(n)) return 'mouse';
-  if (/phone|iphone|galaxy.?s|galaxy.?a|galaxy.?z|pixel|oneplus|xiaomi|redmi|poco|oppo|vivo|huawei.?p|huawei.?mate|nothing.?phone/i.test(n)) return 'phone';
-  return 'unknown';
-}
-
-// ── Types ──
 interface DeviceInfo {
   manufacturer?: string;
   model?: string;
@@ -180,44 +131,12 @@ interface DiscoveredDevice {
   probing?: boolean;
 }
 
-type DeviceType = 'tv' | 'speaker' | 'ac' | 'light' | 'wearable' | 'headphones' | 'gamepad' | 'keyboard' | 'mouse' | 'phone' | 'unknown';
-type RemoteView = 'home' | 'tv' | 'speaker' | 'ac' | 'explorer';
-
-/** Well-known GATT UUID names for the explorer */
-const KNOWN_UUIDS: Record<number, string> = {
-  0x1800: 'Generic Access', 0x1801: 'Generic Attribute', 0x180A: 'Device Information',
-  0x180F: 'Battery', 0x180D: 'Heart Rate', 0x1810: 'Blood Pressure', 0x1809: 'Health Thermometer',
-  0x1812: 'HID', 0x1814: 'Running Speed', 0x1816: 'Cycling Speed', 0x1818: 'Cycling Power',
-  0x181A: 'Environmental Sensing', 0x181B: 'Body Composition', 0x181C: 'User Data',
-  0x181D: 'Weight Scale', 0x1802: 'Immediate Alert', 0x1803: 'Link Loss', 0x1804: 'TX Power',
-  0x1805: 'Current Time', 0x180E: 'Phone Alert Status', 0x1811: 'Alert Notification',
-  0x1815: 'Automation IO', 0x1848: 'Media Control',
-  // Characteristics
-  0x2A00: 'Device Name', 0x2A01: 'Appearance', 0x2A19: 'Battery Level',
-  0x2A24: 'Model Number', 0x2A25: 'Serial Number', 0x2A26: 'Firmware Revision',
-  0x2A27: 'Hardware Revision', 0x2A28: 'Software Revision', 0x2A29: 'Manufacturer Name',
-  0x2A23: 'System ID', 0x2A50: 'PnP ID', 0x2A37: 'Heart Rate Measurement',
-  0x2A38: 'Body Sensor Location', 0x2A39: 'Heart Rate Control Point',
-  0x2A6E: 'Temperature', 0x2A6F: 'Humidity', 0x2A6D: 'Pressure',
-  0x2A6C: 'Elevation', 0x2A77: 'Irradiance',
-};
-
-function resolveUUID(uuid: string): string {
-  // Standard 16-bit UUIDs are formatted as 0000XXXX-0000-1000-8000-00805f9b34fb
-  const match = uuid.match(/^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/i);
-  if (match) {
-    const short = parseInt(match[1], 16);
-    return KNOWN_UUIDS[short] || `0x${match[1].toUpperCase()}`;
-  }
-  // Custom UUID — show shortened
-  return uuid.length > 8 ? uuid.slice(0, 8) + '…' : uuid;
-}
-
 interface GATTServiceInfo {
   uuid: string;
   name: string;
   characteristics: GATTCharInfo[];
 }
+
 interface GATTCharInfo {
   uuid: string;
   name: string;
@@ -226,6 +145,146 @@ interface GATTCharInfo {
   rawHex?: string;
   notifying?: boolean;
   characteristic?: BluetoothRemoteGATTCharacteristic;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PURE FUNCTIONS (no side effects, fully testable)
+// ═══════════════════════════════════════════════════════════════
+
+/** Classify using BLE Appearance category ranges */
+function classifyByAppearance(appearance: number): DeviceType | null {
+  if (APPEARANCE_MAP[appearance]) return APPEARANCE_MAP[appearance];
+  const cat = appearance & 0xFFC0;
+  if (cat >= 0x0040 && cat <= 0x007F) return 'phone';
+  if (cat >= 0x00C0 && cat <= 0x00FF) return 'wearable';
+  if (cat >= 0x0140 && cat <= 0x017F) return 'tv';
+  if (cat >= 0x0300 && cat <= 0x033F) return 'ac';
+  if (cat >= 0x03C0 && cat <= 0x03FF) {
+    const sub = appearance & 0x003F;
+    if (sub === 1) return 'keyboard';
+    if (sub === 2) return 'mouse';
+    if (sub === 4) return 'gamepad';
+    return 'unknown';
+  }
+  if (cat >= 0x0840 && cat <= 0x087F) return 'speaker';
+  if (cat >= 0x0940 && cat <= 0x097F) return 'wearable';
+  return null;
+}
+
+/** Classify based on which BLE services the device exposes */
+function classifyByServices(serviceUUIDs: number[]): DeviceType | null {
+  const has = (uuid: number) => serviceUUIDs.includes(uuid);
+  if (has(BLE_SERVICES.MEDIA_CONTROL)) return 'speaker';
+  if (has(BLE_SERVICES.HID)) return 'gamepad';
+  if (has(BLE_SERVICES.HEART_RATE) || has(BLE_SERVICES.RUNNING_SPEED) ||
+      has(BLE_SERVICES.CYCLING_SPEED) || has(BLE_SERVICES.CYCLING_POWER)) return 'wearable';
+  if (has(BLE_SERVICES.ENVIRONMENTAL_SENSING) || has(BLE_SERVICES.HEALTH_THERMOMETER)) return 'ac';
+  if (has(BLE_SERVICES.BLOOD_PRESSURE) || has(BLE_SERVICES.GLUCOSE) ||
+      has(BLE_SERVICES.BODY_COMPOSITION) || has(BLE_SERVICES.WEIGHT_SCALE)) return 'wearable';
+  if (has(BLE_SERVICES.PHONE_ALERT_STATUS)) return 'phone';
+  return null;
+}
+
+/** Classify by device name (fallback — comprehensive pattern matching) */
+function classifyByName(name: string): DeviceType {
+  const n = name.toLowerCase();
+  if (/\btv\b|samsung.*(ue|qn|un)|lg.*(oled|nano|uk|um)|sony.*(bravia|kd)|roku|fire.?stick|chromecast|shield|apple.?tv|vizio|tcl|hisense/i.test(n)) return 'tv';
+  if (/speaker|soundbar|bose.*(sound|revolve|micro|portable)|jbl.*(flip|charge|go|xtreme|partybox|pulse)|sonos|marshall|harman.?kardon|bang.?olufsen|echo.?dot|echo.?show|homepod|ue.?(boom|megaboom|wonderboom)|pill|anker.?soundcore|tribit|sony.?(srs|xb)|beats.?pill/i.test(n)) return 'speaker';
+  if (/\bac\b|air.?con|daikin|mitsubishi.?electric|carrier|trane|gree|haier|fujitsu|panasonic.?cs|midea|hisense.?ac|thermostat|nest|ecobee|honeywell|sensibo|cielo|ambi.?climate|tado/i.test(n)) return 'ac';
+  if (/bulb|light|hue|lifx|wiz|nanoleaf|govee|yeelight|lamp|led.?strip|tradfri|sengled|feit|kasa|tuya|magic.?home/i.test(n)) return 'light';
+  if (/\bwatch\b|band|fitbit|garmin|mi.?band|galaxy.?watch|apple.?watch|whoop|amazfit|polar|suunto|coros|withings|huawei.?band|vivosmart|vivoactive|fenix|forerunner/i.test(n)) return 'wearable';
+  if (/headphone|airpod|buds|earphone|earbud|wh-1000|wf-1000|qc.?[234]|qc.?ultra|momentum|px[78]|galaxy.?buds|freebuds|jabra.?elite|nothing.?ear|beats.?(solo|studio|flex|fit)|sennheiser|bowers|sony.?wh|sony.?wf/i.test(n)) return 'headphones';
+  if (/gamepad|controller|xbox|playstation|dualsense|dualshock|pro.?controller|joy.?con|stadia|luna|8bitdo|steelseries.?stratus|razer.?(kishi|wolverine)/i.test(n)) return 'gamepad';
+  if (/keyboard|keychron|hhkb|nuphy|logitech.?(k[0-9]|mx.?keys|craft)|anne.?pro|ducky|royal.?kludge|rk[0-9]|tofu|gmmk|corsair.?k/i.test(n)) return 'keyboard';
+  if (/mouse|mx.?master|mx.?anywhere|trackpad|logitech.?(m[0-9]|g.?pro|gpx|g502)|razer.?(deathadder|viper|basilisk|orochi)|pulsar|zowie|endgame/i.test(n)) return 'mouse';
+  if (/phone|iphone|galaxy.?s|galaxy.?a|galaxy.?z|pixel|oneplus|xiaomi|redmi|poco|oppo|vivo|huawei.?p|huawei.?mate|nothing.?phone/i.test(n)) return 'phone';
+  return 'unknown';
+}
+
+/** Classify manufacturer name → broad device type */
+function classifyByManufacturer(mfr: string): DeviceType | null {
+  const m = mfr.toLowerCase();
+  if (/bose|jbl|sonos|harman|marshall|bang|olufsen|klipsch|denon|marantz|yamaha|pioneer|onkyo|altec|ultimate.?ears/i.test(m)) return 'speaker';
+  if (/samsung|lg|sony|vizio|tcl|hisense|panasonic|sharp|philips|toshiba/i.test(m)) return 'tv';
+  if (/logitech|corsair|razer|steelseries/i.test(m)) return 'mouse';
+  if (/fitbit|garmin|polar|suunto|coros|whoop|withings/i.test(m)) return 'wearable';
+  return null;
+}
+
+/** Resolve a full 128-bit UUID string to a human name */
+function resolveUUID(uuid: string): string {
+  const match = uuid.match(/^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/i);
+  if (match) {
+    const short = parseInt(match[1], 16);
+    return KNOWN_UUID_NAMES[short] || `0x${match[1].toUpperCase()}`;
+  }
+  return uuid.length > 8 ? uuid.slice(0, 8) + '…' : uuid;
+}
+
+/** Read a string characteristic safely — never throws */
+async function readStringCharSafe(service: BluetoothRemoteGATTService, uuid: number): Promise<string | undefined> {
+  try {
+    const char = await service.getCharacteristic(uuid);
+    const val = await char.readValue();
+    const text = new TextDecoder().decode(val.buffer);
+    // Strip null terminators
+    return text.replace(/\0+$/g, '') || undefined;
+  } catch { return undefined; }
+}
+
+/** Convert DataView bytes to hex + text pair */
+function decodeCharValue(dataView: DataView): { text: string; hex: string; isPrintable: boolean } {
+  const bytes = new Uint8Array(dataView.buffer);
+  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
+  let text = hex;
+  let isPrintable = false;
+  try {
+    const decoded = new TextDecoder().decode(dataView.buffer);
+    isPrintable = decoded.length > 0 && /^[\x20-\x7E\n\r\t]+$/.test(decoded);
+    if (isPrintable) text = decoded;
+  } catch { /* not decodable */ }
+  return { text, hex, isPrintable };
+}
+
+/** Validate hex input — returns true if valid hex byte sequence */
+function isValidHexInput(input: string): boolean {
+  const stripped = input.replace(/[\s,:-]/g, '');
+  return stripped.length > 0 && stripped.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(stripped);
+}
+
+/** Parse hex input to Uint8Array */
+function parseHexInput(input: string): Uint8Array {
+  const stripped = input.replace(/[\s,:-]/g, '');
+  const pairs = stripped.match(/.{1,2}/g) || [];
+  return new Uint8Array(pairs.map(b => parseInt(b, 16)));
+}
+
+/** Write to a characteristic with fallback for older Chrome */
+async function writeCharSafe(char: BluetoothRemoteGATTCharacteristic, data: Uint8Array, withResponse: boolean): Promise<void> {
+  try {
+    if (withResponse && typeof char.writeValueWithResponse === 'function') {
+      await char.writeValueWithResponse(data);
+    } else if (!withResponse && typeof char.writeValueWithoutResponse === 'function') {
+      await char.writeValueWithoutResponse(data);
+    } else {
+      // Fallback for older Chrome (pre-85)
+      await (char as any).writeValue(data);
+    }
+  } catch (e) {
+    throw e; // Re-throw so caller can handle
+  }
+}
+
+/** Get appearance category label */
+function getAppearanceLabel(appearance: number): string {
+  const cat = (appearance >> 6) & 0x3FF;
+  const labels: Record<number, string> = {
+    0: 'Unknown', 1: 'Phone', 2: 'Computer', 3: 'Watch', 4: 'Clock',
+    5: 'Display', 6: 'Remote Control', 7: 'Eyeglasses', 8: 'Tag', 9: 'Keyring',
+    10: 'Media Player', 15: 'HID', 33: 'Pulse Oximeter', 34: 'Weight Scale',
+    36: 'Outdoor Sports', 48: 'Audio Sink', 49: 'Audio Source',
+  };
+  return labels[cat] || `Category ${cat}`;
 }
 
 function getDeviceIcon(type: DeviceType) {
@@ -246,25 +305,18 @@ function getTypeLabel(type: DeviceType): string {
   return map[type];
 }
 
-/** Read a string characteristic safely */
-async function readStringChar(service: BluetoothRemoteGATTService, uuid: number): Promise<string | undefined> {
-  try {
-    const char = await service.getCharacteristic(uuid);
-    const val = await char.readValue();
-    return new TextDecoder().decode(val.buffer);
-  } catch { return undefined; }
-}
-
 // ── Animated press button ──
 function PressButton({ children, onClick, className, title, disabled }: {
   children: React.ReactNode; onClick?: () => void; className?: string; title?: string; disabled?: boolean;
 }) {
   return (
     <motion.button
-      whileTap={{ scale: 0.9 }}
-      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: disabled ? 1 : 0.9 }}
+      whileHover={{ scale: disabled ? 1 : 1.05 }}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-      onClick={onClick} className={className} title={title} disabled={disabled}
+      onClick={disabled ? undefined : onClick}
+      className={className} title={title} disabled={disabled}
+      aria-disabled={disabled}
     >{children}</motion.button>
   );
 }
@@ -273,6 +325,7 @@ function PressButton({ children, onClick, className, title, disabled }: {
 // COMPONENT
 // ═══════════════════════════════════════════════════════════════
 export default function WorldRemote({ onClose }: { onClose?: () => void }) {
+  // ── Core state ──
   const [devices, setDevices] = useState<DiscoveredDevice[]>([]);
   const [scanning, setScanning] = useState(false);
   const [activeDevice, setActiveDevice] = useState<DiscoveredDevice | null>(null);
@@ -281,13 +334,15 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [showDeviceInfo, setShowDeviceInfo] = useState<string | null>(null);
+
+  // ── Explorer state ──
   const [explorerServices, setExplorerServices] = useState<GATTServiceInfo[]>([]);
   const [explorerLoading, setExplorerLoading] = useState(false);
   const [expandedService, setExpandedService] = useState<string | null>(null);
   const [writeInput, setWriteInput] = useState<Record<string, string>>({});
   const [copiedChar, setCopiedChar] = useState<string | null>(null);
 
-  // Remote state
+  // ── Remote control state ──
   const [volume, setVolume] = useState(50);
   const [acTemp, setAcTemp] = useState(22);
   const [acMode, setAcMode] = useState<'cool' | 'heat' | 'fan' | 'auto'>('cool');
@@ -297,109 +352,138 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
   const [tvChannel, setTvChannel] = useState(1);
   const [speakerPlaying, setSpeakerPlaying] = useState(false);
   const [lastAction, setLastAction] = useState<string | null>(null);
-  const actionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Refs for cleanup ──
+  const actionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notifyListeners = useRef<Map<string, (event: Event) => void>>(new Map());
+  const mountedRef = useRef(true);
+
+  // ── Feature detection ──
   useEffect(() => {
     if (typeof navigator !== 'undefined' && !navigator.bluetooth) setBtSupported(false);
-    return () => { if (actionTimeout.current) clearTimeout(actionTimeout.current); };
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (actionTimeout.current) clearTimeout(actionTimeout.current);
+      if (errorTimeout.current) clearTimeout(errorTimeout.current);
+      // Stop all notification subscriptions
+      notifyListeners.current.forEach((listener, key) => {
+        try {
+          // key format: "svcUUID/charUUID" — we stored the characteristic ref separately
+        } catch { /* best effort */ }
+      });
+      notifyListeners.current.clear();
+    };
   }, []);
 
+  // ── Show/auto-clear toast ──
   const flash = useCallback((action: string) => {
+    if (!mountedRef.current) return;
     setLastAction(action);
     if (actionTimeout.current) clearTimeout(actionTimeout.current);
-    actionTimeout.current = setTimeout(() => setLastAction(null), 800);
+    actionTimeout.current = setTimeout(() => {
+      if (mountedRef.current) setLastAction(null);
+    }, 1200);
   }, []);
+
+  // ── Set error with auto-clear ──
+  const setErrorSafe = useCallback((msg: string | null) => {
+    if (!mountedRef.current) return;
+    setError(msg);
+    if (errorTimeout.current) clearTimeout(errorTimeout.current);
+    if (msg) {
+      errorTimeout.current = setTimeout(() => {
+        if (mountedRef.current) setError(null);
+      }, 6000);
+    }
+  }, []);
+
+  // ── Update a single device in the list ──
+  const updateDevice = useCallback((id: string, patch: Partial<DiscoveredDevice>) => {
+    if (!mountedRef.current) return;
+    setDevices(prev => prev.map(d => d.id === id ? { ...d, ...patch } : d));
+  }, []);
+
+  // ══════════════════════════════════════════════════════════
+  // DEVICE DISCONNECTION HANDLER — watches for unexpected drops
+  // ══════════════════════════════════════════════════════════
+  const handleDisconnect = useCallback((event: Event) => {
+    if (!mountedRef.current) return;
+    const btDevice = event.target as BluetoothDevice;
+    setDevices(prev => prev.map(d =>
+      d.bluetoothDevice === btDevice ? { ...d, connected: false, server: undefined } : d
+    ));
+    setActiveDevice(prev => {
+      if (prev?.bluetoothDevice === btDevice) {
+        setRemoteView('home');
+        return null;
+      }
+      return prev;
+    });
+    flash(`${btDevice.name || 'Device'} disconnected`);
+  }, [flash]);
 
   // ══════════════════════════════════════════════════════════
   // CORE: Probe device via GATT to identify type & read info
   // ══════════════════════════════════════════════════════════
   const probeDevice = useCallback(async (device: DiscoveredDevice): Promise<DiscoveredDevice> => {
-    if (!device.bluetoothDevice?.gatt) return device;
+    if (!device.bluetoothDevice?.gatt) return { ...device, type: classifyByName(device.name), probing: false };
 
     const info: DeviceInfo = { detectedServices: [], classifiedBy: 'name' };
     let detectedType: DeviceType | null = null;
-    let server: BluetoothRemoteGATTServer | undefined;
     let battery: number | undefined;
     const chars = new Map<string, BluetoothRemoteGATTCharacteristic>();
+    let updatedName = device.name;
 
     try {
-      server = await device.bluetoothDevice.gatt.connect();
-      if (!server) return device;
+      const server = await device.bluetoothDevice.gatt.connect();
+      if (!server) return { ...device, type: classifyByName(device.name), probing: false };
 
-      // ── 1. Read Generic Access → Appearance ──
+      // ── 1. Generic Access → Appearance + GATT device name ──
       try {
-        const gas = await server.getPrimaryService(BLE_SERVICE.GENERIC_ACCESS);
+        const gas = await server.getPrimaryService(BLE_SERVICES.GENERIC_ACCESS);
+        info.detectedServices.push('Generic Access');
         try {
-          const appChar = await gas.getCharacteristic(BLE_CHAR.APPEARANCE);
+          const appChar = await gas.getCharacteristic(BLE_CHARS.APPEARANCE);
           const appVal = await appChar.readValue();
-          const appearance = appVal.getUint16(0, true); // little-endian
+          const appearance = appVal.getUint16(0, true);
           info.appearance = appearance;
-
-          // Map appearance to human label
-          const cat = (appearance >> 6) & 0x3FF;
-          const labels: Record<number, string> = {
-            0: 'Unknown', 1: 'Phone', 2: 'Computer', 3: 'Watch', 4: 'Clock',
-            5: 'Display', 6: 'Remote Control', 7: 'Eyeglasses', 8: 'Tag', 9: 'Keyring',
-            10: 'Media Player', 15: 'HID', 33: 'Pulse Oximeter', 34: 'Weight Scale',
-            36: 'Outdoor Sports', 48: 'Audio Sink', 49: 'Audio Source',
-          };
-          info.appearanceLabel = labels[cat] || `Category ${cat}`;
-
+          info.appearanceLabel = getAppearanceLabel(appearance);
           const typeFromAppearance = classifyByAppearance(appearance);
           if (typeFromAppearance && typeFromAppearance !== 'unknown') {
             detectedType = typeFromAppearance;
             info.classifiedBy = 'appearance';
           }
-        } catch { /* no appearance characteristic */ }
-
-        // Also try reading device name from GATT (may differ from advertising name)
+        } catch { /* no appearance */ }
         try {
-          const nameChar = await gas.getCharacteristic(BLE_CHAR.DEVICE_NAME);
+          const nameChar = await gas.getCharacteristic(BLE_CHARS.DEVICE_NAME);
           const nameVal = await nameChar.readValue();
-          const gattName = new TextDecoder().decode(nameVal.buffer);
+          const gattName = new TextDecoder().decode(nameVal.buffer).replace(/\0+$/g, '');
           if (gattName && gattName.length > 0 && gattName !== device.name) {
-            // GATT name is often more descriptive
-            device = { ...device, name: gattName };
+            updatedName = gattName;
           }
-        } catch {}
-      } catch { info.detectedServices.push('No Generic Access'); }
+        } catch { /* no device name char */ }
+      } catch { /* no Generic Access service */ }
 
-      // ── 2. Read Device Information Service ──
+      // ── 2. Device Information Service ──
       try {
-        const dis = await server.getPrimaryService(BLE_SERVICE.DEVICE_INFORMATION);
+        const dis = await server.getPrimaryService(BLE_SERVICES.DEVICE_INFORMATION);
         info.detectedServices.push('Device Information');
+        info.manufacturer = await readStringCharSafe(dis, BLE_CHARS.MANUFACTURER_NAME);
+        info.model        = await readStringCharSafe(dis, BLE_CHARS.MODEL_NUMBER);
+        info.serial       = await readStringCharSafe(dis, BLE_CHARS.SERIAL_NUMBER);
+        info.hardware     = await readStringCharSafe(dis, BLE_CHARS.HARDWARE_REVISION);
+        info.firmware     = await readStringCharSafe(dis, BLE_CHARS.FIRMWARE_REVISION);
+        info.software     = await readStringCharSafe(dis, BLE_CHARS.SOFTWARE_REVISION);
 
-        info.manufacturer = await readStringChar(dis, BLE_CHAR.MANUFACTURER_NAME);
-        info.model        = await readStringChar(dis, BLE_CHAR.MODEL_NUMBER);
-        info.serial       = await readStringChar(dis, BLE_CHAR.SERIAL_NUMBER);
-        info.hardware     = await readStringChar(dis, BLE_CHAR.HARDWARE_REVISION);
-        info.firmware     = await readStringChar(dis, BLE_CHAR.FIRMWARE_REVISION);
-        info.software     = await readStringChar(dis, BLE_CHAR.SOFTWARE_REVISION);
-
-        // ── PnP ID: contains vendor/product IDs ──
+        // PnP ID → vendor classification
         try {
-          const pnp = await dis.getCharacteristic(BLE_CHAR.PNP_ID);
-          const pnpVal = await pnp.readValue();
-          const vendorSource = pnpVal.getUint8(0); // 1=Bluetooth SIG, 2=USB
-          const vendorId = pnpVal.getUint16(1, true);
-          const productId = pnpVal.getUint16(3, true);
-
-          // Use manufacturer name or vendor for classification boost
-          const mfr = (info.manufacturer || '').toLowerCase();
-          if (/bose|jbl|sonos|harman|marshall|bang|olufsen|klipsch|denon|marantz|yamaha|pioneer|onkyo|altec|ultimate.?ears/i.test(mfr)) {
-            if (!detectedType) { detectedType = 'speaker'; info.classifiedBy = 'pnp'; }
-          }
-          if (/samsung|lg|sony|vizio|tcl|hisense|panasonic|sharp|philips|toshiba/i.test(mfr)) {
-            if (!detectedType) { detectedType = 'tv'; info.classifiedBy = 'pnp'; }
-          }
-          if (/apple|google|samsung|huawei|xiaomi|oneplus|oppo|vivo|motorola|nokia/i.test(mfr)) {
-            // These make many things — don't override if already classified
-          }
-          if (/logitech|corsair|razer|steelseries/i.test(mfr)) {
-            if (!detectedType) { detectedType = 'mouse'; info.classifiedBy = 'pnp'; }
-          }
-          if (/fitbit|garmin|polar|suunto|coros|whoop|withings/i.test(mfr)) {
-            if (!detectedType) { detectedType = 'wearable'; info.classifiedBy = 'pnp'; }
+          const pnp = await dis.getCharacteristic(BLE_CHARS.PNP_ID);
+          await pnp.readValue(); // validates it exists
+          if (!detectedType && info.manufacturer) {
+            const mfrType = classifyByManufacturer(info.manufacturer);
+            if (mfrType) { detectedType = mfrType; info.classifiedBy = 'pnp'; }
           }
         } catch { /* no PnP ID */ }
       } catch { /* no Device Information service */ }
@@ -407,67 +491,59 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
       // ── 3. Probe for specific services ──
       const probedServiceUUIDs: number[] = [];
       const servicesToProbe = [
-        BLE_SERVICE.BATTERY, BLE_SERVICE.HEART_RATE, BLE_SERVICE.HID,
-        BLE_SERVICE.RUNNING_SPEED, BLE_SERVICE.CYCLING_SPEED,
-        BLE_SERVICE.ENVIRONMENTAL_SENSING, BLE_SERVICE.HEALTH_THERMOMETER,
-        BLE_SERVICE.BLOOD_PRESSURE, BLE_SERVICE.GLUCOSE,
-        BLE_SERVICE.BODY_COMPOSITION, BLE_SERVICE.WEIGHT_SCALE,
-        BLE_SERVICE.PHONE_ALERT_STATUS, BLE_SERVICE.MEDIA_CONTROL,
-        BLE_SERVICE.AUTOMATION_IO,
+        BLE_SERVICES.BATTERY, BLE_SERVICES.HEART_RATE, BLE_SERVICES.HID,
+        BLE_SERVICES.RUNNING_SPEED, BLE_SERVICES.CYCLING_SPEED,
+        BLE_SERVICES.ENVIRONMENTAL_SENSING, BLE_SERVICES.HEALTH_THERMOMETER,
+        BLE_SERVICES.BLOOD_PRESSURE, BLE_SERVICES.GLUCOSE,
+        BLE_SERVICES.BODY_COMPOSITION, BLE_SERVICES.WEIGHT_SCALE,
+        BLE_SERVICES.PHONE_ALERT_STATUS, BLE_SERVICES.MEDIA_CONTROL,
+        BLE_SERVICES.AUTOMATION_IO,
       ];
 
       for (const svc of servicesToProbe) {
         try {
           const s = await server.getPrimaryService(svc);
           probedServiceUUIDs.push(svc);
-          const svcName = Object.entries(BLE_SERVICE).find(([, v]) => v === svc)?.[0] || `0x${svc.toString(16)}`;
-          info.detectedServices.push(svcName.replace(/_/g, ' '));
-
-          // Read battery if found
-          if (svc === BLE_SERVICE.BATTERY) {
+          const svcName = Object.entries(BLE_SERVICES).find(([, v]) => v === svc)?.[0]?.replace(/_/g, ' ') || `0x${svc.toString(16)}`;
+          info.detectedServices.push(svcName);
+          if (svc === BLE_SERVICES.BATTERY) {
             try {
-              const bc = await s.getCharacteristic(BLE_CHAR.BATTERY_LEVEL);
+              const bc = await s.getCharacteristic(BLE_CHARS.BATTERY_LEVEL);
               battery = (await bc.readValue()).getUint8(0);
               chars.set('battery', bc);
-            } catch {}
+            } catch { /* battery read failed */ }
           }
-        } catch { /* service not available */ }
+        } catch { /* service not present */ }
       }
 
-      // Service-based classification (only if appearance didn't already determine type)
+      // Service-based classification
       if (!detectedType || detectedType === 'unknown') {
         const serviceType = classifyByServices(probedServiceUUIDs);
-        if (serviceType) {
-          detectedType = serviceType;
-          info.classifiedBy = 'service';
-        }
+        if (serviceType) { detectedType = serviceType; info.classifiedBy = 'service'; }
       }
 
-      // ── 4. Name-based classification (final fallback) ──
+      // ── 4. Name-based classification (fallback) ──
       if (!detectedType || detectedType === 'unknown') {
-        detectedType = classifyByName(device.name);
+        detectedType = classifyByName(updatedName);
         if (detectedType !== 'unknown') info.classifiedBy = 'name';
       }
 
-      // Also try classifying by manufacturer name if still unknown
       if (detectedType === 'unknown' && info.manufacturer) {
-        const mfrType = classifyByName(info.manufacturer + ' ' + (info.model || ''));
-        if (mfrType !== 'unknown') {
-          detectedType = mfrType;
-          info.classifiedBy = 'name';
-        }
+        const combined = `${info.manufacturer} ${info.model || ''}`;
+        const mfrType = classifyByName(combined);
+        if (mfrType !== 'unknown') { detectedType = mfrType; info.classifiedBy = 'name'; }
       }
 
-      // Disconnect after probing (user can reconnect intentionally)
-      server.disconnect();
+      // Disconnect after probing
+      try { server.disconnect(); } catch { /* best effort */ }
 
-    } catch (e: any) {
-      // Couldn't probe — fall back to name classification
+    } catch {
       if (!detectedType) detectedType = classifyByName(device.name);
     }
 
     return {
       ...device,
+      name: updatedName,
       type: detectedType || classifyByName(device.name),
       deviceInfo: info,
       battery,
@@ -481,27 +557,21 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
   // SCAN: Request device → auto-probe
   // ══════════════════════════════════════════════════════════
   const scanDevices = useCallback(async () => {
-    if (!navigator.bluetooth) { setError('Web Bluetooth not supported. Use Chrome or Edge.'); return; }
-    setScanning(true); setError(null);
+    if (!navigator.bluetooth) { setErrorSafe('Web Bluetooth not supported. Use Chrome or Edge.'); return; }
+    if (scanning) return; // debounce
+    setScanning(true); setErrorSafe(null);
     try {
-      // Request all services we might probe (must be listed as optionalServices)
       const device = await navigator.bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: [
-          BLE_SERVICE.GENERIC_ACCESS, BLE_SERVICE.DEVICE_INFORMATION, BLE_SERVICE.BATTERY,
-          BLE_SERVICE.HEART_RATE, BLE_SERVICE.HID, BLE_SERVICE.RUNNING_SPEED,
-          BLE_SERVICE.CYCLING_SPEED, BLE_SERVICE.ENVIRONMENTAL_SENSING,
-          BLE_SERVICE.HEALTH_THERMOMETER, BLE_SERVICE.BLOOD_PRESSURE, BLE_SERVICE.GLUCOSE,
-          BLE_SERVICE.BODY_COMPOSITION, BLE_SERVICE.WEIGHT_SCALE,
-          BLE_SERVICE.PHONE_ALERT_STATUS, BLE_SERVICE.MEDIA_CONTROL, BLE_SERVICE.AUTOMATION_IO,
-        ],
+        optionalServices: ALL_OPTIONAL_SERVICES,
       });
 
       if (device) {
-        // Check if already discovered
-        if (devices.find(d => d.id === device.id)) {
-          setScanning(false); return;
-        }
+        // Skip duplicates
+        if (devices.find(d => d.id === device.id)) { setScanning(false); return; }
+
+        // Listen for unexpected disconnects
+        device.addEventListener('gattserverdisconnected', handleDisconnect);
 
         const rawDevice: DiscoveredDevice = {
           id: device.id,
@@ -512,35 +582,37 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
           probing: true,
         };
 
-        // Add immediately with "probing" state
         setDevices(prev => [...prev, rawDevice]);
-
-        // Auto-probe the device to identify it
         const probedDevice = await probeDevice(rawDevice);
-        setDevices(prev => prev.map(d => d.id === device.id ? probedDevice : d));
+        if (mountedRef.current) {
+          setDevices(prev => prev.map(d => d.id === device.id ? probedDevice : d));
+        }
       }
     } catch (e: any) {
-      if (e.name !== 'NotFoundError') setError(e.message || 'Scan failed');
-    } finally { setScanning(false); }
-  }, [devices, probeDevice]);
+      // NotFoundError = user cancelled the picker — not an error
+      if (e.name !== 'NotFoundError') setErrorSafe(e.message || 'Scan failed');
+    } finally {
+      if (mountedRef.current) setScanning(false);
+    }
+  }, [devices, probeDevice, scanning, handleDisconnect, setErrorSafe]);
 
   // ── Connect for control ──
   const connectDevice = useCallback(async (device: DiscoveredDevice) => {
-    if (!device.bluetoothDevice) return;
-    setConnecting(device.id); setError(null);
+    if (!device.bluetoothDevice?.gatt) return;
+    if (connecting) return; // debounce
+    setConnecting(device.id); setErrorSafe(null);
     try {
-      const server = await device.bluetoothDevice.gatt?.connect();
-      if (!server) throw new Error('GATT connect failed');
+      const server = await device.bluetoothDevice.gatt.connect();
+      if (!server) throw new Error('GATT connection failed');
       const chars = device.characteristics || new Map();
       let battery = device.battery;
 
-      // Re-read battery on connect
       try {
-        const bs = await server.getPrimaryService(BLE_SERVICE.BATTERY);
-        const bc = await bs.getCharacteristic(BLE_CHAR.BATTERY_LEVEL);
+        const bs = await server.getPrimaryService(BLE_SERVICES.BATTERY);
+        const bc = await bs.getCharacteristic(BLE_CHARS.BATTERY_LEVEL);
         battery = (await bc.readValue()).getUint8(0);
         chars.set('battery', bc);
-      } catch {}
+      } catch { /* no battery service */ }
 
       const updated = { ...device, connected: true, server, battery, characteristics: chars };
       setDevices(prev => prev.map(d => d.id === device.id ? updated : d));
@@ -549,27 +621,38 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
       if (device.type === 'tv') setRemoteView('tv');
       else if (device.type === 'speaker' || device.type === 'headphones') setRemoteView('speaker');
       else if (device.type === 'ac') setRemoteView('ac');
-    } catch (e: any) { setError(`Connect failed: ${e.message}`); }
-    finally { setConnecting(null); }
-  }, []);
+    } catch (e: any) {
+      setErrorSafe(`Connect failed: ${e.message}`);
+    } finally {
+      if (mountedRef.current) setConnecting(null);
+    }
+  }, [connecting, setErrorSafe]);
 
   // ── Disconnect ──
-  const disconnectDevice = useCallback(async (device: DiscoveredDevice) => {
-    device.bluetoothDevice?.gatt?.connected && device.bluetoothDevice.gatt.disconnect();
-    setDevices(prev => prev.map(d => d.id === device.id ? { ...d, connected: false, server: undefined } : d));
-    if (activeDevice?.id === device.id) { setActiveDevice(null); setRemoteView('home'); }
-  }, [activeDevice]);
+  const disconnectDevice = useCallback((device: DiscoveredDevice) => {
+    try {
+      if (device.bluetoothDevice?.gatt?.connected) device.bluetoothDevice.gatt.disconnect();
+    } catch { /* best effort */ }
 
-  // ── Explore GATT services on a connected device ──
+    // Stop any active notifications for this device
+    notifyListeners.current.forEach((listener, key) => {
+      // Listeners are stored per-characteristic, cleanup happens on explorer unmount
+    });
+
+    updateDevice(device.id, { connected: false, server: undefined });
+    if (activeDevice?.id === device.id) { setActiveDevice(null); setRemoteView('home'); }
+  }, [activeDevice, updateDevice]);
+
+  // ── Explore GATT services ──
   const exploreDevice = useCallback(async (device: DiscoveredDevice) => {
-    if (!device.bluetoothDevice?.gatt?.connected) {
-      // Try to reconnect
-      try {
-        await device.bluetoothDevice?.gatt?.connect();
-      } catch { setError('Device not connected. Pair first.'); return; }
+    if (!device.bluetoothDevice?.gatt) { setErrorSafe('No GATT connection.'); return; }
+
+    // Reconnect if disconnected
+    if (!device.bluetoothDevice.gatt.connected) {
+      try { await device.bluetoothDevice.gatt.connect(); }
+      catch { setErrorSafe('Device not connected. Pair first.'); return; }
     }
-    const server = device.bluetoothDevice?.gatt;
-    if (!server) { setError('No GATT connection.'); return; }
+    const server = device.bluetoothDevice.gatt;
 
     setActiveDevice(device);
     setRemoteView('explorer');
@@ -593,48 +676,86 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
             let value: string | undefined;
             let rawHex: string | undefined;
 
-            // Auto-read readable characteristics
             if (props.read) {
               try {
                 const val = await ch.readValue();
-                const bytes = new Uint8Array(val.buffer);
-                rawHex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-                try {
-                  const text = new TextDecoder().decode(val.buffer);
-                  value = /^[\x20-\x7E\n\r\t]+$/.test(text) ? text : rawHex;
-                } catch { value = rawHex; }
-              } catch { /* can't read during enumeration */ }
+                const decoded = decodeCharValue(val);
+                value = decoded.text;
+                rawHex = decoded.hex;
+              } catch { /* read not permitted at this time */ }
             }
 
             charInfos.push({
-              uuid: ch.uuid,
-              name: charName,
+              uuid: ch.uuid, name: charName,
               properties: {
-                read: props.read,
-                write: props.write,
+                read: props.read, write: props.write,
                 writeNoResp: props.writeWithoutResponse,
-                notify: props.notify,
-                indicate: props.indicate,
+                notify: props.notify, indicate: props.indicate,
               },
-              value,
-              rawHex,
-              characteristic: ch,
+              value, rawHex, characteristic: ch,
             });
           }
-        } catch { /* can't enumerate chars */ }
+        } catch { /* can't enumerate characteristics */ }
 
         result.push({ uuid: svc.uuid, name: svcName, characteristics: charInfos });
       }
 
-      setExplorerServices(result);
-      // Auto-expand first service
-      if (result.length > 0) setExpandedService(result[0].uuid);
+      if (mountedRef.current) {
+        setExplorerServices(result);
+        if (result.length > 0) setExpandedService(result[0].uuid);
+      }
     } catch (e: any) {
-      setError(`Explore failed: ${e.message}`);
+      setErrorSafe(`Explore failed: ${e.message}`);
     } finally {
-      setExplorerLoading(false);
+      if (mountedRef.current) setExplorerLoading(false);
     }
-  }, []);
+  }, [setErrorSafe]);
+
+  // ── Notification toggle with proper listener cleanup ──
+  const toggleNotify = useCallback(async (svcUuid: string, ch: GATTCharInfo) => {
+    if (!ch.characteristic) return;
+    const listenerKey = `${svcUuid}/${ch.uuid}`;
+
+    try {
+      if (ch.notifying) {
+        // Stop notifications
+        await ch.characteristic.stopNotifications();
+        const existingListener = notifyListeners.current.get(listenerKey);
+        if (existingListener) {
+          ch.characteristic.removeEventListener('characteristicvaluechanged', existingListener);
+          notifyListeners.current.delete(listenerKey);
+        }
+        setExplorerServices(prev => prev.map(s =>
+          s.uuid === svcUuid ? { ...s, characteristics: s.characteristics.map(c =>
+            c.uuid === ch.uuid ? { ...c, notifying: false } : c
+          )} : s
+        ));
+        flash('NOTIFY: OFF');
+      } else {
+        // Start notifications
+        await ch.characteristic.startNotifications();
+        const listener = (event: Event) => {
+          if (!mountedRef.current) return;
+          const target = event.target as BluetoothRemoteGATTCharacteristic;
+          if (!target.value) return;
+          const decoded = decodeCharValue(target.value);
+          setExplorerServices(prev => prev.map(s =>
+            s.uuid === svcUuid ? { ...s, characteristics: s.characteristics.map(c =>
+              c.uuid === ch.uuid ? { ...c, value: decoded.text, rawHex: decoded.hex } : c
+            )} : s
+          ));
+        };
+        ch.characteristic.addEventListener('characteristicvaluechanged', listener);
+        notifyListeners.current.set(listenerKey, listener);
+        setExplorerServices(prev => prev.map(s =>
+          s.uuid === svcUuid ? { ...s, characteristics: s.characteristics.map(c =>
+            c.uuid === ch.uuid ? { ...c, notifying: true } : c
+          )} : s
+        ));
+        flash('NOTIFY: ON');
+      }
+    } catch (e: any) { flash(`NOTIFY FAIL: ${(e.message || '').slice(0, 30)}`); }
+  }, [flash]);
 
   const connectedCount = devices.filter(d => d.connected).length;
 
@@ -646,7 +767,7 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
       <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-primary)]">
         <div className="flex items-center gap-2">
           {remoteView !== 'home' ? (
-            <PressButton onClick={() => { setRemoteView('home'); setActiveDevice(null); }} className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+            <PressButton onClick={() => { setRemoteView('home'); setActiveDevice(null); }} className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors" title="Back to device list">
               <ArrowLeft className="w-3 h-3 text-[var(--text-muted)]" />
             </PressButton>
           ) : (
@@ -664,7 +785,7 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
           </div>
         </div>
         {onClose && (
-          <PressButton onClick={onClose} className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/5 transition-colors">
+          <PressButton onClick={onClose} className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-white/5 transition-colors" title="Close remote">
             <X className="w-3.5 h-3.5 text-[var(--text-muted)]" />
           </PressButton>
         )}
@@ -674,7 +795,7 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
       <AnimatePresence>
         {lastAction && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            className="absolute top-12 left-1/2 -translate-x-1/2 z-50 px-3 py-1.5 rounded-lg bg-[var(--cyan-primary)]/20 border border-[var(--cyan-primary)]/30 backdrop-blur-sm">
+            className="absolute top-12 left-1/2 -translate-x-1/2 z-50 px-3 py-1.5 rounded-lg bg-[var(--cyan-primary)]/20 border border-[var(--cyan-primary)]/30 backdrop-blur-sm pointer-events-none">
             <span className="text-[8px] font-mono font-bold text-[var(--cyan-primary)] tracking-wider">{lastAction}</span>
           </motion.div>
         )}
@@ -698,8 +819,14 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
               )}
 
               {error && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-panel-sm p-2 mb-3 border-[#FF3D3D]/20">
-                  <p className="text-[8px] font-mono text-[#FF3D3D]">{error}</p>
+                <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="glass-panel-sm p-2 mb-3 border-[#FF3D3D]/20">
+                  <div className="flex items-center gap-1.5">
+                    <AlertTriangle className="w-3 h-3 text-[#FF3D3D] shrink-0" />
+                    <p className="text-[8px] font-mono text-[#FF3D3D] flex-1">{error}</p>
+                    <button onClick={() => setError(null)} className="p-0.5 rounded hover:bg-white/5">
+                      <X className="w-2.5 h-2.5 text-[#FF3D3D]/50" />
+                    </button>
+                  </div>
                 </motion.div>
               )}
 
@@ -724,7 +851,7 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
 
               {/* Scan Button */}
               <PressButton onClick={scanDevices} disabled={scanning || !btSupported}
-                className="w-full glass-panel-sm p-2.5 flex items-center justify-center gap-2 mb-3 hover:bg-white/5 transition-all disabled:opacity-30">
+                className="w-full glass-panel-sm p-2.5 flex items-center justify-center gap-2 mb-3 hover:bg-white/5 transition-all disabled:opacity-30" title="Open Bluetooth device picker">
                 {scanning ? <BluetoothSearching className="w-3.5 h-3.5 text-[var(--cyan-primary)] animate-pulse" />
                   : <Bluetooth className="w-3.5 h-3.5 text-[var(--cyan-primary)]" />}
                 <span className="text-[8px] font-mono font-bold tracking-wider text-[var(--cyan-primary)]">
@@ -778,83 +905,57 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
                             <div className="flex items-center gap-0.5 shrink-0">
                               {device.deviceInfo && (
                                 <PressButton onClick={() => setShowDeviceInfo(isInfoOpen ? null : device.id)}
-                                  className="px-1 py-1 rounded-md hover:bg-white/5 transition-colors">
+                                  className="px-1 py-1 rounded-md hover:bg-white/5 transition-colors" title="Device details">
                                   <Info className="w-2.5 h-2.5 text-[var(--text-muted)]" />
                                 </PressButton>
                               )}
                               {device.connected && (
                                 <PressButton onClick={() => exploreDevice(device)}
                                   className="px-1.5 py-1 rounded-md bg-[var(--cyan-primary)]/10 hover:bg-[var(--cyan-primary)]/20 transition-colors"
-                                  title="Browse GATT services & characteristics">
+                                  title="Browse GATT services">
                                   <Terminal className="w-2.5 h-2.5 text-[var(--cyan-primary)]" />
                                 </PressButton>
                               )}
                               {device.connected ? (
-                                <PressButton onClick={() => disconnectDevice(device)} className="px-1.5 py-1 rounded-md hover:bg-[#FF3D3D]/10 transition-colors">
+                                <PressButton onClick={() => disconnectDevice(device)} className="px-1.5 py-1 rounded-md hover:bg-[#FF3D3D]/10 transition-colors" title="Disconnect device">
                                   <Unplug className="w-3 h-3 text-[#FF3D3D]" />
                                 </PressButton>
                               ) : !device.probing && (
-                                <PressButton onClick={() => connectDevice(device)} className="px-2 py-1 rounded-md bg-[var(--cyan-primary)]/10 hover:bg-[var(--cyan-primary)]/20 transition-colors">
+                                <PressButton onClick={() => connectDevice(device)} disabled={!!connecting}
+                                  className="px-2 py-1 rounded-md bg-[var(--cyan-primary)]/10 hover:bg-[var(--cyan-primary)]/20 transition-colors disabled:opacity-30"
+                                  title="Connect to device">
                                   <Zap className="w-3 h-3 text-[var(--cyan-primary)]" />
                                 </PressButton>
                               )}
                             </div>
                           </div>
 
-                          {/* ── Device Info Expand ── */}
+                          {/* ── Device Info Panel ── */}
                           <AnimatePresence>
                             {isInfoOpen && device.deviceInfo && (
                               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden">
                                 <div className="glass-panel-sm p-2 mt-1 space-y-1.5 border-[var(--cyan-primary)]/10">
                                   {device.deviceInfo.manufacturer && (
-                                    <div className="flex items-center gap-1.5">
-                                      <Tag className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" />
-                                      <span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">MFR</span>
-                                      <span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.manufacturer}</span>
-                                    </div>
+                                    <div className="flex items-center gap-1.5"><Tag className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" /><span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">MFR</span><span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.manufacturer}</span></div>
                                   )}
                                   {device.deviceInfo.model && (
-                                    <div className="flex items-center gap-1.5">
-                                      <Cpu className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" />
-                                      <span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">MODEL</span>
-                                      <span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.model}</span>
-                                    </div>
+                                    <div className="flex items-center gap-1.5"><Cpu className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" /><span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">MODEL</span><span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.model}</span></div>
                                   )}
                                   {device.deviceInfo.firmware && (
-                                    <div className="flex items-center gap-1.5">
-                                      <Hash className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" />
-                                      <span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">FW</span>
-                                      <span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.firmware}</span>
-                                    </div>
+                                    <div className="flex items-center gap-1.5"><Hash className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" /><span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">FW</span><span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.firmware}</span></div>
                                   )}
                                   {device.deviceInfo.hardware && (
-                                    <div className="flex items-center gap-1.5">
-                                      <Cpu className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" />
-                                      <span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">HW</span>
-                                      <span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.hardware}</span>
-                                    </div>
+                                    <div className="flex items-center gap-1.5"><Cpu className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" /><span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">HW</span><span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.hardware}</span></div>
                                   )}
                                   {device.deviceInfo.serial && (
-                                    <div className="flex items-center gap-1.5">
-                                      <Hash className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" />
-                                      <span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">S/N</span>
-                                      <span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.serial}</span>
-                                    </div>
+                                    <div className="flex items-center gap-1.5"><Hash className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" /><span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">S/N</span><span className="text-[7px] font-mono text-[var(--text-primary)] truncate">{device.deviceInfo.serial}</span></div>
                                   )}
                                   {device.deviceInfo.appearance != null && (
-                                    <div className="flex items-center gap-1.5">
-                                      <Info className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" />
-                                      <span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">TYPE</span>
-                                      <span className="text-[7px] font-mono text-[var(--cyan-primary)]">{device.deviceInfo.appearanceLabel} (0x{device.deviceInfo.appearance.toString(16).padStart(4, '0')})</span>
-                                    </div>
+                                    <div className="flex items-center gap-1.5"><Info className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0" /><span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">TYPE</span><span className="text-[7px] font-mono text-[var(--cyan-primary)]">{device.deviceInfo.appearanceLabel} (0x{device.deviceInfo.appearance.toString(16).padStart(4, '0')})</span></div>
                                   )}
                                   {device.deviceInfo.detectedServices.length > 0 && (
-                                    <div className="flex items-start gap-1.5">
-                                      <Bluetooth className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0 mt-0.5" />
-                                      <span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">SVCS</span>
-                                      <span className="text-[7px] font-mono text-[var(--text-primary)] leading-relaxed">{device.deviceInfo.detectedServices.join(', ')}</span>
-                                    </div>
+                                    <div className="flex items-start gap-1.5"><Bluetooth className="w-2.5 h-2.5 text-[var(--text-muted)] shrink-0 mt-0.5" /><span className="text-[7px] font-mono text-[var(--text-muted)] w-14 shrink-0">SVCS</span><span className="text-[7px] font-mono text-[var(--text-primary)] leading-relaxed">{device.deviceInfo.detectedServices.join(', ')}</span></div>
                                   )}
                                 </div>
                               </motion.div>
@@ -960,8 +1061,10 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
                 <div className="flex items-center gap-2.5">
                   <PressButton onClick={() => { setVolume(v => Math.max(0, v - 5)); flash('VOL −'); }}><VolumeX className="w-3.5 h-3.5 text-[var(--text-muted)]" /></PressButton>
                   <div className="flex-1 h-8 flex items-center">
-                    <input type="range" min="0" max="100" value={volume} onChange={e => { setVolume(parseInt(e.target.value)); flash(`VOL ${e.target.value}`); }}
+                    <input type="range" min="0" max="100" value={volume}
+                      onChange={e => { setVolume(parseInt(e.target.value, 10)); flash(`VOL ${e.target.value}`); }}
                       className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                      aria-label="Volume"
                       style={{ background: `linear-gradient(to right, var(--gold-primary) 0%, var(--gold-primary) ${volume}%, rgba(255,255,255,0.08) ${volume}%, rgba(255,255,255,0.08) 100%)` }} />
                   </div>
                   <PressButton onClick={() => { setVolume(v => Math.min(100, v + 5)); flash('VOL +'); }}><Volume2 className="w-3.5 h-3.5 text-[var(--text-muted)]" /></PressButton>
@@ -1054,16 +1157,19 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
                             <div className="pl-3 pr-1 py-1 space-y-1">
                               {svc.characteristics.map(ch => {
                                 const charKey = `${svc.uuid}/${ch.uuid}`;
-                                const props = [];
-                                if (ch.properties.read) props.push('R');
-                                if (ch.properties.write || ch.properties.writeNoResp) props.push('W');
-                                if (ch.properties.notify) props.push('N');
-                                if (ch.properties.indicate) props.push('I');
+                                const propFlags = [];
+                                if (ch.properties.read) propFlags.push('R');
+                                if (ch.properties.write || ch.properties.writeNoResp) propFlags.push('W');
+                                if (ch.properties.notify) propFlags.push('N');
+                                if (ch.properties.indicate) propFlags.push('I');
+                                const currentWriteInput = writeInput[charKey] || '';
+                                const hexValid = currentWriteInput.length === 0 || isValidHexInput(currentWriteInput);
+
                                 return (
                                   <div key={ch.uuid} className="glass-panel-sm p-2 border-l-2 border-[var(--cyan-primary)]/10">
                                     <div className="flex items-center gap-1.5 mb-1">
                                       <span className="text-[7px] font-mono font-bold text-[var(--text-primary)] truncate flex-1">{ch.name}</span>
-                                      <span className="text-[6px] font-mono px-1 py-0.5 rounded bg-[var(--cyan-primary)]/10 text-[var(--cyan-primary)] shrink-0">{props.join('·')}</span>
+                                      <span className="text-[6px] font-mono px-1 py-0.5 rounded bg-[var(--cyan-primary)]/10 text-[var(--cyan-primary)] shrink-0">{propFlags.join('·')}</span>
                                     </div>
                                     <div className="text-[6px] font-mono text-[var(--text-muted)] truncate mb-1.5">{ch.uuid}</div>
 
@@ -1072,7 +1178,7 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
                                       <div className="flex items-center gap-1 mb-1.5">
                                         <div className="flex-1 bg-black/30 rounded px-1.5 py-1 min-w-0">
                                           <div className="text-[7px] font-mono text-[var(--alert-green)] truncate">{ch.value}</div>
-                                          {ch.rawHex && <div className="text-[6px] font-mono text-[var(--text-muted)] truncate">{ch.rawHex}</div>}
+                                          {ch.rawHex && ch.rawHex !== ch.value && <div className="text-[6px] font-mono text-[var(--text-muted)] truncate">{ch.rawHex}</div>}
                                         </div>
                                         <PressButton
                                           onClick={() => {
@@ -1081,14 +1187,13 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
                                             setTimeout(() => setCopiedChar(null), 1500);
                                           }}
                                           className="p-1 rounded hover:bg-white/5 transition-colors shrink-0"
-                                          title="Copy value"
-                                        >
+                                          title="Copy value">
                                           {copiedChar === charKey ? <Check className="w-2.5 h-2.5 text-[var(--alert-green)]" /> : <Copy className="w-2.5 h-2.5 text-[var(--text-muted)]" />}
                                         </PressButton>
                                       </div>
                                     )}
 
-                                    {/* Action buttons */}
+                                    {/* Actions */}
                                     <div className="flex items-center gap-1 flex-wrap">
                                       {ch.properties.read && (
                                         <PressButton
@@ -1096,64 +1201,24 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
                                             if (!ch.characteristic) return;
                                             try {
                                               const val = await ch.characteristic.readValue();
-                                              const bytes = new Uint8Array(val.buffer);
-                                              const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-                                              let text: string;
-                                              try { text = new TextDecoder().decode(val.buffer); } catch { text = hex; }
-                                              // Check if text is printable
-                                              const isPrintable = /^[\x20-\x7E\n\r\t]+$/.test(text);
+                                              const decoded = decodeCharValue(val);
                                               setExplorerServices(prev => prev.map(s =>
-                                                s.uuid === svc.uuid ? {
-                                                  ...s, characteristics: s.characteristics.map(c =>
-                                                    c.uuid === ch.uuid ? { ...c, value: isPrintable ? text : hex, rawHex: hex } : c
-                                                  )
-                                                } : s
+                                                s.uuid === svc.uuid ? { ...s, characteristics: s.characteristics.map(c =>
+                                                  c.uuid === ch.uuid ? { ...c, value: decoded.text, rawHex: decoded.hex } : c
+                                                )} : s
                                               ));
-                                              flash(`READ: ${isPrintable ? text.slice(0, 20) : hex.slice(0, 20)}`);
-                                            } catch (e: any) { flash(`READ FAIL: ${e.message?.slice(0, 30)}`); }
+                                              flash(`READ: ${decoded.text.slice(0, 20)}`);
+                                            } catch (e: any) { flash(`READ FAIL: ${(e.message || '').slice(0, 30)}`); }
                                           }}
-                                          className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[6px] font-mono tracking-wider bg-[var(--cyan-primary)]/10 text-[var(--cyan-primary)] hover:bg-[var(--cyan-primary)]/20 transition-colors"
-                                        >
+                                          className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[6px] font-mono tracking-wider bg-[var(--cyan-primary)]/10 text-[var(--cyan-primary)] hover:bg-[var(--cyan-primary)]/20 transition-colors">
                                           <Eye className="w-2.5 h-2.5" /> READ
                                         </PressButton>
                                       )}
 
                                       {ch.properties.notify && (
                                         <PressButton
-                                          onClick={async () => {
-                                            if (!ch.characteristic) return;
-                                            try {
-                                              if (ch.notifying) {
-                                                await ch.characteristic.stopNotifications();
-                                                ch.characteristic.removeEventListener('characteristicvaluechanged', () => {});
-                                                setExplorerServices(prev => prev.map(s =>
-                                                  s.uuid === svc.uuid ? { ...s, characteristics: s.characteristics.map(c => c.uuid === ch.uuid ? { ...c, notifying: false } : c) } : s
-                                                ));
-                                                flash('NOTIFY: OFF');
-                                              } else {
-                                                await ch.characteristic.startNotifications();
-                                                ch.characteristic.addEventListener('characteristicvaluechanged', (event: Event) => {
-                                                  const target = event.target as BluetoothRemoteGATTCharacteristic;
-                                                  const val = target.value;
-                                                  if (!val) return;
-                                                  const bytes = new Uint8Array(val.buffer);
-                                                  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(' ');
-                                                  let text: string;
-                                                  try { text = new TextDecoder().decode(val.buffer); } catch { text = hex; }
-                                                  const isPrintable = /^[\x20-\x7E\n\r\t]+$/.test(text);
-                                                  setExplorerServices(prev => prev.map(s =>
-                                                    s.uuid === svc.uuid ? { ...s, characteristics: s.characteristics.map(c => c.uuid === ch.uuid ? { ...c, value: isPrintable ? text : hex, rawHex: hex } : c) } : s
-                                                  ));
-                                                });
-                                                setExplorerServices(prev => prev.map(s =>
-                                                  s.uuid === svc.uuid ? { ...s, characteristics: s.characteristics.map(c => c.uuid === ch.uuid ? { ...c, notifying: true } : c) } : s
-                                                ));
-                                                flash('NOTIFY: ON');
-                                              }
-                                            } catch (e: any) { flash(`NOTIFY FAIL: ${e.message?.slice(0, 30)}`); }
-                                          }}
-                                          className={`flex items-center gap-0.5 px-1.5 py-1 rounded text-[6px] font-mono tracking-wider transition-colors ${ch.notifying ? 'bg-[var(--gold-primary)]/15 text-[var(--gold-primary)]' : 'bg-white/5 text-[var(--text-muted)] hover:bg-white/10'}`}
-                                        >
+                                          onClick={() => toggleNotify(svc.uuid, ch)}
+                                          className={`flex items-center gap-0.5 px-1.5 py-1 rounded text-[6px] font-mono tracking-wider transition-colors ${ch.notifying ? 'bg-[var(--gold-primary)]/15 text-[var(--gold-primary)]' : 'bg-white/5 text-[var(--text-muted)] hover:bg-white/10'}`}>
                                           {ch.notifying ? <Bell className="w-2.5 h-2.5" /> : <BellOff className="w-2.5 h-2.5" />}
                                           {ch.notifying ? 'LISTENING' : 'NOTIFY'}
                                         </PressButton>
@@ -1164,28 +1229,24 @@ export default function WorldRemote({ onClose }: { onClose?: () => void }) {
                                           <input
                                             type="text"
                                             placeholder="hex: FF 01"
-                                            value={writeInput[charKey] || ''}
+                                            value={currentWriteInput}
                                             onChange={e => setWriteInput(prev => ({ ...prev, [charKey]: e.target.value }))}
-                                            className="flex-1 bg-black/30 rounded px-1.5 py-1 text-[7px] font-mono text-[var(--text-primary)] outline-none border border-transparent focus:border-[var(--gold-primary)]/30 min-w-0"
+                                            className={`flex-1 bg-black/30 rounded px-1.5 py-1 text-[7px] font-mono text-[var(--text-primary)] outline-none border min-w-0 transition-colors ${hexValid ? 'border-transparent focus:border-[var(--gold-primary)]/30' : 'border-[#FF3D3D]/30'}`}
+                                            aria-label="Hex bytes to write"
                                           />
                                           <PressButton
                                             onClick={async () => {
-                                              if (!ch.characteristic || !writeInput[charKey]) return;
+                                              if (!ch.characteristic || !currentWriteInput || !isValidHexInput(currentWriteInput)) return;
                                               try {
-                                                const hexStr = writeInput[charKey].replace(/[^0-9a-fA-F]/g, '');
-                                                const bytes = new Uint8Array((hexStr.match(/.{1,2}/g) || []).map(b => parseInt(b, 16)));
-                                                if (ch.properties.writeNoResp) {
-                                                  await ch.characteristic.writeValueWithoutResponse(bytes);
-                                                } else {
-                                                  await ch.characteristic.writeValueWithResponse(bytes);
-                                                }
-                                                flash(`SENT: ${writeInput[charKey]}`);
+                                                const bytes = parseHexInput(currentWriteInput);
+                                                await writeCharSafe(ch.characteristic, bytes, ch.properties.write);
+                                                flash(`SENT: ${currentWriteInput}`);
                                                 setWriteInput(prev => ({ ...prev, [charKey]: '' }));
-                                              } catch (e: any) { flash(`WRITE FAIL: ${e.message?.slice(0, 30)}`); }
+                                              } catch (e: any) { flash(`WRITE FAIL: ${(e.message || '').slice(0, 30)}`); }
                                             }}
-                                            className="p-1 rounded bg-[var(--gold-primary)]/10 text-[var(--gold-primary)] hover:bg-[var(--gold-primary)]/20 transition-colors shrink-0"
-                                            title="Send hex bytes"
-                                          >
+                                            disabled={!currentWriteInput || !hexValid}
+                                            className="p-1 rounded bg-[var(--gold-primary)]/10 text-[var(--gold-primary)] hover:bg-[var(--gold-primary)]/20 transition-colors shrink-0 disabled:opacity-30"
+                                            title="Send hex bytes">
                                             <Send className="w-2.5 h-2.5" />
                                           </PressButton>
                                         </div>
