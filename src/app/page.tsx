@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, BarChart3, Newspaper, Search, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Activity, Database, Wifi, Play, Network, Crosshair, Bluetooth } from 'lucide-react';
+import { Layers, BarChart3, Newspaper, Search, X, Globe, MapPinned, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Activity, Database, Wifi, Play, Network, Crosshair, Bluetooth, Pentagon } from 'lucide-react';
 import IntelFeed from '@/components/IntelFeed';
 import MarketsPanel from '@/components/MarketsPanel';
 import ScmPanel from '@/components/ScmPanel';
@@ -16,7 +16,7 @@ import KeyboardShortcuts from '@/components/KeyboardShortcuts';
 import GlobalStatusBar from '@/components/GlobalStatusBar';
 import LiveAlerts from '@/components/LiveAlerts';
 import WorldRemote from '@/components/WorldRemote';
-
+import ArcGISPanel from '@/components/ArcGISPanel';
 const OsirisMap = dynamic(() => import('@/components/OsirisMap'), { ssr: false });
 const LayerPanel = dynamic(() => import('@/components/LayerPanel'));
 const CameraViewer = dynamic(() => import('@/components/CameraViewer'));
@@ -109,6 +109,9 @@ export default function Dashboard() {
   const [showEntityGraph, setShowEntityGraph] = useState(false);
   const [showDesktopSearch, setShowDesktopSearch] = useState(false);
   const [showRemote, setShowRemote] = useState(false);
+  const [showArcGIS, setShowArcGIS] = useState(false);
+  const [arcgisLayers, setArcgisLayers] = useState<Array<{ id: string; title: string; url: string; geojson: any }>>([]);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number; bounds?: { west: number; south: number; east: number; north: number } } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<'layers'|'markets'|'intel'|'search'|'recon'|'remote'|null>(null);
   const [mapProjection, setMapProjection] = useState<'globe'|'mercator'>('globe');
@@ -792,6 +795,8 @@ export default function Dashboard() {
           scanTargets={scanTargets}
           demoMode={demoMode}
           theme={osirisTheme}
+          arcgisLayers={arcgisLayers.map(l => ({ id: l.id, title: l.title, geojson: l.geojson }))}
+          onMapCenter={setMapCenter}
         />
       </ErrorBoundary>
 
@@ -1015,8 +1020,36 @@ export default function Dashboard() {
         {/* Separator */}
         <div className="w-4 h-px bg-white/10 mx-auto" />
 
+        {/* ── ARCGIS INTEL ── */}
         <div className="relative group">
-          <button onClick={() => { setShowRemote(!showRemote); setShowIntel(false); setShowMarkets(false); setShowAlerts(false); setShowEntityGraph(false); setShowDesktopSearch(false); }} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showRemote ? 'bg-[var(--cyan-primary)]/20' : 'hover:bg-white/10'}`} title="World Remote — control nearby Bluetooth devices (TVs, speakers, AC)">
+          <button onClick={() => { setShowArcGIS(!showArcGIS); setShowRemote(false); }} className={`relative w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showArcGIS ? 'bg-[var(--gold-primary)]/20' : 'hover:bg-white/10'}`} title="ArcGIS — search & import geospatial intel layers">
+            <Database className={`w-4 h-4 ${showArcGIS ? 'text-[var(--gold-primary)]' : 'text-white/60'}`} />
+            {arcgisLayers.length > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-[var(--gold-primary)] text-black text-[7px] font-mono font-bold leading-none px-0.5">{arcgisLayers.length}</span>}
+          </button>
+          <span className="absolute right-11 top-1/2 -translate-y-1/2 px-2 py-1 text-[8px] font-mono tracking-wider text-white/80 bg-black/80 backdrop-blur-sm rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">ARCGIS</span>
+          <AnimatePresence>
+            {showArcGIS && (
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="absolute right-12 top-1/2 -translate-y-1/2 w-[340px]">
+                <div className="glass-panel p-3 max-h-[70vh] overflow-y-auto styled-scrollbar">
+                  <ArcGISPanel
+                    onImportLayer={(layer) => setArcgisLayers(prev => [...prev.filter(l => l.id !== layer.id), layer])}
+                    onRemoveLayer={(id) => setArcgisLayers(prev => prev.filter(l => l.id !== id))}
+                    importedLayers={arcgisLayers.map(l => l.id)}
+                    mapBounds={mapCenter?.bounds || null}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+
+        {/* Separator */}
+        <div className="w-4 h-px bg-white/10 mx-auto" />
+
+        {/* ── WORLD REMOTE ── */}
+        <div className="relative group">
+          <button onClick={() => { setShowRemote(!showRemote); setShowArcGIS(false); setShowIntel(false); setShowMarkets(false); setShowAlerts(false); setShowEntityGraph(false); setShowDesktopSearch(false); }} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${showRemote ? 'bg-[var(--cyan-primary)]/20' : 'hover:bg-white/10'}`} title="World Remote — control nearby Bluetooth devices (TVs, speakers, AC)">
             <Bluetooth className={`w-4 h-4 ${showRemote ? 'text-[var(--cyan-primary)]' : 'text-white/60'}`} />
           </button>
           <span className="absolute right-11 top-1/2 -translate-y-1/2 px-2 py-1 text-[8px] font-mono tracking-wider text-white/80 bg-black/80 backdrop-blur-sm rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">REMOTE</span>
