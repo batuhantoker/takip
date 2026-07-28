@@ -11,12 +11,17 @@ import {
   CheckCircle,
   AlertTriangle,
   Eye,
+  EyeOff,
   MapPin,
   Share2,
   Hexagon,
   Globe,
   Radio,
   Wifi,
+  Palette,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -35,10 +40,21 @@ interface ArcGISResult {
   tags: string[];
 }
 
+interface ImportedLayer {
+  id: string;
+  title: string;
+  url: string;
+  geojson: any;
+  color: string;
+  visible: boolean;
+  opacity: number;
+}
+
 export interface ArcGISPanelProps {
-  onImportLayer: (layer: { id: string; title: string; url: string; geojson: any }) => void;
+  onImportLayer: (layer: { id: string; title: string; url: string; geojson: any; color?: string; opacity?: number }) => void;
   onRemoveLayer: (id: string) => void;
-  importedLayers: string[];
+  onUpdateLayer: (id: string, updates: Partial<{ color: string; visible: boolean; opacity: number }>) => void;
+  importedLayers: ImportedLayer[];
   mapBounds?: { west: number; south: number; east: number; north: number } | null;
 }
 
@@ -49,6 +65,19 @@ const CATEGORIES = [
   { label: 'Military', query: 'military base installation' },
   { label: 'Emergency', query: 'emergency shelter evacuation' },
 ] as const;
+
+const LAYER_COLORS = [
+  '#D4AF37', // Gold (default)
+  '#00E5FF', // Cyan
+  '#FF6B6B', // Red
+  '#00E676', // Green
+  '#FF9800', // Orange
+  '#AB47BC', // Purple
+  '#29B6F6', // Blue
+  '#FFEE58', // Yellow
+  '#EC407A', // Pink
+  '#26A69A', // Teal
+];
 
 // Helper to guess geometry type for icon
 function getGeometryIcon(title: string, tags: string[] = []) {
@@ -62,6 +91,7 @@ function getGeometryIcon(title: string, tags: string[] = []) {
 export default function ArcGISPanel({
   onImportLayer,
   onRemoveLayer,
+  onUpdateLayer,
   importedLayers,
   mapBounds,
 }: ArcGISPanelProps) {
@@ -72,6 +102,9 @@ export default function ArcGISPanel({
   const [error, setError] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [featureCounts, setFeatureCounts] = useState<Record<string, number>>({});
+  const [expandedLayerId, setExpandedLayerId] = useState<string | null>(null);
+
+  const importedIds = importedLayers.map(l => l.id);
 
   const bboxParam = mapBounds
     ? `${mapBounds.west},${mapBounds.south},${mapBounds.east},${mapBounds.north}`
@@ -127,14 +160,17 @@ export default function ArcGISPanel({
           (geojson.type === 'FeatureCollection' ? 0 : 1);
 
         setFeatureCounts((prev) => ({ ...prev, [result.id]: count }));
-        onImportLayer({ id: result.id, title: result.title, url: result.url, geojson });
+        // Assign a color that doesn't overlap with existing layers
+        const usedColors = importedLayers.map(l => l.color);
+        const availableColor = LAYER_COLORS.find(c => !usedColors.includes(c)) || LAYER_COLORS[importedLayers.length % LAYER_COLORS.length];
+        onImportLayer({ id: result.id, title: result.title, url: result.url, geojson, color: availableColor, opacity: 0.8 });
       } catch (err: any) {
         setError(err.message || 'Import failed');
       } finally {
         setImportingId(null);
       }
     },
-    [bboxParam, onImportLayer],
+    [bboxParam, onImportLayer, importedLayers],
   );
 
   const handleCategory = (cat: (typeof CATEGORIES)[number]) => {
@@ -187,43 +223,148 @@ export default function ArcGISPanel({
           <span className="text-[8px] font-mono tracking-[0.2em] uppercase text-[var(--text-muted)] px-1">
             Active Data Layers
           </span>
-          <div className="flex flex-col gap-1 max-h-[120px] overflow-y-auto styled-scrollbar">
+          <div className="flex flex-col gap-1 max-h-[220px] overflow-y-auto styled-scrollbar">
             <AnimatePresence>
-              {importedLayers.map((id) => {
-                const result = results.find((r) => r.id === id);
-                const name = result?.title || id;
-                const count = featureCounts[id];
+              {importedLayers.map((layer) => {
+                const count = featureCounts[layer.id];
+                const isExpanded = expandedLayerId === layer.id;
                 return (
                   <motion.div
-                    key={id}
+                    key={layer.id}
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-[var(--alert-green)]/[0.08] border border-[var(--alert-green)]/30 backdrop-blur-md"
+                    className="rounded-lg border overflow-hidden transition-all"
+                    style={{
+                      borderColor: layer.visible ? `${layer.color}40` : 'rgba(255,255,255,0.06)',
+                      background: layer.visible ? `${layer.color}08` : 'rgba(255,255,255,0.02)',
+                    }}
                   >
-                    <CheckCircle className="w-3 h-3 text-[var(--alert-green)] flex-shrink-0" />
-                    <span className="text-[10px] font-mono font-medium text-white truncate flex-1">
-                      {name}
-                    </span>
-                    {count !== undefined && (
-                      <span className="text-[9px] font-mono font-bold text-[var(--alert-green)] tabular-nums bg-[var(--alert-green)]/10 px-1.5 py-0.5 rounded">
-                        {count.toLocaleString()} ft
+                    {/* Main layer row */}
+                    <div className="flex items-center gap-2 px-2.5 py-2">
+                      {/* Color dot */}
+                      <div
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-black/30"
+                        style={{ background: layer.color, opacity: layer.visible ? 1 : 0.3 }}
+                      />
+
+                      {/* Visibility toggle */}
+                      <button
+                        onClick={() => onUpdateLayer(layer.id, { visible: !layer.visible })}
+                        className="flex-shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors"
+                        title={layer.visible ? 'Hide layer' : 'Show layer'}
+                      >
+                        {layer.visible ? (
+                          <Eye className="w-3 h-3 text-white/70" />
+                        ) : (
+                          <EyeOff className="w-3 h-3 text-white/30" />
+                        )}
+                      </button>
+
+                      {/* Layer name */}
+                      <span className={`text-[10px] font-mono font-medium truncate flex-1 ${layer.visible ? 'text-white' : 'text-white/40'}`}>
+                        {layer.title}
                       </span>
-                    )}
-                    <button
-                      onClick={() => {
-                        onRemoveLayer(id);
-                        setFeatureCounts((prev) => {
-                          const next = { ...prev };
-                          delete next[id];
-                          return next;
-                        });
-                      }}
-                      className="p-1 rounded-md text-red-400/60 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                      title="Remove Layer"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
+
+                      {/* Feature count */}
+                      {count !== undefined && (
+                        <span
+                          className="text-[8px] font-mono font-bold tabular-nums px-1.5 py-0.5 rounded"
+                          style={{ color: layer.color, background: `${layer.color}15` }}
+                        >
+                          {count.toLocaleString()}
+                        </span>
+                      )}
+
+                      {/* Expand / collapse for settings */}
+                      <button
+                        onClick={() => setExpandedLayerId(isExpanded ? null : layer.id)}
+                        className="flex-shrink-0 p-0.5 rounded hover:bg-white/10 transition-colors text-white/40 hover:text-white/70"
+                        title="Layer settings"
+                      >
+                        <SlidersHorizontal className="w-3 h-3" />
+                      </button>
+
+                      {/* Remove */}
+                      <button
+                        onClick={() => {
+                          onRemoveLayer(layer.id);
+                          setFeatureCounts((prev) => {
+                            const next = { ...prev };
+                            delete next[layer.id];
+                            return next;
+                          });
+                          if (isExpanded) setExpandedLayerId(null);
+                        }}
+                        className="flex-shrink-0 p-0.5 rounded text-red-400/40 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                        title="Remove Layer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    {/* Expanded settings */}
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="px-2.5 pb-2.5 flex flex-col gap-2 border-t border-white/[0.06] pt-2">
+                            {/* Color Swatches */}
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[7px] font-mono tracking-[0.2em] uppercase text-[var(--text-muted)] flex items-center gap-1">
+                                <Palette className="w-2.5 h-2.5" /> Color
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {LAYER_COLORS.map((c) => (
+                                  <button
+                                    key={c}
+                                    onClick={() => onUpdateLayer(layer.id, { color: c })}
+                                    className="w-5 h-5 rounded-full transition-all hover:scale-110 ring-1 ring-black/40 relative"
+                                    style={{ background: c }}
+                                    title={c}
+                                  >
+                                    {layer.color === c && (
+                                      <span className="absolute inset-0 flex items-center justify-center">
+                                        <CheckCircle className="w-3 h-3 text-black/70" />
+                                      </span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Opacity Slider */}
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[7px] font-mono tracking-[0.2em] uppercase text-[var(--text-muted)] flex items-center gap-1">
+                                  <Eye className="w-2.5 h-2.5" /> Opacity
+                                </span>
+                                <span className="text-[9px] font-mono font-bold tabular-nums" style={{ color: layer.color }}>
+                                  {Math.round(layer.opacity * 100)}%
+                                </span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={Math.round(layer.opacity * 100)}
+                                onChange={(e) => onUpdateLayer(layer.id, { opacity: parseInt(e.target.value) / 100 })}
+                                className="w-full h-1 rounded-full appearance-none cursor-pointer"
+                                style={{
+                                  background: `linear-gradient(to right, ${layer.color} ${layer.opacity * 100}%, rgba(255,255,255,0.1) ${layer.opacity * 100}%)`,
+                                  accentColor: layer.color,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 );
               })}
@@ -305,8 +446,9 @@ export default function ArcGISPanel({
         <AnimatePresence>
           {!searching &&
             results.map((result, i) => {
-              const isImported = importedLayers.includes(result.id);
+              const isImported = importedIds.includes(result.id);
               const isImporting = importingId === result.id;
+              const importedLayer = importedLayers.find(l => l.id === result.id);
 
               return (
                 <motion.div
@@ -324,7 +466,10 @@ export default function ArcGISPanel({
                   {/* Title row */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <div className="p-1.5 rounded-md bg-black/40 border border-white/10 text-[#D4AF37]">
+                      <div
+                        className="p-1.5 rounded-md bg-black/40 border border-white/10"
+                        style={{ color: importedLayer?.color || '#D4AF37' }}
+                      >
                         {getGeometryIcon(result.title, result.tags)}
                       </div>
                       <div className="min-w-0">
@@ -345,7 +490,15 @@ export default function ArcGISPanel({
 
                     {/* Import / Imported badge */}
                     {isImported ? (
-                      <span className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono font-bold tracking-widest uppercase text-[var(--alert-green)] bg-[var(--alert-green)]/10 border border-[var(--alert-green)]/30 shadow-[0_0_10px_rgba(0,230,118,0.2)]">
+                      <span
+                        className="flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-mono font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(0,230,118,0.2)]"
+                        style={{
+                          color: importedLayer?.color || 'var(--alert-green)',
+                          background: `${importedLayer?.color || 'var(--alert-green)'}15`,
+                          borderWidth: 1,
+                          borderColor: `${importedLayer?.color || 'var(--alert-green)'}40`,
+                        }}
+                      >
                         <CheckCircle className="w-3 h-3" />
                         LIVE
                       </span>

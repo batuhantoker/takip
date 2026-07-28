@@ -21,7 +21,7 @@ const LAYER_GROUPS = [
   {
     label: 'SDK',
     fullLabel: 'OSIRIS SDK',
-    icon: Database,
+    icon: Network,
     layers: [
       { key: 'sdk_sea', label: 'Maritime Lines', dataKey: 'sdk_entities' },
     ],

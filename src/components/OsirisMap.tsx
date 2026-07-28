@@ -19,7 +19,7 @@ interface OsirisMapProps {
   demoMode?: boolean;
   theme?: 'core' | 'ghost';
   drawnPolygons?: Array<{ id: string; name: string; geojson: GeoJSON.Feature<GeoJSON.Polygon>; color: string }>;
-  arcgisLayers?: Array<{ id: string; title: string; geojson: any }>;
+  arcgisLayers?: Array<{ id: string; title: string; geojson: any; color?: string; opacity?: number }>;
   drawingMode?: boolean;
   onDrawComplete?: (coords: number[][]) => void;
   onMapCenter?: (coords: { lat: number; lng: number; bounds?: { west: number; south: number; east: number; north: number } }) => void;
@@ -1823,13 +1823,29 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
     currentLayers.forEach(layer => {
       const sourceId = `arcgis-${layer.id}`;
+      const c = layer.color || '#D4AF37';
+      const o = layer.opacity ?? 0.8;
       if (!map.getSource(sourceId)) {
         map.addSource(sourceId, { type: 'geojson', data: layer.geojson });
-        map.addLayer({ id: `${sourceId}-fill`, type: 'fill', source: sourceId, paint: { 'fill-color': '#D4AF37', 'fill-opacity': 0.12, 'fill-outline-color': '#D4AF37' } });
-        map.addLayer({ id: `${sourceId}-line`, type: 'line', source: sourceId, paint: { 'line-color': '#D4AF37', 'line-width': 2, 'line-opacity': 0.8 } });
-        map.addLayer({ id: `${sourceId}-circle`, type: 'circle', source: sourceId, filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-color': '#D4AF37', 'circle-radius': 5, 'circle-stroke-width': 1.5, 'circle-stroke-color': '#000', 'circle-opacity': 0.9 } });
+        map.addLayer({ id: `${sourceId}-fill`, type: 'fill', source: sourceId, paint: { 'fill-color': c, 'fill-opacity': o * 0.15, 'fill-outline-color': c } });
+        map.addLayer({ id: `${sourceId}-line`, type: 'line', source: sourceId, paint: { 'line-color': c, 'line-width': 2, 'line-opacity': o } });
+        map.addLayer({ id: `${sourceId}-circle`, type: 'circle', source: sourceId, filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-color': c, 'circle-radius': 5, 'circle-stroke-width': 1.5, 'circle-stroke-color': '#000', 'circle-opacity': o } });
       } else {
         (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData(layer.geojson);
+        // Update paint properties for color/opacity changes
+        if (map.getLayer(`${sourceId}-fill`)) {
+          map.setPaintProperty(`${sourceId}-fill`, 'fill-color', c);
+          map.setPaintProperty(`${sourceId}-fill`, 'fill-opacity', o * 0.15);
+          map.setPaintProperty(`${sourceId}-fill`, 'fill-outline-color', c);
+        }
+        if (map.getLayer(`${sourceId}-line`)) {
+          map.setPaintProperty(`${sourceId}-line`, 'line-color', c);
+          map.setPaintProperty(`${sourceId}-line`, 'line-opacity', o);
+        }
+        if (map.getLayer(`${sourceId}-circle`)) {
+          map.setPaintProperty(`${sourceId}-circle`, 'circle-color', c);
+          map.setPaintProperty(`${sourceId}-circle`, 'circle-opacity', o);
+        }
       }
     });
   }, [mapReady, arcgisLayers]);
