@@ -139,6 +139,33 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ── Scrollable document pages (docs) ──
+   The rules above lock the viewport for the fullscreen map. Long-form pages
+   opt out by rendering .docs-root, which releases the lock without affecting
+   the map. */
+html:has(.docs-root),
+html:has(.docs-root) body {
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.docs-root),
+  html:has(.docs-root) body { scroll-behavior: auto; }
+}
+
+/* ── Docs code tokens ── */
+.docs-code { color: #C9D1D9; }
+.docs-code .tok-key { color: var(--gold-primary); }
+.docs-code .tok-str { color: #A5D6A7; }
+.docs-code .tok-num { color: #F0D060; }
+.docs-code .tok-lit { color: #B388FF; }
+.docs-code .tok-kw  { color: #FF7B9C; }
+.docs-code .tok-fn  { color: var(--cyan-primary); }
+.docs-code .tok-com { color: #5C5A54; font-style: italic; }
+
 /* ── Scrollbar ── */
 .styled-scrollbar::-webkit-scrollbar { width: 3px; }
 .styled-scrollbar::-webkit-scrollbar-track { background: transparent; }

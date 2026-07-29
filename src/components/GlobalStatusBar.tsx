@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 
 interface CryptoPrice { symbol: string; price: number; change24h?: number; }
@@ -16,6 +17,13 @@ const DiscordIcon = () => (
 const XIcon = () => (
   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
     <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/>
+  </svg>
+);
+
+const DocsIcon = () => (
+  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H10a2 2 0 0 1 2 2 2 2 0 0 1 2-2h4.5A1.5 1.5 0 0 1 20 4.5v13a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5.5A1.5 1.5 0 0 1 4 17.5z"/>
+    <path d="M12 7v14"/>
   </svg>
 );
 
@@ -122,7 +130,9 @@ export default function GlobalStatusBar() {
     return () => clearInterval(iv);
   }, []);
 
-  if (crypto.length === 0 && quakes.length === 0) return null;
+  // Keep the bar mounted even with no feed data — the left-hand community and
+  // docs links must stay reachable when CoinGecko/USGS are rate-limited or down.
+  const hasTicker = crypto.length > 0 || quakes.length > 0;
 
   const solPrice = crypto.find(c => c.symbol === 'SOL');
 
@@ -131,7 +141,7 @@ export default function GlobalStatusBar() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 3, duration: 0.6 }}
-      className="hidden md:block absolute bottom-0 left-0 right-0 z-[198] pointer-events-none"
+      className="hidden md:block absolute bottom-0 left-0 right-0 z-[210] pointer-events-none"
     >
       <div className="h-[28px] overflow-hidden bg-[#0a0a0f]/95 border-t border-white/[0.06] flex items-center text-[9px] font-mono tracking-wider backdrop-blur-xl relative">
         {/* Animated scan line */}
@@ -151,11 +161,18 @@ export default function GlobalStatusBar() {
           >
             <XIcon />
           </a>
+          {/* Documentation & API reference */}
+          <Link href="/docs" prefetch title="Documentation & API Reference" aria-label="Documentation & API Reference"
+            className="h-full px-3 flex items-center gap-1.5 bg-[var(--gold-primary)]/10 text-[var(--gold-primary)]/80 hover:text-[var(--gold-primary)] hover:bg-[var(--gold-primary)]/25 border-r border-white/[0.04] transition-all duration-200"
+          >
+            <DocsIcon />
+            <span className="text-[8px] font-bold tracking-[0.15em] uppercase">Docs</span>
+          </Link>
         </div>
 
         {/* ── CENTER: Scrolling ticker ── */}
         <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 3%, black 97%, transparent)' }}>
-          <div className="flex items-center animate-ticker whitespace-nowrap">
+          <div className={`flex items-center animate-ticker whitespace-nowrap ${hasTicker ? '' : 'hidden'}`}>
             {[...Array(4)].map((_, repeatIdx) => (
               <span key={repeatIdx} className="inline-flex items-center">
                 {/* Crypto prices */}
