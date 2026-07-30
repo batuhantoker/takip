@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plane, Satellite, Sun, AlertTriangle, Camera,
   CloudLightning, Ship, Network, Database, Ghost,
-  Flame, Tv, Radio, Mountain, Anchor, Radar
+  Flame, Tv, Radio, Mountain, Anchor, Globe2
 } from 'lucide-react';
 
 interface LayerPanelProps {
@@ -120,7 +120,7 @@ const LAYER_GROUPS: LayerGroupDef[] = [
   {
     label: 'NETINTEL',
     fullLabel: 'NET & EVENT INTEL',
-    icon: Radar,
+    icon: Globe2,
     layers: [
       { key: 'gdelt_events', label: 'GDELT Events', dataKey: 'gdelt_events' },
       { key: 'cf_outages', label: 'Internet Outages', dataKey: 'cf_outages', requires: 'cloudflare' },

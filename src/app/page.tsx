@@ -336,8 +336,17 @@ export default function Dashboard() {
   }, []);
 
   // ── SHARED FETCH UTILITY (Fixes #107 — single definition, not 3 copies) ──
-  const fetchEndpoint = useCallback(async (url: string, transform?: (d: any) => any, options?: RequestInit) => {
-    if (typeof document !== 'undefined' && document.hidden) return;
+  /* `skipWhenHidden` is for background polling only — skipping a *user-initiated*
+     load (a layer toggle, or first paint in a background tab) leaves the caller
+     believing it fetched, so the layer stays empty until a full reload.
+     Returns whether data actually landed, so callers can retry. */
+  const fetchEndpoint = useCallback(async (
+    url: string,
+    transform?: (d: any) => any,
+    options?: RequestInit,
+    { skipWhenHidden = false }: { skipWhenHidden?: boolean } = {},
+  ): Promise<boolean> => {
+    if (skipWhenHidden && typeof document !== 'undefined' && document.hidden) return false;
     try {
       // Force the browser to bypass its local disk cache for real-time data
       const res = await fetch(url, { ...options, cache: 'no-store' });
@@ -347,10 +356,13 @@ export default function Dashboard() {
         dataRef.current = { ...dataRef.current, ...d };
         setDataVersion(v => v + 1);
         setBackendStatus('connected');
+        return true;
       }
+      return false;
     } catch (e) {
       console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e);
       setBackendStatus('error');
+      return false;
     }
   }, []);
 
@@ -373,9 +385,9 @@ export default function Dashboard() {
 
     // Polling — OPTIMIZED intervals to minimize edge requests
     const intervals = [
-      setInterval(() => fetchEndpoint(eqUrl, eqTransform), 900000),  // 15 min (was 5)
-      setInterval(() => fetchEndpoint('/api/news'), 1800000),        // 30 min (was 10)
-      setInterval(() => fetchEndpoint('/api/markets', d => ({ markets: d })), 900000), // 15 min (was 5)
+      setInterval(() => fetchEndpoint(eqUrl, eqTransform, undefined, { skipWhenHidden: true }), 900000),  // 15 min (was 5)
+      setInterval(() => fetchEndpoint('/api/news', undefined, undefined, { skipWhenHidden: true }), 1800000),        // 30 min (was 10)
+      setInterval(() => fetchEndpoint('/api/markets', d => ({ markets: d }), undefined, { skipWhenHidden: true }), 900000), // 15 min (was 5)
     ];
     return () => {
       clearTimeout(marketTimer);
@@ -476,20 +488,28 @@ export default function Dashboard() {
       layerFetchedRef.current.add('cyber_attacks');
     }
 
+    /* Mark before awaiting so a re-render mid-flight cannot double-fetch, then
+       release the mark if nothing landed — otherwise one failed request leaves
+       the layer permanently empty. */
+    const loadLayerOnce = (key: string, url: string, transform: (d: any) => any) => {
+      if (layerFetchedRef.current.has(key)) return;
+      layerFetchedRef.current.add(key);
+      fetchEndpoint(url, transform).then(ok => {
+        if (!ok) layerFetchedRef.current.delete(key);
+      });
+    };
+
     // GDELT 2.0 geocoded events
-    if ((activeLayers as any).gdelt_events && !layerFetchedRef.current.has('gdelt_events')) {
-      fetchEndpoint('/api/gdelt-events?limit=600', d => ({ gdelt_events: d.events }));
-      layerFetchedRef.current.add('gdelt_events');
+    if ((activeLayers as any).gdelt_events) {
+      loadLayerOnce('gdelt_events', '/api/gdelt-events?limit=600', d => ({ gdelt_events: d.events }));
     }
 
     // Cloudflare Radar — one request backs both layers
-    const wantsRadar = (activeLayers as any).cf_outages || (activeLayers as any).cf_attacks;
-    if (wantsRadar && !layerFetchedRef.current.has('cloudflare_radar')) {
-      fetchEndpoint('/api/cloudflare-radar', d => ({
+    if ((activeLayers as any).cf_outages || (activeLayers as any).cf_attacks) {
+      loadLayerOnce('cloudflare_radar', '/api/cloudflare-radar', d => ({
         cf_outages: d.outages ?? [],
         cf_attack_origins: d.attack_origins ?? [],
       }));
-      layerFetchedRef.current.add('cloudflare_radar');
     }
 
 
