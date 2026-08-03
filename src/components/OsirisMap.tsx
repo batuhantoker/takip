@@ -192,6 +192,11 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','gps-jamming','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','sigint-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'network-mesh', 'cyber-arcs', 'cyber-heads', 'cyber-impacts', 'gdelt-events', 'cf-outages', 'cf-attacks'];
       sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
+      // ── FLIGHT ROUTE VISUALIZATION SOURCES & LAYERS ──
+      map.addSource('active-flight-route', { type: 'geojson', data: EMPTY_FC });
+      map.addSource('active-flight-endpoints', { type: 'geojson', data: EMPTY_FC });
+      map.addSource('active-flight-progress', { type: 'geojson', data: EMPTY_FC });
+
       // Warning icon generator (parameterized — eliminates 3x copy-paste)
       const createWarningIcon = (id: string, color: string) => {
         const s = 20;
@@ -556,6 +561,57 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         }, paint: { 'icon-opacity': 0.85 }});
       });
 
+      // ── FLIGHT ROUTE LAYERS (rendered on top of flight icons) ──
+      // Outer glow for the route arc
+      map.addLayer({ id: 'flight-route-glow', type: 'line', source: 'active-flight-route', paint: {
+        'line-color': '#D4AF37',
+        'line-width': 6,
+        'line-opacity': 0.15,
+        'line-blur': 4,
+      }, layout: { 'visibility': 'visible' }});
+      // Main dotted arc line
+      map.addLayer({ id: 'flight-route-line', type: 'line', source: 'active-flight-route', paint: {
+        'line-color': '#D4AF37',
+        'line-width': 2.5,
+        'line-opacity': 0.85,
+        'line-dasharray': [2, 4],
+      }, layout: { 'visibility': 'visible' }});
+      // Origin/destination pulsing circles (outer glow)
+      map.addLayer({ id: 'flight-endpoint-glow', type: 'circle', source: 'active-flight-endpoints', paint: {
+        'circle-radius': 14,
+        'circle-color': ['get', 'color'],
+        'circle-opacity': 0.15,
+        'circle-blur': 1,
+      }});
+      // Origin/destination solid dots
+      map.addLayer({ id: 'flight-endpoint-dots', type: 'circle', source: 'active-flight-endpoints', paint: {
+        'circle-radius': 6,
+        'circle-color': ['get', 'color'],
+        'circle-opacity': 0.9,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#0C0E1A',
+      }});
+      // Origin/destination labels
+      map.addLayer({ id: 'flight-endpoint-labels', type: 'symbol', source: 'active-flight-endpoints', layout: {
+        'text-field': ['get', 'label'],
+        'text-size': 11,
+        'text-font': ['Open Sans Bold'],
+        'text-offset': [0, 1.8],
+        'text-allow-overlap': true,
+      }, paint: {
+        'text-color': ['get', 'color'],
+        'text-halo-color': '#0C0E1A',
+        'text-halo-width': 1.5,
+      }});
+      // Progress marker (current aircraft position on route)
+      map.addLayer({ id: 'flight-progress-dot', type: 'circle', source: 'active-flight-progress', paint: {
+        'circle-radius': 5,
+        'circle-color': '#00E5FF',
+        'circle-opacity': 1,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#fff',
+      }});
+
       // Balloons (moving entities)
       map.addLayer({ id: 'balloon-dots', type: 'circle', source: 'balloons', paint: {
         'circle-radius': ['interpolate',['linear'],['zoom'], 1,3, 5,5, 10,7],
@@ -674,13 +730,87 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     const urlSafe = (s: any): string => { const u = String(s ?? ''); return /^https?:\/\//i.test(u) ? u : '#'; };
     const colorSafe = (s: any): string => /^#[0-9a-fA-F]{3,8}$/.test(String(s ?? '')) ? String(s) : '#aaa';
 
-    // ── Flights (with FlightAware + ADS-B Exchange links) ──
+    // ── HELPER: Clear active flight route ──
+    const clearFlightRoute = () => {
+      const routeSrc = map.getSource('active-flight-route') as any;
+      const endpointSrc = map.getSource('active-flight-endpoints') as any;
+      const progressSrc = map.getSource('active-flight-progress') as any;
+      if (routeSrc) routeSrc.setData(EMPTY_FC);
+      if (endpointSrc) endpointSrc.setData(EMPTY_FC);
+      if (progressSrc) progressSrc.setData(EMPTY_FC);
+    };
+
+    // ── HELPER: Draw flight route on map ──
+    const drawFlightRoute = (routeData: any, currentCoords: [number, number]) => {
+      if (!routeData.found) return;
+      const { origin, destination, arc, progress } = routeData;
+
+      // Draw the great-circle arc as a LineString
+      const routeSrc = map.getSource('active-flight-route') as any;
+      if (routeSrc) {
+        routeSrc.setData({
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: arc },
+            properties: {},
+          }],
+        });
+      }
+
+      // Draw origin and destination markers
+      const endpointSrc = map.getSource('active-flight-endpoints') as any;
+      if (endpointSrc) {
+        endpointSrc.setData({
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [origin.lng, origin.lat] },
+              properties: { label: `${origin.iata || origin.icao} · DEPARTURE`, color: '#00E676', type: 'origin' },
+            },
+            {
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [destination.lng, destination.lat] },
+              properties: { label: `${destination.iata || destination.icao} · ARRIVAL`, color: '#FF5252', type: 'destination' },
+            },
+          ],
+        });
+      }
+
+      // Show current position on route
+      const progressSrc = map.getSource('active-flight-progress') as any;
+      if (progressSrc) {
+        progressSrc.setData({
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: currentCoords },
+            properties: { progress },
+          }],
+        });
+      }
+    };
+
+    // ── HELPER: Format time for display ──
+    const formatTime = (iso: string | null) => {
+      if (!iso) return '—';
+      try {
+        const d = new Date(iso);
+        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short' });
+      } catch { return '—'; }
+    };
+
+    // ── Flights (with FlightAware + ADS-B Exchange links + ROUTE VISUALIZATION) ──
     ['fl-commercial','fl-private','fl-jets','fl-military'].forEach(layer => {
       map.on('click', layer, e => {
         if (!e.features?.length) return;
         const p = e.features[0].properties as any;
         const coords = (e.features[0].geometry as any).coordinates;
         const cs = (p.callsign||'').trim();
+
+        // Show initial popup immediately (without route data)
+        const routeLoadingId = `route-info-${Date.now()}`;
         popup(coords, `<div style="${pStyle}border:1px solid rgba(212,175,55,0.3);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
             <span style="color:#D4AF37;font-size:16px;font-weight:700;letter-spacing:0.1em;">${htmlEsc(cs)}</span>
@@ -694,16 +824,102 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
             <div><span style="color:#5C5A54;font-size:9px;">REG</span><br/><span style="color:#E8E6E0;">${htmlEsc(p.registration||'—')}</span></div>
             <div><span style="color:#5C5A54;font-size:9px;">POS</span><br/><span style="color:#E8E6E0;">${coords[1].toFixed(2)},${coords[0].toFixed(2)}</span></div>
           </div>
-          <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;">
+          <div id="${routeLoadingId}" style="margin-top:12px;padding:8px;border:1px solid rgba(212,175,55,0.2);border-radius:6px;text-align:center;">
+            <span style="color:#D4AF37;font-size:10px;letter-spacing:0.1em;animation:pulse 1.5s ease-in-out infinite;">◆ RESOLVING ROUTE ◆</span>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
             <a href="https://www.flightaware.com/live/flight/${encodeURIComponent(cs)}" target="_blank" style="${linkStyle}color:#D4AF37;border:1px solid rgba(212,175,55,0.4);background:rgba(212,175,55,0.1);">⚡ FLIGHTAWARE</a>
             <a href="https://globe.adsbexchange.com/?icao=${encodeURIComponent(p.icao24||'')}" target="_blank" style="${linkStyle}color:#00E5FF;border:1px solid rgba(0,229,255,0.4);background:rgba(0,229,255,0.1);">📡 ADS-B</a>
             <a href="https://www.radarbox.com/data/flights/${encodeURIComponent(cs)}" target="_blank" style="${linkStyle}color:#FF69B4;border:1px solid rgba(255,105,180,0.4);background:rgba(255,105,180,0.1);">📍 RADARBOX</a>
           </div>
           <button onclick="window.openOsirisIntel({ callsign: '${idSafe(cs)}', icao24: '${idSafe(p.icao24||'')}', model: '${idSafe(p.model||'')}', registration: '${idSafe(p.registration||'')}' })" style="width:100%;margin-top:8px;padding:6px 12px;background:rgba(212,175,55,0.15);border:1px solid rgba(212,175,55,0.5);color:#D4AF37;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:bold;letter-spacing:0.1em;border-radius:4px;cursor:pointer;">[ DEEP DIVE INTEL ]</button>
         </div>`);
+
+        // Fetch route data asynchronously and draw on map
+        const routeParams = new URLSearchParams({
+          callsign: cs,
+          icao24: p.icao24 || '',
+          lat: String(coords[1]),
+          lng: String(coords[0]),
+          speed: String(p.speed_knots || 0),
+        });
+        fetch(`/api/flight-route?${routeParams}`)
+          .then(r => r.json())
+          .then(routeData => {
+            if (routeData.found) {
+              // Draw the route arc + markers on the map
+              drawFlightRoute(routeData, coords);
+
+              // Update the popup with route info
+              const el = document.getElementById(routeLoadingId);
+              if (el) {
+                const depTime = formatTime(routeData.departureTime);
+                const arrTime = formatTime(routeData.arrivalTime);
+                const pct = Math.round((routeData.progress || 0) * 100);
+                const distKm = routeData.totalDistanceKm || 0;
+                el.innerHTML = `
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:left;">
+                    <div>
+                      <span style="color:#5C5A54;font-size:9px;letter-spacing:0.1em;">ORIGIN</span><br/>
+                      <span style="color:#00E676;font-size:13px;font-weight:700;">${htmlEsc(routeData.origin.iata || routeData.origin.icao)}</span><br/>
+                      <span style="color:#8A8780;font-size:9px;">${htmlEsc(routeData.origin.city)}</span>
+                    </div>
+                    <div style="text-align:right;">
+                      <span style="color:#5C5A54;font-size:9px;letter-spacing:0.1em;">DESTINATION</span><br/>
+                      <span style="color:#FF5252;font-size:13px;font-weight:700;">${htmlEsc(routeData.destination.iata || routeData.destination.icao)}</span><br/>
+                      <span style="color:#8A8780;font-size:9px;">${htmlEsc(routeData.destination.city)}</span>
+                    </div>
+                  </div>
+                  <div style="margin-top:8px;height:4px;background:rgba(212,175,55,0.15);border-radius:2px;overflow:hidden;">
+                    <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#00E676,#D4AF37,#FF5252);border-radius:2px;transition:width 0.5s ease;"></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;text-align:center;">
+                    <div>
+                      <span style="color:#5C5A54;font-size:8px;letter-spacing:0.1em;">DEPARTURE</span><br/>
+                      <span style="color:#00E676;font-size:11px;font-weight:600;">${depTime}</span>
+                    </div>
+                    <div>
+                      <span style="color:#5C5A54;font-size:8px;letter-spacing:0.1em;">PROGRESS</span><br/>
+                      <span style="color:#D4AF37;font-size:11px;font-weight:600;">${pct}% · ${distKm}km</span>
+                    </div>
+                    <div>
+                      <span style="color:#5C5A54;font-size:8px;letter-spacing:0.1em;">ARRIVAL</span><br/>
+                      <span style="color:#FF5252;font-size:11px;font-weight:600;">${arrTime}</span>
+                    </div>
+                  </div>
+                `;
+              }
+            } else {
+              // Route not found — show fallback message
+              const el = document.getElementById(routeLoadingId);
+              if (el) {
+                el.innerHTML = `<span style="color:#5C5A54;font-size:10px;">ROUTE DATA UNAVAILABLE — UNSCHEDULED FLIGHT</span>`;
+              }
+            }
+          })
+          .catch(() => {
+            const el = document.getElementById(routeLoadingId);
+            if (el) {
+              el.innerHTML = `<span style="color:#5C5A54;font-size:10px;">ROUTE LOOKUP FAILED</span>`;
+            }
+          });
       });
       map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
+    });
+
+    // ── Clear flight route when clicking on empty map area ──
+    map.on('click', (e) => {
+      // Check if the click hit any flight layer — if so, the layer handler above runs first
+      const hitFeatures = map.queryRenderedFeatures(e.point, { layers: ['fl-commercial','fl-private','fl-jets','fl-military'] });
+      if (!hitFeatures || hitFeatures.length === 0) {
+        clearFlightRoute();
+      }
+    });
+
+    // Also clear route when popup is closed
+    popupRef.current?.on('close', () => {
+      clearFlightRoute();
     });
 
     // ── CCTV (opens CameraViewer panel) ──
