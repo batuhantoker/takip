@@ -1,307 +1,289 @@
 /**
- * OSIRIS — Flight Route API
- * 
- * Resolves a flight callsign or ICAO24 hex to its origin/destination airports,
- * coordinates, and estimated departure/arrival times.
+ * OSIRIS — Flight Route API (v2)
  *
- * Data sources:
- *   1. ADSBDB (api.adsbdb.com) — free, no key needed — callsign → route
- *   2. HexDB (hexdb.io) — free fallback — callsign → route
- *   3. Embedded airport database — ICAO/IATA → lat/lng
+ * Resolves callsign/ICAO24 → origin + destination airports.
+ * All sources queried IN PARALLEL — first valid result wins.
  *
- * Usage: GET /api/flight-route?callsign=AAL100&icao24=abc123&lat=40.6&lng=-73.7&alt=10000&speed=450
+ * Sources (raced via Promise.any):
+ *   1. ADSBDB       (api.adsbdb.com)     — callsign → route
+ *   2. HexDB        (hexdb.io)           — callsign → route
+ *   3. airplanes.live                     — hex → detailed AC data (may include route)
+ *
+ * Rate-limit strategy:
+ *   - stealthFetch for ADSBDB/HexDB (rotates UA + residential headers)
+ *   - plain fetch for airplanes.live (no auth, generous limits)
+ *   - 30-min cache for found routes, 2-min cache for misses
+ *   - Per-source cooldown after 429s
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { lookupAirport, type Airport } from '@/lib/airports';
 import { stealthFetch } from '@/lib/stealthFetch';
 
-export const maxDuration = 30;
+export const maxDuration = 15;
 
-// Simple in-memory cache to avoid hammering ADSBDB on rapid clicks
+// ── Cache ──────────────────────────────────────────────────────────
 const routeCache = new Map<string, { data: any; ts: number }>();
-const ROUTE_CACHE_TTL = 5 * 60 * 1000; // 5 min
+const CACHE_HIT_TTL  = 30 * 60 * 1000; // 30 min for found routes
+const CACHE_MISS_TTL =  2 * 60 * 1000; // 2 min for misses
+const FETCH_TIMEOUT  = 4000;            // 4s per source
 
-/**
- * Compute great-circle distance between two points in km.
- */
+// Per-source rate-limit cooldown (backs off after 429)
+const cooldowns: Record<string, number> = {};
+const COOLDOWN_MS = 3 * 60 * 1000; // 3 min cooldown after 429
+
+function isCooledDown(src: string): boolean {
+  return (cooldowns[src] || 0) > Date.now();
+}
+function setCooldown(src: string) {
+  cooldowns[src] = Date.now() + COOLDOWN_MS;
+}
+
+// ── Math ───────────────────────────────────────────────────────────
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/**
- * Generate intermediate points along a great-circle arc for smooth rendering.
- * Returns an array of [lng, lat] pairs (GeoJSON coordinate order).
- */
 function greatCirclePoints(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number,
-  numPoints: number = 64
+  lat1: number, lng1: number, lat2: number, lng2: number, n = 72
 ): [number, number][] {
-  const toRad = (d: number) => d * Math.PI / 180;
-  const toDeg = (r: number) => r * 180 / Math.PI;
-
-  const φ1 = toRad(lat1), λ1 = toRad(lng1);
-  const φ2 = toRad(lat2), λ2 = toRad(lng2);
-
+  const toR = (d: number) => d * Math.PI / 180;
+  const toD = (r: number) => r * 180 / Math.PI;
+  const φ1 = toR(lat1), λ1 = toR(lng1), φ2 = toR(lat2), λ2 = toR(lng2);
   const d = 2 * Math.asin(Math.sqrt(
     Math.sin((φ2 - φ1) / 2) ** 2 +
     Math.cos(φ1) * Math.cos(φ2) * Math.sin((λ2 - λ1) / 2) ** 2
   ));
-
   if (d < 1e-10) return [[lng1, lat1], [lng2, lat2]];
-
-  const points: [number, number][] = [];
-  for (let i = 0; i <= numPoints; i++) {
-    const f = i / numPoints;
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= n; i++) {
+    const f = i / n;
     const A = Math.sin((1 - f) * d) / Math.sin(d);
     const B = Math.sin(f * d) / Math.sin(d);
     const x = A * Math.cos(φ1) * Math.cos(λ1) + B * Math.cos(φ2) * Math.cos(λ2);
     const y = A * Math.cos(φ1) * Math.sin(λ1) + B * Math.cos(φ2) * Math.sin(λ2);
     const z = A * Math.sin(φ1) + B * Math.sin(φ2);
-    const lat = toDeg(Math.atan2(z, Math.sqrt(x * x + y * y)));
-    const lng = toDeg(Math.atan2(y, x));
-    points.push([lng, lat]);
+    pts.push([toD(Math.atan2(y, x)), toD(Math.atan2(z, Math.sqrt(x * x + y * y)))]);
   }
-  return points;
+  return pts;
 }
 
-/**
- * Estimate departure/arrival times based on position, speed, and distances.
- */
 function estimateTimes(
-  originLat: number, originLng: number,
-  destLat: number, destLng: number,
-  currentLat: number, currentLng: number,
-  speedKnots: number | null
-): { departureTime: string; arrivalTime: string; progress: number } {
-  const totalDist = haversineKm(originLat, originLng, destLat, destLng);
-  const distFromOrigin = haversineKm(originLat, originLng, currentLat, currentLng);
-  const distToDest = haversineKm(currentLat, currentLng, destLat, destLng);
-
-  // Progress along the route (0 to 1)
-  const progress = totalDist > 0 ? Math.min(1, Math.max(0, distFromOrigin / totalDist)) : 0;
-
-  // Convert knots to km/h (1 knot = 1.852 km/h)
-  const speedKmh = (speedKnots && speedKnots > 50) ? speedKnots * 1.852 : 800; // default cruise ~800 km/h
-
+  oLat: number, oLng: number, dLat: number, dLng: number,
+  cLat: number, cLng: number, speedKt: number | null
+) {
+  const total = haversineKm(oLat, oLng, dLat, dLng);
+  const done  = haversineKm(oLat, oLng, cLat, cLng);
+  const left  = haversineKm(cLat, cLng, dLat, dLng);
+  const progress = total > 0 ? Math.min(1, Math.max(0, done / total)) : 0;
+  const kmh = (speedKt && speedKt > 50) ? speedKt * 1.852 : 800;
   const now = Date.now();
-
-  // Estimate how long ago the plane departed (based on distance covered at current speed)
-  const hoursFromOrigin = distFromOrigin / speedKmh;
-  const departureTime = new Date(now - hoursFromOrigin * 3600 * 1000).toISOString();
-
-  // Estimate when the plane will arrive (based on remaining distance at current speed)
-  const hoursToDestination = distToDest / speedKmh;
-  const arrivalTime = new Date(now + hoursToDestination * 3600 * 1000).toISOString();
-
-  return { departureTime, arrivalTime, progress };
+  return {
+    departureTime: new Date(now - (done / kmh) * 3600000).toISOString(),
+    arrivalTime:   new Date(now + (left / kmh) * 3600000).toISOString(),
+    progress,
+  };
 }
 
-/**
- * Try ADSBDB first (best coverage for scheduled flights).
- */
-async function fetchFromAdsbdb(callsign: string): Promise<{ origin: Airport; destination: Airport } | null> {
-  try {
-    const res = await stealthFetch(
-      `https://api.adsbdb.com/v0/callsign/${encodeURIComponent(callsign)}`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const route = data?.response?.flightroute;
-    if (!route?.origin || !route?.destination) return null;
+// ── Airport resolver ───────────────────────────────────────────────
+function resolveAirports(
+  oCode: string | null | undefined,
+  dCode: string | null | undefined,
+  adsbO?: any, adsbD?: any,
+): { origin: Airport; destination: Airport } | null {
+  if (!oCode || !dCode) return null;
+  let origin = lookupAirport(oCode);
+  let dest   = lookupAirport(dCode);
 
-    // ADSBDB returns airport objects with icao_code, iata_code, name, etc.
-    const originCode = route.origin.icao_code || route.origin.iata_code;
-    const destCode = route.destination.icao_code || route.destination.iata_code;
-
-    // Try our embedded database first, fall back to ADSBDB coordinates if available
-    let origin = lookupAirport(originCode);
-    let destination = lookupAirport(destCode);
-
-    // If not in our DB, construct from ADSBDB response (they include lat/lng sometimes)
-    if (!origin && route.origin.latitude && route.origin.longitude) {
-      origin = {
-        iata: route.origin.iata_code || '',
-        icao: route.origin.icao_code || '',
-        name: route.origin.name || originCode,
-        city: route.origin.municipality || '',
-        country: route.origin.country_iso_name || '',
-        lat: parseFloat(route.origin.latitude),
-        lng: parseFloat(route.origin.longitude),
-      };
-    }
-    if (!destination && route.destination.latitude && route.destination.longitude) {
-      destination = {
-        iata: route.destination.iata_code || '',
-        icao: route.destination.icao_code || '',
-        name: route.destination.name || destCode,
-        city: route.destination.municipality || '',
-        country: route.destination.country_iso_name || '',
-        lat: parseFloat(route.destination.latitude),
-        lng: parseFloat(route.destination.longitude),
-      };
-    }
-
-    if (origin && destination) return { origin, destination };
-    return null;
-  } catch {
-    return null;
+  // Fallback to ADSBDB-provided coordinates
+  if (!origin && adsbO?.latitude && adsbO?.longitude) {
+    origin = {
+      iata: adsbO.iata_code || '', icao: adsbO.icao_code || '',
+      name: adsbO.name || oCode, city: adsbO.municipality || '',
+      country: adsbO.country_iso_name || '',
+      lat: parseFloat(adsbO.latitude), lng: parseFloat(adsbO.longitude),
+    };
   }
-}
-
-/**
- * Fallback: try HexDB for route resolution.
- */
-async function fetchFromHexdb(callsign: string): Promise<{ origin: Airport; destination: Airport } | null> {
-  try {
-    const res = await stealthFetch(
-      `https://hexdb.io/api/v1/route/callsign/${encodeURIComponent(callsign)}`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-
-    // HexDB returns { route: "KJFK-EGLL" } or { origin: "KJFK", destination: "EGLL" }
-    let originCode: string | null = null;
-    let destCode: string | null = null;
-
-    if (data.route && typeof data.route === 'string' && data.route.includes('-')) {
-      const parts = data.route.split('-');
-      originCode = parts[0]?.trim();
-      destCode = parts[parts.length - 1]?.trim();
-    } else if (data.origin && data.destination) {
-      originCode = data.origin;
-      destCode = data.destination;
-    }
-
-    if (!originCode || !destCode) return null;
-
-    const origin = lookupAirport(originCode);
-    const destination = lookupAirport(destCode);
-    if (origin && destination) return { origin, destination };
-    return null;
-  } catch {
-    return null;
+  if (!dest && adsbD?.latitude && adsbD?.longitude) {
+    dest = {
+      iata: adsbD.iata_code || '', icao: adsbD.icao_code || '',
+      name: adsbD.name || dCode, city: adsbD.municipality || '',
+      country: adsbD.country_iso_name || '',
+      lat: parseFloat(adsbD.latitude), lng: parseFloat(adsbD.longitude),
+    };
   }
+  return (origin && dest) ? { origin, destination: dest } : null;
 }
 
+// ── Source 1: ADSBDB (via stealthFetch to avoid rate limits) ──────
+async function fromAdsbdb(callsign: string): Promise<{ origin: Airport; destination: Airport }> {
+  if (isCooledDown('adsbdb')) throw new Error('adsbdb cooled down');
+  const res = await stealthFetch(
+    `https://api.adsbdb.com/v0/callsign/${encodeURIComponent(callsign)}`,
+    { signal: AbortSignal.timeout(FETCH_TIMEOUT) },
+  );
+  if (res.status === 429) { setCooldown('adsbdb'); throw new Error('adsbdb 429'); }
+  if (!res.ok) throw new Error(`adsbdb ${res.status}`);
+  const data = await res.json();
+  const route = data?.response?.flightroute;
+  if (!route?.origin || !route?.destination) throw new Error('adsbdb: no route');
+  const pair = resolveAirports(
+    route.origin.icao_code || route.origin.iata_code,
+    route.destination.icao_code || route.destination.iata_code,
+    route.origin, route.destination,
+  );
+  if (!pair) throw new Error('adsbdb: unresolved');
+  return pair;
+}
+
+// ── Source 2: HexDB (via stealthFetch) ─────────────────────────────
+async function fromHexdb(callsign: string): Promise<{ origin: Airport; destination: Airport }> {
+  if (isCooledDown('hexdb')) throw new Error('hexdb cooled down');
+  const res = await stealthFetch(
+    `https://hexdb.io/api/v1/route/callsign/${encodeURIComponent(callsign)}`,
+    { signal: AbortSignal.timeout(FETCH_TIMEOUT) },
+  );
+  if (res.status === 429) { setCooldown('hexdb'); throw new Error('hexdb 429'); }
+  if (!res.ok) throw new Error(`hexdb ${res.status}`);
+  const data = await res.json();
+  let oCode: string | null = null, dCode: string | null = null;
+  if (data.route && typeof data.route === 'string' && data.route.includes('-')) {
+    const parts = data.route.split('-');
+    oCode = parts[0]?.trim(); dCode = parts[parts.length - 1]?.trim();
+  } else if (data.origin && data.destination) {
+    oCode = data.origin; dCode = data.destination;
+  }
+  const pair = resolveAirports(oCode, dCode);
+  if (!pair) throw new Error('hexdb: unresolved');
+  return pair;
+}
+
+// ── Source 3: airplanes.live (plain fetch, generous limits) ────────
+async function fromAirplanesLive(icao24: string, callsign: string): Promise<{ origin: Airport; destination: Airport }> {
+  if (!icao24 && !callsign) throw new Error('no identifier');
+  // Try hex lookup first (more reliable), fall back to callsign
+  const url = icao24
+    ? `https://api.airplanes.live/v2/hex/${encodeURIComponent(icao24)}`
+    : `https://api.airplanes.live/v2/callsign/${encodeURIComponent(callsign)}`;
+  if (isCooledDown('airplaneslive')) throw new Error('airplaneslive cooled down');
+  const res = await stealthFetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+  if (res.status === 429) { setCooldown('airplaneslive'); throw new Error('airplaneslive 429'); }
+  if (!res.ok) throw new Error(`airplaneslive ${res.status}`);
+  const data = await res.json();
+  const ac = data?.ac?.[0];
+  if (!ac) throw new Error('airplaneslive: no ac');
+
+  // airplanes.live may provide origin/dest as oDB/oD (ICAO codes)
+  // or as a route string. Check multiple field patterns.
+  let oCode: string | null = null;
+  let dCode: string | null = null;
+
+  // Pattern 1: explicit origin/destination ICAO fields
+  if (ac.oDB?.icao && ac.dDB?.icao) {
+    oCode = ac.oDB.icao; dCode = ac.dDB.icao;
+  }
+  // Pattern 2: .from / .to fields  
+  else if (ac.from && ac.to) {
+    oCode = ac.from; dCode = ac.to;
+  }
+  // Pattern 3: route string like "KJFK-EGLL"
+  else if (ac.route && typeof ac.route === 'string' && ac.route.includes('-')) {
+    const parts = ac.route.split('-');
+    oCode = parts[0]?.trim(); dCode = parts[parts.length - 1]?.trim();
+  }
+
+  const pair = resolveAirports(oCode, dCode);
+  if (!pair) throw new Error('airplaneslive: unresolved');
+  return pair;
+}
+
+// ── Handler ────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const callsign = (searchParams.get('callsign') || '').trim().toUpperCase();
-  const icao24 = (searchParams.get('icao24') || '').trim().toLowerCase();
-  const currentLat = parseFloat(searchParams.get('lat') || '0');
-  const currentLng = parseFloat(searchParams.get('lng') || '0');
-  const speedKnots = parseFloat(searchParams.get('speed') || '0') || null;
+  const sp = new URL(req.url).searchParams;
+  const callsign  = (sp.get('callsign') || '').trim().toUpperCase();
+  const icao24    = (sp.get('icao24')   || '').trim().toLowerCase();
+  const currentLat = parseFloat(sp.get('lat') || '0');
+  const currentLng = parseFloat(sp.get('lng') || '0');
+  const speedKt    = parseFloat(sp.get('speed') || '0') || null;
 
   if (!callsign) {
-    return NextResponse.json({ error: 'Missing callsign parameter' }, { status: 400 });
+    return NextResponse.json({ error: 'callsign required' }, { status: 400 });
   }
 
-  // Check cache
+  // ── Cache ──
   const cacheKey = callsign;
   const cached = routeCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < ROUTE_CACHE_TTL) {
-    // Recalculate times with current position
-    const routeData = { ...cached.data };
-    if (currentLat && currentLng && routeData.origin && routeData.destination) {
-      const times = estimateTimes(
-        routeData.origin.lat, routeData.origin.lng,
-        routeData.destination.lat, routeData.destination.lng,
-        currentLat, currentLng, speedKnots
-      );
-      routeData.departureTime = times.departureTime;
-      routeData.arrivalTime = times.arrivalTime;
-      routeData.progress = times.progress;
+  if (cached) {
+    const ttl = cached.data.found ? CACHE_HIT_TTL : CACHE_MISS_TTL;
+    if (Date.now() - cached.ts < ttl) {
+      const out = { ...cached.data };
+      if (out.found && currentLat && currentLng) {
+        Object.assign(out, estimateTimes(
+          out.origin.lat, out.origin.lng, out.destination.lat, out.destination.lng,
+          currentLat, currentLng, speedKt,
+        ));
+      }
+      return NextResponse.json(out, {
+        headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' },
+      });
     }
-    return NextResponse.json(routeData, {
+  }
+
+  // ── Parallel race — first valid result wins ──
+  let route: { origin: Airport; destination: Airport } | null = null;
+  let source = '';
+
+  try {
+    const result = await Promise.any([
+      fromAdsbdb(callsign).then(r => ({ ...r, _s: 'adsbdb' as const })),
+      fromHexdb(callsign).then(r => ({ ...r, _s: 'hexdb' as const })),
+      fromAirplanesLive(icao24, callsign).then(r => ({ ...r, _s: 'airplaneslive' as const })),
+    ]);
+    route = { origin: result.origin, destination: result.destination };
+    source = result._s;
+  } catch {
+    // All sources failed
+  }
+
+  if (!route) {
+    const miss = { found: false, callsign, icao24 };
+    routeCache.set(cacheKey, { data: miss, ts: Date.now() });
+    return NextResponse.json(miss, {
       headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
     });
   }
 
-  // Try ADSBDB first, then HexDB fallback
-  let route = await fetchFromAdsbdb(callsign);
-  let source = 'adsbdb';
-
-  if (!route) {
-    route = await fetchFromHexdb(callsign);
-    source = 'hexdb';
-  }
-
-  if (!route) {
-    return NextResponse.json({
-      found: false,
-      callsign,
-      icao24,
-      error: 'Route not found — may be a private/military/unscheduled flight',
-    }, {
-      status: 200, // 200 so frontend can handle gracefully
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
-    });
-  }
-
   const { origin, destination } = route;
-
-  // Generate great-circle arc points for the route line
-  const arcPoints = greatCirclePoints(origin.lat, origin.lng, destination.lat, destination.lng, 72);
-
-  // Estimate times based on current position and speed
+  const arc = greatCirclePoints(origin.lat, origin.lng, destination.lat, destination.lng, 72);
+  const totalDistanceKm = Math.round(haversineKm(origin.lat, origin.lng, destination.lat, destination.lng));
   const times = (currentLat && currentLng)
-    ? estimateTimes(origin.lat, origin.lng, destination.lat, destination.lng, currentLat, currentLng, speedKnots)
+    ? estimateTimes(origin.lat, origin.lng, destination.lat, destination.lng, currentLat, currentLng, speedKt)
     : { departureTime: null, arrivalTime: null, progress: 0 };
 
-  const totalDistanceKm = Math.round(haversineKm(origin.lat, origin.lng, destination.lat, destination.lng));
-
-  const responseData = {
-    found: true,
-    callsign,
-    icao24,
-    source,
-    origin: {
-      iata: origin.iata,
-      icao: origin.icao,
-      name: origin.name,
-      city: origin.city,
-      country: origin.country,
-      lat: origin.lat,
-      lng: origin.lng,
-    },
-    destination: {
-      iata: destination.iata,
-      icao: destination.icao,
-      name: destination.name,
-      city: destination.city,
-      country: destination.country,
-      lat: destination.lat,
-      lng: destination.lng,
-    },
-    arc: arcPoints,
-    totalDistanceKm,
-    departureTime: times.departureTime,
-    arrivalTime: times.arrivalTime,
-    progress: times.progress,
+  const out = {
+    found: true, callsign, icao24, source,
+    origin:      { iata: origin.iata, icao: origin.icao, name: origin.name, city: origin.city, country: origin.country, lat: origin.lat, lng: origin.lng },
+    destination: { iata: destination.iata, icao: destination.icao, name: destination.name, city: destination.city, country: destination.country, lat: destination.lat, lng: destination.lng },
+    arc, totalDistanceKm, ...times,
   };
 
-  // Cache the route data (without dynamic times)
-  routeCache.set(cacheKey, {
-    data: { ...responseData, departureTime: null, arrivalTime: null, progress: 0 },
-    ts: Date.now(),
-  });
+  routeCache.set(cacheKey, { data: { ...out, departureTime: null, arrivalTime: null, progress: 0 }, ts: Date.now() });
 
-  // Evict stale entries periodically
-  if (routeCache.size > 200) {
+  // Evict stale entries
+  if (routeCache.size > 500) {
     const now = Date.now();
-    for (const [key, val] of routeCache) {
-      if (now - val.ts > ROUTE_CACHE_TTL * 2) routeCache.delete(key);
+    for (const [k, v] of routeCache) {
+      if (now - v.ts > CACHE_HIT_TTL * 2) routeCache.delete(k);
     }
   }
 
-  return NextResponse.json(responseData, {
-    headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
+  return NextResponse.json(out, {
+    headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' },
   });
 }
