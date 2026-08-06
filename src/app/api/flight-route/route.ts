@@ -17,7 +17,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { lookupAirport, type Airport } from '@/lib/airports';
+import { lookupAirport, lookupAirportAsync, type Airport } from '@/lib/airports';
 import { stealthFetch } from '@/lib/stealthFetch';
 
 export const maxDuration = 15;
@@ -91,20 +91,23 @@ function estimateTimes(
   };
 }
 
-// ── Airport resolver ───────────────────────────────────────────────
-function resolveAirports(
+// ── Airport resolver (async — with dynamic fallback) ──────────────
+async function resolveAirports(
   oCode: string | null | undefined,
   dCode: string | null | undefined,
   adsbO?: any, adsbD?: any,
-): { origin: Airport; destination: Airport } | null {
+): Promise<{ origin: Airport; destination: Airport } | null> {
   if (!oCode || !dCode) return null;
-  let origin = lookupAirport(oCode);
-  let dest   = lookupAirport(dCode);
+  if (oCode === dCode) return null; // Same airport = invalid route
 
-  // Fallback to ADSBDB-provided coordinates
+  // Try local DB first, then async lookup
+  let origin = lookupAirport(oCode) || await lookupAirportAsync(oCode);
+  let dest   = lookupAirport(dCode) || await lookupAirportAsync(dCode);
+
+  // Fallback to ADSBDB-provided coordinates if available
   if (!origin && adsbO?.latitude && adsbO?.longitude) {
     origin = {
-      iata: adsbO.iata_code || '', icao: adsbO.icao_code || '',
+      iata: adsbO.iata_code || '', icao: adsbO.icao_code || oCode,
       name: adsbO.name || oCode, city: adsbO.municipality || '',
       country: adsbO.country_iso_name || '',
       lat: parseFloat(adsbO.latitude), lng: parseFloat(adsbO.longitude),
@@ -112,13 +115,19 @@ function resolveAirports(
   }
   if (!dest && adsbD?.latitude && adsbD?.longitude) {
     dest = {
-      iata: adsbD.iata_code || '', icao: adsbD.icao_code || '',
+      iata: adsbD.iata_code || '', icao: adsbD.icao_code || dCode,
       name: adsbD.name || dCode, city: adsbD.municipality || '',
       country: adsbD.country_iso_name || '',
       lat: parseFloat(adsbD.latitude), lng: parseFloat(adsbD.longitude),
     };
   }
-  return (origin && dest) ? { origin, destination: dest } : null;
+
+  if (!origin || !dest) return null;
+  // Sanity: both airports must have valid coords
+  if (!isFinite(origin.lat) || !isFinite(origin.lng) || !isFinite(dest.lat) || !isFinite(dest.lng)) return null;
+  // Sanity: origin and dest shouldn't be at the exact same location
+  if (origin.lat === dest.lat && origin.lng === dest.lng) return null;
+  return { origin, destination: dest };
 }
 
 // ── Source 1: ADSBDB (via stealthFetch to avoid rate limits) ──────
@@ -133,7 +142,7 @@ async function fromAdsbdb(callsign: string): Promise<{ origin: Airport; destinat
   const data = await res.json();
   const route = data?.response?.flightroute;
   if (!route?.origin || !route?.destination) throw new Error('adsbdb: no route');
-  const pair = resolveAirports(
+  const pair = await resolveAirports(
     route.origin.icao_code || route.origin.iata_code,
     route.destination.icao_code || route.destination.iata_code,
     route.origin, route.destination,
@@ -159,15 +168,14 @@ async function fromHexdb(callsign: string): Promise<{ origin: Airport; destinati
   } else if (data.origin && data.destination) {
     oCode = data.origin; dCode = data.destination;
   }
-  const pair = resolveAirports(oCode, dCode);
+  const pair = await resolveAirports(oCode, dCode);
   if (!pair) throw new Error('hexdb: unresolved');
   return pair;
 }
 
-// ── Source 3: airplanes.live (plain fetch, generous limits) ────────
+// ── Source 3: airplanes.live ───────────────────────────────────────
 async function fromAirplanesLive(icao24: string, callsign: string): Promise<{ origin: Airport; destination: Airport }> {
   if (!icao24 && !callsign) throw new Error('no identifier');
-  // Try hex lookup first (more reliable), fall back to callsign
   const url = icao24
     ? `https://api.airplanes.live/v2/hex/${encodeURIComponent(icao24)}`
     : `https://api.airplanes.live/v2/callsign/${encodeURIComponent(callsign)}`;
@@ -179,16 +187,23 @@ async function fromAirplanesLive(icao24: string, callsign: string): Promise<{ or
   const ac = data?.ac?.[0];
   if (!ac) throw new Error('airplaneslive: no ac');
 
-  // airplanes.live may provide origin/dest as oDB/oD (ICAO codes)
-  // or as a route string. Check multiple field patterns.
   let oCode: string | null = null;
   let dCode: string | null = null;
+  let oData: any = null;
+  let dData: any = null;
 
-  // Pattern 1: explicit origin/destination ICAO fields
+  // Pattern 1: explicit origin/destination DB objects with ICAO + coords
   if (ac.oDB?.icao && ac.dDB?.icao) {
     oCode = ac.oDB.icao; dCode = ac.dDB.icao;
+    // airplanes.live provides lat/lon directly in oDB/dDB
+    if (ac.oDB.lat && ac.oDB.lon) {
+      oData = { latitude: ac.oDB.lat, longitude: ac.oDB.lon, name: ac.oDB.name, municipality: ac.oDB.city, country_iso_name: ac.oDB.country, iata_code: ac.oDB.iata || '', icao_code: ac.oDB.icao };
+    }
+    if (ac.dDB.lat && ac.dDB.lon) {
+      dData = { latitude: ac.dDB.lat, longitude: ac.dDB.lon, name: ac.dDB.name, municipality: ac.dDB.city, country_iso_name: ac.dDB.country, iata_code: ac.dDB.iata || '', icao_code: ac.dDB.icao };
+    }
   }
-  // Pattern 2: .from / .to fields  
+  // Pattern 2: .from / .to fields
   else if (ac.from && ac.to) {
     oCode = ac.from; dCode = ac.to;
   }
@@ -198,7 +213,7 @@ async function fromAirplanesLive(icao24: string, callsign: string): Promise<{ or
     oCode = parts[0]?.trim(); dCode = parts[parts.length - 1]?.trim();
   }
 
-  const pair = resolveAirports(oCode, dCode);
+  const pair = await resolveAirports(oCode, dCode, oData, dData);
   if (!pair) throw new Error('airplaneslive: unresolved');
   return pair;
 }
@@ -249,6 +264,26 @@ export async function GET(req: NextRequest) {
     source = result._s;
   } catch {
     // All sources failed
+  }
+
+  // ── Route plausibility check ──
+  if (route && currentLat && currentLng) {
+    const { origin, destination } = route;
+    const routeDist = haversineKm(origin.lat, origin.lng, destination.lat, destination.lng);
+    // Reject implausibly short routes (probably bad data)
+    if (routeDist < 30) {
+      route = null;
+    } else {
+      // Check plane is roughly between origin and destination (within 1.5x route distance from either end)
+      const distToOrigin = haversineKm(currentLat, currentLng, origin.lat, origin.lng);
+      const distToDest = haversineKm(currentLat, currentLng, destination.lat, destination.lng);
+      const maxReasonable = routeDist * 1.5;
+      if (distToOrigin > maxReasonable && distToDest > maxReasonable) {
+        // Plane is far from both endpoints — likely wrong route
+        console.warn(`[OSIRIS] Route ${callsign} ${origin.icao}→${destination.icao} rejected: plane ${Math.round(distToOrigin)}km from origin, ${Math.round(distToDest)}km from dest, route only ${Math.round(routeDist)}km`);
+        route = null;
+      }
+    }
   }
 
   if (!route) {
