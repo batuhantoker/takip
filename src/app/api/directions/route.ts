@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { httpJson } from '@/lib/httpJson';
+import { httpJson, optional } from '@/lib/httpJson';
 
 export const maxDuration = 30;
 
@@ -17,7 +17,8 @@ export const maxDuration = 30;
  * normalised to the same shape so the client never branches on provider.
  */
 
-const VALHALLA = 'https://valhalla1.openstreetmap.de/route';
+const VALHALLA_BASE = 'https://valhalla1.openstreetmap.de';
+const VALHALLA = `${VALHALLA_BASE}/route`;
 const OSRM = 'https://router.project-osrm.org/route/v1';
 
 export type TravelMode = 'auto' | 'bicycle' | 'pedestrian';
@@ -34,8 +35,20 @@ interface ValhallaLeg {
   shape?: string;
   maneuvers?: ValhallaManeuver[];
 }
+interface ValhallaTrip {
+  legs?: ValhallaLeg[];
+  summary?: {
+    length?: number;
+    time?: number;
+    has_highway?: boolean;
+    has_toll?: boolean;
+    has_ferry?: boolean;
+  };
+}
 export interface ValhallaResponse {
-  trip?: { legs?: ValhallaLeg[]; summary?: { length?: number; time?: number } };
+  trip?: ValhallaTrip;
+  /** Populated when `alternates` is requested and the network offers a choice. */
+  alternates?: Array<{ trip?: ValhallaTrip }>;
 }
 
 export interface OsrmStep {
@@ -61,6 +74,13 @@ export interface DirectionStep {
   type: string;
 }
 
+export interface ElevationPoint {
+  /** Metres travelled from the start of the route. */
+  distance: number;
+  /** Metres above sea level. */
+  height: number;
+}
+
 export interface DirectionsResult {
   provider: 'valhalla' | 'osrm';
   mode: TravelMode;
@@ -68,6 +88,21 @@ export interface DirectionsResult {
   duration: number;
   geometry: { type: 'LineString'; coordinates: [number, number][] };
   steps: DirectionStep[];
+  /** True when the engine reports the route uses a motorway / toll road. */
+  hasHighway?: boolean;
+  hasToll?: boolean;
+  hasFerry?: boolean;
+  /** Terrain profile — only requested for walking and cycling. */
+  elevation?: ElevationPoint[];
+  ascent?: number;
+  descent?: number;
+}
+
+/** What the operator asked the router to keep off the route. */
+export interface AvoidOptions {
+  tolls?: boolean;
+  highways?: boolean;
+  ferries?: boolean;
 }
 
 /**
@@ -120,7 +155,22 @@ export function valhallaManeuverKind(type: number): string {
 }
 
 export function normalizeValhalla(json: ValhallaResponse, mode: TravelMode): DirectionsResult | null {
-  const trip = json?.trip;
+  return normalizeValhallaTrip(json?.trip, mode);
+}
+
+/** Primary route plus any alternates the engine offered, best first. */
+export function normalizeValhallaAll(json: ValhallaResponse, mode: TravelMode): DirectionsResult[] {
+  const out: DirectionsResult[] = [];
+  const primary = normalizeValhallaTrip(json?.trip, mode);
+  if (primary) out.push(primary);
+  for (const alt of json?.alternates || []) {
+    const r = normalizeValhallaTrip(alt?.trip, mode);
+    if (r) out.push(r);
+  }
+  return out;
+}
+
+function normalizeValhallaTrip(trip: ValhallaTrip | undefined, mode: TravelMode): DirectionsResult | null {
   if (!trip || !Array.isArray(trip.legs) || trip.legs.length === 0) return null;
 
   const coordinates: [number, number][] = [];
@@ -152,6 +202,9 @@ export function normalizeValhalla(json: ValhallaResponse, mode: TravelMode): Dir
     duration: trip.summary?.time || 0,
     geometry: { type: 'LineString', coordinates },
     steps,
+    hasHighway: trip.summary?.has_highway,
+    hasToll: trip.summary?.has_toll,
+    hasFerry: trip.summary?.has_ferry,
   };
 }
 
@@ -227,33 +280,88 @@ function parsePoint(raw: string | null): { lat: number; lng: number } | null {
   return { lat: a, lng: b };
 }
 
+/**
+ * Valhalla expresses avoidance as a 0..1 preference rather than a hard ban, so
+ * 0 means "only if there is no other way" — which is the behaviour a user
+ * expects from an "avoid tolls" switch.
+ */
+export function buildCostingOptions(mode: TravelMode, avoid: AvoidOptions): Record<string, unknown> {
+  const o: Record<string, number> = {};
+  if (avoid.tolls) o.use_tolls = 0;
+  if (avoid.highways) o.use_highways = 0;
+  if (avoid.ferries) o.use_ferry = 0;
+  return Object.keys(o).length ? { [mode]: o } : {};
+}
+
 async function tryValhalla(
-  from: { lat: number; lng: number },
-  to: { lat: number; lng: number },
+  points: Array<{ lat: number; lng: number }>,
   mode: TravelMode,
-): Promise<DirectionsResult | null> {
+  avoid: AvoidOptions,
+): Promise<DirectionsResult[]> {
+  const costingOptions = buildCostingOptions(mode, avoid);
   const body = {
-    locations: [
-      { lat: from.lat, lon: from.lng },
-      { lat: to.lat, lon: to.lng },
-    ],
+    locations: points.map((p) => ({ lat: p.lat, lon: p.lng })),
     costing: mode,
+    ...(Object.keys(costingOptions).length ? { costing_options: costingOptions } : {}),
+    // Give the operator a choice the way a consumer mapping app does; the
+    // engine only returns these when the network genuinely offers one.
+    alternates: 2,
     directions_options: { units: 'kilometers' },
   };
   const url = `${VALHALLA}?json=${encodeURIComponent(JSON.stringify(body))}`;
-  return normalizeValhalla(await httpJson<ValhallaResponse>(url), mode);
+  return normalizeValhallaAll(await httpJson<ValhallaResponse>(url), mode);
 }
 
 async function tryOsrm(
-  from: { lat: number; lng: number },
-  to: { lat: number; lng: number },
+  points: Array<{ lat: number; lng: number }>,
   mode: TravelMode,
-): Promise<DirectionsResult | null> {
+): Promise<DirectionsResult[]> {
   // The public OSRM demo only carries the driving profile.
-  const url =
-    `${OSRM}/driving/${from.lng},${from.lat};${to.lng},${to.lat}` +
-    `?steps=true&overview=full&geometries=geojson`;
-  return normalizeOsrm(await httpJson<OsrmResponse>(url), mode);
+  const coords = points.map((p) => `${p.lng},${p.lat}`).join(';');
+  const url = `${OSRM}/driving/${coords}?steps=true&overview=full&geometries=geojson`;
+  const r = normalizeOsrm(await httpJson<OsrmResponse>(url), mode);
+  return r ? [r] : [];
+}
+
+/**
+ * Terrain profile for a route, sampled along its shape.
+ *
+ * Only worth asking for on foot or by bike, where the climb is the thing that
+ * decides whether a route is actually viable — and it costs an extra upstream
+ * call, so driving skips it.
+ */
+async function fetchElevation(
+  coords: [number, number][],
+): Promise<{ elevation: ElevationPoint[]; ascent: number; descent: number } | null> {
+  // Valhalla caps the shape it will accept; ~120 samples describes the terrain
+  // without a huge request.
+  const MAX = 120;
+  const stride = Math.max(1, Math.ceil(coords.length / MAX));
+  const shape = coords.filter((_, i) => i % stride === 0).map(([lon, lat]) => ({ lat, lon }));
+  if (shape.length < 2) return null;
+
+  const url = `${VALHALLA_BASE}/height?json=${encodeURIComponent(JSON.stringify({ range: true, shape }))}`;
+  const json = await httpJson<{ range_height?: [number, number][] }>(url, { timeoutMs: 10000 });
+  const pairs = json?.range_height;
+  if (!Array.isArray(pairs) || pairs.length < 2) return null;
+
+  const elevation: ElevationPoint[] = [];
+  let ascent = 0;
+  let descent = 0;
+  let prev: number | null = null;
+  for (const [distance, height] of pairs) {
+    if (!Number.isFinite(distance) || !Number.isFinite(height)) continue;
+    elevation.push({ distance, height });
+    if (prev !== null) {
+      const d = height - prev;
+      // Ignore sub-metre wobble so SRTM noise doesn't inflate the totals.
+      if (d > 1) ascent += d;
+      else if (d < -1) descent += -d;
+    }
+    prev = height;
+  }
+  if (elevation.length < 2) return null;
+  return { elevation, ascent: Math.round(ascent), descent: Math.round(descent) };
 }
 
 export async function GET(request: Request) {
@@ -271,37 +379,60 @@ export async function GET(request: Request) {
       );
     }
 
+    // Intermediate stops, in order: ?via=lat,lng|lat,lng
+    const via = (searchParams.get('via') || '')
+      .split('|')
+      .map((s) => parsePoint(s))
+      .filter((p): p is { lat: number; lng: number } => p !== null);
+
+    const avoidParam = (searchParams.get('avoid') || '').split(',').map((s) => s.trim());
+    const avoid: AvoidOptions = {
+      tolls: avoidParam.includes('tolls'),
+      highways: avoidParam.includes('highways'),
+      ferries: avoidParam.includes('ferries'),
+    };
+
+    const points = [from, ...via, to];
+
     // The public Valhalla demo intermittently refuses bursts, so give it one
     // retry before falling back — otherwise walking/cycling (which OSRM's demo
     // cannot serve) would fail on an entirely recoverable blip.
-    let result: DirectionsResult | null = null;
-    for (let attempt = 0; attempt < 2 && !result; attempt++) {
+    let routes: DirectionsResult[] = [];
+    for (let attempt = 0; attempt < 2 && routes.length === 0; attempt++) {
       if (attempt > 0) await new Promise((r) => setTimeout(r, 400));
       try {
-        result = await tryValhalla(from, to, mode);
+        routes = await tryValhalla(points, mode, avoid);
       } catch {
-        result = null;
+        routes = [];
       }
     }
 
     // OSRM has no walking/cycling profile on the demo server, so only fall back
     // for driving — a car route served for a walking request would be wrong.
-    if (!result && mode === 'auto') {
+    if (routes.length === 0 && mode === 'auto') {
       try {
-        result = await tryOsrm(from, to, mode);
+        routes = await tryOsrm(points, mode);
       } catch {
-        result = null;
+        routes = [];
       }
     }
 
-    if (!result) {
+    if (routes.length === 0) {
       return NextResponse.json(
         { error: 'No route found between those points' },
         { status: 502 },
       );
     }
 
-    return NextResponse.json(result, {
+    // Terrain matters on foot and by bike; skip the extra call when driving.
+    if (mode !== 'auto') {
+      const profile = await optional(fetchElevation(routes[0].geometry.coordinates));
+      if (profile) Object.assign(routes[0], profile);
+    }
+
+    // `routes` is the full set, best first; the top-level fields mirror routes[0]
+    // so anything reading a single route still works.
+    return NextResponse.json({ ...routes[0], routes }, {
       headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
     });
   } catch (error) {
