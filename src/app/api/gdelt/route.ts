@@ -10,6 +10,20 @@ export const dynamic = 'force-dynamic';
  * Replaces the old RSS scraper with actual GDELT geo-coded events.
  */
 
+// RSS carries its payload XML-escaped, so every GDACS report link arrives as
+// report.aspx?eventtype=EQ&amp;eventid=… . That form resolves to a generic
+// page — GDACS reads the parameter as "amp;eventid" and serves no event — so
+// the entities have to be decoded before the URL is handed to a client.
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
 export async function GET() {
   try {
     const res = await fetch('https://www.gdacs.org/xml/rss.xml', {
@@ -38,19 +52,25 @@ export async function GET() {
 
       if (!titleMatch || !latMatch || !lngMatch) continue;
 
-      const title = titleMatch[1];
-      const link = linkMatch ? linkMatch[1] : '';
-      const desc = descMatch ? descMatch[1] : '';
+      const title = decodeEntities(titleMatch[1]);
+      const link = decodeEntities(linkMatch ? linkMatch[1] : '');
+      const desc = decodeEntities(descMatch ? descMatch[1] : '');
       const lat = parseFloat(latMatch[1]);
       const lng = parseFloat(lngMatch[1]);
       const eventType = typeMatch ? typeMatch[1] : 'UNK';
 
-      // Map GDACS event types to Osiris types
-      let type = 'conflict';
+      // Map GDACS event types to Osiris types. WF and DR used to fall through
+      // to the 'conflict' default, which is most of the feed — a live sample
+      // was 330 wildfires and 12 droughts out of 369 events, all of them
+      // reaching the map labelled as conflicts. Unknown types are 'incident'
+      // now; nothing in this feed is a conflict, it is a disaster alert feed.
+      let type = 'incident';
       if (eventType === 'EQ') type = 'earthquake';
       else if (eventType === 'TC') type = 'weather';
-      else if (eventType === 'FL') type = 'weather';
+      else if (eventType === 'FL') type = 'flood';
       else if (eventType === 'VO') type = 'volcano';
+      else if (eventType === 'WF') type = 'wildfire';
+      else if (eventType === 'DR') type = 'drought';
 
       allEvents.push({
         id: `gdacs-${eventId++}`,
