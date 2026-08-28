@@ -97,6 +97,36 @@ function getYouTubeWatchUrl(url: string): string {
   return url;
 }
 
+function ViewSegment({ active, onClick, title, icon: Icon, label, layoutId }: {
+  active: boolean;
+  onClick: () => void;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  layoutId: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      aria-pressed={active}
+      className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-mono font-medium tracking-[0.18em] transition-colors duration-200 ${
+        active ? 'text-[var(--gold-light)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+      }`}
+    >
+      {active && (
+        <motion.span
+          layoutId={layoutId}
+          transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          className="absolute inset-0 rounded-md border border-[var(--border-active)] bg-[var(--gold-primary)]/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_14px_var(--gold-glow)]"
+        />
+      )}
+      <Icon className="w-3.5 h-3.5 relative z-10" />
+      <span className="hidden md:inline relative z-10">{label}</span>
+    </button>
+  );
+}
+
 export default function Dashboard() {
   const dataRef = useRef<any>({});
   const [dataVersion, setDataVersion] = useState(0);
@@ -228,7 +258,7 @@ export default function Dashboard() {
   const [scanTargets, setScanTargets] = useState<any[]>([]);
   const [drawnPolygons, setDrawnPolygons] = useState<DrawnShape[]>([]);
   const [demoMode, setDemoMode] = useState(false);
-  const [osirisTheme, setOsirisTheme] = useState<'core'|'ghost'>('core');
+  const [osirisTheme, setOsirisTheme] = useState<'core'|'ghost'>('ghost');
 
   useEffect(() => {
     document.body.className = osirisTheme === 'core' ? '' : `theme-${osirisTheme}`;
@@ -1120,64 +1150,12 @@ export default function Dashboard() {
         style={{ left: isMobile ? '12px' : '120px' }}
       >
         {/* Unified Control Strip */}
-        <div className="flex items-center gap-1.5 pointer-events-auto">
-          {/* Projection Toggle (Globe / 2D) */}
-          <div className="flex items-center rounded-xl overflow-hidden border border-[var(--border-primary)] bg-[var(--bg-panel)] backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
-            <button
-              onClick={() => setMapProjection('globe')}
-              className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono tracking-wider transition-all duration-200 ${
-                mapProjection === 'globe'
-                  ? 'bg-[var(--cyan-primary)]/15 text-[var(--cyan-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
-              title="3D Globe"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">3D</span>
-            </button>
-            <div className="w-px h-4 bg-[var(--border-primary)]" />
-            <button
-              onClick={() => setMapProjection('mercator')}
-              className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono tracking-wider transition-all duration-200 ${
-                mapProjection === 'mercator'
-                  ? 'bg-[var(--gold-primary)]/15 text-[var(--gold-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
-              title="2D Map"
-            >
-              <MapPinned className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">2D</span>
-            </button>
-          </div>
-
-          {/* Style Toggle (Night / Satellite) */}
-          <div className="flex items-center rounded-xl overflow-hidden border border-[var(--border-primary)] bg-[var(--bg-panel)] backdrop-blur-2xl shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
-            <button
-              onClick={() => setMapStyle('dark')}
-              className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono tracking-wider transition-all duration-200 ${
-                mapStyle === 'dark'
-                  ? 'bg-[var(--cyan-primary)]/15 text-[var(--cyan-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
-              title="Night Mode"
-            >
-              <Moon className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">MAP</span>
-            </button>
-            <div className="w-px h-4 bg-[var(--border-primary)]" />
-            <button
-              onClick={() => setMapStyle('satellite')}
-              className={`flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono tracking-wider transition-all duration-200 ${
-                mapStyle === 'satellite'
-                  ? 'bg-[var(--alert-green)]/15 text-[var(--alert-green)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-              }`}
-              title="Satellite View"
-            >
-              <Satellite className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">SAT</span>
-            </button>
-          </div>
+        <div className="flex items-center gap-[3px] p-[3px] pointer-events-auto rounded-[10px] border border-[var(--border-primary)] bg-[var(--bg-panel)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.55)]">
+          <ViewSegment layoutId="view-projection" active={mapProjection === 'globe'} onClick={() => setMapProjection('globe')} title="3D Globe" icon={Globe} label="3D" />
+          <ViewSegment layoutId="view-projection" active={mapProjection === 'mercator'} onClick={() => setMapProjection('mercator')} title="2D Map" icon={MapPinned} label="2D" />
+          <div className="w-px h-5 mx-1 bg-[var(--border-secondary)]" />
+          <ViewSegment layoutId="view-style" active={mapStyle === 'dark'} onClick={() => setMapStyle('dark')} title="Night Mode" icon={Moon} label="MAP" />
+          <ViewSegment layoutId="view-style" active={mapStyle === 'satellite'} onClick={() => setMapStyle('satellite')} title="Satellite View" icon={Satellite} label="SAT" />
         </div>
 
         {/* Scale Bar */}
