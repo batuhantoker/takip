@@ -106,6 +106,7 @@ export const API_GROUPS: ApiGroup[] = [
         summary: 'Geomagnetic conditions and solar flare activity from NOAA SWPC.',
         returns: [
           'kp_index',
+          'kp_available',
           'kp_timestamp',
           'storm_level',
           'storm_color',
@@ -113,7 +114,8 @@ export const API_GROUPS: ApiGroup[] = [
           'alerts',
           'timestamp',
         ],
-        notes: '`storm_color` is a hex string the HUD renders directly, so clients need no severity lookup table.',
+        notes:
+          '`storm_color` is a hex string the HUD renders directly, so clients need no severity lookup table. `kp_index` is null and `storm_level` is "Unknown" when NOAA did not answer — absence of a reading is never reported as "Quiet".',
       },
     ],
   },
@@ -206,7 +208,9 @@ export const API_GROUPS: ApiGroup[] = [
         path: '/api/country-risk',
         method: 'GET',
         summary: 'Per-country risk scoring alongside market session state.',
-        returns: ['countries', 'exchanges', 'open_exchanges', 'total_exchanges', 'timestamp'],
+        returns: ['countries', 'methodology', 'exchanges', 'open_exchanges', 'total_exchanges', 'timestamp'],
+        notes:
+          '`base_risk` is a hand-assigned editorial ordering, not a calibrated or back-tested figure — `methodology.basis` says so on every response. `quake_magnitude` is the observed USGS component, reported separately so the two are not conflated.',
       },
       {
         path: '/api/region-dossier',
@@ -228,7 +232,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/news',
         method: 'GET',
-        summary: 'Aggregated OSINT news items.',
+        summary: 'Aggregated OSINT news items. risk_score is a keyword count, not a model output, and coords are preset country anchors.',
         returns: ['news', 'total', 'timestamp'],
       },
       {
@@ -343,8 +347,8 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/cyber-attacks',
         method: 'GET',
-        summary: 'Observed attack events for the live threat map.',
-        returns: ['attacks', 'total'],
+        summary: 'Listed botnet C2 servers from abuse.ch Feodo Tracker — blocklist entries, not observed attacks.',
+        returns: ['indicators', 'total', 'online', 'fetched_at', 'source', 'source_url'],
       },
       {
         path: '/api/malware',

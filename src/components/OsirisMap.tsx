@@ -321,7 +321,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       createDot(map, 'dot-fire', isGhost ? phantomPurple : '#E65100', 10);
       createDot(map, 'dot-cctv', cameraColor, 10);
 
-      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'network-mesh', 'cyber-arcs', 'cyber-heads', 'cyber-impacts', 'gdelt-events', 'cf-outages', 'cf-attacks'];
+      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'network-mesh', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks'];
       sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
       // ── FLIGHT ROUTE VISUALIZATION SOURCES & LAYERS ──
@@ -460,31 +460,15 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'line-opacity': 0.4,
       }});
 
-      // ══ LIVE CYBER ATTACKS — dark wire network (source → target) ══
-      map.addLayer({ id: 'cyber-arcs-atmo', type: 'line', source: 'cyber-arcs', paint: {
-        'line-color': '#000000', 'line-width': ['interpolate',['linear'],['zoom'], 1,4, 5,7, 10,12],
-        'line-opacity': 0.12, 'line-blur': 6,
-      }});
-      map.addLayer({ id: 'cyber-arcs-glow', type: 'line', source: 'cyber-arcs', paint: {
-        'line-color': '#111111', 'line-width': ['interpolate',['linear'],['zoom'], 1,2, 5,3.5, 10,6],
-        'line-opacity': 0.3, 'line-blur': 2,
-      }});
-      map.addLayer({ id: 'cyber-arcs-core', type: 'line', source: 'cyber-arcs', paint: {
-        'line-color': '#000000', 'line-width': ['interpolate',['linear'],['zoom'], 1,0.8, 5,1.4, 10,2.2],
-        'line-opacity': 0.7,
-      }});
-      // Animated dashed flow line — fast marching ants in black
-      map.addLayer({ id: 'cyber-arcs-flow', type: 'line', source: 'cyber-arcs', paint: {
-        'line-color': '#1a1a1a', 'line-width': ['interpolate',['linear'],['zoom'], 1,1.0, 5,1.8, 10,3],
-        'line-opacity': 0.55, 'line-dasharray': [2, 3],
-      }});
-      map.addLayer({ id: 'cyber-impacts', type: 'circle', source: 'cyber-impacts', paint: {
-        'circle-radius': ['interpolate',['linear'],['zoom'], 1,6, 5,12, 10,18],
-        'circle-color': '#000000', 'circle-opacity': 0.08, 'circle-blur': 0.6,
-      }});
+      /* ══ BOTNET C2 INFRASTRUCTURE — one dot per listed server ══
+         Feodo Tracker lists where a C2 is hosted and whether it still
+         answers. It records no attacker, no victim and no attack, so there is
+         nothing here to draw an arc between: a dot at the hosting country,
+         coloured by the reported status, is the whole of what is observed. */
       map.addLayer({ id: 'cyber-heads', type: 'circle', source: 'cyber-heads', paint: {
         'circle-radius': ['interpolate',['linear'],['zoom'], 1,2.5, 5,4, 10,6],
-        'circle-color': '#111111', 'circle-opacity': 0.95,
+        'circle-color': ['case', ['==', ['get','status'], 'online'], '#FF6D00', '#555555'],
+        'circle-opacity': 0.95,
         'circle-stroke-width': 1.5, 'circle-stroke-color': '#333', 'circle-stroke-opacity': 0.9,
       }});
       map.addLayer({ id: 'cyber-labels', type: 'symbol', source: 'cyber-heads', minzoom: 3, layout: {
@@ -1292,31 +1276,36 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       });
     });
 
-    // ⚡ Live Cyber Attack Arcs (click on flying heads) ⚡
+    /* ── Botnet C2 infrastructure (abuse.ch Feodo Tracker) ──
+       Every field below is read off the blocklist row. The popup used to lead
+       with a randomly chosen attack verb and a fabricated attacker origin;
+       what a row actually supports is an address, a family, a hosting
+       country and two observation timestamps. */
     map.on('click', 'cyber-heads', e => {
       if (!e.features?.length) return;
       const p = e.features[0].properties as any;
       const coords = (e.features[0].geometry as any).coordinates;
-      const sevColor = (p.severity || 5) >= 8 ? '#FF1744' : (p.severity || 5) >= 6 ? '#FF6D00' : '#FFD600';
-      const sevLabel = (p.severity || 5) >= 8 ? 'CRITICAL' : (p.severity || 5) >= 6 ? 'HIGH' : 'MEDIUM';
-      popup(coords, `<div style="${pStyle}border:1px solid ${sevColor}40;box-shadow:inset 0 0 20px ${sevColor}10, 0 0 15px ${sevColor}15;">
-        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${sevColor}30;padding-bottom:6px;margin-bottom:8px;">
-          <div style="color:${sevColor};font-size:12px;font-weight:700;letter-spacing:0.12em;text-shadow:0 0 6px ${sevColor}60;">⚡ ${htmlEsc((p.action || 'ATTACK').toUpperCase())}</div>
-          <div style="font-size:8px;padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:0.1em;background:${sevColor}20;color:${sevColor};border:1px solid ${sevColor}50;">${sevLabel}</div>
+      const online = p.status === 'online';
+      const c = online ? '#FF6D00' : '#8A8880';
+      const row = (label: string, value: string, color = '#E8E6E0', mono = false) =>
+        `<div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">${label}</span><br/><span style="color:${color};${mono ? 'font-family:monospace;' : ''}">${value}</span></div>`;
+      popup(coords, `<div style="${pStyle}border:1px solid ${c}40;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${c}30;padding-bottom:6px;margin-bottom:8px;">
+          <div style="color:${c};font-size:12px;font-weight:700;letter-spacing:0.12em;">BOTNET C2 SERVER</div>
+          <div style="font-size:8px;padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:0.1em;background:${c}20;color:${c};border:1px solid ${c}50;">${htmlEsc((p.status || 'unknown').toUpperCase())}</div>
         </div>
-        <div style="color:#E8E6E0;font-size:11px;font-weight:bold;margin-bottom:10px;">${htmlEsc(p.malware || 'Unknown Payload')}</div>
+        <div style="color:#E8E6E0;font-size:11px;font-weight:bold;margin-bottom:10px;">${htmlEsc(p.malware || 'Family not reported')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:9px;margin-bottom:8px;background:rgba(0,0,0,0.35);padding:8px;border-radius:4px;border:1px solid rgba(255,255,255,0.04);">
-          <div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">SOURCE ORIGIN</span><br/><span style="color:#FF5252;font-family:monospace;">${p.src_lat || '?'}°, ${p.src_lng || '?'}°</span></div>
-          <div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">TARGET</span><br/><span style="color:#00E5FF;font-family:monospace;">${htmlEsc(p.target_ip || '—')}</span></div>
-          <div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">TARGET COUNTRY</span><br/><span style="color:#E8E6E0;">${htmlEsc(p.target_country || '—')}</span></div>
-          <div><span style="color:#5C5A54;font-size:7px;letter-spacing:0.1em;">PORT</span><br/><span style="color:#FFD600;font-family:monospace;">${p.port || '—'}</span></div>
+          ${row('C2 ADDRESS', htmlEsc(p.ip || '—'), '#00E5FF', true)}
+          ${row('PORT', htmlEsc(String(p.port ?? '—')), '#FFD600', true)}
+          ${row('HOSTED IN', htmlEsc(p.country || 'Not reported'))}
+          ${row('AS', htmlEsc(p.as_number ? `AS${p.as_number}` : '—'), '#E8E6E0', true)}
+          ${row('FIRST SEEN', htmlEsc(p.first_seen || 'Not reported'))}
+          ${row('LAST ONLINE', htmlEsc(p.last_online || 'Not reported'))}
         </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <div style="flex:1;height:3px;border-radius:2px;background:linear-gradient(90deg, ${sevColor}00, ${sevColor});opacity:0.5;"></div>
-          <span style="font-size:7px;color:#5C5A54;letter-spacing:0.15em;">SEVERITY ${p.severity || '?'}/10</span>
-          <div style="flex:1;height:3px;border-radius:2px;background:linear-gradient(90deg, ${sevColor}, ${sevColor}00);opacity:0.5;"></div>
-        </div>
-        <div style="margin-top:8px;font-size:7px;color:#5C5A54;text-align:center;letter-spacing:0.1em;">SOURCE: ABUSE.CH FEODO TRACKER</div>
+        ${p.hostname ? `<div style="font-size:9px;color:#8A8880;margin-bottom:8px;font-family:monospace;word-break:break-all;">${htmlEsc(p.hostname)}</div>` : ''}
+        <div style="font-size:8px;color:#5C5A54;line-height:1.5;margin-bottom:8px;">Blocklist entry, not an observed attack. Marker sits at the hosting country's centroid, not the host's location.</div>
+        <div style="font-size:7px;color:#5C5A54;text-align:center;letter-spacing:0.1em;">SOURCE: <a href="${urlSafe(p.source_url || 'https://feodotracker.abuse.ch/browse/')}" target="_blank" style="color:${c};text-decoration:underline;">ABUSE.CH FEODO TRACKER ↗</a></div>
       </div>`);
     });
 
@@ -1893,87 +1882,35 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     setGeo('network-mesh', meshLinks);
   }, [mapReady, activeLayers.malware, data.malware_threats, setGeo]);
 
-  // ══ LIVE CYBER ATTACKS — Threat network with real-time flow animation ══
-  const cyberAnimRef = useRef<number>(0);
-
+  /* ══ BOTNET C2 INFRASTRUCTURE ══
+     Static dots, no animation. The arcs that used to fly across this layer
+     were drawn between a fabricated attacker origin and the C2's country, and
+     the marching-ants animation read as traffic that no source had observed.
+     A blocklist has no motion in it. */
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const al = activeLayers as any;
-    const attacks = data.cyber_attacks;
+    const indicators = data.cyber_attacks;
 
-    // Clean up when toggled off or no data
-    if (!al.cyber_attacks || !attacks?.length) {
-      cancelAnimationFrame(cyberAnimRef.current);
-      setGeo('cyber-arcs', []);
+    if (!al.cyber_attacks || !indicators?.length) {
       setGeo('cyber-heads', []);
-      setGeo('cyber-impacts', []);
       return;
     }
 
-    // Build static GeoJSON features (dots stay clickable)
-    const dots: any[] = [];
-    const srcGlows: any[] = [];
-    const lines: any[] = [];
-
-    for (const a of attacks) {
-      dots.push({
+    // A C2 whose hosting country is unknown has no honest position on a map.
+    const dots = indicators
+      .filter((c: any) => typeof c.lng === 'number' && typeof c.lat === 'number')
+      .map((c: any) => ({
         type: 'Feature',
-        geometry: { type: 'Point', coordinates: [a.dst_lng, a.dst_lat] },
+        geometry: { type: 'Point', coordinates: [c.lng, c.lat] },
         properties: {
-          malware: a.malware, action: a.action, target_ip: a.target_ip,
-          target_country: a.target_country, port: a.port, severity: a.severity,
-          status: a.status,
-          src_lat: a.src_lat.toFixed(2), src_lng: a.src_lng.toFixed(2),
-          dst_lat: a.dst_lat.toFixed(2), dst_lng: a.dst_lng.toFixed(2),
+          id: c.id, ip: c.ip, port: c.port, malware: c.malware, status: c.status,
+          hostname: c.hostname, country: c.country, as_number: c.as_number, as_name: c.as_name,
+          first_seen: c.first_seen, last_online: c.last_online,
         },
-      });
-      srcGlows.push({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [a.src_lng, a.src_lat] },
-        properties: { severity: a.severity },
-      });
-      lines.push({
-        type: 'Feature',
-        geometry: { type: 'LineString', coordinates: [[a.src_lng, a.src_lat], [a.dst_lng, a.dst_lat]] },
-        properties: { malware: a.malware, severity: a.severity },
-      });
-    }
+      }));
 
     setGeo('cyber-heads', dots);
-    setGeo('cyber-impacts', srcGlows);
-    setGeo('cyber-arcs', lines);
-
-    // Animate: aggressive marching-ants with fast dash cycling
-    const map = mapRef.current;
-    let step = 0;
-    function animateFlow() {
-      step++;
-      if (!map) return;
-      try {
-        // Fast cycling dash pattern — creates visible movement along the line
-        const phase = (step * 0.15) % 6;
-        map.setPaintProperty('cyber-arcs-flow', 'line-dasharray', [2, 3 + phase * 0.4]);
-
-        // Alternate opacity on the core line for flicker effect
-        const coreFlicker = 0.55 + Math.sin(step * 0.05) * 0.15;
-        map.setPaintProperty('cyber-arcs-core', 'line-opacity', coreFlicker);
-
-        // Pulse target dots — breathing black nodes
-        const pulse = 1.5 + Math.sin(step * 0.1) * 0.6;
-        map.setPaintProperty('cyber-heads', 'circle-stroke-width', pulse);
-        map.setPaintProperty('cyber-heads', 'circle-stroke-color',
-          step % 30 < 15 ? '#222222' : '#444444'
-        );
-
-        // Pulse source glow — dark breathing aura
-        const glowPulse = 0.06 + Math.sin(step * 0.07) * 0.04;
-        map.setPaintProperty('cyber-impacts', 'circle-opacity', glowPulse);
-      } catch {}
-      cyberAnimRef.current = requestAnimationFrame(animateFlow);
-    }
-    cyberAnimRef.current = requestAnimationFrame(animateFlow);
-
-    return () => cancelAnimationFrame(cyberAnimRef.current);
   }, [mapReady, (activeLayers as any).cyber_attacks, data.cyber_attacks, setGeo]);
 
 
@@ -2143,7 +2080,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
 
     setVis(['malware-glow','malware-dots','malware-label','malware-new-ring'], activeLayers.malware);
     setVis(['network-mesh-atmo', 'network-mesh-glow', 'network-mesh-core'], activeLayers.internet_outages || activeLayers.malware);
-    setVis(['cyber-arcs-atmo','cyber-arcs-glow','cyber-arcs-core','cyber-arcs-flow','cyber-heads','cyber-impacts','cyber-labels'], (activeLayers as any).cyber_attacks);
+    setVis(['cyber-heads','cyber-labels'], (activeLayers as any).cyber_attacks);
     setVis(['day-night-fill'], activeLayers.day_night);
     setVis(['fl-commercial'], activeLayers.flights);
     setVis(['fl-private'], activeLayers.private);

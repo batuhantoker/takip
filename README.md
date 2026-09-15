@@ -32,7 +32,7 @@ Osiris is a production-grade OSINT platform that provides situational awareness 
 | **CCTV** | 17,000+ Cameras | TfL, WSDOT, Caltrans, ODOT, MDOT, HK Transport Dept, Taiwan THB, NZTA + more |
 | **Seismic** | Real-time M2.5+ | USGS Earthquake API |
 | **Fires** | Active Hotspots | NASA FIRMS |
-| **News** | 24/7 Live Streams | 25+ Global Broadcasters |
+| **News** | 24/7 Live Streams | 23 Global Broadcasters |
 | **Weather** | Severe Events | NASA EONET |
 | **Space** | Solar Weather, Satellites | NOAA SWPC, N2YO |
 | **Cyber** | CVE Threats, Vulnerability Scanning | NVD, Custom Scanner |
@@ -101,7 +101,7 @@ Run `npm test` for offline checks or `RUN_LIVE_TESTS=1 npx vitest run src/app/ap
 - **OFAC Sanctions Search** — query persons, organizations, vessels and aircraft against the US OFAC SDN list
 
 ### Live Broadcast Network
-- **25+ live 24/7 news streams** from global broadcasters
+- **23 live 24/7 news streams** from global broadcasters
 - Click any news dot on the map to open the live stream
 - Feeds from NBC, CBS, ABC, Sky News, Al Jazeera, France 24, NHK, WION, and more
 

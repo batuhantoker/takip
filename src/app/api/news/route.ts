@@ -30,19 +30,33 @@ const KEYWORD_COORDS: Record<string, [number, number]> = {
   'united states': [38.907, -77.036], 'europe': [48.800, 2.300], 'middle east': [31.500, 34.800]
 };
 
-function scoreRisk(text: string): number {
+/**
+ * Counts risk keywords in the text. That is the whole method: one point of
+ * base, two per distinct term matched, capped at 10.
+ *
+ * It used to ship its output labelled "AI Analysis indicates elevated tactical
+ * priority based on OSINT stream patterns." No model is consulted and no
+ * pattern is learned — the phrasing lent a word count the authority of an
+ * analytical judgement. The matched terms now travel with the score so a
+ * reader can see exactly what produced it.
+ */
+export function scoreRisk(text: string): { score: number; matched: string[] } {
   const lower = text.toLowerCase();
-  let score = 1;
-  for (const kw of RISK_KEYWORDS) {
-    if (lower.includes(kw)) score += 2;
-  }
-  return Math.min(10, score);
+  const matched = RISK_KEYWORDS.filter(kw => lower.includes(kw));
+  return { score: Math.min(10, 1 + matched.length * 2), matched };
 }
 
-function findCoords(text: string): [number, number] | null {
+/**
+ * Resolves a place name to its preset anchor — a country or territory
+ * centroid, not the location of the reported event. An article about a strike
+ * in Rafah resolves to the middle of Gaza, because that is the only thing a
+ * keyword match can support. Callers get the term that matched so the marker
+ * can be labelled for what it is.
+ */
+export function findCoords(text: string): { coords: [number, number]; anchor: string } | null {
   const lower = text.toLowerCase();
   for (const [keyword, coords] of Object.entries(KEYWORD_COORDS)) {
-    if (lower.includes(keyword)) return coords;
+    if (lower.includes(keyword)) return { coords, anchor: keyword };
   }
   return null;
 }
@@ -138,8 +152,9 @@ export async function GET() {
     }
 
     const newsItems = allArticles.map(article => {
-      const riskScore = scoreRisk(article.description || article.title);
-      const coords = findCoords(article.description || article.title);
+      const text = article.description || article.title;
+      const risk = scoreRisk(text);
+      const located = findCoords(text);
 
       return {
         id: crypto.createHash('md5').update((article.link || '') + (article.pubDate || '')).digest('hex'),
@@ -148,10 +163,20 @@ export async function GET() {
         link: article.link,
         published: article.pubDate,
         source: article.source,
-        risk_score: riskScore,
-        coords: coords ? [coords[0], coords[1]] : null,
-        coords_default: !coords,
-        machine_assessment: riskScore >= 8 ? "AI Analysis indicates elevated tactical priority based on OSINT stream patterns." : null,
+        risk_score: risk.score,
+        /* How the score was produced, and from what. Both fields exist so no
+           consumer has to take the number on trust. */
+        risk_method: 'keyword-count',
+        risk_keywords: risk.matched,
+        keyword_assessment: risk.score >= 8
+          ? `Keyword filter matched ${risk.matched.length} risk terms: ${risk.matched.join(', ')}.`
+          : null,
+        coords: located ? located.coords : null,
+        coords_default: !located,
+        /* 'country-anchor' means the marker is a preset centroid for the term
+           in `coords_anchor`, not the location of the reported event. */
+        location_precision: located ? 'country-anchor' : null,
+        coords_anchor: located ? located.anchor : null,
       };
     });
 

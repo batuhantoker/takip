@@ -728,9 +728,9 @@ export default function Dashboard() {
 
     // Live Malware (abuse.ch) is pushed, not fetched — see the SSE subscription below.
 
-    // Live Cyber Attacks (animated arcs)
+    // Botnet C2 infrastructure (abuse.ch Feodo Tracker blocklist)
     if ((activeLayers as any).cyber_attacks && !layerFetchedRef.current.has('cyber_attacks')) {
-      fetchEndpoint('/api/cyber-attacks', d => ({ cyber_attacks: d.attacks }));
+      fetchEndpoint('/api/cyber-attacks', d => ({ cyber_attacks: d.indicators }));
       layerFetchedRef.current.add('cyber_attacks');
     }
 
@@ -780,9 +780,9 @@ export default function Dashboard() {
     if ((activeLayers as any).cyber_attacks) {
       intervals.push(setInterval(() => {
         layerFetchedRef.current.delete('cyber_attacks');
-        fetchEndpoint('/api/cyber-attacks', d => ({ cyber_attacks: d.attacks }));
+        fetchEndpoint('/api/cyber-attacks', d => ({ cyber_attacks: d.indicators }));
         layerFetchedRef.current.add('cyber_attacks');
-      }, 10000)); // 10s — rapid refresh
+      }, 300000)); // 5m — a blocklist turns over in hours, not seconds
     }
     return () => intervals.forEach(clearInterval);
   }, [activeLayers, fetchEndpoint]);
@@ -1324,7 +1324,7 @@ export default function Dashboard() {
           <span className="opacity-60">ENTITIES</span>
         </span>
 
-        {spaceWeather && <span className="hidden lg:inline" title={`Geomagnetic Storm Index — Kp${spaceWeather.kp_index}`}>SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>Kp{spaceWeather.kp_index}</span></span>}
+        {spaceWeather && <span className="hidden lg:inline" title={spaceWeather.kp_index == null ? 'Geomagnetic Storm Index — no reading from NOAA' : `Geomagnetic Storm Index — Kp${spaceWeather.kp_index}`}>SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>{spaceWeather.kp_index == null ? 'N/A' : `Kp${spaceWeather.kp_index}`}</span></span>}
 
         <span className="text-[11px] font-bold tracking-[0.2em] text-[var(--text-muted)] opacity-50">V.4.1</span>
         
