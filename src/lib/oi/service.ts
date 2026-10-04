@@ -128,7 +128,7 @@ export function startPrediction(args: PredictArgs, creds: Credentials, ip: strin
 
 export type Asked = { ok: true; reply: string; target: string } | { ok: false; status: number; error: string };
 
-/** One question to the report agent or a panelist, on the caller's key. */
+/** One question to the report agent or an actor that played, on the caller's key. */
 export async function askPrediction(run: Run, targetRaw: unknown, messageRaw: unknown, creds: Credentials, signal?: AbortSignal, chat?: ChatFn): Promise<Asked> {
   const message = text(messageRaw, 1000);
   if (message.length < 2) return { ok: false, status: 400, error: 'Ask something.' };
@@ -159,7 +159,7 @@ export function describe(origin: string) {
   return {
     name: 'OSIRIS OI',
     version: OI_VERSION,
-    about: 'Swarm-intelligence forecasting on live OSIRIS intelligence. Bring your own model key.',
+    about: 'A prediction engine on live OSIRIS intelligence: the actors who decide a question, simulated against each other in parallel worlds. Bring your own model key.',
     credit: CREDIT,
     providers: PROVIDERS.map(p => ({ id: p.id, name: p.name, default_model: p.defaultModel, suggested_models: p.suggested, key_url: p.keyUrl })),
     depths: (Object.keys(DEPTHS) as Depth[]).map(d => ({ id: d, ...DEPTHS[d], model_calls: estimateCalls(d) })),

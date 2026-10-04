@@ -8,9 +8,10 @@
  */
 import { centroidFor } from '@/lib/countryCentroids';
 import { amount, answerText, normalizeShares, orderEstimate, uniform } from './forecast';
-import { parseCites, sourceIds } from './sources';
+import { dateIn } from './clock';
+import { parseCites, pushOf, sourceIds } from './sources';
 import type {
-  Actor, ActorKind, Agent, ContextItem, Driver, Estimate, Frame, Link, Located, Post, Reply, Report, Scenario, Signpost, Tone,
+  Actor, ActorKind, ContextItem, Driver, Estimate, Frame, Link, Located, Move, PathStep, Period, Persona, Report, Scenario, Signpost, SimEvent, Tone, WorldPoint,
 } from './types';
 
 /* ───────────────────────────── JSON ───────────────────────────── */
@@ -61,7 +62,7 @@ export function num(v: unknown, lo: number, hi: number, fallback: number): numbe
 
 /**
  * A probability in [0.01, 0.99]. Reads 0.45, "0.45", 45 and "45%" alike.
- * Never 0 or 1: nothing in the world is certain, and the pooled log-odds need finite values.
+ * Never 0 or 1: a world that has not settled the question is not certain of it; only a resolution is.
  */
 export function prob(v: unknown, fallback: number): number {
   let n = typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v) : NaN;
@@ -186,6 +187,24 @@ export function parseWorld(raw: Record<string, unknown>, question: string, conte
     baseRateReason: text(raw.base_rate_reason ?? raw.baseRateReason, 400),
     focus: focus.lat === null && !focus.place ? null : focus,
   };
+  // The price the question turns on, when the research found it: a ticker the model names without data behind it is dropped.
+  const m = obj(raw.measure);
+  const symbol = text(m.symbol, 20).toUpperCase();
+  const priced = symbol ? context.find(c => c.kind === 'series' && c.symbol?.toUpperCase() === symbol) : undefined;
+  if (priced?.symbol) {
+    const level = amount(m.threshold ?? m.level);
+    frame.measure = {
+      symbol: priced.symbol,
+      ...(frame.kind === 'binary' && level !== null && level > 0 ? {
+        threshold: level,
+        direction: oneOf(m.direction, ['above', 'below'] as const, 'above'),
+        touch: m.touch !== false && m.touch !== 'false',
+      } : {}),
+    };
+  }
+  // The prediction market that asks this same question, when one does.
+  const market = text(raw.market, 8).toLowerCase();
+  if (market && context.some(c => c.kind === 'odds' && c.id === market)) frame.market = market;
 
   const actors: Actor[] = [];
   const ids = new Set<string>();
@@ -252,87 +271,135 @@ export function parseWorld(raw: Record<string, unknown>, question: string, conte
   return { frame, actors: placed, links };
 }
 
-/* ───────────────────────────── The panel ───────────────────────────── */
+/* ───────────────────────────── The simulation ───────────────────────────── */
 
 /**
- * The panel. Panelists are anonymous: Agent 1, Agent 2… in the order given,
- * each known by their role, so no simulated view is ever put in a real or
- * realistic-sounding person's mouth. Whatever name a model adds is ignored.
+ * The cast: up to \`count\` actors from the world model, each with what it
+ * wants, what it can do, what it will not accept and how it decides. Actors
+ * the world model did not name are ignored, as are repeats.
  */
-export function parseAgents(raw: Record<string, unknown>, count: number, actorIds: Set<string>): Agent[] {
-  const agents: Agent[] = [];
-  for (const a of list(raw.agents, count)) {
-    const o = obj(a);
-    const role = text(o.role ?? o.title ?? o.job, 120);
-    if (!role) continue;
-    const n = agents.length + 1;
-    agents.push({
-      id: `agent_${n}`,
-      name: `Agent ${n}`,
-      role,
-      lens: text(o.lens, 200),
-      bias: text(o.bias, 160),
-      prior: prob(o.prior, 0.5),
-      watches: list(o.watches, 3).map(w => slug(w, '')).filter(w => actorIds.has(w)),
+export function parseCast(raw: Record<string, unknown>, count: number, actorIds: Set<string>): { id: string; persona: Persona }[] {
+  const out: { id: string; persona: Persona }[] = [];
+  for (const c of list(raw.cast ?? raw.actors, count + 6)) {
+    const o = obj(c);
+    const id = slug(o.id ?? o.actor, '');
+    if (!actorIds.has(id) || out.some(x => x.id === id)) continue;
+    out.push({
+      id,
+      persona: {
+        goal: text(o.goal, 240, 'Advance its own interests'),
+        levers: list(o.levers, 4).map(l => text(l, 140)).filter(Boolean),
+        redLines: text(o.red_lines ?? o.redLines, 220),
+        style: text(o.style, 180),
+      },
+    });
+    if (out.length >= count) break;
+  }
+  return out;
+}
+
+const STANCES = ['cooperate', 'pressure', 'oppose', 'hold'] as const;
+
+/**
+ * One actor's move. Throws when the reply says nothing the actor does: a move
+ * is an action, and an actor that names none is asked again.
+ */
+export function parseMove(
+  raw: Record<string, unknown>, actor: string, world: string, period: number, actorIds: Set<string>,
+  frame?: Pick<Frame, 'kind' | 'outcomes'>,
+  /** What each citable source says, to check the move's quotes against. */
+  sources?: Map<string, string>,
+): Move {
+  const action = text(raw.action ?? raw.move, 240);
+  if (!action) throw new Error('no action in the reply');
+  const targets = list(Array.isArray(raw.targets) ? raw.targets : raw.target ? [raw.target] : [], 3)
+    .map(t => slug(t, '')).filter((t, i, a) => actorIds.has(t) && t !== actor && a.indexOf(t) === i);
+  const outcomes = frame?.kind === 'choice' ? frame.outcomes : [];
+  const favors = favored(raw.favors, outcomes);
+  const why = text(raw.why ?? raw.reasoning, 240);
+  return {
+    id: `${world}:${actor}:${period}`,
+    world,
+    period,
+    actor,
+    action,
+    statement: text(raw.statement ?? raw.says, 300),
+    targets,
+    stance: oneOf(raw.stance, STANCES, targets.length ? 'pressure' : 'hold'),
+    push: frame?.kind === 'choice' ? (favors ? 'yes' : 'neutral') : pushOf(raw.effect ?? raw.push),
+    ...(favors ? { favors } : {}),
+    why,
+    cites: sources ? parseCites(raw.cites ?? raw.citations ?? raw.quotes, sources, 2, outcomes) : [],
+  };
+}
+
+/**
+ * The world engine's step: what happened in one period of one world (one to
+ * four events, dated inside the period, at most one of them a surprise), and
+ * where the question then stands. A figure the reply leaves out falls back on
+ * the world's last one, then on the frame's prior; a number question with
+ * neither throws, and the step is asked again.
+ */
+/**
+ * The world engine's step: the period's events, where the question stands,
+ * and, on a price question (`priced`), how far the events push the price
+ * beyond its own course (`push`, a fraction, at most ±30%). On a price
+ * question the price decides the standing, so a reply without one is fine.
+ */
+export function parseStep(
+  raw: Record<string, unknown>, world: string, period: Period, actorIds: Set<string>,
+  frame: Pick<Frame, 'kind' | 'outcomes' | 'baseRate' | 'prior' | 'anchor'>,
+  last: WorldPoint | null,
+  priced = false,
+): { events: SimEvent[]; point: WorldPoint; push: number } {
+  const outcomes = frame.kind === 'choice' ? frame.outcomes : [];
+  const events: SimEvent[] = [];
+  let shocks = 0;
+  for (const e of list(raw.events, 6)) {
+    const o = obj(e);
+    const title = text(o.title ?? o.event, 140);
+    if (!title) continue;
+    const kind = oneOf(o.kind, ['event', 'shock'] as const, 'event');
+    if (kind === 'shock' && shocks++ > 0) continue;
+    const favors = favored(o.favors, outcomes);
+    events.push({
+      id: `${world}:${period.index}:${events.length + 1}`,
+      world,
+      period: period.index,
+      date: dateIn(o.date, period),
+      title,
+      detail: text(o.detail ?? o.description, 360),
+      actors: list(o.actors, 4).map(a => slug(a, '')).filter(a => actorIds.has(a)),
+      push: frame.kind === 'choice' ? (favors ? 'yes' : 'neutral') : pushOf(o.effect ?? o.push),
+      ...(favors ? { favors } : {}),
+      kind,
       ...locate(o),
     });
+    if (events.length >= 4) break;
   }
-  return spreadDuplicates(agents, 0.6);
-}
+  events.sort((a, b) => a.date.localeCompare(b.date));
 
-/** What a panelist said before, to fall back on when a reply leaves a figure out. */
-export interface PostFallback {
-  probability: number;
-  shares?: number[];
-  estimate?: Estimate;
-}
-
-/**
- * One panelist's turn. Throws when a number question's reply has no usable
- * estimate and there is nothing earlier to fall back on: that panelist sits
- * the round out rather than inventing a figure.
- */
-export function parsePost(
-  raw: Record<string, unknown>, agent: Agent, round: number, agentIds: Set<string>, actorIds: Set<string>,
-  fallback: PostFallback, frame?: Pick<Frame, 'kind' | 'outcomes'>,
-  /** What each citable source says, to check the post's quotes against. */
-  sources?: Map<string, string>,
-): Post {
-  const replies: Reply[] = [];
-  for (const r of list(raw.replies, 3)) {
-    const o = obj(r);
-    const to = slug(o.to, '');
-    if (!agentIds.has(to) || to === agent.id || replies.some(x => x.to === to)) continue;
-    replies.push({ to, stance: oneOf(o.stance, ['agree', 'disagree', 'question'] as const, 'question'), point: text(o.point, 160) });
+  const st = obj(raw.state ?? raw.standing);
+  const note = text(st.note ?? st.summary, 240);
+  const said = text(st.resolved, 60).toLowerCase();
+  const pushed = amount(raw.price_push ?? st.price_push);
+  // A model that writes 8 for 8% means 0.08.
+  const push = pushed === null ? 0 : clamp(Math.abs(pushed) > 1 ? pushed / 100 : pushed, -0.3, 0.3);
+  if (frame.kind === 'choice') {
+    const won = said && said !== 'null' && said !== 'none' ? favored(st.resolved, outcomes) : '';
+    const shares = won
+      ? outcomes.map(o => (o === won ? 1 : 0))
+      : normalizeShares(st.shares ?? st.distribution, outcomes, last?.shares ?? (frame.prior.length === outcomes.length ? frame.prior : uniform(outcomes.length)));
+    return { events, point: { world, period: period.index, probability: Math.max(...shares), shares, resolved: won || null, note }, push };
   }
-  let probability = prob(raw.probability, fallback.probability);
-  let shares: number[] | undefined;
-  let estimate: Estimate | undefined;
-  if (frame?.kind === 'choice') {
-    shares = normalizeShares(raw.shares ?? raw.distribution, frame.outcomes, fallback.shares ?? uniform(frame.outcomes.length));
-    probability = Math.max(...shares);
-  } else if (frame?.kind === 'number') {
-    const e = obj(raw.estimate);
-    const value = amount(raw.estimate !== null && typeof raw.estimate === 'object' ? e.value : raw.estimate) ?? fallback.estimate?.value ?? null;
-    if (value === null) throw new Error('no estimate in the reply');
-    estimate = orderEstimate(value, amount(raw.low ?? e.low), amount(raw.high ?? e.high));
-    probability = 0.5;
+  if (frame.kind === 'number') {
+    const value = amount(st.value ?? st.estimate) ?? last?.value ?? frame.anchor;
+    if ((value === null || value === undefined) && !priced) throw new Error('no value in the reply');
+    return { events, point: { world, period: period.index, probability: 0.5, value: value ?? 0, resolved: null, note }, push };
   }
-  return {
-    id: `${agent.id}:${round}`,
-    agent: agent.id,
-    round,
-    probability,
-    ...(shares ? { shares } : {}),
-    ...(estimate ? { estimate } : {}),
-    confidence: num(raw.confidence, 0, 1, 0.5),
-    text: text(raw.post, 320, '…'),
-    reasoning: text(raw.reasoning, 320),
-    changed: text(raw.changed, 200),
-    replies,
-    focus: list(raw.focus, 3).map(f => slug(f, '')).filter(f => actorIds.has(f)),
-    cites: sources ? parseCites(raw.cites ?? raw.citations ?? raw.quotes, sources, 3, frame?.kind === 'choice' ? frame.outcomes : []) : [],
-  };
+  const resolved = /^y(es)?$/.test(said) ? 'yes' : /^no?$/.test(said) ? 'no' : null;
+  const probability = resolved === 'yes' ? 0.99 : resolved === 'no' ? 0.01 : prob(st.probability ?? st.p, last?.probability ?? frame.baseRate);
+  return { events, point: { world, period: period.index, probability, resolved, note }, push };
 }
 
 /* ───────────────────────────── The report ───────────────────────────── */
@@ -351,9 +418,10 @@ function favored(v: unknown, outcomes: string[]): string {
 }
 
 /**
- * The report. `swarm` is where the panel ended: a binary question's pooled
- * P(YES), a choice question's pooled shares, a number question's pooled
- * estimate. The report agent's figures override it only where they parse.
+ * The report. `swarm` is where the simulation ended: a binary question's
+ * pooled P(YES), a choice question's pooled shares, a number question's
+ * pooled estimate. The report agent's figures override it only where they
+ * parse. The predicted path keeps its steps in date order.
  */
 export function parseReport(
   raw: Record<string, unknown>,
@@ -362,6 +430,8 @@ export function parseReport(
   frame?: Pick<Frame, 'kind' | 'outcomes' | 'unit'>,
   /** The ids a driver may cite. */
   sources?: Set<string>,
+  /** The simulated worlds, by id. */
+  worldIds?: Set<string>,
 ): Report {
   const outcomes = frame?.kind === 'choice' ? frame.outcomes : [];
   const drivers: Driver[] = list(raw.drivers, 6).map(d => {
@@ -405,7 +475,7 @@ export function parseReport(
     probability = 0.5;
   }
   const report: Report = {
-    headline: text(raw.headline, 120, 'Forecast'),
+    headline: text(raw.headline, 120, 'Prediction'),
     answer: '',
     probability,
     swarm: swarm.probability,
@@ -419,6 +489,24 @@ export function parseReport(
     dissent: text(raw.dissent, 400),
     caveats: list(raw.caveats, 5).map(c => text(c, 200)).filter(Boolean),
     deviation: text(raw.deviation_reason ?? raw.deviation, 300),
+    path: list(raw.path ?? raw.timeline, 10).map((p): PathStep => {
+      const o = obj(p);
+      const date = text(o.date, 10);
+      return {
+        date: /^\d{4}-\d{2}(-\d{2})?$/.test(date) ? date : '',
+        title: text(o.title ?? o.event, 160),
+        detail: text(o.detail ?? o.description, 320),
+        actors: list(o.actors, 4).map(a => slug(a, '')).filter(a => actorIds.has(a)),
+      };
+    }).filter(p => p.title).sort((a, b) => (a.date && b.date ? a.date.localeCompare(b.date) : 0)),
+    actorMoves: list(raw.actor_moves ?? raw.actorMoves, 10).map(m => {
+      const o = obj(m);
+      return { actor: slug(o.actor ?? o.id, ''), prediction: text(o.prediction ?? o.move, 260) };
+    }).filter(m => actorIds.has(m.actor) && m.prediction),
+    worlds: list(raw.worlds, 8).map(w => {
+      const o = obj(w);
+      return { world: text(o.world ?? o.id, 12).replace(/^world\s*/i, '').slice(0, 2).toUpperCase(), outcome: text(o.outcome, 140), summary: text(o.summary, 260) };
+    }).filter(w => w.outcome && (!worldIds || worldIds.has(w.world))),
   };
   report.answer = frame ? answerText({ ...emptyFrame, ...frame }, report, null) : `${Math.round(probability * 100)}% YES`;
   return report;

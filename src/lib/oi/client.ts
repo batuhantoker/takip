@@ -12,7 +12,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ProviderId } from './providers';
 import { applyEvent, currentAnswer, currentProbability, initialState, type RunState } from './state';
-import { directionWord } from './forecast';
+import { directionWord, formatAmount } from './forecast';
+import { ladderGaps, ladderSentence, readLadder } from './ladder';
+import { recordSentence } from './quant';
 import { questionBlock, trajectoryLine } from './prompts';
 import type { Citation, Depth, RunStatus, Stamped } from './types';
 import type { SeedScope } from './depths';
@@ -306,14 +308,35 @@ export async function checkKey(provider: ProviderId, key: string): Promise<{ mod
   return { models: body.models ?? [], preferred: body.default ?? '', listed: body.listed !== false };
 }
 
-/** The forecast as Markdown, for export. */
+/** The prediction as Markdown, for export: the answer, the story, the worlds and the sources. */
 export function toMarkdown(s: RunState, url: string): string {
   const pct = (p: number) => `${Math.round(p * 100)}%`;
   const r = s.report;
   const lines = [`# ${r?.headline || s.question}`, '', `**Question:** ${s.question}`];
   if (s.frame) lines.push('', '```', questionBlock(s.frame), '```');
   if (r) {
-    lines.push('', `## Forecast: ${r.answer} (${r.confidence} confidence)`, r.deviation, '', r.summary);
+    lines.push('', `## Prediction: ${r.answer} (${r.confidence} confidence)`, r.deviation, '', r.summary);
+    const actorName = (id: string) => s.actors.find(a => a.id === id)?.name ?? id;
+    const anchors: string[] = [];
+    const q = s.quant;
+    if (q) {
+      anchors.push(`- **${q.symbol}** at ${formatAmount(q.price)} ${q.currency} on ${q.asOf}, swinging ${Math.round(q.vol * 100)}% a year`);
+      anchors.push(q.probability !== undefined ? `- **Statistical baseline**: ${pct(q.probability)}. ${q.method}` : `- **Statistical baseline**: 80% between ${formatAmount(q.p10)} and ${formatAmount(q.p90)}, the middle at ${formatAmount(q.p50)}. ${q.method}`);
+      if (q.simulated) anchors.push(q.simulated.probability !== undefined ? `- **The simulation, priced** (each world's events across the market's own paths): ${pct(q.simulated.probability)}` : `- **The simulation, priced**: 80% between ${formatAmount(q.simulated.p10)} and ${formatAmount(q.simulated.p90)}, the middle at ${formatAmount(q.simulated.p50)}`);
+    }
+    for (const c of s.context.filter(x => x.kind === 'odds' && x.odds)) {
+      anchors.push(`- **${c.odds!.platform}${c.id === s.frame?.market ? ' (this question)' : ' (related)'}**: [${c.title.replace(/[[\]]/g, '')}](${c.url}) ${pct(c.odds!.probability)}`);
+    }
+    if (q?.backtest) anchors.push(`- **The baseline's record**: ${recordSentence(q.backtest, q.symbol, q.probability)}`);
+    const ladderOdds = (s.context.find(c => c.id === s.frame?.market) ?? s.context.find(c => c.odds?.ladder))?.odds;
+    if (q?.curve && ladderOdds?.ladder) {
+      const read = ladderSentence(readLadder(ladderGaps(q.curve, ladderOdds.ladder, q.price)), formatAmount, ladderOdds.platform);
+      if (read) anchors.push(`- **Every level**: ${read}`);
+    }
+    if (anchors.length) lines.push('', '## What it rests on', ...anchors);
+    if (r.path.length) lines.push('', '## How it unfolds', ...r.path.map(p => `- **${p.date || 'Later'}**: ${p.title}${p.detail ? `. ${p.detail}` : ''}${p.actors.length ? ` (${p.actors.map(actorName).join(', ')})` : ''}`));
+    if (r.actorMoves.length) lines.push('', '## What each actor does', ...r.actorMoves.map(m => `- **${actorName(m.actor)}**: ${m.prediction}`));
+    if (r.worlds.length) lines.push('', '## The simulated worlds', ...r.worlds.map(w => `- **World ${w.world}**: ${w.outcome}. ${w.summary}`));
     const refs = (ids: string[] | undefined) => (ids?.length ? ` ${ids.map(id => `[${id}]`).join('')}` : '');
     if (r.drivers.length) lines.push('', '## Drivers', ...r.drivers.map(d => `- ${d.text} (${directionWord(s.frame, d.push, d.favors)})${refs(d.sources)}`));
     if (r.scenarios.length) lines.push('', '## Scenarios', ...r.scenarios.map(x => `- **${x.name}** (${pct(x.probability)}): ${x.description}`));
@@ -321,16 +344,15 @@ export function toMarkdown(s: RunState, url: string): string {
     if (r.dissent) lines.push('', '## Dissent', r.dissent);
     if (r.caveats.length) lines.push('', '## Caveats', ...r.caveats.map(c => `- ${c}`));
   }
-  if (s.rounds.length && s.frame) lines.push('', '## The panel by round', ...s.rounds.map(x => `- ${trajectoryLine(s.frame!, x)}`));
-  // The thread back to the words: what each panelist quoted last, then every source quoted or cited.
-  const names = new Map(s.agents.map(a => [a.id, a.name]));
-  const last = [...new Map(s.posts.map(p => [p.agent, p])).values()].filter(p => p.cites?.length);
-  const roles = new Map(s.agents.map(a => [a.id, a.role]));
+  if (s.rounds.length && s.frame) lines.push('', '## The worlds pooled, period by period', ...s.rounds.map(x => `- ${s.periods[x.round - 1]?.label ?? `Period ${x.round}`}: ${trajectoryLine(s.frame!, x)}`));
+  // The thread back to the words: what the actors quoted to ground their first moves, then every source used.
+  const names = new Map(s.actors.map(a => [a.id, a.name]));
   const way = (c: Citation) => (c.favors ? `for ${c.favors}` : c.push === 'neutral' || !c.push ? 'context' : directionWord(s.frame, c.push, ''));
-  if (last.length) lines.push('', '## What the panel quoted', ...last.flatMap(p => p.cites!.map(c => `- **${names.get(p.agent) ?? p.agent}** (${roles.get(p.agent) ?? 'panelist'}, round ${p.round}): “${c.quote}” [${c.source}], ${way(c)}${c.why ? `: ${c.why}` : ''}${c.exact ? '' : ' (paraphrase)'}`)));
+  const quoted = s.moves.filter(m => m.cites?.length && m.world === s.worlds[0]);
+  if (quoted.length) lines.push('', '## What the actors quoted', ...quoted.flatMap(m => m.cites!.map(c => `- **${names.get(m.actor) ?? m.actor}** (period ${m.period}): “${c.quote}” [${c.source}], ${way(c)}${c.why ? `: ${c.why}` : ''}${c.exact ? '' : ' (paraphrase)'}`)));
   const used = new Set(s.links.filter(l => l.kind === 'cite' || l.kind === 'evidence').flatMap(l => [l.from, l.to]).filter(k => k.startsWith('c:')).map(k => k.slice(2)));
   const sources = s.context.filter(c => used.has(c.id));
   if (sources.length) lines.push('', '## Sources', ...sources.map(c => `- [${c.id}] ${c.kind === 'data' && c.id !== 'data' ? `“${c.title}”` : c.url ? `[${c.title.replace(/[[\]]/g, '')}](${c.url})` : c.title} (${[c.source, c.place, c.published.slice(0, 10)].filter(Boolean).join(', ')})`));
-  lines.push('', `Run on ${s.provider} / ${s.model}, ${s.usage.calls} model calls. Watch: ${url}`, '', '_OSIRIS OI: swarm forecasting after MiroFish, rebuilt natively. A simulation, not a guarantee._');
+  lines.push('', `Run on ${s.provider} / ${s.model}, ${s.usage.calls} model calls. Watch: ${url}`, '', '_OSIRIS OI: a prediction engine after MiroFish, rebuilt natively: the actors simulated in parallel worlds. A simulation, not a guarantee._');
   return lines.filter(l => l !== '').join('\n').replace(/\n(#+ )/g, '\n\n$1');
 }

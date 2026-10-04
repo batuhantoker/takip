@@ -2,14 +2,14 @@
 /**
  * OSIRIS OI: choosing an engine (provider, key, model) and asking a question.
  */
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, Check, ChevronDown, Database, Eye, EyeOff, FileText, KeyRound, Loader2, Upload, X } from 'lucide-react';
 import { PROVIDERS, providerInfo, type ProviderId } from '@/lib/oi/providers';
 import { DEPTHS, PANEL_SEED_MAX, SEED_MAX, estimateCalls, seedCost, type SeedScope } from '@/lib/oi/depths';
 import { checkKey, forgetKey, loadKey, saveEngine, saveKey, type Engine } from '@/lib/oi/client';
 import type { Depth, Frame } from '@/lib/oi/types';
-import { FIELD, KIND_SHORT, LABEL, T, gold, shortName } from './theme';
+import { ANCHOR, FIELD, KIND_SHORT, LABEL, T, gold, shortName } from './theme';
 import { OiMark, Overline, SectionTitle, Segmented, Switch, TextButton } from './atoms';
 import { ModelPicker } from './ModelPicker';
 
@@ -138,7 +138,7 @@ export function EngineSheet({ engine, setEngine, keyValue, setKey, onDone }: {
 
       {info.needsKey && (
         <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
-          Your key stays in this browser{engine.remember ? '' : ' tab'} and reaches OSIRIS only inside your requests, which pass it to {info.name} for your run. It is never stored on the server or logged. A forecast makes about 15 to 70 model calls, billed to your {info.name} account.
+          Your key stays in this browser{engine.remember ? '' : ' tab'} and reaches OSIRIS only inside your requests, which pass it to {info.name} for your run. It is never stored on the server or logged. A prediction makes about 30 to 130 model calls, by depth, billed to your {info.name} account.
         </p>
       )}
     </section>
@@ -151,21 +151,21 @@ const EXAMPLES: { kind: Frame['kind']; text: string }[] = [
   { kind: 'number', text: 'Where will Brent crude settle on 31 December 2026, in USD a barrel?' },
 ];
 
-/** The forecast's four stages, as the panel will show them working. */
-const STAGES = ['Research', 'World', 'Panel', 'Debate', 'Report'] as const;
+/** The prediction's five stages, as the panel will show them working. */
+const STAGES = ['Research', 'World', 'Cast', 'Simulate', 'Report'] as const;
 
 /* ───────────── Your data ───────────── */
 
 interface DataFile { id: number; name: string; text: string }
 
-/** Text a forecast can read. A PDF or Word file has to be saved as text first. */
+/** Text a prediction can read. A PDF or Word file has to be saved as text first. */
 const TEXT_TYPES = ['txt', 'md', 'markdown', 'csv', 'tsv', 'json', 'jsonl', 'log', 'xml', 'html', 'htm', 'yaml', 'yml'];
 const MAX_FILES = 8;
 const MAX_FILE_BYTES = 2_000_000;
 
 const fmtCount = (n: number) => (n < 1_000 ? `${n}` : n < 1_000_000 ? `${(n / 1_000).toFixed(n < 10_000 ? 1 : 0)}k` : `${(n / 1_000_000).toFixed(1)}M`);
 
-/** What a forecast reads: each file under its name, then anything pasted. */
+/** What a prediction reads: each file under its name, then anything pasted. */
 function assemble(files: DataFile[], paste: string): string {
   const parts = files.map(f => `### ${f.name}\n${f.text}`);
   if (paste.trim()) parts.push(files.length ? `### Notes\n${paste.trim()}` : paste.trim());
@@ -261,13 +261,13 @@ function YourData({ files, setFiles, paste, setPaste, scope, setScope, depth, pr
           <Overline>Who reads it</Overline>
         </div>
         <Segmented id="seed-scope" size="sm" value={scope} onChange={setScope} options={[
-          { value: 'brief', label: 'World model', title: 'Read once, built into the brief every forecaster sees' },
-          { value: 'panel', label: 'Whole panel', title: 'Every forecaster and the report read it directly too' },
+          { value: 'brief', label: 'World model', title: 'Read once, built into the brief every actor plays from' },
+          { value: 'panel', label: 'Every actor', title: 'Every actor’s move and the report read it directly too' },
         ]} />
         <p className="text-[10px] leading-snug text-[var(--text-muted)]">
           {scope === 'brief'
-            ? 'The world model reads all of it once and builds it into the brief every forecaster sees.'
-            : `As well, every forecaster in every round and the report agent read the first ${PANEL_SEED_MAX.toLocaleString()} characters directly, and can cite it.`}
+            ? 'The world model reads all of it once and builds it into the brief every actor plays from.'
+            : `As well, every actor in every period of every world, and the report agent, read the first ${PANEL_SEED_MAX.toLocaleString()} characters directly, and can quote it.`}
         </p>
       </div>
 
@@ -279,7 +279,7 @@ function YourData({ files, setFiles, paste, setPaste, scope, setScope, depth, pr
             : 'Your data is billed to your own key, as input tokens: about one per four characters.'}
         </span>
       </div>
-      {chars > SEED_MAX && <p className="text-[10px] leading-snug" style={{ color: T.orange }}>That is {fmtCount(chars)} characters; a forecast reads the first {SEED_MAX.toLocaleString()}.</p>}
+      {chars > SEED_MAX && <p className="text-[10px] leading-snug" style={{ color: T.orange }}>That is {fmtCount(chars)} characters; a prediction reads the first {SEED_MAX.toLocaleString()}.</p>}
     </div>
   );
 }
@@ -293,6 +293,16 @@ export function AskForm({ ready, providerName, onRun, onKey }: { ready: boolean;
   const [depth, setDepth] = useState<Depth>('standard');
   const [useFeeds, setUseFeeds] = useState(true);
   const [starting, setStarting] = useState(false);
+  // What the world is betting on: questions with the crowd's price on them, to run OI against.
+  const [trending, setTrending] = useState<{ question: string; probability: number; event: string; url: string }[]>([]);
+  useEffect(() => {
+    const ctl = new AbortController();
+    fetch('/api/oi/trending', { signal: ctl.signal })
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => { if (Array.isArray(j?.items)) setTrending(j.items); })
+      .catch(() => { /* suggestions are a nicety: none is fine */ });
+    return () => ctl.abort();
+  }, []);
   const valid = question.trim().length >= 8;
   const seed = assemble(files, paste);
   const dataCost = seedCost(seed.length, depth, scope);
@@ -304,17 +314,17 @@ export function AskForm({ ready, providerName, onRun, onKey }: { ready: boolean;
     if (ok) { setQuestion(''); setFiles([]); setPaste(''); }
   };
   const d = DEPTHS[depth];
-  // The stages that read the asker's data: the world model, and with the whole panel reading it, the debate and the report.
+  // The stages that read the asker's data: the world model, and with every actor reading it, the simulation and the report.
   const reads = (i: number) => seed.length > 0 && (i === 1 || (scope === 'panel' && i >= 3));
   return (
     <section className="px-4 pt-4 pb-4 flex flex-col gap-4">
       <div>
         <Overline color={T.goldLight}>OI Forecast</Overline>
-        <h3 className="mt-1 text-[13px] font-semibold tracking-wide text-[var(--text-heading)]">Ask the panel</h3>
+        <h3 className="mt-1 text-[13px] font-semibold tracking-wide text-[var(--text-heading)]">Predict what happens</h3>
         <p className="mt-1 text-[11px] leading-relaxed text-[var(--text-secondary)]">
-          A simulated panel of forecasters debates your question in rounds, grounded in live OSIRIS intelligence and any data you add, while the analysis draws itself on the globe.
+          OI casts the actors who decide your question and lets them play it out over simulated time, in several parallel worlds, grounded in live research, OSIRIS intelligence and any data you add. It draws on the globe as it runs.
         </p>
-        <ol className="mt-2.5 grid grid-cols-[1.25fr_1fr_1fr_1fr_1fr] gap-1" aria-label="How a forecast runs">
+        <ol className="mt-2.5 grid grid-cols-[1.25fr_1fr_1fr_1.2fr_1fr] gap-1" aria-label="How a prediction runs">
           {STAGES.map((label, i) => (
             <li key={label} className="relative flex items-center gap-1.5 h-7 px-1.5 rounded-md border border-[var(--border-secondary)] bg-white/[0.015]" title={reads(i) ? `${label} · reads your data` : label}>
               <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8.5px] font-mono flex-shrink-0" style={{ color: T.goldLight, background: gold(0.12) }}>{i + 1}</span>
@@ -332,6 +342,22 @@ export function AskForm({ ready, providerName, onRun, onKey }: { ready: boolean;
           placeholder="What do you want to know?" aria-label="Your question"
           className={`${FIELD} rounded-lg resize-none px-3 py-2.5 text-[12.5px] leading-relaxed`}
         />
+        {!question && trending.length > 0 && (
+          <div>
+            <span className={`block mb-1 ${LABEL} !text-[8px] text-[var(--text-muted)]`}>What the world is betting on</span>
+            <div className="flex flex-col divide-y divide-[var(--border-secondary)]">
+              {trending.slice(0, 4).map(x => (
+                <button key={x.url + x.question} onClick={() => setQuestion(x.question)} title={`${x.event}: Polymarket prices YES at ${Math.round(x.probability * 1000) / 10}%`}
+                  className="group flex items-center gap-2.5 py-1.5 text-left">
+                  <span className="w-[58px] flex-shrink-0 text-[10px] font-mono tabular-nums" style={{ color: ANCHOR.market }}>{Math.round(x.probability * 100)}%</span>
+                  <span className="flex-1 text-[11px] leading-snug truncate text-[var(--text-secondary)] transition-colors group-hover:text-[var(--text-primary)]">{x.question}</span>
+                  <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--gold-primary)]" />
+                </button>
+              ))}
+            </div>
+            <span className={`block mt-2 mb-1 ${LABEL} !text-[8px] text-[var(--text-muted)]`}>Or try</span>
+          </div>
+        )}
         {!question && (
           <div className="flex flex-col divide-y divide-[var(--border-secondary)]">
             {EXAMPLES.map(x => (
@@ -370,7 +396,7 @@ export function AskForm({ ready, providerName, onRun, onKey }: { ready: boolean;
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <Overline>Depth</Overline>
-          <span className="text-[9px] font-mono tracking-[0.1em] text-[var(--text-muted)]">{d.agents} FORECASTERS · {d.rounds} ROUNDS · ~{estimateCalls(depth, useFeeds)} CALLS</span>
+          <span className="text-[9px] font-mono tracking-[0.08em] text-[var(--text-muted)]" title={`${d.actors} actors play ${d.periods} periods of simulated time in ${d.worlds} parallel worlds`}>{d.actors} ACTORS · {d.periods} PERIODS · {d.worlds} WORLDS · ~{estimateCalls(depth, useFeeds)} CALLS</span>
         </div>
         <Segmented id="depth" value={depth} onChange={setDepth} options={(Object.keys(DEPTHS) as Depth[]).map(k => ({ value: k, label: DEPTHS[k].label }))} />
       </div>
@@ -378,7 +404,7 @@ export function AskForm({ ready, providerName, onRun, onKey }: { ready: boolean;
       <div className="flex items-center gap-3 rounded-md border border-[var(--border-secondary)] bg-white/[0.015] px-3 py-2">
         <div className="flex-1 min-w-0">
           <p className="text-[11px] text-[var(--text-primary)]">Research and live intelligence</p>
-          <p className="text-[10px] leading-snug text-[var(--text-muted)]">Search the news and background for the question, with links, plus OSIRIS news, quakes and markets</p>
+          <p className="text-[10px] leading-snug text-[var(--text-muted)]">Reporting from publishers’ feeds with links, market prices, prediction markets and background, plus the OSIRIS feeds where they bear on it</p>
         </div>
         <Switch on={useFeeds} onChange={setUseFeeds} label="Research the question and read the live OSIRIS feeds" />
       </div>
@@ -386,14 +412,14 @@ export function AskForm({ ready, providerName, onRun, onKey }: { ready: boolean;
       {ready ? (
         <button onClick={run} disabled={!valid || starting} className="btn-tactical w-full flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none" style={{ color: 'var(--gold-light)' }}>
           {starting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <OiMark size={14} />}
-          Run forecast
+          Run prediction
         </button>
       ) : (
         <button onClick={onKey} className="btn-tactical btn-tactical--cyan w-full">Add your {shortName(providerName)} key to start</button>
       )}
 
       <p className="text-[10px] leading-relaxed text-[var(--text-muted)]">
-        Answers take the shape of the question: a probability, a share for each outcome, or an estimate with a range. Method after{' '}
+        You get the story with the figure: the predicted path, date by date, what each actor does and how each world ended. The figure takes the shape of the question: a probability, a share for each outcome, or an estimate with a range. Method after{' '}
         <a href="https://github.com/666ghj/MiroFish" target="_blank" rel="noopener noreferrer" className="underline decoration-dotted underline-offset-2 hover:text-[var(--gold-light)]">MiroFish</a>; also on the{' '}
         <a href="/docs#oi" className="underline decoration-dotted underline-offset-2 hover:text-[var(--gold-light)]">API and MCP</a>. A simulation, not a guarantee.
       </p>
