@@ -37,6 +37,23 @@ interface Row {
   muted?: boolean;
 }
 
+/**
+ * Each anchor's mark, the shape it has on the prediction's own bar: a tick for
+ * the baseline, a diamond for a market, a dot for the simulation, a bar for
+ * the prediction. Shape tells them apart where the gold tones are close.
+ */
+function Mark({ row }: { row: Row }) {
+  const kind = row.key === 'base' ? 'tick' : row.key === 'sim' ? 'dot' : row.key.startsWith('pred') ? 'bar' : 'diamond';
+  return (
+    <span className="w-2.5 h-2.5 flex items-center justify-center flex-shrink-0 self-center" aria-hidden>
+      {kind === 'tick' && <span className="w-px h-2.5" style={{ background: row.color }} />}
+      {kind === 'dot' && <span className="w-[7px] h-[7px] rounded-full" style={{ background: row.color }} />}
+      {kind === 'bar' && <span className="w-[2px] h-2.5 rounded-full" style={{ background: row.color, boxShadow: `0 0 6px ${tint(row.color, 80)}` }} />}
+      {kind === 'diamond' && <span className="w-[6px] h-[6px] rotate-45" style={{ background: row.color }} />}
+    </span>
+  );
+}
+
 const traded = (v: number, platform: string) => (platform === 'Polymarket' ? `$${formatAmount(v)} traded` : `${formatAmount(v)} mana traded`);
 
 /** The markets found: the one on this same question first, the related after. */
@@ -100,7 +117,7 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
           <TypeIcon k="c:q" subtype="series" className="w-3.5 h-3.5 flex-shrink-0" style={{ color: ANCHOR.baseline }} />
           <span className="text-[11px] font-semibold whitespace-nowrap text-[var(--text-heading)]">{q.symbol}</span>
           <span className="text-[11px] font-mono tabular-nums whitespace-nowrap text-[var(--text-primary)]">{priceText(q.price, q.currency)}</span>
-          <span className="text-[9.5px] font-mono text-[var(--text-muted)] truncate">on {q.asOf} · swings {Math.round(q.vol * 100)}% a year{f.measure?.threshold !== undefined ? ` · level ${priceText(f.measure.threshold, q.currency)} (${f.measure.threshold >= q.price ? '+' : '−'}${Math.round(Math.abs(f.measure.threshold / q.price - 1) * 100)}%)` : ''}</span>
+          <span className="text-[10px] font-mono text-[var(--text-muted)] truncate">on {q.asOf} · swings {Math.round(q.vol * 100)}% a year{f.measure?.threshold !== undefined ? ` · level ${priceText(f.measure.threshold, q.currency)} (${f.measure.threshold >= q.price ? '+' : '−'}${Math.round(Math.abs(f.measure.threshold / q.price - 1) * 100)}%)` : ''}</span>
         </button>
       )}
       <div className="flex flex-col gap-2">
@@ -111,9 +128,9 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
               className={`group text-left rounded-md -mx-1.5 px-1.5 py-1 transition-colors ${row.select ? 'hover:bg-[var(--hover-accent)]' : 'cursor-default'} ${on ? 'bg-[var(--hover-accent)]' : ''}`}
               style={{ opacity: row.muted ? 0.72 : 1 }}>
               <span className="flex items-baseline gap-2">
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 self-center" style={{ background: row.color }} />
-                <span className={`${row.strong ? 'text-[11.5px] font-semibold text-[var(--text-heading)]' : 'text-[11px] text-[var(--text-primary)]'} whitespace-nowrap`}>{row.label}</span>
-                <span className="flex-1 min-w-0 truncate text-[9.5px] text-[var(--text-muted)]">{row.detail}</span>
+                <Mark row={row} />
+                <span className={`${row.strong ? 'text-[12px] font-semibold text-[var(--text-heading)]' : 'text-[11.5px] text-[var(--text-primary)]'} whitespace-nowrap`}>{row.label}</span>
+                <span className="flex-1 min-w-0 truncate text-[10.5px] text-[var(--text-muted)]">{row.detail}</span>
                 <span className={`font-mono tabular-nums whitespace-nowrap ${row.strong ? 'text-[13px]' : 'text-[11px]'}`} style={{ color: row.strong ? T.goldLight : T.text }}>
                   {row.value !== undefined ? pct(row.value) : row.range ? say(row.range[1]) : ''}
                 </span>
@@ -133,7 +150,7 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
                 {row.range && q && <span className="absolute inset-y-0 w-px bg-white/60" style={{ left: `${at(q.price)}%` }} title={`Today ${say(q.price)}`} />}
               </span>
               {row.range && (
-                <span className="mt-0.5 flex justify-between text-[8.5px] font-mono tabular-nums text-[var(--text-muted)]">
+                <span className="mt-0.5 flex justify-between text-[9.5px] font-mono tabular-nums text-[var(--text-muted)]">
                   <span>{say(row.range[0])}</span><span>{say(row.range[2])}</span>
                 </span>
               )}
@@ -141,30 +158,22 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
           );
         })}
       </div>
-      {f.kind !== 'number' && s.worlds.length > 0 && s.points.length > 0 && (
-        <p className={`mt-2 ${LABEL} !text-[8px] !tracking-[0.12em] text-[var(--text-muted)]`}>
-          Worlds: {s.worlds.map(w => {
-            const p = [...s.points].reverse().find(x => x.world === w);
-            return `${w} ${p?.resolved ? p.resolved.toUpperCase() : p ? pct(p.probability) : '—'}`;
-          }).join(' · ')}
-        </p>
-      )}
       {/* The figures above, then what they come from: the price world by world, the whole ladder, the baseline's record. */}
       {q?.fan?.length ? (
         <div className="mt-4">
-          <span className={`block mb-1.5 ${LABEL} !text-[8px] text-[var(--text-muted)]`}>The price, world by world</span>
+          <span className={`block mb-2 ${LABEL} text-[var(--oi-label)]`}>The price, world by world</span>
           <PriceFan s={s} />
         </div>
       ) : null}
       {q?.curve?.length && s.context.some(c => c.odds?.ladder) ? (
         <div className="mt-4">
-          <span className={`block mb-1.5 ${LABEL} !text-[8px] text-[var(--text-muted)]`}>Every level, the model and the crowd</span>
+          <span className={`block mb-2 ${LABEL} text-[var(--oi-label)]`}>Every level, the model and the crowd</span>
           <LadderChart s={s} />
         </div>
       ) : null}
       {q?.backtest ? (
         <div className="mt-4">
-          <span className={`block mb-1.5 ${LABEL} !text-[8px] text-[var(--text-muted)]`}>Is the baseline any good? Its record on {q.symbol}&apos;s past</span>
+          <span className={`block mb-2 ${LABEL} text-[var(--oi-label)]`}>Is the baseline any good? Its record on {q.symbol}&apos;s past</span>
           <TrackRecord s={s} />
         </div>
       ) : null}
