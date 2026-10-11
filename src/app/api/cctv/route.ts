@@ -38,6 +38,7 @@ import { fetchOregonCameras } from './oregon';
 import { fetchMichiganCameras } from './michigan';
 import { fetchIndianaCameras } from './indiana';
 import { fetchKentuckyCameras } from './kentucky';
+import { STATE_FEEDS } from './us-511';
 import { fetchNevadaCameras } from './nevada';
 import { fetchLouisianaCameras } from './louisiana';
 import { fetchFloridaCameras } from './florida';
@@ -543,6 +544,12 @@ const RAW_REGION_FETCHERS: Record<string, RegionFetcher> = {
   'public-webcams-rest': fetchRestPublicWebcams,
 };
 
+for (const feed of STATE_FEEDS) {
+  // A registry entry must not silently replace a hand-written region.
+  if (feed.region in RAW_REGION_FETCHERS) throw new Error(`cctv region '${feed.region}' is registered twice`);
+  RAW_REGION_FETCHERS[feed.region] = feed.fetch;
+}
+
 /**
  * Every region is served from the shared source cache.
  *
@@ -840,6 +847,9 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (lat > 30.3 && lat < 35.1 && lng > -85.7 && lng < -80.8) regions.push('georgia');
   if (lat > 33.8 && lat < 36.6 && lng > -84.4 && lng < -75.4) regions.push('northcarolina');
   if (lat > 31.3 && lat < 37.1 && lng > -115.0 && lng < -109.0) regions.push('arizona');
+  for (const { region, bounds: b } of STATE_FEEDS) {
+    if (lat > b.minLat && lat < b.maxLat && lng > b.minLng && lng < b.maxLng) regions.push(region);
+  }
   // Canada
   if (lat > 42 && lat < 70 && lng > -141 && lng < -52) regions.push('canada');
   if (lat > 53.3 && lat < 53.8 && lng > -114.0 && lng < -113.2) regions.push('edmonton');

@@ -76,6 +76,12 @@ describe('cameraCity', () => {
     expect(cameraCity({ ...sample, county: null }, 'Florida')).toBe('Florida');
     expect(cameraCity({ ...sample, city: 'N/A', county: 'N/A' }, 'Florida')).toBe('Florida');
   });
+
+  it('uses the row’s own state on a multi-state deployment', () => {
+    // Verbatim New England 511 row: no city or county, only the state.
+    expect(cameraCity({ id: 622, location: 'I-189 SOUTH BURLINGTON', city: null, county: null, state: 'Vermont' }, 'New England'))
+      .toBe('Vermont');
+  });
 });
 
 describe('mapIbi511Record', () => {
@@ -142,6 +148,18 @@ describe('mapIbi511Record', () => {
     const cam = mapIbi511Record({ ...sample, images: [{ ...sample.images![0], videoDisabled: true }] }, FDOT);
     expect(cam?.stream_url).toBeUndefined();
     expect(cam?.feed_url).toBeDefined();
+  });
+
+  it('takes video only from the hosts a deployment lists', () => {
+    const openRow = { ...sample, images: [{ ...sample.images![0], isVideoAuthRequired: false }] };
+    // PennDOT: every edge answers 401, marked or not.
+    const pa = mapIbi511Record(openRow, { ...FDOT, videoHosts: [] });
+    expect(pa?.stream_url).toBeUndefined();
+    expect(pa?.feed_url).toBe('https://fl511.com/map/Cctv/1');
+
+    expect(mapIbi511Record(openRow, { ...FDOT, videoHosts: ['dis-se18.divas.cloud'] })?.stream_url)
+      .toBe('https://dis-se18.divas.cloud:8200/chan-1_h/index.m3u8');
+    expect(mapIbi511Record(openRow, { ...FDOT, videoHosts: ['cctv1.dot.wi.gov'] })?.stream_url).toBeUndefined();
   });
 
   it('prefixes ids per agency so two states cannot collide', () => {

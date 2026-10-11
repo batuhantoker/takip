@@ -51,6 +51,8 @@ export interface Ibi511Record {
   location?: string | null;
   city?: string | null;
   county?: string | null;
+  /** Set per row by multi-state deployments (New England 511: Maine, New Hampshire, Vermont). */
+  state?: string | null;
   latLng?: { geography?: { wellKnownText?: string | null } | null } | null;
   images?: Array<{
     description?: string | null;
@@ -76,6 +78,11 @@ export interface Ibi511Source {
   state: string;
   /** Drops mis-geocoded rows — every one of these feeds has a few. */
   bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number };
+  /**
+   * Hosts whose playlists actually open, when not all of them do; `[]` keeps every camera on its snapshot.
+   * PennDOT's edges answer 401 even to rows not marked auth-required.
+   */
+  videoHosts?: string[];
 }
 
 const PAGE_SIZE = 100; // the server caps a response at 100 rows whatever we ask for
@@ -137,13 +144,21 @@ export function cameraCity(rec: Ibi511Record, state: string): string {
   if (city && city !== 'N/A') return city;
   const county = rec.county?.trim();
   if (county && county !== 'N/A') return `${county} County`;
+  const rowState = rec.state?.trim();
+  if (rowState && rowState !== 'N/A') return rowState;
   return state;
 }
 
-/** The video address, but only when it is actually an HLS playlist. */
-function hlsUrl(url?: string | null): string | undefined {
+/** The video address, but only when it is actually an HLS playlist on a host that serves one. */
+function hlsUrl(url: string | null | undefined, videoHosts: string[] | undefined): string | undefined {
   const trimmed = url?.trim();
-  return trimmed && /\.m3u8(\?|$)/i.test(trimmed) ? trimmed : undefined;
+  if (!trimmed || !/\.m3u8(\?|$)/i.test(trimmed)) return undefined;
+  if (!videoHosts) return trimmed;
+  try {
+    return videoHosts.includes(new URL(trimmed).hostname) ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** Map a raw row to a camera, or null if it should be skipped. */
@@ -169,7 +184,7 @@ export function mapIbi511Record(rec: Ibi511Record, cfg: Ibi511Source): CctvCamer
      serve fine, which is what those cameras show instead. Louisiana and
      Arizona set it on none. */
   const gated = img.isVideoAuthRequired === true;
-  const video = img.videoDisabled || gated ? undefined : hlsUrl(img.videoUrl);
+  const video = img.videoDisabled || gated ? undefined : hlsUrl(img.videoUrl, cfg.videoHosts);
   if (!snapshot && !video) return null;
 
   return {
@@ -204,9 +219,11 @@ export async function loadIbi511Cameras(cfg: Ibi511Source): Promise<CctvCamera[]
   // The first page also tells us how many there are in total.
   const first = await fetchPage(cfg, 0);
   const seen = new Map<number, CctvCamera>();
+  const received = new Set<number>();
 
   const ingest = (rows: Ibi511Record[]) => {
     for (const rec of rows) {
+      if (typeof rec?.id === 'number') received.add(rec.id);
       const cam = mapIbi511Record(rec, cfg);
       if (cam) seen.set(rec.id, cam);
     }
@@ -241,9 +258,10 @@ export async function loadIbi511Cameras(cfg: Ibi511Source): Promise<CctvCamera[]
      and served that for the next half hour. Throwing hands the decision to
      sourceCache, which keeps the last good index instead — none of these
      feeds drops rows of its own accord, so anything materially short of
-     `recordsTotal` is pages we did not get. */
-  if (first.total > 0 && cams.length < first.total * 0.95) {
-    throw new Error(`${cfg.source} short read: ${cams.length} of ${first.total}`);
+     `recordsTotal` is pages we did not get. Rows are counted as received,
+     not kept: PennDOT blocks 207 of its 1,565 and Wisconsin parks 34 at 0,0. */
+  if (first.total > 0 && received.size < first.total * 0.95) {
+    throw new Error(`${cfg.source} short read: ${received.size} of ${first.total}`);
   }
 
   console.log(`[OSIRIS] ${cfg.source} cameras: ${cams.length} of ${first.total}`);
