@@ -19,6 +19,8 @@ import CctvPreviews, { type PreviewCamera } from '@/components/CctvPreviews';
 import MapControls from '@/components/MapControls';
 import LiveNewsPreviews, { type PreviewFeed } from '@/components/LiveNewsPreviews';
 import { attachTerrain, type TerrainStatus } from '@/lib/map-terrain';
+import { flightPathFeatures, routeFor } from '@/lib/flight-path';
+import type { AircraftDetail, ScheduledRoute } from '@/components/FlightWatchPanel';
 
 import { applyMapProjection } from '@/lib/map-projection';
 
@@ -126,6 +128,14 @@ function computeSolarTerminator(): [number, number][] {
 }
 
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] };
+
+/** What /api/flight-route adds to the schedule when given a position. */
+type ScheduleReply = ScheduledRoute & {
+  progress?: number;
+  totalDistanceKm?: number;
+  departureTime?: string | null;
+  arrivalTime?: string | null;
+};
 
 /** A colour, or an expression for one, as addLayer takes it. */
 type LayerColor = NonNullable<Extract<Parameters<maplibregl.Map['addLayer']>[0], { type: 'circle' }>['paint']>['circle-color'];
@@ -818,6 +828,20 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'text-offset': [0, 2], 'text-max-width': 14, 'text-allow-overlap': false,
       }, paint: { 'text-color': '#D32F2F', 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9 }});
 
+      // Selected aircraft's route, under the aircraft so the icon sits on its line.
+      map.addSource('selected-flight', { type: 'geojson', data: EMPTY_FC });
+      map.addLayer({ id: 'sel-flight-flown', type: 'line', source: 'selected-flight', filter: ['==', ['get', 'kind'], 'flown'],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#7FE9FF', 'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1.5, 6, 2.5, 10, 3.5], 'line-opacity': 0.9 } });
+      map.addLayer({ id: 'sel-flight-ahead', type: 'line', source: 'selected-flight', filter: ['==', ['get', 'kind'], 'ahead'],
+        layout: { 'line-cap': 'round' },
+        paint: { 'line-color': '#7FE9FF', 'line-width': ['interpolate', ['linear'], ['zoom'], 1, 1, 6, 1.8, 10, 2.5], 'line-opacity': 0.6, 'line-dasharray': [2, 2] } });
+      map.addLayer({ id: 'sel-flight-airport', type: 'circle', source: 'selected-flight', filter: ['==', ['get', 'kind'], 'airport'],
+        paint: { 'circle-radius': 5, 'circle-color': '#FFFFFF', 'circle-stroke-width': 2, 'circle-stroke-color': '#FFB300' } });
+      map.addLayer({ id: 'sel-flight-airport-label', type: 'symbol', source: 'selected-flight', filter: ['==', ['get', 'kind'], 'airport'],
+        layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-font': ['Open Sans Bold'], 'text-offset': [0, 1.6], 'text-allow-overlap': true },
+        paint: { 'text-color': '#FFB300', 'text-halo-color': '#0C0E1A', 'text-halo-width': 1.5 } });
+
       // Flight layers (WebGL symbol — GPU rendered, handles 50K+ smooth)
       const flightLayers = [
         { id: 'fl-commercial', src: 'flights', icon: 'plane-cyan' },
@@ -831,8 +855,6 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
           'icon-rotate': ['get','heading'], 'icon-rotation-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true,
         }, paint: { 'icon-opacity': 0.85 }});
       });
-
-      // Route layers are added later (after setMapReady) so they render on top of everything.
 
       // Balloons (moving entities)
       map.addLayer({ id: 'balloon-dots', type: 'circle', source: 'balloons', paint: {
@@ -1000,6 +1022,17 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       } catch { return '—'; }
     };
 
+    // A token for the aircraft whose route is drawn, so a slow reply for one
+    // already deselected cannot draw over the current selection.
+    let flightSel = 0;
+    const setFlightPath = (fc: GeoJSON.FeatureCollection) =>
+      (map.getSource('selected-flight') as maplibregl.GeoJSONSource | undefined)?.setData(fc as never);
+    const muted = (text: string) => `<span style="color:#5C5A54;font-size:9px;letter-spacing:0.1em;">${text}</span>`;
+    const airportCell = (label: string, ap: { iata?: string; icao: string; city?: string } | null, right = false) =>
+      `<div${right ? ' style="text-align:right;"' : ''}><span style="color:#5C5A54;font-size:8px;">${label}</span><br/>` +
+      `<span style="color:#E8E6E0;font-size:13px;font-weight:700;">${ap ? htmlEsc(ap.iata || ap.icao) : '····'}</span> ` +
+      `<span style="color:#5C5A54;font-size:9px;">${htmlEsc(ap?.city || '')}</span></div>`;
+
     // ── Flights (with FlightAware + ADS-B Exchange links + ROUTE VISUALIZATION) ──
     ['fl-commercial','fl-private','fl-jets','fl-military'].forEach(layer => {
       map.on('click', layer, e => {
@@ -1007,6 +1040,10 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         const p = e.features[0].properties as any;
         const coords = (e.features[0].geometry as any).coordinates;
         const cs = (p.callsign||'').trim();
+        const icao = idSafe(p.icao24 || '');
+        // The feed writes these fillers when the transponder sent nothing; with
+        // an icao24 the lookup below is about to fill them, so show it pending.
+        const known = (v: unknown, filler: string) => (v && v !== filler ? String(v) : icao ? '…' : '—');
 
         // Show initial popup immediately (without route data)
         const routeLoadingId = `route-info-${Date.now()}`;
@@ -1016,19 +1053,17 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
             <span style="color:#5C5A54;font-size:10px;">${htmlEsc(p.icao24||'')}</span>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px;">
-            <div><span style="color:#5C5A54;font-size:9px;">MODEL</span><br/><span style="color:#B0BEC5;">${htmlEsc(p.model||'—')}</span></div>
+            <div><span style="color:#5C5A54;font-size:9px;">MODEL</span><br/><span id="ac-model-${icao}" style="color:#B0BEC5;">${htmlEsc(known(p.model, 'Unknown'))}</span></div>
             <div><span style="color:#5C5A54;font-size:9px;">ALT</span><br/><span style="color:#B0BEC5;">${p.alt?Math.round(p.alt)+'m':'—'}</span></div>
             <div><span style="color:#5C5A54;font-size:9px;">SPEED</span><br/><span style="color:#B0BEC5;">${p.speed_knots||'—'}kt</span></div>
             <div><span style="color:#5C5A54;font-size:9px;">HDG</span><br/><span style="color:#B0BEC5;">${Math.round(p.heading||0)}°</span></div>
-            <div><span style="color:#5C5A54;font-size:9px;">REG</span><br/><span style="color:#B0BEC5;">${htmlEsc(p.registration||'—')}</span></div>
+            <div><span style="color:#5C5A54;font-size:9px;">REG</span><br/><span id="ac-reg-${icao}" style="color:#B0BEC5;">${htmlEsc(known(p.registration, 'N/A'))}</span></div>
             <div><span style="color:#5C5A54;font-size:9px;">POS</span><br/><span style="color:#B0BEC5;">${coords[1].toFixed(2)},${coords[0].toFixed(2)}</span></div>
           </div>
-          <div id="ac-${idSafe(p.icao24||'')}" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">
-            <span style="color:#5C5A54;font-size:9px;letter-spacing:0.1em;">IDENTIFYING AIRFRAME…</span>
-          </div>
-          <button onclick="window.osirisWatchFlight && window.osirisWatchFlight({ icao24: '${idSafe(p.icao24||'')}', callsign: '${idSafe(cs)}' })" style="width:100%;margin-top:8px;padding:6px 12px;background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.35);color:#7FE9FF;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:bold;letter-spacing:0.1em;border-radius:4px;cursor:pointer;">+ WATCH THIS AIRCRAFT</button>
+          ${icao ? `<div id="ac-op-${icao}" style="margin-top:6px;color:#78909C;font-size:9px;"></div>` : ''}
+          <button onclick="window.osirisWatchFlight && window.osirisWatchFlight({ icao24: '${icao}', callsign: '${idSafe(cs)}' })" style="width:100%;margin-top:8px;padding:6px 12px;background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.35);color:#7FE9FF;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:bold;letter-spacing:0.1em;border-radius:4px;cursor:pointer;">+ WATCH THIS AIRCRAFT</button>
           <div id="${routeLoadingId}" style="margin-top:8px;padding:6px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
-            <span style="color:#5C5A54;font-size:9px;letter-spacing:0.1em;">RESOLVING ROUTE…</span>
+            ${muted('RESOLVING ROUTE…')}
           </div>
           <div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;">
             <a href="https://www.flightaware.com/live/flight/${encodeURIComponent(cs)}" target="_blank" style="${linkStyle}color:#78909C;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);">FLIGHTAWARE</a>
@@ -1037,29 +1072,49 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
           </div>
         </div>`);
 
-        // The transponder only reports a type code (often nothing at all), so
-        // resolve the real manufacturer/model and registration out of band.
-        if (p.icao24) {
-          fetch(`/api/aircraft?icao24=${encodeURIComponent(p.icao24)}`)
-            .then(r => (r.ok ? r.json() : null))
-            .then((d) => {
-              const el = document.getElementById(`ac-${p.icao24}`);
-              if (!el || !d || d.error) {
-                if (el) el.innerHTML = '<span style="color:#5C5A54;font-size:9px;">AIRFRAME NOT IN REGISTRY</span>';
-                return;
-              }
-              const bits = [d.registration, d.typeCode, d.operator].filter(Boolean)
-                .map((x: string) => htmlEsc(String(x))).join(' · ');
-              el.innerHTML =
-                `<div style="color:#E8E6E0;font-size:11px;line-height:1.35;">${htmlEsc(d.model || 'Unidentified type')}</div>` +
-                (bits ? `<div style="color:#78909C;font-size:9px;margin-top:2px;">${bits}</div>` : '');
-            })
-            .catch(() => {});
-        }
+        // Select after popup(): replacing the old popup fires its close, which clears the old route.
+        const token = ++flightSel;
+        setFlightPath(EMPTY_FC);
+        popupRef.current?.on('close', () => {
+          if (flightSel !== token) return;
+          flightSel++;
+          setFlightPath(EMPTY_FC);
+        });
 
-        // Resolve origin/destination for the readout only. The line this used
-        // to draw was a straight hop between two airports, which is not the
-        // path flown — watched aircraft draw their real reported track instead.
+        // The live feed carries no identity for most aircraft, so resolve the
+        // model and registration out of band. A 404 is an answer; anything
+        // else is a failed lookup and must not read as "not in registry".
+        const acReq: Promise<AircraftDetail | null> = icao
+          ? fetch(`/api/aircraft?icao24=${encodeURIComponent(icao)}`).then(r => {
+              if (r.status === 404) return null;
+              if (!r.ok) throw new Error(`HTTP ${r.status}`);
+              return r.json();
+            })
+          : Promise.resolve(null);
+
+        // Fills the MODEL / REG cells in place; only the operator, which has no
+        // cell of its own, goes on the line under the grid.
+        const fill = (id: string, v: string | null | undefined, fallback = '—') => {
+          const n = document.getElementById(id);
+          if (n && (v || n.textContent === '…')) n.textContent = v || fallback;
+        };
+        acReq
+          .then(d => {
+            fill(`ac-model-${icao}`, d?.model || d?.typeCode);
+            fill(`ac-reg-${icao}`, d?.registration);
+            const op = document.getElementById(`ac-op-${icao}`);
+            if (op) op.innerHTML = d ? htmlEsc(d.operator || '') : muted('AIRFRAME NOT IN REGISTRY');
+          })
+          .catch(() => {
+            fill(`ac-model-${icao}`, null);
+            fill(`ac-reg-${icao}`, null);
+            const op = document.getElementById(`ac-op-${icao}`);
+            if (op) op.innerHTML = muted('AIRFRAME LOOKUP UNAVAILABLE');
+          });
+
+        // The schedule is keyed by callsign and often names another leg of the
+        // aircraft's day, so it is only shown and drawn where it agrees with
+        // the reported track and position.
         const cleanCallsign = cs.replace(/\s+/g, '');
         const routeParams = new URLSearchParams({
           callsign: cleanCallsign,
@@ -1068,37 +1123,48 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
           lng: String(coords[0]),
           speed: String(p.speed_knots || 0),
         });
-        fetch(`/api/flight-route?${routeParams}`)
-          .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-          .then(routeData => {
-            const el = document.getElementById(routeLoadingId);
-            if (!el) return;
-            if (routeData.found && routeData.origin && routeData.destination) {
-              const depTime = formatTime(routeData.departureTime);
-              const arrTime = formatTime(routeData.arrivalTime);
-              const pct = Math.round((routeData.progress || 0) * 100);
-              const distKm = routeData.totalDistanceKm || 0;
-              el.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                  <div><span style="color:#5C5A54;font-size:8px;">FROM</span><br/><span style="color:#E8E6E0;font-size:13px;font-weight:700;">${htmlEsc(routeData.origin.iata || routeData.origin.icao)}</span> <span style="color:#5C5A54;font-size:9px;">${htmlEsc(routeData.origin.city)}</span></div>
-                  <span style="color:#5C5A54;font-size:11px;">&rarr;</span>
-                  <div style="text-align:right;"><span style="color:#5C5A54;font-size:8px;">TO</span><br/><span style="color:#E8E6E0;font-size:13px;font-weight:700;">${htmlEsc(routeData.destination.iata || routeData.destination.icao)}</span> <span style="color:#5C5A54;font-size:9px;">${htmlEsc(routeData.destination.city)}</span></div>
-                </div>
-                <div style="height:2px;background:rgba(255,255,255,0.06);border-radius:1px;margin:6px 0;"><div style="width:${pct}%;height:100%;background:rgba(255,255,255,0.35);border-radius:1px;"></div></div>
-                <div style="display:flex;justify-content:space-between;font-size:10px;color:#78909C;">
-                  <span>DEP ${depTime}</span>
-                  <span>${pct}% &middot; ${distKm.toLocaleString()}km</span>
-                  <span>ARR ${arrTime}</span>
-                </div>
-              `;
-            } else {
-              el.innerHTML = `<span style="color:#5C5A54;font-size:9px;">NO SCHEDULED ROUTE</span>`;
-            }
-          })
-          .catch(() => {
-            const el = document.getElementById(routeLoadingId);
-            if (el) el.innerHTML = `<span style="color:#5C5A54;font-size:9px;">ROUTE UNAVAILABLE</span>`;
-          });
+        const schedReq = cleanCallsign
+          ? fetch(`/api/flight-route?${routeParams}`).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+          : Promise.resolve(null);
+
+        Promise.allSettled([acReq, schedReq]).then(([a, s]) => {
+          if (flightSel !== token) return;
+          const ac = a.status === 'fulfilled' ? a.value : null;
+          const sched = s.status === 'fulfilled' ? s.value as ScheduleReply | null : null;
+          const here: [number, number] = [coords[0], coords[1]];
+          const { origin, destination, scheduled } = routeFor(ac, sched, here);
+
+          setFlightPath(flightPathFeatures({
+            track: ac?.track ?? [], here, heading: Number(p.heading) || 0,
+            origin, destination, landed: Boolean(ac?.arrival),
+          }));
+
+          const el = document.getElementById(routeLoadingId);
+          if (!el) return;
+          const tracked = (ac?.track?.length ?? 0) > 1 ? ' · FLOWN TRACK ON MAP' : '';
+          if (!origin && !destination) {
+            el.innerHTML = sched?.found ? muted(`SCHEDULED ROUTE DOES NOT MATCH THIS FLIGHT${tracked}`)
+              : a.status === 'rejected' && s.status === 'rejected' ? muted('ROUTE UNAVAILABLE')
+              : muted(`NO SCHEDULED ROUTE${tracked}`);
+            return;
+          }
+          const ends = `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              ${airportCell('FROM', origin)}<span style="color:#5C5A54;font-size:11px;">&rarr;</span>${airportCell('TO', destination, true)}
+            </div>`;
+          if (scheduled && sched?.found) {
+            const pct = Math.round((sched.progress || 0) * 100);
+            const distKm = sched.totalDistanceKm || 0;
+            el.innerHTML = `${ends}
+              <div style="height:2px;background:rgba(255,255,255,0.06);border-radius:1px;margin:6px 0;"><div style="width:${pct}%;height:100%;background:rgba(255,255,255,0.35);border-radius:1px;"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:#78909C;">
+                <span>DEP ${formatTime(sched.departureTime ?? null)}</span>
+                <span>${pct}% &middot; ${distKm.toLocaleString()}km</span>
+                <span>ARR ${formatTime(sched.arrivalTime ?? null)}</span>
+              </div>`;
+          } else {
+            el.innerHTML = ends + muted(ac?.arrival ? 'LANDED' : 'DESTINATION UNKNOWN');
+          }
+        });
       });
       map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
@@ -1151,7 +1217,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       'gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots',
       'balloon-dots','rad-dots','ship-dots','sweep-device-dots','scan-targets-dots',
       'sdk-sea','sdk-air','sdk-intel','malware-dots','cyber-heads','gdelt-events-dots',
-      'cf-outage-dots','cf-attack-dots','flight-dots','military-dots','jet-dots','private-dots','alert-pin-dots']);
+      'cf-outage-dots','cf-attack-dots','fl-commercial','fl-private','fl-jets','fl-military','alert-pin-dots']);
 
     // Satellites are picked on the GPU: the pick pass runs the same vertex
     // shader as the visible one, so the target is always exactly where the

@@ -43,6 +43,8 @@ export interface AircraftDetail {
   points: number;
   /** Airports read off the track: where this leg was seen to leave and land. */
   departure?: Airport | null;
+  /** Where the leg was seen to begin, even when that airport is not in the list. */
+  departureFix?: { lng: number; lat: number; radiusKm: number } | null;
   arrival?: Airport | null;
   /** Endpoints the map should pin — observed where possible, schedule where not. */
   origin?: Airport | null;
@@ -67,7 +69,7 @@ export function greatCircleKm(a: [number, number], b: [number, number]): number 
   return 2 * R_KM * Math.asin(Math.sqrt(h));
 }
 
-const sameAirport = (a: Airport, b: Airport) =>
+export const sameAirport = (a: Airport, b: Airport) =>
   a.icao === b.icao || (Boolean(a.iata) && a.iata === b.iata);
 
 /**
@@ -79,11 +81,34 @@ const sameAirport = (a: Airport, b: Airport) =>
  */
 export function onCorridor(here: [number, number], origin: Airport, destination: Airport): boolean {
   const direct = greatCircleKm([origin.lng, origin.lat], [destination.lng, destination.lat]);
-  const detour = greatCircleKm([origin.lng, origin.lat], here)
-    + greatCircleKm(here, [destination.lng, destination.lat]);
+  const fromOrigin = greatCircleKm([origin.lng, origin.lat], here);
+  const toDestination = greatCircleKm(here, [destination.lng, destination.lat]);
   // Short hops spend a bigger share of the trip on departure and arrival
   // vectoring, so allow a fixed slice of slack on top of the proportional one.
-  return detour <= direct * 1.15 + 150;
+  const slack = 150;
+  // Farther from one end than the whole trip is long: beyond it, not between.
+  if (fromOrigin > direct + slack || toDestination > direct + slack) return false;
+  return fromOrigin + toDestination <= direct * 1.15 + slack;
+}
+
+/**
+ * Does a schedule describe the leg this aircraft is flying?
+ *
+ * A seen departure decides: by airport, or — when that airport is not in the
+ * list — by where the leg began, which caught RPA3551 rising out of Portland
+ * on a schedule that said Boston. Only with no departure seen at all does the
+ * corridor test stand in.
+ */
+export function scheduleAgrees(
+  ac: Pick<AircraftDetail, 'departure' | 'departureFix'> | null,
+  origin: Airport,
+  destination: Airport,
+  here: [number, number],
+): boolean {
+  if (ac?.departure) return sameAirport(ac.departure, origin);
+  const fix = ac?.departureFix;
+  if (fix) return greatCircleKm([fix.lng, fix.lat], [origin.lng, origin.lat]) <= fix.radiusKm;
+  return onCorridor(here, origin, destination);
 }
 
 /**
@@ -114,11 +139,9 @@ export function resolveEndpoints(
   if (observedDep && observedArr) return { origin: observedDep, destination: observedArr };
 
   let destination: Airport | null = observedArr;
-  if (!destination && sched?.origin && sched?.destination && here) {
-    const corroborated = observedDep
-      ? sameAirport(observedDep, sched.origin)
-      : onCorridor(here, sched.origin, sched.destination);
-    if (corroborated) destination = sched.destination;
+  if (!destination && sched?.origin && sched?.destination && here
+      && scheduleAgrees(ac, sched.origin, sched.destination, here)) {
+    destination = sched.destination;
   }
 
   return { origin: observedDep, destination };

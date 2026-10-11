@@ -21,6 +21,9 @@ export const maxDuration = 20;
 
 const TRACE_BASE = 'https://adsb.lol/data/traces';
 const ADSBDB = 'https://api.adsbdb.com/v0/aircraft';
+// adsb.fi's aircraft database is refreshed more often than the one stamped into
+// adsb.lol's traces, so it still names airframes those two leave blank.
+const ADSBFI_HEX = 'https://opendata.adsb.fi/api/v2/hex';
 
 export interface AircraftDetail {
   icao24: string;
@@ -36,9 +39,21 @@ export interface AircraftDetail {
   points: number;
   /** Airport this leg was seen to leave, read off the track. Null if unknown. */
   departure: Airport | null;
+  /**
+   * Where the leg was seen to begin, low enough to have just departed. Set even
+   * when that airport is not in the list, so a schedule can still be checked.
+   */
+  departureFix: DepartureFix | null;
   /** Airport this leg was seen to land at. Null while still airborne. */
   arrival: Airport | null;
   source: string;
+}
+
+export interface DepartureFix {
+  lng: number;
+  lat: number;
+  /** The airport it left is within this distance. */
+  radiusKm: number;
 }
 
 /** readsb shards traces by the last two characters of the hex address. */
@@ -93,6 +108,13 @@ export function currentLeg(
     }
     i--;
   }
+  // readsb flags the first row of each leg it detects (flags & 2). That catches
+  // turnarounds with no ground reports at all, like DAL67's three hours at Rome,
+  // which otherwise drew Atlanta–Rome–back as one flight.
+  for (let j = end; j > start; j--) {
+    const flags = rows[j]?.[6];
+    if (typeof flags === 'number' && flags & 2) { start = j; break; }
+  }
   const leg = rows.slice(start, end + 1);
   // A trace with no ground reports at all is one continuous leg.
   return leg.length > 1 ? leg : rows;
@@ -100,6 +122,15 @@ export function currentLeg(
 
 /** Above this, the leg was picked up in the cruise, not seen to depart. */
 const DEPARTURE_CEILING_FT = 10_000;
+
+// The airport list is a few hundred majors, so a flat 25 km radius named
+// Newark for a Cessna seen at 175 ft over Caldwell, 21 km away. Low or on the
+// ground the aircraft is at its airport; the radius only widens with the
+// distance a shallow climb (~200 ft/km) could have carried it.
+const AT_AIRPORT_KM = 8;
+const CLIMB_FT_PER_KM = 200;
+const departureRadiusKm = (altFt: number | null) =>
+  Math.min(25, Math.max(AT_AIRPORT_KM, (altFt ?? 0) / CLIMB_FT_PER_KM));
 
 /**
  * Name the airports a leg was *observed* to use.
@@ -118,17 +149,20 @@ export function legEndpoints(
   track: [number, number][],
   altitudes: (number | null)[],
   landed: boolean,
-): { departure: Airport | null; arrival: Airport | null } {
-  if (track.length < 2) return { departure: null, arrival: null };
+): { departure: Airport | null; departureFix: DepartureFix | null; arrival: Airport | null } {
+  if (track.length < 2) return { departure: null, departureFix: null, arrival: null };
 
   const firstAlt = altitudes[0];
   const lowStart = firstAlt === null || (typeof firstAlt === 'number' && firstAlt <= DEPARTURE_CEILING_FT);
-  const departure = lowStart ? nearestAirport(track[0][1], track[0][0]) : null;
+  const departureFix = lowStart
+    ? { lng: track[0][0], lat: track[0][1], radiusKm: departureRadiusKm(firstAlt) }
+    : null;
+  const departure = departureFix ? nearestAirport(departureFix.lat, departureFix.lng, departureFix.radiusKm) : null;
 
   const last = track[track.length - 1];
-  const arrival = landed ? nearestAirport(last[1], last[0]) : null;
+  const arrival = landed ? nearestAirport(last[1], last[0], AT_AIRPORT_KM) : null;
 
-  return { departure, arrival };
+  return { departure, departureFix, arrival };
 }
 
 /**
@@ -198,6 +232,32 @@ interface AdsbdbResponse {
   };
 }
 
+type AdsbdbAircraft = NonNullable<NonNullable<AdsbdbResponse['response']>['aircraft']>;
+
+interface AdsbFiAircraft {
+  r?: string;
+  t?: string;
+  desc?: string;
+  ownOp?: string;
+}
+
+type Identity = Pick<AircraftDetail, 'registration' | 'typeCode' | 'model' | 'operator'>;
+
+/** Each field from the first source that has it: trace, then adsbdb, then adsb.fi. */
+export function mergeIdentity(
+  trace: Pick<AircraftDetail, 'registration' | 'typeCode' | 'model'> | null,
+  db: AdsbdbAircraft | null | undefined,
+  live: AdsbFiAircraft | null | undefined,
+): Identity {
+  const dbModel = db?.manufacturer && db?.type ? `${db.manufacturer} ${db.type}` : db?.type;
+  return {
+    registration: trace?.registration || db?.registration || live?.r?.trim() || null,
+    typeCode: trace?.typeCode || db?.icao_type || live?.t?.trim() || null,
+    model: trace?.model || dbModel || live?.desc?.trim() || null,
+    operator: db?.registered_owner || live?.ownOp?.trim() || null,
+  };
+}
+
 async function fetchTrace(icao24: string, full: boolean): Promise<TraceFile> {
   const kind = full ? 'full' : 'recent';
   const url = `${TRACE_BASE}/${shardFor(icao24)}/trace_${kind}_${icao24.toLowerCase()}.json`;
@@ -227,26 +287,25 @@ export async function GET(request: Request) {
         const ac = db?.response?.aircraft;
         const parsed = trace ? parseTrace(trace, 700, legOnly) : null;
 
-        // Neither source knew this airframe.
-        if (!parsed && !ac) return [];
+        let identity = mergeIdentity(parsed, ac, null);
+        if (!identity.registration || !identity.typeCode) {
+          const live = await optional(httpJson<{ ac?: AdsbFiAircraft[] }>(`${ADSBFI_HEX}/${icao24}`, { timeoutMs: 6000 }));
+          identity = mergeIdentity(parsed, ac, live?.ac?.[0]);
+        }
 
-        const model = parsed?.model
-          || (ac?.manufacturer && ac?.type ? `${ac.manufacturer} ${ac.type}` : null)
-          || ac?.type
-          || null;
+        // No source knew this airframe.
+        if (!parsed && !identity.registration && !identity.typeCode && !identity.model) return [];
 
         return [{
           icao24,
-          registration: parsed?.registration || ac?.registration || null,
-          typeCode: parsed?.typeCode || ac?.icao_type || null,
-          model,
-          operator: ac?.registered_owner || null,
+          ...identity,
           track: parsed?.track || [],
           altitudes: parsed?.altitudes || [],
           points: parsed?.points || 0,
           departure: parsed?.departure || null,
+          departureFix: parsed?.departureFix || null,
           arrival: parsed?.arrival || null,
-          source: parsed ? 'adsb.lol' : 'adsbdb',
+          source: parsed ? 'adsb.lol' : ac ? 'adsbdb' : 'adsb.fi',
         }];
       },
       // Identity is effectively static; the track only matters for the current

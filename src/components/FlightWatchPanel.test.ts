@@ -72,6 +72,14 @@ describe('onCorridor', () => {
     // 60 km off a 150 km route is normal departure routing, not a wrong leg.
     expect(onCorridor([-82.6, 42.4], CLE, DTW)).toBe(true);
   });
+
+  // AZG4862 over Jordan, filed as Chicago–Baku: the detour sum alone passes,
+  // but it is already farther from Chicago than Baku is.
+  it('rejects an aircraft beyond the far end of the route', () => {
+    const ORD = ap('KORD', 'ORD', 41.9742, -87.9073);
+    const GYD = ap('UBBB', 'GYD', 40.4675, 50.0467);
+    expect(onCorridor([38.9691, 32.0198], ORD, GYD)).toBe(false);
+  });
 });
 
 describe('resolveEndpoints', () => {

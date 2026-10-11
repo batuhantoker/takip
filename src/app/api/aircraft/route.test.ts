@@ -1,6 +1,31 @@
 import { describe, it, expect } from 'vitest';
-import { shardFor, downsample, parseTrace, currentLeg, legEndpoints } from './route';
+import { shardFor, downsample, parseTrace, currentLeg, legEndpoints, mergeIdentity } from './route';
 import { nearestAirport } from '@/lib/airports';
+
+describe('mergeIdentity', () => {
+  const trace = { registration: 'VP-BMG', typeCode: 'B77L', model: 'BOEING 777-200LR' };
+  const db = { manufacturer: 'Boeing', type: '777F', icao_type: 'B77L', registration: 'VP-BMG', registered_owner: 'Silk Way West Airlines' };
+
+  it('prefers the trace, taking the operator from adsbdb', () => {
+    expect(mergeIdentity(trace, db, null)).toEqual({ ...trace, operator: 'Silk Way West Airlines' });
+  });
+
+  it('builds the model from adsbdb when there is no trace', () => {
+    expect(mergeIdentity(null, db, null).model).toBe('Boeing 777F');
+  });
+
+  // 801904 (IGO527Y): no registration in the trace, unknown to adsbdb, named by adsb.fi.
+  it('fills what the others leave blank from adsb.fi', () => {
+    const blank = { registration: null, typeCode: null, model: null };
+    expect(mergeIdentity(blank, undefined, { r: 'VT-NOH ', t: 'A21N', desc: 'AIRBUS A-321neo' })).toEqual({
+      registration: 'VT-NOH', typeCode: 'A21N', model: 'AIRBUS A-321neo', operator: null,
+    });
+  });
+
+  it('is all null when nobody knows the airframe', () => {
+    expect(mergeIdentity(null, null, null)).toEqual({ registration: null, typeCode: null, model: null, operator: null });
+  });
+});
 
 describe('shardFor', () => {
   it('uses the last two hex characters, as readsb shards them', () => {
@@ -134,6 +159,23 @@ describe('currentLeg', () => {
     expect(currentLeg(rows)).toHaveLength(10);
   });
 
+  // DAL67 turned round at Rome with no ground reports; readsb flagged the new leg.
+  it('splits where readsb flags a new leg', () => {
+    const rows = [
+      ...Array.from({ length: 5 }, (_, i) => [...air(i, 40 + i, 35000), 0]),
+      [10, 41.78, 12.24, 500, 150, 90, 2],
+      ...Array.from({ length: 3 }, (_, i) => [...air(20 + i, 45 + i, 36000), 0]),
+    ];
+    const leg = currentLeg(rows);
+    expect(leg).toHaveLength(4);
+    expect(leg[0][1]).toBe(41.78);
+  });
+
+  it('ignores the other flag bits', () => {
+    const rows = Array.from({ length: 6 }, (_, i) => [...air(i, 40 + i, 35000), 5]);
+    expect(currentLeg(rows)).toHaveLength(6);
+  });
+
   it('copes with an empty trace', () => {
     expect(currentLeg([])).toEqual([]);
   });
@@ -189,12 +231,35 @@ describe('legEndpoints', () => {
     expect(legEndpoints([PHX, OPEN], [null, 30000], false).departure?.iata).toBe('PHX');
   });
 
+  // N6372D climbing out of Caldwell (not in the airport list) at 175 ft.
+  it('does not name a major 21 km away for an aircraft seen just off the ground', () => {
+    const caldwell: [number, number] = [-74.29364, 40.876419];
+    expect(legEndpoints([caldwell, [-74.4, 40.8]], [175, 1500], false).departure).toBeNull();
+  });
+
+  it('still names the airport for a climb-out first seen well clear of it', () => {
+    // ~20 km east of PHX at 6,000 ft.
+    expect(legEndpoints([[-111.79, 33.44], OPEN], [6000, 30000], false).departure?.iata).toBe('PHX');
+  });
+
   it('finds nothing for a leg that starts and ends away from any airport', () => {
-    expect(legEndpoints([OPEN, [-104, 36]], [900, 900], true)).toEqual({ departure: null, arrival: null });
+    expect(legEndpoints([OPEN, [-104, 36]], [900, 900], true)).toMatchObject({ departure: null, arrival: null });
   });
 
   it('ignores a track too short to have endpoints', () => {
-    expect(legEndpoints([PHX], [900], true)).toEqual({ departure: null, arrival: null });
+    expect(legEndpoints([PHX], [900], true)).toEqual({ departure: null, departureFix: null, arrival: null });
+  });
+
+  // RPA3551 seen on the runway at Portland, ME, which the airport list lacks.
+  it('keeps where a low start began even when no listed airport is there', () => {
+    const pwm: [number, number] = [-70.30086, 43.644166];
+    const { departure, departureFix } = legEndpoints([pwm, [-71, 43]], [-375, 8000], false);
+    expect(departure).toBeNull();
+    expect(departureFix).toEqual({ lng: pwm[0], lat: pwm[1], radiusKm: 8 });
+  });
+
+  it('records no departure point for a leg picked up at cruise', () => {
+    expect(legEndpoints([PHX, OPEN], [35000, 34000], false).departureFix).toBeNull();
   });
 });
 
