@@ -140,7 +140,7 @@ export function selectContext(
 
   const board = marketLine(data.quotes);
   if (board) {
-    items.push({ id: `c${items.length + 1}`, kind: 'market', title: board, source: 'OSIRIS Markets', published: new Date(now).toISOString(), place: '', lat: null, lng: null });
+    items.push({ id: `c${items.length + 1}`, kind: 'market', title: board, source: 'TAKIP Markets', published: new Date(now).toISOString(), place: '', lat: null, lng: null });
   }
   return items;
 }
@@ -216,6 +216,6 @@ export async function briefing(topic: string, limit: number, sources: Sources = 
     });
   }
   const board = marketLine(quotes);
-  if (board) items.push({ id: `c${items.length + 1}`, kind: 'market', title: board, source: 'OSIRIS Markets', published: new Date(now).toISOString(), place: '', lat: null, lng: null });
+  if (board) items.push({ id: `c${items.length + 1}`, kind: 'market', title: board, source: 'TAKIP Markets', published: new Date(now).toISOString(), place: '', lat: null, lng: null });
   return items;
 }

@@ -169,7 +169,7 @@ describe('runEngine', () => {
 
   it('leaves out the feed headlines about something else, and the market board on a question that is not about markets', async () => {
     const h = harness(createDemoChat());
-    h.deps.gather = async () => [...CONTEXT, { id: 'c3', kind: 'market', title: 'Markets now: S&P 500 7,777', source: 'OSIRIS Markets', published: '', place: '', lat: null, lng: null }];
+    h.deps.gather = async () => [...CONTEXT, { id: 'c3', kind: 'market', title: 'Markets now: S&P 500 7,777', source: 'TAKIP Markets', published: '', place: '', lat: null, lng: null }];
     await runEngine({ question: 'Will the envoys sign a deal?', seed: '', depth: 'quick', useFeeds: true }, h.deps);
     const ids = fold(h.events).context.map(c => `${c.id}:${c.title}`);
     expect(ids.filter(x => x.startsWith('c'))).toEqual(['c1:Envoys due in Geneva']);
