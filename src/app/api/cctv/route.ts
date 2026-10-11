@@ -371,8 +371,11 @@ async function fetchUSEastCameras(): Promise<any[]> {
     },
     {
       id: 'cincinnati-covington-earthcam', lat: 39.090510, lng: -84.510413,
-      name: 'Cincinnati-Covington EarthCam', city: 'Covington', country: 'US',
-      external_url: 'https://www.earthcam.com/usa/kentucky/covington/?cam=covington',
+      name: 'Roebling Bridge (EarthCam)', city: 'Covington', country: 'US',
+      // The share player the Roebling Bridge Society embeds; same camera as earthcam.com's ?cam=covington.
+      stream_url: 'https://share.earthcam.net/public/tJ90CoLmq7TzrY396Yd88LttZYtaTRUn2sGCVbI_5lI/covington_bridge/camera',
+      stream_type: 'iframe',
+      external_url: 'https://roeblingbridge.org/Home/Bridge-Webcam',
       source: 'Cincinnati, OH',
     },
   );
