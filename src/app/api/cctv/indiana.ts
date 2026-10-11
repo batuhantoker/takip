@@ -1,10 +1,10 @@
 import type { CctvCamera } from './types';
-import { stealthFetch } from '@/lib/stealthFetch';
 import { cachedSource } from '@/lib/sourceCache';
+import { featureId, featurePage, featurePoint, queryCarsFeatures, type CarsFeature } from './cars';
 
 /**
  * OSIRIS — Indiana CCTV Cameras (INDOT TrafficWise / 511in.org)
- * Source: https://511in.org/api/graphql — the CARS 511 platform's map query
+ * Source: https://511in.org/api/graphql — the CARS 511 platform's map query (./cars)
  * ~730 statewide traffic cameras — NO API KEY NEEDED.
  *
  * Every INDOT camera is video. The API hands back a poster frame
@@ -18,7 +18,7 @@ import { cachedSource } from '@/lib/sourceCache';
  * tile sits in LINKING until then.
  */
 
-const GRAPHQL = 'https://511in.org/api/graphql';
+const HOST = '511in.org';
 
 /** Indiana bounding box — drops any stray/placeholder coordinates. */
 const IN_BOUNDS = { minLat: 37.7, maxLat: 41.9, minLng: -88.2, maxLng: -84.6 };
@@ -35,32 +35,7 @@ const STREAM_HOST = 'https://skysfs4.trafficwise.org';
 /** Pulls the poster URL apart; the token half is what the stream is keyed by. */
 const POSTER = /\/cameras\/IN\/(INDOT_\d+_[A-Za-z0-9_-]+)\.flv\.png$/;
 
-/**
- * A view's `url` lives on CameraView, not on the interface `views` returns, so
- * it has to come through an inline fragment. Selecting it bare validates as an
- * error and the server answers those with a 400, not a message.
- */
-const QUERY = `query MapFeatures($input: MapFeaturesArgs!) {
-  mapFeaturesQuery(input: $input) {
-    mapFeatures {
-      title
-      uri
-      features { geometry }
-      __typename
-      ... on Camera { active views(limit: 1) { category ... on CameraView { url } } }
-    }
-    error { message }
-  }
-}`;
-
-export interface IndotFeature {
-  title?: string | null;
-  uri?: string | null;
-  features?: Array<{ geometry?: { coordinates?: [number, number] } | null }> | null;
-  __typename?: string | null;
-  active?: boolean | null;
-  views?: Array<{ url?: string | null; category?: string | null }> | null;
-}
+export type IndotFeature = CarsFeature;
 
 /** The HLS playlist for a camera token. Exported for tests. */
 export function streamUrl(token: string): string {
@@ -86,68 +61,34 @@ export function cleanTitle(title: string): string {
 
 /** Map one map feature to a camera, or null if unusable. Exported for tests. */
 export function mapFeature(f: IndotFeature): CctvCamera | null {
-  if (f?.__typename !== 'Camera' || f.active === false) return null;
+  const p = featurePoint(f, IN_BOUNDS);
+  if (!p) return null;
 
   /* Cameras that are down come back with an icon in place of a feed. */
-  const url = f.views?.[0]?.url || '';
-  const token = url.match(POSTER)?.[1];
+  const token = (f.views?.[0]?.url || '').match(POSTER)?.[1];
   if (!token) return null;
 
-  const coords = f.features?.[0]?.geometry?.coordinates;
-  if (!coords) return null;
-  const [lng, lat] = coords;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  if (lat < IN_BOUNDS.minLat || lat > IN_BOUNDS.maxLat) return null;
-  if (lng < IN_BOUNDS.minLng || lng > IN_BOUNDS.maxLng) return null;
-
-  const id = f.uri?.match(/camera\/(\d+)/)?.[1];
+  const id = featureId(f);
   if (!id) return null;
 
   return {
     id: `indot-${id}`,
-    lat,
-    lng,
+    lat: p.lat,
+    lng: p.lng,
     name: cleanTitle(f.title || '') || `INDOT Camera ${id}`,
     city: 'Indiana',
     country: 'US',
     stream_url: streamUrl(token),
     stream_type: 'hls',
-    external_url: `https://511in.org/@${lat},${lng},14?show=${encodeURIComponent(f.uri || '')}`,
+    external_url: featurePage(HOST, f, p),
     source: 'INDOT TrafficWise',
   };
 }
 
 async function loadIndianaCameras(): Promise<CctvCamera[]> {
-  const res = await stealthFetch(GRAPHQL, {
-    method: 'POST',
-    signal: AbortSignal.timeout(20000),
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json', Referer: 'https://511in.org/' },
-    body: JSON.stringify({
-      query: QUERY,
-      /* One query for the whole state. `zoom` is what decides clustering, so it
-         has to be high enough that the server returns cameras and not clusters. */
-      variables: {
-        input: {
-          north: IN_BOUNDS.maxLat,
-          south: IN_BOUNDS.minLat,
-          east: IN_BOUNDS.maxLng,
-          west: IN_BOUNDS.minLng,
-          zoom: 16,
-          layerSlugs: ['normalCameras'],
-          nonClusterableUris: null,
-        },
-      },
-    }),
-  });
-  if (!res.ok) throw new Error(`511in HTTP ${res.status}`);
-
-  const json = await res.json();
-  const feats = json?.data?.mapFeaturesQuery?.mapFeatures;
-  if (!Array.isArray(feats)) throw new Error('511in returned no mapFeatures');
-
   const cams: CctvCamera[] = [];
   const seen = new Set<string>();
-  for (const f of feats) {
+  for (const f of await queryCarsFeatures(HOST, IN_BOUNDS)) {
     const cam = mapFeature(f);
     if (!cam || seen.has(cam.id)) continue;
     seen.add(cam.id);
