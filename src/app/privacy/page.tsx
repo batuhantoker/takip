@@ -91,7 +91,7 @@ const STORED: { what: string; detail: string }[] = [
   { what: 'Your OI settings and recent predictions', detail: 'Which provider and model you use, whether replies are read aloud, and a list of your last 25 predictions so you can reopen them.' },
   { what: 'Your OI Assist conversation', detail: 'For this tab only, so a reload does not lose it.' },
   { what: 'Areas you draw on the map', detail: 'So a refresh does not wipe your work.' },
-  { what: 'How the map looks', detail: 'Your Style Studio colours and the last city the map opened on.' },
+  { what: 'How the map looks', detail: 'Your Style Studio colours, which layers are switched on, and the last city the map opened on.' },
   { what: 'Your market watchlist and recent fingerprint searches', detail: 'So they are there next time. The search list can be cleared from the search panel.' },
 ];
 

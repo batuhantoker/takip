@@ -39,6 +39,7 @@ const DrawHud = dynamic(() => import('@/components/DrawHud'), { ssr: false });
 import { toShape, queryRing, type DrawMode, type DrawnShape, type DrawProgress, type DrawResult } from '@/lib/draw';
 import { selectInPolygon } from '@/lib/aoi';
 import { pickLandingCity } from '@/lib/landing-cities';
+import { loadLayers, saveLayers } from '@/lib/saved-layers';
 import { diffSweep, appendEvents, type WatchBaseline, type WatchEvent } from '@/lib/watch';
 import { STORAGE_KEY, serializeShapes, deserializeShapes, shapesToGeoJSON, downloadFile } from '@/lib/aoi-export';
 const TokenPanel = dynamic(() => import('@/components/TokenPanel'));
@@ -669,16 +670,18 @@ export default function Dashboard() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Restore active layers from URL if present
+    // A shared link's layers win over the ones this browser remembers.
     const p = new URLSearchParams(window.location.search);
     const layers = p.get('layers');
-    if (layers) {
+    if (layers !== null) {
       const active = layers.split(',');
       setActiveLayers(prev => {
         const next = { ...prev };
         Object.keys(next).forEach(k => { (next as any)[k] = active.includes(k); });
         return next;
       });
+    } else {
+      setActiveLayers(prev => ({ ...prev, ...loadLayers(prev) }));
     }
 
     // Probe which credential-gated feeds this deployment has configured, so the
@@ -762,6 +765,13 @@ export default function Dashboard() {
     });
     setOiFocus(true);
   }, []);
+
+  // Skips the defaults so they never overwrite what is stored before it is read;
+  // during OI focus the operator's own choice is what gets remembered.
+  const defaultLayers = useRef(activeLayers);
+  useEffect(() => {
+    if (activeLayers !== defaultLayers.current) saveLayers(focusSaved.current ?? activeLayers);
+  }, [activeLayers]);
 
   // Global Stats Fetch
   useEffect(() => {
