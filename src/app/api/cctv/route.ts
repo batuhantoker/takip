@@ -37,6 +37,7 @@ import { fetchEdmontonCameras } from './edmonton';
 import { fetchOregonCameras } from './oregon';
 import { fetchMichiganCameras } from './michigan';
 import { fetchIndianaCameras } from './indiana';
+import { fetchKentuckyCameras } from './kentucky';
 import { fetchNevadaCameras } from './nevada';
 import { fetchLouisianaCameras } from './louisiana';
 import { fetchFloridaCameras } from './florida';
@@ -519,6 +520,7 @@ const RAW_REGION_FETCHERS: Record<string, RegionFetcher> = {
   'oregon': fetchOregonCameras,
   'michigan': fetchMichiganCameras,
   'indiana': fetchIndianaCameras,
+  'kentucky': fetchKentuckyCameras,
   'nevada': fetchNevadaCameras,
   'louisiana': fetchLouisianaCameras,
   'florida': fetchFloridaCameras,
@@ -827,6 +829,8 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (lat > 41.6 && lat < 48.3 && lng > -90.5 && lng < -82.1) regions.push('michigan');
   // Indiana (INDOT TrafficWise) — explicit, since us-central only covers Illinois
   if (lat > 37.7 && lat < 41.9 && lng > -88.2 && lng < -84.6) regions.push('indiana');
+  // Kentucky (KYTC) — explicit, since us-central only covers Illinois
+  if (lat > 36.4 && lat < 39.2 && lng > -89.6 && lng < -81.9) regions.push('kentucky');
   // Louisiana (LADOTD 511) — explicit, since neither us-central nor us-east reaches the Gulf coast
   if (lat > 28.8 && lat < 33.1 && lng > -94.2 && lng < -88.6) regions.push('louisiana');
   /* The rest of the southern tier, all on the same IBI 511 stack. Each is
