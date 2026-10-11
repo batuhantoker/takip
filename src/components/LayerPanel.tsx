@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plane, Satellite, Sun, AlertTriangle, Camera,
@@ -168,8 +168,8 @@ function ToggleSwitch({ active }: { active: boolean }) {
       <div
         className="absolute inset-0 rounded-full transition-all duration-300"
         style={{
-          background: active ? 'rgba(255,255,255,0.2)' : 'transparent',
-          border: active ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.12)',
+          background: active ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.04)',
+          border: active ? '1px solid rgba(255,255,255,0.45)' : '1px solid rgba(255,255,255,0.28)',
           boxShadow: active ? '0 0 8px rgba(255,255,255,0.1)' : 'none',
         }}
       />
@@ -178,7 +178,7 @@ function ToggleSwitch({ active }: { active: boolean }) {
         style={{
           width: 10,
           height: 10,
-          background: active ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.2)',
+          background: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
           boxShadow: active ? '0 0 6px rgba(255,255,255,0.4)' : 'none',
         }}
         animate={{ left: active ? 16 : 2 }}
@@ -196,30 +196,97 @@ function SubLayerStem() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute left-[6px] top-0 h-1/2 w-[8px] rounded-bl-[3px] border-b border-l border-white/[0.14]"
+      className="pointer-events-none absolute left-[6px] top-0 h-1/2 w-[8px] rounded-bl-[3px] border-b border-l border-white/[0.25]"
     />
   );
 }
 
+function BulkButton({ onClick, disabled, children, label }: { onClick: () => void; disabled?: boolean; children: React.ReactNode; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      disabled={disabled}
+      aria-label={label}
+      className="px-1.5 py-0.5 rounded text-[10px] font-mono tracking-wider text-white/70 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-35 disabled:pointer-events-none focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+    >
+      {children}
+    </button>
+  );
+}
+
+function LayerRow({ layer, active, count, dormant, onToggle, mobile }: {
+  layer: LayerDef; active: boolean; count: number | null; dormant: boolean; onToggle: () => void; mobile?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={active}
+      aria-label={layer.label}
+      title={dormant ? 'Turn the layer above on to use this' : undefined}
+      className={`relative w-full flex items-center gap-3 ${mobile ? 'py-2' : 'py-1'} rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 ${layer.parent ? 'pl-[22px] pr-1' : 'px-1'} ${dormant ? 'opacity-50' : ''}`}
+    >
+      {layer.parent && <SubLayerStem />}
+      <ToggleSwitch active={active} />
+      <span className={`text-[11px] font-mono uppercase tracking-wider flex-1 transition-colors duration-200 ${active ? 'text-white' : 'text-white/65'}`}>
+        {layer.label}
+        {layer.description && <span className="block mt-0.5 text-[9px] normal-case tracking-normal text-white/55">{layer.description}</span>}
+      </span>
+      {count !== null && (
+        <span className={`text-[10px] font-mono tabular-nums transition-colors ${active ? 'text-white/75' : 'text-white/45'}`}>
+          {count.toLocaleString()}
+        </span>
+      )}
+    </button>
+  );
+}
+
+const isTerrain = (key: string) => key === 'terrain_elevation' || key === 'terrain_3d';
+/** Sub-layers modify a parent rather than draw anything, so they never count as "on". */
+const primary = (layers: LayerDef[]) => layers.filter(l => !l.parent);
+
+/** Two columns of about equal height, in order. Weighed from the definitions alone so no group
+ *  jumps columns when a layer is switched or the terrain notes open. */
+function splitColumns<T extends { layers: LayerDef[] }>(groups: T[]): [T[], T[]] {
+  const weight = (g: T) => 1.5 + g.layers.reduce((n, l) => n + (l.description ? 1.4 : 1), 0);
+  const total = groups.reduce((n, g) => n + weight(g), 0);
+  let split = 0, bestDiff = Infinity, acc = 0;
+  for (let k = 0; k <= groups.length; k++) {
+    const diff = Math.abs(total - 2 * acc);
+    if (diff < bestDiff) { bestDiff = diff; split = k; }
+    if (k < groups.length) acc += weight(groups[k]);
+  }
+  return [groups.slice(0, split), groups.slice(split)];
+}
+
 function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'core', setTheme, capabilities = {}, terrainStatus = 'idle', onTerrainRetry, onTerrainFocus, on3DModeSelected, revealed = true }: LayerPanelProps) {
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
-  /**
-   * A pinned group stays open when the pointer leaves. Hover-only flyouts are
-   * fine to glance at and impossible to work in — reaching for a toggle at the
-   * far edge closes the thing you were reaching for.
-   */
-  const [pinnedGroup, setPinnedGroup] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  /** The group whose rail icon opened the panel; it is scrolled to and marked. */
+  const [focusGroup, setFocusGroup] = useState<string | null>(null);
   const [studioOpen, setStudioOpen] = useState(false);
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
-    if (!pinnedGroup) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPinnedGroup(null); };
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [pinnedGroup]);
+  }, [open]);
+
+  useEffect(() => {
+    if (open && focusGroup) sectionRefs.current[focusGroup]?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [open, focusGroup]);
+
+  const openAt = (label: string) => {
+    if (open && focusGroup === label) { setOpen(false); return; }
+    setFocusGroup(label);
+    setOpen(true);
+  };
 
   const toggle = (key: string) => {
-    if ((key === 'terrain_elevation' || key === 'terrain_3d') && !activeLayers[key]) on3DModeSelected?.();
+    if (isTerrain(key) && !activeLayers[key]) on3DModeSelected?.();
     setActiveLayers((prev: any) => ({ ...prev, [key]: !prev[key] }));
   };
   const terrainDetails = activeLayers.terrain_elevation ? (
@@ -232,16 +299,16 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
     </div>
   ) : null;
 
-  /** Switch a whole group at once — off if any are on, otherwise all on. */
-  const toggleGroup = (layers: LayerDef[]) => {
-    const anyOn = layers.some(l => activeLayers[l.key]);
-    if (!anyOn && layers.some(l => l.key === 'terrain_elevation' || l.key === 'terrain_3d')) on3DModeSelected?.();
+  const setMany = (layers: LayerDef[], on: boolean) => {
+    if (on && layers.some(l => isTerrain(l.key) && !activeLayers[l.key])) on3DModeSelected?.();
     setActiveLayers((prev: any) => {
       const next = { ...prev };
-      for (const l of layers) next[l.key] = !anyOn;
+      for (const l of layers) next[l.key] = on;
       return next;
     });
   };
+  /** Off if any are on, otherwise all on. */
+  const toggleGroup = (layers: LayerDef[]) => setMany(layers, !primary(layers).some(l => activeLayers[l.key]));
 
   /* Drop layers whose backing capability is not configured, then drop any group
      left with nothing to show. */
@@ -249,6 +316,10 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
     ...g,
     layers: g.layers.filter(l => !l.requires || capabilities[l.requires]),
   })).filter(g => g.layers.length > 0);
+
+  const allLayers = visibleGroups.flatMap(g => g.layers);
+  const totalOn = primary(allLayers).filter(l => activeLayers[l.key]).length;
+  const everyOn = allLayers.every(l => activeLayers[l.key]);
 
   const getCount = (dk: string, catKey?: string): number | null => {
     if (!dk) return null;
@@ -266,45 +337,59 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
     return found ? total : null;
   };
 
+  const masterControls = (
+    <>
+      <span className="text-[10px] font-mono tabular-nums text-white/60">{totalOn} on</span>
+      <span className="flex-1" />
+      <BulkButton label="Turn every layer on" disabled={everyOn} onClick={() => setMany(allLayers, true)}>ALL</BulkButton>
+      <BulkButton label="Turn every layer off" disabled={totalOn === 0} onClick={() => setMany(allLayers, false)}>NONE</BulkButton>
+    </>
+  );
+
+  const renderGroup = (group: LayerGroupDef, mobile = false) => {
+    const Icon = group.icon;
+    const counted = primary(group.layers);
+    const on = counted.filter(l => activeLayers[l.key]).length;
+    return (
+      <>
+        <div className="flex items-center gap-2 mb-1 pb-1.5 border-b border-white/[0.1]">
+          <Icon className="w-3 h-3 flex-shrink-0 transition-colors" style={{ color: on ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)' }} />
+          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/70 flex-1 truncate">{group.fullLabel}</span>
+          {on > 0 && <span className="text-[9px] font-mono tabular-nums text-[var(--cyan-primary)]">{on}/{counted.length}</span>}
+          {counted.length > 1 && (
+            <BulkButton label={`Turn ${on ? 'off' : 'on'} every ${group.fullLabel.toLowerCase()} layer`} onClick={() => toggleGroup(group.layers)}>
+              {on ? 'NONE' : 'ALL'}
+            </BulkButton>
+          )}
+        </div>
+        <div className="flex flex-col gap-0.5">
+          {group.layers.map(layer => (
+            <LayerRow
+              key={layer.key}
+              layer={layer}
+              active={!!activeLayers[layer.key]}
+              count={getCount(layer.dataKey, layer.catKey)}
+              dormant={!!layer.parent && !activeLayers[layer.parent]}
+              onToggle={() => toggle(layer.key)}
+              mobile={mobile}
+            />
+          ))}
+          {group.label === 'DISPLAY' && terrainDetails}
+        </div>
+      </>
+    );
+  };
+
   /* ── MOBILE ── */
   if (isMobile) {
     return (
       <div className="flex flex-col gap-5 py-2">
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/85">All layers</span>
+          {masterControls}
+        </div>
         {visibleGroups.map((group) => (
-          <div key={group.label} className="flex flex-col gap-2">
-            <div className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/30 border-b border-white/[0.06] pb-1.5">
-              {group.fullLabel}
-            </div>
-            <div className="flex flex-col gap-1">
-              {group.layers.map((layer) => {
-                const isLayerActive = activeLayers[layer.key];
-                const count = getCount(layer.dataKey, layer.catKey);
-                const dormant = !!layer.parent && !activeLayers[layer.parent];
-                return (
-                  <button
-                    key={layer.key}
-                    onClick={() => toggle(layer.key)}
-                    aria-pressed={!!isLayerActive}
-                    aria-label={layer.label}
-                    className={`relative w-full flex items-center gap-3 py-2 rounded-md text-left hover:bg-white/[0.04] transition-colors ${layer.parent ? 'pl-[22px] pr-1' : 'px-1'} ${dormant ? 'opacity-40' : ''}`}
-                  >
-                    {layer.parent && <SubLayerStem />}
-                    <ToggleSwitch active={!!isLayerActive} />
-                    <span className={`text-[11px] font-mono uppercase tracking-wider flex-1 transition-colors ${isLayerActive ? 'text-white/80' : 'text-white/40'}`}>
-                      {layer.label}
-                      {layer.description && <span className="block mt-0.5 text-[9px] normal-case tracking-normal text-white/35">{layer.description}</span>}
-                    </span>
-                    {count !== null && (
-                      <span className="text-[10px] font-mono tabular-nums text-white/25">
-                        {count.toLocaleString()}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-              {group.label === 'DISPLAY' && terrainDetails}
-            </div>
-          </div>
+          <div key={group.label}>{renderGroup(group, true)}</div>
         ))}
 
         {/* MOBILE STYLE STUDIO */}
@@ -361,146 +446,113 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
     >
       <div className="flex-1 flex flex-col items-center gap-1">
         {visibleGroups.map((group) => {
-          /* Sub-layers modify a parent rather than draw anything of their own,
-             so they do not count towards the rail's reading. */
-          const counted = group.layers.filter(l => !l.parent);
-          const groupActive = counted.some(l => activeLayers[l.key]);
+          const counted = primary(group.layers);
+          const activeCount = counted.filter(l => activeLayers[l.key]).length;
+          const groupActive = activeCount > 0;
           const isHovered = hoveredGroup === group.label;
+          const isFocused = open && focusGroup === group.label;
           const Icon = group.icon;
 
-          const activeCount = counted.filter(l => activeLayers[l.key]).length;
-          const isPinned = pinnedGroup === group.label;
-          const isOpen = isHovered || isPinned;
-
           return (
-            <div
+            <button
               key={group.label}
-              className="relative flex items-center justify-center"
+              type="button"
+              onClick={() => openAt(group.label)}
               onMouseEnter={() => setHoveredGroup(group.label)}
               onMouseLeave={() => setHoveredGroup(null)}
+              aria-expanded={open}
+              aria-controls="layer-panel"
+              aria-label={`${group.fullLabel}${activeCount ? ` — ${activeCount} active` : ''}`}
+              title={group.fullLabel}
+              className="relative w-10 h-10 flex items-center justify-center cursor-pointer rounded-lg transition-colors duration-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+              style={{
+                background: isFocused
+                  ? 'rgba(255,255,255,0.10)'
+                  : isHovered ? 'rgba(255,255,255,0.05)' : 'transparent',
+              }}
             >
-              {/* A real button, not a div: this is keyboard reachable, focusable
-                  and announced. Clicking pins the flyout open so it can be
-                  worked in rather than only glanced at. */}
-              <button
-                onClick={() => setPinnedGroup(isPinned ? null : group.label)}
-                aria-expanded={isOpen}
-                aria-label={`${group.fullLabel}${activeCount ? ` — ${activeCount} active` : ''}`}
-                title={group.fullLabel}
-                className="relative w-10 h-10 flex items-center justify-center cursor-pointer rounded-lg transition-all duration-300 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+              <Icon
+                className="transition-all duration-300"
                 style={{
-                  background: isPinned
-                    ? 'rgba(255,255,255,0.10)'
-                    : isHovered ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  width: 16,
+                  height: 16,
+                  color: groupActive
+                    ? 'rgba(255,255,255,0.75)'
+                    : isHovered || isFocused
+                      ? 'rgba(255,255,255,0.45)'
+                      : 'rgba(255,255,255,0.22)',
+                  filter: groupActive ? 'drop-shadow(0 0 4px rgba(255,255,255,0.3))' : 'none',
                 }}
-              >
-                <Icon
-                  className="transition-all duration-300"
+              />
+              {activeCount > 0 && (
+                <span
+                  className="absolute top-1 right-1 min-w-[13px] h-[13px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-mono tabular-nums leading-none"
                   style={{
-                    width: 16,
-                    height: 16,
-                    color: groupActive
-                      ? 'rgba(255,255,255,0.75)'
-                      : isOpen
-                        ? 'rgba(255,255,255,0.45)'
-                        : 'rgba(255,255,255,0.22)',
-                    filter: groupActive ? 'drop-shadow(0 0 4px rgba(255,255,255,0.3))' : 'none',
+                    background: 'rgba(0,229,255,0.9)',
+                    color: '#04040A',
+                    boxShadow: '0 0 6px rgba(0,229,255,0.5)',
                   }}
-                />
-
-                {/* How many layers in this group are live. Without it the rail
-                    gives no reading at all until each icon is hovered in turn. */}
-                {activeCount > 0 && (
-                  <span
-                    className="absolute top-1 right-1 min-w-[13px] h-[13px] px-[3px] rounded-full flex items-center justify-center text-[9px] font-mono tabular-nums leading-none"
-                    style={{
-                      background: 'rgba(0,229,255,0.9)',
-                      color: '#04040A',
-                      boxShadow: '0 0 6px rgba(0,229,255,0.5)',
-                    }}
-                  >
-                    {activeCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Flyout (LEFT side) */}
-              <AnimatePresence>
-                {isOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -8, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                    exit={{ opacity: 0, x: -4, filter: 'blur(2px)' }}
-                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                    className="absolute left-[52px] top-1/2 -translate-y-1/2 min-w-[220px] rounded-xl p-3 z-[100] pointer-events-auto"
-                    style={{
-                      background: 'rgba(0,0,0,0.6)',
-                      backdropFilter: 'blur(40px) saturate(1.5)',
-                      WebkitBackdropFilter: 'blur(40px) saturate(1.5)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                    }}
-                  >
-                    <div className="flex items-center gap-2 mb-2.5 pb-1.5 border-b border-white/[0.04]">
-                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/35 flex-1">
-                        {group.fullLabel}
-                      </span>
-                      {/* Switching eight satellite layers one at a time is the
-                          kind of thing that makes a panel feel unfinished. */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleGroup(group.layers); }}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-mono tracking-wider text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                      >
-                        {activeCount > 0 ? 'NONE' : 'ALL'}
-                      </button>
-                      {isPinned && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setPinnedGroup(null); }}
-                          aria-label="Close"
-                          className="px-1.5 py-0.5 rounded text-[10px] font-mono text-white/40 hover:text-white hover:bg-white/10 transition-colors"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      {group.layers.map((layer) => {
-                        const isLayerActive = activeLayers[layer.key];
-                        const count = getCount(layer.dataKey, layer.catKey);
-                        const dormant = !!layer.parent && !activeLayers[layer.parent];
-
-                        return (
-                          <button
-                            key={layer.key}
-                            onClick={() => toggle(layer.key)}
-                            aria-pressed={!!isLayerActive}
-                            aria-label={layer.label}
-                            title={dormant ? 'Turn the layer above on to use this' : undefined}
-                            className={`relative w-full flex items-center gap-3 py-1.5 rounded-md hover:bg-white/[0.05] transition-colors cursor-pointer text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 ${layer.parent ? 'pl-[22px] pr-1' : 'px-1'} ${dormant ? 'opacity-40' : ''}`}
-                          >
-                            {layer.parent && <SubLayerStem />}
-                            <ToggleSwitch active={!!isLayerActive} />
-                            <span className={`text-[11px] font-mono uppercase tracking-wider flex-1 transition-colors duration-200 ${isLayerActive ? 'text-white/70' : 'text-white/35'}`}>
-                              {layer.label}
-                              {layer.description && <span className="block mt-0.5 text-[9px] normal-case tracking-normal text-white/35">{layer.description}</span>}
-                            </span>
-                            {count !== null && (
-                              <span className={`text-[10px] font-mono tabular-nums transition-colors ${isLayerActive ? 'text-white/45' : 'text-white/20'}`}>
-                                {count.toLocaleString()}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                      {group.label === 'DISPLAY' && terrainDetails}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                >
+                  {activeCount}
+                </span>
+              )}
+            </button>
           );
         })}
       </div>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            id="layer-panel"
+            role="dialog"
+            aria-label="Map layers"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -6 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+            // Stops above the map view strip in the bottom-left corner.
+            className="absolute left-[52px] top-24 w-[264px] lg:w-[492px] max-h-[calc(100%-264px)] flex flex-col rounded-xl z-[100] pointer-events-auto"
+            style={{
+              background: 'var(--bg-panel-solid)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.65)',
+            }}
+          >
+            <div className="flex items-center gap-2 px-3 pt-2.5 pb-2 border-b border-white/[0.1] shrink-0">
+              <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/90">Layers</span>
+              {masterControls}
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close layers"
+                className="ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-white/70 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="min-h-0 overflow-y-auto styled-scrollbar p-2 flex flex-col lg:flex-row gap-2">
+              {splitColumns(visibleGroups).map((column, i) => (
+                <div key={i} className="flex-1 min-w-0 flex flex-col gap-1">
+                  {column.map((group) => {
+                    const lit = (hoveredGroup ?? focusGroup) === group.label;
+                    return (
+                      <section
+                        key={group.label}
+                        ref={el => { sectionRefs.current[group.label] = el; }}
+                        className="rounded-lg p-2 transition-colors duration-200"
+                        style={{ background: lit ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+                      >
+                        {renderGroup(group)}
+                      </section>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Subtle separator */}
       <div className="w-5 h-px bg-white/[0.06] my-2" />
