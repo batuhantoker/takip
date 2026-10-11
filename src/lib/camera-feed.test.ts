@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView } from './camera-feed';
+import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView, withdrawalCheck } from './camera-feed';
 
 const SKY = 'https://www.skylinewebcams.com/en/webcam/japan/gunma/yubatake/yubatake.html';
 const WATCH = 'https://www.youtube.com/watch?v=UemFRPrl1hk';
@@ -157,9 +157,15 @@ describe('liveFeedAtSource', () => {
   });
 
   it('does not claim live video exists behind other operators', () => {
-    // Only SkylineWebcams is known to keep a live stream behind the still.
+    // Only SkylineWebcams and Kayseri are known to keep a live stream behind the still.
     expect(liveFeedAtSource({ external_url: 'https://www.earthcam.com/x', feed_url: JPG })).toBeNull();
     expect(liveFeedAtSource({ external_url: 'https://voyage.aprr.fr/x', feed_url: JPG })).toBeNull();
+    expect(liveFeedAtSource({ external_url: 'https://izle.kayseri.bel.tr.evil.com/kamera/x', feed_url: JPG })).toBeNull();
+  });
+
+  it('offers the Kayseri camera page, whose video is Referer-gated and token-limited', () => {
+    const page = 'https://izle.kayseri.bel.tr/kamera/tekir-pist';
+    expect(liveFeedAtSource({ external_url: page, feed_url: 'https://izle.kayseri.bel.tr/kameraGorsel/36' })).toBe(page);
   });
 
   it('is safe on a missing or empty camera', () => {
@@ -167,5 +173,19 @@ describe('liveFeedAtSource', () => {
     expect(liveFeedAtSource(undefined)).toBeNull();
     expect(liveFeedAtSource({})).toBeNull();
     expect(liveFeedAtSource({ feed_url: JPG })).toBeNull();
+  });
+});
+
+describe('withdrawalCheck', () => {
+  it('checks Skyline snapshot cameras, whose snapshot ids get reused', () => {
+    expect(withdrawalCheck({ external_url: SKY, feed_url: 'https://cdn.skylinewebcams.com/live5368.jpg' })).toBe(SKY);
+  });
+
+  it('does not send other live-at-source pages to the resolver, which would reject them', () => {
+    expect(withdrawalCheck({
+      external_url: 'https://izle.kayseri.bel.tr/kamera/tekir-pist',
+      feed_url: 'https://izle.kayseri.bel.tr/kameraGorsel/36',
+    })).toBeNull();
+    expect(withdrawalCheck(null)).toBeNull();
   });
 });

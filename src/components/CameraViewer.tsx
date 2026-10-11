@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink, RefreshCw, MapPin, Camera, CameraOff, Maximize2, PlayCircle } from 'lucide-react';
 import Hls from 'hls.js';
-import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView } from '@/lib/camera-feed';
+import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView, withdrawalCheck } from '@/lib/camera-feed';
 import { clearLook, registerVideo } from '@/lib/vision/store';
 import CameraVision from './CameraVision';
 
@@ -60,7 +60,7 @@ export default function CameraViewer({ camera, onClose, onLocate, besideOi = fal
   // Snapshot cameras are checked too, in the background: the picture shows
   // immediately and is withdrawn only if the source says the camera is gone.
   const resolveKey: string | null =
-    (needsResolution(camera) ? camera.external_url : null) ?? liveFeedAtSource(camera);
+    (needsResolution(camera) ? camera.external_url : null) ?? withdrawalCheck(camera);
   const [resolution, setResolution] = useState<{ key: string; embed: string | null; offline: boolean; kind?: string } | null>(null);
   const resolvedEmbed = directEmbed ?? (resolution && resolution.key === resolveKey ? resolution.embed : null);
   const resolving = Boolean(resolveKey) && resolution?.key !== resolveKey;

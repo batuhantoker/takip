@@ -57,10 +57,21 @@ export function localEmbed(camera: ResolvableCamera | null | undefined): string 
  * The snapshot is still worth showing — measured refreshing about every 25
  * seconds — so this offers the live feed alongside it rather than instead of
  * it, and lets the viewer label the still as a snapshot rather than as live.
+ *
+ * Kayseri's municipal cameras are the same shape (see api/cctv/turkey.ts).
  */
 export function liveFeedAtSource(camera: ResolvableCamera | null | undefined): string | null {
   if (!camera?.external_url || !camera.feed_url || camera.stream_url) return null;
-  return isSkylineUrl(camera.external_url) ? camera.external_url : null;
+  const url = camera.external_url;
+  return isSkylineUrl(url) || isKayseriCameraPage(url) ? url : null;
+}
+
+const isKayseriCameraPage = (url: string) => /^https:\/\/izle\.kayseri\.bel\.tr\/kamera\/[a-z0-9-]+$/.test(url);
+
+/** The page to ask whether a snapshot camera has been withdrawn — only SkylineWebcams reuses snapshot ids. */
+export function withdrawalCheck(camera: ResolvableCamera | null | undefined): string | null {
+  const url = liveFeedAtSource(camera);
+  return url && isSkylineUrl(url) ? url : null;
 }
 
 /**
