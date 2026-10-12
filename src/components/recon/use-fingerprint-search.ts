@@ -6,6 +6,7 @@ import {
   HISTORY_KEY, type SearchType, type Category, type HistoryEntry,
 } from '@/lib/fingerprint';
 import { toRow, type Row, type Source, type Phase } from '@/lib/recon-fingerprint';
+import { lookupError, SIGN_IN_REQUIRED } from '@/lib/recon-lookup';
 
 /**
  * Held by OsintPanel rather than the view: the expanded mode renders through
@@ -104,12 +105,21 @@ export function useFingerprintSearch() {
     const getJson = async (url: string) => {
       const res = await fetch(url, { signal: ctrl.signal });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!res.ok) throw new Error(lookupError(data, `HTTP ${res.status}`));
       return data;
     };
     const settle = (id: string, patch: Partial<Source>) =>
       setSources(prev => prev.map(s => (s.id === id ? { ...s, ...patch } : s)));
     const message = (e: unknown) => (e instanceof Error ? e.message : 'Lookup failed');
+    const signInRefused = (e: unknown) => message(e) === SIGN_IN_REQUIRED;
+    // A refusal isn't a search: nothing is logged, and the bar offers sign-in.
+    const refuse = () => {
+      setSearched(null);
+      setSources([]);
+      setStartedAt(0);
+      setPhase('idle');
+      setError(SIGN_IN_REQUIRED);
+    };
 
     /* ── username: streamed sweep ── */
     if (type === 'username') {
@@ -121,7 +131,7 @@ export function useFingerprintSearch() {
         });
         if (!res.ok || !res.body) {
           const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `Search failed (${res.status})`);
+          throw new Error(lookupError(body, `Search failed (${res.status})`));
         }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -174,6 +184,8 @@ export function useFingerprintSearch() {
       } catch (e) {
         if (ctrl.signal.aborted) {
           finish('stopped', hits);
+        } else if (signInRefused(e)) {
+          refuse();
         } else {
           setError(message(e));
           finish('fail', hits);
@@ -200,6 +212,7 @@ export function useFingerprintSearch() {
         ),
       ]);
       if (ctrl.signal.aborted) return finish('stopped', 0);
+      if (outcomes.some(o => o.status === 'rejected' && signInRefused(o.reason))) return refuse();
       const breaches = outcomes[0].status === 'fulfilled' ? outcomes[0].value : 0;
       if (outcomes.every(o => o.status === 'rejected')) {
         setError('Every source failed to answer.');
@@ -216,6 +229,7 @@ export function useFingerprintSearch() {
       finish('done', d.valid ? 1 : 0);
     } catch (e) {
       if (ctrl.signal.aborted) return finish('stopped', 0);
+      if (signInRefused(e)) return refuse();
       settle('number', { state: 'error', error: message(e) });
       setError(message(e));
       finish('fail', 0);

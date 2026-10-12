@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { search, type Schema } from '@/lib/sanctions';
+import { reconGate } from '@/lib/recon-gate';
 
 // Standalone OFAC SDN search (free, no key) backed by the OpenSanctions
 // `us_ofac_sdn` mirror. Substring + alias-aware match, schema-filterable.
@@ -15,6 +15,8 @@ const ALLOWED_SCHEMAS: Schema[] = [
 ];
 
 export async function GET(req: Request) {
+  const denied = await reconGate(req, 'network');
+  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const query = (searchParams.get('query') || '').trim();
   const schemaParam = searchParams.get('schema');
@@ -28,11 +30,6 @@ export async function GET(req: Request) {
       { error: 'Query must be at least 4 characters' },
       { status: 400 }
     );
-  }
-
-  const clientIp = getClientIp(req);
-  if (isRateLimited(clientIp, 20, 60_000)) {
-    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   let schema: Schema | undefined;
