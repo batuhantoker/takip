@@ -398,13 +398,35 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
     - The admin plugin's `removeUser` skips `beforeDelete`; nothing calls it over HTTP.
   - **Encrypted OAuth tokens** (`9a38e7e`): `account.encryptOAuthTokens` covers access and refresh tokens. Better Auth never encrypts ID tokens, so an account hook drops them. Each boot clears plaintext tokens (`auth/oauth-tokens.ts`); on a copy of the dev DB that was one Google access token and one ID token. Rotating `BETTER_AUTH_SECRET` makes stored tokens unreadable, and nothing reads them.
   - **Audit retention, 30 days** (`b0f614f`): a daily `audit.prune` job (`AUDIT_RETENTION_DAYS`). `docs/privacy-draft.md` now states 30 days.
-- The dev DB is at `user_version` 6.
+- **E** (`cd37fb6`): saved workspaces.
+  - `ws_workspace` (migration 7); `/api/v1/workspaces` CRUD with `If-Match`/`rev`, `POST|DELETE /:id/share`, and `GET /api/v1/w/:slug` (no session, never names the owner).
+  - `workspaces.max` and `workspaces.share` enforced; erase and export include workspaces.
+  - Client library `src/lib/workspaces/*`: parts registered with `useWorkspacePart`, autosave (2 s, `If-Match: *`), and a one-time import from this device. UI in `src/components/workspaces/*`; landing `src/app/w/[slug]`.
+  - **Not mounted yet**: see the shell commit below.
+- **`ads.off`** (`27c35d3`, osiris-98's): an entitlement seeded by migration 6, off for anon and free, on for pro. Workspaces went to migration 7 after it. `f493407` adds "No ads" to the plan copy, shown only when `NEXT_PUBLIC_ADSENSE_CLIENT` is set.
+- **G2a** (`c3571fd`): backups and the mail queue.
+  - The `db.backup` job runs at 02:00 UTC (and on the first start each day): `VACUUM INTO` a temp file, fsync, `integrity_check`, rename. It keeps `APP_BACKUP_KEEP` (14) in `APP_BACKUP_DIR` (`data/backups`, gitignored: snapshots hold password hashes).
+  - `npm run backup -w @takip/api` takes one on demand; `-- check <file>` verifies one. Runbook: `docs/runbooks/app-db-restore.md`, drilled by hand and as a test.
+  - Mail goes through an `email.send` job with its own runner (2 min base delay, 6 attempts). Better Auth's callbacks only enqueue, so responses don't depend on SMTP.
+- **D3** (`fa8a201`): every `/api/osint/*` route and `/api/scanner` needs an account or an API key (`src/lib/recon-gate.ts`).
+  - Per-account limits by family: breach 20/h, people 30/h, scan 30/h, network 15/min, reference 30/min.
+  - `me/access` returns `subject`; `getAccess` forwards only `Bearer tk_…`. The plan copy lists only built features (`BUILT` in `plan-highlights.ts`).
+- **F2** (`67c0cd8`):
+  - `jobs.prune` drops finished jobs after `JOB_RETENTION_DAYS` (7).
+  - Signed-out users see the sign-in notice on the browser-side recon tabs (leaks, Shodan, sweep).
+  - The OSINT decision is recorded in `TODO.md` §7 and `backend.md` §13 and §17.
+  - The api-keys logger and the `bucketKey` reuse.
+- **History note:** `d4bd69d` (History, another session) was built from a tree that predates `fa8a201`, so taken alone it drops D3's files. `f493407` restores them, and the tip is correct. Bisecting across `d4bd69d` will see the OSINT gate missing.
+- The dev DB is at `user_version` 8.
 
 ### Landing branches here
 Several sessions share one working copy, so `git merge` refuses whenever a merged file has someone's uncommitted edits. Use `python3 tools/land-branch.py <branch> "<message>"`:
 - The dry run lists every file as clean, 3-way merged or conflicting, and writes conflict files with markers to a temp folder.
 - Resolve them into a folder and pass `--resolved=<dir>`, then `--apply`. The commit gets the branch's content; other sessions' edits stay unstaged in the working copy.
 - `--delete-dirty` lets a branch delete files that others have edited. Check those edits first.
+
+### Deferred by the user
+- **Deployment** (the api's Docker image, the compose service, nginx routing `/api/*` to the api, Litestream): waits for the hosting decision (Cloudflare Tunnel vs nginx/TLS).
 
 ### Follow-ups
 - **Spoofable api IP without nginx.** Next's external rewrites pass the client's `X-Forwarded-For` through unchanged (httpxy without `xfwd`). In dev, or the Docker image without nginx, a client can choose its api IP. Fix: nginx in front, as planned, or a `src/proxy.ts` that strips forwarding headers on `/api/(auth|v1|admin|replay)`.
