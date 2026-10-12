@@ -46,6 +46,10 @@ describe('GET /api/v1/account/export', () => {
       overrides: [{ key: 'api.keys.max', value: '3', expiresAt: null, reason: 'partner' }],
       billingCustomers: [{ provider: 'fake', customerId: `cus_${ada.userId}` }],
       apiKeys: [{ name: 'laptop', revokedAt: null }],
+      workspaces: [{
+        id: ada.workspaceId, name: 'Black Sea', rev: 1, visibility: 'link', shareSlug: expect.any(String), deletedAt: null,
+        state: { v: 1, layers: { ships: true }, recentPlaces: [{ label: 'Home', lat: 41, lng: 29, at: 1 }] },
+      }],
     });
     expect(data.signInMethods.map(m => m.provider).sort()).toEqual(['credential', 'google']);
     expect(data.sessions).toHaveLength(2);

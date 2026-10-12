@@ -1,5 +1,6 @@
 import { isIP } from 'node:net';
 import type { AppDb } from '../db/app-db';
+import { SEND_EMAIL_JOB } from '../mail/mail-queue';
 
 /**
  * Every table holding rows that belong to one user (backend.md §12.3). A new table with user data gets a line
@@ -8,6 +9,7 @@ import type { AppDb } from '../db/app-db';
  */
 const OWNED: readonly { table: string; where: string }[] = [
   { table: 'api_key', where: 'user_id = @id' },
+  { table: 'ws_workspace', where: 'owner_id = @id' },
   { table: 'admin_unlock', where: 'user_id = @id' },
   { table: 'bill_subject_override', where: "subject_type = 'user' AND subject_id = @id" },
   { table: 'bill_subscription', where: "subject_type = 'user' AND subject_id = @id" },
@@ -17,6 +19,8 @@ const OWNED: readonly { table: string; where: string }[] = [
   { table: 'auth_session', where: 'userId = @id OR impersonatedBy = @id' },
   // Reset, deletion, 2FA and trust-device rows hold the user id; a pending provider connection holds it in JSON.
   { table: 'auth_verification', where: "value = @id OR (json_valid(value) AND json_extract(value, '$.link.userId') = @id)" },
+  // Mail queued, sent or failed: the payload holds the address and the emailed link.
+  { table: 'job', where: `kind = '${SEND_EMAIL_JOB}' AND lower(json_extract(payload, '$.to')) = @email` },
 ];
 
 export type EraseActor = { type: 'user' | 'admin' | 'system'; id: string | null };
@@ -64,7 +68,7 @@ export function eraseUser(db: AppDb, user: { id: string; email: string }, actor:
   return db.transaction(() => {
     const removed: Record<string, number> = {};
     for (const { table, where } of OWNED) {
-      const { changes } = db.prepare(`DELETE FROM ${table} WHERE ${where}`).run({ id: user.id });
+      const { changes } = db.prepare(`DELETE FROM ${table} WHERE ${where}`).run({ id: user.id, email });
       if (changes) removed[table] = changes;
     }
     let pseudonymised = 0;

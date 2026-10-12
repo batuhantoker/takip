@@ -73,6 +73,8 @@ scanner_backend_backup.js
 
 # Accounts database (password hashes, sessions) and the replay database files
 /data/db/
+# Snapshots of the accounts database
+/data/backups/
 # Raw feed archive and the other replay data areas (docs/architecture/replay-database.md §4.1)
 /data/archive/
 /data/cold/

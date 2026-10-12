@@ -63,6 +63,12 @@ export function accountExport(db: AppDb, userId: string, { access, currentSessio
       .map((row): Json => ({ ...times(row, 'at'), data: JSON.parse(row.data as string) as unknown })),
     adminUnlocks: all('SELECT unlocked_at AS unlockedAt FROM admin_unlock WHERE user_id = ? ORDER BY unlocked_at', userId)
       .map(row => times(row, 'unlockedAt')),
+    // Deleted ones too: they stay in app.db until the account goes.
+    workspaces: all(`
+      SELECT workspace_id AS id, name, state, state_version AS stateVersion, rev, visibility, share_slug AS shareSlug,
+             created_at AS createdAt, updated_at AS updatedAt, deleted_at AS deletedAt
+      FROM ws_workspace WHERE owner_id = ? ORDER BY created_at, workspace_id`, userId)
+      .map((row): Json => ({ ...times(row, 'createdAt', 'updatedAt', 'deletedAt'), state: JSON.parse(row.state as string) as unknown })),
   };
 }
 
