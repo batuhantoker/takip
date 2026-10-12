@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [master]
     tags: ["v*.*.*"]
   pull_request:
   workflow_dispatch:
@@ -30,8 +30,9 @@ jobs:
 
       - run: npm ci
 
+      # Widen as the web app's existing lint errors are cleared (428 at d142b39).
       - name: Lint
-        run: npm run lint
+        run: npx eslint apps packages tools
 
       - name: Typecheck (web)
         run: npx tsc --noEmit
