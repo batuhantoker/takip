@@ -6,7 +6,7 @@ import { credentials, disabled, disabledResponse, fail, json, readBody, siteOrig
  * OSIRIS OI — start a prediction.
  *
  * POST /api/oi/runs
- *   headers  X-OI-Provider, X-OI-Key (or Authorization: Bearer), X-OI-Model (optional)
+ *   headers  X-OI-Provider, X-OI-Key, X-OI-Model (optional)
  *   body     { question, seed?, seed_scope?: brief|panel, depth?: quick|standard|deep, use_feeds?: boolean }
  *
  * Answers 202 at once with the run's id and token. Follow it on

@@ -15,8 +15,8 @@ import { credentials, disabled, limited, siteOrigin } from '@/lib/oi/service';
  * it can wait out a whole run. Over plain JSON it waits at most 80 s, under
  * the edge proxy's timeout, and hands back the run id to poll.
  *
- * Model keys come from headers: X-OI-Provider, X-OI-Key (or
- * Authorization: Bearer), X-OI-Model.
+ * Model keys come from headers: X-OI-Provider, X-OI-Key, X-OI-Model.
+ * Authorization is reserved for TAKIP's own API keys and sessions.
  */
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;

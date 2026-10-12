@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Loader2, RefreshCw, X, Activity, ArrowLeftRight, CircleDot } from 'lucide-react';
 import { BLOCS, BLOC_ORDER, timeAgo, type AlertBrief, type AlertThread } from '@/lib/alert-digest';
+import { hostedAiNotice, type HostedAiBlock } from '@/lib/hosted-ai';
 
 /**
  * OSIRIS — One-Click AI Overview
@@ -31,6 +32,7 @@ interface OverviewResult {
   generatedBy: 'gemini' | 'analyst';
   generatedAt: string;
   brief?: AlertBrief;
+  hostedAi?: HostedAiBlock;
 }
 
 const PERSPECTIVE: Record<AlertThread['perspective'], { label: string; color: string; title: string }> = {
@@ -167,7 +169,10 @@ export default function AiOverview({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode, payload }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(hostedAiNotice(body?.error) ?? `HTTP ${res.status}`);
+      }
       setResult(await res.json());
       setResultSignature(sig);
     } catch (e) {
@@ -185,6 +190,7 @@ export default function AiOverview({
 
   const stale = Boolean(result && signature && resultSignature && signature !== resultSignature);
   const brief = result?.brief;
+  const notice = hostedAiNotice(result?.hostedAi);
 
   return (
     <div className="w-full">
@@ -283,6 +289,8 @@ export default function AiOverview({
                   </div>
                 </>
               )}
+
+              {notice && <div className="mt-1.5 text-[9.5px] leading-snug text-[var(--text-muted)]">{notice}</div>}
             </div>
           </motion.div>
         )}
