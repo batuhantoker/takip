@@ -337,6 +337,7 @@ It follows the same portability rules as the data platform (`replay-database.md`
   - Keeps billing records only as long as tax law requires, stored at the provider.
 - **Data export:** `GET /api/v1/account/export` returns the user's data as JSON.
 - **Audit retention:** 30 days; the daily `audit.prune` job deletes older `audit_event` rows (`AUDIT_RETENTION_DAYS`).
+- **Job retention:** 7 days after a job is done or failed; the daily `jobs.prune` job deletes older `job` rows (`JOB_RETENTION_DAYS`), whose `email.send` payloads hold addresses and emailed links.
 - **Umami:** removed. It reported page views and every visitor's IP to the upstream author's Umami instance.
 - **Session cookies are strictly necessary,** so no consent banner is needed for them. Revisit if marketing analytics are added.
 - **Applicable law:** GDPR, and KVKK if the business is Turkish. Update `/privacy` before accounts launch.

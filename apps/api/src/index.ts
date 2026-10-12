@@ -13,6 +13,7 @@ import { billingProviderFor } from './billing/registry';
 import { openAppDb } from './db/app-db';
 import { backupJobs, scheduleBackup } from './db/backup';
 import { migrateAppSchema } from './db/migrations';
+import { jobQueueJobs, schedulePruneJobs } from './jobs/jobs-prune';
 import { createJobQueue } from './jobs/queue';
 import { createJobRunner } from './jobs/runner';
 import { createMailQueue } from './mail/mail-queue';
@@ -44,12 +45,14 @@ const access = createAccess(db);
 if (billing) scheduleReconcile(jobs, Date.now());
 schedulePruneUsage(jobs, Date.now());
 schedulePruneAudit(jobs, Date.now());
+schedulePruneJobs(jobs, Date.now());
 scheduleBackup(jobs, Date.now());
 const retention = { days: env.USAGE_RETENTION_DAYS, anonDays: env.USAGE_ANON_RETENTION_DAYS };
 const stopJobs = createJobRunner(jobs, {
   ...billingJobs({ db, access, provider: billing, queue: jobs, logger }),
   ...usageJobs({ db, queue: jobs, retention, logger }),
   ...auditJobs({ db, queue: jobs, days: env.AUDIT_RETENTION_DAYS, logger }),
+  ...jobQueueJobs({ db, queue: jobs, days: env.JOB_RETENTION_DAYS, logger }),
   ...backupJobs({ db, queue: jobs, dir: env.APP_BACKUP_DIR, keep: env.APP_BACKUP_KEEP, logger }),
 }, { logger }).start();
 const stopMail = mail.start();

@@ -40,6 +40,8 @@ const schema = z
     USAGE_ANON_RETENTION_DAYS: z.coerce.number().int().positive().default(35),
     // Days of audit_event kept.
     AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
+    // Days finished jobs are kept: email.send payloads hold addresses and emailed links.
+    JOB_RETENTION_DAYS: z.coerce.number().int().positive().default(7),
     // The origin the browser sees (the web app), not this server's own address.
     BETTER_AUTH_URL: z.url().default('http://localhost:3000'),
     BETTER_AUTH_SECRET: z.string().min(32).optional(),
