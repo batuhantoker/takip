@@ -555,7 +555,7 @@ export const API_GROUPS: ApiGroup[] = [
     id: 'ai',
     title: 'AI Analysis',
     blurb:
-      'Gemini-backed correlation over feed data you supply. All three are POST, all three are rate limited to 5 requests per minute per IP.',
+      'Gemini-backed correlation over feed data you supply. All three are POST, all three are rate limited to 5 requests per minute per IP. The server’s own Gemini key is for Pro plans; analyze and briefing run free for anyone on a Gemini key sent in X-Gemini-Key.',
     endpoints: [
       {
         path: '/api/ai/analyze',
@@ -563,7 +563,7 @@ export const API_GROUPS: ApiGroup[] = [
         summary: 'Cross-feed correlation and threat assessment over an intelligence context.',
         returns: ['…analysis'],
         notes:
-          'Body is an `IntelligenceContext`. Exceeding the limit returns 429. Feed it straight from the read endpoints — the shape matches what they return.',
+          'Body is an `IntelligenceContext`. Exceeding the limit returns 429. Feed it straight from the read endpoints — the shape matches what they return. Without `X-Gemini-Key` the server’s key is used, which needs a Pro plan: otherwise 403 `{ "error": "entitlement_required", "entitlement": "ai.hosted" }`, or 503 `{ "error": "access_unavailable" }` when the plan can’t be checked.',
         bodyExample: `{
   "earthquakes": [],
   "news": [],
@@ -577,7 +577,7 @@ export const API_GROUPS: ApiGroup[] = [
         method: 'POST',
         summary: 'Structured threat briefing in the style of a daily intelligence product.',
         returns: ['…briefing'],
-        notes: 'Same `IntelligenceContext` body and same rate limit as `/api/ai/analyze`.',
+        notes: 'Same `IntelligenceContext` body, rate limit and key rules as `/api/ai/analyze`.',
         bodyExample: `{
   "earthquakes": [],
   "news": [],
@@ -590,7 +590,8 @@ export const API_GROUPS: ApiGroup[] = [
         path: '/api/ai/overview',
         method: 'POST',
         summary: 'One-click read-out for the Alerts or Markets panel. Alerts also return a structured brief: threads by theatre, perspective and seismic summary.',
-        returns: ['mode', 'overview', 'highlights', 'generatedBy', 'generatedAt', 'brief'],
+        returns: ['mode', 'overview', 'highlights', 'generatedBy', 'generatedAt', 'brief', 'hostedAi'],
+        notes: 'Gemini writes the read-out for Pro plans; everyone else gets the heuristic analyst, and `hostedAi` says why (`entitlement_required`, or `access_unavailable` when the plan can’t be checked).',
         bodyExample: `{
   "mode": "alerts",
   "payload": {

@@ -11,8 +11,9 @@ export function ApiReference({ origin }: { origin: string }) {
         <p>
           All routes live under <Code>/api</Code> on whatever origin serves the application. Reads are{' '}
           <Code>GET</Code>, writes are <Code>POST</Code> with a JSON body. Nothing requires authentication except{' '}
-          <Code>/api/sdk/ingest</Code> and <Code>/api/github-webhook</Code>. OI runs on a model key you bring,
-          sent in the <Code>X-OI-Key</Code> header.
+          <Code>/api/sdk/ingest</Code>, <Code>/api/github-webhook</Code>, and the AI endpoints when they run on the
+          server&apos;s Gemini key, which is for Pro plans. OI runs on a model key you bring, sent in the{' '}
+          <Code>X-OI-Key</Code> header; <Code>Authorization</Code> is reserved for TAKIP API keys.
         </p>
         <div className="space-y-2.5">
           {[

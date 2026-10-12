@@ -5,7 +5,7 @@ import { askPrediction, credentials, disabled, disabledResponse, fail, json, lim
  * OSIRIS OI — talk to the simulation after (or during) a run.
  *
  * POST /api/oi/runs/{id}/ask
- *   headers  X-OI-Key (or Authorization: Bearer); X-OI-Provider and X-OI-Model default to the run's
+ *   headers  X-OI-Key; X-OI-Provider and X-OI-Model default to the run's
  *   body     { target?: "report" | <id of an actor that played>, message }
  */
 export const dynamic = 'force-dynamic';

@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientIp } from '@/lib/ssrf-guard';
+import { requireEntitlement } from '@/lib/access-server';
 import {
   createGeminiClient,
   rotateApiKey,
@@ -99,7 +100,7 @@ interface ErrorResponse {
 
 export async function POST(
   request: NextRequest
-): Promise<NextResponse<AnalyzeResponse | ErrorResponse>> {
+): Promise<NextResponse<AnalyzeResponse | ErrorResponse> | Response> {
   /* Through the shared helper. Reading x-forwarded-for[0] here meant reading
      the one entry in the chain the caller writes: a fresh header bought a
      fresh bucket, so the five-a-minute limit below did not bind at all and
@@ -144,6 +145,8 @@ export async function POST(
         { status: 503 }
       );
     }
+    const denied = await requireEntitlement(request, 'ai.hosted');
+    if (denied) return denied;
     apiKey = rotateApiKey(envKeys);
   }
 

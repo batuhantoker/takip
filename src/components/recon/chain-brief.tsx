@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { Loader2, Sparkles, Bug, Flame, ShieldAlert, ExternalLink } from 'lucide-react';
+import { hostedAiNotice } from '@/lib/hosted-ai';
 
 /**
  * OSIRIS — Daily chain-threat brief.
@@ -88,7 +89,8 @@ function ChainBriefInner() {
         body: JSON.stringify({ mode: 'chain', payload: { brief: briefRef.current } }),
       });
       const d = await res.json();
-      setAi(d.overview || d.error || 'No overview returned.');
+      const notice = hostedAiNotice(d.hostedAi ?? d.error);
+      setAi(d.overview ? [d.overview, notice].filter(Boolean).join('\n\n') : notice || d.error || 'No overview returned.');
     } catch {
       setAi('AI overview unavailable.');
     } finally {

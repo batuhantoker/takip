@@ -2,8 +2,9 @@
  * OI as a service: request parsing and the operations the REST API
  * and the MCP server both expose, so the two cannot drift apart.
  *
- * Keys arrive in headers only (X-OI-Key, or Authorization: Bearer), never
- * in a URL or a tool argument, where they would end up in logs and transcripts.
+ * Model keys arrive in the X-OI-Key header only, never in a URL or a tool
+ * argument, where they would end up in logs and transcripts. Authorization is
+ * reserved for TAKIP's own API keys and sessions.
  */
 import { NextResponse } from 'next/server';
 import { getClientIp, isRateLimited } from '@/lib/ssrf-guard';
@@ -70,11 +71,18 @@ export interface Credentials {
   model?: string;
 }
 
+/** Deprecated for one release: a model key in Authorization: Bearer. Never a TAKIP API key (`tk_`), which shares the header. */
+function legacyBearerKey(auth: string): string {
+  const token = /^bearer\s+/i.test(auth) ? auth.replace(/^bearer\s+/i, '').trim() : '';
+  if (!token || token.startsWith('tk_')) return '';
+  console.warn('[TAKIP] OI: model key sent in Authorization: Bearer, which is deprecated; clients should send X-OI-Key.');
+  return token;
+}
+
 /** Provider, key and model from the headers, the provider and model also from the body. */
 export function credentials(req: Request, body: Record<string, unknown> = {}): Credentials | { error: string } {
   const h = (n: string) => req.headers.get(n)?.trim() || '';
-  const auth = h('authorization');
-  const key = h('x-oi-key') || (/^bearer\s+/i.test(auth) ? auth.replace(/^bearer\s+/i, '').trim() : '');
+  const key = h('x-oi-key') || legacyBearerKey(h('authorization'));
   const providerRaw = h('x-oi-provider') || (typeof body.provider === 'string' ? body.provider : '');
   const modelRaw = h('x-oi-model') || (typeof body.model === 'string' ? body.model : '');
   if (providerRaw && !isProviderId(providerRaw.toLowerCase())) {
@@ -111,7 +119,7 @@ export function startPrediction(args: PredictArgs, creds: Credentials, ip: strin
   if (question.length < 8) return { ok: false, status: 400, error: 'Ask a question of at least a few words (8–500 characters).' };
   if (!creds.provider) return { ok: false, status: 400, error: 'Choose a provider (X-OI-Provider).' };
   const info = providerInfo(creds.provider);
-  if (!creds.key && info.needsKey) return { ok: false, status: 401, error: `An API key for ${info.name} is required (X-OI-Key or Authorization: Bearer).` };
+  if (!creds.key && info.needsKey) return { ok: false, status: 401, error: `An API key for ${info.name} is required in the X-OI-Key header.` };
   const depth = oneOf(args.depth, ['quick', 'standard', 'deep'] as const, 'standard') as Depth;
   return startRun({
     question,
@@ -135,7 +143,7 @@ export async function askPrediction(run: Run, targetRaw: unknown, messageRaw: un
   const target = typeof targetRaw === 'string' && targetRaw.trim() ? targetRaw.trim().toLowerCase().slice(0, 40) : 'report';
   const provider = creds.provider ?? (isProviderId(run.state.provider) ? run.state.provider : undefined);
   if (!provider) return { ok: false, status: 400, error: 'Choose a provider (X-OI-Provider).' };
-  if (!creds.key && providerInfo(provider).needsKey) return { ok: false, status: 401, error: 'Asking uses your own key again (X-OI-Key or Authorization: Bearer).' };
+  if (!creds.key && providerInfo(provider).needsKey) return { ok: false, status: 401, error: 'Asking uses your own key again, in the X-OI-Key header.' };
   const model = creds.model || (provider === run.state.provider ? run.state.model : providerInfo(provider).defaultModel);
   try {
     const { reply } = await askRun(run.state, target, message, chat ?? createChat(provider, creds.key ?? '', model), signal);
@@ -168,7 +176,7 @@ export function describe(origin: string) {
       runs_per_10_minutes_per_address: LIMITS.perIpStarts,
       run_kept_for_hours: LIMITS.ttlMs / 3_600_000,
     },
-    auth: 'Send X-OI-Provider and X-OI-Key (or Authorization: Bearer <key>), optionally X-OI-Model. Keys are used for your run and never stored.',
+    auth: 'Send X-OI-Provider and X-OI-Key, optionally X-OI-Model. Keys are used for your run and never stored. Authorization is reserved for TAKIP API keys.',
     endpoints: {
       start: `POST ${origin}/api/oi/runs`,
       run: `GET ${origin}/api/oi/runs/{id}?wait=30`,
