@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/**': ['./node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs', './node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm'],
   },
-  transpilePackages: ['react-map-gl', 'mapbox-gl', 'maplibre-gl', '@takip/core'],
+  transpilePackages: ['react-map-gl', 'mapbox-gl', 'maplibre-gl', '@takip/core', '@takip/connectors'],
   // Type errors block the build again. They were suppressed while 17 stood
   // unfixed; those are cleared, so the gate can do its job — the AstraPanel
   // crash (createPortal used without an import) shipped precisely because

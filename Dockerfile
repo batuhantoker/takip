@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/core/package.json ./packages/core/
+COPY packages/connectors/package.json ./packages/connectors/
 RUN npm ci
 
 FROM node:22-alpine AS builder
