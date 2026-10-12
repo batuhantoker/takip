@@ -4,17 +4,22 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SIGN_IN_LINK, SETTINGS_CALLBACK } from '@/lib/account-links';
+import { stopImpersonating } from '@/lib/impersonation';
 import { TakipMark } from '@/components/brand/takip-mark';
 import { TakipWordmark } from '@/components/brand/takip-wordmark';
 import { onLocked } from './admin-api';
+import { Button } from './admin-parts';
 import UnlockForm from './unlock-form';
 
-type GateStatus = { signedIn: boolean; admin: boolean; twoFactor: boolean; unlockedUntil: number | null };
+type GateStatus = { signedIn: boolean; admin: boolean; twoFactor: boolean; impersonating: boolean; unlockedUntil: number | null; retryAfterSeconds: number | null };
 
 const NAV = [
   { href: '/admin', label: 'Overview' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/plans', label: 'Plans' },
+  { href: '/admin/keys', label: 'API keys' },
+  { href: '/admin/usage', label: 'Usage' },
+  { href: '/admin/billing', label: 'Billing' },
   { href: '/admin/sources', label: 'Sources' },
   { href: '/admin/audit', label: 'Audit log' },
 ];
@@ -27,7 +32,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     void fetch('/api/admin/status', { cache: 'no-store' })
       .then(res => res.json() as Promise<GateStatus>)
       .then(setStatus)
-      .catch(() => setStatus({ signedIn: false, admin: false, twoFactor: false, unlockedUntil: null }));
+      .catch(() => setStatus({ signedIn: false, admin: false, twoFactor: false, impersonating: false, unlockedUntil: null, retryAfterSeconds: null }));
   }, []);
 
   useEffect(() => {
@@ -38,6 +43,12 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const gate =
     !status ? <p className="text-[12px] text-[var(--text-muted)]">Checking access…</p>
     : !status.signedIn ? <Message text="Sign in to continue." link={{ href: SIGN_IN_LINK, label: 'Sign in on the map' }} />
+    : status.impersonating ? (
+      <>
+        <p className="text-[12px] text-[var(--text-muted)]">You&apos;re viewing the site as another user. Stop to get back to your own account and the console.</p>
+        <Button tone="gold" className="self-start" onClick={() => void stopImpersonating()}>Stop viewing as them</Button>
+      </>
+    )
     : !status.admin ? <Message text="This area is for admins." link={{ href: '/', label: 'Back to the map' }} />
     : !status.twoFactor ? (
       <Message
@@ -45,7 +56,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         link={{ href: SETTINGS_CALLBACK, label: 'Open Account settings' }}
       />
     )
-    : !status.unlockedUntil ? <UnlockForm onUnlocked={check} />
+    : !status.unlockedUntil ? <UnlockForm onUnlocked={check} retryAfterSeconds={status.retryAfterSeconds} />
     : null;
 
   return (

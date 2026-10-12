@@ -2,14 +2,18 @@
 
 import { useId, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, LogOut, Settings, ShieldCheck } from 'lucide-react';
+import { ChevronDown, EyeOff, LogOut, Settings, ShieldCheck } from 'lucide-react';
 import { useAccess } from '@/lib/access';
 import { authClient } from '@/lib/auth-client';
+import { stopImpersonating } from '@/lib/impersonation';
 import { useDismiss } from '@/components/ui/use-dismiss';
 import { MENU_ITEM, MENU_PANEL, MENU_PANEL_SIDE, MENU_TRIGGER, RAIL_TRIGGER } from '@/components/ui/menu-styles';
 import { showAccountDialog } from './account-dialog-state';
 
-export default function AccountMenu({ user, compact, rail = false }: { user: { name: string; email: string; role?: string | null }; compact: boolean; rail?: boolean }) {
+/** `impersonating`: an admin is viewing as this user; signing out would leave them signed out of their own account too. */
+export default function AccountMenu({ user, impersonating = false, compact, rail = false }: {
+  user: { name: string; email: string; role?: string | null }; impersonating?: boolean; compact: boolean; rail?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -82,10 +86,17 @@ export default function AccountMenu({ user, compact, rail = false }: { user: { n
                 <span className="text-[11px] text-[var(--text-primary)]">Admin console</span>
               </a>
             )}
-            <button type="button" role="menuitem" className={MENU_ITEM} onClick={signOut}>
-              <LogOut className="w-3.5 h-3.5 shrink-0 text-[var(--gold-primary)]" aria-hidden />
-              <span className="text-[11px] text-[var(--text-primary)]">Sign out</span>
-            </button>
+            {impersonating ? (
+              <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => void stopImpersonating()}>
+                <EyeOff className="w-3.5 h-3.5 shrink-0 text-[var(--alert-red)]" aria-hidden />
+                <span className="text-[11px] text-[var(--text-primary)]">Stop viewing as {user.name || user.email}</span>
+              </button>
+            ) : (
+              <button type="button" role="menuitem" className={MENU_ITEM} onClick={signOut}>
+                <LogOut className="w-3.5 h-3.5 shrink-0 text-[var(--gold-primary)]" aria-hidden />
+                <span className="text-[11px] text-[var(--text-primary)]">Sign out</span>
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -7,6 +7,7 @@ import { readAccountLink, type AccountLink } from '@/lib/account-links';
 import { useDismiss } from '@/components/ui/use-dismiss';
 import { showAccountDialog, useAccountDialog, type View } from './account-dialog-state';
 import CredentialsForm from './credentials-form';
+import ImpersonationBanner from './impersonation-banner';
 import ForgotPasswordForm from './forgot-password-form';
 import NewPasswordForm from './new-password-form';
 import TwoFactorForm from './two-factor-form';
@@ -56,7 +57,7 @@ function viewFor(link: AccountLink): View {
   }
 }
 
-/** Mount once per page. Opens itself when an emailed link lands here. */
+/** Mount once per page. Opens itself when an emailed link lands here. Carries the impersonation banner, since it is mounted in every map state, phones included. */
 export default function AccountDialog() {
   const view = useAccountDialog();
 
@@ -67,7 +68,12 @@ export default function AccountDialog() {
     showAccountDialog(viewFor(landed.link));
   }, []);
 
-  return <AnimatePresence>{view && <Panel view={view} />}</AnimatePresence>;
+  return (
+    <>
+      <ImpersonationBanner />
+      <AnimatePresence>{view && <Panel view={view} />}</AnimatePresence>
+    </>
+  );
 }
 
 function Panel({ view }: { view: View }) {
