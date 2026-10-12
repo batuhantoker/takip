@@ -352,7 +352,7 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 | On-demand lookups: aircraft, flight-route, geosearch, geo/reverse, region-dossier, directions, arcgis, satellites/orbit, markets/history, entity/expand | `web` | `api` `/api/v1/*`, with per-key upstream limits | Early; mostly mechanical ports |
 | Media proxies: cctv/proxy, frame, resolve, stream-status, texas/snapshot, proxy-tiles | `web` | `api`, as a **closed proxy** that takes ids, never URLs (`INSPIRATION.md` L169) | With the camera move to `catalog.db` |
 | AI and OI: ai/*, oi/*, mcp | `web` | `api`; BYO key free; hosted AI gated by `ai.hosted` | After auth. *Gated in `web` since 2026-10-12:* the server-key fallback of `ai/analyze` and `ai/briefing` returns 403 without `ai.hosted`; `ai/overview` falls back to its keyless heuristic read-out |
-| OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Or removed** (`TODO.md` §7 decision). | After the §7 scope decision |
+| OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Kept** (`TODO.md` §7). | Any time. *Gated in `web` since 2026-10-12:* every route needs an account, with per-account limits by family (`src/lib/recon-gate.ts`); the tabs that probe providers from the browser ask visitors to sign in first |
 | Platform: sdk/ingest, sdk/stream, github-webhook, health, stats, reference | `web` | `api`. `sdk/ingest` uses API keys with a `write:entities` scope instead of the shared `SDK_INGEST_KEY`. | Alongside the routes that depend on them |
 
 ## 14. Security baseline
@@ -407,5 +407,5 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 3. **Plan contents and prices.** The entitlement rows (§7.2) are placeholders.
 4. **Anonymous limits** (`replay.lookback_days`, `web.rps`).
 5. **Teams now or later.** The `organization` plugin and `org` subjects are ready but off.
-6. **OSINT and recon tools:** keep behind an account, or remove (`TODO.md` §7).
+6. **OSINT and recon tools:** *decided 2026-10-12:* kept, behind an account, with per-account limits (§13, `TODO.md` §7).
 7. **Product name.** It affects the cookie name, the key prefix (`tk_`) and email sender domains (`TODO.md` §1). Settle it before B1 ships.
