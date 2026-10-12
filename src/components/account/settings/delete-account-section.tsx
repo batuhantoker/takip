@@ -3,12 +3,20 @@
 import { useState } from 'react';
 import { DELETED_CALLBACK } from '@/lib/account-links';
 import { authClient } from '@/lib/auth-client';
+import { billingPortalUrl } from '@/lib/billing-portal';
 import { FormError, Notice } from '../form-parts';
 import { FALLBACK_ERROR } from '../use-form-action';
 import { Section, SmallButton } from './settings-parts';
 
+// The api's refusal code (apps/api/src/billing/deletion-guard.ts).
+const SUBSCRIPTION_ACTIVE = 'subscription_active';
+const PORTAL_FAILED = "Billing didn't open. Try again.";
+
+type Refusal = { message: string; billingPortal: boolean };
+
 export default function DeleteAccountSection({ email }: { email: string }) {
   const [step, setStep] = useState<'idle' | 'confirm' | 'sent'>('idle');
+  const [refusal, setRefusal] = useState<Refusal | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,8 +25,22 @@ export default function DeleteAccountSection({ email }: { email: string }) {
     setError(null);
     const { error } = await authClient.deleteUser({ callbackURL: DELETED_CALLBACK });
     setBusy(false);
+    if (error?.code === SUBSCRIPTION_ACTIVE) {
+      return setRefusal({ message: error.message ?? FALLBACK_ERROR, billingPortal: (error as { billing_portal?: unknown }).billing_portal === true });
+    }
     if (error) return setError(error.message ?? FALLBACK_ERROR);
     setStep('sent');
+  };
+
+  const manageBilling = async () => {
+    setBusy(true);
+    setError(null);
+    const result = await billingPortalUrl();
+    if (result.failure !== undefined) {
+      setBusy(false);
+      return setError(PORTAL_FAILED);
+    }
+    window.location.assign(result.url);
   };
 
   return (
@@ -32,7 +54,14 @@ export default function DeleteAccountSection({ email }: { email: string }) {
             address. This can&apos;t be undone.
           </p>
           <FormError message={error} />
-          {step === 'idle' ? (
+          {refusal ? (
+            <>
+              <Notice>{refusal.message}</Notice>
+              {refusal.billingPortal && (
+                <SmallButton disabled={busy} onClick={manageBilling} className="self-start">Manage billing</SmallButton>
+              )}
+            </>
+          ) : step === 'idle' ? (
             <SmallButton danger onClick={() => setStep('confirm')} className="self-start">Delete account…</SmallButton>
           ) : (
             <div className="flex items-center gap-2">

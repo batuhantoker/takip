@@ -43,6 +43,7 @@ const CONNECT_ERRORS: Record<string, string> = {
 const DELETE_ERRORS: Record<string, string> = {
   FAILED_TO_GET_USER_INFO: 'Nothing was deleted: the link only works in a browser signed in to that account. Sign in here, then open the link again.',
   INVALID_TOKEN: 'Nothing was deleted: that link has expired, was already used, or belongs to another account. Ask for a new one under Delete account.',
+  subscription_active: 'Nothing was deleted: your subscription is still active. Cancel it first, then ask for a new link under Delete account.',
 };
 
 function viewFor(link: AccountLink): View {

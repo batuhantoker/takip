@@ -26,7 +26,8 @@ const logger = createLogger(env);
 const db = openAppDb(env.APP_DB_PATH);
 migrateAppSchema(db);
 const email = env.SMTP_URL && env.MAIL_FROM ? smtpSender(createTransport(env.SMTP_URL), env.MAIL_FROM) : consoleSender;
-const auth = await createAuth(db, env, email);
+const billing = billingProviderFor(env);
+const auth = await createAuth(db, env, email, { billingPortal: billing !== null });
 
 const replay = openReplayData(env.TAKIP_DATA_DIR);
 const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive') });
@@ -35,7 +36,6 @@ const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
 const access = createAccess(db);
-const billing = billingProviderFor(env);
 const jobs = createJobQueue(db);
 if (billing) scheduleReconcile(jobs, Date.now());
 schedulePruneUsage(jobs, Date.now());

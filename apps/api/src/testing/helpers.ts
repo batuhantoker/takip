@@ -76,7 +76,7 @@ export async function startApp(social: SocialEnv = {}, obs?: AppObs, { enforceLi
   const db = openAppDb(':memory:');
   migrateAppSchema(db);
   const inbox = new Inbox();
-  const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: 'q3Yp8vVx1kR7tLm2Zc9Wd4Hs6Nb0Fg5J', ...social }, inbox);
+  const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: 'q3Yp8vVx1kR7tLm2Zc9Wd4Hs6Nb0Fg5J', ...social }, inbox, { billingPortal: billing !== null });
   const access = createAccess(db);
   const usage = createUsage(db);
   const app = createApp({ auth, access, db, obs, usage, enforceLimits, billing, replay });
