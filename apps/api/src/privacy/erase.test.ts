@@ -21,6 +21,7 @@ const OWNED = {
   auth_two_factor: 'userId',
   auth_verification: 'value',
   api_key: 'user_id',
+  ws_workspace: 'owner_id',
   admin_unlock: 'user_id',
   bill_subject_override: 'subject_id',
   bill_subscription: 'subject_id',
@@ -42,7 +43,7 @@ describe('account deletion', () => {
     const bo = await p.withEverything(BYSTANDER, { google: false });
     const before = { ada: owned(ada.userId), bo: owned(bo.userId), boAudit: auditOf(bo.userId), adaUsage: usageRows(ada.userId), adaAudit: auditOf(ada.userId).length };
     for (const [table, rows] of Object.entries(before.ada)) expect(rows, table).toBeGreaterThan(0);
-    expect(before.ada).toMatchObject({ auth_session: 2, auth_account: 2, api_key: 1, bill_subscription: 2, bill_customer: 1 });
+    expect(before.ada).toMatchObject({ auth_session: 2, auth_account: 2, api_key: 1, ws_workspace: 1, bill_subscription: 2, bill_customer: 1 });
     expect(before.adaUsage).toBeGreaterThan(0);
 
     const res = await p.deleteViaLink(ada.jar);
@@ -64,7 +65,7 @@ describe('account deletion', () => {
     expect(data('plan.grant')).toMatchObject({ plan: 'pro', reason: 'asked by [removed]' });
     expect(audit.at(-1)).toMatchObject({ action: 'user.delete', actor_type: 'user', actor_id: ada.userId });
     expect(data('user.delete')).toMatchObject({
-      removed: { api_key: 1, admin_unlock: 1, bill_subject_override: 1, bill_subscription: 2, bill_customer: 1, auth_two_factor: 1 },
+      removed: { api_key: 1, ws_workspace: 1, admin_unlock: 1, bill_subject_override: 1, bill_subscription: 2, bill_customer: 1, auth_two_factor: 1 },
     });
 
     const events = billEvents();
