@@ -6,8 +6,12 @@ import { createAccess } from './access/resolver';
 import { createUsage } from './access/usage';
 import { createApp } from './app';
 import { createAuth } from './auth/auth';
+import { billingJobs, scheduleReconcile } from './billing/reconcile';
+import { billingProviderFor } from './billing/registry';
 import { openAppDb } from './db/app-db';
 import { migrateAppSchema } from './db/migrations';
+import { createJobQueue } from './jobs/queue';
+import { createJobRunner } from './jobs/runner';
 import { consoleSender, smtpSender } from './mail/sender';
 import { openReplayData } from './replay/data';
 import { openSourceSwitchboard } from './replay/sources';
@@ -29,8 +33,14 @@ const usage = createUsage(db);
 const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
+const access = createAccess(db);
+const billing = billingProviderFor(env);
+const jobs = createJobQueue(db);
+if (billing) scheduleReconcile(jobs, Date.now());
+const stopJobs = createJobRunner(jobs, billingJobs({ db, access, provider: billing, queue: jobs, logger }), { logger }).start();
+
 const metrics = createMetrics({ defaults: true });
-const app = createApp({ auth, access: createAccess(db), db, replay, switchboard, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage });
+const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage });
 
 const server = serve({ fetch: app.fetch, hostname: env.API_HOST, port: env.API_PORT }, info => {
   logger.info(`listening on http://${info.address}:${info.port}`);
@@ -39,7 +49,8 @@ const server = serve({ fetch: app.fetch, hostname: env.API_HOST, port: env.API_P
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     logger.info({ signal }, 'shutting down');
-    server.close(() => {
+    server.close(async () => {
+      await stopJobs();
       stopUsage();
       db.close();
       replay.close();
