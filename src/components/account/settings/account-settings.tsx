@@ -3,6 +3,7 @@
 import { authClient } from '@/lib/auth-client';
 import { showAccountDialog } from '../account-dialog-state';
 import { Notice, TextButton } from '../form-parts';
+import ApiKeysSection from './api-keys-section';
 import DeleteAccountSection from './delete-account-section';
 import DevicesSection from './devices-section';
 import PlanSection from './plan-section';
@@ -33,6 +34,7 @@ export default function AccountSettings({ notice }: { notice?: string }) {
       <SignInMethods email={data.user.email} />
       <TwoFactorSection enabled={Boolean(data.user.twoFactorEnabled)} admin={data.user.role === 'admin'} />
       <DevicesSection currentId={data.session.id} />
+      <ApiKeysSection />
       <DeleteAccountSection email={data.user.email} />
     </div>
   );
