@@ -4,16 +4,19 @@
  *  POST /api/ai/overview   body: { mode: 'alerts' | 'markets' | 'chain', payload }
  *
  *  Generates an intelligence read-out for the Alerts, Markets or Chain
- *  panel. Uses Gemini when GEMINI_API_KEY_* is configured, otherwise
- *  falls back to a built-in heuristic analyst so the button always
- *  works — no key required. For alerts, both paths also return the
- *  structured brief (threads, seismic, coverage) the panel renders.
+ *  panel. Uses Gemini when GEMINI_API_KEY_* is configured and the
+ *  caller's plan has ai.hosted, otherwise falls back to a built-in
+ *  heuristic analyst so the button always works — no key required.
+ *  For alerts, both paths also return the structured brief (threads,
+ *  seismic, coverage) the panel renders.
  * ═══════════════════════════════════════════════════════════════
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientIp, isRateLimited } from '@/lib/ssrf-guard';
 import { createGeminiClient, rotateApiKey } from '@/lib/ai-engine';
+import { getAccess } from '@/lib/access-server';
+import type { HostedAiBlock } from '@/lib/hosted-ai';
 import {
   BLOCS, buildAlertBrief, timeAgo,
   type AlertBrief, type Bloc, type DigestQuake, type DigestReport,
@@ -331,10 +334,16 @@ export async function POST(request: NextRequest) {
   const keys = getEnvApiKeys();
   let overview: string | null = null;
   let generatedBy: 'gemini' | 'analyst' = 'analyst';
+  let hostedAi: HostedAiBlock | undefined;
 
   if (keys.length > 0) {
-    overview = await geminiOverview(mode, digest, keys, alerts ? headlineContext(alerts.reports) : undefined);
-    if (overview) generatedBy = 'gemini';
+    const access = await getAccess(request);
+    if (access?.entitlements['ai.hosted']) {
+      overview = await geminiOverview(mode, digest, keys, alerts ? headlineContext(alerts.reports) : undefined);
+      if (overview) generatedBy = 'gemini';
+    } else {
+      hostedAi = access ? 'entitlement_required' : 'access_unavailable';
+    }
   }
   if (!overview) overview = heuristicOverview(mode, digest);
 
@@ -344,6 +353,7 @@ export async function POST(request: NextRequest) {
     highlights: digest.highlights,
     generatedBy,
     generatedAt: new Date().toISOString(),
+    ...(hostedAi ? { hostedAi } : {}),
     ...(alerts ? { brief: alerts.brief } : {}),
   });
 }
