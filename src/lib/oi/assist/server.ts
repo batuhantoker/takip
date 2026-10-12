@@ -44,7 +44,7 @@ export async function assistStep(body: Record<string, unknown>, creds: Credentia
   if (!last || last.role === 'assistant') return { ok: false, status: 400, error: 'Send the conversation, ending with your message or the results of the last actions.' };
   if (!creds.provider) return { ok: false, status: 400, error: 'Choose a provider (X-OI-Provider).' };
   const info = providerInfo(creds.provider);
-  if (!creds.key && info.needsKey) return { ok: false, status: 401, error: `OI Assist runs on your own ${info.name} key (X-OI-Key or Authorization: Bearer).` };
+  if (!creds.key && info.needsKey) return { ok: false, status: 401, error: `OI Assist runs on your own ${info.name} key, sent in the X-OI-Key header.` };
   const context = sanitizeContext(body.context);
   const model = creds.model || info.defaultModel;
   try {

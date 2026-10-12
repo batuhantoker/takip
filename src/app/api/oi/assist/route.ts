@@ -5,7 +5,7 @@ import { credentials, disabled, disabledResponse, fail, json, limited, readBody 
  * OSIRIS OI Assist — one step of the conversation.
  *
  * POST /api/oi/assist
- *   headers  X-OI-Provider, X-OI-Key (or Authorization: Bearer), X-OI-Model (optional)
+ *   headers  X-OI-Provider, X-OI-Key, X-OI-Model (optional)
  *   body     { messages: [...], context: { view, layersOn, loaded, forecast } }
  *   returns  { step: { say, actions, done }, usage }
  *
