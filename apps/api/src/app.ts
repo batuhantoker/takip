@@ -19,6 +19,7 @@ import { keyRoutes } from './keys/routes';
 import { requestLogger, silentLogger } from './obs/logger';
 import { createMetrics, httpMetrics, metricsEndpoint, type Metrics } from './obs/metrics';
 import { requestId } from './obs/request-id';
+import { unhandledError } from './obs/unhandled-error';
 import type { ReplayData } from './replay/data';
 import { replayRoutes } from './replay/routes';
 import type { SourceSwitchboard } from './replay/sources';
@@ -32,6 +33,7 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
 }) {
   const { logger = silentLogger, metrics = createMetrics(), metricsAllow = [] } = obs;
   const app = new Hono();
+  app.onError(unhandledError(logger));
   // Registered before every route: Hono runs handlers in registration order.
   app.use(httpMetrics(metrics), requestId(), requestLogger(logger));
   app.get('/metrics', metricsEndpoint(metrics, metricsAllow));
