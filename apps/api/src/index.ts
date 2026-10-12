@@ -29,7 +29,7 @@ const auth = await createAuth(db, env, email);
 
 const replay = openReplayData(env.TAKIP_DATA_DIR);
 const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive') });
-const usage = createUsage(db);
+const usage = createUsage(db, { logger });
 const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
