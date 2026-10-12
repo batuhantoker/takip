@@ -6,6 +6,9 @@ import type { Principal } from './principal';
 import { createTokenBuckets, type TokenBuckets } from './token-buckets';
 import { DAY_MS, routeGroup, utcDay, type Usage } from './usage';
 
+// A map view fires several data calls at once (Flight Watch cards, tile chunks); keys keep one second, per plan.
+const WEB_BURST_SECONDS = 3;
+
 const bucketKey = (p: Principal) =>
   p.kind === 'key' ? `key:${p.keyId}` : p.kind === 'user' ? `user:${p.userId}` : `ip:${addressBlock(p.ip)}`;
 
@@ -52,7 +55,8 @@ export function rateLimit(
       }
     }
 
-    const taken = buckets.take(bucketKey(principal), access.entitlements[principal.kind === 'key' ? 'api.rps' : 'web.rps']);
+    const rate = access.entitlements[principal.kind === 'key' ? 'api.rps' : 'web.rps'];
+    const taken = buckets.take(bucketKey(principal), rate, principal.kind === 'key' ? rate : rate * WEB_BURST_SECONDS);
     const headers = {
       'RateLimit-Limit': String(taken.limit),
       'RateLimit-Remaining': String(taken.remaining),

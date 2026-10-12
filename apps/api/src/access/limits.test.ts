@@ -27,15 +27,15 @@ afterEach(() => {
 describe('on /api/v1', () => {
   const anon = (peer: string, headers: Record<string, string> = {}) => t.app.request('/api/v1/me/access', { headers }, from(peer));
 
-  it('send RateLimit headers, then 429 with Retry-After once a visitor spends web.rps', async () => {
-    for (let i = 9; i >= 0; i--) {
+  it('send RateLimit headers, then 429 with Retry-After once a visitor spends three seconds of web.rps', async () => {
+    for (let i = 29; i >= 0; i--) {
       const res = await anon('203.0.113.5');
       expect(res.status).toBe(200);
-      expect(limitHeaders(res)).toEqual(['10', String(i), '1', null]);
+      expect(limitHeaders(res)).toEqual(['10', String(i), String(Math.ceil((30 - i) / 10)), null]);
     }
     const refused = await anon('203.0.113.5');
     expect(refused.status).toBe(429);
-    expect(limitHeaders(refused)).toEqual(['10', '0', '1', '1']);
+    expect(limitHeaders(refused)).toEqual(['10', '0', '3', '1']);
     expect(await refused.json()).toEqual({ error: 'rate_limited', retry_after: 1 });
 
     vi.advanceTimersByTime(1_000);
@@ -43,18 +43,18 @@ describe('on /api/v1', () => {
   });
 
   it('keep one bucket per visitor', async () => {
-    for (let i = 0; i < 10; i++) await anon('203.0.113.5');
+    for (let i = 0; i < 30; i++) await anon('203.0.113.5');
     expect((await anon('203.0.113.5')).status).toBe(429);
     expect((await anon('203.0.113.6')).status).toBe(200);
   });
 
   it('give no fresh bucket for a forged X-Forwarded-For from an untrusted peer', async () => {
-    for (let i = 0; i < 10; i++) expect((await anon('203.0.113.5', { 'x-forwarded-for': `198.51.100.${i}` })).status).toBe(200);
+    for (let i = 0; i < 30; i++) expect((await anon('203.0.113.5', { 'x-forwarded-for': `198.51.100.${i}` })).status).toBe(200);
     expect((await anon('203.0.113.5', { 'x-forwarded-for': '198.51.100.99' })).status).toBe(429);
   });
 
   it('tell clients behind our own proxy apart', async () => {
-    for (let i = 0; i < 10; i++) await anon('127.0.0.1', { 'x-forwarded-for': '198.51.100.1' });
+    for (let i = 0; i < 30; i++) await anon('127.0.0.1', { 'x-forwarded-for': '198.51.100.1' });
     expect((await anon('127.0.0.1', { 'x-forwarded-for': '198.51.100.1' })).status).toBe(429);
     expect((await anon('127.0.0.1', { 'x-forwarded-for': '198.51.100.2' })).status).toBe(200);
   });
@@ -65,7 +65,7 @@ describe('on /api/v1', () => {
     t.access.invalidate();
     const call = (peer: string) => t.app.request('/api/v1/me/access', { headers: { cookie: jar.get() } }, from(peer));
     expect((await call('203.0.113.5')).headers.get('RateLimit-Limit')).toBe('2');
-    expect((await call('203.0.113.6')).status).toBe(200);
+    for (let i = 0; i < 5; i++) expect((await call(`203.0.113.${10 + i}`)).status).toBe(200);
     expect((await call('203.0.113.7')).status).toBe(429);
   });
 
@@ -79,10 +79,10 @@ describe('on /api/v1', () => {
   });
 
   it('count refused requests as denied', async () => {
-    for (let i = 0; i < 12; i++) await anon('203.0.113.5');
+    for (let i = 0; i < 32; i++) await anon('203.0.113.5');
     t.usage.flush();
     expect(t.db.prepare("SELECT route_group, requests, denied FROM usage_counter WHERE subject_type = 'anon'").all())
-      .toEqual([{ route_group: 'me', requests: 10, denied: 2 }]);
+      .toEqual([{ route_group: 'me', requests: 30, denied: 2 }]);
   });
 });
 

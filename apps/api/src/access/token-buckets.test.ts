@@ -24,6 +24,16 @@ describe('token buckets', () => {
     expect(buckets.take('a', 10)).toMatchObject({ allowed: true, remaining: 9 });
   });
 
+  it('hold a larger burst when asked, still refilling at the rate', () => {
+    const buckets = createTokenBuckets();
+    for (let i = 29; i >= 0; i--) expect(buckets.take('a', 10, 30)).toMatchObject({ allowed: true, limit: 10, remaining: i });
+    expect(buckets.take('a', 10, 30)).toMatchObject({ allowed: false, retryAfterS: 1, resetS: 3 });
+
+    vi.advanceTimersByTime(1_000);
+    for (let i = 0; i < 10; i++) expect(buckets.take('a', 10, 30).allowed).toBe(true);
+    expect(buckets.take('a', 10, 30).allowed).toBe(false);
+  });
+
   it('follow a plan change at once, never holding more than the new rate', () => {
     const buckets = createTokenBuckets();
     buckets.take('a', 50);
