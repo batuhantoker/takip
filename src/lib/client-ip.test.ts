@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { getClientIp, isRateLimited, isPublicIp, visitorIp } from './ssrf-guard';
 
 const req = (headers: Record<string, string>) => new Request('https://osiris.test/api/scanner', { headers });
 
 describe('getClientIp', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   /* The bypass: the leftmost X-Forwarded-For entry is written by the client,
      so a new value per request bought a new rate-limit bucket per request. */
   it('ignores the client-written left entry and uses the proxy-observed right one', () => {
@@ -11,15 +15,35 @@ describe('getClientIp', () => {
     expect(getClientIp(req({ 'x-forwarded-for': '9.9.9.9, 203.0.113.9' }))).toBe('203.0.113.9');
   });
 
-  it('prefers an edge-set header over anything forwarded', () => {
-    expect(getClientIp(req({
-      'cf-connecting-ip': '198.51.100.4',
-      'x-forwarded-for': 'attacker-controlled, 203.0.113.9',
-    }))).toBe('198.51.100.4');
+  it('believes no edge header unless one is configured, since any client can send them', () => {
+    const forged = { 'cf-connecting-ip': '198.51.100.4', 'true-client-ip': '198.51.100.5', 'x-vercel-forwarded-for': '198.51.100.6', 'x-real-ip': '198.51.100.7' };
+    expect(getClientIp(req({ ...forged, 'x-forwarded-for': '203.0.113.9' }))).toBe('203.0.113.9');
+    expect(getClientIp(req(forged))).toBe('unknown');
   });
 
-  it('falls back to x-real-ip when there is no edge header', () => {
-    expect(getClientIp(req({ 'x-real-ip': '198.51.100.7' }))).toBe('198.51.100.7');
+  it('prefers the configured edge header over anything forwarded', () => {
+    vi.stubEnv('CLIENT_IP_HEADER', 'cf-connecting-ip');
+    expect(getClientIp(req({ 'cf-connecting-ip': '198.51.100.4', 'x-forwarded-for': 'attacker-controlled, 203.0.113.9' }))).toBe('198.51.100.4');
+    expect(getClientIp(req({ 'x-real-ip': '198.51.100.7', 'x-forwarded-for': '203.0.113.9' }))).toBe('203.0.113.9');
+    expect(getClientIp(req({ 'cf-connecting-ip': 'junk', 'x-forwarded-for': '203.0.113.9' }))).toBe('203.0.113.9');
+  });
+
+  it('counts the configured proxy hops from the right', () => {
+    // Cloudflare appends the visitor, then nginx appends Cloudflare.
+    vi.stubEnv('TRUSTED_PROXY_HOPS', '2');
+    expect(getClientIp(req({ 'x-forwarded-for': 'forged, 81.2.69.142, 172.70.1.1' }))).toBe('81.2.69.142');
+    // Fewer entries than proxies: the request skipped one, so nothing in it is ours.
+    expect(getClientIp(req({ 'x-forwarded-for': '203.0.113.9' }))).toBe('unknown');
+  });
+
+  it('believes no header at all with zero hops', () => {
+    vi.stubEnv('TRUSTED_PROXY_HOPS', '0');
+    expect(getClientIp(req({ 'x-forwarded-for': '203.0.113.9' }))).toBe('unknown');
+  });
+
+  it('keeps the one-hop default for a value it cannot read', () => {
+    vi.stubEnv('TRUSTED_PROXY_HOPS', 'two');
+    expect(getClientIp(req({ 'x-forwarded-for': '1.1.1.1, 203.0.113.9' }))).toBe('203.0.113.9');
   });
 
   it('collapses junk to one shared bucket instead of a fresh one each time', () => {
@@ -29,7 +53,8 @@ describe('getClientIp', () => {
   });
 
   it('accepts IPv6, bracketed or bare', () => {
-    expect(getClientIp(req({ 'x-real-ip': '2001:db8::1' }))).toBe('2001:db8::1');
+    expect(getClientIp(req({ 'x-forwarded-for': '2001:db8::1' }))).toBe('2001:db8::1');
+    vi.stubEnv('CLIENT_IP_HEADER', 'x-real-ip');
     expect(getClientIp(req({ 'x-real-ip': '[2001:db8::1]' }))).toBe('[2001:db8::1]');
   });
 });

@@ -235,36 +235,36 @@ export function isRateLimited(ip: string, limit: number = 20, windowMs: number =
 /**
  * Best available identity for the caller, for rate-limiting purposes.
  *
- * This used to read the FIRST entry of `x-forwarded-for`, which is the one
- * value in the whole chain the client writes itself. Sending a different
- * `X-Forwarded-For` on every request therefore bought a fresh rate-limit
- * bucket every time, and the scanner's five-per-minute limit did not bind at
- * all. The header order is `client, proxy1, proxy2` — read left to right it is
- * attacker-controlled; the entry our own edge appended is the rightmost one.
- *
- * So: prefer the headers a platform edge sets and overwrites (a client cannot
- * forge `cf-connecting-ip` through Cloudflare), then fall back to the rightmost
- * forwarded entry rather than the leftmost. Anything that does not parse as an
- * address collapses to a single shared 'unknown' bucket, which throttles
- * unidentifiable callers together rather than exempting them.
+ * A route handler can't see the socket peer, and Next passes on whatever
+ * `X-Forwarded-For` the client sent, so which header to believe is deployment
+ * config (`.env.example`):
+ *   TRUSTED_PROXY_HOPS  proxies in front of Next that append to X-Forwarded-For
+ *                       (default 1). The client is that many entries from the
+ *                       right; entries further left are client-written. 0 means
+ *                       Next faces the internet and no header is believed.
+ *   CLIENT_IP_HEADER    a header the edge sets and overwrites, such as
+ *                       cf-connecting-ip or x-real-ip. Unset by default: from
+ *                       anywhere else these headers are as forgeable as the rest.
+ * Anything that does not parse as an address collapses to a single shared
+ * 'unknown' bucket, which throttles unidentifiable callers together rather
+ * than exempting them.
  */
 export function getClientIp(req: Request): string {
   const h = (name: string) => req.headers.get(name)?.trim() || '';
 
-  // Set by the edge itself, not forwardable by the client.
-  const platform = h('cf-connecting-ip') || h('x-vercel-forwarded-for') || h('true-client-ip');
-  if (platform && isIpLike(platform)) return platform;
+  const edgeHeader = process.env.CLIENT_IP_HEADER?.trim();
+  const edge = edgeHeader ? h(edgeHeader) : '';
+  if (edge && isIpLike(edge)) return edge;
 
-  // Set by a reverse proxy we run (nginx et al).
-  const real = h('x-real-ip');
-  if (real && isIpLike(real)) return real;
-
-  // Rightmost entry is the peer address our nearest proxy observed.
   const chain = h('x-forwarded-for').split(',').map(s => s.trim()).filter(Boolean);
-  const nearest = chain[chain.length - 1];
-  if (nearest && isIpLike(nearest)) return nearest;
+  const hops = trustedProxyHops();
+  const client = hops > 0 ? chain[chain.length - hops] : undefined;
+  return client && isIpLike(client) ? client : 'unknown';
+}
 
-  return 'unknown';
+function trustedProxyHops(): number {
+  const raw = process.env.TRUSTED_PROXY_HOPS?.trim() ?? '';
+  return /^\d+$/.test(raw) ? Number(raw) : 1;
 }
 
 /** `[2a00::1]` → `2a00::1`, and `::ffff:81.2.69.142` (how a dual-stack
