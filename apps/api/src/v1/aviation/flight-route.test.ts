@@ -1,4 +1,5 @@
 import { AIRPORTS_BY_ICAO } from '@takip/connectors/airports';
+import { TAKIP_UA } from '@takip/connectors/http-json';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
 import { run } from '../testing/observe';
@@ -170,6 +171,23 @@ describe('GET /api/v1/flight-route', () => {
     const [miss, repeat] = await check('?callsign=XYZ999', '?callsign=XYZ999');
     expect(miss.cache).toBe(MISSED);
     expect(repeat).toEqual({ ...miss, cache: FOUND, upstream: [] });
+  });
+
+  it('names itself to every source, and invents no forwarding headers', async () => {
+    const sent: Headers[] = [];
+    const record = (url: string, init?: RequestInit) => {
+      sent.push(new Headers(init?.headers));
+      return fails(404)(url);
+    };
+    for (const prefix of [ADSBDB, HEXDB, LIVE_HEX]) upstream.on(prefix, record);
+    await check('?callsign=BAW117&icao24=4007f5');
+    expect(sent).toHaveLength(3);
+    for (const headers of sent) {
+      expect(headers.get('user-agent')).toBe(TAKIP_UA);
+      expect(headers.get('accept')).toBe('application/json');
+      expect(headers.has('x-forwarded-for')).toBe(false);
+      expect(headers.has('x-real-ip')).toBe(false);
+    }
   });
 
   it('stops asking a source for three minutes after it answers 429', async () => {

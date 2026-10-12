@@ -35,6 +35,8 @@ const auditOf = (userId: string) => p.t.db.prepare(`
   SELECT audit_id, actor_type, actor_id, action, subject_id, ip_hash, data FROM audit_event
   WHERE subject_id = ? OR actor_id = ? ORDER BY audit_id`).all(userId, userId) as { action: string; actor_type: string; actor_id: string; ip_hash: string | null; data: string }[];
 const billEvents = () => p.t.db.prepare('SELECT event_id, payload FROM bill_event ORDER BY event_id').all() as { event_id: string; payload: string }[];
+// Deletion waits for a paid subscription to end (billing/deletion-guard.ts).
+const cancelPaid = (userId: string) => p.t.db.prepare("UPDATE bill_subscription SET status = 'canceled' WHERE subject_id = ? AND provider != 'manual'").run(userId);
 
 describe('account deletion', () => {
   it('removes every row tied to the user and pseudonymises the ones that stay', async () => {
@@ -45,6 +47,7 @@ describe('account deletion', () => {
     expect(before.ada).toMatchObject({ auth_session: 2, auth_account: 2, api_key: 1, bill_subscription: 2, bill_customer: 1 });
     expect(before.adaUsage).toBeGreaterThan(0);
 
+    cancelPaid(ada.userId);
     const res = await p.deleteViaLink(ada.jar);
     expect(res.status).toBe(302);
     expect(`${landing(res).pathname}${landing(res).search}`).toBe('/?account=deleted');
@@ -91,6 +94,7 @@ describe('account deletion', () => {
     p.t.db.exec('DROP TABLE admin_unlock');
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
+    cancelPaid(ada.userId);
     expect((await p.deleteViaLink(ada.jar)).status).toBe(500);
     expect(count('SELECT count(*) FROM auth_user WHERE id = ?', ada.userId)).toBe(1);
     expect(count('SELECT count(*) FROM api_key WHERE user_id = ?', ada.userId)).toBe(1);
