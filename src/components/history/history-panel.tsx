@@ -20,7 +20,8 @@ const FAMILY_NOTES: Record<string, string> = {
   hazard: 'Earthquakes recorded from USGS',
 };
 
-const MOMENTS = [
+/** `view` also colours countries by that metric, at `speed` (simulated seconds per second). */
+const MOMENTS: { label: string; at: number; view?: string; speed?: number }[] = [
   { label: 'WWI begins', at: Date.UTC(1914, 6, 28) },
   { label: 'WWII begins', at: Date.UTC(1939, 8, 1) },
   { label: 'Korean War', at: Date.UTC(1950, 5, 25) },
@@ -28,7 +29,7 @@ const MOMENTS = [
   { label: 'Berlin Wall falls', at: Date.UTC(1989, 10, 9) },
   { label: 'USSR dissolves', at: Date.UTC(1991, 11, 26) },
   { label: '9/11', at: Date.UTC(2001, 8, 11) },
-  { label: 'COVID-19 pandemic', at: Date.UTC(2020, 2, 11) },
+  { label: 'COVID-19 pandemic', at: Date.UTC(2020, 2, 11), view: 'owid:covid_weekly_deaths_pm', speed: 7 * 86_400 },
 ];
 
 const SECTION = 'text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)] mb-2';
@@ -130,7 +131,11 @@ function Controls({ session, onFlyTo }: { session: HistorySession; onFlyTo?: Fly
         <h3 className={SECTION}>Go to</h3>
         <div className="flex flex-wrap gap-1.5">
           {MOMENTS.map(m => (
-            <button key={m.label} type="button" onClick={() => session.clock.seek(m.at)}
+            <button key={m.label} type="button" onClick={() => {
+              session.clock.seek(m.at);
+              if (m.speed) session.clock.setSpeed(m.speed);
+              if (m.view) session.countries.select(m.view);
+            }}
               className="h-7 px-2.5 rounded-md border border-white/10 text-[11.5px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--gold-primary)]/40">
               {m.label}
             </button>

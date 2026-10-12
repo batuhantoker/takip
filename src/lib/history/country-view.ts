@@ -1,5 +1,5 @@
 import type { ReplayClock } from '@/lib/replay/clock';
-import { type CatalogueMetric, type Reading, type Scale, type SeriesPayload, type ShapePoint, scaleFor, yearAt } from './series';
+import { type CatalogueMetric, msAt, type Reading, type Scale, type SeriesPayload, type ShapePoint, scaleFor, yearAt } from './series';
 
 /*
  * Which metric History colours countries by, shared by the panel, the legend and the map layer outside
@@ -13,6 +13,11 @@ export const VIEW_GROUPS: { label: string; views: { code: string; label: string 
     { code: 'owid:water_safely_managed', label: 'Safe drinking water' },
     { code: 'owid:prev_depression', label: 'Depression' },
     { code: 'owid:suicide_rate', label: 'Suicide rate' },
+  ] },
+  { label: 'COVID-19', views: [
+    { code: 'owid:covid_weekly_deaths_pm', label: 'COVID-19 deaths, weekly' },
+    { code: 'owid:covid_weekly_cases_pm', label: 'COVID-19 cases, weekly' },
+    { code: 'owid:covid_vaccinated', label: 'Vaccinated against COVID-19' },
   ] },
   { label: 'People', views: [
     { code: 'owid:population', label: 'Population' },
@@ -52,7 +57,8 @@ export type CountryView = {
   state(): CountryViewState;
   /**
    * null turns the view off; `source` picks among the sources publishing the metric. When the clock is
-   * outside the metric's years it moves to where most countries have data, at a year a second or faster.
+   * outside the metric's years it moves to where most countries have data, at a year a second or faster
+   * (a week a second for a weekly series).
    */
   select(code: string | null, source?: string): void;
   /** Whether the map is dark, which flips the ramp; set by the map layer, read by the legend. */
@@ -67,6 +73,7 @@ export type CountryView = {
 
 const PAYLOAD_CACHE = 6;
 const YEAR_SPEED = 365 * 86_400;
+const WEEK_SPEED = 7 * 86_400;
 function utcYearStart(year: number) {
   const d = new Date(0);
   d.setUTCFullYear(year, 0, 1);
@@ -83,6 +90,12 @@ function seekInto(clock: ReplayClock, data: SeriesPayload) {
   if (!data.years) return;
   const y = yearAt(clock.time());
   const [first, last] = data.years;
+  if (data.step === 'day') {
+    if (y >= first && y <= last) return;
+    clock.seek(msAt(busyFrom(data.values) ?? first));
+    clock.setSpeed(WEEK_SPEED);
+    return;
+  }
   if (y >= first && y < last + 1) return;
   clock.seek(utcYearStart(busyFrom(data.values) ?? first));
   if (clock.speed() < YEAR_SPEED) clock.setSpeed(YEAR_SPEED);

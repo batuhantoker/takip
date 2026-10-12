@@ -19,8 +19,9 @@ const LINE = 'history-view-line';
 const HATCH = 'history-view-hatch';
 const LAYERS = [LINE, FILL, NODATA];
 const FRAME_MS = 125;
-/** Repaint once the clock has moved this many years. */
+/** Repaint once the clock has moved this many years: about a week, or a day for a weekly series. */
 const STEP_YEARS = 0.02;
+const STEP_YEARS_DATED = 0.0027;
 
 const hasValue = ['==', ['typeof', ['feature-state', 't']], 'number'];
 
@@ -77,11 +78,11 @@ export function useChoroplethLayer({ mapRef, mapReady, history, mapStyle }: {
       const s = view.state();
       if (s.status !== 'ready') return;
       const y = yearAt(history.clock.time());
-      if (!force && Math.abs(y - appliedYear) < STEP_YEARS) return;
+      if (!force && Math.abs(y - appliedYear) < (s.data.step === 'day' ? STEP_YEARS_DATED : STEP_YEARS)) return;
       appliedYear = y;
       const next = new Set<string>();
       for (const [key, points] of Object.entries(s.data.values)) {
-        const r = readingAt(points, y);
+        const r = readingAt(points, y, s.data.step);
         if (!r) continue;
         next.add(key);
         map.setFeatureState({ source: SOURCE, id: key }, { t: s.scale.norm(r.v) });
@@ -94,7 +95,7 @@ export function useChoroplethLayer({ mapRef, mapReady, history, mapStyle }: {
     const hoverAt = (key: string, name: string) => {
       const s = view.state();
       const points = s.status === 'ready' ? s.data.values[key] : undefined;
-      view.setHovered({ key, name, reading: points ? readingAt(points, yearAt(history.clock.time())) : null });
+      view.setHovered({ key, name, reading: points && s.status === 'ready' ? readingAt(points, yearAt(history.clock.time()), s.data.step) : null });
     };
 
     // While the next metric loads, the previous one stays drawn.

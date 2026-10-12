@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createReplayClock } from '@/lib/replay/clock';
 import { busyFrom, createCountryView } from './country-view';
-import { formatValue, readingAt, readingText, scaleFor, type SeriesPayload, type ShapePoint, yearAt } from './series';
+import { formatAt, formatValue, msAt, readingAt, readingText, scaleFor, type SeriesPayload, type ShapePoint, yearAt } from './series';
 
 const at = (iso: string) => Date.parse(iso);
 
@@ -37,6 +37,23 @@ describe('readingAt', () => {
     expect(readingAt([[2000, 1]], 2000.1)).toMatchObject({ kind: 'recorded', shown: 1 });
   });
 
+  it('reads a weekly series at its dates: the recorded value for half a week either side', () => {
+    const weeks = ['2020-03-29', '2020-04-05', '2020-04-12'].map(d => yearAt(at(`${d}T00:00:00Z`)));
+    const weekly: ShapePoint[] = [[weeks[0], 2], [weeks[1], 9], [weeks[2], 16]];
+    const r = readingAt(weekly, yearAt(at('2020-04-06T12:00:00Z')), 'day')!;
+    expect(r).toMatchObject({ kind: 'recorded', shown: 9, year: weeks[1] });
+    expect(r.v).toBeCloseTo(10.5, 5);
+    expect(readingText(r, 'deaths per million', {}, 'day')).toBe('9.0 on 5 Apr 2020');
+    expect(readingAt(weekly, yearAt(at('2020-03-20T00:00:00Z')), 'day')).toBeNull();
+    expect(readingAt(weekly, yearAt(at('2020-04-15T00:00:00Z')), 'day')).toMatchObject({ kind: 'recorded', shown: 16 });
+    expect(readingAt(weekly, yearAt(at('2020-04-17T00:00:00Z')), 'day')).toBeNull();
+  });
+
+  it('leaves weeks more than eight weeks apart unjoined', () => {
+    const far: ShapePoint[] = [[yearAt(at('2021-01-03T00:00:00Z')), 1], [yearAt(at('2021-04-04T00:00:00Z')), 5]];
+    expect(readingAt(far, yearAt(at('2021-02-14T00:00:00Z')), 'day')).toBeNull();
+  });
+
   it('carries the historical polity a value came from', () => {
     const r = readingAt(points, 1990.4)!;
     expect(r.via).toBe('hist:SUN');
@@ -64,6 +81,11 @@ describe('scaleFor', () => {
     expect(s.norm(s.at(0.5))).toBeCloseTo(0.5, 6);
   });
 
+  it('goes log when half the values sit at the floor', () => {
+    const values = { A: [0, 0, 0, 0, 0, 0, 1, 5, 20, 45].map((v, i): ShapePoint => [2020 + i / 52, v]) };
+    expect(scaleFor(values)!.log).toBe(true);
+  });
+
   it('has nothing to scale without values', () => {
     expect(scaleFor({})).toBeNull();
   });
@@ -75,6 +97,14 @@ describe('formatValue', () => {
     expect(formatValue(54.32, '%')).toBe('54.3%');
     expect(formatValue(7321, 'constant 2005 US$')).toBe('7,321');
     expect(formatValue(0.0123, null)).toBe('0.012');
+  });
+});
+
+describe('formatAt', () => {
+  it('prints a year, or a date for a dated series', () => {
+    expect(formatAt(1950)).toBe('1950');
+    expect(formatAt(yearAt(at('2020-03-11T00:00:00Z')), 'day')).toBe('11 Mar 2020');
+    expect(msAt(yearAt(at('2021-07-04T00:00:00Z')))).toBeCloseTo(at('2021-07-04T00:00:00Z'), -1);
   });
 });
 
@@ -126,6 +156,17 @@ describe('createCountryView', () => {
     await settle();
     expect(stale.state().status).toBe('off');
     expect(new Date(outside.time()).getUTCFullYear()).toBe(1960);
+  });
+
+  it('moves into a weekly series at a week a second', async () => {
+    const clock = createReplayClock(at('1939-09-01T00:00:00Z'), { now: () => at('2026-10-12T00:00:00Z'), frame: () => 0, cancelFrame: () => {} });
+    const jan = yearAt(at('2020-01-12T00:00:00Z'));
+    const weekly: SeriesPayload = { ...payload, values: { DEU: [[jan, 0]], FRA: [[jan, 0]] }, years: [jan, jan + 0.5], step: 'day' };
+    const view = createCountryView(clock, (() => ok(weekly)) as typeof fetch);
+    view.select('owid:covid_weekly_deaths_pm');
+    await settle();
+    expect(new Date(clock.time()).toISOString().slice(0, 10)).toBe('2020-01-12');
+    expect(clock.speed()).toBe(7 * 86_400);
   });
 
   it('reports an error from the api', async () => {

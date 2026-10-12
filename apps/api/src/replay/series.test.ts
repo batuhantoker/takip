@@ -132,6 +132,21 @@ describe('/api/replay/history/series', () => {
     expect((await app().request('/api/replay/history/series/fred:UNRATE')).status).toBe(422);
     expect((await app().request('/api/replay/history/series/nope')).status).toBe(404);
   });
+
+  it('maps a weekly series at its dates, as fractional years', async () => {
+    seed();
+    const series = new SqliteSeriesStore(openWriter(dataLayout(dir).history, 'history'));
+    const weekly = series.ensureMetric({ code: 'owid:covid_weekly_deaths_pm', name: 'Weekly deaths', granularity: 'day' });
+    const days = ['2020-03-29', '2020-04-05', '2020-04-12'].map(d => Date.parse(`${d}T00:00:00Z`));
+    series.writeSeries({ metricId: weekly, subjectType: 'entity', subjectId: 1, sourceId: OPEN, datasetId: null, points: days.map((t, i) => ({ t, v: i })) });
+    series.db.close();
+    const body = await json<SeriesBody & { step?: string }>(app().request('/api/replay/history/series/owid:covid_weekly_deaths_pm'));
+    expect(body.step).toBe('day');
+    expect(body.values).toEqual({ RUS: [[2020.24044, 0], [2020.25956, 1], [2020.27869, 2]] });
+    expect(body.years).toEqual([2020.24044, 2020.27869]);
+    const yearly = await json<SeriesBody & { step?: string }>(app().request('/api/replay/history/series/owid:le_0'));
+    expect('step' in yearly).toBe(false);
+  });
 });
 
 describe('shapeSeries', () => {

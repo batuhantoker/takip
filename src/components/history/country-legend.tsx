@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { VIEW_GROUPS } from '@/lib/history/country-view';
-import { formatValue, formatYear, rampFor, readingText, unitInline, yearAt } from '@/lib/history/series';
+import { formatAt, formatValue, rampFor, readingText, unitInline, yearAt } from '@/lib/history/series';
 import type { HistorySession } from '@/lib/history/session';
 
 const HATCH = 'repeating-linear-gradient(135deg, rgba(138,135,127,0.55) 0 1px, transparent 1px 5px)';
@@ -13,18 +13,20 @@ export default function CountryLegend({ session }: { session: HistorySession }) 
   const view = session.countries;
   const state = view.state();
   const hovered = view.hovered();
-  const year = Math.floor(yearAt(session.clock.time()));
+  const y = yearAt(session.clock.time());
 
   let body: ReactNode = null;
   if (state.status === 'loading') body = <p className="text-[11px] text-[var(--text-muted)]">Loading…</p>;
   else if (state.status === 'error') body = <p className="text-[11px] text-[var(--alert-red)]">{state.message}</p>;
   else if (state.status === 'ready') {
     const { data, scale } = state;
+    const step = data.step ?? 'year';
+    const now = step === 'day' ? y : Math.floor(y);
     const unit = data.metric.unit;
     const longUnit = unit && !unitInline(unit) ? unit : null;
     const ramp = rampFor(view.dark());
-    const [first, last] = data.years ?? [year, year];
-    const outside = year < first || year > last;
+    const [first, last] = data.years ?? [now, now];
+    const outside = now < first || now > last;
     body = (
       <>
         {longUnit && <p className="text-[10.5px] text-[var(--text-muted)] -mt-0.5 mb-1.5">{longUnit}</p>}
@@ -46,10 +48,10 @@ export default function CountryLegend({ session }: { session: HistorySession }) 
           {hovered ? (
             <>
               <span className="font-medium">{hovered.name}</span>
-              <span className="text-[var(--text-secondary)]">{' · '}{hovered.reading ? readingText(hovered.reading, unit, data.names) : `no data for ${formatYear(year)}`}</span>
+              <span className="text-[var(--text-secondary)]">{' · '}{hovered.reading ? readingText(hovered.reading, unit, data.names, step) : `no data for ${formatAt(now, step)}`}</span>
             </>
           ) : outside ? (
-            <span className="text-[var(--text-muted)]">No values in {formatYear(year)}: this metric runs {formatYear(first)}–{formatYear(last)}.</span>
+            <span className="text-[var(--text-muted)]">No values {step === 'day' ? 'on' : 'in'} {formatAt(now, step)}: this metric runs {formatAt(first, step)}–{formatAt(last, step)}.</span>
           ) : (
             <span className="text-[var(--text-muted)]">Point at a country for its value.</span>
           )}
@@ -58,7 +60,7 @@ export default function CountryLegend({ session }: { session: HistorySession }) 
           <p className="text-[10px] text-[var(--text-muted)]">Drawn on today&apos;s border; the source reports the whole {data.names[hovered.reading.via] ?? hovered.reading.via}.</p>
         )}
         <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
-          <span className="truncate" title={data.source.attribution ?? data.source.name}>{data.source.attribution ?? data.source.name} · {formatYear(first)}–{formatYear(last)}</span>
+          <span className="truncate" title={data.source.attribution ?? data.source.name}>{data.source.attribution ?? data.source.name} · {formatAt(first, step)}–{formatAt(last, step)}</span>
           {data.sources.length > 1 && (
             <select aria-label="Source" value={data.source.code} onChange={e => view.select(data.metric.code, e.target.value)}
               className="ml-auto h-5 px-1 rounded bg-black/40 border border-white/10 text-[10px] text-[var(--text-secondary)] focus:outline-none">
@@ -66,7 +68,7 @@ export default function CountryLegend({ session }: { session: HistorySession }) 
             </select>
           )}
         </div>
-        <p className="mt-1 text-[10px] text-[var(--text-muted)]">{scale.log ? 'Log scale. ' : ''}Years between two values are estimated.</p>
+        <p className="mt-1 text-[10px] text-[var(--text-muted)]">{scale.log ? 'Log scale. ' : ''}{step === 'day' ? 'Days' : 'Years'} between two values are estimated.</p>
       </>
     );
   }

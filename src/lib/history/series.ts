@@ -3,8 +3,14 @@
  * at a moment, and one colour scale per metric, fixed across all years so colours compare through time.
  */
 
-/** [calendar year, value] or, painted from a historical polity, [year, value, that polity's key]. */
+/**
+ * [calendar year, value] or, painted from a historical polity, [year, value, that polity's key].
+ * In a 'day' series the year is fractional, the point's date.
+ */
 export type ShapePoint = [number, number] | [number, number, string];
+
+/** 'day' series hold dated (weekly) points; absent means yearly. */
+export type Step = 'year' | 'day';
 
 export type SeriesPayload = {
   metric: { code: string; name: string; unit: string | null; topic: string | null };
@@ -15,16 +21,21 @@ export type SeriesPayload = {
   /** Names of the historical polities that `via` keys refer to. */
   names: Record<string, string>;
   years: [number, number] | null;
+  step?: Step;
 };
 
 export type CatalogueMetric = { code: string; name: string; unit: string | null; topic: string | null; subjects: number };
 
-/** Points further apart than this aren't joined: the years between them show as no data. */
+/** Points further apart than this (MAX_GAP_DAYS in a 'day' series) aren't joined: the time between shows as no data. */
 export const MAX_GAP_YEARS = 10;
+const MAX_GAP_DAYS = 56;
+const DAYS_PER_YEAR = 365.25;
+const HALF_WEEK_YEARS = 3.5 / DAYS_PER_YEAR;
 
 /**
  * `v` drives the colour and moves smoothly between points; `shown` is what to print: the recorded value
- * when the year has one, else the estimate between the two points around it.
+ * when the year (or, in a 'day' series, the week) has one, else the estimate between the two points around it.
+ * `year` and `between` are the points' own x.
  */
 export type Reading =
   | { v: number; shown: number; kind: 'recorded'; year: number; via?: string }
@@ -43,10 +54,21 @@ export function yearAt(ms: number) {
   return year + (ms - start) / (utcYearStart(year + 1) - start);
 }
 
-/** A year's value counts from mid-year, so playback passes through each recorded value. */
-export function readingAt(points: readonly ShapePoint[], y: number): Reading | null {
+/** Fractional calendar year → epoch ms; the inverse of yearAt. */
+export function msAt(y: number) {
   const year = Math.floor(y);
-  const c = y - 0.5;
+  const start = utcYearStart(year);
+  return start + (y - year) * (utcYearStart(year + 1) - start);
+}
+
+/**
+ * A year's value counts from mid-year, so playback passes through each recorded value. A dated point
+ * counts from its date, and is the recorded value for the half week either side of it.
+ */
+export function readingAt(points: readonly ShapePoint[], y: number, step: Step = 'year'): Reading | null {
+  const dated = step === 'day';
+  const year = Math.floor(y);
+  const c = dated ? y : y - 0.5;
   let lo = 0;
   let hi = points.length - 1;
   let i = -1;
@@ -59,12 +81,13 @@ export function readingAt(points: readonly ShapePoint[], y: number): Reading | n
   }
   const a = i >= 0 ? points[i] : undefined;
   const b = points[i + 1];
-  const exact = a?.[0] === year ? a : b?.[0] === year ? b : undefined;
+  const isExact = (p: ShapePoint | undefined) => !!p && (dated ? Math.abs(p[0] - y) <= HALF_WEEK_YEARS : p[0] === year);
+  const exact = isExact(a) ? a : isExact(b) ? b : undefined;
   let v: number | undefined;
-  if (a && b && b[0] - a[0] <= MAX_GAP_YEARS) v = a[1] + ((b[1] - a[1]) * (c - a[0])) / (b[0] - a[0]);
+  if (a && b && b[0] - a[0] <= (dated ? MAX_GAP_DAYS / DAYS_PER_YEAR : MAX_GAP_YEARS)) v = a[1] + ((b[1] - a[1]) * (c - a[0])) / (b[0] - a[0]);
   else if (exact) v = exact[1];
   if (v === undefined) return null;
-  if (exact) return { v, shown: exact[1], kind: 'recorded', year, via: exact[2] };
+  if (exact) return { v, shown: exact[1], kind: 'recorded', year: exact[0], via: exact[2] };
   return { v, shown: v, kind: 'interpolated', between: [a![0], b![0]], via: a![2] ?? b![2] };
 }
 
@@ -87,7 +110,8 @@ export function scaleFor(values: Record<string, readonly ShapePoint[]>): Scale |
     hi = all[all.length - 1];
   }
   if (hi <= lo) hi = lo + 1;
-  const log = lo >= 0 && (hi + 1) / (lo + 1) >= 100;
+  // Half the values at the floor (weeks without a COVID death) would leave a linear map nearly one colour.
+  const log = lo >= 0 && ((hi + 1) / (lo + 1) >= 100 || q(0.5) <= lo);
   const f = (x: number) => (log ? Math.log1p(Math.max(0, x)) : x);
   const flo = f(lo);
   const fhi = f(hi);
@@ -127,10 +151,16 @@ export function formatValue(v: number, unit: string | null = null): string {
 /** A calendar year, astronomical (0 is 1 BCE) → "1950" or "500 BCE". */
 export const formatYear = (year: number) => (year > 0 ? String(year) : `${1 - year} BCE`);
 
-export function readingText(r: Reading, unit: string | null, names: Record<string, string>): string {
+const DATE = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const DAY_MS = 86_400_000;
+
+/** A point's x → "1950", or "5 Apr 2020" in a 'day' series. */
+export const formatAt = (x: number, step: Step = 'year') =>
+  step === 'day' ? DATE.format(Math.round(msAt(x) / DAY_MS) * DAY_MS) : formatYear(x);
+
+export function readingText(r: Reading, unit: string | null, names: Record<string, string>, step: Step = 'year'): string {
   const value = formatValue(r.shown, unit);
   const via = r.via ? ` · ${names[r.via] ?? r.via} value` : '';
-  return r.kind === 'recorded'
-    ? `${value} in ${formatYear(r.year)}${via}`
-    : `≈ ${value}, between ${formatYear(r.between[0])} and ${formatYear(r.between[1])}${via}`;
+  if (r.kind === 'recorded') return `${value} ${step === 'day' ? 'on' : 'in'} ${formatAt(r.year, step)}${via}`;
+  return `≈ ${value}, between ${formatAt(r.between[0], step)} and ${formatAt(r.between[1], step)}${via}`;
 }

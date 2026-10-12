@@ -15,8 +15,15 @@ const CATALOGUE_TTL_MS = 5 * 60_000;
 const CACHE = { 'Cache-Control': 'private, max-age=300' };
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
-/** [calendar year, value] or, painted from a historical polity, [year, value, its key]. */
+/**
+ * [calendar year, value] or, painted from a historical polity, [year, value, its key]. For a 'day' metric
+ * the year is fractional: the point's date (2020.2 is mid-March 2020).
+ */
 export type ShapePoint = [number, number] | [number, number, string];
+
+/** 'day' also carries weekly series (the schema has no week); 'month' and finer have no map yet. */
+export type Step = 'year' | 'day';
+const MAPPED = new Set<string>(['year', 'day']);
 
 const notReady = (c: Context) =>
   c.json({ error: 'not_ready', message: 'No history yet: run `npm run import -- all`.' }, 503, { ...NO_STORE, 'Retry-After': '60' });
@@ -24,8 +31,17 @@ const notReady = (c: Context) =>
 const yearOf = (ms: number) => new Date(ms).getUTCFullYear();
 const round = (v: number) => Number(v.toPrecision(5));
 
-/** Points by shape key. A shape's own value wins over one painted from a historical polity in the same year. */
-export function shapeSeries(rows: readonly SeriesPointRow[], polities: readonly PolityKey[], render: readonly PolityRender[]) {
+/** Epoch ms → fractional calendar year, to about five minutes. */
+export function fractionalYear(ms: number) {
+  const year = yearOf(ms);
+  const start = Date.UTC(year, 0, 1);
+  return Number((year + (ms - start) / (Date.UTC(year + 1, 0, 1) - start)).toFixed(5));
+}
+
+/** Points by shape key. A shape's own value wins over one painted from a historical polity at the same time. */
+export function shapeSeries(rows: readonly SeriesPointRow[], polities: readonly PolityKey[], render: readonly PolityRender[], step: Step = 'year') {
+  const keyOf = step === 'year' ? yearOf : (ms: number) => ms;
+  const xOf = step === 'year' ? (year: number) => year : fractionalYear;
   const byEntity = new Map(polities.map(p => [p.entityId, p]));
   const renders = new Map<number, PolityRender[]>();
   for (const r of render) {
@@ -40,20 +56,20 @@ export function shapeSeries(rows: readonly SeriesPointRow[], polities: readonly 
     if (row.subjectType !== 'entity' || row.v === null) continue;
     const polity = byEntity.get(row.subjectId);
     if (!polity) continue;
-    const year = yearOf(row.t);
+    const at = keyOf(row.t);
     const targets = renders.get(row.subjectId);
     if (targets) {
       for (const r of targets) {
         if (r.validLo > row.t || (r.validHi !== null && r.validHi <= row.t)) continue;
         let m = via.get(r.renderKey);
         if (!m) via.set(r.renderKey, (m = new Map()));
-        if (!m.has(year)) m.set(year, [row.v, polity.key]);
+        if (!m.has(at)) m.set(at, [row.v, polity.key]);
         names[polity.key] = polity.name ?? polity.key;
       }
     } else if (!polity.key.startsWith('hist:')) {
       let m = own.get(polity.key);
       if (!m) own.set(polity.key, (m = new Map()));
-      m.set(year, row.v);
+      m.set(at, row.v);
     }
   }
   const values: Record<string, ShapePoint[]> = {};
@@ -62,17 +78,18 @@ export function shapeSeries(rows: readonly SeriesPointRow[], polities: readonly 
   for (const key of new Set([...own.keys(), ...via.keys()])) {
     const mine = own.get(key);
     const borrowed = via.get(key);
-    const years = new Set([...(mine?.keys() ?? []), ...(borrowed?.keys() ?? [])]);
+    const times = new Set([...(mine?.keys() ?? []), ...(borrowed?.keys() ?? [])]);
     const points: ShapePoint[] = [];
-    for (const year of [...years].sort((a, b) => a - b)) {
-      const v = mine?.get(year);
-      if (v !== undefined) points.push([year, round(v)]);
+    for (const at of [...times].sort((a, b) => a - b)) {
+      const x = xOf(at);
+      const v = mine?.get(at);
+      if (v !== undefined) points.push([x, round(v)]);
       else {
-        const [bv, from] = borrowed!.get(year)!;
-        points.push([year, round(bv), from]);
+        const [bv, from] = borrowed!.get(at)!;
+        points.push([x, round(bv), from]);
       }
-      lo = Math.min(lo, year);
-      hi = Math.max(hi, year);
+      lo = Math.min(lo, x);
+      hi = Math.max(hi, x);
     }
     values[key] = points;
   }
@@ -90,14 +107,14 @@ export function seriesRoutes(data: ReplayData) {
     return { catalog, series, policy: catalog.policy(c.var.access.entitlements['data.licence_tier']) };
   };
 
-  /** Yearly metrics with enough polities to map. */
+  /** Yearly and daily (or weekly) metrics with enough polities to map. */
   app.get('/', c => {
     const s = scope(c);
     if (!s) return notReady(c);
     const cached = catalogues.get(s.policy.hash);
     if (cached && data.now() - cached.at < CATALOGUE_TTL_MS) return c.json(cached.body, 200, CACHE);
     const metrics = s.series.entityMetrics(s.policy.sourceIds)
-      .filter(m => m.granularity === 'year' && m.subjects >= MIN_SUBJECTS)
+      .filter(m => MAPPED.has(m.granularity) && m.subjects >= MIN_SUBJECTS)
       .map(m => ({ code: m.code, name: m.name, unit: m.unit, topic: m.topic, subjects: m.subjects }));
     const body = { metrics };
     catalogues.set(s.policy.hash, { at: data.now(), body });
@@ -110,9 +127,10 @@ export function seriesRoutes(data: ReplayData) {
     if (!s) return notReady(c);
     const metric = s.series.metric(c.req.param('metric'));
     if (!metric) return c.json({ error: 'not_found' }, 404, NO_STORE);
-    if (metric.granularity !== 'year') {
-      return c.json({ error: 'not_mappable', message: `${metric.code} is ${metric.granularity}ly; only yearly metrics are mapped` }, 422, NO_STORE);
+    if (!MAPPED.has(metric.granularity)) {
+      return c.json({ error: 'not_mappable', message: `${metric.code} is ${metric.granularity}ly; only yearly, weekly and daily metrics are mapped` }, 422, NO_STORE);
     }
+    const step = metric.granularity as Step;
     const rows = s.series.points(metric.code, s.policy.sourceIds).filter(r => r.subjectType === 'entity');
     const counts = new Map<number, number>();
     for (const r of rows) counts.set(r.sourceId, (counts.get(r.sourceId) ?? 0) + 1);
@@ -124,12 +142,14 @@ export function seriesRoutes(data: ReplayData) {
       : sources.reduce((best, src) => (counts.get(src.sourceId)! > counts.get(best.sourceId)! ? src : best));
     if (!chosen) return c.json({ error: 'not_found', message: `no ${metric.code} from ${wanted}` }, 404, NO_STORE);
     const { polities, render } = s.catalog.polityShapes();
-    const shaped = shapeSeries(rows.filter(r => r.sourceId === chosen.sourceId), polities, render);
+    const shaped = shapeSeries(rows.filter(r => r.sourceId === chosen.sourceId), polities, render, step);
     return c.json({
       metric: { code: metric.code, name: metric.name, unit: metric.unit, topic: metric.topic },
       source: { code: chosen.code, name: chosen.name, attribution: chosen.attribution },
       sources: sources.map(src => ({ code: src.code, name: src.name, points: counts.get(src.sourceId) })),
       ...shaped,
+      // Clients read a missing step as 'year'.
+      ...(step === 'day' && { step }),
     }, 200, CACHE);
   });
 
