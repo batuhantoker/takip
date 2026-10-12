@@ -79,6 +79,12 @@ describe('who gets what', () => {
     expect(await accessOf(jar)).toMatchObject({ plan: { id: 'free' }, subscription: null, entitlements: { 'replay.lookback_days': 7 } });
   });
 
+  it('names the account a caller is limited as, and none for a visitor', async () => {
+    expect(await accessOf()).toMatchObject({ subject: null });
+    const { jar, userId } = await signedInUser();
+    expect(await accessOf(jar)).toMatchObject({ subject: { type: 'user', id: userId } });
+  });
+
   it('applies a granted plan until its end date, then falls back to free', async () => {
     const { jar, userId } = await signedInUser();
     const until = Date.now() + DAY;
