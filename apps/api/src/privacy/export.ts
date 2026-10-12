@@ -56,11 +56,11 @@ export function accountExport(db: AppDb, userId: string, { access, currentSessio
     usage: all(`
       SELECT day, key_id AS apiKeyId, route_group AS routeGroup, requests, bytes, denied FROM usage_counter
       WHERE subject_type = 'user' AND subject_id = ? ORDER BY day, key_id, route_group`, userId)
-      .map(row => ({ ...row, day: isoDay(row.day as number), apiKeyId: row.apiKeyId || null })),
+      .map((row): Json => ({ ...row, day: isoDay(row.day as number), apiKeyId: row.apiKeyId || null })),
     audit: all(`
       SELECT at, actor_type AS actorType, actor_id AS actorId, action, subject_type AS subjectType, subject_id AS subjectId, data
       FROM audit_event WHERE (subject_type = 'user' AND subject_id = ?) OR actor_id = ? ORDER BY audit_id`, userId, userId)
-      .map(row => ({ ...times(row, 'at'), data: JSON.parse(row.data as string) as unknown })),
+      .map((row): Json => ({ ...times(row, 'at'), data: JSON.parse(row.data as string) as unknown })),
     adminUnlocks: all('SELECT unlocked_at AS unlockedAt FROM admin_unlock WHERE user_id = ? ORDER BY unlocked_at', userId)
       .map(row => times(row, 'unlockedAt')),
   };
