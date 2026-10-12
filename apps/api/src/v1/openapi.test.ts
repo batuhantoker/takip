@@ -64,6 +64,6 @@ describe('GET /api/v1/docs', () => {
     const html = await res.text();
     expect(html).toContain('<title>TAKIP API</title>');
     expect(html).toContain('/api/v1/openapi.json');
-    expect(html).toContain('@scalar/api-reference');
+    expect(html).toContain('cdn.jsdelivr.net/npm/@scalar/api-reference@1.72.1');
   });
 });

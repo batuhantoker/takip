@@ -1,0 +1,2 @@
+# Upstream caches (Nominatim answers); the api runs with this folder as its cwd.
+.cache/
