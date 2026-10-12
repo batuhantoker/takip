@@ -147,9 +147,10 @@ requestId → pino logger → principal → rate limit → entitlement guard →
 - **`middleware.ts`** gains a cheap cookie-presence redirect for `/account/*` and `/admin/*`. The real check happens on the server.
 - **Map shell:** an account button sits in the top bar (`ui-direction.md`: search and controls live there). Sign-in opens as a dialog over the map, not as a page change.
 
-**Header conflict to fix:**
-- **Today:** OI, OI Assist and MCP accept a *model provider key* in `Authorization: Bearer` (`lib/oi/service.ts:5`, `api/mcp/route.ts:19`).
-- **Change:** model keys move to `X-OI-Key` only, and `Authorization` is reserved for our own API keys and sessions. This breaks existing MCP client configurations, so it needs a changelog note and a transition period of one release that accepts both forms, logging a warning.
+**Model keys and `Authorization`** (*changed 2026-10-12*):
+- OI, OI Assist and MCP take the caller's model provider key in `X-OI-Key`. `Authorization` is reserved for our own API keys and sessions.
+- For one release, `Authorization: Bearer <model key>` still works when `X-OI-Key` is absent, logging a deprecation warning. A `tk_` token is never treated as a model key.
+- Changelog: "OI and MCP: send model keys in `X-OI-Key`. `Authorization: Bearer <model key>` still works this release and goes away next release. Update your MCP client headers. Hosted AI now needs Pro; bring-your-own-key stays free."
 
 ## 7. Plans, entitlements and billing
 
@@ -342,7 +343,7 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 | Live feeds: flights, maritime, satellites, cctv, earthquakes, fires, weather, weather-grid, news, gdelt, gdelt-events, conflicts, cyber-attacks, malware (+stream), cloudflare-radar, space-weather, markets | Fetch upstream inside `web` | Fetching moves to `ingest` connectors; serving moves to `api` `/api/v1` and `/api/live` | With data phases 1c and 2. The browser switches layer by layer. |
 | On-demand lookups: aircraft, flight-route, geosearch, geo/reverse, region-dossier, directions, arcgis, satellites/orbit, markets/history, entity/expand | `web` | `api` `/api/v1/*`, with per-key upstream limits | Early; mostly mechanical ports |
 | Media proxies: cctv/proxy, frame, resolve, stream-status, texas/snapshot, proxy-tiles | `web` | `api`, as a **closed proxy** that takes ids, never URLs (`INSPIRATION.md` L169) | With the camera move to `catalog.db` |
-| AI and OI: ai/*, oi/*, mcp | `web` | `api`; BYO key free; hosted AI gated by `ai.hosted` | After auth, because ai/* can spend the server's Gemini keys today |
+| AI and OI: ai/*, oi/*, mcp | `web` | `api`; BYO key free; hosted AI gated by `ai.hosted` | After auth. *Gated in `web` since 2026-10-12:* the server-key fallback of `ai/analyze` and `ai/briefing` returns 403 without `ai.hosted`; `ai/overview` falls back to its keyless heuristic read-out |
 | OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Or removed** (`TODO.md` §7 decision). | After the §7 scope decision |
 | Platform: sdk/ingest, sdk/stream, github-webhook, health, stats, reference | `web` | `api`. `sdk/ingest` uses API keys with a `write:entities` scope instead of the shared `SDK_INGEST_KEY`. | Alongside the routes that depend on them |
 
