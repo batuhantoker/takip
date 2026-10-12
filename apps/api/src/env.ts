@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { SOCIAL_PROVIDERS, type SocialPrefix } from './auth/social-providers';
+import { parseCidr } from './obs/peer-allow';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -24,6 +25,11 @@ const schema = z
     // smtp(s)://user:pass@host:port from any provider. Unset in development: mail prints to the console.
     SMTP_URL: z.string().optional(),
     MAIL_FROM: z.string().optional(),
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+    // Peers besides loopback that may read GET /metrics, e.g. the Prometheus host: comma-separated CIDRs.
+    METRICS_ALLOW: z.string().default('')
+      .transform(list => list.split(',').map(rule => rule.trim()).filter(Boolean))
+      .pipe(z.array(z.string().refine(rule => parseCidr(rule) !== null, 'expected a CIDR such as 10.0.0.0/8'))),
     ...socialShape,
   })
   .superRefine((e, ctx) => {
