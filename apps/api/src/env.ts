@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { LOOPBACK, parseProxies } from './access/client-ip';
 import { SOCIAL_PROVIDERS, type SocialPrefix } from './auth/social-providers';
+import { PROVIDER_IDS } from './billing/provider';
+import { unavailableReason } from './billing/registry';
 import { parseCidr } from './obs/peer-allow';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
@@ -50,6 +52,8 @@ const schema = z
       .pipe(z.array(z.string().refine(rule => parseCidr(rule) !== null, 'expected a CIDR such as 10.0.0.0/8'))),
     // The entity-resolution service (intel/) behind /api/v1/entity/expand; empty means the default below.
     INTEL_URL: z.union([z.url(), z.literal('')]).optional(),
+    // Payment provider for /api/billing (backend.md §7.3). Unset: billing is off and checkout answers 501.
+    BILLING_PROVIDER: z.preprocess(v => (v === '' ? undefined : v), z.enum(PROVIDER_IDS).optional()),
     ...socialShape,
   })
   .superRefine((e, ctx) => {
@@ -58,6 +62,8 @@ const schema = z
       if (!e[key]) ctx.addIssue({ code: 'custom', path: [key], message: 'required in production' });
     }
     if (e.SMTP_URL && !e.MAIL_FROM) ctx.addIssue({ code: 'custom', path: ['MAIL_FROM'], message: 'required with SMTP_URL' });
+    const billingProblem = e.BILLING_PROVIDER && unavailableReason(e.BILLING_PROVIDER, e.NODE_ENV);
+    if (billingProblem) ctx.addIssue({ code: 'custom', path: ['BILLING_PROVIDER'], message: billingProblem });
     for (const [prefix] of SOCIAL_PROVIDERS) {
       if (!e[`${prefix}_CLIENT_ID`] !== !e[`${prefix}_CLIENT_SECRET`]) {
         ctx.addIssue({ code: 'custom', path: [`${prefix}_CLIENT_ID`], message: `set both ${prefix}_CLIENT_ID and ${prefix}_CLIENT_SECRET, or neither` });
