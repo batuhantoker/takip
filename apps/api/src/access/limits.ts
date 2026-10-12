@@ -1,3 +1,4 @@
+import type { Entitlements } from '@takip/core/entitlements';
 import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { addressBlock } from './client-ip';
@@ -8,9 +9,26 @@ import { DAY_MS, routeGroup, utcDay, type Usage } from './usage';
 
 // A map view fires several data calls at once (Flight Watch cards, tile chunks); keys keep one second, per plan.
 const WEB_BURST_SECONDS = 3;
+// One replay viewport loads 8–150 immutable chunks in a single burst.
+const REPLAY_BURST = 200;
+export const REPLAY_GROUP = 'replay';
 
 const bucketKey = (p: Principal) =>
   p.kind === 'key' ? `key:${p.keyId}` : p.kind === 'user' ? `user:${p.userId}` : `ip:${addressBlock(p.ip)}`;
+
+/** Requests per second the caller's plan allows: `api.rps` for keys, `web.rps` otherwise. */
+export const planRate = (e: Entitlements, p: Principal) => e[p.kind === 'key' ? 'api.rps' : 'web.rps'];
+const planBurst = (rate: number, p: Principal) => (p.kind === 'key' ? rate : rate * WEB_BURST_SECONDS);
+
+export type RateLimitOptions = {
+  buckets?: TokenBuckets;
+  now?: () => number;
+  enforce?: boolean;
+  rate?: (e: Entitlements, p: Principal) => number;
+  burst?: (rate: number, p: Principal) => number;
+  /** The usage route group; by default the matched /api/v1 route's (routeGroup). */
+  group?: string;
+};
 
 function setHeaders(c: Context, headers: Record<string, string>) {
   try {
@@ -23,17 +41,17 @@ function setHeaders(c: Context, headers: Record<string, string>) {
 }
 
 /**
- * Requests per second from the caller's plan (`api.rps` for keys, `web.rps` otherwise) and, for keys, the
- * owner's `api.requests_per_day`, which resets at UTC midnight (backend.md §5.3). Admitted requests are
- * counted here, before the handler, so concurrent requests can't overshoot the quota.
+ * Requests per second from the caller's plan (`rate`, planRate by default) and, for keys, the owner's
+ * `api.requests_per_day`, which resets at UTC midnight (backend.md §5.3). Admitted requests are counted
+ * here, before the handler, so concurrent requests can't overshoot the quota.
  */
 export function rateLimit(
   usage: Usage,
-  { buckets = createTokenBuckets(), now = () => Date.now(), enforce = true }: { buckets?: TokenBuckets; now?: () => number; enforce?: boolean } = {},
+  { buckets = createTokenBuckets(), now = () => Date.now(), enforce = true, rate = planRate, burst = planBurst, group: fixedGroup }: RateLimitOptions = {},
 ) {
   return createMiddleware<AccessEnv>(async (c, next) => {
     const { principal, access } = c.var;
-    const group = routeGroup(c);
+    const group = fixedGroup ?? routeGroup(c);
     if (!enforce) {
       usage.admit(principal, group);
       return next();
@@ -55,8 +73,8 @@ export function rateLimit(
       }
     }
 
-    const rate = access.entitlements[principal.kind === 'key' ? 'api.rps' : 'web.rps'];
-    const taken = buckets.take(bucketKey(principal), rate, principal.kind === 'key' ? rate : rate * WEB_BURST_SECONDS);
+    const perSecond = rate(access.entitlements, principal);
+    const taken = buckets.take(bucketKey(principal), perSecond, burst(perSecond, principal));
     const headers = {
       'RateLimit-Limit': String(taken.limit),
       'RateLimit-Remaining': String(taken.remaining),
@@ -69,5 +87,16 @@ export function rateLimit(
     usage.admit(principal, group);
     await next();
     setHeaders(c, headers);
+  });
+}
+
+/** /api/replay, on buckets of its own so a viewport never drains the /api/v1 budget: 200 deep, refilled at twice the plan rate. */
+export function replayRateLimit(usage: Usage, options: Pick<RateLimitOptions, 'now' | 'enforce'> = {}) {
+  return rateLimit(usage, {
+    ...options,
+    buckets: createTokenBuckets(),
+    rate: (e, p) => 2 * planRate(e, p),
+    burst: () => REPLAY_BURST,
+    group: REPLAY_GROUP,
   });
 }

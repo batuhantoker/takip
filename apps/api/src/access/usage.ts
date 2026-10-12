@@ -131,12 +131,12 @@ export function createUsage(db: AppDb, { now = () => Date.now(), salt = randomBy
 
 export type Usage = ReturnType<typeof createUsage>;
 
-/** Books the response size after the handler; the rate limiter books requests and refusals. */
-export function meter(usage: Usage) {
+/** Books the response size after the handler, under `group` or else routeGroup's; the rate limiter books requests and refusals. */
+export function meter(usage: Usage, group?: string) {
   return createMiddleware<AccessEnv>(async (c, next) => {
     await next();
     // Only a declared length: measuring a streamed body would cost a copy of it.
     const bytes = Number(c.res.headers.get('content-length'));
-    if (bytes > 0) usage.addBytes(c.var.principal, routeGroup(c), bytes);
+    if (bytes > 0) usage.addBytes(c.var.principal, group ?? routeGroup(c), bytes);
   });
 }

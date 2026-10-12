@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Logger } from 'pino';
 import { clientIp, ipTrust, type IpTrust } from './access/client-ip';
-import { rateLimit } from './access/limits';
+import { rateLimit, REPLAY_GROUP, replayRateLimit } from './access/limits';
 import { withAccess } from './access/middleware';
 import type { AccessResolver } from './access/resolver';
 import { accessRoutes } from './access/routes';
@@ -16,6 +16,7 @@ import { billingRoutes } from './billing/routes';
 import type { AppDb } from './db/app-db';
 import { createApiKeys, type ApiKeys } from './keys/api-keys';
 import { keyRoutes } from './keys/routes';
+import { requiresScope } from './keys/scopes';
 import { requestLogger, silentLogger } from './obs/logger';
 import { createMetrics, httpMetrics, metricsEndpoint, type Metrics } from './obs/metrics';
 import { requestId } from './obs/request-id';
@@ -49,7 +50,8 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   app.route('/api/v1', keyRoutes(keys));
   app.route('/api/v1', v1Routes());
   if (replay) {
-    app.use('/api/replay/*', withAccess(auth, access));
+    app.use('/api/replay/*', withAccess(auth, access, keys));
+    app.use('/api/replay/*', replayRateLimit(usage, { enforce: enforceLimits }), meter(usage, REPLAY_GROUP), requiresScope('read:tracks'));
     app.route('/api/replay', replayRoutes(replay));
   }
   app.route('/api/billing', billingRoutes({ db, auth, access, provider: billing }));
