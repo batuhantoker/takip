@@ -1,6 +1,7 @@
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { admin, twoFactor } from 'better-auth/plugins';
 import { getMigrations } from 'better-auth/db/migration';
+import type { Logger } from 'pino';
 import { APP_NAME, LINK_TTL_S, deleteAccountEmail, existingAccountEmail, resetPasswordEmail, verificationEmail } from './emails';
 import { RESOLVED_IP_HEADER } from '../access/client-ip';
 import { deletionGuard } from '../billing/deletion-guard';
@@ -8,13 +9,14 @@ import type { AppDb } from '../db/app-db';
 import type { EmailSender } from '../mail/sender';
 import type { Env } from '../env';
 import { deletedBy, eraseUser } from '../privacy/erase';
+import { clearPlaintextOAuthTokens, withoutIdToken } from './oauth-tokens';
 import { socialProviders, type SocialEnv } from './social-providers';
 
 const DAY_S = 24 * 60 * 60;
 
 type AuthEnv = Pick<Env, 'BETTER_AUTH_URL' | 'BETTER_AUTH_SECRET'> & SocialEnv;
 /** `billingPortal`: a billing provider is configured, so the client can offer its portal. */
-type AuthOptions = { billingPortal?: boolean };
+type AuthOptions = { billingPortal?: boolean; logger?: Logger };
 
 /** Where the web app shows a failed social sign-in (src/lib/account-links.ts). */
 const SIGN_IN_FAILED = '/?account=sign-in-failed';
@@ -64,10 +66,12 @@ function authOptions(db: AppDb, env: AuthEnv, email: EmailSender, { billingPorta
       updateAge: DAY_S,
       cookieCache: { enabled: true, maxAge: 5 * 60 },
     },
-    account: { modelName: 'auth_account' },
+    // Access and refresh tokens; the key comes from BETTER_AUTH_SECRET.
+    account: { modelName: 'auth_account', encryptOAuthTokens: true },
     // Fires on every path that deletes a user; a key already cached lapses within 30 s.
     databaseHooks: {
       user: { delete: { before: async (user, ctx) => void eraseUser(db, user, deletedBy(user.id, ctx?.context.session?.user.id)) } },
+      account: { create: { before: withoutIdToken }, update: { before: withoutIdToken } },
     },
     verification: { modelName: 'auth_verification' },
     plugins: [
@@ -98,6 +102,8 @@ export async function createAuth(db: AppDb, env: AuthEnv, email: EmailSender, op
   const options = authOptions(db, env, email, opts);
   const { runMigrations } = await getMigrations(options);
   await runMigrations();
+  const cleared = clearPlaintextOAuthTokens(db);
+  if (Object.values(cleared).some(Boolean)) opts.logger?.info({ cleared }, 'cleared plaintext OAuth tokens');
   return betterAuth(options);
 }
 

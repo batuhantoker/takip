@@ -27,7 +27,7 @@ const db = openAppDb(env.APP_DB_PATH);
 migrateAppSchema(db);
 const email = env.SMTP_URL && env.MAIL_FROM ? smtpSender(createTransport(env.SMTP_URL), env.MAIL_FROM) : consoleSender;
 const billing = billingProviderFor(env);
-const auth = await createAuth(db, env, email, { billingPortal: billing !== null });
+const auth = await createAuth(db, env, email, { billingPortal: billing !== null, logger });
 
 const replay = openReplayData(env.TAKIP_DATA_DIR);
 const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive') });

@@ -25,7 +25,7 @@ You can use the map without an account. An account adds things that have to be k
 |---|---|---|
 | **Your account:** name, email address, whether you confirmed it, when you joined, and your profile picture's address if a sign-in service gave us one | To recognise you, and to email you about your account | Until you delete the account |
 | **Your password,** only as a one-way hash we can't turn back into the password | To check it when you sign in | Until you delete the account or stop using a password |
-| **Sign-in services you connected** (Google, GitHub and so on): which service, your ID there, and the access token it gave us | To let you sign in with it | Until you disconnect it or delete the account. `TODO(user)`: we don't use these tokens; see the note at the end |
+| **Sign-in services you connected** (Google, GitHub and so on): which service, your ID there, and the access token it gave us, stored encrypted. We don't use the token | To let you sign in with it | Until you disconnect it or delete the account |
 | **Two-step verification:** whether it's on, its secret and your backup codes, stored encrypted | To ask for a code when you sign in with a password | Until you turn it off or delete the account |
 | **Signed-in devices:** when each session started and was last used, the IP address it came from, and the browser's user agent | So you can see your devices in Account settings and sign them out, and to spot misuse | 30 days after the session was last refreshed (refreshed at most once a day), or until you sign out or sign it out elsewhere |
 | **Your plan:** which plan, any subscription and its dates, and any change an operator made for you, with their reason | To give you what your plan includes | Until you delete the account |
@@ -82,7 +82,7 @@ Contact for privacy questions: `TODO(user)`: an email address you'll read, e.g. 
 
 ## Notes for you, not for the page
 
-- **OAuth tokens:** Better Auth keeps the access and ID tokens a sign-in service returns, in plain text (`auth_account`), and nothing of ours uses them. Turning on `account.encryptOAuthTokens`, or not keeping them, would let the "Sign-in services" row say less. Raised with the backend lead.
+- **OAuth tokens:** access and refresh tokens are stored encrypted (`account.encryptOAuthTokens`, keyed by `BETTER_AUTH_SECRET`); ID tokens aren't kept. Tokens stored in plain text before this were cleared at boot (`apps/api/src/auth/oauth-tokens.ts`). Nothing of ours uses them.
 - **Retention jobs:** nothing prunes `usage_counter` or `audit_event` yet, and expired sessions are deleted only when Better Auth next sees them. The periods above become true once a clean-up job runs.
 - **Billing webhooks:** the raw provider events are kept (`bill_event`) to process each one once. Deletion strips your email address from them; the provider's own IDs stay.
 - **Admin accounts:** the account history of an admin includes actions they took on other users. Deleting an admin keeps those rows (without email or IP addresses), so the history stays complete.
