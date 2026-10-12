@@ -1,4 +1,5 @@
 import type { AppDb } from '../db/app-db';
+import { silentLogger } from '../obs/logger';
 import { createFailedLookups } from './failed-lookups';
 import type { Scope } from './scopes';
 import { keyStore, type KeyActor, type StoredKey } from './store';
@@ -20,7 +21,7 @@ const INVALID = { ok: false, status: 401, error: 'invalid_api_key' } as const;
  * elsewhere applies within that time; revocations made here apply at once. last_used_at is written at
  * most once a minute per key. Database lookups that find no live key are throttled per client address.
  */
-export function createApiKeys(db: AppDb, { ttlMs = 30_000, now = () => Date.now(), failedLookupsPerMinute = 10 } = {}) {
+export function createApiKeys(db: AppDb, { ttlMs = 30_000, now = () => Date.now(), failedLookupsPerMinute = 10, logger = silentLogger } = {}) {
   const store = keyStore(db);
   const cache = new Map<string, { at: number; key: StoredKey | null }>();
   const touched = new Map<string, number>();
@@ -46,7 +47,7 @@ export function createApiKeys(db: AppDb, { ttlMs = 30_000, now = () => Date.now(
       store.touch(key.id, at);
     } catch (err) {
       // Only the "last used" column: never fail the request over it.
-      console.error('[keys] last_used_at write failed', err);
+      logger.error({ err, keyId: key.id }, 'last_used_at write failed');
     }
   }
 

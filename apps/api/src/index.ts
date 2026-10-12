@@ -16,6 +16,7 @@ import { migrateAppSchema } from './db/migrations';
 import { jobQueueJobs, schedulePruneJobs } from './jobs/jobs-prune';
 import { createJobQueue } from './jobs/queue';
 import { createJobRunner } from './jobs/runner';
+import { createApiKeys } from './keys/api-keys';
 import { createMailQueue } from './mail/mail-queue';
 import { consoleSender, smtpSender } from './mail/sender';
 import { openReplayData } from './replay/data';
@@ -38,6 +39,7 @@ const auth = await createAuth(db, env, mail.sender, { billingPortal: billing !==
 const replay = openReplayData(env.TAKIP_DATA_DIR);
 const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive') });
 const usage = createUsage(db, { logger });
+const keys = createApiKeys(db, { logger });
 const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
@@ -58,7 +60,7 @@ const stopJobs = createJobRunner(jobs, {
 const stopMail = mail.start();
 
 const metrics = createMetrics({ defaults: true });
-const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage });
+const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage, keys });
 
 const server = serve({ fetch: app.fetch, hostname: env.API_HOST, port: env.API_PORT }, info => {
   logger.info(`listening on http://${info.address}:${info.port}`);
