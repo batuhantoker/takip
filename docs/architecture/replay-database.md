@@ -326,18 +326,33 @@ The admin console's Sources page (`/admin/sources`) turns two switches per sourc
 
 ### 7.7 Backfill from upstream history
 
-Some upstreams publish their own history, which can fill time before recording started or an outage. The plan is a connector hook: `backfill(from, to)` fetches the history and writes envelopes into the archive under the hour the data describes, marked as backfilled, with `at` still the real receive time. `rebuild` then seals those hours with the same `map()` as live data, so the archive stays the one source of truth. *Not built:* the first backfill connector arrives with the event store. Candidates, each with terms to verify first:
+Some upstreams publish their own history, which can fill time before recording started or an outage. A backfill writes envelopes into the archive filed under the hour the data describes (`for`), with `at` still the real receive time. The same `map()` and sealing as live data then turn them into history, so the archive stays the one source of truth.
 
-| Data | Upstream history | Notes |
-|---|---|---|
-| Earthquakes | USGS FDSN event service | Whole catalogue, keyless |
-| GDELT events | GDELT 2.0 raw files | Every 15 minutes since 2015 |
-| Weather | Open-Meteo historical API (ERA5) | Hourly grids; free for non-commercial use |
-| Fires | NASA FIRMS archive | Needs a `MAP_KEY` |
-| Satellites | Space-Track `gp_history` | Free account; its user agreement limits redistribution |
-| Aircraft | adsb.lol daily `globe_history` releases (ODbL) | Several GB per day. OpenSky's own history needs research (Trino) access; its REST API only gives single tracks over the last 30 days. |
-| Vessels | Danish Maritime Authority and NOAA MarineCadastre AIS files | Only their own waters; large daily files |
-| Cameras | None | Publishers don't keep images |
+```text
+npm run ingest -- backfill adsblol-history <day> [last day]   whole UTC days, ~3 GB each to stream
+npm run ingest -- backfill opensky <from> [to]                up to 1 h back; needs an OpenSky account
+```
+
+- **Who seals:** a backfill seals its hours itself when no worker is running. Otherwise it queues them in `trk_dirty_bucket`, and the worker reseals about 6 hours a minute and rebuilds their L1 and L2. Two processes creating entities at once would each miss the other's identifiers and duplicate them, so `seal` and `rebuild` follow the same rule.
+- **Bulk sources** (`delivery = 'bulk'`) write coverage only for hours they have data in. They're also left out of the worker's own range, so one backfilled day in January doesn't make the worker seal every hour since.
+- *Built:*
+  - **adsb.lol history** (`apps/ingest/src/backfill/adsblol-history.ts`, source `adsblol-history`, ODbL, track bit 4):
+    - The day's release comes from the GitHub API (prod, else staging). Its `.tar.aa`/`.tar.ab` parts are streamed through a tar reader without touching disk, and each `traces/xx/trace_full_<hex>.json` (gzip, readsb's documented trace format) is read in turn.
+    - Traces are thinned to one point per 30 s, keeping leg starts and points after silences, and written as one line per aircraft per hour.
+    - **The archive holds a thinned extract, not the bytes as received.** That's the one exception to §3 rule 1: the immutable GitHub release is the raw, and each line's `url` names the release and the entry.
+    - Checked on the first 4 MB of 2026-10-11: 96 aircraft, 162,209 points thinned to 30,404. A full day is about 77,000 aircraft, ~200 MB of archive and ~170 MB of L0.
+  - **OpenSky** (`backfill/opensky.ts`): accounts can ask `states/all?time=` up to an hour back; anonymous requests ignore `time`. It steps at the live cadence (90 s) and stops with 1,000 credits left for the live map. *Untested against the live API:* no account is configured yet.
+- **No history offered:** aisstream, adsb.fi, CelesTrak (its GP data has no history) and the camera feeds.
+- **Candidates not built** (terms to verify first):
+
+  | Data | Upstream history | Notes |
+  |---|---|---|
+  | Satellites | Space-Track `gp_history` | Free account; its user agreement limits redistribution |
+  | Vessels | Danish Maritime Authority and NOAA MarineCadastre AIS files | Only their own waters; large daily files |
+  | Earthquakes | USGS FDSN event service | Whole catalogue, keyless; needs the event pipeline first |
+  | GDELT events | GDELT 2.0 raw files | Every 15 minutes since 2015 |
+  | Weather | Open-Meteo historical API (ERA5) | Hourly grids; free for non-commercial use |
+  | Fires | NASA FIRMS archive | Needs a `MAP_KEY` |
 
 ## 8. Replay serving
 
@@ -599,7 +614,8 @@ Move when **any** of these is true:
   - *Deferred:* the camera catalogue → `catalog.db` cameras, nominatim → `cache.db`, and the remaining seeds, which go with the importers.
 - **1c, partly built:** `apps/ingest` with the worker, connectors' `map()`, L0 sealing, L1 and L2, TLE loading, coverage and the source switches (§7.3, §7.6). Connectors still poll from Next.
 - **2, partly built:** `/api/replay/manifest`, `/tracks/…` and `/tle` in `apps/api`, plus the admin Sources page. *Not built:* event and feature tiles, histogram, series, docs, entity-at-time, the timeline UI, the GPU track layer and the nginx rules.
-- **Next:** the timeline controller and the GPU track layer, so recorded days can be watched. Then the open hour from the worker, and the first backfill (§7.7).
+- **Recording is on (2026-10-12 20:58 UTC)** in development: `TAKIP_ARCHIVE_DIR` and `TAKIP_WEB_URL` are in `.env.local`, and the worker runs beside `npm run dev`. Backfill is built for adsb.lol history and OpenSky (§7.7).
+- **Next:** the timeline controller and the GPU track layer, so recorded days can be watched. Then the open hour from the worker.
 
 ## 14. Risks and open questions
 

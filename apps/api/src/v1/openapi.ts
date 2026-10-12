@@ -23,6 +23,11 @@ export function v1Routes() {
   app.route('/markets', marketsRoutes());
   app.route('/entity', entityRoutes());
 
+  app.openAPIRegistry.registerComponent('securitySchemes', 'apiKey', {
+    type: 'http',
+    scheme: 'bearer',
+    description: 'An API key from Account settings → API keys (`tk_…`), sent as `Authorization: Bearer tk_…`. Never in the URL.',
+  });
   app.doc31('/openapi.json', {
     openapi: '3.1.0',
     info: { title: 'TAKIP API', version: '1' },

@@ -1,6 +1,6 @@
 -- app.db: application data (accounts, billing, usage, workspaces, audit). Design sketch, not a migration.
 -- Same conventions as replay-schema.sqlite.sql: STRICT, epoch ms, JSON as TEXT, prefix_name -> Postgres prefix.name.
--- auth_* tables are generated and migrated by the Better Auth CLI (user, session, account, verification, apikey,
+-- auth_* tables are generated and migrated by the Better Auth CLI (user, session, account, verification,
 -- plus plugin tables); they are not repeated here. subject ids below reference auth_user.id (TEXT) or, later, an org id.
 
 -- ───────────────────────────── billing ─────────────────────────────
@@ -88,6 +88,23 @@ CREATE TABLE usage_counter (
   denied        INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (day, subject_type, subject_id, key_id, route_group)
 ) STRICT, WITHOUT ROWID;
+
+-- ───────────────────────────── API keys ─────────────────────────────
+
+-- Our own table, not Better Auth's apiKey plugin (backend.md §6). The key itself is never stored.
+CREATE TABLE api_key (
+  key_id        TEXT PRIMARY KEY,
+  user_id       TEXT NOT NULL,                 -- auth_user.id; rows are deleted with the account
+  name          TEXT NOT NULL,
+  prefix        TEXT NOT NULL,                 -- 'tk_ab12cd34', shown to the owner
+  key_hash      BLOB NOT NULL UNIQUE,          -- SHA-256 of the full key
+  scopes        TEXT NOT NULL DEFAULT '[]',    -- JSON array; [] = unrestricted
+  created_at    INTEGER NOT NULL,
+  expires_at    INTEGER,
+  last_used_at  INTEGER,                       -- written at most once a minute
+  revoked_at    INTEGER
+) STRICT, WITHOUT ROWID;
+CREATE INDEX api_key_user ON api_key (user_id, created_at);
 
 -- ───────────────────────────── workspaces ─────────────────────────────
 
