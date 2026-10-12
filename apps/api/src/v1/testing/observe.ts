@@ -1,3 +1,4 @@
+import { clearAirportCache } from '@takip/connectors/airports';
 import { clearNominatimCache } from '@takip/connectors/nominatim';
 import { clearSourceCache } from '@takip/connectors/source-cache';
 import { upstream } from './upstream';
@@ -15,6 +16,7 @@ export interface Observed {
 export async function run(paths: string[], send: (path: string) => Response | Promise<Response>): Promise<Observed[]> {
   clearSourceCache();
   clearNominatimCache();
+  clearAirportCache();
   const out: Observed[] = [];
   for (const path of paths) {
     upstream.calls.length = 0;
