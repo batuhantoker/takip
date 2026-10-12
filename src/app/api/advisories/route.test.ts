@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FcdoAdvisory } from './fcdo';
 import type { Advisory } from './types';
 
-vi.mock('./us-state', () => ({ fetchUsAdvisories: vi.fn() }));
-vi.mock('./smartraveller', () => ({ fetchSmartraveller: vi.fn() }));
-vi.mock('./fcdo', () => ({ fetchFcdoAdvisory: vi.fn() }));
+vi.mock('@takip/connectors/advisories/us-state', () => ({ fetchUsAdvisories: vi.fn() }));
+vi.mock('@takip/connectors/advisories/smartraveller', () => ({ fetchSmartraveller: vi.fn() }));
+vi.mock('@takip/connectors/advisories/fcdo', () => ({ fetchFcdoAdvisory: vi.fn() }));
 
 const row = (issuer: Advisory['issuer'], iso2: string, country: string, level: Advisory['level']): Advisory => ({
   issuer, iso2, country, level, label: 'x', statuses: [], change: null, updated_at: '2026-08-26', url: 'https://example.test',

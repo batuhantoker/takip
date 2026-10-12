@@ -1,4 +1,4 @@
-import { cachedSource } from '@/lib/sourceCache';
+import { cachedSource } from './source-cache';
 
 /**
  * TAKIP — UNHCR displacement per country from the population API, no key. CC BY 4.0 (verify), credit UNHCR.

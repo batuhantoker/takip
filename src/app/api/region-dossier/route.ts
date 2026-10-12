@@ -4,8 +4,8 @@ import { httpJson } from '@/lib/httpJson';
 import { cachedSource } from '@/lib/sourceCache';
 import { advisoriesFor } from '../advisories/lookup';
 import type { Advisory } from '../advisories/types';
-import { displacementFor } from './unhcr';
-import { streetCrimeNear } from './police-uk';
+import { displacementFor } from '@takip/connectors/unhcr';
+import { streetCrimeNear } from '@takip/connectors/police-uk';
 
 /**
  * TAKIP — Region Dossier API

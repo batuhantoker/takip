@@ -4,7 +4,7 @@ process.env.TAKIP_NOMINATIM_GAP_MS = '1';
 
 type Answer = (url: string, init?: RequestInit) => unknown;
 
-/** Stands in for httpJson and fetch: answers by URL prefix, fails anything unexpected, and records every request. */
+/** Stands in for httpJson, httpText and fetch: answers by URL prefix, fails anything unexpected, and records every request. */
 function fakeUpstream() {
   const calls: string[] = [];
   const answers: [prefix: string, answer: Answer][] = [];
@@ -24,6 +24,7 @@ function fakeUpstream() {
       answers.length = 0;
     },
     httpJson: async (url: string) => respond(url),
+    httpText: async (url: string) => String(await respond(url)),
     /** Stands in for global fetch: an answer that throws `HTTP <status>` becomes a response with that status; a Response is sent as is. */
     fetch: async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;

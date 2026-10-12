@@ -4,13 +4,23 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./advisories/country-codes": "./src/advisories/country-codes.ts",
+    "./advisories/fcdo": "./src/advisories/fcdo.ts",
+    "./advisories/lookup": "./src/advisories/lookup.ts",
+    "./advisories/rss": "./src/advisories/rss.ts",
+    "./advisories/smartraveller": "./src/advisories/smartraveller.ts",
+    "./advisories/source-memo": "./src/advisories/source-memo.ts",
+    "./advisories/types": "./src/advisories/types.ts",
+    "./advisories/us-state": "./src/advisories/us-state.ts",
     "./airports": "./src/airports.ts",
     "./http-json": "./src/http-json.ts",
     "./market-tickers": "./src/market-tickers.ts",
     "./nominatim": "./src/nominatim.ts",
     "./orbit": "./src/orbit.ts",
+    "./police-uk": "./src/police-uk.ts",
     "./source-cache": "./src/source-cache.ts",
     "./ssrf-guard": "./src/ssrf-guard.ts",
-    "./stealth-fetch": "./src/stealth-fetch.ts"
+    "./stealth-fetch": "./src/stealth-fetch.ts",
+    "./unhcr": "./src/unhcr.ts"
   }
 }
