@@ -3,6 +3,7 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { SatelliteDetail } from '@/components/map/satellite-card';
 import { satColorFor, type MapPalette } from '@/lib/map-palette';
 import type { OiGlobe } from '@/lib/oi/globe';
+import { isReferenceLayerId } from '@/lib/reference/map-layers';
 import { parseColor } from '@/lib/satellite-layer';
 import type { SatelliteLayer, SatelliteRow } from './types';
 
@@ -42,7 +43,7 @@ export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, oiGlobeRef
     // land and water fills at essentially any point on the globe, which
     // made this bail out every single time.
     const hits = map.queryRenderedFeatures(e.point);
-    if (hits.some(f => f.layer?.id && CLICKABLE_LAYERS.has(f.layer.id))) return;
+    if (hits.some(f => f.layer?.id && (CLICKABLE_LAYERS.has(f.layer.id) || isReferenceLayerId(f.layer.id)))) return;
     // An OI arc or point is picked on the GPU too, and it is in front: the click is OI's.
     if (oiGlobeRef.current?.hit(e.point)) return;
     const idx = layer.pick(e.point.x, e.point.y);

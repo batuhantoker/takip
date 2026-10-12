@@ -76,6 +76,8 @@ export interface Ibi511Source {
   source: string;
   /** Caption of last resort, when a row names neither a city nor a county. */
   state: string;
+  /** Defaults to 'US'; the Canadian deployments report US too. */
+  country?: string;
   /** Drops mis-geocoded rows — every one of these feeds has a few. */
   bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number };
   /**
@@ -193,7 +195,7 @@ export function mapIbi511Record(rec: Ibi511Record, cfg: Ibi511Source): CctvCamer
     lng,
     name: cameraLabel(rec) || `${cfg.source} Camera ${rec.id}`,
     city: cameraCity(rec, cfg.state),
-    country: 'US',
+    country: cfg.country ?? 'US',
     ...(snapshot ? { feed_url: snapshot } : {}),
     ...(video ? { stream_url: video, stream_type: 'hls' as const } : {}),
     source: cfg.source,

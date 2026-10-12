@@ -46,6 +46,10 @@ export const STATE_FEEDS: StateFeed[] = [
     base: 'https://newengland511.org', idPrefix: 'ne511', source: 'New England 511', state: 'New England',
     bounds: { minLat: 42.6, maxLat: 47.5, minLng: -73.5, maxLng: -66.8 },
   }),
+  ibi('newbrunswick', {
+    base: 'https://511.gnb.ca', idPrefix: 'nb511', source: 'New Brunswick 511', state: 'New Brunswick', country: 'Canada',
+    bounds: { minLat: 44.5, maxLat: 48.1, minLng: -69.1, maxLng: -63.7 },
+  }),
   ibi('alaska', {
     base: 'https://511.alaska.gov', idPrefix: 'akdot', source: 'Alaska DOT&PF', state: 'Alaska',
     bounds: { minLat: 51, maxLat: 71.6, minLng: -180, maxLng: -129.9 },
@@ -65,6 +69,10 @@ export const STATE_FEEDS: StateFeed[] = [
     // KC Scout's Missouri-side cameras fall outside, and would be captioned Kansas.
     bounds: { minLat: 36.9, maxLat: 40.1, minLng: -102.1, maxLng: -94.5 },
   }),
+  cars('massachusetts', {
+    host: 'mass511.com', idPrefix: 'massdot', source: 'MassDOT', state: 'Massachusetts',
+    bounds: { minLat: 41.2, maxLat: 42.9, minLng: -73.55, maxLng: -69.9 },
+  }),
   cars('nebraska', {
     host: '511.nebraska.gov', idPrefix: 'nedot', source: 'NDOT Nebraska', state: 'Nebraska',
     bounds: { minLat: 39.9, maxLat: 43.1, minLng: -104.1, maxLng: -95.3 },
@@ -76,5 +84,9 @@ export const STATE_FEEDS: StateFeed[] = [
     bounds: { minLat: 40.4, maxLat: 45.1, minLng: -79.8, maxLng: -71.7 },
     // ./nyc carries these from NYC DOT's own feed.
     excludeOwners: ['NYC DOT'],
+  }),
+  x511('colorado', {
+    api: 'https://api-511x-co.carsprogram.org', idPrefix: 'cdot', source: 'CDOT', state: 'Colorado',
+    bounds: { minLat: 36.95, maxLat: 41.05, minLng: -109.1, maxLng: -102.0 },
   }),
 ];

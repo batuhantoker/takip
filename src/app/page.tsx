@@ -277,6 +277,11 @@ export default function Dashboard() {
       .then(r => (r.ok ? r.json() : null))
       .then(p => { if (p) setCapabilities(c => ({ ...c, cloudflare: !!p.configured })); })
       .catch(() => { /* leave the layer hidden */ });
+    // Reference layers need data/reference/ on this server (see its README).
+    fetch('/api/reference')
+      .then(r => (r.ok ? r.json() : null))
+      .then(p => { if (p) setCapabilities(c => ({ ...c, reference: !!p.available })); })
+      .catch(() => { /* leave the layers hidden */ });
 
     // Once the user interacts, a late IP-location response must not steal the
     // camera back. The request is also cancelled when this page unmounts.

@@ -177,7 +177,8 @@ export async function GET(req: Request) {
   // not blank the whole layer.
   const [outagesRes, attacksRes] = await Promise.allSettled([
     radarFetch('/annotations/outages?limit=50&format=json', signal),
-    radarFetch('/attacks/layer3/top/locations/origin?limit=25&format=json', signal),
+    // Radar rejects this endpoint with a 400 unless it is given a window.
+    radarFetch('/attacks/layer3/top/locations/origin?limit=25&dateRange=1d&format=json', signal),
   ]);
 
   const outages = outagesRes.status === 'fulfilled' ? mapOutages(outagesRes.value) : [];

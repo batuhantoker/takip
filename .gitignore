@@ -40,6 +40,12 @@ scanner/
 # Data files
 threatfox.json
 
+# Reference map data (~320 MB, rebuilt with tools/slim-geodata.py); only the inventory is tracked
+/data/reference/*
+!/data/reference/README.md
+# Raw downloads awaiting deletion
+/docs/data/
+
 # Intermediate scrape of somebody else's index — regenerate it with
 # scratch/scrape_public_webcams.js harvest rather than keeping a copy here.
 scratch/public-webcams-harvest.json

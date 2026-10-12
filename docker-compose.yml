@@ -23,6 +23,10 @@ services:
       - HOSTNAME=0.0.0.0
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Reference map layers (data/reference/README.md). Gitignored, so copy them to the server;
+    # without them /api/reference reports nothing installed and the layers stay hidden.
+    volumes:
+      - ./data/reference:/app/data/reference:ro
     restart: unless-stopped
     networks:
       - default

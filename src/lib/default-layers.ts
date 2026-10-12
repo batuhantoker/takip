@@ -1,3 +1,5 @@
+import { REFERENCE_LAYER_DEFAULTS } from '@/lib/reference/catalog';
+
 // ── DEFAULT: Most layers OFF — fast initial load ──
 export const DEFAULT_LAYERS = {
   flights: false,
@@ -58,6 +60,7 @@ export const DEFAULT_LAYERS = {
   gdelt_events: false,
   cf_outages: false,
   cf_attacks: false,
+  ...REFERENCE_LAYER_DEFAULTS,
 };
 
 export type ActiveLayers = typeof DEFAULT_LAYERS;

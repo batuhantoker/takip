@@ -36,6 +36,7 @@ import { useOiHighlights } from './world-map/use-oi-highlights';
 import { useArcgisLayers, useDrawnPolygons } from './world-map/use-overlay-layers';
 import { useBalloonLayer, useCctvLayer, useInfrastructureLayer, useMaritimeLayers, useNaturalEventLayers, useRadiationLayer } from './world-map/use-point-layers';
 import { useReconLayers } from './world-map/use-recon-layers';
+import { useReferenceLayers } from './world-map/use-reference-layers';
 import { useSatelliteDismiss, useSatelliteLayer } from './world-map/use-satellite-layer';
 import { useWeatherGridLayer, useWeatherRasters } from './world-map/use-weather-layers';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -208,6 +209,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useConflictZones(layerArgs);
   useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef });
   useReconLayers({ ...layerArgs, sweepData, scanTargets });
+  useReferenceLayers(layerArgs);
 
   // Projection changes are independent of terrain. Toggling elevation must not
   // zoom, tilt, or reposition the camera the user has already chosen.

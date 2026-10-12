@@ -3,6 +3,7 @@ import {
   CloudLightning, Ship, Network, Megaphone, CloudSun
 } from 'lucide-react';
 import { SHIP_CLASSES, SHIPS_UNDERWAY } from '@/lib/ship-filter';
+import { REFERENCE_LAYER_GROUPS } from './reference-groups';
 
 export interface LayerDef {
   key: string;
@@ -128,6 +129,7 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'cf_attacks', label: 'Attack Origins', dataKey: 'cf_attack_origins', requires: 'cloudflare' },
     ],
   },
+  ...REFERENCE_LAYER_GROUPS,
   {
     label: 'DISPLAY',
     fullLabel: 'DISPLAY',
