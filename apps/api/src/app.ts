@@ -51,6 +51,6 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
     app.route('/api/replay', replayRoutes(replay));
   }
   app.route('/api/billing', billingRoutes({ db, auth, access, provider: billing }));
-  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard, keys }));
+  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard, keys, usage, billing }));
   return app;
 }

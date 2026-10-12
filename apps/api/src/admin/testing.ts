@@ -24,9 +24,12 @@ export function adminKit(t: TestApp) {
     return { jar, id: await userIdOf(jar), secret };
   }
 
+  let lockedAdmin: Promise<Jar> | undefined;
+
   /** Refused the same way as every other console route: visitor, ordinary user, admin without the step-up. */
   async function expectGated(method: string, path: string, user: Jar, body?: unknown) {
-    const { jar: locked } = await admin({ unlocked: false, user: { ...ADMIN, email: 'locked@example.com' } });
+    lockedAdmin ??= admin({ unlocked: false, user: { ...ADMIN, email: 'locked@example.com' } }).then(a => a.jar);
+    const locked = await lockedAdmin;
     expect(await json(await call(null, method, path, body))).toEqual({ error: 'sign_in_required' });
     const refused = await call(user, method, path, body);
     expect([refused.status, await json(refused)]).toEqual([403, { error: 'admin_only' }]);

@@ -3,15 +3,20 @@ import { z } from 'zod';
 import { CATALOGUE } from '@takip/core/entitlements';
 import { clearOverride, grantPlan, revokePlan, setOverride, setPlanValue, type Actor } from '../access/grants';
 import type { AccessResolver } from '../access/resolver';
+import type { Usage } from '../access/usage';
 import type { Auth } from '../auth/auth';
+import type { BillingProvider } from '../billing/provider';
 import type { AppDb } from '../db/app-db';
 import type { ApiKeys } from '../keys/api-keys';
 import { adminKeyRoutes } from '../keys/admin-routes';
+import { adminBillingRoutes } from './billing-routes';
 import type { AdminEnv, AdminGate } from './gate';
 import { impersonation } from './impersonation';
+import { allKeysRoutes } from './keys-routes';
 import { adminQueries } from './queries';
 import type { SourceSwitchboard } from '../replay/sources';
 import { sourcesRoutes } from './sources-routes';
+import { adminUsageRoutes } from './usage-routes';
 
 /** "YYYY-MM-DD" → the end of that day (UTC), or null. */
 const endOfDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).transform(day => Date.parse(`${day}T23:59:59Z`)).nullish();
@@ -43,7 +48,9 @@ function change(c: Context, run: () => void, access: AccessResolver) {
 }
 
 /** Mounted at /api/admin. Everything but status, unlock and stopping an impersonation sits behind the gate. */
-export function adminRoutes({ auth, db, access, gate, switchboard, keys }: { auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate; switchboard?: SourceSwitchboard; keys: ApiKeys }) {
+export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, billing }: {
+  auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate; switchboard?: SourceSwitchboard; keys: ApiKeys; usage: Usage; billing: BillingProvider | null;
+}) {
   const app = new Hono<AdminEnv>();
   const queries = adminQueries(db, access);
   const actor = (c: Context<AdminEnv>): Actor => ({ type: 'admin', id: c.var.admin.userId });
@@ -72,6 +79,9 @@ export function adminRoutes({ auth, db, access, gate, switchboard, keys }: { aut
   });
   if (switchboard) app.route('/sources', sourcesRoutes({ db, switchboard }));
   app.route('/users', adminKeyRoutes(keys));
+  app.route('/keys', allKeysRoutes(keys));
+  app.route('/usage', adminUsageRoutes({ db, usage }));
+  app.route('/billing', adminBillingRoutes({ db, provider: billing }));
 
   app.get('/overview', c => c.json({ ...queries.overview(), recent: queries.audit({ limit: 10 }) }));
 
