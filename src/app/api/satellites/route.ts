@@ -65,8 +65,8 @@ function classifySatellite(name: string): { mission: string; color: string } {
  * it belongs to. src/lib/orbit.ts wraps satellite.js (already a dependency,
  * previously unused) for real SGP4/SDP4 and geodetic coordinates.
  */
-function propagateSGP4Simple(line1: string, line2: string): { lat: number; lng: number; alt: number } | null {
-  const p = propagateTLE(line1, line2);
+function propagateSGP4Simple(line1: string, line2: string, when?: Date): { lat: number; lng: number; alt: number } | null {
+  const p = propagateTLE(line1, line2, when);
   if (!p) return null;
   return {
     lat: Math.round(p.lat * 10000) / 10000,
@@ -182,7 +182,13 @@ async function refresh() {
   if (asked || usedSatnogs) saveToDisk(state);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // `at` (epoch s) is for replay: today's element sets propagated to that moment, nothing recorded.
+  const atParam = new URL(request.url).searchParams.get('at');
+  const at = atParam === null || atParam === '' ? undefined : Number(atParam);
+  if (at !== undefined && !Number.isFinite(at)) return NextResponse.json({ error: 'bad_time' }, { status: 400 });
+  // Whole minutes, so neighbouring requests share a cached answer.
+  const when = at === undefined ? undefined : new Date(Math.min(Math.round(at / 60) * 60_000, Date.now()));
   try {
     state.refreshing ??= refresh().finally(() => { state.refreshing = undefined; });
     // Wait only when there is nothing to show; otherwise the refresh lands for the next caller.
@@ -200,7 +206,7 @@ export async function GET() {
     // No artificial cap — propagate all satellites, MapLibre handles it fine
     const satellites = [];
     for (const sat of allSats) {
-      const pos = propagateSGP4Simple(sat.line1, sat.line2);
+      const pos = propagateSGP4Simple(sat.line1, sat.line2, when);
       if (!pos) continue;
 
       const classification = classifySatellite(sat.name);
@@ -247,7 +253,7 @@ export async function GET() {
       category_counts: categoryCounts,
       source,
       raw_count: allSats.length,
-      timestamp: new Date().toISOString(),
+      timestamp: (when ?? new Date()).toISOString(),
     }, {
       headers: {
         'Cache-Control': cacheControl,

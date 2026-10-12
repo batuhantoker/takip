@@ -340,9 +340,10 @@ npm run ingest -- backfill opensky <from> [to]                up to 1 h back; ne
     - The day's release comes from the GitHub API (prod, else staging). Its `.tar.aa`/`.tar.ab` parts are streamed through a tar reader without touching disk, and each `traces/xx/trace_full_<hex>.json` (gzip, readsb's documented trace format) is read in turn.
     - Traces are thinned to one point per 30 s, keeping leg starts and points after silences, and written as one line per aircraft per hour.
     - **The archive holds a thinned extract, not the bytes as received.** That's the one exception to §3 rule 1: the immutable GitHub release is the raw, and each line's `url` names the release and the entry.
-    - Checked on the first 4 MB of 2026-10-11: 96 aircraft, 162,209 points thinned to 30,404. A full day is about 77,000 aircraft, ~200 MB of archive and ~170 MB of L0.
+    - Checked on the first 4 MB of 2026-10-11: 96 aircraft, 162,209 points thinned to 30,404. The whole day, run on 2026-10-12, streamed 3.16 GiB into 55,469 aircraft and 18.95 M points over 25 hours: 383 MB of archive, 256 MB of L0, and about 125 MB of L1 and 45 MB of L2.
   - **OpenSky** (`backfill/opensky.ts`): accounts can ask `states/all?time=` up to an hour back; anonymous requests ignore `time`. It steps at the live cadence (90 s) and stops with 1,000 credits left for the live map. *Untested against the live API:* no account is configured yet.
 - **No history offered:** aisstream, adsb.fi, CelesTrak (its GP data has no history) and the camera feeds.
+- **Satellites need no recording for recent replay:** SGP4 runs backwards as well as forwards. `tleAt` falls back to the oldest set after `t` (within 30 days), and `/api/satellites?at=` propagates today's cached sets to any time. Accuracy falls off over days, and objects launched since then show up early.
 - **Candidates not built** (terms to verify first):
 
   | Data | Upstream history | Notes |
@@ -478,6 +479,8 @@ The client loads buckets that overlap the visible timeline window and prefetches
 | **Total** | | | **~190 GB after year 1, then ~80 GB/yr** |
 
 That fits in 1 TB for about 5 years. The cold L0 shards and the raw archive are the two settings to turn down if disk gets tight.
+
+*Measured 2026-10-12:* one backfilled adsb.lol day added about 125 MB to L1 and 45 MB to L2, 3–4× the daily figures above. A backfilled day is denser than live polling, so check L1 and L2 against a week of live data before relying on them.
 
 ## 10. Performance
 

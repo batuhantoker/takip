@@ -177,12 +177,16 @@ describe('SqliteTrackStore', () => {
     expect(decodeChunk(reader.chunk({ cls: 1, lod: 2, bucket: H, bbox: { w: -180, s: -90, e: 180, n: 90 }, allowedMask: 1 })).records).toEqual([]);
   });
 
-  it('answers the newest element set per object within 30 days', () => {
+  it('answers the newest element set per object within 30 days, else the oldest one after', () => {
     const store = new SqliteTrackStore(dataLayout(dir), 'write');
     const tle = (noradId: number, epoch: number) => ({ noradId, epoch, line1: `1 ${noradId} ${epoch}`, line2: '2', name: null, sourceId: 4, fetchedAt: epoch });
-    expect(store.insertTles([tle(25544, H - 86_400_000), tle(25544, H - 3_600_000), tle(25544, H + 3_600_000), tle(20580, H - 40 * 86_400_000)])).toBe(4);
+    const day = 86_400_000;
+    expect(store.insertTles([
+      tle(25544, H - day), tle(25544, H - 3_600_000), tle(25544, H + 3_600_000), tle(20580, H - 40 * day),
+      tle(43013, H + 3 * day), tle(43013, H + 2 * day), tle(48274, H + 40 * day),
+    ])).toBe(7);
     expect(store.insertTles([tle(25544, H - 3_600_000)])).toBe(0);
-    expect(store.tleAt(H).map(r => [r.noradId, r.epoch])).toEqual([[25544, H - 3_600_000]]);
+    expect(store.tleAt(H).map(r => [r.noradId, r.epoch])).toEqual([[25544, H - 3_600_000], [43013, H + 2 * day]]);
     store.close();
   });
 });
