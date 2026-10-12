@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the types the engine, the API, the MCP server and the panel share.
+ * TAKIP OI: the types the engine, the API, the MCP server and the panel share.
  *
  * OI is a prediction engine. It researches a question, maps the world that
  * decides it, casts the actors that shape the outcome as agents, and lets
@@ -149,7 +149,7 @@ export interface Odds {
  *   q…  market data for a price the question turns on (`series`)
  *   m…  a prediction market's price on the question (`odds`)
  *   b…  background from Wikipedia (`wiki`)
- *   c…  the live OSIRIS feeds: a headline (`news`), a post on a social
+ *   c…  the live TAKIP feeds: a headline (`news`), a post on a social
  *       network (`social`), a quake, the market board (`market`)
  *   d…  a passage of the asker's own data, or `data` for all of it (`data`)
  */

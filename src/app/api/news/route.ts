@@ -6,7 +6,7 @@ import type { Bloc } from '@/lib/alert-digest';
 import { alertKind, budgetedLookup, locateReport, type AlertKind, type AlertPlace } from '@/lib/alert-places';
 
 /**
- * OSIRIS — Live Alerts news feed.
+ * TAKIP — Live Alerts news feed.
  *
  * Reads two kinds of source into one feed: public Telegram OSINT channels,
  * which are fast and carry footage, and wire services, which cover the ground
@@ -64,6 +64,10 @@ type Channel = Feed;
  * retired), AP and Al Arabiya (403 to any reader), Xinhua and NHK (404),
  * France 24 (empty), Kyiv Independent (404 — its Telegram channel is above),
  * Jerusalem Post (items dated 2025).
+ *
+ * Added 2026-10-12 on the same test: The Independent and Times of India. Left
+ * out: Euronews (newest item two hours old), and Jerusalem Post's
+ * rssfeedsinternational, which stamps Israeli local time as GMT.
  */
 const WIRE_FEEDS: (Feed & { url: string })[] = [
   { handle: 'bbc',        url: 'https://feeds.bbci.co.uk/news/world/rss.xml',        name: 'BBC World',        lean: 'British public broadcaster',   bloc: 'western' },
@@ -75,6 +79,8 @@ const WIRE_FEEDS: (Feed & { url: string })[] = [
   { handle: 'scmp',       url: 'https://www.scmp.com/rss/91/feed',                   name: 'SCMP',             lean: 'Hong Kong newsroom',           bloc: 'regional' },
   { handle: 'cna',        url: 'https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml', name: 'CNA', lean: 'Singaporean broadcaster', bloc: 'regional' },
   { handle: 'africanews', url: 'https://www.africanews.com/feed/rss',                name: 'Africanews',       lean: 'Pan-African newsroom',         bloc: 'regional' },
+  { handle: 'independent', url: 'https://www.independent.co.uk/news/world/rss',      name: 'The Independent',  lean: 'British newsroom',             bloc: 'western' },
+  { handle: 'timesofindia', url: 'https://timesofindia.indiatimes.com/rssfeeds/296589292.cms', name: 'Times of India', lean: 'Indian newsroom', bloc: 'regional' },
 ];
 
 const POSTS_PER_CHANNEL = 8;

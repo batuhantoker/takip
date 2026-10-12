@@ -1,6 +1,6 @@
 # Dataset import map
 
-> **Status:** design, written 2026-10-12. This describes how each raw dataset lands in the schema in [`replay-schema.sqlite.sql`](./replay-schema.sqlite.sql). The import pipeline itself is in [`replay-database.md`](./replay-database.md) §7.5.
+> **Status:** implemented 2026-10-12 in `tools/import/` (`npm run import -- <seed|all|check|dataset…>`); see §6 for where the code departs from this map. This describes how each raw dataset lands in the schema in [`replay-schema.sqlite.sql`](./replay-schema.sqlite.sql). The import pipeline itself is in [`replay-database.md`](./replay-database.md) §7.5.
 > Raw files: `docs/data/raw-2026-10-12-new/` (historical, 2.1 GB) and `docs/data/raw-2026-10-12/` (US infrastructure, 2.3 GB). Both are gitignored.
 
 Conventions used below:
@@ -68,7 +68,7 @@ From `wars/war_list_1816_2010.csv` (340 participant rows, 98 wars):
 - **The three added rows** (WarNum `99999`, `999999`, `99999900`) go to source `cow-extra` with `confidence 0.5`.
   - The 2022 Russo-Ukraine row's coordinates point into Iran, so its geometry is dropped (`stage.manual_fix`) and it falls back to the country centroid.
 - **Links:**
-  - WWI (WarNum 106) and WWII are linked `same_as` to WAC `CNF-0001` and `CNF-0002`.
+  - WWI (WarNum 106) and WWII (139) are linked `same_as` to WAC `CNF-0001` and `CNF-0013`. (`CNF-0002` is the Russian Civil War.)
   - About 15 other matches (Chaco, Korea, Six-Day, Yom Kippur, Iran-Iraq, Falklands, Gulf, Kosovo, Kargil, Football War, …) come from a checked-in mapping table. They are not fuzzy-matched at runtime.
   - The resolution job sets `canonical_id` to the WAC row, because it is newer and covers civilians.
 
@@ -194,3 +194,27 @@ From `Global Trade War 2018 - Present /tariff_timeline.csv` (141 rows):
 | Open-Meteo grid | grid | `ts.grid_frame` (`kind = forecast`, nowcast hour) | grid + valid time + issued | valid time |
 | AOI watch (`lib/watch.ts`) | derived event | `ev.event` with `attrs.algorithm_version` and supporting observation ids | deterministic hash | sweep time |
 | `/api/conflicts` static zones, static ports and chokepoints | — | **Not recorded.** They are static data presented as live (`TODO.md` L42). | — | — |
+
+## 6. As built
+
+Where `tools/import/` departs from the map above, and why:
+
+- **No `stage/*.db`.** Transforms are TypeScript over the CSV stream, writing through the stores in `packages/db`. Rejects, unresolved values, mapped sentinels and manual fixes go into `meta_dataset.report`.
+- **No typed extension tables yet.** `x_gtd.incident` and `x_icow.claim_year` don't exist. GTD keeps a curated set of columns in `attrs`. ICOW's salience goes to series only.
+- **Polity keys** are the `id` of `public/data/boundaries/countries.json` (ADM0_A3), plus `hist:*` for historical polities. Both are stored under the scheme `takip`. Natural Earth 10m is not downloaded yet; that file stands in for `admin0`.
+- **Crosswalk files:** `seed/polities.csv`, `seed/identifiers.csv` (cow/gw/wac/owid/wb/gtd with validity) and `seed/aliases.csv`. GW differs from COW at 255/260/678 and for the Pacific microstates (970–973).
+- **COW interstate:**
+  - 27 wars link `same_as` to WAC, with 10 `part_of` links where COW codes only one phase of a WAC war (`WAC_MATCHES` in `cow.ts`). WAC rows are canonical.
+  - Territorial-change iso3 codes are switched to the COW code holder of the year, e.g. Turkey → Ottoman Empire.
+- **UCDP:**
+  - Code lists and name lists are not in the same order, so they are matched as sets. 32 non-state actor ids that always co-occur can't be told apart; they are named after both actors.
+  - The five 2025 rows (version 26.0, conflicts 20001–20005) have sequential ids and invalid GW codes. They are loaded flagged `preliminary`, with names winning over codes, and should be checked against the official release.
+- **GTD:**
+  - `eventid` and `related` are Excel-mangled (`1.97E+11`) and kept raw only.
+  - Northern Ireland and Corsica map to GBR and FRA through the `gtd` scheme only, not as global aliases. OWID publishes them separately.
+  - "International", "Multinational" and "CIS" are region groups.
+- **WW1:** with no coordinates, a battle is placed by the country its location text names ("present-day Belgium") before the belligerents' midpoint. Otherwise Mons lands mid-Atlantic. Colonies resolve to today's holder of the territory.
+- **UNESCO:** the file has no listing dates for the danger list. `danger = 1` becomes an ongoing `status.in_danger` event from the dataset year (2021), and `date_end` alone becomes a "removed from the list" event in that year.
+- **OWID:** rows without a code become region groups, including England, Scotland, Wales and Northern Ireland, which aren't separate polities.
+- **IQ:** visible to every tier while its terms are pending, like every other source, rather than `internal`.
+

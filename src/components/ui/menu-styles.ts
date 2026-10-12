@@ -6,3 +6,10 @@ export const MENU_PANEL =
 
 export const MENU_ITEM =
   'w-full text-left flex items-center gap-2.5 px-2.5 py-2 hover:bg-white/5 focus:bg-white/5 focus:outline-none transition-colors';
+
+/** A menu opened from the sidebar: beside it, growing up from the trigger. */
+export const MENU_PANEL_SIDE =
+  'absolute left-full bottom-0 ml-3 z-[1000] w-60 bg-[#0A0A0A]/95 backdrop-blur-md border border-[var(--gold-primary)]/25 shadow-2xl p-1';
+
+export const RAIL_TRIGGER =
+  'w-full flex flex-col items-center gap-1 py-2 rounded-lg text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-[var(--text-primary)] transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40';

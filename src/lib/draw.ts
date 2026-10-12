@@ -1,8 +1,10 @@
 import type { LngLat } from './geo';
 import { circleToRing, haversine, pathLength, polygonArea, rectToRing, ringPerimeter } from './geo';
+import { areaParts, type AreaGeometry } from './aoi';
+import type { BoundaryLevel } from './boundaries';
 
 /**
- * OSIRIS — AOI shape model
+ * TAKIP — AOI shape model
  *
  * Four ways to describe an area, one canonical geometry.
  *
@@ -13,14 +15,24 @@ import { circleToRing, haversine, pathLength, polygonArea, rectToRing, ringPerim
  * `meta` so a circle can still say "12 km radius" rather than "64 vertices".
  */
 
-export type DrawMode = 'polygon' | 'rectangle' | 'circle' | 'line';
+/** `region` picks a country or state outline instead of drawing one. */
+export type DrawMode = 'polygon' | 'rectangle' | 'circle' | 'line' | 'region';
+
+export interface ShapeMeta {
+  center?: LngLat;
+  radiusKm?: number;
+  /** The outline a region shape came from; `source` is the credit its licence asks for. */
+  boundary?: { level: BoundaryLevel; id: string; countryId: string; source?: string };
+  /** Where the name goes; a country's vertex average can land in the sea. */
+  label?: LngLat;
+}
 
 export interface DrawnShape {
   id: string;
   name: string;
   kind: DrawMode;
-  /** Canonical geometry. Polygon for areas, LineString for a path. */
-  geojson: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.LineString>;
+  /** Canonical geometry. Polygon for drawn areas, MultiPolygon for some regions, LineString for a path. */
+  geojson: GeoJSON.Feature<AreaGeometry | GeoJSON.LineString>;
   /** 0 for a line — a path encloses nothing. */
   areaKm2: number;
   /** Ring perimeter for areas, total length for a path. */
@@ -28,7 +40,7 @@ export interface DrawnShape {
   color: string;
   createdAt: number;
   /** What produced the geometry, for shapes with parameters worth keeping. */
-  meta?: { center?: LngLat; radiusKm?: number };
+  meta?: ShapeMeta;
 }
 
 /** Live figures shown while a shape is still being drawn. */
@@ -40,14 +52,32 @@ export interface DrawProgress {
   radiusKm?: number;
   /** True once the shape has enough points to be finished. */
   closable: boolean;
+  region?: RegionProgress;
+}
+
+/** What the region pick would select if the operator clicked now. */
+export interface RegionProgress {
+  /** The level the zoom selects. */
+  level: BoundaryLevel;
+  /** Shift is held, so the whole country is picked at any zoom. */
+  wholeCountry: boolean;
+  /** Null over the sea, or while the countries are loading. */
+  hover: { name: string; areaKm2: number; level: BoundaryLevel; source?: string } | null;
+  /** A finer level is still loading. */
+  loading: boolean;
+  /** The outlines could not be fetched. */
+  failed: boolean;
 }
 
 /** Raw output of the map's draw interaction, before naming and colouring. */
 export interface DrawResult {
   kind: DrawMode;
-  /** Closed ring for areas; the ordered points for a line. */
+  /** Closed ring for areas; the ordered points for a line. Empty when `geometry` is given. */
   coords: number[][];
-  meta?: { center?: LngLat; radiusKm?: number };
+  /** A picked region's outline, used as-is. */
+  geometry?: AreaGeometry;
+  name?: string;
+  meta?: ShapeMeta;
 }
 
 const PALETTE = [
@@ -66,6 +96,7 @@ export function minPoints(mode: DrawMode): number {
     case 'line': return 2;
     case 'rectangle': return 2; // two opposite corners
     case 'circle': return 2;    // centre + a point on the rim
+    case 'region': return 1;
   }
 }
 
@@ -88,9 +119,24 @@ export function buildGeometry(mode: DrawMode, points: number[][]): number[][] {
   return points;
 }
 
+/** Area and outer perimeter of a polygon or multipolygon; holes are subtracted from the area. */
+export function measureArea(geometry: AreaGeometry): { areaKm2: number; perimeterKm: number } {
+  let areaKm2 = 0;
+  let perimeterKm = 0;
+  for (const { outer, holes } of areaParts(geometry)) {
+    areaKm2 += polygonArea(outer) - holes.reduce((sum, h) => sum + polygonArea(h), 0);
+    perimeterKm += ringPerimeter(outer);
+  }
+  return { areaKm2, perimeterKm };
+}
+
 /** Live measurement for the in-progress shape. */
 export function measure(mode: DrawMode, points: number[][]): DrawProgress {
   const enough = points.length >= minPoints(mode);
+
+  if (mode === 'region') {
+    return { mode, vertices: 0, areaKm2: 0, lengthKm: 0, closable: false };
+  }
 
   if (mode === 'circle') {
     const radiusKm = points.length >= 2
@@ -134,21 +180,26 @@ export function toShape(result: DrawResult, existing: { color: string }[], index
   const isLine = result.kind === 'line';
   const coords = result.coords;
 
-  const geometry: GeoJSON.Polygon | GeoJSON.LineString = isLine
-    ? { type: 'LineString', coordinates: coords }
-    : { type: 'Polygon', coordinates: [closeRing(coords)] };
+  const geometry: AreaGeometry | GeoJSON.LineString = result.geometry
+    ?? (isLine
+      ? { type: 'LineString', coordinates: coords }
+      : { type: 'Polygon', coordinates: [closeRing(coords)] });
+
+  const { areaKm2, perimeterKm } = geometry.type === 'LineString'
+    ? { areaKm2: 0, perimeterKm: pathLength(coords) }
+    : measureArea(geometry);
 
   const labels: Record<DrawMode, string> = {
-    polygon: 'Area', rectangle: 'Box', circle: 'Radius', line: 'Path',
+    polygon: 'Area', rectangle: 'Box', circle: 'Radius', line: 'Path', region: 'Region',
   };
 
   return {
     id: `aoi-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    name: `${labels[result.kind]} ${index + 1}`,
+    name: result.name ?? `${labels[result.kind]} ${index + 1}`,
     kind: result.kind,
     geojson: { type: 'Feature', properties: {}, geometry },
-    areaKm2: isLine ? 0 : polygonArea(coords),
-    perimeterKm: isLine ? pathLength(coords) : ringPerimeter(coords),
+    areaKm2,
+    perimeterKm,
     color: nextColor(existing),
     createdAt: Date.now(),
     meta: result.meta,
@@ -162,11 +213,10 @@ export function closeRing(coords: number[][]): number[][] {
   return f[0] === l[0] && f[1] === l[1] ? coords : [...coords, f];
 }
 
-/** The ring used for spatial queries. A line has no interior, so none. */
-export function queryRing(shape: DrawnShape): number[][] | null {
-  return shape.geojson.geometry.type === 'Polygon'
-    ? (shape.geojson.geometry.coordinates[0] as number[][])
-    : null;
+/** The area used for spatial queries. A line has no interior, so none. */
+export function queryArea(shape: Pick<DrawnShape, 'geojson'>): AreaGeometry | null {
+  const g = shape.geojson.geometry;
+  return g.type === 'Polygon' || g.type === 'MultiPolygon' ? g : null;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

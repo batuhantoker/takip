@@ -7,7 +7,7 @@ import {
 import { requestCloudTile } from './live-clouds-client';
 
 /**
- * OSIRIS — Live Clouds hung in the sky.
+ * TAKIP — Live Clouds hung in the sky.
  *
  * A raster layer can only paint onto the ground, so cloud drawn that way lay on
  * top of the places under it like a sheet of paper. This layer lifts it. Each
@@ -262,7 +262,7 @@ export function createCloudLayer(id: string): CustomLayerInterface & { setFrame(
 
       let program: WebGLProgram;
       try { program = programFor(args.shaderData); }
-      catch (error) { console.error('[OSIRIS] clouds layer:', error instanceof Error ? error.message : error); return; }
+      catch (error) { console.error('[TAKIP] clouds layer:', error instanceof Error ? error.message : error); return; }
 
       // What is on screen, nearest the centre first — which is also the order to fetch in.
       const ids = map.coveringTiles({ tileSize: TILE, minzoom: 0, maxzoom: CLOUDS_MAX_ZOOM, roundZoom: true }).slice(0, MAX_TILES);

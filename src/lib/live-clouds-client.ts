@@ -1,7 +1,7 @@
 import type { CloudImage, Tile } from './live-clouds';
 
 /**
- * OSIRIS — Live Clouds on the main thread: hands tile requests to the worker
+ * TAKIP — Live Clouds on the main thread: hands tile requests to the worker
  * (live-clouds.worker.ts) and gets drawn cloud back.
  */
 

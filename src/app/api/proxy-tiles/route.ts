@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(targetUrl.toString(), { signal: AbortSignal.timeout(15000),
       headers: {
         'Accept': '*/*',
-        'User-Agent': 'Osiris-Tile-Proxy/1.0',
+        'User-Agent': 'TAKIP-Tile-Proxy/0.1',
       },
       // Using Next.js fetch cache options to heavily cache tiles locally
       next: {

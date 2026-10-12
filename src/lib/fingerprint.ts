@@ -1,5 +1,5 @@
 /**
- * OSIRIS — FINGERPRINT search helpers.
+ * TAKIP — FINGERPRINT search helpers.
  *
  * The pure pieces of RECON → FINGERPRINT, kept out of the component so they
  * can be tested without a browser: per-type query validation, the categories
@@ -149,7 +149,7 @@ export interface HistoryEntry {
   at: number;
 }
 
-export const HISTORY_KEY = 'osiris.fingerprint.history';
+export const HISTORY_KEY = 'takip.fingerprint.history';
 export const HISTORY_CAP = 25;
 
 export function pushHistory(list: HistoryEntry[], entry: HistoryEntry): HistoryEntry[] {

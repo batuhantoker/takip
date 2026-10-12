@@ -25,10 +25,11 @@ interface LayerFlyoutProps {
   focusGroup: string | null;
   sectionRefs: React.RefObject<Record<string, HTMLElement | null>>;
   masterControls: React.ReactNode;
+  searchField: React.ReactNode;
   renderGroup: (group: LayerGroupDef) => React.ReactNode;
 }
 
-export default function LayerFlyout({ open, setOpen, visibleGroups, hoveredGroup, focusGroup, sectionRefs, masterControls, renderGroup }: LayerFlyoutProps) {
+export default function LayerFlyout({ open, setOpen, visibleGroups, hoveredGroup, focusGroup, sectionRefs, masterControls, searchField, renderGroup }: LayerFlyoutProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -60,25 +61,28 @@ export default function LayerFlyout({ open, setOpen, visibleGroups, hoveredGroup
               ✕
             </button>
           </div>
-          <div className="min-h-0 overflow-y-auto styled-scrollbar p-2 flex flex-col lg:flex-row gap-2">
-            {splitColumns(visibleGroups).map((column, i) => (
-              <div key={i} className="flex-1 min-w-0 flex flex-col gap-1">
-                {column.map((group) => {
-                  const lit = (hoveredGroup ?? focusGroup) === group.label;
-                  return (
-                    <section
-                      key={group.label}
-                      ref={el => { sectionRefs.current[group.label] = el; }}
-                      className="rounded-lg p-2 transition-colors duration-200"
-                      style={{ background: lit ? 'rgba(255,255,255,0.06)' : 'transparent' }}
-                    >
-                      {renderGroup(group)}
-                    </section>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+          <div className="px-3 pt-2 shrink-0">{searchField}</div>
+          {visibleGroups.length === 0 ? <p className="px-3 py-4 text-[11px] text-white/50">No layers match.</p> : (
+            <div className="min-h-0 overflow-y-auto styled-scrollbar p-2 flex flex-col lg:flex-row gap-2">
+              {splitColumns(visibleGroups).filter(column => column.length > 0).map((column, i) => (
+                <div key={i} className="flex-1 min-w-0 flex flex-col gap-1">
+                  {column.map((group) => {
+                    const lit = (hoveredGroup ?? focusGroup) === group.label;
+                    return (
+                      <section
+                        key={group.label}
+                        ref={el => { sectionRefs.current[group.label] = el; }}
+                        className="rounded-lg p-2 transition-colors duration-200"
+                        style={{ background: lit ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+                      >
+                        {renderGroup(group)}
+                      </section>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

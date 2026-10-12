@@ -1,8 +1,8 @@
 /**
- * OSIRIS vision on the main thread: getting a camera's frame, and handing it
+ * TAKIP vision on the main thread: getting a camera's frame, and handing it
  * to the detector in its worker (vision.worker.ts).
  *
- * A still camera's frame comes from /api/cctv/frame, on OSIRIS's own origin:
+ * A still camera's frame comes from /api/cctv/frame, on TAKIP's own origin:
  * the browser will only give up a picture's pixels when it comes from the
  * page's own site or one that allows it, and most camera hosts do not. A live
  * stream's frame is taken from the <video> already playing it.
@@ -58,7 +58,7 @@ export interface Grab {
   at: string;
 }
 
-/** A still camera's current frame, through OSIRIS. */
+/** A still camera's current frame, through TAKIP. */
 export async function grabStill(cameraId: string, signal?: AbortSignal): Promise<Grab> {
   const res = await fetch(`/api/cctv/frame?id=${encodeURIComponent(cameraId)}`, { signal });
   if (!res.ok) {

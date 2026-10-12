@@ -6,10 +6,10 @@ import { ChevronDown, LogOut, Settings, ShieldCheck } from 'lucide-react';
 import { useAccess } from '@/lib/access';
 import { authClient } from '@/lib/auth-client';
 import { useDismiss } from '@/components/ui/use-dismiss';
-import { MENU_ITEM, MENU_PANEL, MENU_TRIGGER } from '@/components/ui/menu-styles';
+import { MENU_ITEM, MENU_PANEL, MENU_PANEL_SIDE, MENU_TRIGGER, RAIL_TRIGGER } from '@/components/ui/menu-styles';
 import { showAccountDialog } from './account-dialog-state';
 
-export default function AccountMenu({ user, compact }: { user: { name: string; email: string; role?: string | null }; compact: boolean }) {
+export default function AccountMenu({ user, compact, rail = false }: { user: { name: string; email: string; role?: string | null }; compact: boolean; rail?: boolean }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -23,7 +23,7 @@ export default function AccountMenu({ user, compact }: { user: { name: string; e
   };
 
   return (
-    <div ref={rootRef} className="relative pointer-events-auto">
+    <div ref={rootRef} className={`relative pointer-events-auto ${rail ? 'w-full' : ''}`}>
       <button
         ref={buttonRef}
         type="button"
@@ -32,10 +32,19 @@ export default function AccountMenu({ user, compact }: { user: { name: string; e
         aria-expanded={open}
         aria-controls={menuId}
         title={user.email}
-        className={`${MENU_TRIGGER} ${compact ? 'px-2 py-1' : 'px-3 py-1.5'}`}
+        className={rail ? `${RAIL_TRIGGER} ${open ? 'bg-white/[0.06] text-[var(--text-primary)]' : ''}` : `${MENU_TRIGGER} ${compact ? 'px-2 py-1' : 'px-3 py-1.5'}`}
       >
-        <span className="text-[var(--gold-primary)] font-bold max-w-[10rem] truncate">{(user.name || user.email).toUpperCase()}</span>
-        <ChevronDown className={`w-2.5 h-2.5 text-[var(--gold-primary)] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+        {rail ? (
+          <>
+            <span aria-hidden className="w-[22px] h-[22px] rounded-full flex items-center justify-center bg-[var(--gold-primary)]/20 text-[var(--gold-light)] text-[11px] font-semibold">{(user.name || user.email).charAt(0).toUpperCase()}</span>
+            <span className="text-[10.5px] leading-none max-w-[60px] truncate">{(user.name || user.email).split(/[\s@]/)[0]}</span>
+          </>
+        ) : (
+          <>
+            <span className="text-[var(--gold-primary)] font-bold max-w-[10rem] truncate">{(user.name || user.email).toUpperCase()}</span>
+            <ChevronDown className={`w-2.5 h-2.5 text-[var(--gold-primary)] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+          </>
+        )}
       </button>
 
       <AnimatePresence>
@@ -47,7 +56,7 @@ export default function AccountMenu({ user, compact }: { user: { name: string; e
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className={MENU_PANEL}
+            className={rail ? MENU_PANEL_SIDE : MENU_PANEL}
           >
             <div className="px-2.5 py-2 flex flex-col min-w-0">
               <span className="text-[11px] text-[var(--text-primary)] truncate">{user.name}</span>

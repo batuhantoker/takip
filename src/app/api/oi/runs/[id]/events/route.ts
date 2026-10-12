@@ -4,7 +4,7 @@ import { disabled, disabledResponse, fail } from '@/lib/oi/service';
 import type { Stamped } from '@/lib/oi/types';
 
 /**
- * OSIRIS OI — a run as it happens, over Server-Sent Events.
+ * TAKIP OI — a run as it happens, over Server-Sent Events.
  *
  * GET /api/oi/runs/{id}/events
  *
@@ -16,8 +16,8 @@ import type { Stamped } from '@/lib/oi/types';
 export const dynamic = 'force-dynamic';
 
 const MAX_STREAMS_PER_IP = 12;
-const g = globalThis as unknown as { __osirisOiStreams?: Map<string, number> };
-const open = (g.__osirisOiStreams ??= new Map());
+const g = globalThis as unknown as { __takipOiStreams?: Map<string, number> };
+const open = (g.__takipOiStreams ??= new Map());
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (disabled()) return disabledResponse();

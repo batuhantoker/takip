@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI Assist: the server's half of a step.
+ * TAKIP OI Assist: the server's half of a step.
  *
  * The page sends the conversation and what is on screen; this checks both,
  * puts them to the reader's model on the reader's key, and returns the step
@@ -44,7 +44,7 @@ export async function assistStep(body: Record<string, unknown>, creds: Credentia
   if (!last || last.role === 'assistant') return { ok: false, status: 400, error: 'Send the conversation, ending with your message or the results of the last actions.' };
   if (!creds.provider) return { ok: false, status: 400, error: 'Choose a provider (X-OI-Provider).' };
   const info = providerInfo(creds.provider);
-  if (!creds.key && info.needsKey) return { ok: false, status: 401, error: `OI Assist runs on your own ${info.name} key, sent in the X-OI-Key header.` };
+  if (!creds.key && info.needsKey) return { ok: false, status: 401, error: `TI Assist runs on your own ${info.name} key, sent in the X-OI-Key header.` };
   const context = sanitizeContext(body.context);
   const model = creds.model || info.defaultModel;
   try {
@@ -61,6 +61,6 @@ export async function assistStep(body: Record<string, unknown>, creds: Credentia
       return { ok: false, status, error: err.message };
     }
     if (signal?.aborted) return { ok: false, status: 499, error: 'Cancelled.' };
-    return { ok: false, status: 500, error: 'OI could not answer just then.' };
+    return { ok: false, status: 500, error: 'TI could not answer just then.' };
   }
 }

@@ -1,5 +1,5 @@
 /**
- * OSIRIS vision on the server: the same detector, for a forecast.
+ * TAKIP vision on the server: the same detector, for a forecast.
  *
  * A forecast runs on the server, so when its plan asks to look at cameras the
  * frames are counted here: ONNX Runtime's WebAssembly build under Node, the

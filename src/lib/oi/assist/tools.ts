@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI Assist: carrying out what the model asks.
+ * TAKIP OI Assist: carrying out what the model asks.
  *
  * The model's actions run in the page, against a small bridge the page
  * provides (Site): fly the camera, switch layers, mark places, open panels,

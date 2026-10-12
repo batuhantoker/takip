@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: every level, the model against the crowd.
+ * TAKIP OI: every level, the model against the crowd.
  *
  * A prediction market prices a price question rung by rung (will it reach
  * $160, $180, $200, will it dip to $80, $60…); the model gives the same thing

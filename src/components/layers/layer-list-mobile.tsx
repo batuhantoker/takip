@@ -8,6 +8,7 @@ import type { LayerGroupDef } from './layer-groups';
 interface LayerListMobileProps {
   visibleGroups: LayerGroupDef[];
   masterControls: React.ReactNode;
+  searchField: React.ReactNode;
   renderGroup: (group: LayerGroupDef, mobile?: boolean) => React.ReactNode;
   studioOpen: boolean;
   setStudioOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -15,13 +16,15 @@ interface LayerListMobileProps {
   setTheme?: (theme: 'core' | 'ghost') => void;
 }
 
-export default function LayerListMobile({ visibleGroups, masterControls, renderGroup, studioOpen, setStudioOpen, theme, setTheme }: LayerListMobileProps) {
+export default function LayerListMobile({ visibleGroups, masterControls, searchField, renderGroup, studioOpen, setStudioOpen, theme, setTheme }: LayerListMobileProps) {
   return (
     <div className="flex flex-col gap-5 py-2">
       <div className="flex items-center gap-2 px-1">
         <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-white/85">All layers</span>
         {masterControls}
       </div>
+      <div className="px-1">{searchField}</div>
+      {visibleGroups.length === 0 && <p className="px-1 text-[11px] text-white/50">No layers match.</p>}
       {visibleGroups.map((group) => (
         <div key={group.label}>{renderGroup(group, true)}</div>
       ))}

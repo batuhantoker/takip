@@ -7,6 +7,7 @@ import Hls from 'hls.js';
 import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView, withdrawalCheck } from '@/lib/camera-feed';
 import { clearLook, registerVideo } from '@/lib/vision/store';
 import CameraVision from './camera-vision';
+import { admitRoadCondition, parseRoadCondition, roadConditionLine } from '@/lib/cctv/road-condition';
 
 interface CameraViewerProps {
   camera: any | null;
@@ -39,6 +40,8 @@ export default function CameraViewer({ camera, onClose, onLocate, besideDock = f
   const hlsRef = useRef<Hls | null>(null);
 
   const externalFeedUrl = camera?.external_url || camera?.feed_url;
+  // Re-checked here: the catalogue can be half an hour older than the reading's 2 h limit.
+  const road = admitRoadCondition(parseRoadCondition(camera?.road));
   const hostedOffPlatform = isHostedOffPlatform(camera);
 
   /**
@@ -225,6 +228,7 @@ export default function CameraViewer({ camera, onClose, onLocate, besideDock = f
                   <div className="min-w-0 flex-1">
                     <h3 className="text-[11px] md:text-[12px] font-mono font-bold tracking-widest truncate text-white uppercase" style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}>{camera.name}</h3>
                     <p className="text-[9px] md:text-[9px] font-mono text-[var(--gold-primary)] uppercase tracking-wider opacity-80">{camera.city}, {camera.country} • SOURCE: {camera.source}</p>
+                    {road && <p className="text-[9px] font-mono text-[var(--cyan-primary)] tracking-wide" title={`Measured at ${road.station ?? 'the paired station'} (${road.source}), not read from the picture`}>{roadConditionLine(road)}</p>}
                   </div>
                 </div>
                 

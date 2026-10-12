@@ -8,7 +8,7 @@ import {
 export const metadata: Metadata = {
   title: 'Privacy',
   description:
-    'Privacy at OSIRIS, in plain words: no accounts, no tracking, your settings on your device, and exactly which services hear from us when you use a feature.',
+    'Privacy at TAKIP, in plain words: no accounts, no tracking, your settings on your device, and exactly which services hear from us when you use a feature.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -87,9 +87,9 @@ function Flow({ icon, title, summary, services, children }: {
 }
 
 const STORED: { what: string; detail: string }[] = [
-  { what: 'Your AI key for OI', detail: 'Kept for this browser tab only, and gone when you close it, unless you tick “Remember on this device”.' },
-  { what: 'Your OI settings and recent predictions', detail: 'Which provider and model you use, whether replies are read aloud, and a list of your last 25 predictions so you can reopen them.' },
-  { what: 'Your OI Assist conversation', detail: 'For this tab only, so a reload does not lose it.' },
+  { what: 'Your AI key for TI', detail: 'Kept for this browser tab only, and gone when you close it, unless you tick “Remember on this device”.' },
+  { what: 'Your TI settings and recent predictions', detail: 'Which provider and model you use, whether replies are read aloud, and a list of your last 25 predictions so you can reopen them.' },
+  { what: 'Your TI Assist conversation', detail: 'For this tab only, so a reload does not lose it.' },
   { what: 'Areas you draw on the map', detail: 'So a refresh does not wipe your work.' },
   { what: 'How the map looks', detail: 'Your Style Studio colours, which layers are switched on, and the last city the map opened on.' },
   { what: 'Your market watchlist and recent fingerprint searches', detail: 'So they are there next time. The search list can be cleared from the search panel.' },
@@ -110,14 +110,14 @@ export default function PrivacyPage() {
     <main className="docs-root min-h-screen bg-[var(--bg-primary)] px-5 py-14 text-[var(--text-primary)] sm:px-6">
       <div className="mx-auto max-w-3xl">
         <Link href="/" className="font-mono text-[11px] tracking-widest text-[var(--text-muted)] hover:text-[var(--cyan-primary)]">
-          ← OSIRIS
+          ← TAKIP
         </Link>
 
         <header className="mt-8">
           <p className="font-mono text-[11px] tracking-[0.25em] text-[var(--gold-primary)]">PRIVACY</p>
           <h1 className="mt-2 text-3xl font-bold tracking-wide sm:text-4xl">Privacy, in plain words</h1>
           <p className="mt-4 text-[15px] leading-relaxed text-[var(--text-muted)]">
-            OSIRIS is a window onto public information: flights, ships, cameras, news, markets and more, gathered onto
+            TAKIP is a window onto public information: flights, ships, cameras, news, markets and more, gathered onto
             one map. We built it so you can use it without telling us who you are. This page says what that means in
             practice, and, where a feature needs to ask another service for something, exactly which one.
           </p>
@@ -146,7 +146,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section id="device" title="What stays on your device"
-          intro="These are kept in your browser’s own storage on this device. We never receive them unless a feature you use needs one, like your AI key for an OI request. Clearing this site’s data in your browser settings removes them all.">
+          intro="These are kept in your browser’s own storage on this device. We never receive them unless a feature you use needs one, like your AI key for a TI request. Clearing this site’s data in your browser settings removes them all.">
           <div className="divide-y divide-[var(--border-primary)]/60 rounded-xl border border-[var(--border-primary)]">
             {STORED.map(s => (
               <div key={s.what} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
@@ -158,7 +158,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section id="services" title="When we reach out to other services"
-          intro="OSIRIS does not keep a database of intelligence of its own: it asks public services in real time. Here is what that involves, by what you are doing. Each service treats what it receives under its own privacy policy.">
+          intro="TAKIP does not keep a database of intelligence of its own: it asks public services in real time. Here is what that involves, by what you are doing. Each service treats what it receives under its own privacy policy.">
           <div className="flex flex-col gap-3">
             <Flow icon={<MapIcon className="h-4 w-4" />} title="Opening the map"
               summary={<>
@@ -202,9 +202,9 @@ export default function PrivacyPage() {
                 browser, as for any picture on the web.
               </>} />
 
-            <Flow icon={<Sparkles className="h-4 w-4" />} title="Using OI, on your own AI key"
+            <Flow icon={<Sparkles className="h-4 w-4" />} title="Using TI, on your own AI key"
               summary={<>
-                OI runs on the AI provider and key you choose. When you start a prediction, talk to OI Assist or check your
+                TI runs on the AI provider and key you choose. When you start a prediction, talk to TI Assist or check your
                 key, your request goes from our server to that provider: your question and any data you add for a
                 prediction, or the conversation and what is on the map for Assist. The provider sees our server’s address,
                 not yours. Your key is used for that request and nothing else.
@@ -214,11 +214,11 @@ export default function PrivacyPage() {
                 { name: 'News publishers’ feeds, GDELT, Wikipedia', what: 'a few keywords from your question, to find the reporting and background a prediction reads; the articles found are then read from their publishers' },
                 { name: 'Yahoo Finance', what: 'the ticker of a price your question is about, for its price history and its news' },
                 { name: 'Polymarket and Manifold', what: 'a few keywords from your question, to find what prediction markets price it at; and, for the suggestions on the ask form, nothing about you at all' },
-                { name: 'Photon and Nominatim (OpenStreetMap)', what: 'a place name, when you search for one or OI looks one up' },
+                { name: 'Photon and Nominatim (OpenStreetMap)', what: 'a place name, when you search for one or TI looks one up' },
               ]}>
               <p className="mt-3 text-[13px] leading-relaxed text-[var(--text-muted)]">
                 A prediction has its own link so it can be shared: anyone you give the link to can open it, and it is kept
-                on our server for three hours after it finishes. The microphone in OI Assist uses your browser’s own
+                on our server for three hours after it finishes. The microphone in TI Assist uses your browser’s own
                 speech recognition (in Chrome and Edge, a Google or Microsoft service); we only ever receive the words.
               </p>
             </Flow>
@@ -237,7 +237,7 @@ export default function PrivacyPage() {
             {[
               { t: 'A lookup is a question to someone else', b: 'The service that answers a lookup sees what was asked. If what you are researching is sensitive, keep that in mind before you search.' },
               { t: 'Shared links are open', b: 'Anyone with a prediction’s link can open it while it is kept. Share it with the people you mean to.' },
-              { t: 'AI is a starting point', b: 'Briefings and predictions are written by language models. OI shows its sources so you can check them, and you should.' },
+              { t: 'AI is a starting point', b: 'Briefings and predictions are written by language models. TI shows its sources so you can check them, and you should.' },
               { t: 'Scan only what you may', b: 'Scans are rate limited and kept away from private networks, but whether you may scan a system is between you and its owner.' },
             ].map(x => (
               <div key={x.t} className="rounded-xl border border-[var(--border-primary)] bg-white/[0.02] p-4">
@@ -253,7 +253,7 @@ export default function PrivacyPage() {
             <li><span className="text-[var(--text-primary)]">Clear everything</span> by clearing this site’s data in your browser settings.</li>
             <li><span className="text-[var(--text-primary)]">Keep your AI key to one session</span> by leaving “Remember on this device” unticked; it is then forgotten when the tab closes.</li>
             <li><span className="text-[var(--text-primary)]">Use only what you need</span>: map layers, cameras and AI features reach out only when you switch them on or use them.</li>
-            <li><span className="text-[var(--text-primary)]">Run your own copy</span>: OSIRIS is open source, so you can host it yourself and decide who operates it.</li>
+            <li><span className="text-[var(--text-primary)]">Run your own copy</span>: TAKIP is open source, so you can host it yourself and decide who operates it.</li>
           </ul>
         </Section>
 
@@ -262,7 +262,7 @@ export default function PrivacyPage() {
             If something here is unclear, or you think we have missed something, tell us and we will put it right.
           </p>
           <div className="mt-4 flex flex-wrap gap-2.5">
-            <a href="https://github.com/simplifaisoul/osiris/issues" target="_blank" rel="noopener noreferrer"
+            <a href="https://github.com/batuhantoker/takip/issues" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-primary)] px-3.5 py-2 text-[13px] hover:border-[var(--cyan-primary)] hover:text-[var(--cyan-primary)]">
               <ExternalLink className="h-4 w-4" /> Open an issue on GitHub
             </a>

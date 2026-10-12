@@ -27,7 +27,7 @@ export default function TokenChart({ open, onClose }: { open: boolean; onClose: 
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-primary)] bg-black/40">
               <div className="flex items-center gap-3">
                 <TrendingUp className="w-4 h-4 text-[#14F195]" />
-                <h2 className="text-xs font-mono font-bold text-white tracking-widest uppercase">$OSIRIS LIVE CHART</h2>
+                <h2 className="text-xs font-mono font-bold text-white tracking-widest uppercase">$TAKIP LIVE CHART</h2>
               </div>
               <button
                 onClick={onClose}

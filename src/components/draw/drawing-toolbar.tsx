@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Pentagon, Ruler, Trash2, Download, Copy, Check, Clock , Square, Circle, Spline} from 'lucide-react';
-import type { DrawMode, DrawProgress, DrawnShape } from '@/lib/draw';
+import { Pentagon, Ruler, Trash2, Download, Copy, Check, Clock , Square, Circle, Spline, Earth } from 'lucide-react';
+import { queryArea, type DrawMode, type DrawProgress, type DrawnShape } from '@/lib/draw';
 import { formatArea, formatDistance } from '@/lib/geo';
-import { selectInPolygon, MAX_ITEMS_PER_GROUP } from '@/lib/aoi';
 import { formatAgo as watchAgo, type WatchEvent } from '@/lib/watch';
-import { contentsToCSV, contentsToGeoJSON, downloadFile } from '@/lib/aoi-export';
-import { FileDown, Table } from 'lucide-react';
 import { Radar, LogIn, LogOut } from 'lucide-react';
+import AoiContents from './aoi-contents';
 
 
 interface DrawingToolbarProps {
@@ -88,6 +86,7 @@ const MODES = [
   { id: 'rectangle' as const, label: 'BOX',    Icon: Square,   blurb: 'Two clicks, opposite corners' },
   { id: 'circle' as const,    label: 'RADIUS', Icon: Circle,   blurb: 'Centre, then distance out' },
   { id: 'line' as const,      label: 'PATH',   Icon: Spline,   blurb: 'Measure a route' },
+  { id: 'region' as const,    label: 'REGION', Icon: Earth,    blurb: 'Click a country; zoom in for states, districts and sub-districts' },
 ];
 
 const MODE_HINT: Record<DrawMode, string> = {
@@ -95,6 +94,7 @@ const MODE_HINT: Record<DrawMode, string> = {
   rectangle: 'Click one corner',
   circle: 'Click the centre',
   line: 'Click the start point',
+  region: 'Point at a country or region',
 };
 
 // Spelling the keys out matters: nobody guesses that Backspace undoes a vertex.
@@ -103,6 +103,7 @@ const KEY_HINT: Record<DrawMode, string> = {
   rectangle: 'Second click completes the box · Esc cancels',
   circle: 'Second click sets the radius · Esc cancels',
   line: 'Double-click or Enter to end · Backspace undoes · Esc cancels',
+  region: 'Zoom in for finer areas · Shift-click for the whole country · Esc cancels',
 };
 
 export default function DrawingToolbar({
@@ -114,7 +115,6 @@ export default function DrawingToolbar({
   const [editingName, setEditingName] = useState<string | null>(null);
   const [nameValue, setNameValue] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
-  const [openGroup, setOpenGroup] = useState<string | null>(null);
   
   const [flash, setFlash] = useState(false);
   const prevCount = useRef(polygons.length);
@@ -177,12 +177,12 @@ export default function DrawingToolbar({
           <div className="flex items-center justify-between text-[10px] font-mono text-white/50 bg-white/5 rounded px-2 py-1.5 border border-white/[0.04]">
             <div className="flex flex-col">
               <span className="text-[10px] tracking-wider mb-0.5 uppercase">Tracked Area</span>
-              <span className="text-[12px] text-[var(--cyan-primary)] font-bold">{totalArea.toFixed(1)} km²</span>
+              <span className="text-[12px] text-[var(--cyan-primary)] font-bold">{formatArea(totalArea)}</span>
             </div>
             <div className="w-[1px] h-6 bg-white/10" />
             <div className="flex flex-col text-right">
               <span className="text-[10px] tracking-wider mb-0.5 uppercase">AOIs / Perim</span>
-              <span className="text-[12px] text-white/80">{polygons.length} / {totalPerim.toFixed(1)}km</span>
+              <span className="text-[12px] text-white/80">{polygons.length} / {formatDistance(totalPerim)}</span>
             </div>
           </div>
         </div>
@@ -202,7 +202,7 @@ export default function DrawingToolbar({
                 <button
                   key={m.id}
                   onClick={() => onSetDrawMode(on ? null : m.id)}
-                  className={`flex items-start gap-2 p-2 rounded border text-left transition-all ${
+                  className={`flex items-start gap-2 p-2 rounded border text-left transition-all ${m.id === 'region' ? 'col-span-2 ' : ''}${
                     on
                       ? 'border-[var(--cyan-primary)]/50 bg-[var(--cyan-primary)]/10'
                       : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.07]'
@@ -231,7 +231,9 @@ export default function DrawingToolbar({
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--cyan-primary)] animate-pulse flex-shrink-0" />
                 <span className="text-[10px] font-mono text-[var(--cyan-primary)] tracking-wider flex-1">
-                  {progress
+                  {progress?.region
+                    ? progress.region.hover?.name ?? MODE_HINT[drawMode]
+                    : progress
                     ? `${progress.vertices} point${progress.vertices === 1 ? '' : 's'}`
                     : MODE_HINT[drawMode]}
                 </span>
@@ -319,7 +321,7 @@ export default function DrawingToolbar({
                     </div>
                     
                     <div className="flex items-center gap-1 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {onToggleWatch && polygon.geojson.geometry.type === 'Polygon' && (
+                      {onToggleWatch && queryArea(polygon) && (
                         <button
                           onClick={(e) => { e.stopPropagation(); onToggleWatch(polygon.id); }}
                           title={watched?.has(polygon.id) ? 'Stop watching this area' : 'Watch for arrivals and departures'}
@@ -345,7 +347,7 @@ export default function DrawingToolbar({
                     <div className="flex items-center gap-3">
                       <span className="flex items-center gap-1">
                         <Ruler className="w-2.5 h-2.5" />
-                        {polygon.areaKm2.toFixed(2)} km²
+                        {formatArea(polygon.areaKm2)}
                       </span>
                     </div>
                     <span className="flex items-center gap-1 text-[10px] text-white/30">
@@ -354,84 +356,16 @@ export default function DrawingToolbar({
                     </span>
                   </div>
 
-                  {/* What is inside. Recomputed from the live store, so the
-                      readout tracks aircraft moving through the area rather
-                      than freezing at the moment the polygon was drawn. */}
-                  {selectedPolygon === polygon.id && (() => {
-                    const ring = polygon.geojson.geometry.coordinates[0] as number[][];
-                    const report = selectInPolygon(ring, data || {});
-                    return (
-                      <div className="mt-2 pt-2 border-t border-white/[0.06]">
-                        <div className="flex items-baseline gap-2 mb-1.5">
-                          <span className="text-[10px] font-mono tracking-[0.2em] text-white/40">CONTENTS</span>
-                          <span className="text-[11px] font-mono text-white tabular-nums">{report.total.toLocaleString()}</span>
-                          <span className="text-[10px] font-mono text-white/30">object{report.total === 1 ? "" : "s"}</span>
-                        </div>
-                        {report.total === 0 && (
-                          <p className="text-[10px] font-mono text-white/30 pb-1">Nothing tracked inside this area.</p>
-                        )}
-                        {report.groups.map(g => (
-                          <div key={g.key} className="mb-1.5">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setOpenGroup(openGroup === polygon.id + g.key ? null : polygon.id + g.key); }}
-                              className="w-full flex items-center gap-2 py-0.5 hover:bg-white/[0.03] rounded"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: g.color }} />
-                              <span className="text-[10px] font-mono text-white/70 flex-1 text-left">{g.label}</span>
-                              <span className="text-[10px] font-mono text-white tabular-nums">{g.count.toLocaleString()}</span>
-                            </button>
-                            {openGroup === polygon.id + g.key && (
-                              <div className="pl-3.5 mt-0.5">
-                                {g.items.map(it => (
-                                  <button
-                                    key={it.id}
-                                    onClick={(e) => { e.stopPropagation(); onLocateEntity?.(it.lat, it.lng); }}
-                                    className="w-full flex items-baseline gap-2 py-0.5 text-left hover:bg-white/[0.04] rounded px-1"
-                                  >
-                                    <span className="text-[10px] font-mono text-white/80 truncate">{it.label}</span>
-                                    {it.detail && <span className="text-[10px] font-mono text-white/30 truncate">{it.detail}</span>}
-                                  </button>
-                                ))}
-                                {g.count > MAX_ITEMS_PER_GROUP && (
-                                  <p className="text-[10px] font-mono text-white/25 px-1 py-0.5">
-                                    +{(g.count - MAX_ITEMS_PER_GROUP).toLocaleString()} more not listed
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        {report.total > 0 && (
-                          <div className="flex gap-1 mt-2 pt-2 border-t border-white/[0.06]">
-                            {/* Finding the objects is only half of it; the next
-                                stop is usually a spreadsheet. */}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const stamp = new Date().toISOString().slice(0, 10);
-                                downloadFile(`${polygon.name.replace(/s+/g, "-")}-contents-${stamp}.csv`,
-                                  contentsToCSV(polygon, report), "text/csv");
-                              }}
-                              className="flex-1 flex items-center justify-center gap-1 py-1 rounded text-[10px] font-mono tracking-wider border border-white/10 text-white/60 hover:text-white hover:bg-white/[0.06] transition"
-                            >
-                              <Table className="w-2.5 h-2.5" /> CSV
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const stamp = new Date().toISOString().slice(0, 10);
-                                downloadFile(`${polygon.name.replace(/s+/g, "-")}-contents-${stamp}.geojson`,
-                                  JSON.stringify(contentsToGeoJSON(polygon, report), null, 2), "application/geo+json");
-                              }}
-                              className="flex-1 flex items-center justify-center gap-1 py-1 rounded text-[10px] font-mono tracking-wider border border-white/10 text-white/60 hover:text-white hover:bg-white/[0.06] transition"
-                            >
-                              <FileDown className="w-2.5 h-2.5" /> GEOJSON
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  {/* The outline stays on the map, so its licence's credit stays with it. */}
+                  {polygon.meta?.boundary?.source && (
+                    <p className="pl-1 mt-1 text-[10px] font-mono text-white/30 truncate" title={polygon.meta.boundary.source}>
+                      Outlines: {polygon.meta.boundary.source}
+                    </p>
+                  )}
+
+                  {selectedPolygon === polygon.id && (
+                    <AoiContents shape={polygon} data={data} onLocateEntity={onLocateEntity} />
+                  )}
                 </motion.div>
               ))
             )}

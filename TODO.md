@@ -29,12 +29,12 @@ Output: one report with P0–P3 findings, a keep/rewrite/delete verdict per modu
   - [ ] Check for SSRF in every route that fetches a URL: `cctv/proxy`, `proxy-tiles`, `arcgis`, `cctv/resolve`, `cctv/stream-status`, `cctv/frame`, `entity/expand`, `osint/*`.
   - [ ] Check auth on `sdk/ingest`, `github-webhook`, `mcp`, `oi/*` and `ai/*`.
   - [ ] Check whether anonymous users can burn the server's Gemini keys, and whether rate limits exist.
-  - [ ] Check `innerHTML` interpolation in the map popups (`OsirisMap.tsx`) for XSS.
+  - [ ] Check `innerHTML` interpolation in the map popups (`src/lib/map-popups.ts`) for XSS.
   - [ ] Check how bring-your-own API keys are handled, and the CSP and CORS settings.
   - [ ] Review `nginx/nginx.conf` and `intel/server.js`.
 - [ ] **Architecture and maintainability**
   - [ ] Review /src/components, use kebab  case and have a better improved engine. The codebase is scattered. Interface is poor. Features need to be revised and improved. Draw feature can be the hitting.
-  - [ ] Break up the god files: `OsirisMap.tsx` (3,490 lines), `page.tsx` (2,364), `OsintPanel.tsx` (1,653), `cctv/route.ts` (1,068).
+  - [ ] Break up the god files: `world-map.tsx` (3,490 lines), `page.tsx` (2,364), `OsintPanel.tsx` (1,653), `cctv/route.ts` (1,068).
   - [ ] Replace the `dataRef` + `dataVersion` global state pattern.
   - [ ] Reduce `any` and `eslint-disable` usage.
   - [ ] Find a shared contract for the ~52 duplicated CCTV adapters.
@@ -60,7 +60,7 @@ Output: one report with P0–P3 findings, a keep/rewrite/delete verdict per modu
   - [ ] Find unused dependencies and run `npm audit`.
   - [ ] Bound the in-memory caches.
   - [ ] Review the semantics of `/api/health`.
-  - [ ] Replace `[OSIRIS] console.*` with structured logging.
+  - [ ] Replace `[TAKIP] console.*` with structured logging.
 - [ ] **Scoop World Monitor** (koala73/worldmonitor; notes in `INSPIRATION.md`)
   - [ ] Run it locally (`npm install && npm run dev`, no keys needed) and go through every layer, panel and variant.
   - [ ] Read their `ARCHITECTURE.md`, `docs/algorithms.mdx` and `docs/data-sources.mdx`. The last lists licence posture per source.
@@ -74,7 +74,7 @@ Output: one report with P0–P3 findings, a keep/rewrite/delete verdict per modu
 
 ## 3. Known issues (found so far)
 
-- [ ] `OSIRIS_CCTV_SNAPSHOT=off` turns off reading the snapshot but not writing it, so the catalogue is saved to a file literally named `off` (`src/lib/cctv-snapshot.ts`). Delete the stray `off` file.
+- [ ] `TAKIP_CCTV_SNAPSHOT=off` turns off reading the snapshot but not writing it, so the catalogue is saved to a file literally named `off` (`src/lib/cctv-snapshot.ts`). Delete the stray `off` file.
 - [ ] Two tests also fail on upstream `83b8cd1`:
   - [ ] `src/lib/oi/context.test.ts`: "carries on without a source that fails"
   - [ ] `src/app/api/cctv/route.test.ts`: "serves an already-cached region without going upstream again"
@@ -91,14 +91,14 @@ Output: one report with P0–P3 findings, a keep/rewrite/delete verdict per modu
 ## 4. Rebrand (after §1)
 
 - [x] Display text renamed OSIRIS → TAKIP: UI, metadata, AI prompts.
-- [ ] Docs: README, DOCKER.md, SECURITY.md, `.env.example`.
-- [ ] Config: `package.json` name, `docker-compose.yml` (service names, CasaOS metadata).
-- [ ] Env vars `OSIRIS_*` → new prefix, reading the old names as a fallback.
-- [ ] Storage keys `osiris.*`: migrate them so users keep their settings.
-- [ ] Identifiers: `OsirisMap`, `window.osirisWatchFlight`, terrain source ids, the AOI export filename, the `[OSIRIS]` log prefix.
-- [ ] User-Agent strings `OSIRIS/5.0 (+https://osirisai.live)`: switch to our own domain and contact.
-- [ ] Assets: logo SVG, splash, favicons, `og-image`, CasaOS icon.
-- [ ] Links: `SITE_URL`, `@simplifaisoul` handles, Patreon, Discord, Merch.
+- [x] Docs: README, DOCKER.md, SECURITY.md, `.env.example`.
+- [x] Config: `package.json` name, `docker-compose.yml` (service names, CasaOS metadata).
+- [x] Env vars `OSIRIS_*` → `TAKIP_*`. The old names still work for the archive, ingest and compose port settings a deployed `.env` may hold.
+- [x] Storage keys `osiris.*` → `takip.*`, migrated by an inline script in `layout.tsx`.
+- [x] Identifiers: `window.takipWatchFlight`, terrain source ids, the AOI export filename, the `[TAKIP]` log prefix, MCP tool names (`takip_*`).
+- [x] User-Agent strings: `TAKIP/0.1 (+https://github.com/batuhantoker/takip)`. Switch the contact to our own domain once there is one.
+- [x] Assets: logo SVG, splash, favicons, `og-image`, CasaOS icon. All built from `tools/brand/` (`node tools/brand/build.mjs`).
+- [ ] Links: `SITE_URL` (placeholder `takip.example`), `@simplifaisoul` handles, Ko-fi, Discord. The merch link is gone.
 - [ ] Credit upstream in the README and `LICENSE`; don't claim their work.
 - [ ] Layout redesign, moving away from the military HUD look.
 

@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the open web a forecast reads.
+ * TAKIP OI: the open web a forecast reads.
  *
  * Before the world model, OI researches the question the way an analyst
  * would, from sources that can be checked:
@@ -44,7 +44,7 @@ export interface WebDeps {
   gdeltGapMs: number;
 }
 
-const UA = 'Mozilla/5.0 (compatible; OSIRIS-OI/1.0; +https://osirisai.live/docs#oi)';
+const UA = 'Mozilla/5.0 (compatible; TAKIP-OI/0.1; +https://github.com/batuhantoker/takip)';
 
 /* ───────────────────────────── GDELT ───────────────────────────── */
 

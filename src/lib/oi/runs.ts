@@ -58,8 +58,8 @@ interface Store {
   starts: Map<string, number[]>;
 }
 
-const g = globalThis as unknown as { __osirisOi?: Store };
-const store: Store = (g.__osirisOi ??= { runs: new Map(), starts: new Map() });
+const g = globalThis as unknown as { __takipOi?: Store };
+const store: Store = (g.__takipOi ??= { runs: new Map(), starts: new Map() });
 
 export interface StartInput {
   question: string;
@@ -121,7 +121,7 @@ export function startRun(input: StartInput, deps: StartDeps = {}): StartResult {
   prune(now);
   const runs = [...store.runs.values()];
   if (runs.filter(active).length >= LIMITS.globalActive) {
-    return { ok: false, status: 503, error: 'OI is at capacity. Try again in a few minutes.' };
+    return { ok: false, status: 503, error: 'TI is at capacity. Try again in a few minutes.' };
   }
   if (runs.filter(r => active(r) && r.ip === input.ip).length >= LIMITS.perIpActive) {
     return { ok: false, status: 429, error: `You already have ${LIMITS.perIpActive} runs going. Wait for one to finish or cancel it.` };
@@ -230,7 +230,7 @@ export function subscribe(run: Run, after: number, listener: (e: Stamped) => voi
 }
 
 const MAX_WAITS_PER_IP = 6;
-const waits = ((globalThis as unknown as { __osirisOiWaits?: Map<string, number> }).__osirisOiWaits ??= new Map());
+const waits = ((globalThis as unknown as { __takipOiWaits?: Map<string, number> }).__takipOiWaits ??= new Map());
 
 /**
  * A slot for one held-open wait (a long-poll, an MCP call waiting on a run),

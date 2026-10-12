@@ -1,0 +1,3 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"id":"BLM-5113","name":"Saint Barthélemy","country":"Saint Barthelemy","countryId":"BLM","iso":"BL-X00~","label":[-62.8288,17.9017]},"geometry":{"type":"Polygon","coordinates":[[[-62.839,17.882],[-62.866,17.929],[-62.792,17.915],[-62.839,17.882]]]}}
+]}

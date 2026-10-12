@@ -38,13 +38,15 @@ export function useDrawnPolygons({ mapRef, mapReady, drawnPolygons, prevDrawnPol
 
       // Build a centroid point feature for the label. A Polygon nests its ring
       // one level deeper than a LineString, so the label of a path would sit at
-      // 0,0 if both were read the same way.
+      // 0,0 if both were read the same way. A MultiPolygon labels its largest part.
       const geom: any = poly.geojson.geometry;
-      const ring: number[][] = geom?.type === 'LineString' ? (geom.coordinates || []) : (geom?.coordinates?.[0] || []);
-      const centroid = ring.length > 0 ? [
+      const ring: number[][] = geom?.type === 'LineString' ? (geom.coordinates || [])
+        : geom?.type === 'MultiPolygon' ? (geom.coordinates || []).reduce((a: number[][], p: number[][][]) => (p[0]?.length > a.length ? p[0] : a), [])
+        : (geom?.coordinates?.[0] || []);
+      const centroid = poly.meta?.label ?? (ring.length > 0 ? [
         ring.reduce((s: number, c: number[]) => s + c[0], 0) / ring.length,
         ring.reduce((s: number, c: number[]) => s + c[1], 0) / ring.length,
-      ] : [0, 0];
+      ] : [0, 0]);
       const labelFC = { type: 'FeatureCollection' as const, features: [{ type: 'Feature' as const, properties: { name: poly.name }, geometry: { type: 'Point' as const, coordinates: centroid } }] };
 
       if (!map.getSource(sourceId)) {

@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- *  OSIRIS — AI Intelligence Briefing Endpoint
+ *  TAKIP — AI Intelligence Briefing Endpoint
  *  POST /api/ai/briefing
  *  Generates structured threat briefings via Gemini
  * ═══════════════════════════════════════════════════════════════
@@ -206,7 +206,7 @@ export async function POST(
       );
     }
 
-    console.error('[OSIRIS AI] Briefing error:', message);
+    console.error('[TAKIP AI] Briefing error:', message);
     return NextResponse.json(
       { error: 'Briefing generation failed. Please try again.', code: 'BRIEFING_FAILED' },
       { status: 500 }

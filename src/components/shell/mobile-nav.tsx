@@ -19,7 +19,7 @@ export default function MobileNav({ mobilePanel, setMobilePanel, showDirections,
           { id: 'layers' as const, icon: Layers, label: 'LAYERS' },
           { id: 'intel' as const, icon: Newspaper, label: 'INTEL' },
           { id: 'recon' as const, icon: Radar, label: 'RECON' },
-          { id: 'oi' as const, icon: Orbit, label: 'OI' },
+          { id: 'oi' as const, icon: Orbit, label: 'TI' },
           { id: 'search' as const, icon: Search, label: 'SEARCH' },
           // Routing was reachable only from the desktop tool rail, so a
           // phone could not open it at all. It sits next to SEARCH

@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: simulated time.
+ * TAKIP OI: simulated time.
  *
  * A simulation runs from today to the question's horizon in equal periods,
  * each with real dates, so every move and every event it produces happens on

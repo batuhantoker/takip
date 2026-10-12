@@ -18,7 +18,7 @@ import {
 } from './guide-sections';
 import { OiGuideSection } from './oi-guide';
 
-const FALLBACK_ORIGIN = 'https://osirisai.live';
+const FALLBACK_ORIGIN = 'https://takip.example';
 
 export default function DocsClient() {
   const [active, setActive] = useState('overview');
@@ -170,10 +170,10 @@ export default function DocsClient() {
           {/* Footer */}
           <footer className="border-t border-white/[0.06] pt-6 pb-16 flex flex-wrap items-center gap-x-5 gap-y-2 text-[10px] font-mono text-[var(--text-muted)]">
             {[
-              { href: 'https://github.com/simplifaisoul/osiris', label: 'GitHub' },
+              { href: 'https://github.com/batuhantoker/takip', label: 'GitHub' },
               { href: 'https://discord.gg/EPaFD5FFKf', label: 'Discord' },
               { href: 'https://x.com/soulsimplifai', label: 'X' },
-              { href: 'https://github.com/simplifaisoul/osiris/issues', label: 'Report an issue' },
+              { href: 'https://github.com/batuhantoker/takip/issues', label: 'Report an issue' },
             ].map(l => (
               <a
                 key={l.label}

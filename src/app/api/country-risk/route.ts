@@ -7,7 +7,7 @@ import {
 } from '@/lib/country-risk';
 
 /**
- * OSIRIS — country risk index.
+ * TAKIP — country risk index.
  *
  * The per-country baseline is an editorial ordering, not a calibrated model;
  * see `@/lib/country-risk`. The response labels it as such and reports the
@@ -63,7 +63,7 @@ export async function GET() {
         quakeMagnitude = quakeMagnitudeByCountry(data.features || []);
         quakesAvailable = true;
       }
-    } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
+    } catch (e) { console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e); }
 
     return NextResponse.json({
       countries: buildCountryRisk(quakeMagnitude),

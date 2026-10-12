@@ -1,5 +1,5 @@
 /**
- * OSIRIS — Live Clouds worker: fetches NOAA's imagery and draws cloud tiles off
+ * TAKIP — Live Clouds worker: fetches NOAA's imagery and draws cloud tiles off
  * the main thread, so a globe's worth of tiles never stalls the map.
  *
  * Messages in: { type: 'tile', id, tile } and { type: 'cancel', id }.

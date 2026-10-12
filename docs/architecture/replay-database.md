@@ -1,6 +1,6 @@
 # History and replay database
 
-> **Status:** design, not built. Written 2026-10-12 and revised the same day to **SQLite first, PostgreSQL later**.
+> **Status:** phase 0 built; phases 1a, 1c and 2 started (§13 "Where it stands"). Written 2026-10-12 and revised the same day to **SQLite first, PostgreSQL later**.
 > Companion files:
 > - [`replay-schema.sqlite.sql`](./replay-schema.sqlite.sql): the schema to build now.
 > - [`replay-schema.postgres.sql`](./replay-schema.postgres.sql): the migration target.
@@ -143,7 +143,7 @@ Rules:
 - **Sentinels never become fake dates.** GTD month and day `0`, ICOW `00` and `200199`, COW `-8`/`-9`, `ONGOING`, `-1` and `DAM_YEAR 0` become null or a lower precision, and the original goes into `attrs.t_raw`.
 - **Each dataset has an `as_of` date.**
 - **Observation, publication, ingest and validity times are kept separate.** Ships carry only the time we received each message, so their rows get `flags.t_is_receive`.
-- **On the wire, times are epoch seconds as float64.** Inside binary chunks, times are offsets from the start of the bucket.
+- **On the wire, times are epoch seconds as float64.** Inside a TRK1 blob the first time is absolute and the rest are deltas (§8.3), so a blob means the same thing outside its chunk.
 
 ## 6. Identity model
 
@@ -168,30 +168,47 @@ Follows `ARCHITECTURE.md` "Entities". The tables are in `catalog.db`.
 
 This runs inside the existing Next process, because that is where the payloads are today. A second poller would also double the OpenSky quota.
 
-- **A `recorder.append(source, envelope)` function with a bounded queue.**
-  - A single writer appends to `data/archive/raw/{source}/YYYY/MM/DD/HH.ndjson.zst`. It writes a zstd frame every 10 s and rotates on the hour.
+- **`record(source, meta, raw)` in `@takip/archive/recorder`, with a bounded queue** (64 MB).
+  - A single writer appends to `data/archive/raw/{source}/YYYY/MM/DD/HH.ndjson.zst`, choosing the hour by receive time. It writes one zstd frame per file every 10 s.
   - The frames are independent, so a reader can decode a file that's still open.
   - It uses `node:zlib` zstd (Node 22.15 or later), falling back to gzip.
-  - It is enabled by `OSIRIS_ARCHIVE_DIR`, and is off by default in development.
-- **Envelope:** `{"v":1,"src":"opensky","at":<ms>,"url":"<keys stripped>","status":200,"etag":null,"ms":812,"sha256":"…","body":{…}}`. For AIS, each WebSocket frame is one line.
-- **Taps:**
+  - It is enabled by `TAKIP_ARCHIVE_DIR`, and is off by default in development. One recorder per process, kept on `globalThis` so dev reloads don't start a second writer.
+  - **Gotcha:** `node:zlib`'s zstd decoder, sync and streaming alike, silently stops after the first frame of a multi-frame file. The reader (`@takip/archive/reader`) therefore splits frames itself by parsing frame and block headers, which also detects a last frame that is still being written. The `zstd` CLI reads the files normally.
+- **Envelope:** `{"v":1,"src":"opensky","at":<ms>,"url":"<keys stripped>","status":200,"etag":null,"ms":812,"sha256":"…","err":"…","body":{…}}`. For AIS, each WebSocket frame is one line, with no url or status.
+  - A single-line JSON body is spliced in as received, not re-serialised. Multi-line JSON is re-serialised onto one line, and text bodies (TLEs) are stored as JSON strings.
+  - A failed request is recorded too, with `body: null` and its status or `err`. Coverage (§7.4) is built from these lines.
+  - Query parameters whose names look like credentials (`key`, `token`, `secret`, `auth`, …) are stripped from `url`.
+- **Taps** (*built:* the first four):
 
   | Tap | Source(s) |
   |---|---|
-  | `flights/route.ts` fetch (l.319–471) | OpenSky (full `states/all`, **keeping `time_position`/`last_contact`**), adsb.fi |
-  | `maritime/route.ts` `applyAisMessage` (l.147) | aisstream frames |
-  | `satellites/route.ts` refresh | CelesTrak TLE sets |
-  | `cctv/catalog-refresh.ts` `persistCatalogue` | Per-region camera lists |
+  | `flights/route.ts`: the OpenSky, adsb.fi `/mil` (now a fallback) and regional-sweep fetches; `flights/adsb-lol.ts` `getAc` | OpenSky (full `states/all`, **keeping `time_position`/`last_contact`**), adsb.fi, adsb.lol (`/v2/mil` and `/v2/type` batches, recorded as `adsblol`) |
+  | `maritime/route.ts`: the socket's `message` handler | aisstream frames |
+  | `satellites/celestrak.ts` `downloadDue` | CelesTrak TLE sets, one line per group fetched |
+  | `src/lib/cctv/catalog/refresh.ts` `REGION_FETCHERS` (`archived()`) | Per-region camera lists, on every upstream refresh |
   | `cachedSource` fetcher (`lib/sourceCache.ts:49`) | Weather events, news/Telegram, markets |
   | `gdeltEvents.ts` export fetch | GDELT 15-minute exports |
   | `fires`, `earthquakes`, `cloudflare-radar`, `cyber-attacks`, `malware` polls | FIRMS, USGS, Radar, Feodo, URLhaus |
   | `weather-grid` `fetchForecast` | Open-Meteo |
 
+- **The routes only poll when asked,** and the AIS socket opens on the first `/api/maritime` request. Recording would otherwise follow visitor traffic. While the feeds still poll from inside Next, the ingest worker asks for them on a schedule (`apps/ingest/src/jobs/keepalive.ts`, enabled by `TAKIP_WEB_URL`). Next stays the only upstream poller, so the OpenSky quota isn't doubled.
+- **Upstream limits at 24/7 cadence** (checked 2026-10-12). The keep-alive turns visitor-driven polling into round-the-clock polling, so each source's rules apply in full. The keep-alive skips a route whose sources are all switched off: the Record switch alone stops archiving, not polling.
+
+  | Source | Their rule | What we do |
+  |---|---|---|
+  | CelesTrak | One download per 2-hour update; 50 HTTP errors per 2 h or over 100 MB/day can end in the firewall; stop on any non-200 ([usage policy](https://celestrak.org/usage-policy.php)) | `satellites/celestrak.ts`: 5 groups (`active`, `visual` and three debris fields), not 43. Each group at most once per update, with the schedule kept across restarts. "Not updated since" means no change. A 404 retires the group. Any other refusal pauses every download for 6 h and logs for a person. About 25 MB/day. |
+  | OpenSky | Daily credits per account, or per IP when anonymous; `/states/all` costs 4 | Paced from `X-Rate-Limit-Remaining` over the rest of the UTC day, so a shared budget (a second copy of the app, a laptop behind the same router) slows down instead of running dry. A 429 waits `X-Rate-Limit-Retry-After-Seconds`. Each environment should still have its own API client. |
+  | OpenCCTV | Terms forbid bulk download; robots.txt disallows `/api/` | Fetched at most once a day (24 h cache). Whether to keep it at all is an open licensing question. |
+  | adsb.lol | Dynamic limits; an API key, obtained by feeding, is planned | Stops at the first 429. Feeding a receiver would secure access before keys become mandatory. |
+  | adsb.fi | 1 request/s on the public API | Now a fallback only |
+  | aisstream | 3 connections per account and per IP; bandwidth limits on uncompressed connections | One socket, compressed (the `ws` client negotiates permessage-deflate). Don't run more than three copies with the same key or on the same IP. |
+
+  The API sources are fetched with an honest User-Agent (`src/lib/user-agent.ts`), not `stealthFetch`'s rotating fake identities. The camera sources still use `stealthFetch`.
 - **Nothing is dropped silently.**
-  - A queue overflow writes a `_recorder` drop line.
-  - Each source writes a heartbeat once a minute, which tells "source alive but empty" apart from "recorder down".
-  - Below 50 GB of free disk, the recorder pauses AIS first, then OpenSky, and logs it.
-- **Before recording starts,** replace the unstable ids (`gdacs-N`, `osint-live-N`, `gdelt-pt-N`) with the providers' own ids.
+  - Lines beyond the queue bound are counted, and the next heartbeat writes a `_recorder` drop line: `{"src":"_recorder","drop":{"src","n","reason"}}`, where `reason` is `queue_full`, `disk` or `write_failed`.
+  - Each source writes a heartbeat once a minute, `{"hb":{"n","dropped","paused","off"}}`, which tells "source alive but empty" apart from "recorder down". It describes the minute that just ended.
+  - **Disk guard:** below `TAKIP_ARCHIVE_MIN_FREE_GB` (default 50) of free disk the recorder pauses AIS, below 80 % of it OpenSky as well, and below 60 % every source. Each change is logged.
+- **Before recording event sources,** replace the unstable ids (`gdacs-N`, `osint-live-N`, `gdelt-pt-N`) with the providers' own ids. *Not done yet:* no event source is recorded so far.
 
 ### 7.2 Phase 1: the ingest worker
 
@@ -247,11 +264,35 @@ All jobs run inside the worker, with a lock file guaranteeing a single instance.
 | `optimize` | Every 6 h | `PRAGMA optimize` and `wal_checkpoint(TRUNCATE)` on every file that has a writer |
 
 - **The 2-hour seal delay covers late fixes.** For example, OpenSky can report a `time_position` that belongs to the previous hour just after the boundary. Until an hour is sealed, its chunks come from the worker's memory.
+
+*Built* (`apps/ingest`, run as `npm run ingest -- worker`):
+- **The worker** takes `data/db/ingest.lock` (a lock left by a dead process is taken over) and ticks every minute:
+  - It seals every archived hour that is 2:05 old and not sealed yet, at most 6 per tick.
+  - It builds the L1 and L2 buckets of the last 3 days whose L0 hours are all sealed, and rebuilds them when an L0 hour is newer.
+  - It loads settled CelesTrak hours into `tracks/tle.db`, tracked in `meta_ingest_run`.
+  - It keeps `control.json` in step with the source switches (§7.6).
+- **`seal-tracks`:** connectors' pure `map()` per source (`apps/ingest/src/connectors/`, tested against recorded payloads).
+  - **Identity:** entities and identifiers are created for unseen MMSI or ICAO24 values. An identifier seen before its `valid_lo` (a rebuild of an older hour) is extended back, never duplicated.
+  - **Fixes:** one per second, with sources merged into `source_mask`.
+  - **Categories:** the same classifiers as the live map (`@takip/core/aircraft`, `@takip/core/vessel`). A vessel's last stated type is kept in `core_entity.attrs`, for hours without static data.
+  - **Shard:** checkpointed after each bucket, so `meta_shard.bytes` is real.
+  - **Order:** entities, then facts, then the publication rows (`trk_sealed_bucket`, `meta_shard`, `meta_layer_version`), per §4.2.
+- **The CLI** covers the rest: `seal` and `rebuild` take a range and ignore the delay, so an open hour can be sealed during development. It also has `lod`, `tle`, `status`, `sources` and `source <code> <record|build> <on|off>`.
+- **Not built:** `finalise-shard`, `cool-shards`, `aggregate-events`, `prune-raw`, `optimize`, `agg_track_bin`, `trk_state`, the 5-minute `coverage` job (coverage is written per hour at sealing), and the open hour served from memory.
+- **Measured** on one live OpenSky poll plus adsb.fi `/mil` (2026-10-12): 12,039 aircraft sealed in well under a second, and 2.3 MB for the hour's shard. A z7 chunk over Frankfurt took about 7 ms, cold.
 - **L0 shards in `cold/` are a lossless, normalised position archive kept forever,** at about 55 GB a year. They replace the Parquet tier of the first design, so no DuckDB or Parquet is needed now.
 
 ### 7.4 Coverage
 
-- `meta_coverage(source, t_lo, t_hi, status)` holds continuous intervals with status `ok`, `degraded`, `down` or `not_recording`. The writer extends the latest interval or starts a new one.
+- `meta_coverage(source, t_lo, t_hi, status)` holds continuous intervals with status `ok`, `degraded`, `down` or `not_recording`. The writer replaces whatever the new interval covers and merges neighbours with the same status, so a rebuild can heal an outage.
+- *Built:* each sealed hour gets one status per track source, read from that hour's archive lines:
+
+  | Status | When |
+  |---|---|
+  | `ok` | Payloads arrived and none failed |
+  | `degraded` | Some requests failed, or the recorder dropped or paused lines |
+  | `down` | Only failures; or no payloads while the recorder was paused or dropping |
+  | `not_recording` | Nothing was polled, or the source is switched off (§7.6) |
 - `meta_dataset_gap` holds the gaps that datasets declare: GTD has no 1993, and UCDP's 2025 data is preliminary.
 - The replay manifest returns both. The timeline greys those spans out, and tracks are never interpolated across an outage.
 
@@ -268,6 +309,35 @@ Command: `npm run import <dataset> [--version] [--dry-run]`. Each importer has a
 6. **Report.** Write row counts, rejects, unresolved values and mapped sentinels to `meta_dataset.report`. Then delete the staging file.
 
 The per-dataset mapping is in [`dataset-import-map.md`](./dataset-import-map.md).
+
+### 7.6 Source switches
+
+The admin console's Sources page (`/admin/sources`) turns two switches per source. The CLI has the same: `npm run ingest -- source <code> <record|build> <on|off>`.
+
+| Switch | Off means | Undo |
+|---|---|---|
+| **Record** | The recorder skips the source. Its heartbeats say `off`, and the timeline shows the time as not recorded. | None: time not archived is gone. The page asks before turning it off. |
+| **Build** | The archive keeps the source, but no history is derived from it. | Turn it on, then `npm run ingest -- rebuild <from> <to>`. |
+
+- **They live in `catalog.db` `meta_source`** (`record`, `build`, `switched_at`, `switched_by`), and every change is written to `audit_event` (`source.switch`).
+- **The recorder never opens SQLite:** it re-reads `data/archive/control.json` once a minute when the file changes. The api writes that file when an admin flips a switch, and the worker rewrites it from `catalog.db` on every tick.
+- **The page also shows each source's latest coverage,** so "on but not flowing" is visible.
+- **Sources not in `meta_source`** are recorded by default.
+
+### 7.7 Backfill from upstream history
+
+Some upstreams publish their own history, which can fill time before recording started or an outage. The plan is a connector hook: `backfill(from, to)` fetches the history and writes envelopes into the archive under the hour the data describes, marked as backfilled, with `at` still the real receive time. `rebuild` then seals those hours with the same `map()` as live data, so the archive stays the one source of truth. *Not built:* the first backfill connector arrives with the event store. Candidates, each with terms to verify first:
+
+| Data | Upstream history | Notes |
+|---|---|---|
+| Earthquakes | USGS FDSN event service | Whole catalogue, keyless |
+| GDELT events | GDELT 2.0 raw files | Every 15 minutes since 2015 |
+| Weather | Open-Meteo historical API (ERA5) | Hourly grids; free for non-commercial use |
+| Fires | NASA FIRMS archive | Needs a `MAP_KEY` |
+| Satellites | Space-Track `gp_history` | Free account; its user agreement limits redistribution |
+| Aircraft | adsb.lol daily `globe_history` releases (ODbL) | Several GB per day. OpenSky's own history needs research (Trino) access; its REST API only gives single tracks over the last 30 days. |
+| Vessels | Danish Maritime Authority and NOAA MarineCadastre AIS files | Only their own waters; large daily files |
+| Cameras | None | Publishers don't keep images |
 
 ## 8. Replay serving
 
@@ -303,27 +373,36 @@ The client loads buckets that overlap the visible timeline window and prefetches
 
 | LOD | Map zoom | Fetched as tiles at | Bucket | Shard file | Simplification | Longest gap inside a segment | Served for |
 |---|---|---|---|---|---|---|---|
-| L0 | ≥ 8 | z7 | 1 h | one per day | None (dedup only) | ships 15 min, aircraft 2 min | 14 days (then `cold/`, kept) |
+| L0 | ≥ 8 | z7 | 1 h | one per day | None (dedup only) | ships 15 min, aircraft 4 min | 14 days (then `cold/`, kept) |
 | L1 | 5–7 | z4 | 6 h | one per month | SED ≤ 100 m, at most one point per 30 s | 30 min | 90 days |
 | L2 | ≤ 4 | z1 | 1 day | one per year | SED ≤ 2 km, at least one point per 10 min while moving | 60 min | forever |
 
 - **SED simplification** keeps the time-interpolated position within the tolerance, so animation timing stays correct. Gaps longer than the limit split the segment. The client draws them as gaps and never interpolates across them.
+- **Aircraft get 4 minutes rather than 2.** OpenSky is polled every 90 s, so one missed poll leaves a 3-minute gap.
 - **Segments that cross the antimeridian** are split into two segments.
-- **Segment row:** `(bucket, entity_id)` → `class`, `category`, `label`, `source_mask`, `n`, `points`, `flags`. A 3-D R\*Tree indexes `(lon, lat, bucket)`.
+- **Segment row:** `(bucket, entity_id, part)` → `class`, `category`, `label`, `source_mask`, `n`, `points`, `flags`. `part` numbers the pieces that gap and antimeridian splits leave in one bucket. A 3-D R\*Tree indexes `(lon, lat, t)`, with exact filters on the row: the R\*Tree stores 32-bit floats, so epoch ms round outward to about 2 minutes.
 - **Chunk query:** a single R\*Tree probe, a join, and `(source_mask & ~allowed) = 0`. The server then writes the blobs one after another. About 720k L0 rows are written per day, across 24 buckets in that day's shard.
 - **`points` encoding (TRK1):** little-endian, columnar varint-delta, about 6–9 bytes per point:
 
   ```text
-  varint n | f64 t_first (epoch s)
+  varint n | u8 flags | f64 t_first (epoch s)
   dt       uvarint ×(n-1)       seconds
-  lon, lat zigzag varint delta  round(deg·1e5), first absolute  (L2: 1e4)
+  lon, lat zigzag varint delta  round(deg·1e5), first absolute  (1e4 if flags.coarse)
   alt      zigzag varint delta  10 m          if flags.has_alt
   speed    uvarint              0.1 kn        if flags.has_speed
   heading  u8                   360/256 °     if flags.has_heading
-  gaps     bitset               1 = do not interpolate into this point
+  gaps     bitset ⌈n/8⌉ bytes    if flags.has_gaps; 1 = do not interpolate into this point
+
+  flags: 1 has_alt · 2 has_speed · 4 has_heading · 8 has_gaps · 16 coarse · 32 t_is_receive
   ```
 
-- **Chunk response:** `TRKC v1 | bucket | lod | count | (entity varint, class u8, category u8, label str, len varint, blob)*`. Duplicates across tile edges are removed by the client on `(entity, bucket)`.
+  The flags sit in the blob, so a decoder needs nothing from the row or the chunk. A point missing an optional value carries the previous one forward.
+- **Chunk response:** `"TRKC" | u8 version 1 | f64 bucket (epoch s) | u8 lod | varint count | (entity varint, part varint, class u8, category u8, label (varint length + UTF-8), varint length, blob)*`. Duplicates across tile edges are removed by the client on `(entity, bucket, part)`.
+- **URLs:** `/api/replay/tracks/{class}/{lod}/{z}/{x}/{y}/{bucket}.bin?v={v}&p={token}`. `z` must be the LOD's fetch zoom, and `bucket` is aligned epoch seconds.
+  - `v` is the bucket's `sealed_at`, from the manifest. With it the response is `immutable`; without it, it's cached for 60 s. A global layer version would have changed every old bucket's URL on each hourly seal.
+  - `p` is explained in §8.7.
+  - An hour that isn't sealed yet answers `404 not_sealed`, until the worker serves the open hour.
+- *Built:* the codecs (`@takip/core/trk`, browser-safe), the store and the routes (`apps/api/src/replay/`). *Not built:* the client layer below.
 - **Sizes:**
   - A busy z7 tile for one hour at L0 is about 0.3–1 MB.
   - The whole world for one day at L2 is about 6–10 MB.
@@ -360,6 +439,9 @@ The client loads buckets that overlap the visible timeline window and prefetches
 - **Each tier has a set of allowed source ids,** with an allowed bitmask for track sources. They are computed once per tier and kept in memory.
 - **Every query filters on `source_id`,** and track chunks on `source_mask`.
 - **Cache keys include a policy hash,** so only a few variants exist.
+  - *Built:* the manifest returns `token`, a hash over the caller's licence policy and `replay.lookback_days`. Chunk and TLE URLs must carry it as `p`, or they get `409 policy_mismatch`. A URL is therefore only ever answered for one policy and one lookback.
+  - **Before nginx caches `/api/replay/`, make the token an HMAC.** Today it's derived from public data, so someone could forge a richer tier's token and be served that tier's cached response without the api checking.
+  - Requests older than the caller's lookback get the standard `403 entitlement_required` (`replay.lookback_days`). The manifest's span is capped by `replay.window_hours`.
 - **The manifest returns attribution text.**
 - **Exports are gated separately** (`can_export`).
 - **nginx caches `/api/tiles/` and `/api/replay/`** under the key `$uri$is_args$args`, honouring `immutable`, with a 20 GB cap.
@@ -450,7 +532,14 @@ interface FeatureStore extends ReferenceStore { tile(layer: string, z: number, x
 interface DocStore      { upsert(rows: DocRow[]): void; link(rows: DocLink[]): void; forTarget(type: TargetType, id: number): DocRow[]; search(q: string): DocHit[] }
 ```
 
-`OSIRIS_DB=sqlite` (the default) selects the SQLite implementations. A Postgres set implements the same interfaces later, and nothing outside `src/lib/db/` changes.
+`TAKIP_DB=sqlite` (the default) selects the SQLite implementations. A Postgres set implements the same interfaces later, and nothing outside `packages/db` changes.
+
+*Built:* `packages/db` (`@takip/db`):
+- **`CatalogStore`:** sources and switches, `resolve` and `ensureIdentities` with the in-memory id cache, sealed buckets and shards, coverage, ingest runs, and the per-tier `policy`.
+- **`TrackStore`:** `sealBucket`, `chunk`, `segmentsByEntity`, `insertTles` and `tleAt`, with an LRU of up to 64 read handles.
+- **Shared code:** `openWriter` and `openReader` (the §10.1 pragmas), the data layout, and a migration list per file kind in `src/schema/`, tracked with `PRAGMA user_version`. These are TypeScript strings rather than `.sql` files, as `apps/api` does it, and are append-only.
+
+The other interfaces go into `src/history-stores.ts` with the importers (§7.5).
 
 ### 11.3 Type mapping and the move
 
@@ -473,7 +562,7 @@ Steps to move:
 1. Create [`replay-schema.postgres.sql`](./replay-schema.postgres.sql).
 2. Run `npm run db:export --to postgres://…`. For each table and shard (listed in `meta_shard`), it streams rows with `COPY` and converts types as in the table above. R\*Tree and FTS tables are rebuilt as GiST and GIN.
 3. Compare row counts and checksums per table and shard.
-4. Set `OSIRIS_DB=postgres` and bump layer versions so caches roll over. The API, wire formats and tile URLs stay the same.
+4. Set `TAKIP_DB=postgres` and bump layer versions so caches roll over. The API, wire formats and tile URLs stay the same.
 5. Keep the SQLite files read-only for a while as a rollback.
 
 **A partial move is also valid.** `catalog.db`, `history.db` and the stream can go to Postgres while the sealed track shards stay as files. They are blobs looked up by key, and Postgres adds little for them.
@@ -496,9 +585,21 @@ Move when **any** of these is true:
 | **0, now** | `./data` volumes and ownership. The recorder and its taps (§7.1). Stop dropping OpenSky `time_position`. Stable GDACS and conflict ids. Disk guard. | Starts recording live history |
 | **1a** | `src/lib/db` with the store interfaces and SQLite implementation. A migration runner: numbered `.sql` files per file kind, tracked with `PRAGMA user_version`. Seeds: licences, sources, Natural Earth admin-0, code crosswalk, aliases. **Move today's file caches into SQLite:** `.cache/cctv-catalog.json` → `catalog.db` cameras (camera catalogue history starts), `.next/cache/satellites-tle-cache.json` → `tracks/tle.db` (orbit history starts), `.cache/nominatim.json` → `cache.db`. | Everything below |
 | **1b** | Importers → `history.db` and `geo/*.db`. `ReferenceStore` on SQLite. | The historical atlas, which needs no live data |
-| **1c** | `osiris-ingest`: AIS, OpenSky and CCTV connectors moved out of Next, seal jobs, stream shards, coverage | Replay over recorded days |
+| **1c** | `takip-ingest`: AIS, OpenSky and CCTV connectors moved out of Next, seal jobs, stream shards, coverage | Replay over recorded days |
 | **2** | `/api/replay/*` and `/api/tiles/*`, the timeline UI (one time controller with an adapter per shape), the GPU track layer, the nginx cache | The replay feature |
 | **3** | FIRMS, GDELT and news streams; documents; aggregates; density maps; correlation. Postgres once a §12 trigger is hit. | `ARCHITECTURE.md` phase 3 |
+
+**Where it stands (2026-10-12):**
+- **Phase 0, built:**
+  - The recorder (`packages/archive`), with its frame-splitting reader, heartbeats, drop lines and disk guard.
+  - Taps for OpenSky, adsb.fi, AIS, CelesTrak and the camera catalogue (§7.1).
+  - Recording on in `docker-compose.yml`, and the worker's keep-alive.
+- **1a, partly built:** `packages/db` with every file kind's schema (the fixes are listed in `replay-schema.sqlite.sql`), seeds for licences, sources, entity types, identifier schemes and link relations, and the two stores (§11.2).
+  - The TLE cache move became archive-derived: `tracks/tle.db` is filled from recorded CelesTrak payloads.
+  - *Deferred:* the camera catalogue → `catalog.db` cameras, nominatim → `cache.db`, and the remaining seeds, which go with the importers.
+- **1c, partly built:** `apps/ingest` with the worker, connectors' `map()`, L0 sealing, L1 and L2, TLE loading, coverage and the source switches (§7.3, §7.6). Connectors still poll from Next.
+- **2, partly built:** `/api/replay/manifest`, `/tracks/…` and `/tle` in `apps/api`, plus the admin Sources page. *Not built:* event and feature tiles, histogram, series, docs, entity-at-time, the timeline UI, the GPU track layer and the nginx rules.
+- **Next:** the timeline controller and the GPU track layer, so recorded days can be watched. Then the open hour from the worker, and the first backfill (§7.7).
 
 ## 14. Risks and open questions
 
@@ -514,6 +615,8 @@ Move when **any** of these is true:
 - **Licences are unverified:** GTD is non-commercial; OpenSky and Yahoo restrict redistribution. Gating is built in, but each tier's policy needs a decision.
 - **AIS only has receive time.** If aisstream exposes per-message timestamps, use them.
 - **OpenSky quota:** keep a single poller until the worker owns it.
+- **Recording depends on the keep-alive** until connectors move to the worker. If `TAKIP_WEB_URL` isn't set and nobody has the map open, the archive has gaps. Coverage shows them as `not_recording`.
+- **Anonymous OpenSky** refreshes only every 15 minutes, so aircraft tracks are sparse without `OPENSKY_CLIENT_ID`. The 4-minute L0 gap then splits each fix into its own segment, at about 22 bytes per point instead of 6–9.
 - **GTD keys are synthetic,** stable for the same file. An official GTD export would become a new source, linked as same-as.
 - **Free-text places need a gazetteer** (GeoNames `cities15000`, CC BY). Until then those events fall back to the polity centroid.
 - **Historical borders are deferred.** When a value is drawn through the render map (`via` is set), the UI has to say so.

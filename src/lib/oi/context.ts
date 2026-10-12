@@ -1,5 +1,5 @@
 /**
- * The live world a run starts from: OSIRIS's own news feed, the day's large
+ * The live world a run starts from: TAKIP's own news feed, the day's large
  * earthquakes and a line of market prices, cut down to what bears on the
  * question. Read in-process from the same cached sources the map uses, so a
  * run adds no upstream traffic of its own. The feed carries posts from public

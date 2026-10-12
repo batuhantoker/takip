@@ -84,7 +84,7 @@ tooling/          tsconfig, eslint, vitest presets
 | Database | `better-sqlite3` via the `packages/db` stores; Kysely for app data | Kysely is what Better Auth uses, and it runs on both SQLite and Postgres | Drizzle (fine; one query builder is enough), Prisma (weak on SQLite→PG parity, and its own engine) |
 | Email | `nodemailer` (SMTP) + `react-email` templates behind an `EmailSender` interface | Any provider: Resend, Postmark, SES or self-hosted SMTP | Provider SDKs (lock-in) |
 | Jobs | Small SQLite job table (`job`) in `app.db`, polled by `api` | Emails, webhook retries, billing reconciliation. No Redis needed. | BullMQ (needs Redis), pg-boss (needs Postgres; the natural swap later) |
-| Logging | `pino` (JSON) | Replaces `[OSIRIS] console.*` (`TODO.md` §2) | — |
+| Logging | `pino` (JSON) | Replaces `[TAKIP] console.*` (`TODO.md` §2) | — |
 | Metrics | `prom-client` at `/metrics` (internal only) | Ingest lag, quota burn, request rates for the admin console | — |
 | Admin UI | Next route group `/admin` with shadcn/ui and TanStack Table | Tailwind is already in the app; no second admin framework | refine.dev (a good accelerator if CRUD screens multiply), AdminJS, Payload (would take over the Next config) |
 
@@ -287,8 +287,9 @@ It depends on where the business is registered. Stripe doesn't onboard every cou
     - Users: search, and a detail page to grant or revoke a plan, add or remove exceptions, ban or unban, and sign the user out everywhere.
     - Plans: edit entitlement values in place.
     - Audit log.
+    - Sources: per source, turn raw recording and replay-history building on or off (`replay/sources.ts`, built with the data platform). Changes reach the recorder within a minute and are audited.
   - **Tables:** plain Tailwind; shadcn/ui and TanStack Table can come in when the tables need sorting and column filters.
-  - **Not built:** impersonation (it needs a banner in the map shell); the API keys, billing, sources, datasets, licences, cameras and system pages wait for their features.
+  - **Not built:** impersonation (it needs a banner in the map shell); the API keys, billing, datasets, licences, cameras and system pages wait for their features.
 - **Not part of the map shell.** The UI-direction rule about the dock and inspect card applies to the map, not to `/admin`.
 
 | Page | Contents |

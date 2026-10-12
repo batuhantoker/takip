@@ -64,7 +64,7 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
   const flightGov = boot.flightGov;
   const flightMil = boot.flightMilitary;
 
-  // Create icons — OSIRIS Unified Palette
+  // Create icons — TAKIP Unified Palette
   createIcon(map, 'plane-cyan', flightCom, 24);   
   createIcon(map, 'plane-green', flightPriv, 24);   
   createIcon(map, 'plane-pink', flightGov, 24);    
@@ -77,7 +77,7 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
   createDot(map, 'dot-fire', isGhost ? phantomPurple : '#E65100', 10);
   createDot(map, 'dot-cctv', cameraColor, 10);
 
-  const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','cctv','fires','fire-incidents','airport-delays','chokepoint-flow','outbreaks','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'network-mesh', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks', 'alert-pins', 'wx-points'];
+  const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','cctv','fires','fire-incidents','airport-delays','chokepoint-flow','outbreaks','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'launches', 'aurora', 'service-status', 'gnss-interference', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'network-mesh', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks', 'alert-pins', 'wx-points'];
   sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
   // ── FLIGHT ROUTE VISUALIZATION SOURCES & LAYERS ──
@@ -122,6 +122,16 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
 
   // Day/Night
   map.addLayer({ id: 'day-night-fill', type: 'fill', source: 'day-night', paint: { 'fill-color': isGhost ? '#0D0030' : '#000022', 'fill-opacity': 0.35 }});
+
+  // Aurora nowcast: a 1° grid of visibility probability, drawn under every point layer
+  map.addLayer({ id: 'aurora-heat', type: 'heatmap', source: 'aurora', paint: {
+    'heatmap-weight': ['interpolate',['linear'],['get','p'], 5,0.2, 20,0.6, 50,1],
+    'heatmap-intensity': ['interpolate',['linear'],['zoom'], 1,0.8, 6,1.6],
+    'heatmap-radius': ['interpolate',['exponential',2],['zoom'], 0,4, 3,12, 6,60],
+    'heatmap-color': ['interpolate',['linear'],['heatmap-density'],
+      0,'rgba(0,0,0,0)', 0.25,'rgba(0,230,118,0.25)', 0.55,'rgba(0,230,118,0.5)', 0.8,'rgba(124,77,255,0.65)', 1,'rgba(255,64,129,0.8)'],
+    'heatmap-opacity': 0.75,
+  }});
 
   // Earthquakes — amber threat spectrum
   map.addLayer({ id: 'eq-circles', type: 'circle', source: 'earthquakes', paint: {
@@ -280,6 +290,26 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
     'text-size': 9, 'text-font': ['JetBrains Mono Bold', 'Open Sans Bold'],
     'text-offset': [0, 1.6], 'text-allow-overlap': false,
   }, paint: { 'text-color': '#FF6B6B', 'text-halo-color': '#000', 'text-halo-width': 1.5, 'text-opacity': 0.9 }});
+
+  // Likely GNSS interference: 2° cells shaded by the share of aircraft reporting degraded accuracy
+  map.addLayer({ id: 'gnss-fill', type: 'fill', source: 'gnss-interference', paint: {
+    'fill-color': ['interpolate',['linear'],['get','ratio'], 0.1,'#FFB300', 0.3,'#FF6D00', 0.6,'#D50000'],
+    'fill-opacity': 0.35,
+  }});
+  map.addLayer({ id: 'gnss-line', type: 'line', source: 'gnss-interference', paint: {
+    'line-color': '#FF6D00', 'line-width': 1, 'line-opacity': 0.6,
+  }});
+
+  // Vendor status-page incidents, one pin per HQ city
+  map.addLayer({ id: 'service-status-dots', type: 'circle', source: 'service-status', paint: {
+    'circle-radius': ['interpolate',['linear'],['zoom'], 1,5, 5,8, 10,11],
+    'circle-color': ['match', ['get','worst'], 'critical','#FF1744', 'major','#FF1744', 'minor','#FF9500', 'maintenance','#4FC3F7', '#9E9E9E'],
+    'circle-opacity': 0.85, 'circle-stroke-width': 1.5, 'circle-stroke-color': '#0C0E1A',
+  }});
+  map.addLayer({ id: 'service-status-label', type: 'symbol', source: 'service-status', minzoom: 2, layout: {
+    'text-field': ['concat', ['get','city'], ' · ', ['to-string', ['get','count']]],
+    'text-size': 9, 'text-font': ['Open Sans Regular'], 'text-offset': [0, 1.4], 'text-allow-overlap': false,
+  }, paint: { 'text-color': '#B0BEC5', 'text-halo-color': '#000', 'text-halo-width': 1 }});
 
   // Weather Events (NASA EONET) — deep violet
   map.addLayer({ id: 'weather-glow', type: 'circle', source: 'weather', paint: {
@@ -489,6 +519,18 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
     }, paint: { 'icon-opacity': 0.85 }});
   });
 
+  // Upcoming launches, one pin per pad: green once LL2 says Go
+  map.addLayer({ id: 'launch-dots', type: 'circle', source: 'launches', paint: {
+    'circle-radius': ['interpolate',['linear'],['zoom'], 1,4, 5,6, 10,8],
+    'circle-color': ['match', ['get','status'], 'Go','#00E676', 'Hold','#FF9500', '#4FC3F7'],
+    'circle-opacity': 0.9,
+    'circle-stroke-width': 1.5, 'circle-stroke-color': '#0C0E1A',
+  }});
+  map.addLayer({ id: 'launch-label', type: 'symbol', source: 'launches', minzoom: 3, layout: {
+    'text-field': ['get','when'], 'text-size': 9, 'text-font': ['Open Sans Regular'],
+    'text-offset': [0, 1.3], 'text-max-width': 14, 'text-allow-overlap': false,
+  }, paint: { 'text-color': '#B0BEC5', 'text-halo-color': '#000', 'text-halo-width': 1 }});
+
   // Balloons (moving entities)
   map.addLayer({ id: 'balloon-dots', type: 'circle', source: 'balloons', paint: {
     'circle-radius': ['interpolate',['linear'],['zoom'], 1,3, 5,5, 10,7],
@@ -580,7 +622,7 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
     'text-max-width': 14, 'text-allow-overlap': false,
   }, paint: { 'text-color': ['get','color'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
 
-  // ══ OSIRIS SDK — Lattice Intelligence Mesh ══
+  // ══ TAKIP SDK — Lattice Intelligence Mesh ══
   // Polybolos Style: Delicate, translucent, steel-blue splined mesh
 
   // ── SEA domain (Distinct Solid Lines) ──

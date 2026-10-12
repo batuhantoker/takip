@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the graph view.
+ * TAKIP OI: the graph view.
  *
  * The run as a network, after MiroFish's knowledge graph: every actor and
  * cited source as a node carrying its type's icon (the actors who play the

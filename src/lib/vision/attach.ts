@@ -1,5 +1,5 @@
 /**
- * OSIRIS vision: a camera's frame, for a model to look at.
+ * TAKIP vision: a camera's frame, for a model to look at.
  *
  * The camera tool counts a frame in the reader's browser and reports the counts.
  * A model that reads pictures gets the frame as well, fetched again here by the

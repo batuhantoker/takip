@@ -38,7 +38,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       }
       return false;
     } catch (e) {
-      console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e);
+      console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e);
       setBackendStatus('error');
       return false;
     }
@@ -47,8 +47,9 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
   // ── PROGRESSIVE DATA LOADING (request-optimized) ──
   useEffect(() => {
     // Priority 1: Core feeds (always needed for panels)
-    const eqUrl = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson';
-    const eqTransform = (data: any) => ({ earthquakes: (data.features || []).map((f: any) => ({ id: f.id, lat: f.geometry?.coordinates?.[1] || 0, lng: f.geometry?.coordinates?.[0] || 0, depth: f.geometry?.coordinates?.[2] || 0, magnitude: f.properties?.mag, place: f.properties?.place, time: f.properties?.time, url: f.properties?.url, tsunami: f.properties?.tsunami, type: f.properties?.type, felt: f.properties?.felt, alert: f.properties?.alert })) });
+    // USGS and EMSC, merged server-side.
+    const eqUrl = '/api/earthquakes';
+    const eqTransform = (data: { earthquakes?: unknown[] }) => ({ earthquakes: data.earthquakes ?? [] });
     fetchEndpoint(eqUrl, eqTransform);
     fetchEndpoint('/api/news', newsTransform);
     /* Official warnings — NOAA/NWS, GDACS, NASA EONET. A core feed rather than
@@ -73,7 +74,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       try {
         const r = await fetch('/api/space-weather');
         if (r.ok) setSpaceWeather(await r.json());
-      } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
+      } catch (e) { console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e); }
     }, 5000);
 
     // Polling — OPTIMIZED intervals to minimize edge requests
@@ -104,13 +105,13 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       };
       setDataVersion(value => value + 1);
       setBackendStatus('connected');
-    }, () => console.warn('[OSIRIS] Camera catalogue load failed; bounded retry scheduled'));
+    }, () => console.warn('[TAKIP] Camera catalogue load failed; bounded retry scheduled'));
   }, [activeLayers.cctv]);
 
   useEffect(() => {
 
-    // Flights
-    if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
+    // Flights; GNSS interference is computed from the same aircraft
+    if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private || activeLayers.gps_jamming) {
       if (!layerFetchedRef.current.has('flights')) {
         fetchEndpoint('/api/flights');
         layerFetchedRef.current.add('flights');
@@ -221,6 +222,16 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       loadLayerOnce('weather_grid', '/api/weather-grid', d => ({ weather_grid: d }));
     }
 
+    if (activeLayers.launches) {
+      loadLayerOnce('launches', '/api/launches', d => ({ launches: d.launches ?? [] }));
+    }
+    if (activeLayers.aurora) {
+      loadLayerOnce('aurora', '/api/aurora', d => ({ aurora: d }));
+    }
+    if (activeLayers.service_status) {
+      loadLayerOnce('service_status', '/api/service-status', d => ({ service_status: d.cities ?? [] }));
+    }
+
     if (activeLayers.war_alerts) {
       loadLayerOnce('war_alerts', '/api/war-alerts', d => ({ war_alerts: d.alerts ?? [] }));
     }
@@ -244,7 +255,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
   useEffect(() => {
     const intervals: ReturnType<typeof setInterval>[] = [];
     const stopFns: (() => void)[] = [];
-    if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private) {
+    if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private || activeLayers.gps_jamming) {
       intervals.push(setInterval(() => fetchEndpoint('/api/flights'), 300000)); // 5 min (was 2 min)
     }
 
@@ -263,6 +274,17 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     if (activeLayers.war_alerts) {
       // A siren lasts a minute or two; the route re-reads its upstreams every 20-30 s.
       intervals.push(setInterval(() => fetchEndpoint('/api/war-alerts', d => ({ war_alerts: d.alerts ?? [] }), undefined, { skipWhenHidden: true }), 60_000));
+    }
+    if (activeLayers.service_status) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/service-status', d => ({ service_status: d.cities ?? [] }), undefined, { skipWhenHidden: true }), 300_000));
+    }
+    if (activeLayers.aurora) {
+      // SWPC refreshes the nowcast about every 5 minutes.
+      intervals.push(setInterval(() => fetchEndpoint('/api/aurora', d => ({ aurora: d }), undefined, { skipWhenHidden: true }), 300_000));
+    }
+    if (activeLayers.launches) {
+      // The route reads Launch Library 2 at most hourly.
+      intervals.push(setInterval(() => fetchEndpoint('/api/launches', d => ({ launches: d.launches ?? [] }), undefined, { skipWhenHidden: true }), 1_800_000));
     }
     if (activeLayers.wx_temperature || activeLayers.wx_wind) {
       // The route moves to the next forecast hour on its own; this just picks it up.

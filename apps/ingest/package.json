@@ -1,0 +1,19 @@
+{
+  "name": "@takip/ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/cli.ts worker",
+    "ingest": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@takip/archive": "*",
+    "@takip/core": "*",
+    "@takip/db": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

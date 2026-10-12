@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: choosing an engine (provider, key, model) and asking a question.
+ * TAKIP OI: choosing an engine (provider, key, model) and asking a question.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -334,7 +334,7 @@ export function AskForm({ ready, providerName, onRun, onKey }: { ready: boolean;
       <div>
         <h3 className="text-[16px] font-semibold tracking-[0.01em] text-[var(--text-heading)]">Predict what happens</h3>
         <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--text-secondary)]">
-          Ask a question. OI casts the actors who decide it and plays it out in parallel worlds, grounded in live research and any data you add. It draws on the globe as it runs.
+          Ask a question. TI casts the actors who decide it and plays it out in parallel worlds, grounded in live research and any data you add. It draws on the globe as it runs.
         </p>
       </div>
 
@@ -417,7 +417,7 @@ export function AskForm({ ready, providerName, onRun, onKey }: { ready: boolean;
         </button>
       ) : (
         <div className="flex flex-col gap-2.5 rounded-lg border px-3.5 py-3" style={{ borderColor: gold(0.3), background: gold(0.04) }}>
-          <p className="text-[11.5px] leading-snug text-[var(--text-secondary)]">OI runs on your own AI key. It stays in this browser, and a prediction is billed to your account: about {estimateCalls(depth, useFeeds)} model calls at this depth.</p>
+          <p className="text-[11.5px] leading-snug text-[var(--text-secondary)]">TI runs on your own AI key. It stays in this browser, and a prediction is billed to your account: about {estimateCalls(depth, useFeeds)} model calls at this depth.</p>
           <button onClick={onKey} className="oi-btn-primary w-full"><KeyRound className="w-4 h-4" /> Add your {shortName(providerName)} key</button>
         </div>
       )}

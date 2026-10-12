@@ -10,6 +10,8 @@ import { BulkButton, LayerRow } from './layer-row';
 import LayerRail from './layer-rail';
 import LayerFlyout from './layer-flyout';
 import LayerListMobile from './layer-list-mobile';
+import LayerSearchField from './layer-search-field';
+import { filterLayerGroups } from './layer-search';
 
 interface LayerPanelProps {
   data: any;
@@ -37,6 +39,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
   /** The group whose rail icon opened the panel; it is scrolled to and marked. */
   const [focusGroup, setFocusGroup] = useState<string | null>(null);
   const [studioOpen, setStudioOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
@@ -53,6 +56,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
   const openAt = (label: string) => {
     if (open && focusGroup === label) { setOpen(false); return; }
     setFocusGroup(label);
+    setQuery('');
     setOpen(true);
   };
 
@@ -89,7 +93,9 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
     layers: g.layers.filter(l => !l.requires || capabilities[l.requires]),
   })).filter(g => g.layers.length > 0);
 
-  const allLayers = visibleGroups.flatMap(g => g.layers);
+  // Bulk switches and the count act on what the search leaves showing.
+  const shownGroups = filterLayerGroups(visibleGroups, query);
+  const allLayers = shownGroups.flatMap(g => g.layers);
   const totalOn = primary(allLayers).filter(l => activeLayers[l.key]).length;
   const everyOn = primary(allLayers).every(l => activeLayers[l.key]);
 
@@ -113,8 +119,8 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
     <>
       <span className="text-[10px] font-mono tabular-nums text-white/60">{totalOn} on</span>
       <span className="flex-1" />
-      <BulkButton label="Turn every layer on" disabled={everyOn} onClick={() => setMany(allLayers, true)}>ALL</BulkButton>
-      <BulkButton label="Turn every layer off" disabled={totalOn === 0} onClick={() => setMany(allLayers, false)}>NONE</BulkButton>
+      <BulkButton label={`Turn every ${query ? 'matching ' : ''}layer on`} disabled={everyOn} onClick={() => setMany(allLayers, true)}>ALL</BulkButton>
+      <BulkButton label={`Turn every ${query ? 'matching ' : ''}layer off`} disabled={totalOn === 0} onClick={() => setMany(allLayers, false)}>NONE</BulkButton>
     </>
   );
 
@@ -156,8 +162,9 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
   if (isMobile) {
     return (
       <LayerListMobile
-        visibleGroups={visibleGroups}
+        visibleGroups={shownGroups}
         masterControls={masterControls}
+        searchField={<LayerSearchField query={query} setQuery={setQuery} mobile />}
         renderGroup={renderGroup}
         studioOpen={studioOpen}
         setStudioOpen={setStudioOpen}
@@ -193,11 +200,12 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
       <LayerFlyout
         open={open}
         setOpen={setOpen}
-        visibleGroups={visibleGroups}
+        visibleGroups={shownGroups}
         hoveredGroup={hoveredGroup}
         focusGroup={focusGroup}
         sectionRefs={sectionRefs}
         masterControls={masterControls}
+        searchField={<LayerSearchField query={query} setQuery={setQuery} autoFocus />}
         renderGroup={renderGroup}
       />
 

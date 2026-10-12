@@ -1,5 +1,5 @@
 /**
- * OSIRIS vision: what a camera frame, or a few seconds of one, comes to.
+ * TAKIP vision: what a camera frame, or a few seconds of one, comes to.
  *
  * The detector finds boxes; this turns them into what a reader or a model can
  * use: how many of each thing are in view, whether it is light enough to see,

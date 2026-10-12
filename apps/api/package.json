@@ -21,6 +21,7 @@
     "@scalar/hono-api-reference": "0.12.6",
     "@takip/connectors": "*",
     "@takip/core": "*",
+    "@takip/db": "*",
     "better-auth": "^1.7.7",
     "better-sqlite3": "^13.0.3",
     "hono": "^4.13.13",

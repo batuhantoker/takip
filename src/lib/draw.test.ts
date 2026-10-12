@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildGeometry, measure, minPoints, toShape, closeRing, queryRing, nextColor } from './draw';
+import { buildGeometry, measure, measureArea, minPoints, toShape, closeRing, queryArea, nextColor } from './draw';
 import { haversine, polygonArea, type LngLat } from './geo';
 
 const P = (lng: number, lat: number) => [lng, lat];
@@ -95,6 +95,20 @@ describe('toShape', () => {
     expect(s.meta?.radiusKm).toBe(111);
   });
 
+  it('takes a picked region as-is, with its name and measured area', () => {
+    const geometry: GeoJSON.MultiPolygon = {
+      type: 'MultiPolygon',
+      coordinates: [
+        [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
+        [[[5, 0], [6, 0], [6, 1], [5, 1], [5, 0]]],
+      ],
+    };
+    const s = toShape({ kind: 'region', coords: [], geometry, name: 'Twin Isles' }, [], 4);
+    expect(s.name).toBe('Twin Isles');
+    expect(s.geojson.geometry).toBe(geometry);
+    expect(s.areaKm2).toBeCloseTo(2 * polygonArea([[0, 0], [1, 0], [1, 1], [0, 1]]), 6);
+  });
+
   it('gives consecutive shapes distinct colours and ids', () => {
     const a = toShape({ kind: 'polygon', coords: [P(0, 0), P(1, 0), P(1, 1)] }, [], 0);
     const b = toShape({ kind: 'polygon', coords: [P(0, 0), P(1, 0), P(1, 1)] }, [a], 1);
@@ -103,18 +117,32 @@ describe('toShape', () => {
   });
 });
 
-describe('closeRing and queryRing', () => {
+describe('closeRing and queryArea', () => {
   it('closes only when needed', () => {
     const open = [P(0, 0), P(1, 0), P(1, 1)];
     expect(closeRing(open)).toHaveLength(4);
     expect(closeRing(closeRing(open))).toHaveLength(4);
   });
 
-  it('offers a ring for areas and nothing for a path', () => {
+  it('offers an area for polygons and regions and nothing for a path', () => {
     const area = toShape({ kind: 'polygon', coords: [P(0, 0), P(1, 0), P(1, 1)] }, [], 0);
     const line = toShape({ kind: 'line', coords: [P(0, 0), P(1, 0)] }, [], 0);
-    expect(queryRing(area)).not.toBeNull();
-    expect(queryRing(line)).toBeNull();
+    const multi: GeoJSON.MultiPolygon = { type: 'MultiPolygon', coordinates: [[[[0, 0], [1, 0], [1, 1], [0, 0]]]] };
+    const region = toShape({ kind: 'region', coords: [], geometry: multi }, [], 0);
+    expect(queryArea(area)?.type).toBe('Polygon');
+    expect(queryArea(region)).toBe(multi);
+    expect(queryArea(line)).toBeNull();
+  });
+});
+
+describe('measureArea', () => {
+  it('subtracts holes from the area but not from the perimeter', () => {
+    const outer = [[0, 0], [4, 0], [4, 4], [0, 4], [0, 0]];
+    const hole = [[1, 1], [2, 1], [2, 2], [1, 2], [1, 1]];
+    const solid = measureArea({ type: 'Polygon', coordinates: [outer] });
+    const holed = measureArea({ type: 'Polygon', coordinates: [outer, hole] });
+    expect(holed.areaKm2).toBeCloseTo(solid.areaKm2 - polygonArea(hole), 6);
+    expect(holed.perimeterKm).toBeCloseTo(solid.perimeterKm, 6);
   });
 });
 

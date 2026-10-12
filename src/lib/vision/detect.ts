@@ -1,5 +1,5 @@
 /**
- * OSIRIS vision: the built-in camera detector, as arithmetic.
+ * TAKIP vision: the built-in camera detector, as arithmetic.
  *
  * The model is YOLOX-nano (Megvii, Apache-2.0), the official 0.1.1rc0 ONNX
  * export: a 416×416 BGR image in, 0–255 and not normalised; 3,549 candidate

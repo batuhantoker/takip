@@ -1,7 +1,7 @@
 /**
- * OSIRIS vision: whether a camera's picture can be read, and how.
+ * TAKIP vision: whether a camera's picture can be read, and how.
  *
- * A still camera's frame is fetched through OSIRIS; a live HLS stream's is taken
+ * A still camera's frame is fetched through TAKIP; a live HLS stream's is taken
  * from the video playing it. Web players (YouTube, an operator's own page) and
  * MJPEG or MP4 links cannot be read by the page at all. Pure, for the overlay
  * and for OI Assist alike.

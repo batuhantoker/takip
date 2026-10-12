@@ -1,5 +1,5 @@
 /**
- * OSIRIS — Live Clouds: NOAA's global satellite mosaic, drawn as lit cloud.
+ * TAKIP — Live Clouds: NOAA's global satellite mosaic, drawn as lit cloud.
  *
  * The source is GMGSI, the Global Mosaic of Geostationary Satellite Imagery:
  * every weather satellite in geostationary orbit stitched into one picture of

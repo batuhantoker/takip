@@ -1,16 +1,16 @@
-name: osiris
+name: takip
 services:
-  osiris:
+  takip:
     # Builds locally from the Dockerfile so you always run the cloned code.
     # To use the prebuilt image instead, replace the `build:` block below with
-    # `image: ghcr.io/simplifaisoul/osiris:latest`.
+    # `image: ghcr.io/batuhantoker/takip:latest`.
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: osiris
-    # Host port is configurable via OSIRIS_PORT in .env (defaults to 3000).
+    container_name: takip
+    # Host port is configurable via TAKIP_PORT in .env (defaults to 3000).
     ports:
-      - "${OSIRIS_PORT:-3000}:3000"
+      - "${TAKIP_PORT:-${OSIRIS_PORT:-3000}}:3000"
     # Optional API keys / scanner backend — copy .env.template to .env and
     # fill in what you need. Missing file is ignored (keyless feeds still work).
     env_file:
@@ -21,35 +21,38 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
+      - TAKIP_ARCHIVE_DIR=/app/data/archive
     extra_hosts:
       - "host.docker.internal:host-gateway"
     # Reference map layers (data/reference/README.md). Gitignored, so copy them to the server;
     # without them /api/reference reports nothing installed and the layers stay hidden.
     volumes:
       - ./data/reference:/app/data/reference:ro
+      # Raw feed archive (replay-database.md §7.1). Must be writable by uid 1001.
+      - ./data/archive:/app/data/archive
     restart: unless-stopped
     networks:
       - default
 
-  osiris-cache:
+  takip-cache:
     image: nginx:alpine
-    container_name: osiris-cache
+    container_name: takip-cache
     ports:
       - "8080:8080"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - nginx-cache:/var/cache/nginx
     depends_on:
-      - osiris
+      - takip
     restart: unless-stopped
     networks:
       - default
 
-  osiris-intel:
+  takip-intel:
     build:
       context: ./intel
       dockerfile: Dockerfile
-    container_name: osiris-intel
+    container_name: takip-intel
     ports:
       - "4000:4000"
     restart: unless-stopped
@@ -64,13 +67,13 @@ x-casaos:
   architectures:
     - amd64
     - arm64
-  main: osiris
-  author: simplifaisoul
-  developer: simplifaisoul
+  main: takip
+  author: batuhantoker
+  developer: batuhantoker
   category: Network
   description:
     en_us: >-
-      OSIRIS is a production-grade open-source OSINT situational-awareness
+      TAKIP is a production-grade open-source OSINT situational-awareness
       dashboard. It aggregates real-time global intelligence across aviation,
       maritime, CCTV networks, seismic activity, wildfires, news feeds,
       weather, space weather, cyber threats (CVEs) and conflict zones into a
@@ -79,11 +82,11 @@ x-casaos:
   tagline:
     en_us: Real-time global OSINT intelligence dashboard
   title:
-    en_us: OSIRIS
-  icon: https://raw.githubusercontent.com/simplifaisoul/osiris/master/public/casaos-icon.png
-  thumbnail: https://raw.githubusercontent.com/simplifaisoul/osiris/master/public/og-image.png
+    en_us: TAKIP
+  icon: https://raw.githubusercontent.com/batuhantoker/takip/master/public/casaos-icon.png
+  thumbnail: https://raw.githubusercontent.com/batuhantoker/takip/master/public/og-image.png
   screenshot_link:
-    - https://raw.githubusercontent.com/simplifaisoul/osiris/master/public/og-image.png
+    - https://raw.githubusercontent.com/batuhantoker/takip/master/public/og-image.png
   scheme: http
   hostname: ""
   port_map: "3000"

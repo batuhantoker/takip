@@ -10,7 +10,7 @@ export function useSdkEntities({ dataRef, data, dataVersion, activeLayers }: {
   dataVersion: number;
   activeLayers: ActiveLayers;
 }) {
-  // ── OSIRIS SDK — Intelligence Fusion Layer ──
+  // ── TAKIP SDK — Intelligence Fusion Layer ──
   // Produces node coordinates for the SDK network mesh visualization.
   // Does NOT duplicate existing layer visuals — SDK layer is LINES ONLY.
   // Cameras are excluded — they have their own dedicated layer.

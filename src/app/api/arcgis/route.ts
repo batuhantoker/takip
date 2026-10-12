@@ -4,7 +4,7 @@ import { safeFetch, isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { cachedSource } from '@/lib/sourceCache';
 
 /**
- * OSIRIS — ArcGIS Public Data Integration
+ * TAKIP — ArcGIS Public Data Integration
  *
  * Two query modes:
  *   1. Search:  ?q=keyword&bbox=-105,35,-94,42

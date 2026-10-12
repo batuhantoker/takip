@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI Assist: the conversation.
+ * TAKIP OI Assist: the conversation.
  *
  * Talk to OI, typed or spoken, and it works the map for you: it flies there,
  * switches the layers on, finds what is live, marks it, and puts it on screen
@@ -36,7 +36,7 @@ function ToolIcon({ tool, ...rest }: LucideProps & { tool: ToolName }) {
 }
 
 const MODES: { value: Mode; label: string; title: string }[] = [
-  { value: 'auto', label: 'Auto', title: 'OI decides what to do' },
+  { value: 'auto', label: 'Auto', title: 'TI decides what to do' },
   { value: 'navigate', label: 'Navigate', title: 'Move the map and switch layers' },
   { value: 'research', label: 'Research', title: 'Gather live data and put it on screen' },
   { value: 'forecast', label: 'Forecast', title: 'Run the prediction engine on your question' },
@@ -340,12 +340,12 @@ export function AssistView(p: AssistViewProps) {
               onChange={e => setText(e.target.value.slice(0, 2000))}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(text); } }}
               placeholder={dictation.listening ? 'Listening…' : mode === 'forecast' ? 'What should I forecast?' : 'Ask me anything, or tell me where to go'}
-              aria-label="Message to OI" readOnly={dictation.listening}
+              aria-label="Message to TI" readOnly={dictation.listening}
               className="flex-1 resize-none bg-transparent outline-none text-[12.5px] leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] py-1 max-h-[110px]" />
             {dictation.supported && (
               <button onClick={() => (dictation.listening ? dictation.stop() : dictation.start())} disabled={assist.busy} aria-pressed={dictation.listening}
-                title={dictation.listening ? 'Stop listening' : 'Talk to OI'} aria-label={dictation.listening ? 'Stop listening' : 'Talk to OI'}
-                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-30 ${dictation.listening ? 'text-[var(--alert-red)] bg-[rgba(255,61,61,0.12)] animate-osiris-pulse' : 'text-[var(--text-secondary)] hover:text-[var(--cyan-primary)] hover:bg-[rgba(var(--cyan-rgb),0.08)]'}`}>
+                title={dictation.listening ? 'Stop listening' : 'Talk to TI'} aria-label={dictation.listening ? 'Stop listening' : 'Talk to TI'}
+                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors disabled:opacity-30 ${dictation.listening ? 'text-[var(--alert-red)] bg-[rgba(255,61,61,0.12)] animate-takip-pulse' : 'text-[var(--text-secondary)] hover:text-[var(--cyan-primary)] hover:bg-[rgba(var(--cyan-rgb),0.08)]'}`}>
                 <Mic className="w-4 h-4" />
               </button>
             )}

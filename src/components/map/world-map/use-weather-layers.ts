@@ -6,17 +6,8 @@ import { CLOUDS_ATTRIBUTION, CLOUDS_CREDIT, CLOUDS_LAYER, frameTime } from '@/li
 import { createCloudLayer } from '@/lib/live-clouds-layer';
 import { EMPTY_FC } from '@/lib/map-base-layers';
 import { FIELD_MAX_ZOOM, RADAR_ATTRIBUTION, RADAR_MAX_ZOOM, WX_ATTRIBUTION, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setWeatherGrid, type WeatherGrid } from '@/lib/weather-field';
+import { stackGroundRasters } from './stack-ground-rasters';
 import type { LayerHookArgs, MapRef, WorldMapProps } from './types';
-
-/** Temperature, then clouds, then radar, all under the place names (above the imagery on SAT). */
-function stackWeather(map: maplibregl.Map) {
-  const satellite = map.getLayer('satellite-layer') && map.getLayoutProperty('satellite-layer', 'visibility') !== 'none';
-  const firstLabel = map.getStyle().layers.find(layer => layer.type === 'symbol')?.id;
-  const anchor = satellite || !firstLabel ? 'day-night-fill' : firstLabel;
-  for (const id of ['wx-field', CLOUDS_LAYER, 'wx-radar']) {
-    if (map.getLayer(id)) map.moveLayer(id, anchor);
-  }
-}
 
 export function useWeatherGridLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
   useEffect(() => {
@@ -64,7 +55,7 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
     // come from no source of its own, so an empty one carries NOAA's credit.
     if (!map.getSource(CLOUDS_CREDIT)) map.addSource(CLOUDS_CREDIT, { type: 'geojson', data: EMPTY_FC, attribution: CLOUDS_ATTRIBUTION });
     if (!map.getLayer(CLOUDS_CREDIT)) map.addLayer({ id: CLOUDS_CREDIT, type: 'circle', source: CLOUDS_CREDIT });
-    stackWeather(map);
+    stackGroundRasters(map);
     // A new frame lands every hour; move to it once it is up.
     const refresh = setInterval(() => clouds.setFrame(frameTime()), 5 * 60_000);
     return () => clearInterval(refresh);
@@ -91,7 +82,7 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
     if (!map.getLayer('wx-field')) {
       map.addLayer({ id: 'wx-field', type: 'raster', source: 'wx-field', paint: { 'raster-opacity': 0.5, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } }, 'day-night-fill');
     }
-    stackWeather(map);
+    stackGroundRasters(map);
   }, [mapReady, activeLayers.wx_temperature, data.weather_grid, mapStyle, mapRef]);
 
   // Precipitation radar — RainViewer's latest frame, where ground radar exists.
@@ -116,9 +107,9 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
         if (!map.getLayer('wx-radar')) {
           map.addLayer({ id: 'wx-radar', type: 'raster', source: 'wx-radar', paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 0 } }, 'day-night-fill');
         }
-        stackWeather(map);
+        stackGroundRasters(map);
       } catch (e) {
-        if (!ctrl.signal.aborted) console.warn('[OSIRIS] Radar frame lookup failed:', e instanceof Error ? e.message : e);
+        if (!ctrl.signal.aborted) console.warn('[TAKIP] Radar frame lookup failed:', e instanceof Error ? e.message : e);
       }
     };
     load();

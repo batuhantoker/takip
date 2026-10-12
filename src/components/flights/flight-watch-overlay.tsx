@@ -16,10 +16,9 @@ export default function FlightWatchOverlay({ watchedFlights, watchTelemetry, rem
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
-      className="absolute top-3 z-[380] w-[min(92vw,290px)] pointer-events-auto
-                 max-h-[calc(100vh-180px)] overflow-y-auto styled-scrollbar"
-      style={{ left: isMobile ? '12px' : '120px' }}
+      initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+      className={`absolute top-3 z-[380] w-[min(92vw,290px)] pointer-events-auto
+                 max-h-[calc(100vh-180px)] overflow-y-auto styled-scrollbar ${isMobile ? 'left-3' : 'right-3'}`}
     >
       <FlightWatchPanel
         watched={watchedFlights}

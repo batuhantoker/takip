@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTerrainTileLoader, TERRAIN_REQUEST_TIMEOUT_MS } from './terrain-tiles';
 
-const url = (x: number) => `osiris-dem://10/${x}/100`;
+const url = (x: number) => `takip-dem://10/${x}/100`;
 const signal = () => new AbortController().signal;
 const response = () => new Response(new Uint8Array([1, 2, 3, 4]));
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
@@ -108,8 +108,8 @@ describe('terrain tile loading', () => {
     const load = createTerrainTileLoader();
     await expect(load(url(1), signal())).rejects.toThrow('HTTP 503');
     await load(url(1), signal());
-    await expect(load('osiris-dem://11/1/1', signal())).rejects.toThrow('out of range');
-    await expect(load('osiris-dem://10/1024/1', signal())).rejects.toThrow('out of range');
+    await expect(load('takip-dem://11/1/1', signal())).rejects.toThrow('out of range');
+    await expect(load('takip-dem://10/1024/1', signal())).rejects.toThrow('out of range');
     await expect(load('https://other.example/tile', signal())).rejects.toThrow('Invalid');
     expect(fetcher).toHaveBeenCalledTimes(2);
   });

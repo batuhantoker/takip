@@ -192,7 +192,7 @@ The largest response measured over New York, the densest area, is about 5 MB bef
 
 **Map:** `src/lib/reference/map-layers.ts` draws the switched-on datasets and refetches them when the map settles. It requests the view snapped outward to whole tiles, so small pans hit the cache. The layer panel groups are in `src/components/layers/reference-groups.ts`.
 
-**Deploying:** the files are gitignored, and `docker-compose.yml` mounts `./data/reference` read-only into the container. Copy them to the server once and again after each refresh, e.g. `rsync -av data/reference/ root@<server>:/root/osiris/data/reference/`. Deployments without the files (including Vercel) report nothing installed, and the layer panel hides these layers.
+**Deploying:** the files are gitignored, and `docker-compose.yml` mounts `./data/reference` read-only into the container. Copy them to the server once and again after each refresh, e.g. `rsync -av data/reference/ root@<server>:/root/takip/data/reference/`. Deployments without the files (including Vercel) report nothing installed, and the layer panel hides these layers.
 
 The community military KML is kept here but is not served (see its section above).
 

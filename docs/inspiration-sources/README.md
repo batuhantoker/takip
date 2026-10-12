@@ -2,7 +2,7 @@
 
 _Surveyed 2026-10-12. World Monitor at commit `968eac6`, Provenance at `f3029a8`, Argus at `7a56f8d`. Probes were single sequential GETs made on 2026-10-12._
 
-The goal: every **keyless** data source these projects use, plus their non-UI features, mapped onto OSIRIS. UI was out of scope.
+The goal: every **keyless** data source these projects use, plus their non-UI features, mapped onto TAKIP. UI was out of scope.
 
 **Licence rule** (from `INSPIRATION.md`): World Monitor and Provenance are AGPL-3.0, so these files record facts only: endpoints, parameters, fields, and methods in prose. No code was copied. Argus is MIT, so its scraper code may be ported with attribution.
 
@@ -15,8 +15,8 @@ The goal: every **keyless** data source these projects use, plus their non-UI fe
 | [wm-geo-signals.md](wm-geo-signals.md) | Conflict, disasters, weather alerts, aviation, maritime, radiation, outbreaks, outages, status pages, GPS jamming | 164 | 133 (about 55 are real geo signals) |
 | [wm-macro-finance.md](wm-macro-finance.md) | Central banks, statistics offices, energy, trade, procurement, sanctions, prediction markets, China, tech | 202 | 164 |
 | [wm-news-osint.md](wm-news-osint.md) | 768 RSS/Atom URLs by region and topic, 71 Telegram channels, 91 live-video slots, the credibility-tier scheme | 396 hosts | all but X and MTProto |
-| [wm-features.md](wm-features.md) | 38 derived-signal features, ranked by value ÷ effort, with the method in prose and the gap in OSIRIS | — | — |
-| [provenance.md](provenance.md) | Provenance's camera, signal, basemap and market sources; its provenance cards; 22 non-UI patterns | 68 | 55 (27 new to OSIRIS) |
+| [wm-features.md](wm-features.md) | 38 derived-signal features, ranked by value ÷ effort, with the method in prose and the gap in TAKIP | — | — |
+| [provenance.md](provenance.md) | Provenance's camera, signal, basemap and market sources; its provenance cards; 22 non-UI patterns | 68 | 55 (27 new to TAKIP) |
 | [argus-cameras.md](argus-cameras.md) | Argus camera sources turned into live-adapter leads, and how far OpenCCTV can be widened | — | — |
 
 The five repos under "To review" in `INSPIRATION.md` are already assessed in `CCTV-handoff.md` §2. Argus is revisited here for its full source list.
@@ -39,11 +39,11 @@ The five repos under "To review" in `INSPIRATION.md` are already assessed in `CC
 
 ## Top keyless sources to add
 
-New to OSIRIS unless the "OSIRIS" column says otherwise. The detail files have the full endpoint, fields and probe result for each.
+New to TAKIP unless the "TAKIP" column says otherwise. The detail files have the full endpoint, fields and probe result for each.
 
 ### Hazards and environment
 
-| Source | What one record is | Endpoint | Licence | OSIRIS |
+| Source | What one record is | Endpoint | Licence | TAKIP |
 |---|---|---|---|---|
 | WMO SWIC | An official CAP warning from any WMO member | `severeweather.wmo.int/json/wmo_all.json` | WMO/member CAP; review | New; `weather` alerts are NWS-only |
 | ECCC alerts | A Canadian alert polygon | `api.weather.gc.ca/collections/weather-alerts/items?f=json&status_en=issued` | ECCC open licence | New |
@@ -58,7 +58,7 @@ New to OSIRIS unless the "OSIRIS" column says otherwise. The detail files have t
 
 ### Conflict, security and humanitarian
 
-| Source | What one record is | Endpoint | Licence | OSIRIS |
+| Source | What one record is | Endpoint | Licence | TAKIP |
 |---|---|---|---|---|
 | NGA MSI | A navigational warning: live fire, hazards, cable repair (coordinates in the text, as DMS) | `msi.nga.mil/api/publications/broadcast-warn?output=json&status=A` | Public domain | New |
 | Tzeva Adom | An Israeli siren alert (cities, threat type) | `api.tzevaadom.co.il/notifications` + pikud-haoref `cities.json` | Unofficial; no terms | New |
@@ -72,7 +72,7 @@ New to OSIRIS unless the "OSIRIS" column says otherwise. The detail files have t
 
 ### Aviation, maritime, space
 
-| Source | What one record is | Endpoint | Licence | OSIRIS |
+| Source | What one record is | Endpoint | Licence | TAKIP |
 |---|---|---|---|---|
 | adsb.lol | Aircraft worldwide, by military flag or ICAO type | `api.adsb.lol/v2/mil`, `/v2/type/{T1,T2,…}` | ODbL | Host already in; endpoints unused (see finding 2) |
 | FAA NAS Status | A ground stop or delay programme | `nasstatus.faa.gov/api/airport-status-information` (XML) | Public domain | Listed in DATA-SOURCES.md |
@@ -82,7 +82,7 @@ New to OSIRIS unless the "OSIRIS" column says otherwise. The detail files have t
 
 ### Infrastructure, outages, energy
 
-| Source | What one record is | Endpoint | Licence | OSIRIS |
+| Source | What one record is | Endpoint | Licence | TAKIP |
 |---|---|---|---|---|
 | Statuspage v2 | One vendor's status and incidents (one adapter covers 14–18 vendors) | `{host}/api/v2/summary.json` | Self-reported | New; host list in `wm-geo-signals.md` |
 | GCP and AWS health | A cloud-region incident | GCP `incidents.json`; AWS health feed | Self-reported | New |
@@ -94,7 +94,7 @@ New to OSIRIS unless the "OSIRIS" column says otherwise. The detail files have t
 
 ### Companies, money, country context
 
-| Source | What one record is | Endpoint | Licence | OSIRIS |
+| Source | What one record is | Endpoint | Licence | TAKIP |
 |---|---|---|---|---|
 | OFAC SLS | A sanctioned party, vessel (IMO/MMSI) or aircraft | `sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/sdn_advanced.xml` | Public domain | Replaces OpenSanctions (finding 5) |
 | SEC EDGAR | A live 8-K; ticker→CIK; company HQ address | `www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=8-K&output=atom`, `data.sec.gov/submissions/CIK{10}.json` | Public domain; send a declared User-Agent | Listed in DATA-SOURCES.md |
@@ -107,7 +107,7 @@ New to OSIRIS unless the "OSIRIS" column says otherwise. The detail files have t
 
 ### News
 
-- **768 keyless feed URLs**, 634 of them new to OSIRIS, grouped by region and topic in `wm-news-osint.md` §2. Strongest additions:
+- **768 keyless feed URLs**, 634 of them new to TAKIP, grouped by region and topic in `wm-news-osint.md` §2. Strongest additions:
   - **Analysis:** IAEA, WHO, Crisis Group CrisisWatch, ISW, Oryx.
   - **Investigations:** OCCRP, Bellingcat, DFRLab.
   - **Defence and maritime press:** gCaptain, USNI.
@@ -120,7 +120,7 @@ New to OSIRIS unless the "OSIRIS" column says otherwise. The detail files have t
 
 **Argus funnel** (`argus-cameras.md`):
 - 229,308 rows, of which 92,446 are excluded (91,778 hosted by Windy, plus Opentopia, credentials and device paths).
-- That leaves 136,862 usable; 62,724 are already in OSIRIS, so 74,138 are net-new in the snapshot.
+- That leaves 136,862 usable; 62,724 are already in TAKIP, so 74,138 are net-new in the snapshot.
 - Re-checked against OpenCCTV's live index (139,362 ids): **about 67.9k are net-new after deduplication, about 86% directly playable, realistically 45–55k live.** Liveness still needs the batch fetch.
 - Per-sub-source numbers are in [argus-opencctv-subsources.csv](argus-opencctv-subsources.csv).
 

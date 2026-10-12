@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 import { motion } from 'framer-motion';
+import DossierSignals from './dossier-signals';
 
 export default function RegionDossier({ regionDossier, dossierLoading, setRegionDossier, setDossierLoading }: {
   regionDossier: any;
@@ -11,7 +12,7 @@ export default function RegionDossier({ regionDossier, dossierLoading, setRegion
 }) {
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="absolute top-16 md:top-20 left-2 right-2 md:left-1/2 md:right-auto md:-translate-x-1/2 z-[300] md:w-[480px] max-h-[65vh] overflow-y-auto styled-scrollbar">
-      <div className="glass-panel p-5 osiris-glow">
+      <div className="glass-panel p-5 takip-glow">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-mono font-bold text-[var(--gold-primary)] tracking-wider">REGION DOSSIER</h2>
           <button onClick={() => { setRegionDossier(null); setDossierLoading(false); }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs">✕</button>
@@ -35,6 +36,7 @@ export default function RegionDossier({ regionDossier, dossierLoading, setRegion
               </div>
             )}
             {regionDossier.head_of_state && (<div><div className="hud-label mb-0.5">HEAD OF STATE</div><div className="text-xs text-[var(--gold-primary)]">{regionDossier.head_of_state.name}</div><div className="text-[9px] text-[var(--text-muted)]">{regionDossier.head_of_state.position}</div></div>)}
+            <DossierSignals advice={regionDossier.travel_advice} displacement={regionDossier.displacement} crime={regionDossier.street_crime} unavailable={regionDossier.unavailable} />
             {regionDossier.wikipedia && (<div><div className="hud-label mb-1">INTELLIGENCE BRIEF</div><div className="flex gap-3">{regionDossier.wikipedia.thumbnail && <img src={regionDossier.wikipedia.thumbnail} alt="" className="w-14 h-14 rounded object-cover flex-shrink-0" />}<p className="text-[9px] text-[var(--text-secondary)] leading-relaxed">{regionDossier.wikipedia.extract}</p></div></div>)}
           </div>
         )}

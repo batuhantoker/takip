@@ -1,5 +1,5 @@
 /**
- * OSIRIS — parser for Telegram's public channel preview (t.me/s/<channel>).
+ * TAKIP — parser for Telegram's public channel preview (t.me/s/<channel>).
  *
  * The page is server-rendered HTML with no API behind it, so this reads the
  * markup directly. Three things the previous regex got wrong, measured against

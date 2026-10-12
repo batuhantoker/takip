@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI Assist: the scripted assistant behind the dev-only Demo provider.
+ * TAKIP OI Assist: the scripted assistant behind the dev-only Demo provider.
  *
  * Reads the reader's last message for what they want (go somewhere, find
  * quakes, flights, fires, news, quotes, a forecast) and answers with the
@@ -62,7 +62,7 @@ export function demoAssist(prompt: string): string {
 
   if (mode === 'forecast' || /\b(forecast|predict|odds|chance of|probability)\b/.test(t)) {
     const q = text.replace(/^(forecast|predict)[:\s-]*/i, '').trim();
-    return json('Starting a prediction. OI casts the actors who decide it and plays them out in parallel worlds; follow it in the Forecast tab.', [{ tool: 'forecast', args: { question: q.endsWith('?') ? q : `${q}?`, depth: 'quick' } }]);
+    return json('Starting a prediction. TI casts the actors who decide it and plays them out in parallel worlds; follow it in the Forecast tab.', [{ tool: 'forecast', args: { question: q.endsWith('?') ? q : `${q}?`, depth: 'quick' } }]);
   }
   if (/\b(clear|reset|remove)\b.*\b(highlights?|marks?|map)\b/.test(t)) return json('Cleared.', [{ tool: 'clear', args: {} }]);
   if (/what('s| is) (here|in view|on (the|my) screen|happening here)|what am i looking at|\bscan\b/.test(t)) return json('Looking at what is in view.', [{ tool: 'scan', args: {} }], false);

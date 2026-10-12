@@ -7,7 +7,7 @@ export type FlyToTarget = { lat: number; lng: number; zoom?: number; alertId?: s
 export type MapCenter = { lat: number; lng: number; bounds?: { west: number; south: number; east: number; north: number } };
 export type MobilePanel = 'layers'|'markets'|'intel'|'search'|'recon'|'oi';
 export type MapProjection = 'globe'|'mercator';
-export type MapStyle = 'dark'|'satellite';
+export type MapStyle = 'dark'|'satellite'|'topo';
 export type ActiveRoute = RouteResult & {
   from: { lat: number; lng: number };
   to: { lat: number; lng: number };

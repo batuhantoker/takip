@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- *  OSIRIS — AI Intelligence Engine
+ *  TAKIP — AI Intelligence Engine
  *  Gemini 2.0 Flash integration for real-time intelligence analysis
  *  Designed to correlate multi-domain feeds into actionable briefings
  * ═══════════════════════════════════════════════════════════════

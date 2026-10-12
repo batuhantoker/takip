@@ -1,5 +1,5 @@
 /**
- * OSIRIS — Area of Interest analysis
+ * TAKIP — Area of Interest analysis
  *
  * Turns a drawn polygon into an answer to "what is inside this?". Every tracked
  * layer is swept, the hits are grouped by kind, and the result is what the
@@ -114,6 +114,32 @@ export function bboxOf(ring: number[][]): { west: number; south: number; east: n
   return { west, south, east, north };
 }
 
+export type AreaGeometry = GeoJSON.Polygon | GeoJSON.MultiPolygon;
+
+/** One outer ring with its holes, and the bounds used to skip it cheaply. */
+export interface AreaPart {
+  outer: number[][];
+  holes: number[][][];
+  box: ReturnType<typeof bboxOf>;
+}
+
+// Bounds are per part: Natural Earth splits Russia and Fiji at ±180, so one box for the whole shape would span the globe.
+export function areaParts(geometry: AreaGeometry): AreaPart[] {
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+  return polygons
+    .filter(rings => rings[0]?.length >= 3)
+    .map(([outer, ...holes]) => ({ outer, holes, box: bboxOf(outer) }));
+}
+
+/** Inside an outer ring and not in one of its holes (a lake, or an enclave such as Lesotho). */
+export function pointInParts(lng: number, lat: number, parts: AreaPart[]): boolean {
+  for (const { outer, holes, box } of parts) {
+    if (lng < box.west || lng > box.east || lat < box.south || lat > box.north) continue;
+    if (pointInPolygon(lng, lat, outer) && !holes.some(h => pointInPolygon(lng, lat, h))) return true;
+  }
+  return false;
+}
+
 function pickLabel(e: any, fields: string[]): string {
   for (const f of fields) {
     const v = e?.[f];
@@ -131,8 +157,14 @@ function pickLabel(e: any, fields: string[]): string {
  */
 export function selectInPolygon(ring: number[][], data: Record<string, any>): AoiReport {
   if (!ring || ring.length < 3) return { total: 0, groups: [] };
+  return selectInArea({ type: 'Polygon', coordinates: [ring] }, data);
+}
 
-  const box = bboxOf(ring);
+/** The same sweep for any area, including countries with islands, exclaves and holes. */
+export function selectInArea(geometry: AreaGeometry, data: Record<string, unknown>): AoiReport {
+  const parts = areaParts(geometry);
+  if (parts.length === 0) return { total: 0, groups: [] };
+
   const groups: AoiGroup[] = [];
   let total = 0;
 
@@ -148,9 +180,7 @@ export function selectInPolygon(ring: number[][], data: Record<string, any>): Ao
       const lat = typeof e?.lat === 'number' ? e.lat : null;
       const lng = typeof e?.lng === 'number' ? e.lng : null;
       if (lat === null || lng === null) continue;
-      // Cheap rejection before the ray cast.
-      if (lng < box.west || lng > box.east || lat < box.south || lat > box.north) continue;
-      if (!pointInPolygon(lng, lat, ring)) continue;
+      if (!pointInParts(lng, lat, parts)) continue;
 
       count++;
       const entityId = String(e.id ?? e.icao24 ?? e.mmsi ?? e.noradId ?? `${lat},${lng}`);

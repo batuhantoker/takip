@@ -1,10 +1,10 @@
-# Self-Hosting OSIRIS with Docker
+# Self-Hosting TAKIP with Docker
 
-OSIRIS ships as a self-contained Next.js standalone build. This guide covers
+TAKIP ships as a self-contained Next.js standalone build. This guide covers
 running it with Docker / Docker Compose, deploying it as a [CasaOS](https://casaos.io)
 app, and configuring the optional API keys.
 
-> **TL;DR:** OSIRIS runs fully **without any API keys**. All core feeds
+> **TL;DR:** TAKIP runs fully **without any API keys**. All core feeds
 > (aviation, satellites, fires, earthquakes, weather, news, CVEs) use public
 > keyless sources. Keys only matter for the optional RECON scanner backend and
 > for raising rate limits on a few feeds.
@@ -14,8 +14,8 @@ app, and configuring the optional API keys.
 ## 1. Docker Compose (recommended)
 
 ```bash
-git clone https://github.com/simplifaisoul/osiris.git
-cd osiris
+git clone https://github.com/batuhantoker/takip.git
+cd takip
 
 # optional: configure keys / scanner backend
 cp .env.template .env        # then edit .env
@@ -25,18 +25,22 @@ docker compose up -d
 
 Open <http://localhost:3000>.
 
+> **Upgrading from an OSIRIS-named deployment:** the compose project, services and
+> containers are now `takip*`. Run `docker compose -p osiris down` once first, or the old
+> containers keep ports 3000, 8080 and 4000. `OSIRIS_PORT` and `OSIRIS_ARCHIVE_*` in `.env` still work.
+
 What the compose file does:
 
 - **`build:`** — compose builds the image locally from the `Dockerfile`, so
   you always run the code you just cloned. To run the prebuilt registry image
-  instead, add `image: ghcr.io/simplifaisoul/osiris:latest` to the `osiris`
+  instead, add `image: ghcr.io/batuhantoker/takip:latest` to the `takip`
   service and drop the `build:` block.
 - **`env_file: .env` (`required: false`)** — if a `.env` file exists its
-  values are injected into the container; if it's missing, OSIRIS still starts
+  values are injected into the container; if it's missing, TAKIP still starts
   with the keyless feeds.
-- **`ports: ${OSIRIS_PORT:-3000}:3000`** — the web UI. The container always
-  listens on 3000; the published **host** port is `OSIRIS_PORT` (default
-  `3000`). Set `OSIRIS_PORT` in `.env` to remap it, e.g. `OSIRIS_PORT=3005`
+- **`ports: ${TAKIP_PORT:-3000}:3000`** — the web UI. The container always
+  listens on 3000; the published **host** port is `TAKIP_PORT` (default
+  `3000`). Set `TAKIP_PORT` in `.env` to remap it, e.g. `TAKIP_PORT=3005`
   when 3000 is already in use — no need to edit the compose file.
 - **`restart: unless-stopped`** — survives reboots.
 
@@ -52,13 +56,13 @@ docker compose down             # stop & remove
 
 A prebuilt image for `linux/amd64` and `linux/arm64` is published to the GitHub
 Container Registry on every push to `master` and every `v*.*.*` tag, so you can
-run OSIRIS without building anything:
+run TAKIP without building anything:
 
 ```bash
-docker pull ghcr.io/simplifaisoul/osiris:latest   # or a pinned tag, e.g. :0.1.0
-docker run -d --name osiris \
+docker pull ghcr.io/batuhantoker/takip:latest   # or a pinned tag, e.g. :0.1.0
+docker run -d --name takip \
   -p 3005:3000 --env-file .env --restart unless-stopped \
-  ghcr.io/simplifaisoul/osiris:latest
+  ghcr.io/batuhantoker/takip:latest
 ```
 
 The package is public — no `docker login` is required to pull it.
@@ -66,8 +70,8 @@ The package is public — no `docker login` is required to pull it.
 ### Plain `docker run`
 
 ```bash
-docker build -t osiris:latest .
-docker run -d --name osiris -p 3000:3000 --env-file .env --restart unless-stopped osiris:latest
+docker build -t takip:latest .
+docker run -d --name takip -p 3000:3000 --env-file .env --restart unless-stopped takip:latest
 ```
 
 ### Image details
@@ -88,12 +92,12 @@ reads.
 **Install:**
 
 1. On the CasaOS host, clone the repo somewhere persistent (e.g.
-   `/DATA/AppData/osiris`).
+   `/DATA/AppData/takip`).
 2. CasaOS dashboard → **`+`** → **Install a customized app** → paste the
    contents of `docker-compose.yml`.
    *(or simply run `docker compose up -d` from the cloned directory).*
-3. OSIRIS appears on the dashboard with its icon, reachable on host port
-   `3000` (or whatever `OSIRIS_PORT` you set in `.env`).
+3. TAKIP appears on the dashboard with its icon, reachable on host port
+   `3000` (or whatever `TAKIP_PORT` you set in `.env`).
 
 The app icon is the gold Eye-of-Horus mark in
 `public/casaos-icon.png` (512×512 PNG), referenced by the `icon:` URL in the
@@ -101,9 +105,9 @@ metadata.
 
 > CasaOS stores imported compose files under `/var/lib/casaos/apps/`, so a
 > relative `build:` context may not resolve there. If importing the YAML
-> directly, either build/tag `osiris:latest` first
-> (`docker build -t osiris:latest /path/to/osiris`) or replace the `build:`
-> block with `image: ghcr.io/simplifaisoul/osiris:latest`.
+> directly, either build/tag `takip:latest` first
+> (`docker build -t takip:latest /path/to/takip`) or replace the `build:`
+> block with `image: ghcr.io/batuhantoker/takip:latest`.
 
 ---
 
@@ -119,7 +123,7 @@ Copy `.env.template` to `.env` and fill in only what you need.
 | `SCANNER_KEY` | Shared secret; **must equal the backend's `OSIRIS_KEY`** | RECON toolkit |
 
 Without `SCANNER_URL`/`SCANNER_KEY` the RECON endpoints return `503` and the
-rest of OSIRIS works normally. Generate a key with `openssl rand -hex 32`.
+rest of TAKIP works normally. Generate a key with `openssl rand -hex 32`.
 
 ### Optional keys (reserved / for higher rate limits)
 
@@ -141,8 +145,8 @@ them only if you extend the relevant route or hit rate limits.
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `OSIRIS_TELEGRAM_CHANNELS` | Comma-separated list of public Telegram channel usernames (no `@`) to scrape for the **Telegram OSINT** map layer. Overrides the curated default set. | `osintdefender,insiderpaper,aljazeeraenglish,nexta_live,war_monitor` |
-| `OSIRIS_PORT` | Host port the compose file publishes (container itself always listens on 3000). | `3000` |
+| `TAKIP_TELEGRAM_CHANNELS` | Comma-separated list of public Telegram channel usernames (no `@`) to scrape for the **Telegram OSINT** map layer. Overrides the curated default set. | `osintdefender,insiderpaper,aljazeeraenglish,nexta_live,war_monitor` |
+| `TAKIP_PORT` | Host port the compose file publishes (container itself always listens on 3000). | `3000` |
 
 ### Keyless sources (no configuration needed)
 

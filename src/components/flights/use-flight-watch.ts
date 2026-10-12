@@ -10,7 +10,7 @@ export function useFlightWatch(data: LiveData) {
 
   // The popup lives in raw map HTML, so it hands aircraft over through a global.
   useEffect(() => {
-    (window as unknown as { osirisWatchFlight?: (f: WatchedFlight) => void }).osirisWatchFlight = (f) => {
+    (window as unknown as { takipWatchFlight?: (f: WatchedFlight) => void }).takipWatchFlight = (f) => {
       if (!f?.icao24) return;
       setWatchedFlights((prev) =>
         prev.some((w) => w.icao24 === f.icao24) ? prev : [...prev, f].slice(-6));

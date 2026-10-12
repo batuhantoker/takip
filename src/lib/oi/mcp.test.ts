@@ -7,7 +7,7 @@ let ipN = 0;
 const ctx = (over: Partial<McpContext> = {}): McpContext => ({
   creds: { provider: 'openai', key: 'sk-test-0123456789', model: 'gpt-5-mini' },
   ip: `192.0.2.${++ipN}`,
-  origin: 'https://osirisai.live',
+  origin: 'https://takip.example',
   signal: new AbortController().signal,
   maxWaitSeconds: 20,
   deps: { chat: createDemoChat() },
@@ -19,7 +19,7 @@ const call = (name: string, args: Record<string, unknown>, id = 1) => ({ jsonrpc
 describe('the protocol', () => {
   it('initialises, agreeing a version it speaks', async () => {
     const r = await handleMessage({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 'hermes', version: '1' } } }, ctx());
-    expect(r?.result).toMatchObject({ protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'osiris-oi' } });
+    expect(r?.result).toMatchObject({ protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'takip-oi' } });
     const r2 = await handleMessage({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '1999-01-01' } }, ctx());
     expect((r2?.result as { protocolVersion: string }).protocolVersion).toBe(LATEST_PROTOCOL);
   });
@@ -56,7 +56,7 @@ describe('the tools', () => {
     const result = r?.result as { content: { text: string }[]; structuredContent: Record<string, unknown>; isError?: boolean };
     expect(result.isError).toBeUndefined();
     expect(result.structuredContent).toMatchObject({ status: 'done', depth: 'quick' });
-    expect(result.content[0].text).toMatch(/Watch it on the globe: https:\/\/osirisai\.live\/\?oi=/);
+    expect(result.content[0].text).toMatch(/Watch it on the globe: https:\/\/takip\.example\/\?oi=/);
     expect(typeof result.structuredContent.run_token).toBe('string');
     expect(progress[0]).toMatch(/^Run [0-9a-f-]{36} started/);
     // Progress follows the simulated clock, period by period.

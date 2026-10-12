@@ -54,7 +54,11 @@ CREATE TABLE meta.source (
   refresh_interval  interval,
   event_table       text CHECK (event_table IN ('event','stream')),
   recording_since   timestamptz,
-  config            jsonb NOT NULL DEFAULT '{}'
+  config            jsonb NOT NULL DEFAULT '{}',
+  record            boolean NOT NULL DEFAULT true,   -- admin switches (replay-database.md §7.6)
+  build             boolean NOT NULL DEFAULT true,
+  switched_at       timestamptz,
+  switched_by       text
 );
 
 CREATE TABLE meta.dataset (
@@ -456,6 +460,7 @@ CREATE TABLE trk.state (
 CREATE TABLE trk.segment_l0 (
   bucket         timestamptz NOT NULL,
   entity_id      bigint NOT NULL,
+  part           smallint NOT NULL DEFAULT 0,   -- pieces left by gap and antimeridian splits
   class          smallint NOT NULL,             -- vessel, aircraft
   category       smallint NOT NULL,             -- military, cargo, tanker, commercial, private, …
   label          text,
@@ -467,7 +472,7 @@ CREATE TABLE trk.segment_l0 (
   points         bytea NOT NULL,
   flags          smallint NOT NULL DEFAULT 0,
   build_version  smallint NOT NULL,
-  PRIMARY KEY (bucket, entity_id)
+  PRIMARY KEY (bucket, entity_id, part)
 );
 CREATE TABLE trk.segment_l1 (LIKE trk.segment_l0 INCLUDING ALL);
 CREATE TABLE trk.segment_l2 (LIKE trk.segment_l0 INCLUDING ALL);

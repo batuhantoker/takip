@@ -13,10 +13,10 @@ There were **68 sequential polite probes**:
 - 3 returned 404: Treasury FiscalData on WM's path, the FAO price-index CSV, and my WITS query.
 - 1 returned 401: OpenSanctions API.
 - 2 timed out: home.treasury.gov, and MINETUR mid-body on a 12 MB response.
-Most rows are country-level series. The **Feeds feature** column says what each row can attach to in OSIRIS (country, place, company/CIK, vessel/IMO, port or commodity).
+Most rows are country-level series. The **Feeds feature** column says what each row can attach to in TAKIP (country, place, company/CIK, vessel/IMO, port or commodity).
 
-**Top 10 picks for OSIRIS** (keyless, licence usable or close, attachable to an entity or a place):
-1. **OFAC Sanctions List Service** (SDN + Consolidated advanced XML): US public domain, keyless. It includes entities, vessels (IMO/MMSI), aircraft and addresses. It would replace the non-commercial OpenSanctions mirror OSIRIS uses now (DATA-SOURCES.md "Add these first" #3).
+**Top 10 picks for TAKIP** (keyless, licence usable or close, attachable to an entity or a place):
+1. **OFAC Sanctions List Service** (SDN + Consolidated advanced XML): US public domain, keyless. It includes entities, vessels (IMO/MMSI), aircraft and addresses. It would replace the non-commercial OpenSanctions mirror TAKIP uses now (DATA-SOURCES.md "Add these first" #3).
 2. **SEC EDGAR** (live 8-K Atom stream, `company_tickers.json`, per-CIK submissions with HQ address, full-text search): public domain, needs a declared User-Agent. Gives a company backbone plus live corporate events.
 3. **Spain fuel-station prices (MINETUR Geoportal)**: about 12k stations, each with a price and coordinates, refreshed often. A ready **point+ts** map layer and an energy-price signal. Mexico CRE (station XML) is a sibling source.
 4. **INFORM Risk API (EC JRC)**: keyless JSON of country risk scores. It could replace the *editorial* baseline in `/api/country-risk`. Pairs with UNDP HDI and the FATF lists.
@@ -29,15 +29,15 @@ Most rows are country-level series. The **Feeds feature** column says what each 
 
 Honourable mentions: **Kalshi** public API (keyless; would slot into `src/lib/oi/markets.ts` next to Polymarket and Manifold; terms-review). **BIS / ECB / IMF SDMX** (keyless macro for the dossier). **CFTC COT** (public domain, weekly). **US Treasury FiscalData** (customs-revenue proxy for tariff impact).
 
-**Licence risk of keyless market-quote fallbacks** (details in the notes after Table 13): WM relies on **Yahoo Finance** (v8 chart is keyless; v7/v10 need a cookie from `fc.yahoo.com` plus a crumb). Yahoo's ToS bars redistribution. WM itself is retiring Yahoo (#3731) and keeps only an owner-approved exception. OSIRIS's `/api/markets` and `oi` use the same endpoint, so this is a live risk for OSIRIS too. Other keyless quote paths in this slice: the **TradingView** undocumented scanner POST, scraped **Barchart** pages, the unofficial **CNN** Fear & Greed JSON, and the **SPDR GLD** XLSX (needs Origin/Referer). All are high ToS risk. WM does **not** use stooq. CoinGecko and CoinPaprika (crypto fallbacks) are in the A-geo chunk.
+**Licence risk of keyless market-quote fallbacks** (details in the notes after Table 13): WM relies on **Yahoo Finance** (v8 chart is keyless; v7/v10 need a cookie from `fc.yahoo.com` plus a crumb). Yahoo's ToS bars redistribution. WM itself is retiring Yahoo (#3731) and keeps only an owner-approved exception. TAKIP's `/api/markets` and `oi` use the same endpoint, so this is a live risk for TAKIP too. Other keyless quote paths in this slice: the **TradingView** undocumented scanner POST, scraped **Barchart** pages, the unofficial **CNN** Fear & Greed JSON, and the **SPDR GLD** XLSX (needs Origin/Referer). All are high ToS risk. WM does **not** use stooq. CoinGecko and CoinPaprika (crypto fallbacks) are in the A-geo chunk.
 
-Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the size is not the file size. Probes used UA `osiris-source-survey/0.1 (hello@takip.dev)`, one GET per provider, sequential.
+Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the size is not the file size. Probes used UA `takip-source-survey/0.1 (hello@takip.dev)`, one GET per provider, sequential.
 
 ---
 
 ## 1. Central banks, statistics offices, macro series (keyless)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Bank of Canada Valet (`www.bankofcanada.ca`) | One observation per series per day: CAD FX (group `FX_RATES_DAILY`), overnight target (`V39079`), benchmark bond yields (`bond_yields_benchmark`), T-bills (`TBILL_ALL`) | `https://www.bankofcanada.ca/valet/observations/group/{group}/json?recent=N` (also `/csv?start_date=`), `/valet/observations/{series}/json` | none | poll | reviewed: BoC terms allow use and redistribution with attribution | country+ts (CA) | daily (WM 1d) | new | region-dossier, markets; attach: country CA | 200 json 10kB |
 | ECB (`data-api.ecb.europa.eu`, `data.ecb.europa.eu`, `www.ecb.europa.eu`) | SDMX observations: EXR reference FX (`D.USD+GBP+JPY+CHF+CAD+AUD+CNY.EUR.SP00.A`), €STR (`EST/B.EU000A2X2A25.WT`), EURIBOR 3/6/12m (`FM/M.U2.EUR.RT.MM.EURIBOR{3MD_,6MD_,1YD_}.HSTA`), AAA curve (`YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_{1,2,5,10,20,30}Y`), CISS systemic stress (`CISS/D.U2.Z0Z.4F.EC.SS_CIN.IDX`). `www.` is only the Governing Council meeting calendar HTML | `https://data-api.ecb.europa.eu/service/data/{flow}/{key}?format=jsondata&lastNObservations=N` (or `startPeriod=`) | none | poll (calendar: scrape) | terms-review; ECB statistics are reusable with source attribution | country+ts (euro-area aggregate) | business-daily (WM 1d) | new | markets, region-dossier; attach: euro area / currency | 200 json 3kB |
@@ -64,7 +64,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 2. Energy & commodities (keyless)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Ember (`storage.googleapis.com`, bucket `emb-prod-bkt-publicdata`) | Country × month × fuel/variable (generation, demand, emissions), long format. The same GCS host also serves the GDELT bulk bucket (`/data.gdeltproject.org/…`) | `https://storage.googleapis.com/emb-prod-bkt-publicdata/public-downloads/monthly_full_release_long_format.csv` | none | bulk | reviewed: CC BY 4.0 | country+ts | monthly (WM 1d) | new (the prepass "domain" match is spurious: googleapis.com) | infrastructure/energy context; attach: country | 206 csv (ranged) |
 | Our World in Data (`owid-public.owid.io`, `ourworldindata.org`) | Country × year energy dataset (mix, consumption, per-capita, imports); grapher CSV per chart (e.g. `share-electricity-low-carbon`) | `https://owid-public.owid.io/data/energy/owid-energy-data.csv`; `https://ourworldindata.org/grapher/{slug}.csv?v=1&csvType=full&useColumnShortNames=true` | none | bulk | reviewed: CC BY 4.0 unless the dataset says otherwise | country+ts | annual (WM 35d) | new | region-dossier (energy); attach: country | 206 csv (ranged) |
@@ -89,7 +89,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 3. Trade, tariffs, supply chain (keyless)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | UN Comtrade public preview (`comtradeapi.un.org`) | Annual reporter × partner × HS × flow (value, net weight). Preview caps rows at 500 and allows one period per call | `https://comtradeapi.un.org/public/v1/preview/C/A/HS?reporterCode={M49}&cmdCode={HS}&flowCode=X,M&period={YYYY}` (keyed full API in Table 13) | none | poll | terms-review | country+ts (country pair) | annual, about 2-year lag (WM 30d) | listed in DATA-SOURCES.md | scm-suppliers dependency, import HHI; attach: country pair, HS code | 200 json 198kB |
 | WITS / UNCTAD TRAINS (`wits.worldbank.org`) | Applied tariff per reporter × partner × HS6 × year (`reported` / `aveestimated`); tradestats-tariff aggregates | `https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/{r}/partner/{p}/product/{hs6}/year/{y}/datatype/{dt}`; `…/datasource/tradestats-tariff/reporter/{r}/year/all/partner/{p}/product/{grp}/indicator/…` | none | poll | reviewed in WM only as an owner-confirmed grant to its paying customers; not a public licence | country+ts (pair) | annual | new | trade context; attach: country pair, HS6 | 404 for my HS6/year combination (URL shape per WM code) |
@@ -98,7 +98,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 4. Public procurement (keyless; all except AusTender are adapters in WM's hourly global-tenders seed)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | TED v3 (`api.ted.europa.eu`) | EU notice: `publication-number`, `title-lot`, `publication-date`, `deadline-receipt-tender-date-lot`, `organisation-name-buyer`, `organisation-country-buyer`, `main-classification-proc` (CPV), `notice-type` | `POST https://api.ted.europa.eu/v3/notices/search`; JSON body: expert `query` (e.g. deadline ≥ today, sorted by publication-date desc), `fields[]`, `page`, `limit`, `scope: ACTIVE` | none | poll | terms-review; EU open data, reusable with attribution | country+ts (buyer country; NUTS in full notice) | continuous (WM 1h) | listed in DATA-SOURCES.md (EU TED) | **procurement events**; attach: buyer org, country | not probed (POST) |
 | UK Contracts Finder (`www.contractsfinder.service.gov.uk`) | OCDS release (tender stage): buyer, value, dates, items | `https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search?publishedFrom=…&publishedTo=…&stages=tender&limit=N` | none | poll | terms-review (UK OGL typical) | country+ts (UK; postcode/region in OCDS) | continuous (WM 1h; a 100-row call can take ~24s) | new | procurement; attach: buyer org | 200 json 11kB |
@@ -109,9 +109,9 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 5. Sanctions, regulators, AML (keyless)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
-| OFAC Sanctions List Service (`sanctionslistservice.ofac.treas.gov`) | Sanctioned party (advanced XML): names/aliases, type (entity, individual, vessel, aircraft), IDs incl. IMO/MMSI, addresses with country, programs, list dates. WM streams it SAX-style (~120MB) and counts entities per ISO2 for country "sanctions pressure" | `https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/{sdn_advanced.xml, cons_advanced.xml}` → 302 to a presigned S3 URL | none | bulk | terms-review (US government, public domain) | country+ts (entity addresses) | on change (WM 18h cache) | listed in DATA-SOURCES.md ("sanctions lists from the source"); OSIRIS currently reads OpenSanctions' `us_ofac_sdn` mirror | sanctions/entity; attach: company, vessel (IMO), aircraft, person, country | 302 → S3 |
+| OFAC Sanctions List Service (`sanctionslistservice.ofac.treas.gov`) | Sanctioned party (advanced XML): names/aliases, type (entity, individual, vessel, aircraft), IDs incl. IMO/MMSI, addresses with country, programs, list dates. WM streams it SAX-style (~120MB) and counts entities per ISO2 for country "sanctions pressure" | `https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/{sdn_advanced.xml, cons_advanced.xml}` → 302 to a presigned S3 URL | none | bulk | terms-review (US government, public domain) | country+ts (entity addresses) | on change (WM 18h cache) | listed in DATA-SOURCES.md ("sanctions lists from the source"); TAKIP currently reads OpenSanctions' `us_ofac_sdn` mirror | sanctions/entity; attach: company, vessel (IMO), aircraft, person, country | 302 → S3 |
 | Global Affairs Canada SEMA (`www.international.gc.ca`) | Consolidated autonomous sanctions entry (JSON) | `https://www.international.gc.ca/world-monde/assets/office_docs/international_relations-relations_internationales/sanctions/sanctions-consolidated-list-eng.json` | none | bulk | terms-review: no explicit redistribution licence; Canada.ca terms restrict commercial reproduction | country+ts (entity, country) | on change | new | sanctions/entity | 206 json (ranged) |
 | FATF (`www.fatf-gafi.org`) | Black list ("call for action") and grey list ("increased monitoring") membership, following links from a stable entry page | `https://www.fatf-gafi.org/en/countries/black-and-grey-lists.html` | none | scrape | terms-review | country+ts | 3× a year after plenaries (WM 30d) | new | country-risk; attach: country | not probed |
 | Internet Archive Wayback (`web.archive.org`) | CDX snapshot index plus raw snapshot (`id_`) used as WM's FATF fallback | `https://web.archive.org/cdx/search/cdx?url=…`; `https://web.archive.org/web/{ts}id_/{url}` | none | poll | terms-review | none | n/a | new | resilience of scrapers | not probed |
@@ -125,7 +125,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 6. Prediction markets, crypto, sentiment, market-quote fallbacks (keyless)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Polymarket (`gamma-api.polymarket.com`, `polymarket.com` links) | Event with nested markets: outcome prices, volume, tags, end date | `https://gamma-api.polymarket.com/events?tag_slug={tag}&closed=false&active=true&order=volume&limit=N` | none | poll | terms-review | none (WM maps 40+ countries via tag and name variants, e.g. Russia → russian/moscow/kremlin/putin) | live (WM 5 min) | already in (`src/lib/oi/markets.ts`) | oi | not probed (already in) |
 | Kalshi (`api.elections.kalshi.com`, `kalshi.com` links) | Event with nested binary markets (yes price, volume, status); series list with volume; markets per series | `https://api.elections.kalshi.com/trade-api/v2/events?status=open&with_nested_markets=true&limit=N&cursor=…`; `…/series?include_volume=true`; `…/markets?series_ticker=…&cursor=…` | none | poll | terms-review; commercial use and redistribution unclear | none (country by title mapping) | live | new | oi (add beside Polymarket/Manifold) | 200 json 1.5kB |
@@ -140,7 +140,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 7. Resilience, scorecards, demographics, health, humanitarian (keyless)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | INFORM Risk, EC JRC DRMKC (`drmkc.jrc.ec.europa.eu`) | Country × workflow (edition) INFORM Risk score and components | `https://drmkc.jrc.ec.europa.eu/inform-index/API/InformAPI/countries/Scores/?WorkflowId={id}&IndicatorId=INFORM` | none | poll | terms-review; EC/JRC reuse with attribution | country+ts | annual + mid-year update | new | **country-risk baseline**; attach: country | 200 json 25kB |
 | UNDP Human Development Report (`hdr.undp.org`) | Country × year HDI and composite indices (full time series CSV) | `https://hdr.undp.org/sites/default/files/2025_HDR/HDR25_Composite_indices_complete_time_series.csv` | none | bulk | terms-review; UNDP data is generally CC BY 3.0 IGO | country+ts | annual | new | region-dossier; attach: country | 206 csv (ranged) |
@@ -150,13 +150,13 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 | WHO GHO OData (`ghoapi.azureedge.net`) | Country × year indicator value: `WHS6_102` hospital beds, `UHC_INDEX_REPORTED`, `WHS8_110` measles, `HWF_0001` physicians, `GHED_CHE_pc_US_SHA2011` health spend | `https://ghoapi.azureedge.net/api/{IndicatorCode}?$filter=…` | none | poll | terms-review; WHO default is CC BY-NC-SA 3.0 IGO (non-commercial) | country+ts | annual | new | region-dossier; attach: country | 200 json 0.7kB |
 | HDX (`data.humdata.org`) | CKAN `package_show` metadata (e.g. HAPI conflict events); resources: IPC national latest CSV, WorldRiskIndex trend CSV | `https://data.humdata.org/api/3/action/package_show?id={pkg}`; `…/dataset/{id}/resource/{rid}/download/{file}` → 302 to S3 | none | bulk / poll | terms-review; licence varies per dataset | country+ts (some admin1) | varies | listed in DATA-SOURCES.md (HDX) | country-risk (food insecurity IPC phase); attach: country/admin | 302 → S3 |
 | UNHCR Operational Data Portal (`data.unhcr.org`) | Situation (`sv_id`) × population group/collection: daily or monthly arrivals timeseries; `sublocation` = per-host-country breakdown | `https://data.unhcr.org/population/get/timeseries?sv_id=N&population_group=…&frequency={day, month}&fromDate=…`; `…/population/get/sublocation?…` | none | poll | terms-review (WM cites CC BY 4.0) | country+ts (host countries) | daily (WM 1d) | new | **displacement layer**; attach: country | 200 json 1.3kB |
-| Wikidata SPARQL (`query.wikidata.org`) | Query bindings (WM: country facts such as capital, head of state, population) | `https://query.wikidata.org/sparql?format=json&query={SPARQL}` | none (needs header: descriptive UA) | poll | reviewed: CC0 | country / entity | live | already in (domain: OSIRIS uses `www.wikidata.org` REST) + listed in DATA-SOURCES.md | region-dossier, entity | 200 json 0.2kB |
+| Wikidata SPARQL (`query.wikidata.org`) | Query bindings (WM: country facts such as capital, head of state, population) | `https://query.wikidata.org/sparql?format=json&query={SPARQL}` | none (needs header: descriptive UA) | poll | reviewed: CC0 | country / entity | live | already in (domain: TAKIP uses `www.wikidata.org` REST) + listed in DATA-SOURCES.md | region-dossier, entity | 200 json 0.2kB |
 | Wikipedia (`en.wikipedia.org`) | REST page summary; "List of sovereign wealth funds" table (scraped for AUM, WM tier 3) | `https://en.wikipedia.org/api/rest_v1/page/summary/{title}`; `https://en.wikipedia.org/wiki/List_of_sovereign_wealth_funds` | none (UA) | poll / scrape | terms-review; CC BY-SA | entity | live | already in (host) | region-dossier, entity (sovereign funds) | not probed (already in) |
 | SIPRI Arms Transfers DB (`atbackend.sipri.org`) | Importer × supplier × weapon deal records (TIV) | `POST https://atbackend.sipri.org/api/p/…` (one POST per importer; ~32s mean, throttled) | none | poll | terms-review; **non-commercial only**, commercial use needs prior authorisation/royalty | country+ts (pair) | annual (WM 10–14d) | new | defence dependency; attach: country pair | not probed (POST) |
 
 ## 8. China coverage (keyless; WM gates all of these behind robots/terms preflight)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | National Bureau of Statistics (`www.stats.gov.cn`) | English press-release observations (industrial value added yoy, fixed-asset investment yoy, real-estate investment yoy); release calendar | `https://www.stats.gov.cn/english/PressRelease/`; `…/english/PressRelease/ReleaseCalendar/` | none | scrape | terms-review (robots preflight) | country+ts (CN) | monthly (WM 36h) | new | region-dossier CN | not probed |
 | SAFE (`www.safe.gov.cn`) | FX reserves (USD 100m), bank FX settlement (CNY 100m) | `https://www.safe.gov.cn/safe/sjjd/index.html` | none | scrape | terms-review | country+ts (CN) | monthly (WM 36h) | new | region-dossier CN | not probed |
@@ -171,7 +171,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 9. Tech ecosystem, structured (keyless)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | OSS Insight (`api.ossinsight.io`) | Trending repo (stars, forks, language) for the past 24h | `https://api.ossinsight.io/v1/trends/repos/?language={lang}&period=past_24_hours` | none | poll | terms-review | none | hourly (WM 3h) | new | osint/github | 200 json 0.7kB |
 | GitHub REST (`api.github.com`) | Repository search hit (new repos by language, sorted by stars); WM's own release check | `https://api.github.com/search/repositories?q=language:{l}+created:>{date}&sort=stars&order=desc&per_page=50` | none (60 req/h unauthenticated; token raises it) | poll | terms-review | none | n/a | already in (host; `/api/osint/github`) | osint/github | not probed (already in) |
@@ -183,7 +183,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 10. Other hosts from the unclassified chunk (keyless)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | DoD MIRTA via USACE (`services7.arcgis.com`, `geospatial-usace.opendata.arcgis.com`) | US military installations, ranges and training areas (points + boundary polygons) | `https://services7.arcgis.com/n1YM8pTrFmm7L4hs/arcgis/rest/services/mirta/FeatureServer/{layer}/query?where=1=1&outFields=*&f=geojson` (landing: `geospatial-usace.opendata.arcgis.com/maps/fc0f38c5a19a46dbacd92f2fb823ef8c`) | none | poll / bulk | terms-review (US government, public domain) | polygon (static) | about annual (WM 30d) | listed in DATA-SOURCES.md ("US DoD MIRTA"); domain-only overlap (arcgis) | **military installations layer**; attach: place | 200 json 4.8kB |
 | Overpass API (`overpass-api.de`) | OSM features (WM: `military=*` / `landuse=military` bases) | `https://overpass-api.de/api/interpreter` (Overpass QL, GET or POST) | none | poll | ODbL (attribution + share-alike) | point/polygon | live OSM edits | listed in DATA-SOURCES.md (OSM) | military/infrastructure layers | not probed (shared public server) |
@@ -193,7 +193,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 
 ## 11. RSS / news publishers (keyless; tech ecosystem, finance, cyber). Sample-probed only
 
-| Provider | Data | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Google News RSS (`news.google.com`) | Search-result items; WM builds 350+ `site:` / keyword feeds (e.g. KrASIA, LAVCA, PitchBook, The Block, DL News, Seeking Alpha Metals, EU Commission Digital) | `https://news.google.com/rss/search?q={query}&hl=…&gl=…&ceid=…` | none | poll | terms-review; Google News terms (headline metadata only) | none | live | new | news, country coverage | not probed |
 | Hacker News RSS (`hnrss.org`, `news.ycombinator.com`) | Front page / Show HN / launches items | `https://hnrss.org/{frontpage, show, launches}`; `https://news.ycombinator.com/rss` | none | poll | terms-review | none | live | new | news | 200 xml 16kB |
@@ -204,7 +204,7 @@ Probe legend: `206 … (ranged)` means a 4 KiB ranged GET of a bulk file, so the
 | CISA advisories (`www.cisa.gov`) | Advisory item | `https://www.cisa.gov/cybersecurity-advisories/all.xml` | none | poll | US government | none | daily | already in (host) | cyber | not probed |
 | FeedBurner (`feeds.feedburner.com`) | NDTV top/Hindi, Fast Company, The Hacker News | `https://feeds.feedburner.com/{ndtvnews-top-stories, ndtvkhabar-latest, fastcompany/headlines, TheHackersNews}` | none | poll | terms-review | none | live | new | news | not probed |
 | Yahoo Finance RSS (`finance.yahoo.com`) | Headline | `https://finance.yahoo.com/news/rssindex`, `…/rss/topstories` | none | poll | terms-review | none | live | already in (host) | news | not probed |
-| CNBC (`www.cnbc.com`) | Headline (top news id 100003114, tech 19854910) | `https://www.cnbc.com/id/{id}/device/rss/rss.html` | none | poll | terms-review | none | live | domain (OSIRIS uses `search.cnbc.com`) | news | not probed |
+| CNBC (`www.cnbc.com`) | Headline (top news id 100003114, tech 19854910) | `https://www.cnbc.com/id/{id}/device/rss/rss.html` | none | poll | terms-review | none | live | domain (TAKIP uses `search.cnbc.com`) | news | not probed |
 | Seeking Alpha (`seekingalpha.com`) | Market currents | `https://seekingalpha.com/market_currents.xml` | none | poll | terms-review | none | live | new | news | not probed |
 | OilPrice.com (`oilprice.com`) | Article | `https://oilprice.com/rss/main` | none | poll | terms-review | none | live | already in (host) | energy news | not probed |
 | CoinDesk (`www.coindesk.com`) | Article | `https://www.coindesk.com/arc/outboundfeeds/rss/` | none | poll | terms-review | none | live | already in (host) | crypto news | not probed |
@@ -264,7 +264,7 @@ Feeds attached to rows above rather than listed again: SEC press RSS (SEC row), 
 | `www.ifswf.org` | Tier-2 SWF filings adapter, **stubbed** (per-fund page layouts vary) |
 | `www.swfinstitute.org` | Not fetched: fund rankings are behind a lead-capture form; WM switched to Wikipedia |
 | `uis.unesco.org` | Attribution only; UIS series come through the World Bank WDI API |
-| `radar.cloudflare.com` | Attribution policy entry in WM resilience; OSIRIS already calls Cloudflare Radar |
+| `radar.cloudflare.com` | Attribution policy entry in WM resilience; TAKIP already calls Cloudflare Radar |
 | `patents.google.com` | Link-out for USPTO patent ids |
 | `schema.org` | JSON-LD vocabulary in generated pages |
 | `agentskills.io` | Agent-skill registry fetcher (not data) |
@@ -285,7 +285,7 @@ Feeds attached to rows above rather than listed again: SEC press RSS (SEC row), 
 | e-Stat Japan (`api.e-stat.go.jp`) | Japan CPI | `appId` (`ESTAT_APPID`) | Yes, free registration |
 | SAM.gov (`api.sam.gov`) | US contract opportunities | `api_key` (`SAM_GOV_API_KEY`) | Yes, free (SAM.gov account) |
 | USPTO Open Data Portal (`api.uspto.gov`, `data.uspto.gov`) | Patent applications search (WM: defence CPC classes); file-wrapper links | `X-API-KEY` (passed in by caller) | Yes, free (USPTO account) |
-| OpenSanctions API (`api.opensanctions.org`) | Entity search/match across lists | API key: my keyless probe got **401**, although WM calls it keyless and falls back to a local OFAC index | Free for non-commercial use, paid otherwise. OSIRIS already uses the bulk `data.opensanctions.org` files |
+| OpenSanctions API (`api.opensanctions.org`) | Entity search/match across lists | API key: my keyless probe got **401**, although WM calls it keyless and falls back to a local OFAC index | Free for non-commercial use, paid otherwise. TAKIP already uses the bulk `data.opensanctions.org` files |
 | PizzINT Supabase (`qevdnlpgjxpwusesmtpx.supabase.co`) | Third-party "Pentagon pizza index" bases table | Public Supabase anon key (`SUPABASE_ANON_KEY`) | An anon key is embedded by the third party; unofficial, skip |
 | Finnhub (`finnhub.io`) | Quotes, candles, earnings calendar, company profile, symbol search | `token` (`FINNHUB_API_KEY`) | Yes, free tier (WM's authorised equity provider) |
 | Alpha Vantage (`www.alphavantage.co`) | Bulk realtime quotes, FX daily, global quote | `apikey` (`ALPHA_VANTAGE_API_KEY`) | Yes, free tier (very low daily cap) |
@@ -298,10 +298,10 @@ Feeds attached to rows above rather than listed again: SEC press RSS (SEC row), 
 ## Notes
 
 **Keyless market-quote fallbacks and their licence risk**
-- **Yahoo** (`query1.finance.yahoo.com/v8/finance/chart`) is keyless and used by WM for commodities, FX, Gulf indices, BTC-ETF proxies and the macro radar. WM's own docs say it redistributes quotes commercially, so it must use authorised providers (Finnhub, Alpha Vantage). Yahoo stays only as a tracked exception (#3731), and request-time use is limited to 30/min fail-closed. **OSIRIS's `/api/markets` and `src/lib/oi/markets.ts` use the same endpoint.** Plan an authorised replacement before any paid tier.
+- **Yahoo** (`query1.finance.yahoo.com/v8/finance/chart`) is keyless and used by WM for commodities, FX, Gulf indices, BTC-ETF proxies and the macro radar. WM's own docs say it redistributes quotes commercially, so it must use authorised providers (Finnhub, Alpha Vantage). Yahoo stays only as a tracked exception (#3731), and request-time use is limited to 30/min fail-closed. **TAKIP's `/api/markets` and `src/lib/oi/markets.ts` use the same endpoint.** Plan an authorised replacement before any paid tier.
 - Yahoo v7/v10 need cookie + crumb (`fc.yahoo.com`, `/v1/test/getcrumb`). This is more brittle and has the same ToS problem.
 - WM's fallbacks when Yahoo fails: **Finnhub** candles (keyed), the **FRED** JPY series (keyed API), and keyless FRED graph CSV for OECD rates.
-- **CoinGecko** public, with **CoinPaprika** as fallback, is in the A-geo chunk. OSIRIS already uses CoinGecko.
+- **CoinGecko** public, with **CoinPaprika** as fallback, is in the A-geo chunk. TAKIP already uses CoinGecko.
 - **TradingView** scanner (undocumented POST), **Barchart** pages (now behind AWS WAF per WM), the **CNN** dataviz JSON and the **SPDR** XLSX are all ToS-risky. Treat them as research-only.
 - WM explicitly rejects **Financial Modeling Prep** (its ToS forbid display or redistribution without a separate agreement). WM does not use stooq.
 

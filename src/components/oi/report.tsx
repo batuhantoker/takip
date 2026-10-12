@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the prediction. The report agent's headline and the story under
+ * TAKIP OI: the prediction. The report agent's headline and the story under
  * it: how it most likely unfolds, date by date, what each actor does, how
  * each simulated world ended, the drivers and the evidence behind them,
  * scenarios, signposts and dissent. Every part is a way into the research.
@@ -47,7 +47,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
     const blob = new Blob([toMarkdown(s, url)], { type: 'text/markdown' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `osiris-oi-${(runId ?? 'prediction').slice(0, 8)}.md`;
+    a.download = `takip-oi-${(runId ?? 'prediction').slice(0, 8)}.md`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };

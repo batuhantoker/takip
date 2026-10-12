@@ -6,7 +6,7 @@ export const GUIDE_SECTIONS = [
   { id: 'self-hosting', title: 'Self-Hosting' },
   { id: 'configuration', title: 'Configuration' },
   { id: 'interface', title: 'Interface Guide' },
-  { id: 'oi', title: 'OI & MCP' },
+  { id: 'oi', title: 'TI & MCP' },
   { id: 'shortcuts', title: 'Keyboard Shortcuts' },
 ];
 

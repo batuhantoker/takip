@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the execution trace.
+ * TAKIP OI: the execution trace.
  *
  * The run as the engine ran it: each step with its state, how long it took
  * (live, for the one under way), the engine's own words for it and what it

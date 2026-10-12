@@ -1,6 +1,6 @@
 {
-  "name": "OSIRIS — Global Intelligence Platform",
-  "short_name": "OSIRIS",
+  "name": "TAKIP — Global Intelligence Platform",
+  "short_name": "TAKIP",
   "description": "Real-time global OSINT intelligence dashboard. Track 10K+ aircraft, 2K satellites, worldwide CCTV, earthquakes, wildfires, nuclear facilities, and more.",
   "start_url": "/",
   "display": "standalone",
@@ -16,16 +16,16 @@
       "purpose": "any"
     },
     {
-      "src": "/osiris-icon.png",
+      "src": "/takip-icon.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ]
 }

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import WebSocket from 'ws';
+import { record } from '@takip/archive/recorder';
+import { shipCategory, type ShipCategory } from '@takip/core/vessel';
 
 /**
- * OSIRIS — Maritime Intelligence
+ * TAKIP — Maritime Intelligence
  * Real-time AIS vessel tracking via aisstream.io + Static global ports.
  */
 
@@ -123,21 +125,8 @@ if (!globalForAis.shipsCache) {
 
 const shipsCache = globalForAis.shipsCache;
 
-export type ShipCategory = 'cargo' | 'tanker' | 'passenger' | 'fishing' | 'military' | 'service' | 'leisure' | 'other';
-
-/** Buckets an AIS ship-type code (ITU-R M.1371, 0–99). */
-export function shipCategory(typeCode?: number): ShipCategory {
-  if (typeCode === undefined) return 'other';
-  if (typeCode === 30) return 'fishing';
-  if (typeCode === 35 || typeCode === 55) return 'military'; // 55 = law enforcement
-  if (typeCode === 36 || typeCode === 37) return 'leisure';
-  if ((typeCode >= 31 && typeCode <= 34) || (typeCode >= 50 && typeCode <= 58)) return 'service';
-  if (typeCode >= 40 && typeCode <= 49) return 'passenger'; // high-speed craft, mostly ferries
-  if (typeCode >= 60 && typeCode <= 69) return 'passenger';
-  if (typeCode >= 70 && typeCode <= 79) return 'cargo';
-  if (typeCode >= 80 && typeCode <= 89) return 'tanker';
-  return 'other';
-}
+// Shared with the replay seal jobs, so history buckets vessels the same way the live map does.
+export { shipCategory, type ShipCategory };
 
 // AIS encodes "position not available" as lat 91 / lng 181.
 const isValidPosition = (lat: unknown, lng: unknown) =>
@@ -199,7 +188,7 @@ function connectAisStream() {
   const apiKey = process.env.AIS_API_KEY;
   if (!apiKey) {
     if (process.env.NODE_ENV !== 'test') {
-      console.warn('[OSIRIS] AIS_API_KEY is not set; live vessel tracking is off.');
+      console.warn('[TAKIP] AIS_API_KEY is not set; live vessel tracking is off.');
     }
     return;
   }
@@ -245,15 +234,18 @@ function connectAisStream() {
   });
 
   ws.on("message", (data) => {
+    const text = data.toString();
     let parsed: AisFrame;
     try {
-      parsed = JSON.parse(data.toString());
+      parsed = JSON.parse(text);
     } catch {
       return;
     }
+    // One archive line per frame; AIS carries only our receive time.
+    record('aisstream', {}, text);
     // aisstream reports a bad key or subscription as {"error": ...} and then closes.
     if (parsed?.error) {
-      console.warn('[OSIRIS] AIS stream rejected the subscription:', parsed.error);
+      console.warn('[TAKIP] AIS stream rejected the subscription:', parsed.error);
       return;
     }
     globalForAis.aisReconnectMs = RECONNECT_MIN_MS;
@@ -267,7 +259,7 @@ function connectAisStream() {
 
   // ws always follows 'error' with 'close', which does the reconnect.
   ws.on("error", (err) => {
-    console.warn('[OSIRIS] AIS stream error:', err.message);
+    console.warn('[TAKIP] AIS stream error:', err.message);
   });
 }
 

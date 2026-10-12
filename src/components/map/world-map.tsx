@@ -27,6 +27,17 @@ import { useDemoSpin, useFlyTo, useMapCenter } from './world-map/use-camera';
 import { useDrawing } from './world-map/use-drawing';
 import { useConflictZones, useEarthquakeLayer, useIncidentLayers } from './world-map/use-event-layers';
 import { useFlightLayers, useWatchedAirports } from './world-map/use-flight-layers';
+import { useHikingLayer, useHikingPick } from './world-map/use-hiking-layer';
+import { useAuroraLayer } from './world-map/use-aurora-layer';
+import { useServiceStatusLayer } from './world-map/use-service-status-layer';
+import { useGnssInterferenceLayer } from './world-map/use-gnss-interference-layer';
+import { useLaunchLayer } from './world-map/use-launch-layer';
+import { useEarthSky } from './world-map/use-earth-sky';
+import { useWarAlertsLayer } from './world-map/use-war-alerts-layer';
+import { useFireIncidentsLayer } from './world-map/use-fire-incidents-layer';
+import { useAirportDelaysLayer } from './world-map/use-airport-delays-layer';
+import { useChokepointFlowLayer } from './world-map/use-chokepoint-flow-layer';
+import { useOutbreaksLayer } from './world-map/use-outbreaks-layer';
 import { useLayerVisibility } from './world-map/use-layer-visibility';
 import { useMapPalette } from './world-map/use-map-palette';
 import { useDirections, useUserLocation } from './world-map/use-navigation';
@@ -35,13 +46,9 @@ import { useAlertPins, useLiveNewsLayer } from './world-map/use-news-layers';
 import { useOiHighlights } from './world-map/use-oi-highlights';
 import { useArcgisLayers, useDrawnPolygons } from './world-map/use-overlay-layers';
 import { useBalloonLayer, useCctvLayer, useInfrastructureLayer, useMaritimeLayers, useNaturalEventLayers, useRadiationLayer } from './world-map/use-point-layers';
-import { useWarAlertsLayer } from './world-map/use-war-alerts-layer';
-import { useFireIncidentsLayer } from './world-map/use-fire-incidents-layer';
-import { useAirportDelaysLayer } from './world-map/use-airport-delays-layer';
-import { useChokepointFlowLayer } from './world-map/use-chokepoint-flow-layer';
-import { useOutbreaksLayer } from './world-map/use-outbreaks-layer';
 import { useReconLayers } from './world-map/use-recon-layers';
 import { useReferenceLayers } from './world-map/use-reference-layers';
+import { useRegionPick } from './world-map/use-region-pick';
 import { useSatelliteDismiss, useSatelliteLayer } from './world-map/use-satellite-layer';
 import { useWeatherGridLayer, useWeatherRasters } from './world-map/use-weather-layers';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -111,6 +118,8 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
     setSelectedSat(null);
   }, []);
   const drawingCoordsRef = useRef<number[][]>([]);
+  const drawModeRef = useRef(drawMode);
+  useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
 
   useDemoSpin({ mapRef, mapReady, demoMode });
 
@@ -137,21 +146,25 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
       map.once('idle', () => onReadyRef.current?.());
       // Dev-only handle. The map is otherwise unreachable from the console,
       // which makes interaction bugs guesswork rather than diagnosis.
-      if (process.env.NODE_ENV === 'development') (window as any).__osirisMap = map;
+      if (process.env.NODE_ENV === 'development') (window as any).__takipMap = map;
     });
 
     bindViewEvents(map, container, { onMouseCoords, onRightClick, onViewStateChange });
 
     // ── POPUP HELPER ──
+    // While a draw tool owns the map, a click on a camera or ship is a vertex or a region, not a selection.
+    const drawing = () => drawModeRef.current != null;
+    const entityClick: WorldMapProps['onEntityClick'] = e => { if (!drawing()) onEntityClick?.(e); };
     const popup = (coords: any, html: string) => {
+      if (drawing()) return;
       popupRef.current?.remove();
       popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '420px', offset: 14 }).setLngLat(coords).setHTML(html).addTo(map);
     };
 
-    bindFlightClicks(map, popup, popupRef);
-    bindCctvAndQuakeClicks(map, popup, onEntityClick);
+    bindFlightClicks(map, popup, popupRef, drawing);
+    bindCctvAndQuakeClicks(map, popup, entityClick);
     const cancelSatHover = bindSatellitePick(map, { satLayerRef, oiGlobeRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, popupRef, paletteRef, setSelectedSat, clearSat });
-    bindFeaturePopups(map, popup, onEntityClick);
+    bindFeaturePopups(map, popup, entityClick);
     bindAlertPins(map, popup, popupRef, alertPinsRef, openAlertPinRef);
 
     /*
@@ -206,6 +219,11 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useInfrastructureLayer(layerArgs);
   useMaritimeLayers(layerArgs);
   useBalloonLayer(layerArgs);
+  useLaunchLayer(layerArgs);
+  useEarthSky({ mapRef, mapReady, activeLayers });
+  useAuroraLayer(layerArgs);
+  useServiceStatusLayer(layerArgs);
+  useGnssInterferenceLayer(layerArgs);
   useRadiationLayer(layerArgs);
   useWarAlertsLayer(layerArgs);
   useFireIncidentsLayer(layerArgs);
@@ -244,7 +262,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
             'fog-color': '#04040A',
             'fog-ground-blend': 0.9,
           });
-        } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
+        } catch (e) { console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e); }
       } else {
         if (map.getPitch() > 0.5) map.easeTo({ pitch: 0, duration: 350 });
       }
@@ -276,8 +294,10 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useFlyTo({ mapRef, mapReady, flyToLocation, openAlertPinRef });
   useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle });
   useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapStyle, cloudLayerRef });
+  useHikingLayer({ mapRef, mapReady, activeLayers, mapStyle });
+  useHikingPick({ mapRef, mapReady, activeLayers, popupRef, drawModeRef, oiGlobeRef, satPickedRef });
 
-  // OSIRIS OI — a prediction drawn as it happens: actors, the events of the
+  // TAKIP OI — a prediction drawn as it happens: actors, the events of the
   // simulated worlds and arcs through the sky (see lib/oi/globe). The page feeds it
   // run state directly, so the map does not re-render on every event; the
   // layer re-adds itself after a style change.
@@ -316,6 +336,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useWatchedAirports({ mapRef, mapReady, aircraftAirports });
   useArcgisLayers({ mapRef, mapReady, arcgisLayers, prevArcgisLayersRef });
   useDrawing({ mapRef, mapReady, drawMode, drawCommand, onDrawComplete, onDrawProgress, onDrawCancel, drawingCoordsRef });
+  useRegionPick({ mapRef, mapReady, active: drawMode === 'region', onDrawComplete, onDrawProgress, onDrawCancel });
   useMapCenter({ mapRef, mapReady, onMapCenter });
   useSatelliteDismiss({ mapRef, mapReady, selectedSat, clearSat });
 

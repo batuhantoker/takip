@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       const res = await fetch(url, {
         signal: AbortSignal.timeout(5000),
         cache: 'no-store',
-        headers: { 'User-Agent': 'OSIRIS/4.2' },
+        headers: { 'User-Agent': 'TAKIP/0.1' },
       });
       if (res.ok) {
         const d = await res.json();

@@ -19,7 +19,7 @@ import type { Depth } from './types';
 
 export const OI_VERSION = '1.0.0';
 
-export const CREDIT = 'Method after MiroFish (github.com/666ghj/MiroFish), rebuilt natively for OSIRIS.';
+export const CREDIT = 'Method after MiroFish (github.com/666ghj/MiroFish), rebuilt natively for TAKIP.';
 
 export function disabled(): boolean {
   return process.env.OI_DISABLED === '1';
@@ -34,7 +34,7 @@ export function fail(status: number, error: string, extra: Record<string, unknow
 }
 
 export function disabledResponse() {
-  return fail(503, 'OI is switched off on this server.');
+  return fail(503, 'TI is switched off on this server.');
 }
 
 const HOST = /^[a-z0-9.-]+(?::\d{1,5})?$/i;
@@ -44,7 +44,7 @@ export function siteOrigin(req: Request): string {
   const configured = process.env.OI_PUBLIC_ORIGIN;
   if (configured && /^https?:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(configured)) return configured;
   const host = (req.headers.get('x-forwarded-host') || req.headers.get('host') || '').split(',')[0].trim();
-  if (!HOST.test(host)) return 'https://osirisai.live';
+  if (!HOST.test(host)) return 'https://takip.example';
   const local = /^(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(host);
   const proto = req.headers.get('x-forwarded-proto')?.split(',')[0].trim() || (local ? 'http' : 'https');
   return `${proto === 'http' ? 'http' : 'https'}://${host}`;
@@ -165,9 +165,9 @@ export function limited(req: Request, bucket: string, limit: number, windowMs = 
 /** What the service offers, for GET /api/oi and the MCP providers tool. */
 export function describe(origin: string) {
   return {
-    name: 'OSIRIS OI',
+    name: 'Takip AI',
     version: OI_VERSION,
-    about: 'A prediction engine on live OSIRIS intelligence: the actors who decide a question, simulated against each other in parallel worlds. Bring your own model key.',
+    about: 'A prediction engine on live TAKIP intelligence: the actors who decide a question, simulated against each other in parallel worlds. Bring your own model key.',
     credit: CREDIT,
     providers: PROVIDERS.map(p => ({ id: p.id, name: p.name, default_model: p.defaultModel, suggested_models: p.suggested, key_url: p.keyUrl })),
     depths: (Object.keys(DEPTHS) as Depth[]).map(d => ({ id: d, ...DEPTHS[d], model_calls: estimateCalls(d) })),

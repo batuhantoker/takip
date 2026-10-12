@@ -3,7 +3,7 @@
  * map. Kept in this browser's localStorage only; nothing leaves the device.
  */
 
-const KEY = 'osiris.layers';
+const KEY = 'takip.layers';
 
 /** The stored choices for layers that still exist; unknown keys and non-booleans are dropped. */
 export function parseLayers(raw: string | null, known: Record<string, boolean>): Record<string, boolean> {

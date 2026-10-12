@@ -59,7 +59,7 @@ export function createMap(container: HTMLDivElement): maplibregl.Map | undefined
       // A failed constructor leaves its canvas behind; the next attempt needs a clean container.
       container.innerHTML = '';
       if (canvasContextAttributes === attributeFallbacks[attributeFallbacks.length - 1]) throw e;
-      console.warn('[OSIRIS] WebGL context rejected, retrying with weaker attributes:', e instanceof Error ? e.message : e);
+      console.warn('[TAKIP] WebGL context rejected, retrying with weaker attributes:', e instanceof Error ? e.message : e);
     }
   }
   return map;

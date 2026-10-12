@@ -1,4 +1,4 @@
-# D: World Monitor's non-UI features, catalogued for OSIRIS
+# D: World Monitor's non-UI features, catalogued for TAKIP
 
 Based on the World Monitor clone at commit 968eac6 (AGPL-3.0). I read its feature docs, `docs/methodology/`, the named `data-sources.mdx` sections and the derived-signal seed scripts, and restated their methods here in prose. No code was copied. Constants, thresholds and field names appear as facts.
 
@@ -14,7 +14,7 @@ Only the logic that belongs to a single source was built; the cross-source engin
 
 ## Top picks (summary)
 
-1. **Geographic convergence cells.** Put every geolocated observation in a 1° cell over 24 h and alert when 3+ independent kinds co-occur. Every input is already fetched by OSIRIS without a key. S·H
+1. **Geographic convergence cells.** Put every geolocated observation in a 1° cell over 24 h and alert when 3+ independent kinds co-occur. Every input is already fetched by TAKIP without a key. S·H
 2. **Thermal escalation.** Cluster FIRMS detections, score each 0.5° cell against its own 7-day history, and flag explosion-like hot spots. The `/api/fires` CSVs are keyless, and the 7-day file bootstraps the baseline. S·H
 3. **Chokepoint transit anomalies.** Compare the last 7 days of IMF PortWatch transits with the preceding ~90 and flag 3 days in a row below 85 %. Keyless, and the 180-day history is available on request. S·H
 4. **Alert fusion and cooldowns.** Merge alerts within 2 h and 200 km, apply per-type TTLs, and emit only on band crossings. `lib/watch.ts` emits raw enter/leave events today. S·H
@@ -25,23 +25,23 @@ Only the logic that belongs to a single source was built; the cross-source engin
 9. **Event → nearby critical infrastructure.** Rank assets within 600 km of any event, up to 3 per type. `lib/aoi.ts` already does the sweep. S·H
 10. **Temporal baseline anomaly engine.** Welford statistics per region × kind, bucketed by weekday and month, with z bands at 1.5/2/3 and a 10-sample minimum. This is the core of `ARCHITECTURE.md` phase 3, and the reason to start the raw archive now. M·H
 
-Close behind (high value, medium effort): GDELT conflict-intensity percentiles (fully backfillable), orbital pass prediction and pass log (on World Monitor's roadmap, nearer for OSIRIS), the GPS-interference grid, cable faults and chokepoint scores from NGA warnings, AIS behaviour (dark gaps, loitering, naval proximity), real population exposure, and an alert ledger scored against control windows.
+Close behind (high value, medium effort): GDELT conflict-intensity percentiles (fully backfillable), orbital pass prediction and pass log (on World Monitor's roadmap, nearer for TAKIP), the GPS-interference grid, cable faults and chokepoint scores from NGA warnings, AIS behaviour (dark gaps, loitering, naval proximity), real population exposure, and an alert ledger scored against control windows.
 
 ## How this is ranked
 
 - **Value**, for a geospatial-first product with observation history: H = 3, M = 2, L = 1. A point or polygon with a timestamp, kept as history, outranks a country-level scalar. The CII, resilience and strategic-risk scores therefore rank lower here than World Monitor gives them.
-- **Effort** for OSIRIS as it stands: S = 1 (inputs already wired, or one small connector plus pure logic), M = 2 (a new connector, a stored baseline, or several pieces), L = 3 (a graph or model, many new sources, or ongoing curation).
+- **Effort** for TAKIP as it stands: S = 1 (inputs already wired, or one small connector plus pure logic), M = 2 (a new connector, a stored baseline, or several pieces), L = 3 (a graph or model, many new sources, or ongoing curation).
 - **Order:** value ÷ effort, then value.
-- **Backfillable?** says whether the history a feature needs can be rebuilt later. If not, OSIRIS must start recording now (the raw-archive decision in `ARCHITECTURE.md` and `TODO.md` §1). In general:
+- **Backfillable?** says whether the history a feature needs can be rebuilt later. If not, TAKIP must start recording now (the raw-archive decision in `ARCHITECTURE.md` and `TODO.md` §1). In general:
   - can be backfilled: GDELT exports, PortWatch, EPA RadNet, Safecast, USGS, GDACS/EONET, historical TLEs;
   - FIRMS open CSVs reach back 7 days;
   - live ADS-B and AIS snapshots cannot be backfilled.
 - **Flag sources:**
   - "manifest" means rows of World Monitor's `shared/source-attribution-manifest.json`;
   - an env var named in a World Monitor script means the input is keyed;
-  - "DS.md" means OSIRIS's `DATA-SOURCES.md`;
+  - "DS.md" means TAKIP's `DATA-SOURCES.md`;
   - "verify" means the point is unsettled.
-- **About the "OSIRIS today" notes:** they come from reading `ARCHITECTURE.md`, `TODO.md` and the named routes and libs. Nothing was run.
+- **About the "TAKIP today" notes:** they come from reading `ARCHITECTURE.md`, `TODO.md` and the named routes and libs. Nothing was run.
 
 ---
 
@@ -73,8 +73,8 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - military ADS-B (see #8 for the licence issue);
   - AIS: aisstream needs a free key; Digitraffic and Kystverket are keyless regional substitutes.
   - World Monitor's protest input is ACLED (keyed and NC); GDELT substitutes.
-- **Backfillable?** Partly. GDELT, USGS and FIRMS (7 days) can be backfilled; flights and AIS only from OSIRIS's own archive.
-- **OSIRIS today:** the inputs are fetched (`/api/gdelt-events`, `/api/earthquakes`, `/api/fires`, `/api/flights`, `/api/radar`) but never binned together. `lib/aoi.ts` sweeps a drawn polygon, not a global grid.
+- **Backfillable?** Partly. GDELT, USGS and FIRMS (7 days) can be backfilled; flights and AIS only from TAKIP's own archive.
+- **TAKIP today:** the inputs are fetched (`/api/gdelt-events`, `/api/earthquakes`, `/api/fires`, `/api/flights`, `/api/radar`) but never binned together. `lib/aoi.ts` sweeps a drawn polygon, not a global grid.
 - **Effort / value:** S / H. A pure function over the current snapshots. It produces the kind of versioned, derived polygon event that `ARCHITECTURE.md` rule 5 describes. Require at least two source *families* per alert. World Monitor's card variant fires on any two military flights within 500 km, which is noise.
 
 ### 2. Thermal escalation (satellite fire clusters)
@@ -101,10 +101,10 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Cadence:** every 3 h, with a 9 h TTL. The infrastructure-proximity field ships empty.
 - **Free inputs:**
   - **What World Monitor uses:** the FIRMS area API with `NASA_FIRMS_API_KEY` (a free MAP_KEY), over 9 bounding boxes.
-  - **Keyless substitute:** the FIRMS open active-fire CSVs (24 h, 48 h, 7 d; VIIRS and MODIS), which OSIRIS already reads.
+  - **Keyless substitute:** the FIRMS open active-fire CSVs (24 h, 48 h, 7 d; VIIRS and MODIS), which TAKIP already reads.
   - **Licence:** the manifest marks FIRMS redistribution as "review".
-- **Backfillable?** The 7-day CSV gives the full 7-day baseline at startup. The 30-day history comes from OSIRIS's own runs, or from the FIRMS archive (requires an Earthdata login; verify).
-- **OSIRIS today:** `/api/fires` loads the global 24 h VIIRS SNPP and MODIS CSVs plus EONET volcanoes. No clustering, no baseline.
+- **Backfillable?** The 7-day CSV gives the full 7-day baseline at startup. The 30-day history comes from TAKIP's own runs, or from the FIRMS archive (requires an Earthdata login; verify).
+- **TAKIP today:** `/api/fires` loads the global 24 h VIIRS SNPP and MODIS CSVs plus EONET volcanoes. No clustering, no baseline.
 - **Effort / value:** S / H. An easy improvement on World Monitor:
   - test conflict adjacency by distance to GDELT conflict points, not by a country label;
   - fill in the infrastructure-proximity field from #10.
@@ -127,7 +127,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - The EIA table is static public figures.
   - GDACS: keyless.
 - **Backfillable?** Yes. PortWatch serves the history on request; the computation needs no state.
-- **OSIRIS today:** `/api/maritime` subscribes aisstream to bounding boxes around Hormuz, Suez, Bab el-Mandeb, Panama, Malacca, the Taiwan Strait and Dover. It counts no transits and keeps no history.
+- **TAKIP today:** `/api/maritime` subscribes aisstream to bounding boxes around Hormuz, Suez, Bab el-Mandeb, Panama, Malacca, the Taiwan Strait and Dover. It counts no transits and keeps no history.
 - **Effort / value:** S / H. Chokepoint polygons with daily series. PortWatch's disruptions database also gives port-level events (active, or ended within the last 30 days).
 
 ### 4. Alert fusion, cooldowns and emission rules
@@ -153,9 +153,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Shadow-mode cooldowns in the news digest:**
     - critical-developing 4 h, critical-sustained 24 h, high 18 h, medium 36 h, analysis 7 days;
     - bypassed by 5+ new sources, a new fact, or a severity change.
-- **Free inputs:** none. This is logic over OSIRIS's own alerts.
+- **Free inputs:** none. This is logic over TAKIP's own alerts.
 - **Backfillable?** Over stored alerts, yes.
-- **OSIRIS today:** `lib/watch.ts` diffs consecutive AOI sweeps into entered and left events, keyed by stable ids, and correctly skips the first sweep. It has no cooldowns, no cross-watch or cross-module merging, and no priority. `lib/alert-digest.ts` threads Telegram reports by keyword and does not fuse them with map signals.
+- **TAKIP today:** `lib/watch.ts` diffs consecutive AOI sweeps into entered and left events, keyed by stable ids, and correctly skips the first sweep. It has no cooldowns, no cross-watch or cross-module merging, and no priority. `lib/alert-digest.ts` threads Telegram reports by keyword and does not fuse them with map signals.
 - **Effort / value:** S / H. Paid alerts on watched areas (`TODO.md` §5) need this before anything goes out by email or webhook.
 
 ### 5. Provenance claims on every observation
@@ -182,7 +182,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
     - "fetchedAt = the oldest contributing source time" for composites (defense base, resilience).
 - **Free inputs:** none.
 - **Backfillable?** Not applicable. It has to be in the format from the first record.
-- **OSIRIS today:** the `ARCHITECTURE.md` observation already has `observed_at`, `ingested_at`, `quality` and `raw_record_ref`. Missing: publication and effective times, the unknown-versus-absent distinction, two separate confidences, and derivation. Rule 5 asks for the last of these. Routes already label editorial values (`country-risk` returns `basis: 'editorial'`).
+- **TAKIP today:** the `ARCHITECTURE.md` observation already has `observed_at`, `ingested_at`, `quality` and `raw_record_ref`. Missing: publication and effective times, the unknown-versus-absent distinction, two separate confidences, and derivation. Rule 5 asks for the last of these. Routes already label editorial values (`country-risk` returns `basis: 'editorial'`).
 - **Effort / value:** S / H. Settle it in phase 1 ("fix the entity model and the observation format before writing any connector").
 
 ### 6. Licence gate on served values
@@ -200,7 +200,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Times:** the source year (when the value was measured) is kept apart from the retrieval time.
 - **Free inputs:** none.
 - **Backfillable?** Not applicable.
-- **OSIRIS today:** `ARCHITECTURE.md` plans a source registry with licence and commercial-use fields. `TODO.md` §6 says non-commercial sources stay out of the paid product. Nothing enforces either yet.
+- **TAKIP today:** `ARCHITECTURE.md` plans a source registry with licence and commercial-use fields. `TODO.md` §6 says non-commercial sources stay out of the paid product. Nothing enforces either yet.
 - **Effort / value:** S / H. It is what makes the free/paid split (`TODO.md` §5) legally safe with NC inputs (adsb.fi, OpenSky, Open-Meteo free tier, WHO) in the mix.
 
 ### 7. Source freshness and intelligence-gap tracker
@@ -229,7 +229,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Empty results:** "not covered yet" and `upstreamUnavailable` are kept distinct from zero.
 - **Free inputs:** none.
 - **Backfillable?** Not applicable.
-- **OSIRIS today:** `/api/stats` counts the feeds that answered and simply omits the ones that failed. `/api/flights` now reports provider counts, because adsb.lol and airplanes.live failed silently. `/api/health` semantics are open (`TODO.md` §2). `ARCHITECTURE.md` rule 3 states the principle.
+- **TAKIP today:** `/api/stats` counts the feeds that answered and simply omits the ones that failed. `/api/flights` now reports provider counts, because adsb.lol and airplanes.live failed silently. `/api/health` semantics are open (`TODO.md` §2). `ARCHITECTURE.md` rule 3 states the principle.
 - **Effort / value:** S / H. Replay ("missing data is shown, never interpolated"), anomaly detection and alerts all depend on it.
 
 ### 8. Military air activity: surge, foreign presence and theater posture
@@ -259,13 +259,13 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Correlation cards:** strike types score severity 80, support types (tanker, AWACS, ISR, EW) 60, others 55. A card containing both strike and support types is titled "strike packaging".
 - **Free inputs:**
   - **adsb.lol `/v2/mil`:** World Monitor's documented primary source, keyless and ODbL.
-    - **Conflict:** OSIRIS's `/api/flights` records `api.adsb.lol/v2` answering 200 with an empty `ac[]`, and airplanes.live answering 403. Re-check adsb.lol's access model.
-  - **adsb.fi `/mil`:** what OSIRIS reads today. Keyless, but personal/non-commercial per the manifest.
+    - **Conflict:** TAKIP's `/api/flights` records `api.adsb.lol/v2` answering 200 with an empty `ac[]`, and airplanes.live answering 403. Re-check adsb.lol's access model.
+  - **adsb.fi `/mil`:** what TAKIP reads today. Keyless, but personal/non-commercial per the manifest.
   - **OpenSky:** account needed, NC per DS.md.
   - **Wingbits:** keyed.
   - A licence-clean military feed for the paid product is an open gap.
-- **Backfillable?** No. The baseline has to come from OSIRIS's own polling.
-- **OSIRIS today:** `/api/flights` pulls the adsb.fi `/mil` feed every cycle and sets `category: 'military'` from the emitter category, the adsbdb military flag, type codes and callsigns. No theater counts, no baseline, no package detection.
+- **Backfillable?** No. The baseline has to come from TAKIP's own polling.
+- **TAKIP today:** `/api/flights` pulls the adsb.fi `/mil` feed every cycle and sets `category: 'military'` from the emitter category, the adsbdb military flag, type codes and callsigns. No theater counts, no baseline, no package detection.
 - **Effort / value:** S / H. Respect the DS.md caution against pattern-of-life views around bases. Theater-level aggregates are the safer product.
 
 ### 9. Sanctions pressure and sanctioned-asset matching
@@ -282,7 +282,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - OpenSanctions: "likely NC" per DS.md, so read the source lists directly ("Add these first" #3).
   - Matching keys: IMO and MMSI from AIS static messages; aircraft registration via adsbdb or the FAA registry.
 - **Backfillable?** The lists yes; the live matches no.
-- **OSIRIS today:** `lib/sanctions.ts` loads the OpenSanctions `us_ofac_sdn` CSV, with Vessel and Aircraft entity types. No diff, and no matching against `/api/maritime` or `/api/flights`.
+- **TAKIP today:** `lib/sanctions.ts` loads the OpenSanctions `us_ofac_sdn` CSV, with Vessel and Aircraft entity types. No diff, and no matching against `/api/maritime` or `/api/flights`.
 - **Effort / value:** S / H. The match turns a static list into map events. It is also the input to "ships switching off AIS near sanctioned ports" in DS.md.
 
 ### 10. Event → nearby critical infrastructure
@@ -295,7 +295,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - military installations from OSM, Wikidata and MIRTA;
   - cable routes: TeleGeography is proprietary per the manifest, so use OSM submarine cables instead.
 - **Backfillable?** Yes (static reference data).
-- **OSIRIS today:** `lib/aoi.ts` sweeps every tracked layer inside a polygon, with a bounding-box pre-filter. `/api/infrastructure` holds nuclear sites. Nothing runs the sweep around an event automatically.
+- **TAKIP today:** `lib/aoi.ts` sweeps every tracked layer inside a polygon, with a bounding-box pre-filter. `/api/infrastructure` holds nuclear sites. Nothing runs the sweep around an event automatically.
 - **Effort / value:** S / H. A circle sweep with a top-k per type. It is the first step of "impact analysis" in `ARCHITECTURE.md`, and it fills in thermal clusters' empty `nearbyAssets` field.
 
 ---
@@ -329,15 +329,15 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - conflict: GDELT events (QuadClass 4 / CAMEO 18–20) in place of ACLED (keyed via `ACLED_EMAIL`/`ACLED_PASSWORD`, NC);
   - outages: IODA, keyless (Cloudflare Radar needs `CLOUDFLARE_API_TOKEN`);
   - earthquakes: USGS;
-  - news: OSIRIS's RSS and Telegram.
+  - news: TAKIP's RSS and Telegram.
 - **Backfillable?** GDELT, IODA and USGS yes; news partly.
-- **OSIRIS today:** every input exists (`/api/gdelt-events`, `/api/radar` with IODA, `/api/earthquakes`, `/api/news`). Nothing combines them. The escalation card is a far more defensible "observed" replacement for the editorial `country-risk` base than the earthquake sum it uses now.
+- **TAKIP today:** every input exists (`/api/gdelt-events`, `/api/radar` with IODA, `/api/earthquakes`, `/api/news`). Nothing combines them. The escalation card is a far more defensible "observed" replacement for the editorial `country-risk` base than the earthquake sum it uses now.
 - **Effort / value:** S / M. Require several distinct types per card to avoid the single-type noise.
 
 ### 12. Cross-source rule library with a theater "composite escalation"
 - **Purpose:** a catalogue of simple threshold rules across domains, plus an alarm when 3+ categories fire in one theater.
 - **Method (WM, `seed-cross-source-signals.mjs`):**
-  - **Rules:** about 22 typed rules, each a base weight × a capped factor. Severity bands: ≥ 3.5 critical, ≥ 2.5 high, ≥ 1.5 medium. The rules most relevant to OSIRIS:
+  - **Rules:** about 22 typed rules, each a base weight × a capped factor. Severity bands: ≥ 3.5 critical, ≥ 2.5 high, ≥ 1.5 medium. The rules most relevant to TAKIP:
     - thermal spike (z > 2);
     - GPS-jamming theaters;
     - military surge;
@@ -358,7 +358,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Defined but never emitted:** "displacement surge". The upstream data is an annual stock, not a flow.
 - **Free inputs:** mostly as above. The keyless weather alert feeds are `api.weather.gov`, ECCC and WMO SWIC. GDELT DOC tone is keyless.
 - **Backfillable?** It is stateless over its inputs.
-- **OSIRIS today:** none.
+- **TAKIP today:** none.
 - **Effort / value:** S / M. Prefer #1 (geometric cells) over substring theaters. Port the *rules* as a library of per-source thresholds that feed #1 and #4.
 
 ### 13. Radiation watch: station baselines with corroboration
@@ -375,7 +375,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - Safecast API: keyless. DS.md says CC0; the manifest says "verify by endpoint".
   - EURDEP is restricted (DS.md).
 - **Backfillable?** Yes. RadNet returns a year per request.
-- **OSIRIS today:** none. Safecast is listed in DS.md.
+- **TAKIP today:** none. Safecast is listed in DS.md.
 - **Effort / value:** S / M. Also a template for any station network (river gauges, buoys, air quality).
 
 ### 14. Natural-hazard fusion (GDACS + EONET)
@@ -384,9 +384,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Matching:** records within 100 km and 48 h are duplicates.
   - **Merging:** GDACS severity wins (it is human-verified); EONET geometry wins (it is more precise); both sources are credited.
   - **Display filters:** fires under 48 h old, earthquakes M4.5+, storms only when named or warned.
-- **Free inputs:** GDACS and NASA EONET v3, both keyless (the manifest notes both as "osiris: host").
+- **Free inputs:** GDACS and NASA EONET v3, both keyless (the manifest notes both as "takip: host").
 - **Backfillable?** Yes.
-- **OSIRIS today:** `/api/gdelt` actually reads GDACS RSS, and `/api/fires` reads EONET volcanoes, as separate layers with no deduplication.
+- **TAKIP today:** `/api/gdelt` actually reads GDACS RSS, and `/api/fires` reads EONET volcanoes, as separate layers with no deduplication.
 - **Effort / value:** S / M. It is the DS.md "event fusion" rule applied to hazards first.
 
 ### 15. Travel-advisory levels and floors
@@ -401,7 +401,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
     - provenance on every score: live, fallback or absent.
 - **Free inputs:** `travel.state.gov/_res/rss/TAsTWs.xml`, `gov.uk/foreign-travel-advice.atom` and `smartraveller.gov.au/countries/documents/index.rss`. All keyless per `seed-security-advisories.mjs`; DS.md lists State and FCDO as OK.
 - **Backfillable?** No. Poll them and keep the level history.
-- **OSIRIS today:** none.
+- **TAKIP today:** none.
 - **Effort / value:** S / M. Country polygons with a dated level history.
 
 ### 16. Evidence grading and corroboration ladder
@@ -425,7 +425,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - GDELT 2.0 events and GKG: keyless.
   - ACLED: keyed and NC, so drop it.
 - **Backfillable?** Yes (GDELT).
-- **OSIRIS today:** `/api/conflicts` blends GDELT GEO/DOC points with hand-anchored zones. `/api/gdelt-events` serves ActionGeo points. Neither marks an evidence class. `lib/alert-digest.ts` already reports whether opposing sides carry a story, which is a natural corroboration input.
+- **TAKIP today:** `/api/conflicts` blends GDELT GEO/DOC points with hand-anchored zones. `/api/gdelt-events` serves ActionGeo points. Neither marks an evidence class. `lib/alert-digest.ts` already reports whether opposing sides carry a story, which is a natural corroboration input.
 - **Effort / value:** S / M. Mostly labels and rules. It keeps the map honest, as `lib/country-risk.ts` already tries to do.
 
 ### 17. News credibility score (separate from importance)
@@ -437,9 +437,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
     - Corroboration: 20 per distinct publisher family, up to 5.
   - **Cap:** state-controlled sources are capped at 40.
   - **Excluded:** severity and recency.
-- **Free inputs:** OSIRIS's own source tables. Do not copy World Monitor's tier or propaganda tables; they are AGPL data.
+- **Free inputs:** TAKIP's own source tables. Do not copy World Monitor's tier or propaganda tables; they are AGPL data.
 - **Backfillable?** Not applicable.
-- **OSIRIS today:** `/api/news` already tags each source with `lean` and `bloc` (western, russian, regional). That is half of the input.
+- **TAKIP today:** `/api/news` already tags each source with `lean` and `bloc` (western, russian, regional). That is half of the input.
 - **Effort / value:** S / M. It feeds the provenance "classification confidence" in #5.
 
 ### 18. News keyword spikes, velocity and story phases
@@ -456,9 +456,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Story identity:** a SHA-256 of the normalized title, kept for 7 days.
   - **Phases:** breaking (1 mention), developing (2–5 mentions and under 2 h old), sustained. "Fading" was studied and rejected.
   - **Category convergence:** 3+ source categories on one story. "Triangulation" means wire, government and intel all present.
-- **Free inputs:** OSIRIS's RSS and Telegram feeds.
+- **Free inputs:** TAKIP's RSS and Telegram feeds.
 - **Backfillable?** From stored headlines only.
-- **OSIRIS today:** `lib/alert-digest.ts` threads by theatre and event type. No baselines, no phases.
+- **TAKIP today:** `lib/alert-digest.ts` threads by theatre and event type. No baselines, no phases.
 - **Effort / value:** S / M. Spikes geocoded through `lib/alert-places.ts` become map events.
 
 ### 19. Military aircraft identification confidence
@@ -471,9 +471,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Patterns noted:** formations, and holding or reconnaissance orbits on 20-point / 5-minute trails.
 - **Free inputs:**
   - Wingbits: keyed (`WINGBITS_API_KEY`).
-  - Substitutes: adsbdb and hexdb, both already OSIRIS hosts (DS.md flags adsbdb's terms). The FAA aircraft registry is public domain and is DS.md "Add these first" #2.
+  - Substitutes: adsbdb and hexdb, both already TAKIP hosts (DS.md flags adsbdb's terms). The FAA aircraft registry is public domain and is DS.md "Add these first" #2.
 - **Backfillable?** Not applicable.
-- **OSIRIS today:** `/api/flights` sets a single `category` value, with no tier and no evidence.
+- **TAKIP today:** `/api/flights` sets a single `category` value, with no tier and no evidence.
 - **Effort / value:** S / M.
 
 ### 20. Airport disruption severity
@@ -487,7 +487,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - ICAO NOTAM data: keyed (`ICAO_API_KEY`).
   - DS.md "Add these first" #6 already plans NOTAMs, TFRs and METAR.
 - **Backfillable?** No.
-- **OSIRIS today:** none.
+- **TAKIP today:** none.
 - **Effort / value:** S / M.
 
 ### 21. Climate-zone anomalies
@@ -502,8 +502,8 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - Open-Meteo archive: keyless, but the free tier is NC (manifest, DS.md, `TODO.md`).
   - Substitutes: ERA5 via Copernicus CDS (free key) or NOAA CPC/GHCN (keyless, public domain), both from memory; verify.
 - **Backfillable?** Yes.
-- **OSIRIS today:** `/api/weather-grid` (Open-Meteo, 510 points) has current conditions only.
-- **Effort / value:** S / M. Better computed on OSIRIS's own grid than on zone centroids.
+- **TAKIP today:** `/api/weather-grid` (Open-Meteo, 510 points) has current conditions only.
+- **Effort / value:** S / M. Better computed on TAKIP's own grid than on zone centroids.
 
 ### 22. Disease-outbreak aggregation with geocoding
 - **Purpose:** outbreak alerts as dated points.
@@ -515,7 +515,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Alert level:** keyword-only. ALERT for outbreak, emergency, epidemic or pandemic; WARNING for warning, spread or "cases increasing"; otherwise WATCH. The doc itself lists the flaws: English only, and a "false outbreak rumor" becomes an ALERT.
 - **Free inputs:** WHO DON, CDC and ECDC feeds, all keyless. DS.md marks WHO as NC; verify.
 - **Backfillable?** Yes (archives).
-- **OSIRIS today:** none.
+- **TAKIP today:** none.
 - **Effort / value:** S / M. Grade by case counts or WHO grading rather than keywords.
 
 ---
@@ -545,9 +545,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
     - the regime is the worse of an absolute threshold and the percentile ladder (80/95/99);
     - the ladder applies only above a minimum magnitude.
     - Suited to heavy-tailed series.
-- **Free inputs:** any OSIRIS feed. GDELT and FIRMS counts can seed baselines from their archives; flights and AIS need OSIRIS's own history.
+- **Free inputs:** any TAKIP feed. GDELT and FIRMS counts can seed baselines from their archives; flights and AIS need TAKIP's own history.
 - **Backfillable?** Only for archival inputs. A strong argument for the day-one raw archive.
-- **OSIRIS today:** none. `ARCHITECTURE.md` phase 3 asks to "account for sensor coverage and missing data before flagging". World Monitor does not, so combine this engine with #7.
+- **TAKIP today:** none. `ARCHITECTURE.md` phase 3 asks to "account for sensor coverage and missing data before flagging". World Monitor does not, so combine this engine with #7.
 - **Effort / value:** M / H. One engine for H3 cells, AOIs, airports, ports and chokepoints.
 
 ### 24. GDELT conflict intensity and dyad tension
@@ -567,7 +567,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Repair:** each run rebuilds up to 2 incomplete days from the master file list, checking size and MD5 and backing off failed days for 6 h. An empty 90-day window fills in about 11 h.
 - **Free inputs:** `data.gdeltproject.org` exports and the master list. Keyless; DS.md lists GDELT as OK.
 - **Backfillable?** Fully. The only World Monitor score that can be built from history on day one.
-- **OSIRIS today:** `lib/gdeltEvents.ts` already inflates the 15-min export ZIPs and reads ActionGeo coordinates. No daily history, no intensity.
+- **TAKIP today:** `lib/gdeltEvents.ts` already inflates the 15-min export ZIPs and reads ActionGeo coordinates. No daily history, no intensity.
 - **Effort / value:** M / H. Generalize past dyads: the same percentile intensity per country, admin-1 region or H3 cell gives a backfilled conflict-intensity surface.
 
 ### 25. GPS/GNSS interference grid
@@ -586,8 +586,8 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **The clean route,** already in DS.md "Derived data we compute ourselves": compute the grid from NIC/NACp (position-quality) fields in ADS-B records.
     - adsb.lol (ODbL) is the licence-clean source, but see the access conflict in #8.
     - adsb.fi is NC.
-- **Backfillable?** gpsjam keeps a long daily archive, licence permitting. A self-computed grid starts with OSIRIS's polling.
-- **OSIRIS today:** none.
+- **Backfillable?** gpsjam keeps a long daily archive, licence permitting. A self-computed grid starts with TAKIP's polling.
+- **TAKIP today:** none.
 - **Effort / value:** M (self-computed; S to ingest gpsjam if its terms allow) / H.
 
 ### 26. NGA navigational warnings → cable faults and the chokepoint disruption score
@@ -612,7 +612,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - Cable geometry: TeleGeography is proprietary per the manifest ("verify (may be NC)" in DS.md); use OSM submarine cables (ODbL).
   - AIS congestion: aisstream needs a free key, or a keyless regional feed.
 - **Backfillable?** Partly. NGA serves active and recent warnings; archive them from now on.
-- **OSIRIS today:** none.
+- **TAKIP today:** none.
 - **Effort / value:** M / H. One warning parser serves both the cable and the chokepoint features. World Monitor's threat weights are editorial, so label them as such, as `country-risk` already does.
 
 ### 27. AIS behaviour analytics
@@ -634,7 +634,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - Keyless: Digitraffic (CC BY 4.0, MQTT), Kystverket, and NOAA MarineCadastre for US history.
   - USNI is a scrape (terms-review).
 - **Backfillable?** Live AIS no; MarineCadastre yes, for US waters.
-- **OSIRIS today:** `/api/maritime` keeps about 18k ships in a recency-ordered cache, with `shipCategory` from the type code and a moving/anchored threshold (`lib/ship-filter.ts`). No gaps, trails or military identification.
+- **TAKIP today:** `/api/maritime` keeps about 18k ships in a recency-ordered cache, with `shipCategory` from the type code and a moving/anchored threshold (`lib/ship-filter.ts`). No gaps, trails or military identification.
 - **Effort / value:** M / H. These are the DS.md "shipping signals from AIS". Gaps must respect receiver coverage, because terrestrial AIS is thin offshore.
 
 ### 28. Population exposure
@@ -644,7 +644,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Population:** taken from a crude 20-country density table, falling back to a synthetic 100 people/km². World Monitor itself says it is "not a live WorldPop lookup".
 - **Free inputs:** WorldPop, GHSL or Kontur (all OK in DS.md). Kontur publishes an H3 population grid (from memory; verify), which suits a cell-based design.
 - **Backfillable?** Yes (static rasters by year).
-- **OSIRIS today:** none.
+- **TAKIP today:** none.
 - **Effort / value:** M / H. Summing a raster or H3 grid over the actual footprint (NWS and NHC polygons, FIRMS clusters) beats World Monitor. Core to "impact analysis".
 
 ### 29. Orbital pass prediction, revisit and pass log (World Monitor roadmap, unbuilt)
@@ -658,9 +658,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
     - sensor-swath cones in place of nadir points;
     - cross-layer correlation: a satellite over a GPS-jam zone, over a conflict zone, or near an AIS gap.
   - **Built today:** about 80–120 reconnaissance satellites from the CelesTrak `military` and `resource` groups, filtered by name patterns (YAOGAN, GAOFEN, COSMOS 24xx/25xx, ICEYE, WORLDVIEW, SENTINEL …), classified by country and sensor, and propagated client-side every 3 s.
-- **Free inputs:** CelesTrak GP (keyless, OK\* in DS.md) and the SatNOGS database (already an OSIRIS host). Swath widths from public mission specs.
+- **Free inputs:** CelesTrak GP (keyless, OK\* in DS.md) and the SatNOGS database (already an TAKIP host). Swath widths from public mission specs.
 - **Backfillable?** Yes, if each fetched TLE set is archived (past passes become reproducible).
-- **OSIRIS today:** `lib/orbit.ts` (SGP4/SDP4, geodetic output), `/api/satellites` (about 19k objects, classified by mission), the `lib/aoi.ts` sweep, and `/api/sentinel` (Element84 and Copernicus STAC search). OSIRIS is closer to this than World Monitor.
+- **TAKIP today:** `lib/orbit.ts` (SGP4/SDP4, geodetic output), `/api/satellites` (about 19k objects, classified by mission), the `lib/aoi.ts` sweep, and `/api/sentinel` (Element84 and Copernicus STAC search). TAKIP is closer to this than World Monitor.
 - **Effort / value:** M / H.
 
 ### 30. Alert ledger with a hit-rate scorecard
@@ -676,9 +676,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Scorecard:** paired hit rate against base rate, over 30 days. The median lead time is withheld below 30 hits.
   - **Gaps:** an outage counts as a single tick.
   - **Forecast resolution, a related pipeline:** resolves at 24 h, 7 d, 14 d and 30 d; "hard" resolution against a feed, "judged" against the news archive; Brier and log scores; a 180-day ledger.
-- **Free inputs:** OSIRIS's own alerts and news history.
+- **Free inputs:** TAKIP's own alerts and news history.
 - **Backfillable?** From stored data only.
-- **OSIRIS today:** OI scores its statistical price baseline on the instrument's own past (`components/oi/record.tsx`). Nothing scores alerts.
+- **TAKIP today:** OI scores its statistical price baseline on the instrument's own past (`components/oi/record.tsx`). Nothing scores alerts.
 - **Effort / value:** M / H. A defensible "our alerts lead by X h, against a base rate of Y" claim for the history product. The control-window design also tests map alerts, e.g. whether a convergence cell precedes a GDACS or GDELT event there.
 
 ---
@@ -697,7 +697,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **A related index:** a transit-union exposure 1 − Π(1 − share), with disrupted chokepoints ×1.35 (supply vulnerability).
 - **Free inputs:** GEM pipelines, the World Port Index, OSM power and telecom, cable landings (OSM in place of TeleGeography), and EIA chokepoint studies (published reports are keyless; `api.eia.gov` needs `EIA_API_KEY`).
 - **Backfillable?** Not applicable (static).
-- **OSIRIS today:** none. `ARCHITECTURE.md` "Dependency map" plans exactly this, with inferred edges labelled "possible exposure" and a confidence. World Monitor's weights are editorial and carry no confidence.
+- **TAKIP today:** none. `ARCHITECTURE.md` "Dependency map" plans exactly this, with inferred edges labelled "possible exposure" and a confidence. World Monitor's weights are editorial and carry no confidence.
 - **Effort / value:** L / H.
 
 ### 32. Forecast detectors, market blend and calibration
@@ -722,9 +722,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Branches:** base, escalatory and contrarian.
   - **LLM enrichment:** narratives, impact expansion and a theater simulation (keyed: `OPENROUTER_API_KEY` or `LLM_API_*`).
   - **Storage:** 200 runs of history; scoring as in #30.
-- **Free inputs:** Polymarket gamma (keyless; terms-review; World Monitor reports server-side Cloudflare blocking), Kalshi v2 (keyless per the WM forecast seeder; verify), and the OSIRIS feeds.
+- **Free inputs:** Polymarket gamma (keyless; terms-review; World Monitor reports server-side Cloudflare blocking), Kalshi v2 (keyless per the WM forecast seeder; verify), and the TAKIP feeds.
 - **Backfillable?** From stored runs only.
-- **OSIRIS today:** OI (`lib/oi/engine.ts`) runs multi-world actor simulations. It reads Polymarket and Manifold (`lib/oi/markets.ts`), bootstraps a quant baseline from price history (`lib/oi/quant.ts`) and pools worlds (`lib/oi/aggregate.ts`). It has no resolution ledger and no isotonic calibration for non-price questions.
+- **TAKIP today:** OI (`lib/oi/engine.ts`) runs multi-world actor simulations. It reads Polymarket and Manifold (`lib/oi/markets.ts`), bootstraps a quant baseline from price history (`lib/oi/quant.ts`) and pools worlds (`lib/oi/aggregate.ts`). It has no resolution ledger and no isotonic calibration for non-price questions.
 - **Effort / value:** M / M. Worth taking: the resolution spec (hard vs judged), the Brier scorecard and the calibration gate.
 
 ### 33. Hotspot escalation score
@@ -735,9 +735,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Trend:** 48 points of history (24 h at 30 min); a linear-regression slope beyond ±0.1 per interval.
   - **Activity levels:** under 3 matching articles low, 3–6 elevated, above 6 high.
   - **Status:** the emission function exists but nothing calls it.
-- **Free inputs:** OSIRIS news, flights and AIS, and #1.
+- **Free inputs:** TAKIP news, flights and AIS, and #1.
 - **Backfillable?** No.
-- **OSIRIS today:** `/api/conflicts` has anchored zones with live counts, but no score or trend.
+- **TAKIP today:** `/api/conflicts` has anchored zones with live counts, but no score or trend.
 - **Effort / value:** M / M.
 
 ### 34. Focal-point detection
@@ -748,9 +748,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Correlation bonus (0–20):** +10 for appearing in both, +5 when keywords match the signal type, +5 when related entities also have signals.
   - **Urgency:** critical above 70 or with 3+ types; elevated above 50 or with 2+ types.
   - **Entity matching:** word-boundary aliases, with confidence 1.0 for names, 0.85–0.95 for aliases and 0.7 for keywords.
-- **Free inputs:** OSIRIS feeds.
+- **Free inputs:** TAKIP feeds.
 - **Backfillable?** From stored data.
-- **OSIRIS today:** `lib/alert-places.ts` geolocates reports via OSM, which is better than World Monitor's 217-hub gazetteer. There is no news × map cross-reference.
+- **TAKIP today:** `lib/alert-places.ts` geolocates reports via OSM, which is better than World Monitor's 217-hub gazetteer. There is no news × map cross-reference.
 - **Effort / value:** M / M.
 
 ### 35. Prediction-market signals versus news
@@ -766,7 +766,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Declared but never emitted:** `news_leads_markets` and `sector_cascade`.
 - **Free inputs:** Polymarket and Manifold (keyless).
 - **Backfillable?** Polymarket price history yes.
-- **OSIRIS today:** `lib/oi/markets.ts` reads both.
+- **TAKIP today:** `lib/oi/markets.ts` reads both.
 - **Effort / value:** M / M.
 
 ### 36. Headline importance scoring and clustering
@@ -791,9 +791,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Admission to the top 8:** ≥ 2 publisher families, or corroborated, or an alert, or a score above 100; at most 3 per source.
   - **Digest score:** 0.55 severity + 0.20 tier + 0.15 corroboration + 0.10 recency.
   - **Brief dedupe:** embeddings at cosine 0.60, falling back to Jaccard > 0.55.
-- **Free inputs:** OSIRIS feeds. The LLM step is optional.
+- **Free inputs:** TAKIP feeds. The LLM step is optional.
 - **Backfillable?** From stored headlines.
-- **OSIRIS today:** `lib/alert-digest.ts`, `/api/ai/briefing` and `/api/ai/overview`.
+- **TAKIP today:** `lib/alert-digest.ts`, `/api/ai/briefing` and `/api/ai/overview`.
 - **Effort / value:** S / L (for a map-first product).
 
 ### 37. Strategic risk roll-up
@@ -802,7 +802,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Server version:** the top-5 CII scores weighted 1.00/0.85/0.70/0.55/0.40, then × 0.70 + 15, which compresses the range to 15–85. High at 70 or more, medium at 40–69.
   - **Browser fallback:** convergence × 0.30 + CII × 0.50 + infrastructure × 0.20, plus capped boosts for theater (25), breaking news (15), sanctions (10) and radiation (12). Trend at ±3.
 - **Free inputs:** see #38.
-- **OSIRIS today:** none.
+- **TAKIP today:** none.
 - **Effort / value:** S once #38 exists / L.
 
 ---
@@ -841,7 +841,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - Already in hand or above: IODA, USGS, FIRMS, military ADS-B (licence caveat), advisories (#15), GPS jamming (#25).
   - HDX HAPI or UNHCR for displacement.
 - **Backfillable?** Mostly.
-- **OSIRIS today:** `/api/country-risk` and `lib/country-risk.ts`: an editorial base for 20 countries plus summed USGS M4.5+ magnitudes, honestly labelled `basis: 'editorial'`.
+- **TAKIP today:** `/api/country-risk` and `lib/country-risk.ts`: an editorial base for 20 countries plus summed USGS M4.5+ magnitudes, honestly labelled `basis: 'editorial'`.
 - **Effort / value:** L / M. Build it from #11, #15 and #24 rather than porting v8 whole. Keep the provenance per component.
 
 ---
@@ -863,9 +863,9 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
 | News ↔ markets Pearson correlation with a ±6 h lag scan; "move explained" vs "silent divergence" (≥ 2 % moves; entity alias/keyword/related confidence 95/70/60); flow and price divergence | Finance, not spatial | GDELT DOC, Yahoo (terms-review) |
 | Fixed theater threshold rules for VIX, commodity shocks, S&P stress, freight rates (> mean + 2σ), regulatory actions | Finance | Yahoo, FRED CSV, regulator RSS |
 | OREF siren integration (Israel) | Geo-blocked; needs an Israeli residential proxy | `oref.org.il` |
-| 217-hub gazetteer geolocation, "negative-match" country attribution | OSIRIS's `lib/alert-places.ts` already does better | — |
-| AI deduction and world brief | OSIRIS OI is already deeper | LLM keys |
-| Day/night solar terminator | Pure computation, a display layer (on OSIRIS's TODO) | none |
+| 217-hub gazetteer geolocation, "negative-match" country attribution | TAKIP's `lib/alert-places.ts` already does better | — |
+| AI deduction and world brief | TAKIP OI is already deeper | LLM keys |
+| Day/night solar terminator | Pure computation, a display layer (on TAKIP's TODO) | none |
 
 ---
 

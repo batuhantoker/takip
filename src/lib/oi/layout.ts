@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the workspace's geometry, in one place.
+ * TAKIP OI: the workspace's geometry, in one place.
  *
  * The full-screen workspace puts a column on each side of a centre stage. The
  * columns grow with the screen within limits, and the globe, when it is the

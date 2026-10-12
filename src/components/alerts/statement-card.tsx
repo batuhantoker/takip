@@ -18,7 +18,7 @@ export default function StatementCard({ speaker, items, now, open, wide, onToggl
       <button type="button" onClick={onToggle} aria-expanded={open} className="w-full text-left px-2.5 pt-2 pb-1.5 outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded-lg">
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9.5px] font-mono uppercase tracking-wider">
-            {fresh && <span className="w-1.5 h-1.5 rounded-full animate-osiris-pulse" style={{ background: ACCENT }} title="Posted in the last 15 minutes" />}
+            {fresh && <span className="w-1.5 h-1.5 rounded-full animate-takip-pulse" style={{ background: ACCENT }} title="Posted in the last 15 minutes" />}
             <span className="font-semibold text-[#E8E6E0]">{lead.source_name}</span>
             {lead.lean && <span style={{ color }}>{lead.lean}</span>}
           </div>

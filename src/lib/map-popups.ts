@@ -53,7 +53,7 @@ export function flightPopupHtml(p: FeatureProps, coords: number[], cs: string, i
             <div><span style="color:#5C5A54;font-size:9px;">POS</span><br/><span style="color:#B0BEC5;">${coords[1].toFixed(2)},${coords[0].toFixed(2)}</span></div>
           </div>
           ${icao ? `<div id="ac-op-${icao}" style="margin-top:6px;color:#78909C;font-size:9px;"></div>` : ''}
-          <button onclick="window.osirisWatchFlight && window.osirisWatchFlight({ icao24: '${icao}', callsign: '${idSafe(cs)}' })" style="width:100%;margin-top:8px;padding:6px 12px;background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.35);color:#7FE9FF;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:bold;letter-spacing:0.1em;border-radius:4px;cursor:pointer;">+ WATCH THIS AIRCRAFT</button>
+          <button onclick="window.takipWatchFlight && window.takipWatchFlight({ icao24: '${icao}', callsign: '${idSafe(cs)}' })" style="width:100%;margin-top:8px;padding:6px 12px;background:rgba(0,229,255,0.10);border:1px solid rgba(0,229,255,0.35);color:#7FE9FF;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:bold;letter-spacing:0.1em;border-radius:4px;cursor:pointer;">+ WATCH THIS AIRCRAFT</button>
           <div id="${routeLoadingId}" style="margin-top:8px;padding:6px;border-top:1px solid rgba(255,255,255,0.06);text-align:center;">
             ${muted('RESOLVING ROUTE…')}
           </div>
@@ -84,14 +84,23 @@ export function flightScheduleHtml(ends: string, sched: ScheduleReply): string {
 }
 
 export function earthquakePopupHtml(p: FeatureProps, coords: number[]): string {
+  const link = p.source === 'NIGGG-BAS'
+    ? { href: 'https://ndc.niggg.bas.bg/', label: 'NIGGG-BAS' }
+    : p.source === 'EMSC'
+      ? { href: urlSafe(p.url), label: 'EMSC DETAILS' }
+      : { href: `https://earthquake.usgs.gov/earthquakes/eventpage/${encodeURIComponent(p.id||'')}`, label: 'USGS DETAILS' };
+  // A twin credited to the same network is the same solution, not a second opinion.
+  const twin = p.twin_source
+    ? `<div style="font-size:9px;color:#5C5A54;margin-top:6px;">ALSO ${htmlEsc(p.twin_source)} M${htmlEsc(p.twin_magnitude)}${p.twin_network ? ` · ${htmlEsc(p.twin_network)}` : ''}</div>`
+    : '';
   return `<div style="${pStyle}border:1px solid rgba(255,149,0,0.3);">
-        <div style="color:#FF9500;font-size:14px;font-weight:700;margin-bottom:4px;">M${p.magnitude} EARTHQUAKE</div>
+        <div style="color:#FF9500;font-size:14px;font-weight:700;margin-bottom:4px;">M${htmlEsc(p.magnitude)} EARTHQUAKE</div>
         <div style="font-size:9px;color:#E8E6E0;margin-bottom:8px;">${htmlEsc(p.place||'Unknown location')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;">
-          <div><span style="color:#5C5A54;">DEPTH</span><br/><span style="color:#E8E6E0;">${p.depth||'—'}km</span></div>
+          <div><span style="color:#5C5A54;">DEPTH</span><br/><span style="color:#E8E6E0;">${htmlEsc(p.depth||'—')}km</span></div>
           <div><span style="color:#5C5A54;">COORDS</span><br/><span style="color:#E8E6E0;">${coords[1].toFixed(3)}, ${coords[0].toFixed(3)}</span></div>
-        </div>
-        <a href="${p.source === 'NIGGG-BAS' ? 'https://ndc.niggg.bas.bg/' : `https://earthquake.usgs.gov/earthquakes/eventpage/${encodeURIComponent(p.id||'')}`}" target="_blank" style="${linkStyle}color:#FF9500;border:1px solid rgba(255,149,0,0.4);background:rgba(255,149,0,0.1);">📊 ${p.source === 'NIGGG-BAS' ? 'NIGGG-BAS' : 'USGS DETAILS'}</a>
+        </div>${twin}
+        <a href="${link.href}" target="_blank" style="${linkStyle}color:#FF9500;border:1px solid rgba(255,149,0,0.4);background:rgba(255,149,0,0.1);">📊 ${link.label}</a>
       </div>`;
 }
 
@@ -253,7 +262,7 @@ const SDK_SOURCE_URLS: Record<string, string> = {
 };
 
 export function sdkLinkPopupHtml(p: FeatureProps): string {
-  const srcUrl = p.url || SDK_SOURCE_URLS[p.source] || 'https://osirisai.live';
+  const srcUrl = p.url || SDK_SOURCE_URLS[p.source] || '/';
   const domainLabel = p.domain === 'SEA' ? '⚓ MARITIME' : p.domain === 'AIR' ? '✈ AIR CORRIDOR' : '🛡 NAVAL INTEL';
   const domainColor = p.domain === 'SEA' ? '#4FC3F7' : p.domain === 'AIR' ? '#B3E5FC' : '#81D4FA';
   const linkStyle = 'text-decoration:none;padding:3px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:0.05em;';
@@ -266,7 +275,7 @@ export function sdkLinkPopupHtml(p: FeatureProps): string {
             <div><span style="color:#5C5A54;">FROM</span><br/><span style="color:#E8E6E0;">${htmlEsc(p.fromName || 'Origin')}</span></div>
             <div><span style="color:#5C5A54;">TO</span><br/><span style="color:#E8E6E0;">${htmlEsc(p.toName || 'Destination')}</span></div>
             <div><span style="color:#5C5A54;">DOMAIN</span><br/><span style="color:${domainColor};">${p.domain}</span></div>
-            <div><span style="color:#5C5A54;">SOURCE</span><br/><a href="${urlSafe(srcUrl)}" target="_blank" style="color:${domainColor};text-decoration:underline;cursor:pointer;">${htmlEsc(p.source || 'OSIRIS')}</a></div>
+            <div><span style="color:#5C5A54;">SOURCE</span><br/><a href="${urlSafe(srcUrl)}" target="_blank" style="color:${domainColor};text-decoration:underline;cursor:pointer;">${htmlEsc(p.source || 'TAKIP')}</a></div>
           </div>
           <a href="${urlSafe(srcUrl)}" target="_blank" style="${linkStyle}color:${domainColor};border:1px solid ${domainColor}40;background:${domainColor}18;display:inline-block;margin-top:4px;">OPEN SOURCE ↗</a>
         </div>`;

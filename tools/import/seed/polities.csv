@@ -1,0 +1,43 @@
+key,name,kind,from,to,lon,lat,render
+hist:AUH,Austria-Hungary,historical,,1918-11-12,16.37,47.5,AUT|HUN|CZE|SVK|SVN|HRV|BIH
+hist:OTT,Ottoman Empire,historical,,1923-10-29,32.85,39.93,TUR|SYR|IRQ|LBN|JOR|ISR|PSX
+hist:RUE,Russian Empire,historical,,1917-11-07,37.62,55.75,RUS|UKR|BLR|MDA|LTU|LVA|EST|FIN|GEO|ARM|AZE|KAZ|UZB|TKM|KGZ|TJK
+hist:SUN,Soviet Union,historical,1922-12-30,1991-12-26,37.62,55.75,RUS|UKR|BLR|MDA|LTU|LVA|EST|GEO|ARM|AZE|KAZ|UZB|TKM|KGZ|TJK
+hist:YUG,Yugoslavia,historical,1918-12-01,1992-04-27,20.46,44.82,SRB|MNE|KOS|HRV|SVN|MKD|BIH
+hist:SCG,Serbia and Montenegro,historical,1992-04-27,2006-06-05,20.46,44.82,SRB|MNE|KOS
+hist:CSK,Czechoslovakia,historical,1918-10-28,1993-01-01,14.42,50.09,CZE|SVK
+hist:BRD,West Germany,historical,1949-05-23,1990-10-03,7.1,50.73,DEU
+hist:DDR,East Germany,historical,1949-10-07,1990-10-03,13.4,52.52,DEU
+hist:PRU,Prussia,historical,,1871-01-18,13.4,52.52,DEU
+hist:SAR,Sardinia,historical,,1861-03-17,7.69,45.07,ITA
+hist:YAR,North Yemen,historical,1918-11-01,1990-05-22,44.21,15.35,YEM
+hist:YPR,South Yemen,historical,1967-11-30,1990-05-22,45.03,12.79,YEM
+hist:RVN,South Vietnam,historical,1955-10-26,1975-04-30,106.66,10.76,VNM
+hist:RHO,Rhodesia,historical,1965-11-11,1980-04-18,31.05,-17.83,ZWE
+hist:ZAN,Zanzibar,historical,1963-12-10,1964-04-26,39.2,-6.16,TZA
+hist:KOR,Korea,historical,,1910-08-29,126.98,37.57,PRK|KOR
+hist:HAN,Hanover,historical,,1866-09-20,9.73,52.37,DEU
+hist:BAV,Bavaria,historical,,1871-01-18,11.58,48.14,DEU
+hist:BAD,Baden,historical,,1871-01-18,8.4,49.0,DEU
+hist:SAX,Saxony,historical,,1867-07-01,13.74,51.05,DEU
+hist:WRT,Württemberg,historical,,1871-01-18,9.18,48.78,DEU
+hist:HSE,Hesse-Kassel,historical,,1866-09-20,9.48,51.31,DEU
+hist:HSG,Hesse-Darmstadt,historical,,1871-01-18,8.65,49.87,DEU
+hist:MEC,Mecklenburg-Schwerin,historical,,1867-07-01,11.41,53.63,DEU
+hist:PAP,Papal States,historical,,1870-09-20,12.48,41.9,ITA
+hist:SIC,Two Sicilies,historical,,1861-03-17,14.25,40.85,ITA
+hist:MOD,Modena,historical,,1860-03-22,10.93,44.65,ITA
+hist:PMA,Parma,historical,,1860-03-22,10.33,44.8,ITA
+hist:TUS,Tuscany,historical,,1860-03-22,11.25,43.77,ITA
+hist:CHEC,Chechnya,subnational,1991-11-01,2009-04-16,45.69,43.32,
+hist:ABK,Abkhazia,disputed,,,41.02,43.0,
+hist:SOS,South Ossetia,disputed,,,43.97,42.34,
+hist:CHI,Channel Islands,dependency,,,-2.3,49.3,JEY|GGY
+GLP,Guadeloupe,dependency,,,-61.55,16.25,
+GUF,French Guiana,dependency,,,-53.13,3.93,
+MTQ,Martinique,dependency,,,-61.02,14.64,
+MYT,Mayotte,dependency,,,45.17,-12.83,
+REU,Réunion,dependency,,,55.54,-21.12,
+BES,"Bonaire, Sint Eustatius and Saba",dependency,,,-68.26,12.18,
+GIB,Gibraltar,dependency,,,-5.35,36.14,
+TKL,Tokelau,dependency,,,-171.85,-9.2,

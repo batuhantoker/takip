@@ -30,7 +30,7 @@ export default function DirectionsHeader({ tracking, follow, setFollow, onFollow
       {tracking && (
         <span className="flex items-center gap-1.5 h-6 px-2 rounded-full text-[9.5px] font-mono tracking-[0.12em] uppercase text-[var(--gold-light)]"
           style={{ background: 'rgba(var(--gold-rgb),0.1)', boxShadow: 'inset 0 0 0 1px rgba(var(--gold-rgb),0.3)' }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold-light)] animate-osiris-pulse" /> Live
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold-light)] animate-takip-pulse" /> Live
         </span>
       )}
       <IconBtn label={tracking ? 'Stop live tracking' : 'Track my location live'} onClick={toggleTracking} on={tracking}>

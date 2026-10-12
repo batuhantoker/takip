@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the workspace.
+ * TAKIP OI: the workspace.
  *
  * Full screen, OI becomes a command centre in the manner of an analysis
  * platform, with or without a forecast:
@@ -144,7 +144,7 @@ export function Workspace(p: WorkspaceProps) {
   const stageBox = { left: L.left + L.gap * 2, right, top: L.top, bottom: L.gap };
 
   return (
-    <div className="fixed inset-0 z-[900] pointer-events-none" role="dialog" aria-label="OI workspace">
+    <div className="fixed inset-0 z-[900] pointer-events-none" role="dialog" aria-label="TI workspace">
       <div className="absolute inset-x-0 top-0 h-[96px]" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.88) 45%, transparent)' }} />
       <div className="absolute inset-x-0 bottom-0 h-[60px]" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.78) 40%, transparent)' }} />
 
@@ -152,7 +152,7 @@ export function Workspace(p: WorkspaceProps) {
       <header className="glass-panel oi-glass absolute pointer-events-auto flex items-center gap-3 px-3" style={{ left: L.gap, right: L.gap, top: L.gap, height: 56 }}>
         <div className="flex items-center gap-2 flex-shrink-0 pl-1">
           <OiMark size={18} live={s?.status === 'running' || p.assistBusy} assist={p.mode === 'assist'} />
-          <span className="hud-text text-[12px] text-[var(--text-heading)]">OI</span>
+          <span className="hud-text text-[12px] text-[var(--text-heading)]">TI</span>
         </div>
         <span className="w-px h-7 bg-[var(--border-secondary)]" />
         <div className="min-w-0 flex-1">
@@ -163,7 +163,7 @@ export function Workspace(p: WorkspaceProps) {
                 {s.frame && <span className="flex-shrink-0 text-[var(--gold-primary)]">{KIND_LABEL[s.frame.kind]}</span>}
                 {oi.runId && <span className="flex-shrink-0">Run {oi.runId.slice(0, 6)}</span>}
                 <span className="flex items-center gap-1.5 min-w-0">
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.status === 'running' ? 'animate-osiris-pulse' : ''}`}
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.status === 'running' ? 'animate-takip-pulse' : ''}`}
                     style={{ background: s.status === 'running' || s.status === 'done' ? T.gold : s.status === 'failed' ? T.red : T.mute, boxShadow: s.status === 'running' ? `0 0 6px ${gold(0.8)}` : undefined }} />
                   <span className="truncate normal-case tracking-[0.02em] text-[11px] font-sans text-[var(--text-secondary)]">{s.status === 'running' ? s.phaseLabel : s.status === 'done' ? 'Forecast complete' : s.status === 'failed' ? (s.message || 'Failed') : 'Stopped'}</span>
                 </span>
@@ -171,8 +171,8 @@ export function Workspace(p: WorkspaceProps) {
             </>
           ) : (
             <>
-              <p className="text-[13px] font-semibold truncate text-[var(--text-heading)]">OI command</p>
-              <p className="mt-0.5 text-[11px] text-[var(--text-muted)] truncate">No forecast yet. Run one, or ask OI to work the map.</p>
+              <p className="text-[13px] font-semibold truncate text-[var(--text-heading)]">TI command</p>
+              <p className="mt-0.5 text-[11px] text-[var(--text-muted)] truncate">No forecast yet. Run one, or ask TI to work the map.</p>
             </>
           )}
         </div>
@@ -195,7 +195,7 @@ export function Workspace(p: WorkspaceProps) {
       </header>
 
       {/* ── Left: the command column ── */}
-      <aside className="glass-panel oi-glass absolute pointer-events-auto flex flex-col overflow-hidden" style={{ left: L.gap, top: L.top, bottom: L.gap, width: L.left }} aria-label={p.mode === 'assist' ? 'OI Assist' : 'Forecast'}>
+      <aside className="glass-panel oi-glass absolute pointer-events-auto flex flex-col overflow-hidden" style={{ left: L.gap, top: L.top, bottom: L.gap, width: L.left }} aria-label={p.mode === 'assist' ? 'TI Assist' : 'Forecast'}>
         <span className="absolute inset-x-0 top-0 h-px z-10" style={{ background: `linear-gradient(90deg, transparent, ${modeTint(p.mode)(0.75)} 30%, ${modeTint(p.mode)(0.75)} 70%, transparent)` }} aria-hidden />
         <div className="px-3 py-2.5 border-b border-[var(--border-secondary)] flex-shrink-0">
           <ModeSwitch id="ws" mode={p.mode} onMode={p.onMode} forecastLive={s?.status === 'running'} assistBusy={p.assistBusy} />
@@ -244,7 +244,7 @@ export function Workspace(p: WorkspaceProps) {
         {s && shown !== 'globe' && (
           <motion.div key={shown} initial={{ opacity: 0, scale: 0.985 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.985 }} transition={{ duration: 0.2 }}
             className="glass-panel oi-glass absolute pointer-events-auto overflow-hidden" style={{ ...stageBox, background: SOLID }}>
-            <ErrorBoundary name={`OI ${shown}`}>
+            <ErrorBoundary name={`TI ${shown}`}>
               {shown === 'graph' && <GraphView s={s} selected={selected} onSelect={onSelect} />}
               {shown === 'timeline' && <TimelineView s={s} selected={selected} onSelect={onSelect} />}
               {shown === 'table' && <TableView s={s} selected={selected} onSelect={onSelect} />}
@@ -260,7 +260,7 @@ export function Workspace(p: WorkspaceProps) {
             <div className="glass-panel oi-glass !rounded-full px-5 py-2.5 flex items-center gap-3 pointer-events-auto">
               <span className={LABEL} style={{ color: T.gold }}>Live globe</span>
               <span className="w-px h-3 bg-[var(--border-secondary)]" />
-              <span className="text-[11px] text-[var(--text-secondary)]">Run a forecast to draw its analysis here, or ask OI to take you somewhere</span>
+              <span className="text-[11px] text-[var(--text-secondary)]">Run a forecast to draw its analysis here, or ask TI to take you somewhere</span>
             </div>
           )}
         </div>

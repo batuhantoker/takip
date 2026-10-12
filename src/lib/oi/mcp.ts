@@ -1,8 +1,8 @@
 /**
- * OSIRIS as an MCP server (Model Context Protocol, Streamable HTTP, stateless).
+ * TAKIP as an MCP server (Model Context Protocol, Streamable HTTP, stateless).
  *
  * Agents such as Hermes connect to /api/mcp and get OI as tools, plus
- * free OSIRIS intelligence (the world brief, the markets). The model key is
+ * free TAKIP intelligence (the world brief, the markets). The model key is
  * configured once on the connection as headers (X-OI-Provider,
  * X-OI-Key, X-OI-Model), never passed as a tool argument, so it stays
  * out of the agent's transcript.
@@ -44,10 +44,10 @@ export interface JsonRpcResponse {
 
 export const ERR = { parse: -32700, invalidRequest: -32600, methodNotFound: -32601, invalidParams: -32602, internal: -32603 };
 
-const INSTRUCTIONS = `OSIRIS OI is a prediction engine for real-world questions: it researches the question from sources that can be checked (reporting from publishers' own feeds, GDELT and Wikipedia's Current events, each with its link; daily prices for any market price the question turns on; what prediction markets such as Polymarket price the same question at; background; and OSIRIS's live feeds where on topic), casts the actors who decide it as agents, and simulates them acting on each other over dated periods from today to the horizon, in several parallel worlds. A question about a price is priced: a statistical baseline from the price's own history, each world's own course for the price, and the worlds' events run through the market's own paths.
+const INSTRUCTIONS = `TI (Takip AI) is a prediction engine for real-world questions: it researches the question from sources that can be checked (reporting from publishers' own feeds, GDELT and Wikipedia's Current events, each with its link; daily prices for any market price the question turns on; what prediction markets such as Polymarket price the same question at; background; and TAKIP's live feeds where on topic), casts the actors who decide it as agents, and simulates them acting on each other over dated periods from today to the horizon, in several parallel worlds. A question about a price is priced: a statistical baseline from the price's own history, each world's own course for the price, and the worlds' events run through the market's own paths.
 Use oi_predict to predict a question; it returns the probability the worlds add up to, in the shape the question asks for (a probability for yes or no, a share per outcome for "which", an estimate with an 80% range for "how much"), and the story: the predicted path date by date, what each actor does, how each world ended, drivers, scenarios and signposts, what the prediction rests on (the baseline, the prediction market on the same question), and a watch_url where a human can watch the analysis draw itself on the globe. A run takes one to five minutes: if oi_predict returns before the run is done, call oi_get_run with wait_seconds until status is "done".
 oi_ask questions the report agent, or any actor that played, afterwards. oi_inject drops a breaking event into a running simulation (god's-eye view): it lands in every world.
-osiris_world_brief, osiris_markets and osiris_trending (what the world is betting on: questions with the crowd's price, to predict and compare) are free and need no model key. OI tools run on the model key configured on this connection.
+takip_world_brief, takip_markets and takip_trending (what the world is betting on: questions with the crowd's price, to predict and compare) are free and need no model key. The oi_* tools run on the model key configured on this connection.
 ${CREDIT}`;
 
 const RUN_ID = { type: 'string', description: 'The run id returned by oi_predict.' };
@@ -56,7 +56,7 @@ export const TOOLS = [
   {
     name: 'oi_predict',
     title: 'Forecast a question',
-    description: 'Start an OSIRIS OI prediction: the actors who decide the question are simulated acting on each other, period by period from today to the horizon, in parallel worlds grounded in live research; a report agent then gives the probability the worlds add up to (or a share per outcome, or an estimate with a range, as the question asks) and the story: the predicted path date by date, what each actor does, drivers, scenarios and signposts. Waits for the result up to wait_seconds, else returns the run id to poll with oi_get_run. Uses the model key configured on this connection.',
+    description: 'Start a TI (Takip AI) prediction: the actors who decide the question are simulated acting on each other, period by period from today to the horizon, in parallel worlds grounded in live research; a report agent then gives the probability the worlds add up to (or a share per outcome, or an estimate with a range, as the question asks) and the story: the predicted path date by date, what each actor does, drivers, scenarios and signposts. Waits for the result up to wait_seconds, else returns the run id to poll with oi_get_run. Uses the model key configured on this connection.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -64,7 +64,7 @@ export const TOOLS = [
         context: { type: 'string', description: 'Optional data of your own: a report, notes, a table, a policy draft (up to 100,000 characters, about 25,000 tokens). The world model reads it once.' },
         context_scope: { type: 'string', enum: ['brief', 'panel'], description: 'brief (default): only the world model reads the context. panel: every actor\'s move and the report agent also read its first 8,000 characters, which costs about 2,000 more input tokens per model call.' },
         depth: { type: 'string', enum: ['quick', 'standard', 'deep'], description: 'quick: 4 actors × 3 periods × 2 worlds (~34 model calls). standard: 6 × 4 × 3 (~88). deep: 7 × 4 × 4 (~132). Default standard.' },
-        use_live_feeds: { type: 'boolean', description: 'Research the question first (recent news with its links, and Wikipedia background) and read the OSIRIS live feeds; the actors ground their first moves in quotes from these sources. Default true.' },
+        use_live_feeds: { type: 'boolean', description: 'Research the question first (recent news with its links, and Wikipedia background) and read the TAKIP live feeds; the actors ground their first moves in quotes from these sources. Default true.' },
         wait_seconds: { type: 'integer', minimum: 0, maximum: 280, description: 'How long to wait for the forecast before returning. Default: as long as this connection allows.' },
       },
       required: ['question'],
@@ -75,7 +75,7 @@ export const TOOLS = [
   {
     name: 'oi_get_run',
     title: 'Check a forecast',
-    description: 'The state of an OI run: phase, the worlds pooled so far, each world as it stands, and the prediction once written. Optionally waits for the run to finish.',
+    description: 'The state of a TI run: phase, the worlds pooled so far, each world as it stands, and the prediction once written. Optionally waits for the run to finish.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -123,7 +123,7 @@ export const TOOLS = [
   {
     name: 'oi_cancel',
     title: 'Cancel a forecast',
-    description: 'Stop a running OI run. Needs the run_token oi_predict returned.',
+    description: 'Stop a running TI run. Needs the run_token oi_predict returned.',
     inputSchema: {
       type: 'object',
       properties: { run_id: RUN_ID, run_token: { type: 'string', description: 'The run_token from oi_predict.' } },
@@ -134,15 +134,15 @@ export const TOOLS = [
   },
   {
     name: 'oi_info',
-    title: 'About OI',
+    title: 'About TI',
     description: 'Providers, depths, limits and endpoints, and which provider and model this connection is configured with.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true, openWorldHint: false },
   },
   {
-    name: 'osiris_world_brief',
+    name: 'takip_world_brief',
     title: 'World brief',
-    description: 'Live intelligence from OSIRIS: the latest stories on a topic (or the biggest of the moment), placed on the map, with large earthquakes and a line of market prices. Free; no model key needed.',
+    description: 'Live intelligence from TAKIP: the latest stories on a topic (or the biggest of the moment), placed on the map, with large earthquakes and a line of market prices. Free; no model key needed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -154,9 +154,9 @@ export const TOOLS = [
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
   {
-    name: 'osiris_markets',
+    name: 'takip_markets',
     title: 'Markets',
-    description: 'Live prices from the OSIRIS markets board: world indices, defence stocks, oil, commodities, crypto and FX. Free; no model key needed.',
+    description: 'Live prices from the TAKIP markets board: world indices, defence stocks, oil, commodities, crypto and FX. Free; no model key needed.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -167,7 +167,7 @@ export const TOOLS = [
     annotations: { readOnlyHint: true, openWorldHint: true },
   },
   {
-    name: 'osiris_trending',
+    name: 'takip_trending',
     title: 'What the world is betting on',
     description: 'The busiest open questions on Polymarket that can be predicted (not games, at least two weeks out), each with the crowd\'s price of YES: questions to run oi_predict on and compare with the crowd. Free; no model key needed.',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
@@ -312,14 +312,14 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
           key_configured: Boolean(ctx.creds.key),
         },
       };
-      return ok(p && ctx.creds.key ? `Configured for ${providerInfo(p).name}.` : 'No model key on this connection: OI tools need one; the OSIRIS tools do not.', data);
+      return ok(p && ctx.creds.key ? `Configured for ${providerInfo(p).name}.` : 'No model key on this connection: the oi_* tools need one; the TAKIP tools do not.', data);
     }
-    case 'osiris_world_brief': {
+    case 'takip_world_brief': {
       const topic = text(args.topic, 200);
       const items = await briefing(topic, Math.round(num(args.limit, 1, 40, 20)));
-      return ok(`${items.length} items${topic ? ` on "${topic}"` : ''} from OSIRIS live feeds.`, { topic: topic || null, items });
+      return ok(`${items.length} items${topic ? ` on "${topic}"` : ''} from TAKIP live feeds.`, { topic: topic || null, items });
     }
-    case 'osiris_markets': {
+    case 'takip_markets': {
       const group = oneOf(args.group, ['all', 'indices', 'stocks', 'oil', 'commodities', 'crypto', 'fx'] as const, 'all');
       const { getQuotes } = await import('@/app/api/markets/route');
       const quotes = (await getQuotes())
@@ -327,7 +327,7 @@ export async function callTool(name: string, args: Record<string, unknown>, ctx:
         .map(q => ({ name: q.name, symbol: q.symbol, group: q.group, price: q.price, change_pct: Math.round(q.change_percent * 100) / 100, currency: q.currency, market_open: q.market_open }));
       return ok(`${quotes.length} instruments.`, { group, quotes, as_of: new Date().toISOString() });
     }
-    case 'osiris_trending': {
+    case 'takip_trending': {
       const { trending } = await import('./markets');
       const items = (await trending((url, init) => fetch(url, init), ctx.signal))
         .map(t => ({ question: t.question, crowd_pct: Math.round(t.probability * 1000) / 10, event: t.event, url: t.url, closes: t.closes || undefined }));
@@ -379,7 +379,7 @@ export async function handleMessage(msg: unknown, ctx: McpContext): Promise<Json
           result: {
             protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : LATEST_PROTOCOL,
             capabilities: { tools: { listChanged: false } },
-            serverInfo: { name: 'osiris-oi', title: 'OSIRIS OI', version: OI_VERSION },
+            serverInfo: { name: 'takip-oi', title: 'Takip AI', version: OI_VERSION },
             instructions: INSTRUCTIONS,
           },
         };

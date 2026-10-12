@@ -1,7 +1,7 @@
 # F-argus: camera sources harvested from GoSlowPoke168/Argus
 
 Repo: [GoSlowPoke168/Argus](https://github.com/GoSlowPoke168/Argus) at `7a56f8d` (2026-08-27). MIT, code only, "Copyright (c) 2026 Jeremy Hou". Any ported function needs that notice in the file header. Data date: `cameras.geojson` was generated **2026-07-24T20:07Z** and `cameras.core.json` 2026-07-25.
-Compared against the OpenCCTV live index (`/api/cameras/markers`, fetched once, 2026-10-12 13:15 UTC, 139,362 ids) and the OSIRIS catalogue `.cache/cctv-catalog.json` (built 2026-10-11 18:42 UTC, 49,212 rows, 46,635 of them from native adapters).
+Compared against the OpenCCTV live index (`/api/cameras/markers`, fetched once, 2026-10-12 13:15 UTC, 139,362 ids) and the TAKIP catalogue `.cache/cctv-catalog.json` (built 2026-10-11 18:42 UTC, 49,212 rows, 46,635 of them from native adapters).
 The per-sub-source table for all 395 OpenCCTV subs is in [argus-opencctv-subsources.csv](argus-opencctv-subsources.csv).
 
 ## Summary
@@ -60,7 +60,7 @@ By source group: OpenCCTV 150,087 → 129,660, Windy 72,019 → 0, natives 7,202
 From there:
 
 - **136,862 usable leads.** 8,014 of them are placeholder URLs that need a resolver: `txdot://` 3,792, `faa-weathercam://` 3,269, `weatherbug://` 587 and smaller schemes.
-- **62,724 already in OSIRIS.** A row counts as in OSIRIS if its host is owned by a native adapter or an OSIRIS native camera sits within 150 m (61,451), or if `opencctv.ts` already serves it (1,273).
+- **62,724 already in TAKIP.** A row counts as in TAKIP if its host is owned by a native adapter or an TAKIP native camera sits within 150 m (61,451), or if `opencctv.ts` already serves it (1,273).
 - **74,138 net-new in the frozen snapshot.**
 
 **Live check.** Only 92,429 of Argus's 150,087 OpenCCTV ids are still in the index. The rest were mostly re-keyed: castlerock, arcgis, ny511, alertca and state511 now use hashed or new ids. 46,933 live ids are new since July. Applying the same rules to the **live** index:
@@ -69,9 +69,9 @@ From there:
 |---|---|
 | OpenCCTV ids | 139,362 |
 | Excluded | −21,529 |
-| Owned by OSIRIS native adapters | −39,292 |
+| Owned by TAKIP native adapters | −39,292 |
 | Already served by `opencctv.ts` | −2,198 |
-| Behind an OSIRIS adapter that returns 0 rows (WSDOT, DriveBC, 511 Ontario, 511 Alberta, IDOT) | −4,958 |
+| Behind an TAKIP adapter that returns 0 rows (WSDOT, DriveBC, 511 Ontario, 511 Alberta, IDOT) | −4,958 |
 | **Net-new listed** | **71,385** |
 | **Net-new after merging cross-sub duplicates** (same media, or a different sub within 30 m) | **67,881** |
 
@@ -80,13 +80,13 @@ About 86% of the net-new is directly playable (jpg/hls/mjpeg/mp4). About 7% is i
 Native upstreams add cameras OpenCCTV doesn't list: ALERTCalifornia +~1,000, Open Data Hub +~950, Seattle +~320 and Caltrans' ~2.8k HLS upgrades. **Realistic live net-new is ≈ 45–55k.** That assumes 15–30% of direct cameras are dead or stale, which is the range in the handoff's uptime data. Liveness itself was not measured, because that needs the batch fetch.
 
 **Corrections to CCTV-handoff.md:**
-- **Houston TranStar is not a 1.5k lead.** 880 of its 1,031 cameras sit within 150 m of OSIRIS TxDOT cameras (TxDOT's Houston district), leaving about 150 net-new.
-- **OSIRIS Caltrans is truncated.** It is capped at 2,000 because `route.ts` doesn't paginate the ArcGIS query. Argus's per-district JSON has 3,304 cameras.
+- **Houston TranStar is not a 1.5k lead.** 880 of its 1,031 cameras sit within 150 m of TAKIP TxDOT cameras (TxDOT's Houston district), leaving about 150 net-new.
+- **TAKIP Caltrans is truncated.** It is capped at 2,000 because `route.ts` doesn't paginate the ArcGIS query. Argus's per-district JSON has 3,304 cameras.
 - **WSDOT, DriveBC, 511 Alberta, 511 Ontario and Montreal return 0 rows** in the 2026-10-11 catalogue (511 Ontario returns only its 3 curated fallback rows).
   - WSDOT's URL now returns 404.
   - Alberta answers "Invalid Key".
-  - DriveBC: Argus's URL variant returns 1,067 cameras. OSIRIS's own variant (`drivebc.ca/api/webcams`, no `www.`, no trailing slash, no `format=json`) was not probed. The URL difference is the likely cause; also check the 10 s `subSource` timeout against a 1.24 MB body.
-- **OSIRIS is serving 333 Windy-hosted cameras, 3 Opentopia cameras and 2 credentialed `bondowoso` URLs** through `opencctv.ts` right now.
+  - DriveBC: Argus's URL variant returns 1,067 cameras. TAKIP's own variant (`drivebc.ca/api/webcams`, no `www.`, no trailing slash, no `format=json`) was not probed. The URL difference is the likely cause; also check the 10 s `subSource` timeout against a 1.24 MB body.
+- **TAKIP is serving 333 Windy-hosted cameras, 3 Opentopia cameras and 2 credentialed `bondowoso` URLs** through `opencctv.ts` right now.
 
 **Top 10 picks** (full ranking at the end):
 1. Lift `opencctv.ts`'s Asia caps (+23k).
@@ -105,11 +105,11 @@ Native upstreams add cameras OpenCCTV doesn't list: ALERTCalifornia +~1,000, Ope
 **Column key:**
 - **Argus:** rows in the Argus snapshot.
 - **Live:** OpenCCTV ids now, plus the upstream count where probed.
-- **Net-new:** cameras OSIRIS lacks, after exclusions and ownership.
-- **Overlap:** OSIRIS rows owned or nearby.
-- **Port:** `bridge` means `scripts/scrapers/opencctv_bridge.py` (`_get_ids`, `_post_batch`, `_direct_eligible`, `_to_feature`). OSIRIS already has the equivalent fetch in `opencctv.ts`; what's worth taking from Argus is the 429 backoff, the `force_direct` / `proxy_zone` / `geo_allow` admission and the ipcamlive resolver.
+- **Net-new:** cameras TAKIP lacks, after exclusions and ownership.
+- **Overlap:** TAKIP rows owned or nearby.
+- **Port:** `bridge` means `scripts/scrapers/opencctv_bridge.py` (`_get_ids`, `_post_batch`, `_direct_eligible`, `_to_feature`). TAKIP already has the equivalent fetch in `opencctv.ts`; what's worth taking from Argus is the 429 backoff, the `force_direct` / `proxy_zone` / `geo_allow` admission and the ipcamlive resolver.
 
-| Source | Country/region | Argus | Live now | Net-new | Endpoint pattern | Auth | Media | OSIRIS overlap | Port from | Probe |
+| Source | Country/region | Argus | Live now | Net-new | Endpoint pattern | Auth | Media | TAKIP overlap | Port from | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | MLIT river cams (`rivergojp`) | JP | 10,628 | 10,837 | 10,292 | `cam.river.go.jp/…jpg`; index = OpenCCTV | none | jpg | 33 curated + 534 in the `opencctv.ts` sample (host match is misleading here) | bridge (Asia uncap) | not probed (OpenCCTV is the index) |
 | twipcam relay + Freeway Bureau (`twipcam`) | TW | 6,013 | 5,874 | 5,015 | `c01.twipcam.com/cam/snapshot/wra-{id}.jpg` (WRA river cams); `cctv{n,c,s}.freeway.gov.tw/abs2mjpg/bmjpg?camera={id}` | none | jpg 4,775 / mjpeg 1,237 | 322 near THB; 536 sampled | bridge | `tisvcloud.freeway.gov.tw/history/motc20/CCTV.xml`: timeout |
@@ -123,20 +123,20 @@ Native upstreams add cameras OpenCCTV doesn't list: ALERTCalifornia +~1,000, Ope
 | NDAWN (`ndawn`, new since July) | US ND/MN 1,648, CA 56 | 0 | 1,704 | 1,704 | ids `ndawn-{station}-{n}`; upstream host only visible through a batch call | ? | ? | none | bridge | not probed |
 | MLIT road images (`road-info-prvs`) | JP | 1,320 | 1,757 | 1,673 | `www.road-info-prvs.mlit.go.jp/roadinfo/img/doro_gazo/pc/{timestamp}/{id}.jpeg`: a **`{timestamp}` template**, resolve at view time | none | jpg (template) | 83 sampled | bridge + template resolver | not probed |
 | VDOT (`virginia`) | US-VA | 1,469 | 1,564 | 1,563 | `media-sfs{n}.vdotcameras.com/rtplive/{cam}/playlist_sfm4s.m3u8`; native index not found | none | hls | none | bridge | guessed `511.vdot.virginia.gov/services/map/layers/map/cams`: 404 |
-| Castle Rock aggregator (`castlerock`) | US: CO 965, MA 158, IE 214 (TII); MN/IN/KS owned | 4,798 | 4,237 | 1,475 | `video.dot.state.mn.us/public/{cam}.stream/playlist.m3u8`; `kdot-sfs{n}.us-east-1.skyvdn.com/rtplive/…`; `skysfs3.trafficwise.org/…` | none | hls 4,212 / jpg 586 | 2,762 owned. These are **HLS upgrades** for MnDOT, INDOT and KDOT, which OSIRIS shows as stills | bridge; CO via the `cars511x` one-liner (handoff) | not probed |
-| WSDOT (`wsdot`). **Fix** | US-WA | 33 | 1,539 | 1,467 (fix) | OSIRIS `route.ts` calls `data.wsdot.wa.gov/log/public/cameras.json` → 404; media `images.wsdot.wa.gov/{region}/{id}.jpg` | WSDOT Traveler API: free AccessCode | jpg | adapter exists, 0 rows | bridge, or WSDOT API | OSIRIS URL: 404 text/html |
-| CamStreamer YouTube (`camstreamer`) | US, JP, GB… | 1,784 | 1,567 | 1,453 (embed) | YouTube embed ids | none | youtube | OSIRIS CamStreamer has 49 | bridge | not probed |
+| Castle Rock aggregator (`castlerock`) | US: CO 965, MA 158, IE 214 (TII); MN/IN/KS owned | 4,798 | 4,237 | 1,475 | `video.dot.state.mn.us/public/{cam}.stream/playlist.m3u8`; `kdot-sfs{n}.us-east-1.skyvdn.com/rtplive/…`; `skysfs3.trafficwise.org/…` | none | hls 4,212 / jpg 586 | 2,762 owned. These are **HLS upgrades** for MnDOT, INDOT and KDOT, which TAKIP shows as stills | bridge; CO via the `cars511x` one-liner (handoff) | not probed |
+| WSDOT (`wsdot`). **Fix** | US-WA | 33 | 1,539 | 1,467 (fix) | TAKIP `route.ts` calls `data.wsdot.wa.gov/log/public/cameras.json` → 404; media `images.wsdot.wa.gov/{region}/{id}.jpg` | WSDOT Traveler API: free AccessCode | jpg | adapter exists, 0 rows | bridge, or WSDOT API | TAKIP URL: 404 text/html |
+| CamStreamer YouTube (`camstreamer`) | US, JP, GB… | 1,784 | 1,567 | 1,453 (embed) | YouTube embed ids | none | youtube | TAKIP CamStreamer has 49 | bridge | not probed |
 | OpenSnow (`opensnow`) | US, CA, FR | 1,251 | 1,292 | 1,238 | `webcams.opensnow.com/current/{id}.jpg`; index unknown | none (media) | jpg | 52 near | bridge | not probed |
 | IBI 511 aggregator (`state511`) | US: SC 767, CT 346 net; the other states are owned | 26,194 (18,160 are UT rows, apparently duplicates) | 13,634 | 1,130 | `{511 host}/map/Cctv/{id}`; CT through the existing `ibi511.ts` (`ctroads.org/List/GetData/Cameras`) | none | jpg | 12,503 owned (UDOT, GDOT, NDOT, FDOT, PennDOT, ITD, LADOTD, ADOT, AK) | `ibi511.ts` config line (CT) | CT: 200 json, recordsTotal 347 (`isVideoAuthRequired` → stills only) |
 | Airport webcams (`airportwebcams`) | global | 1,131 | 1,056 | 1,050 (792 embed) | mixed (`weathercams.faa.gov` 275, `cam-aero.eu`, `aero.webcam`…) | none | iframe 834 / jpg 285 | — | bridge + `host_prober.py:probe_iframe_host` | not probed |
-| DriveBC (Argus native + OpenCCTV `drivebc`). **Fix** | CA-BC | 1,048 | **1,067** (1,045 `is_on`) | 1,045 (fix) | `www.drivebc.ca/api/webcams/?format=json` → list with `id`, `name`, `location.coordinates`, `links.imageDisplay` (`/images/{id}.jpg?t=`), `is_on`, `marked_stale` | none | jpg | OSIRIS DriveBC returns 0 rows. It calls `drivebc.ca/api/webcams` (no www, no slash, no format); that variant was not probed, so the URL is the likely cause, not a verified one | `scrapers/canada/bc/drivebc.py:fetch` | 200 json 1.24 MB |
-| Caltrans (Argus native, OpenCCTV `caltrans`, otcm-CA) | US-CA | 3,304 (+248) | D7 alone: 592 rows, 478 in service, 401 with HLS | ~940 cameras + ~2.8k HLS | `cwwp2.dot.ca.gov/data/d{n}/cctv/cctvStatusD{nn}.json`, n = 1…12 → `cctv.location.*`, `inService`, `imageData.static.currentImageURL`, `imageData.streamingVideoURL` (`wzmedia.dot.ca.gov` HLS) | none | jpg + hls | OSIRIS Caltrans has 2,000: the ArcGIS cap, no `resultOffset` paging | `scrapers/usa/california/caltrans.py:fetch` | D7: 200 json 1.85 MB |
+| DriveBC (Argus native + OpenCCTV `drivebc`). **Fix** | CA-BC | 1,048 | **1,067** (1,045 `is_on`) | 1,045 (fix) | `www.drivebc.ca/api/webcams/?format=json` → list with `id`, `name`, `location.coordinates`, `links.imageDisplay` (`/images/{id}.jpg?t=`), `is_on`, `marked_stale` | none | jpg | TAKIP DriveBC returns 0 rows. It calls `drivebc.ca/api/webcams` (no www, no slash, no format); that variant was not probed, so the URL is the likely cause, not a verified one | `scrapers/canada/bc/drivebc.py:fetch` | 200 json 1.24 MB |
+| Caltrans (Argus native, OpenCCTV `caltrans`, otcm-CA) | US-CA | 3,304 (+248) | D7 alone: 592 rows, 478 in service, 401 with HLS | ~940 cameras + ~2.8k HLS | `cwwp2.dot.ca.gov/data/d{n}/cctv/cctvStatusD{nn}.json`, n = 1…12 → `cctv.location.*`, `inService`, `imageData.static.currentImageURL`, `imageData.streamingVideoURL` (`wzmedia.dot.ca.gov` HLS) | none | jpg + hls | TAKIP Caltrans has 2,000: the ArcGIS cap, no `resultOffset` paging | `scrapers/usa/california/caltrans.py:fetch` | D7: 200 json 1.85 MB |
 | PhenoCam | US 694, FR, ES… | 891 | 916 OCC / **1,086** upstream (incl. inactive) | ~913 | `phenocam.nau.edu/api/cameras/?format=json&limit=&offset=` (DRF: `Sitename`, `Lat`, `Lon`, `active`, `date_last`); image `phenocam.nau.edu/data/latest/{site}.jpg` | none | jpg (30-min stills) | none | native | 200 json 1.4 kB, count 1,086 |
 | USGS HIVIS (`hivis`) | US (AK-heavy) | 857 | 916 | 912 | `usgs-nims-images.s3.amazonaws.com/{n}/{cam}/{cam}_newest.jpg`; index unknown | none | jpg | none | bridge | not probed |
 | OpenWebcamDB (`openwebcamdb`) | global | 894 | 948 | 815 (767 embed) | YouTube / tvkur embeds | none (don't use their API; see the leaked-token note in the handoff) | youtube | 88 sampled | bridge | not probed |
 | SCDOT (`scdot`) | US-SC | 743 | 774 | 772 (the same cameras as `s511-SC`) | `s{18-20}.us-east-1.skyvdn.com/rtplive/{id}/playlist.m3u8` | none | hls | none | Iteris loader (handoff: `sc.cdn.iteris-atis.com/geojson/icons/metadata/icons.cameras.geojson`) | not probed (verified by handoff) |
-| 511 Ontario (`ontario`). **Fix** | CA-ON | 898 | 869 | 754 (fix) | OSIRIS calls `511on.ca/api/v2/get/cameras`; media `511on.ca/map/Cctv/{id}` | ? | jpg | 3 curated fallback rows | — | not probed |
-| Trafikverket weather-station cams (`trafikverket`) | SE | 1,489 | 1,497 | 724 (VViS road-weather cams) | `api.trafikinfo.trafikverket.se/…` images | media keyless; the official list API needs a free key | jpg | 773 owned (OSIRIS Sweden via Kolla Trafiken) | bridge | not probed |
+| 511 Ontario (`ontario`). **Fix** | CA-ON | 898 | 869 | 754 (fix) | TAKIP calls `511on.ca/api/v2/get/cameras`; media `511on.ca/map/Cctv/{id}` | ? | jpg | 3 curated fallback rows | — | not probed |
+| Trafikverket weather-station cams (`trafikverket`) | SE | 1,489 | 1,497 | 724 (VViS road-weather cams) | `api.trafikinfo.trafikverket.se/…` images | media keyless; the official list API needs a free key | jpg | 773 owned (TAKIP Sweden via Kolla Trafiken) | bridge | not probed |
 | Statens vegvesen (`vegvesen`) | NO | 710 | 702 | 702 | `kamera.atlas.vegvesen.no/api/images/{id}`; DATEX list needs an account | media keyless | jpg | none | bridge | not probed |
 | Skaping (`skaping`) | FR | 800 | 688 | 685 (embed) | `www.skaping.com/{site}/{cam}` | none | iframe | none | `probe_iframe_host` | not probed |
 | WYDOT (`wyoroad`, new since July) | US-WY | 0 | 693 | 680 | ids `wyoroad-{site}-{n}`; host not seen | ? | ? | 13 near | bridge | not probed |
@@ -151,30 +151,30 @@ Native upstreams add cameras OpenCCTV doesn't list: ALERTCalifornia +~1,000, Ope
 | myairportcams / Airservices | AU, NZ, PG | 514 | 501 | 501 | `view.myairportcams.com/…`, `weathercams.airservicesaustralia.com/wp-content/uploads/airports/{n}/{n}_{n}.jpg` | none | jpg | none | bridge | not probed |
 | MD CHART (`mdchart`) | US-MD | 541 | 474 | 474 | `strmr{n}.sha.maryland.gov/rtplive/{hex}/playlist.m3u8` | none | hls | none | bridge | not probed |
 | Seoul TOPIS (`topis-seoul`) | KR | 500 | 493 | 467 | `topiscctv1.eseoul.go.kr/…m3u8` | none | hls | 23 sampled | bridge (Asia) | not probed |
-| 511 Alberta (`alberta`). **Fix** | CA-AB | 447 | 450 | 450 (fix) | OSIRIS calls `511.alberta.ca/api/v2/get/cameras` | **now needs a key** | jpg | adapter exists, 0 rows | — | 400 xml "Invalid Key" |
+| 511 Alberta (`alberta`). **Fix** | CA-AB | 447 | 450 | 450 (fix) | TAKIP calls `511.alberta.ca/api/v2/get/cameras` | **now needs a key** | jpg | adapter exists, 0 rows | — | 400 xml "Invalid Key" |
 | OKTraffic (`oktraffic`) | US-OK | 31 | 440 | 440 | `stream.oktraffic.org/delay-stream/{id}.stream/playlist.m3u8` | none | hls | none | bridge | not probed |
 | Jogja province (`jogjaprov`) | ID | 543 | 499 | 434 | `cctv.jogjaprov.go.id/…m3u8` | none | hls | 63 sampled | bridge (Asia) | not probed |
 | webcamera.pl | PL | 460 | 429 | 418 | `imageserver.webcamera.pl/miniaturki/{slug}.jpg` | none | jpg | 11 near | bridge | not probed |
 | feratel (direct) | AT, DE, IT | 856 | 410 | 410 (≈ the same spots as Open Data Hub: 408 within 30 m) | `wtvpict.feratel.com/picture/{n}/{id}.jpeg` | none (feratel terms) | jpg | none | bridge | not probed |
 | Bayern Info (`bayerninfo`) | DE ~370 (`/cam/bi/`), AT 461 (`/cam/asfinag/`, owned) | 838 | 843 | 397 | `map.bayerninfo.de/cam/{bi\|asfinag}/{id}` | none | jpg | 446 owned (ASFINAG) | bridge | not probed |
 | York Region (`yorkmaps`) | CA-ON | 386 | 390 | 390 | `ww{n}.yorkmaps.ca/webtrafficimages/loc{id}.jpg` | none | jpg | none | bridge | not probed |
-| IDOT / travelmidwest. **Fix** | US-IL | 412 | 348 (+897 `arcgis-IL`) | 348 + 897 (fix) | OSIRIS `travelmidwest.com/lmiga/cameraReport.json` now returns empty; media `cctv.travelmidwest.com/…jpg` | none | jpg | adapter exists, 0 rows | bridge | not probed (handoff: empty) |
+| IDOT / travelmidwest. **Fix** | US-IL | 412 | 348 (+897 `arcgis-IL`) | 348 + 897 (fix) | TAKIP `travelmidwest.com/lmiga/cameraReport.json` now returns empty; media `cctv.travelmidwest.com/…jpg` | none | jpg | adapter exists, 0 rows | bridge | not probed (handoff: empty) |
 | Madrid Informo | ES | 352 | 352 OCC / **357** upstream | ~335 (also inside `osm-webcams`) | `informo.madrid.es/informo/tmadrid/CCTV.kml`; image `informo.madrid.es/cameras/Camara{n}.jpg` | none | jpg | 17 near | native | 200 kml 239 kB, 357 placemarks |
 | **Long tail**: 298 more OpenCCTV subs (Busan 336, AVAMET 316, KKR 308, NE Travel Data 304, foto-webcam 303, ipcamlive 277, Arlington 266, QLDTraffic 252, USGS ashcam 240, Calgary 213, Traffic Wales 213, Siata 187, NMRoads 171…) | EU 5.4k, Asia boxes 4.1k, US 3.7k, rest 2.2k | 29,500 | 28,007 | 15,407 (14,428 direct) | see CSV | mostly none | mixed | 12,008 owned | bridge | not probed |
-| Iowa DOT (Argus native) | US-IA | 846 | 1,260 (ArcGIS count) | ~14 + HLS upgrade | `services.arcgis.com/8lRhdTsQyJpO52F1/ArcGIS/rest/services/Traffic_Cameras_View/FeatureServer/0/query` → `ImageURL`, `VideoURL` | none | jpg + hls | OSIRIS Iowa DOT 861 (CARS stills) | `scrapers/usa/iowa/iowa511.py:fetch` (VideoURL) | 200 json, count 1,260 |
-| NYC DOT, TfL, NZTA, LTA Singapore (Argus natives) | US / GB / NZ / SG | 968 / 779 / 249 / 8 | — | 0 | `webcams.nyctmc.org/api/cameras`, `api.tfl.gov.uk/Place/Type/JamCam`, `trafficnz.info/service/traffic/rest/4/cameras/all`, `api.data.gov.sg/v1/transport/traffic-images` | none | jpg (TfL also mp4) | in OSIRIS (982 / 890 / 248 / 8) | — | not probed (live in OSIRIS) |
-| Owned OpenCCTV subs (TxDOT 2,422, digitraffic 2,148, DGT 1,806, ny511 1,500, ASFINAG 1,081, Autostrade 951, nycdot 941 (US-geo-gated), TfL 890, HK 814 + 152 served, MiDrive 634, New England 317, Eismoinfo 308…) | — | — | — | ~0 | — | — | — | owned by native adapters; add these hosts to owns_hosts | `txdot_resolver.py` not needed (OSIRIS has TxDOT) | — |
+| Iowa DOT (Argus native) | US-IA | 846 | 1,260 (ArcGIS count) | ~14 + HLS upgrade | `services.arcgis.com/8lRhdTsQyJpO52F1/ArcGIS/rest/services/Traffic_Cameras_View/FeatureServer/0/query` → `ImageURL`, `VideoURL` | none | jpg + hls | TAKIP Iowa DOT 861 (CARS stills) | `scrapers/usa/iowa/iowa511.py:fetch` (VideoURL) | 200 json, count 1,260 |
+| NYC DOT, TfL, NZTA, LTA Singapore (Argus natives) | US / GB / NZ / SG | 968 / 779 / 249 / 8 | — | 0 | `webcams.nyctmc.org/api/cameras`, `api.tfl.gov.uk/Place/Type/JamCam`, `trafficnz.info/service/traffic/rest/4/cameras/all`, `api.data.gov.sg/v1/transport/traffic-images` | none | jpg (TfL also mp4) | in TAKIP (982 / 890 / 248 / 8) | — | not probed (live in TAKIP) |
+| Owned OpenCCTV subs (TxDOT 2,422, digitraffic 2,148, DGT 1,806, ny511 1,500, ASFINAG 1,081, Autostrade 951, nycdot 941 (US-geo-gated), TfL 890, HK 814 + 152 served, MiDrive 634, New England 317, Eismoinfo 308…) | — | — | — | ~0 | — | — | — | owned by native adapters; add these hosts to owns_hosts | `txdot_resolver.py` not needed (TAKIP has TxDOT) | — |
 | Road511 (`road511_usa` plugin) | US, 20 states | 0 | — | 0 | `api.road511.com/api/v1/features?type=cameras&jurisdiction={ST}` | **now keyed** | — | — | don't port | 401 json "API key required" |
-| Windy (plugin + 4 OpenCCTV subs) | global | 91,775 | 21,333 OCC | excluded | `imgproxy.windy.com`, `images-webcams.windy.com` | free key, 10-min image tokens | jpg | OSIRIS serves 333 via `opencctv.ts` (remove) | don't port | not probed |
+| Windy (plugin + 4 OpenCCTV subs) | global | 91,775 | 21,333 OCC | excluded | `imgproxy.windy.com`, `images-webcams.windy.com` | free key, 10-min image tokens | jpg | TAKIP serves 333 via `opencctv.ts` (remove) | don't port | not probed |
 
 ## OpenCCTV widening (live index, 2026-10-12)
 
 How the columns were computed:
-- **Owned:** an OSIRIS native camera within 150 m, or the media host belongs to a native adapter. Excluded are two hosts OSIRIS covers only partly: river.go.jp (33 curated) and 511 Ontario (fallback).
+- **Owned:** an TAKIP native camera within 150 m, or the media host belongs to a native adapter. Excluded are two hosts TAKIP covers only partly: river.go.jp (33 curated) and 511 Ontario (fallback).
 - **Excluded:** the sub-source exclusions (Windy ×4, Opentopia) plus per-row URL rules. Ids Argus never saw take their sub-source's rate.
 - **Box:** `opencctv.ts`'s three boxes. They also reach Turkey, the Middle East and parts of eastern Europe east of 25°E.
 
-| Region | ids | owned elsewhere | served today | excluded | fix OSIRIS adapter | net-new (listed) | net-new after cross-sub merge | of net: direct / embed / resolver |
+| Region | ids | owned elsewhere | served today | excluded | fix TAKIP adapter | net-new (listed) | net-new after cross-sub merge | of net: direct / embed / resolver |
 |---|---|---|---|---|---|---|---|---|
 | Inside `opencctv.ts` boxes (JP 14.7k, TW 6.0k, KR 2.4k, VN 1.3k, ID 1.5k, TR…) | 29,042 | 1,289 | 2,198 | 2,395 | 0 | 23,160 | **23,108** | 20,921 / 566 / 1,673 (template) |
 | North America: US | 58,212 | 27,218 | 0 | 2,946 | 2,694 | 25,354 | **23,091** | 21,093 / 1,715 / 2,546 (FAA) |
@@ -232,7 +232,7 @@ Where the ownership and exclusions fall: the sub-sources that owns_hosts and the
 ## Top 10 adapters to build first (net-new ÷ effort)
 
 Effort scale:
-- **1:** a keyless documented index, or a config line in an existing OSIRIS loader.
+- **1:** a keyless documented index, or a config line in an existing TAKIP loader.
 - **2:** a new adapter with per-camera calls or a resolver, or OpenCCTV batch volume that needs the ingest job.
 - **3:** scrape or keyed.
 
@@ -247,7 +247,7 @@ The net-new figures are measured above.
 | 5 | FAA WeatherCams (+NAV CANADA) | 3,255 | 2 | 1.6k | Keyless, but the latest image is one call per camera |
 | 6 | CDOT COtrip (`cars511x` line, `api-511x-co.carsprogram.org`) | ~1,000 (castlerock CO 965 + otcm CO, merged) | 1 | 1.0k | One config line (handoff) |
 | 7 | Caltrans → cwwp2 per-district JSON | ~940 + ~2,800 HLS | 1 | 0.9k+ | Port `scripts/scrapers/usa/california/caltrans.py:fetch` (12 GETs, `inService` filter, `streamingVideoURL`). Fixes the 2,000 cap |
-| 8 | DriveBC fix | 1,045 | 1 | 1.0k | Port `scripts/scrapers/canada/bc/drivebc.py:fetch` (`www.` + trailing slash + `format=json`). Argus's variant verified at 1,067; OSIRIS's variant not probed, so also check the 10 s timeout |
+| 8 | DriveBC fix | 1,045 | 1 | 1.0k | Port `scripts/scrapers/canada/bc/drivebc.py:fetch` (`www.` + trailing slash + `format=json`). Argus's variant verified at 1,067; TAKIP's variant not probed, so also check the 10 s timeout |
 | 9 | PhenoCam | ~913 active (1,086 total) | 1 | 0.9k | Keyless DRF API |
 | 10 | Iteris loader: SCDOT + SDDOT (+MDT) | ~920 (772 + 153, + MT) | 1 | 0.9k | One shared loader (handoff endpoint); SC HLS + stills |
 
@@ -276,7 +276,7 @@ Also worth porting from Argus (MIT, with notice):
 
 ## Method and caveats
 
-- **Probes.** One GET each, sequential, using the brief's curl. There were 16: 3 OSIRIS-diagnostic (WSDOT, Alberta, DriveBC variant), 3 guessed endpoints that 404'd or timed out (VDOT, ALGO, Taiwan tisvcloud), and the rest listed in the table. The OpenCCTV marker index was the only OpenCCTV request, with no batch POSTs.
+- **Probes.** One GET each, sequential, using the brief's curl. There were 16: 3 TAKIP-diagnostic (WSDOT, Alberta, DriveBC variant), 3 guessed endpoints that 404'd or timed out (VDOT, ALGO, Taiwan tisvcloud), and the rest listed in the table. The OpenCCTV marker index was the only OpenCCTV request, with no batch POSTs.
 - **Unknown upstreams.** NDAWN, WYDOT and the other ids Argus never saw (46,933) were mapped to sub-sources by id prefix. Their hosts and liveness are unknown until a batch fetch.
 - **Countries for new ids** were assigned by the nearest Argus point (0.5° grid).
 - **Spatial matching is conservative.** It merges distinct cameras on the same tower; for example, ALERTCalifornia vs FAA (343) and FAA vs USGS ashcam (122) are counted as duplicates.

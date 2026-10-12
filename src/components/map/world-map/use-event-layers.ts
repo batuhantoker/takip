@@ -6,7 +6,7 @@ import type { LayerHookArgs } from './types';
 export function useEarthquakeLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('earthquakes', activeLayers.earthquakes && data.earthquakes ? data.earthquakes.map((eq: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [eq.lng, eq.lat] }, properties: { id: eq.id, magnitude: eq.magnitude, place: eq.place, depth: eq.depth, source: eq.source } })) : []);
+    setGeo('earthquakes', activeLayers.earthquakes && data.earthquakes ? data.earthquakes.map((eq: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [eq.lng, eq.lat] }, properties: { id: eq.id, magnitude: eq.magnitude, place: eq.place, depth: eq.depth, source: eq.source, url: eq.url, network: eq.network, twin_source: eq.twin?.source, twin_magnitude: eq.twin?.magnitude, twin_network: eq.twin?.network } })) : []);
   }, [mapReady, data.earthquakes, activeLayers.earthquakes, setGeo]);
 }
 

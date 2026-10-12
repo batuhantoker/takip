@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: what an actor quoted, and where from.
+ * TAKIP OI: what an actor quoted, and where from.
  *
  * Under a move, each quote in its own words with the source it came from, a
  * click away: the headline, the passage of the asker's data. A quote found

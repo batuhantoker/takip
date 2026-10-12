@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: Forecast or Assist.
+ * TAKIP OI: Forecast or Assist.
  *
  * The two ways to use OI as one compact switch, each in its own colour so it
  * is never in doubt which is showing: Forecast in gold, Assist in blue. Each
@@ -15,7 +15,7 @@ export type OiMode = 'forecast' | 'assist';
 
 const MODES: { value: OiMode; label: string; blurb: string }[] = [
   { value: 'forecast', label: 'Forecast', blurb: 'The actors play your question out in parallel worlds' },
-  { value: 'assist', label: 'Assist', blurb: 'Talk to OI and it works the map for you' },
+  { value: 'assist', label: 'Assist', blurb: 'Talk to TI and it works the map for you' },
 ];
 
 /** The colour a mode wears everywhere it shows: gold for Forecast, blue for Assist. */
@@ -32,7 +32,7 @@ export function ModeSwitch({ id, mode, onMode, forecastLive = false, assistBusy 
   assistBusy?: boolean;
 }) {
   return (
-    <div role="tablist" aria-label="How to use OI" className="grid grid-cols-2 gap-[2px] p-[3px] rounded-lg border border-[var(--border-secondary)] bg-black/50">
+    <div role="tablist" aria-label="How to use TI" className="grid grid-cols-2 gap-[2px] p-[3px] rounded-lg border border-[var(--border-secondary)] bg-black/50">
       {MODES.map(m => {
         const on = mode === m.value;
         const working = m.value === 'forecast' ? forecastLive : assistBusy;
@@ -49,7 +49,7 @@ export function ModeSwitch({ id, mode, onMode, forecastLive = false, assistBusy 
             <Icon className="relative w-3.5 h-3.5" />
             <span className="relative">{m.label}</span>
             {working && (
-              <span className="relative w-1.5 h-1.5 rounded-full animate-osiris-pulse" title={m.value === 'forecast' ? 'A forecast is running' : 'OI is replying'}
+              <span className="relative w-1.5 h-1.5 rounded-full animate-takip-pulse" title={m.value === 'forecast' ? 'A forecast is running' : 'TI is replying'}
                 style={{ background: accent, boxShadow: `0 0 6px ${tint(0.8)}` }} />
             )}
           </button>

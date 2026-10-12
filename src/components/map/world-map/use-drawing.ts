@@ -54,6 +54,11 @@ export function useDrawing({ mapRef, mapReady, drawMode, drawCommand, onDrawComp
       drawCbRef.current.onDrawProgress?.(null);
       return;
     }
+    // useRegionPick owns region mode, including its progress.
+    if (drawMode === 'region') {
+      teardown();
+      return;
+    }
 
     map.doubleClickZoom.disable();
     map.getCanvas().style.cursor = 'crosshair';

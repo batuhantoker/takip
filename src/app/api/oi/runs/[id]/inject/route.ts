@@ -2,7 +2,7 @@ import { getRun, injectEvent, ownsRun } from '@/lib/oi/runs';
 import { disabled, disabledResponse, fail, json, readBody } from '@/lib/oi/service';
 
 /**
- * OSIRIS OI — the god's-eye view: drop an event into a running simulation.
+ * TAKIP OI — the god's-eye view: drop an event into a running simulation.
  * It lands in every simulated world at the start of the next period.
  *
  * POST /api/oi/runs/{id}/inject

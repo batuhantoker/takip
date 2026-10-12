@@ -12,7 +12,7 @@ export interface WeatherGrid {
   }[];
 }
 
-export const WX_PROTOCOL = 'osiris-wx';
+export const WX_PROTOCOL = 'takip-wx';
 export const WX_ATTRIBUTION = '<a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather © Open-Meteo.com</a> (CC BY 4.0)';
 export const RADAR_ATTRIBUTION = '<a href="https://www.rainviewer.com/" target="_blank" rel="noopener">Radar © RainViewer</a>';
 /** RainViewer's free tiles stop at z7 and answer deeper zooms with a placeholder image. */

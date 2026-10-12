@@ -4,7 +4,7 @@ import { classify, type AlertKind } from '@/lib/alert-digest';
 export type { AlertKind };
 
 /**
- * OSIRIS — pins a Live Alerts report to the place it names.
+ * TAKIP — pins a Live Alerts report to the place it names.
  *
  * The feed used to pin every report to one of fifteen country centroids, by
  * keyword. Reports name their places — "the village of Tayasir, northeast of

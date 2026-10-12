@@ -293,7 +293,7 @@ export function createArcLayer(): CustomLayerInterface & {
       if (!proj || !args.shaderData?.vertexShaderPrelude) return;
       let set: Programs;
       try { set = programsFor(args.shaderData); }
-      catch (err) { console.error('[OSIRIS] OI layer:', err instanceof Error ? err.message : err); return; }
+      catch (err) { console.error('[TAKIP] OI layer:', err instanceof Error ? err.message : err); return; }
       lastProjection = proj;
       lastShader = args.shaderData;
       if (arcsDirty) { buildArcs(); arcsDirty = false; }

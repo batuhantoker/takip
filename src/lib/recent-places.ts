@@ -14,7 +14,7 @@ export interface RecentPlace {
   at: number;
 }
 
-const KEY = 'osiris.recent-places';
+const KEY = 'takip.recent-places';
 export const RECENT_CAP = 6;
 
 /** The same place, by name and position to about a hundred metres. */

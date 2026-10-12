@@ -9,14 +9,14 @@ import {
 export const dynamic = 'force-dynamic';
 
 /**
- * OSIRIS — botnet C2 indicators from abuse.ch Feodo Tracker.
+ * TAKIP — botnet C2 indicators from abuse.ch Feodo Tracker.
  *
  * One indicator per listed command-and-control server, carrying only what the
  * blocklist reports. This route does not synthesise attacker origins, attack
  * actions or duplicate events; see `@/lib/c2-indicators` for what it used to
  * do and why that was wrong.
  *
- * `fetched_at` is when OSIRIS polled the provider. It is not an observation
+ * `fetched_at` is when TAKIP polled the provider. It is not an observation
  * time — those are each indicator's `first_seen` and `last_online`.
  */
 
@@ -45,7 +45,7 @@ export async function GET() {
     const res = await fetch('https://feodotracker.abuse.ch/downloads/ipblocklist.json', {
       signal: AbortSignal.timeout(10000),
       cache: 'no-store',
-      headers: { 'User-Agent': 'OSIRIS/4.3', Accept: 'application/json' },
+      headers: { 'User-Agent': 'TAKIP/0.1', Accept: 'application/json' },
     });
 
     if (!res.ok) {
@@ -68,7 +68,7 @@ export async function GET() {
 
     return NextResponse.json(result, { headers: CACHE_HEADERS });
   } catch (error) {
-    console.error('[OSIRIS] C2 indicator feed error:', error);
+    console.error('[TAKIP] C2 indicator feed error:', error);
     return NextResponse.json({ indicators: [], total: 0, online: 0, error: 'Feed unavailable' }, { status: 500 });
   }
 }

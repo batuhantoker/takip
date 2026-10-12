@@ -6,7 +6,7 @@ import { EMPTY_FC } from '@/lib/map-base-layers';
 import { flightPopupHtml, flightRouteEndsHtml, flightScheduleHtml, htmlEsc, idSafe, muted, type ScheduleReply } from '@/lib/map-popups';
 import type { ShowPopup } from './types';
 
-export function bindFlightClicks(map: maplibregl.Map, popup: ShowPopup, popupRef: RefObject<maplibregl.Popup | null>) {
+export function bindFlightClicks(map: maplibregl.Map, popup: ShowPopup, popupRef: RefObject<maplibregl.Popup | null>, drawing: () => boolean) {
   // A token for the aircraft whose route is drawn, so a slow reply for one
   // already deselected cannot draw over the current selection.
   let flightSel = 0;
@@ -16,7 +16,7 @@ export function bindFlightClicks(map: maplibregl.Map, popup: ShowPopup, popupRef
   // ── Flights (with FlightAware + ADS-B Exchange links + ROUTE VISUALIZATION) ──
   ['fl-commercial','fl-private','fl-jets','fl-military'].forEach(layer => {
     map.on('click', layer, e => {
-      if (!e.features?.length) return;
+      if (!e.features?.length || drawing()) return;
       const p = e.features[0].properties as any;
       const coords = (e.features[0].geometry as any).coordinates;
       const cs = (p.callsign||'').trim();

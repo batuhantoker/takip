@@ -1,14 +1,16 @@
 
 import { NextResponse } from 'next/server';
 import { cachedSource } from '@/lib/sourceCache';
+import { ecbQuotes, ecbSeriesUrl } from './ecb-fx';
 
 /**
- * OSIRIS — Financial Markets & Commodities API
+ * TAKIP — Financial Markets & Commodities API
  *
  * Indices, rates, FX, defense equities, energy, commodities and crypto, all
- * from Yahoo's v8 chart endpoint. One request per symbol buys the last close,
- * a month of daily closes for the sparkline, and the session window — so the
- * panel can show a trend and say whether the market is actually open.
+ * from Yahoo's v8 chart endpoint (FX falls back to ECB fixings, ./ecb-fx).
+ * One request per symbol buys the last close, a month of daily closes for
+ * the sparkline, and the session window — so the panel can show a trend and
+ * say whether the market is actually open.
  *
  * The old v6 quote fallback was removed: Yahoo decommissioned it and it 404s
  * on every call, so it only ever added a round-trip to a failing request.
@@ -198,6 +200,19 @@ async function fetchBatch(tickers: typeof TICKERS, into: Map<string, Quote>): Pr
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 }
 
+/** ECB fixings for FX pairs Yahoo gave us nothing for, or none. */
+async function fetchEcbFx(tickers: typeof TICKERS): Promise<Quote[]> {
+  try {
+    const res = await fetch(ecbSeriesUrl(Date.now()), {
+      signal: AbortSignal.timeout(8000),
+      headers: { 'User-Agent': 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)', Accept: 'application/json' },
+    });
+    return res.ok ? ecbQuotes(await res.json(), tickers) : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * All instruments in one pass, with a second go at whatever missed. The retry
  * runs against connections the first pass has already opened, which is exactly
@@ -210,6 +225,9 @@ export async function fetchAllQuotes(): Promise<Quote[]> {
 
   const missed = TICKERS.filter(t => !fresh.has(t.symbol));
   if (missed.length) await fetchBatch(missed, fresh);
+
+  const noFx = TICKERS.filter(t => t.group === 'fx' && !fresh.has(t.symbol) && !lastGood.has(t.symbol));
+  if (noFx.length) for (const quote of await fetchEcbFx(noFx)) fresh.set(quote.symbol, quote);
 
   for (const [symbol, quote] of fresh) lastGood.set(symbol, quote);
 

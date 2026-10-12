@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI Assist: what the assistant can see and switch on.
+ * TAKIP OI Assist: what the assistant can see and switch on.
  *
  * The page keeps its live data in one bag (flights, ships, quakes, news and
  * the rest, each under its own key). This module names the parts the
@@ -321,12 +321,17 @@ export const LAYERS: Record<string, string> = {
   wx_temperature: 'global air temperature map (Open-Meteo)',
   wx_wind: 'global wind speed and direction arrows (Open-Meteo)',
   wx_radar: 'live precipitation radar (RainViewer)',
+  hiking_routes: 'marked hiking trails and long-distance walking routes (Waymarked Trails / OpenStreetMap)',
   terrain_3d: '3D terrain',
   cyber_attacks: 'cyber attack indicators',
   gdelt_events: 'GDELT news events',
   cf_outages: 'internet outages (Cloudflare Radar)',
   malware: 'malware command-and-control servers',
   balloons: 'high-altitude balloons',
+  launches: 'upcoming rocket launches at their pads',
+  aurora: 'aurora visibility forecast (NOAA OVATION)',
+  service_status: 'cloud and SaaS vendor incidents from their status pages',
+  gps_jamming: 'likely GPS/GNSS interference, inferred from aircraft position accuracy',
 };
 
 /** Panels the assistant may open. */
@@ -336,6 +341,6 @@ export const PANELS: Record<string, string> = {
   intel: 'OSINT recon tools (IP, domain, username lookups)',
   layers: 'the layer panel',
   directions: 'driving directions',
-  forecast: 'the OI forecast panel (the prediction engine)',
-  workspace: 'the full-screen OI workspace for the current forecast',
+  forecast: 'the TI forecast panel (the prediction engine)',
+  workspace: 'the full-screen TI workspace for the current forecast',
 };

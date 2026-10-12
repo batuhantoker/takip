@@ -6,7 +6,7 @@ import { forgetRecent, loadRecent, rememberPlace, type RecentPlace } from '@/lib
 import { Key, PlaceRow, type PlaceLike } from './places';
 
 /* ═══════════════════════════════════════════════════════════════
-   OSIRIS — Search
+   TAKIP — Search
    A place, an address, a landmark or a pair of coordinates, and the map
    flies there. Before anything is typed it offers where you are and where
    you went last; each result can be handed to Directions as the destination.

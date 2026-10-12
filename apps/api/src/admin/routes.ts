@@ -7,6 +7,8 @@ import type { Auth } from '../auth/auth';
 import type { AppDb } from '../db/app-db';
 import type { AdminEnv, AdminGate } from './gate';
 import { adminQueries } from './queries';
+import type { SourceSwitchboard } from '../replay/sources';
+import { sourcesRoutes } from './sources-routes';
 
 /** "YYYY-MM-DD" → the end of that day (UTC), or null. */
 const endOfDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).transform(day => Date.parse(`${day}T23:59:59Z`)).nullish();
@@ -38,7 +40,7 @@ function change(c: Context, run: () => void, access: AccessResolver) {
 }
 
 /** Mounted at /api/admin. Everything but status and unlock sits behind the gate. */
-export function adminRoutes({ auth, db, access, gate }: { auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate }) {
+export function adminRoutes({ auth, db, access, gate, switchboard }: { auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate; switchboard?: SourceSwitchboard }) {
   const app = new Hono<AdminEnv>();
   const queries = adminQueries(db, access);
   const actor = (c: Context<AdminEnv>): Actor => ({ type: 'admin', id: c.var.admin.userId });
@@ -62,6 +64,7 @@ export function adminRoutes({ auth, db, access, gate }: { auth: Auth; db: AppDb;
     await next();
     c.header('Cache-Control', 'no-store');
   });
+  if (switchboard) app.route('/sources', sourcesRoutes({ db, switchboard }));
 
   app.get('/overview', c => c.json({ ...queries.overview(), recent: queries.audit({ limit: 10 }) }));
 

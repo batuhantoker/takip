@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the timeline view.
+ * TAKIP OI: the timeline view.
  *
  * The simulation over dated time: above, the worlds pooled period by period
  * with their range, the base rate (or today's value), injected events and the
@@ -252,7 +252,7 @@ export function TimelineView({ s, selected, onSelect }: { s: RunState; selected:
               const period = tl.periods.find(p => p.index === r);
               return (
                 <span key={r} className="px-2.5 py-2 flex flex-col gap-0.5" style={{ color: live ? T.goldLight : st ? T.body : T.mute }}>
-                  <span className={`${LABEL}`}>Period {r}{live && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full align-middle animate-osiris-pulse" style={{ background: T.gold, boxShadow: `0 0 6px ${gold(0.8)}` }} />}</span>
+                  <span className={`${LABEL}`}>Period {r}{live && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full align-middle animate-takip-pulse" style={{ background: T.gold, boxShadow: `0 0 6px ${gold(0.8)}` }} />}</span>
                   {period && <span className="text-[10px] font-mono tracking-[0.04em] text-[var(--text-muted)] truncate">{period.label}</span>}
                 </span>
               );

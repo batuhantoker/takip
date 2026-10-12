@@ -271,17 +271,17 @@ function StyleStudio({ onClose, isMobile }: { onClose: () => void; isMobile?: bo
 
   if (!s) return null;
 
-  /* Portalled to <body>: the rail that renders the trigger carries a
+  /* Portalled to <body>: the map cluster that renders the trigger carries a
      framer-motion transform, which would otherwise make this fixed panel
      position against the rail instead of the viewport. */
   return createPortal(
     <motion.div
-      initial={{ opacity: 0, x: isMobile ? 0 : -12, y: isMobile ? 12 : 0 }}
+      initial={{ opacity: 0, x: isMobile ? 0 : 12, y: isMobile ? 12 : 0 }}
       animate={{ opacity: 1, x: 0, y: 0 }}
-      exit={{ opacity: 0, x: isMobile ? 0 : -12, y: isMobile ? 12 : 0 }}
+      exit={{ opacity: 0, x: isMobile ? 0 : 12, y: isMobile ? 12 : 0 }}
       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
       className={`z-[400] pointer-events-auto flex flex-col rounded-xl border border-[var(--border-primary)] shadow-[0_16px_48px_rgba(0,0,0,0.7)] ${
-        isMobile ? 'fixed inset-x-3 bottom-3 top-20' : 'fixed left-[58px] bottom-6 w-[340px] max-h-[min(78vh,720px)]'
+        isMobile ? 'fixed inset-x-3 bottom-3 top-20' : 'fixed right-3 bottom-[88px] w-[340px] max-h-[min(78vh,720px)]'
       }`}
       style={{
         background: 'rgba(6, 4, 14, 0.96)',
@@ -371,10 +371,10 @@ function StyleStudio({ onClose, isMobile }: { onClose: () => void; isMobile?: bo
           <Row label="Military"><ResettableSwatch label="Military aircraft" value={s.map.flightMilitary} fallback={MAP_DEFAULTS.flightMilitary} onChange={v => setMap('flightMilitary', v)} /></Row>
           <Row label="Unknown"><ResettableSwatch label="Unknown aircraft" value={s.map.flightUnknown} fallback={MAP_DEFAULTS.flightUnknown} onChange={v => setMap('flightUnknown', v)} /></Row>
 
-          <SubHead label="OI" note="The arcs a forecast draws through the sky." />
-          <Row label="Aligned"><ResettableSwatch label="OI arcs: aligned or agreeing" value={s.map.oiSupport} fallback={MAP_DEFAULTS.oiSupport} onChange={v => setMap('oiSupport', v)} /></Row>
-          <Row label="Opposed"><ResettableSwatch label="OI arcs: opposed or disputing" value={s.map.oiOppose} fallback={MAP_DEFAULTS.oiOppose} onChange={v => setMap('oiOppose', v)} /></Row>
-          <Row label="Neutral"><ResettableSwatch label="OI arcs: neutral, evidence" value={s.map.oiNeutral} fallback={MAP_DEFAULTS.oiNeutral} onChange={v => setMap('oiNeutral', v)} /></Row>
+          <SubHead label="TI" note="The arcs a forecast draws through the sky." />
+          <Row label="Aligned"><ResettableSwatch label="TI arcs: aligned or agreeing" value={s.map.oiSupport} fallback={MAP_DEFAULTS.oiSupport} onChange={v => setMap('oiSupport', v)} /></Row>
+          <Row label="Opposed"><ResettableSwatch label="TI arcs: opposed or disputing" value={s.map.oiOppose} fallback={MAP_DEFAULTS.oiOppose} onChange={v => setMap('oiOppose', v)} /></Row>
+          <Row label="Neutral"><ResettableSwatch label="TI arcs: neutral, evidence" value={s.map.oiNeutral} fallback={MAP_DEFAULTS.oiNeutral} onChange={v => setMap('oiNeutral', v)} /></Row>
         </Section>
 
         <Section title="Surface">

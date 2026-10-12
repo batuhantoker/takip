@@ -204,6 +204,13 @@ async function fetchBatch(ids: string[]): Promise<OpenCctvRecord[]> {
   return Array.isArray(data) ? data.filter(Boolean) : [];
 }
 
+/**
+ * Once a day at most. OpenCCTV's terms forbid bulk download and its robots.txt disallows /api/, so a
+ * server polling around the clock (the replay recorder's keep-alive) must not take 7.3 MB every 30 min.
+ * Whether to keep this source at all is an open licensing question (TODO.md §1).
+ */
+const OPENCCTV_TTL_MS = 24 * 60 * 60_000;
+
 /** The marker index, fetched once and shared by every Asian sub-region. */
 const markerIndex = cachedSource('opencctv-index', async (): Promise<MarkerIndex[]> => {
   const res = await stealthFetch(MARKERS, {
@@ -219,7 +226,7 @@ const markerIndex = cachedSource('opencctv-index', async (): Promise<MarkerIndex
   /* Wrapped in an array because the cache stores lists; it is one 7.3 MB
      download shared by all three regions rather than one download each. */
   return [index];
-});
+}, OPENCCTV_TTL_MS);
 
 function loader(region: string, bounds: Bounds, cap: number) {
   return async (): Promise<CctvCamera[]> => {
@@ -260,6 +267,6 @@ function loader(region: string, bounds: Bounds, cap: number) {
   };
 }
 
-export const fetchEastAsiaCameras = cachedSource('eastasia', loader('East Asia', REGIONS.eastasia.bounds, REGIONS.eastasia.cap));
-export const fetchSeAsiaCameras = cachedSource('seasia', loader('Southeast Asia', REGIONS.seasia.bounds, REGIONS.seasia.cap));
-export const fetchWestAsiaCameras = cachedSource('westasia', loader('West & Central Asia', REGIONS.westasia.bounds, REGIONS.westasia.cap));
+export const fetchEastAsiaCameras = cachedSource('eastasia', loader('East Asia', REGIONS.eastasia.bounds, REGIONS.eastasia.cap), OPENCCTV_TTL_MS);
+export const fetchSeAsiaCameras = cachedSource('seasia', loader('Southeast Asia', REGIONS.seasia.bounds, REGIONS.seasia.cap), OPENCCTV_TTL_MS);
+export const fetchWestAsiaCameras = cachedSource('westasia', loader('West & Central Asia', REGIONS.westasia.bounds, REGIONS.westasia.cap), OPENCCTV_TTL_MS);

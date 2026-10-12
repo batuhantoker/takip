@@ -4,30 +4,30 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ## 1. Summary
 
-- **Counts.** Keyless: **687 named news feeds**. 364 have the publisher's own RSS/Atom URL, 321 are Google News RSS queries only, and 2 are World Monitor-internal scraper routes. That is **768 distinct public feed URLs** (385 native, 383 Google News). **71 public Telegram channels** (63 `full` set + 8 `tech` set; OSIRIS's keyless `t.me/s/` reader can likely read them, but no handle was tested), **91 live-news slots** (47 broadcaster HLS manifests, 31 pinned YouTube videos, 28 YouTube channel embeds; 7 slots empty) and **24 webcam slots** (YouTube videos). Free key: **1** (Telegram MTProto: `TELEGRAM_API_ID` + `TELEGRAM_API_HASH` + a logged-in `TELEGRAM_SESSION`; this is how World Monitor reads Telegram). Paid: **1** (X API v2 user timelines, 64 accounts). The pre-pass chunk lists 396 hosts and every one has no credential env var near it.
-- **Licence.** The manifest has 398 host rows under 396 provider headings. 344 are `terms-review` ("verify before redistribution"). 37 are `reviewed` as headline + summary + timestamp + credit + link-out only. 16 are covered by World Monitor's own licence agreement (Business Insider, Business Wire, GlobeNewswire, PR Newswire, Chainwire, Coinbase, Binance, Fox Business, Handelsblatt, Welt, Telegraph, Interfax ×2, Jin10, Times of India, Wired), and OSIRIS cannot inherit that agreement. 1 is US-government (ustr.gov). OSIRIS should follow the same rule: store headline, summary, time and link; never full text.
-- **Overlap with OSIRIS.** 21 feeds are already in OSIRIS (`news`, `conflicts`, `lib/oi/newsroom`, `lib/bulgaria-sources`). 30 come from a host OSIRIS already reads but a different feed. 2 are sites OSIRIS reads directly while World Monitor uses a Google News query. **634 are new.** Telegram: 4 of 71 handles overlap (OSINTdefender, DDGeopolitics, QudsNen, PressTV). Live video: 5 YouTube channel IDs are shared with `api/live-news`, and 9 more outlets are there under a different URL. `DATA-SOURCES.md` lists none of these feeds individually. Its "WHO disease outbreak news" row sits next to World Monitor's WHO news RSS.
+- **Counts.** Keyless: **687 named news feeds**. 364 have the publisher's own RSS/Atom URL, 321 are Google News RSS queries only, and 2 are World Monitor-internal scraper routes. That is **768 distinct public feed URLs** (385 native, 383 Google News). **71 public Telegram channels** (63 `full` set + 8 `tech` set; TAKIP's keyless `t.me/s/` reader can likely read them, but no handle was tested), **91 live-news slots** (47 broadcaster HLS manifests, 31 pinned YouTube videos, 28 YouTube channel embeds; 7 slots empty) and **24 webcam slots** (YouTube videos). Free key: **1** (Telegram MTProto: `TELEGRAM_API_ID` + `TELEGRAM_API_HASH` + a logged-in `TELEGRAM_SESSION`; this is how World Monitor reads Telegram). Paid: **1** (X API v2 user timelines, 64 accounts). The pre-pass chunk lists 396 hosts and every one has no credential env var near it.
+- **Licence.** The manifest has 398 host rows under 396 provider headings. 344 are `terms-review` ("verify before redistribution"). 37 are `reviewed` as headline + summary + timestamp + credit + link-out only. 16 are covered by World Monitor's own licence agreement (Business Insider, Business Wire, GlobeNewswire, PR Newswire, Chainwire, Coinbase, Binance, Fox Business, Handelsblatt, Welt, Telegraph, Interfax ×2, Jin10, Times of India, Wired), and TAKIP cannot inherit that agreement. 1 is US-government (ustr.gov). TAKIP should follow the same rule: store headline, summary, time and link; never full text.
+- **Overlap with TAKIP.** 21 feeds are already in TAKIP (`news`, `conflicts`, `lib/oi/newsroom`, `lib/bulgaria-sources`). 30 come from a host TAKIP already reads but a different feed. 2 are sites TAKIP reads directly while World Monitor uses a Google News query. **634 are new.** Telegram: 4 of 71 handles overlap (OSINTdefender, DDGeopolitics, QudsNen, PressTV). Live video: 5 YouTube channel IDs are shared with `api/live-news`, and 9 more outlets are there under a different URL. `DATA-SOURCES.md` lists none of these feeds individually. Its "WHO disease outbreak news" row sits next to World Monitor's WHO news RSS.
 - **Credibility tiers.** 388 of the 687 feeds have a declared tier (T1 40 · T2 216 · T3 123 · T4 9). 299 are deliberately undeclared and must not be read as tier 4. 33 feeds carry a state-affiliation flag; 13 of them are rated **high** propaganda risk.
 
-### Top 10 picks for OSIRIS
+### Top 10 picks for TAKIP
 1. **Official alert channels on Telegram**: `PikudHaOref_all` (Israel Home Front Command), `InaTEWS_BMKG` (Indonesia quake/tsunami), `dsns_telegram` (Ukraine State Emergency Service), `kpszsu` (Ukraine Air Force air-raid/missile posts), `SaudiDCD`, `govsg`. They are geo-anchored and primary, and they plug into the existing `t.me/s/` reader in `api/news` with no new code path.
-2. **The tiering and propaganda-risk model** (section 5): tier 1–4 plus a separate risk/state-affiliation axis plus a credibility formula with a cap on state media. It fits OSIRIS's existing `lean`/`bloc` labels and gives them a numeric backbone.
+2. **The tiering and propaganda-risk model** (section 5): tier 1–4 plus a separate risk/state-affiliation axis plus a credibility formula with a cap on state media. It fits TAKIP's existing `lean`/`bloc` labels and gives them a numeric backbone.
 3. **Google News RSS `site:` queries** as a keyless fallback for outlets without a usable feed (Reuters, AP, Kyiv Independent, ISW, Janes, USNI, Haaretz). The probe returned 200 with 116 kB of XML. The `when:Nd` window is tuned to each outlet's publishing rate.
 4. **IAEA top news, WHO news, ICG CrisisWatch** (`iaea.org/feeds/topnews`, `who.int/rss-feeds/news-english.xml`, `crisisgroup.org/rss`): Tier 1/1/3 official and crisis feeds. All probed 200.
 5. **ISW daily assessments** (GN `site:understandingwar.org`, T2, rated low risk) **plus the Oryx loss blog** (`oryxspioenkop.com/feeds/posts/default?alt=rss`, T2; probed 200, 876 kB). Both feed `frontlines`/`conflicts`.
 6. **Investigative and illicit-finance desks**: OCCRP (probed 200), GITOC, The Sentry, DFRLab, Lighthouse Reports, VSquare, Correctiv, Bellingcat. All have native RSS except Bellingcat (GN). Good inputs for `entity` and `region-dossier`.
-7. **Defense and maritime trade press OSIRIS lacks**: gCaptain (probed 200), USNI News, Janes, Defense One, Military Times, Task & Purpose, and the UK MOD Atom feed (probed 200). This complements the TWZ, Defense News and Breaking Defense feeds OSIRIS already has.
+7. **Defense and maritime trade press TAKIP lacks**: gCaptain (probed 200), USNI News, Janes, Defense One, Military Times, Task & Purpose, and the UK MOD Atom feed (probed 200). This complements the TWZ, Defense News and Breaking Defense feeds TAKIP already has.
 8. **Official US releases**: Federal Reserve `press_all.xml` (probed 200), SEC press releases, CISA advisories `all.xml`, White House and State Dept (GN). These feed `markets`, `cyber-threats` and `country-risk`.
 9. **Regional crisis desks for under-covered places.** The national outlets are mapped to ISO2 in World Monitor's `source-geography.json`; the regional ones (Eurasianet, Times of Central Asia) are not. Sahel/Central Africa: Studio Tamani, leFaso.net, ActuNiger, Aïr Info, Radio Ndeke Luka, Radio Okapi. Sudan/Horn: Radio Tamazuj, Dabanga, Hiiraan, Ethiopia Insight. Levant/Yemen: Syria Direct, Sana'a Center, Naharnet, L'Orient Today. Caucasus/Central Asia: Civil.ge, OC Media, Eurasianet, Times of Central Asia. These give `region-dossier` local sources.
 10. **Broadcaster-owned HLS masters** for `api/live-news`: DW, BBC News, NHK World, Al Jazeera (`getaj.net`), TRT World, tagesschau24, France 24. The BBC stream is likely limited to the UK. They are sturdier than YouTube embeds, which rot. The DW manifest probed 200 (`application/x-mpegURL`). For display only.
 
 ## Provider classes (brief format)
 
-| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | OSIRIS overlap | Feeds feature | Probe |
+| Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Publisher RSS/Atom (364 feeds with a native URL; table below) | one headline item: title, link, pubDate, summary | publisher feed URL (RSS 2.0 or Atom) | none | poll | mostly terms-review; headline + link-out only | country+ts (by outlet's home country) | WM: per-feed cache 1 h healthy / 5 min if empty; digest 15 min | 21 already in, 30 same host, rest new | news, live-news, region-dossier, country-risk, oi | 8/8 native feeds 200 (10 probes in all, see below) |
-| Google News RSS search (321 GN-only feeds; 383 GN URLs in all) | one aggregated headline; source name in `<source>` | `https://news.google.com/rss/search?q=<query>&hl=en-US&gl=US&ceid=US:en` (locale triplet varies) | none | poll | Google News terms; headline + link-out | country+ts | same as above; query carries `when:1d…30d` | new (OSIRIS uses GDELT, not GN) | news fallback for outlets without RSS | 200 xml 116kB |
-| Telegram public preview | one channel post (text, time, post id, media flag) | `https://t.me/s/<handle>` HTML | none | scrape | Telegram ToS; post text is third-party | none (geo-anchored only via the channel's remit) +ts | OSIRIS already polls it | already in (`api/news`, 9 handles; 4 shared with WM) | news, frontlines, conflicts | not probed (OSIRIS already uses it) |
+| Google News RSS search (321 GN-only feeds; 383 GN URLs in all) | one aggregated headline; source name in `<source>` | `https://news.google.com/rss/search?q=<query>&hl=en-US&gl=US&ceid=US:en` (locale triplet varies) | none | poll | Google News terms; headline + link-out | country+ts | same as above; query carries `when:1d…30d` | new (TAKIP uses GDELT, not GN) | news fallback for outlets without RSS | 200 xml 116kB |
+| Telegram public preview | one channel post (text, time, post id, media flag) | `https://t.me/s/<handle>` HTML | none | scrape | Telegram ToS; post text is third-party | none (geo-anchored only via the channel's remit) +ts | TAKIP already polls it | already in (`api/news`, 9 handles; 4 shared with WM) | news, frontlines, conflicts | not probed (TAKIP already uses it) |
 | Telegram MTProto (WM's method) | same post, via API | GramJS user client, `getMessages` per channel | free key (`TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION`) | poll | Telegram API ToS | as above | 60 s sequential cycle | new method | same | not probed |
 | X API v2 | one post from a curated account | `GET /2/users/:id/tweets?since_id=` | paid | poll | X developer terms; WM treats post text as restricted (R4) and forbids scraping | none+ts | 5–15 min | new | — | not probed |
 | Broadcaster HLS manifests (47) | a live TV stream | `.m3u8` master playlist | none | stream (display only) | broadcaster terms; presentation only | point (studio city) | live | 14 outlets in `api/live-news` (YouTube there) | live-news | DW 200 x-mpegURL 3kB |
@@ -54,7 +54,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 - A feed with a `lang` tag is only fetched for UI requests in that language, unless the feed is flagged a strategic default. A `deadlinePriority` hint only orders fetches in a cold build; it does not affect ranking.
 - Publisher identity is the newsroom, not the transport. A GN `site:` query keeps the named publisher (and so its tier). A keyword GN query (for example "Oil & Gas" or "Sahel Crisis") names no publisher, so it gets no tier.
 - Default-on balance rules. The English default set must always include at least 1 Ukrainian primary outlet and at least 1 independent Russian outlet. Russian/Chinese/Iranian state media (TASS, RT, Xinhua, IRNA, Mehr, Fars, Azertag, Armenpress) stay catalogued but opt-in only, and never appear in one-click "theater" presets.
-- `source-geography.json` maps each feed name to the ISO2 countries it is *local* to: domestic outlets and exile outlets focused on that country. Global wires, regional desks, think tanks and keyword queries map to an empty list. World Monitor uses this for a coverage audit per key country. OSIRIS could reuse the idea for `region-dossier` source selection.
+- `source-geography.json` maps each feed name to the ISO2 countries it is *local* to: domestic outlets and exile outlets focused on that country. Global wires, regional desks, think tanks and keyword queries map to an empty list. World Monitor uses this for a coverage audit per key country. TAKIP could reuse the idea for `region-dossier` source selection.
 
 ## 2. Feed catalogue by region/topic
 
@@ -64,12 +64,12 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 - **Tier**: World Monitor's declared tier (1 = wires and official bodies … 4 = aggregators and blogs). **—** means World Monitor declares no tier for that exact name: its tier lookup returns none, and its docs say an undeclared feed must not be treated as tier 4.
 - **Flag**: `low`/`medium`/`**high**` is World Monitor's propaganda risk. `state: <country>` is its state-affiliation flag. Text after a second `·` is its declared known bias. `unreviewed` means the name is not in World Monitor's risk registry (it is fail-closed to "unknown"). The match is on the exact name, so for example RSS "Fars News" is unreviewed while Telegram "Fars News EN" is high and state: Iran.
 - **Language**: the declared `lang` (World Monitor only fetches that feed for that UI language) or the GN `hl`. **—** means not language-scoped; almost all of these are English.
-- **OSIRIS overlap**: `already in (<file>)` means the exact feed URL is in OSIRIS's non-test source. `same host in OSIRIS (other feed)` means OSIRIS reads a different feed on that host. `OSIRIS reads this site's own feed` means World Monitor uses a GN `site:` query for a site whose own RSS OSIRIS already reads. These are checked against `osiris-hosts.txt`, filtered to hosts that appear in non-test files under `src/`, because the raw list includes test fixtures.
+- **TAKIP overlap**: `already in (<file>)` means the exact feed URL is in TAKIP's non-test source. `same host in TAKIP (other feed)` means TAKIP reads a different feed on that host. `TAKIP reads this site's own feed` means World Monitor uses a GN `site:` query for a site whose own RSS TAKIP already reads. These are checked against `takip-hosts.txt`, filtered to hosts that appear in non-test files under `src/`, because the raw list includes test fixtures.
 - Recorded as-is: "Ukrainska Pravda EN" is a GN `site:euromaidanpress.com` query in both of World Monitor's files, a different publisher from the outlet named. "Federal Reserve" is declared tier 3 and "U.S. Trade Representative" tier 1 with **high** risk: World Monitor rates official government publishers high-risk because their statements are primary government claims.
 
 ### World desks & wires (10)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | AP News | GN `site:apnews.com when:1d` | 1 | low | — | new |
 | IAEA | https://www.iaea.org/feeds/topnews | 1 | unreviewed | — | new |
@@ -84,7 +84,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ### North America (US & Canada) (34)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | Calgary Herald · CA | https://calgaryherald.com/feed/ | 3 | low | — | new |
 | CBC News · CA | https://www.cbc.ca/webfeed/rss/rss-world | 1 | **state: Canada** · medium | — | new |
@@ -118,14 +118,14 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | PBS NewsHour · US | https://www.pbs.org/newshour/feeds/rss/headlines | 2 | unreviewed | — | new |
 | Politico · US | https://rss.politico.com/politics-news.xml | 2 | unreviewed | — | already in (oi/newsroom) |
 | Reuters US · US | GN `site:reuters.com US when:1d` | 1 | unreviewed | — | new |
-| The Hill · US | https://thehill.com/news/feed | 3 | unreviewed | — | same host in OSIRIS (other feed) |
-| Wall Street Journal · US | https://feeds.content.dowjones.io/public/rss/RSSUSnews | 1 | unreviewed | — | same host in OSIRIS (other feed) |
+| The Hill · US | https://thehill.com/news/feed | 3 | unreviewed | — | same host in TAKIP (other feed) |
+| Wall Street Journal · US | https://feeds.content.dowjones.io/public/rss/RSSUSnews | 1 | unreviewed | — | same host in TAKIP (other feed) |
 
 ### US government & intergovernmental bodies (14)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
-| CISA | https://www.cisa.gov/cybersecurity-advisories/all.xml | 1 | unreviewed | — | same host in OSIRIS (other feed) |
+| CISA | https://www.cisa.gov/cybersecurity-advisories/all.xml | 1 | unreviewed | — | same host in TAKIP (other feed) |
 | Pentagon | https://www.war.gov/DesktopModules/ArticleCS/RSS.ashx?ContentType=1&Site=945 | 1 | unreviewed | — | new |
 | State Dept | GN `(site:state.gov OR "State Department") when:1d`<br>GN `site:state.gov OR "State Department"` | 1 | unreviewed | — | new |
 | U.S. Trade Representative | https://ustr.gov/rss.xml | 1 | **state: USA** · **high** | — | new |
@@ -142,7 +142,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ### Europe, Ukraine/Russia, Caucasus, Türkiye (99)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | Armenpress · AM | GN `site:armenpress.am when:3d` | 1 | **state: Armenia** · **high** | — | new |
 | JAMnews · AM, AZ, GE | https://jam-news.net/feed/ | 3 | medium | — | new |
@@ -154,7 +154,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Bild · DE | https://www.bild.de/feed/alles.xml | — | unreviewed | de | new |
 | Der Spiegel · DE | https://www.spiegel.de/schlagzeilen/tops/index.rss | 2 | unreviewed | de | new |
 | Die Zeit · DE | https://newsfeed.zeit.de/index | 2 | unreviewed | de | new |
-| DW News · DE | https://rss.dw.com/xml/rss-en-all<br>https://rss.dw.com/xml/rss-de-all (de)<br>GN `site:dw.com/es` [es-419/MX] (es) | 2 | **state: Germany** · medium | de, es | same host in OSIRIS (other feed) |
+| DW News · DE | https://rss.dw.com/xml/rss-en-all<br>https://rss.dw.com/xml/rss-de-all (de)<br>GN `site:dw.com/es` [es-419/MX] (es) | 2 | **state: Germany** · medium | de, es | same host in TAKIP (other feed) |
 | Tagesschau · DE | https://www.tagesschau.de/xml/rss2/ | 1 | unreviewed | de | new |
 | Welt · ~DE | https://www.welt.de/feeds/latest.rss | 2 | low | de | new |
 | DR Nyheder · DK | https://www.dr.dk/nyheder/service/feeds/allenyheder | 1 | **state: Denmark** · medium | — | new |
@@ -210,20 +210,20 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Digi24 · RO | https://www.digi24.ro/rss | 2 | low | ro | new |
 | G4Media · RO | https://www.g4media.ro/feed/ | 2 | low | ro | new |
 | HotNews · RO | https://www.hotnews.ro/rss | 2 | low | ro | new |
-| BBC Russian · RU | https://feeds.bbci.co.uk/russian/rss.xml | 2 | unreviewed | ru | same host in OSIRIS (other feed) |
+| BBC Russian · RU | https://feeds.bbci.co.uk/russian/rss.xml | 2 | unreviewed | ru | same host in TAKIP (other feed) |
 | Interfax RU · ~RU | https://www.interfax.ru/rss.asp | 1 | medium | ru | new |
 | Meduza · RU | https://meduza.io/rss/en/all<br>https://meduza.io/rss/all (ru) | 2 | low · Anti-Kremlin | ru | new |
 | Moscow Times · RU | https://www.themoscowtimes.com/rss/news | — | medium · Anti-Kremlin | — | new |
 | Novaya Gazeta Europe · RU | https://novayagazeta.eu/feed/rss | 2 | unreviewed | ru | new |
 | RT · RU | https://www.rt.com/rss/ | 3 | **state: Russia** · **high** | — | new |
 | RT Russia · RU | https://www.rt.com/rss/russia/ | 3 | **state: Russia** · **high** | — | new |
-| TASS · RU | GN `site:tass.com OR TASS Russia when:1d` | 3 | **state: Russia** · **high** | — | OSIRIS reads this site's own feed |
+| TASS · RU | GN `site:tass.com OR TASS Russia when:1d` | 3 | **state: Russia** · **high** | — | TAKIP reads this site's own feed |
 | Dagens Nyheter · ~SE | https://www.dn.se/rss/ | 2 | unreviewed | sv | new |
 | Svenska Dagbladet · ~SE | https://www.svd.se/feed/articles.rss | 2 | unreviewed | sv | new |
 | SVT Nyheter · ~SE | https://www.svt.se/nyheter/rss.xml | 1 | unreviewed | sv | new |
-| BBC Turkce · TR | https://feeds.bbci.co.uk/turkce/rss.xml | 2 | unreviewed | tr | same host in OSIRIS (other feed) |
+| BBC Turkce · TR | https://feeds.bbci.co.uk/turkce/rss.xml | 2 | unreviewed | tr | same host in TAKIP (other feed) |
 | Daily Sabah · TR | https://www.dailysabah.com/rss/home-page | 2 | **state: Turkey** · medium | — | new |
-| DW Turkish · TR | https://rss.dw.com/xml/rss-tur-all | 2 | unreviewed | tr | same host in OSIRIS (other feed) |
+| DW Turkish · TR | https://rss.dw.com/xml/rss-tur-all | 2 | unreviewed | tr | same host in TAKIP (other feed) |
 | Hurriyet · TR | https://www.hurriyet.com.tr/rss/anasayfa | 2 | unreviewed | tr | new |
 | Bihus.Info · UA | GN `site:bihus.info when:7d` [uk/UA] | 2 | medium · Pro-Ukraine | uk | new |
 | Hromadske · UA | GN `site:hromadske.ua when:3d` [uk/UA] | 2 | medium · Pro-Ukraine | uk | new |
@@ -246,18 +246,18 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ### Middle East & North Africa (30)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | The National · AE | https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml<br>GN `site:thenationalnews.com (Abu Dhabi OR UAE OR Saudi) when:7d`<br>GN `site:thenationalnews.com when:2d` | 2 | unreviewed | — | new |
 | Egypt Independent · EG | https://www.egyptindependent.com/feed/ | 2 | medium | — | new |
 | Mada Masr · EG | GN `site:madamasr.com when:30d` | 2 | medium | — | new |
-| BBC Middle East · ~GB | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml | 2 | low | — | same host in OSIRIS (other feed) |
+| BBC Middle East · ~GB | https://feeds.bbci.co.uk/news/world/middle_east/rss.xml | 2 | low | — | same host in TAKIP (other feed) |
 | Haaretz · IL | GN `site:haaretz.com when:7d` | — | unreviewed | — | new |
 | Jerusalem Post · IL | https://www.jpost.com/rss/rssfeedsheadlines.aspx | — | low | — | new |
 | Ynetnews · IL | https://www.ynetnews.com/Integration/StoryRss3089.xml | — | low · Israeli mainstream | — | new |
 | +972 Magazine · IL, PS | https://www.972mag.com/feed/ | 2 | medium · Israeli-Palestinian human-rights perspective | — | new |
 | Rudaw · IQ | GN `site:rudaw.net when:7d` | — | unreviewed | — | new |
-| BBC Persian · IR | https://feeds.bbci.co.uk/persian/rss.xml | 2 | unreviewed | fa | same host in OSIRIS (other feed) |
+| BBC Persian · IR | https://feeds.bbci.co.uk/persian/rss.xml | 2 | unreviewed | fa | same host in TAKIP (other feed) |
 | Fars News · IR | GN `site:farsnews.ir when:2d` | 3 | unreviewed | — | new |
 | Iran International · IR | GN `site:iranintl.com when:2d` | 3 | unreviewed | — | new |
 | IRNA · IR | https://en.irna.ir/rss | — | **state: Iran** · **high** | — | new |
@@ -277,11 +277,11 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Yemen Online · YE | GN `site:yemenonline.info when:14d` | 2 | medium | — | new |
 | Al Arabiya | GN `site:english.alarabiya.net when:2d`<br>https://www.alarabiya.net/tools/mrss/?cat=main (ar) | — | **state: Saudi Arabia** · medium | ar | new |
 | Al Jazeera | https://www.aljazeera.com/xml/rss/all.xml<br>https://www.aljazeera.net/aljazeerarss/a7c186be-1adb-4b11-a982-4783e765316e/4e17ecdc-8fb9-40de-a5d6-d00f72384a51 (ar) | 2 | **state: Qatar** · medium | ar | already in (conflicts, news, oi/newsroom) |
-| Guardian ME | https://www.theguardian.com/world/middleeast/rss | 2 | unreviewed | — | same host in OSIRIS (other feed) |
+| Guardian ME | https://www.theguardian.com/world/middleeast/rss | 2 | unreviewed | — | same host in TAKIP (other feed) |
 
 ### Sub-Saharan Africa & Sahel (34)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | leFaso.net · BF | https://lefaso.net/spip.php?page=backend | 2 | low | fr | new |
 | Actualite.cd · CD | https://actualite.cd/feed | 3 | unreviewed | fr | new |
@@ -291,7 +291,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Ethiopia Insight · ET | https://www.ethiopia-insight.com/feed/ | 3 | unreviewed | — | new |
 | The Reporter Ethiopia · ET | https://www.thereporterethiopia.com/feed/ | 3 | unreviewed | — | new |
 | RFI Afrique · ~FR | https://www.rfi.fr/en/africa/rss | 2 | unreviewed | — | new |
-| BBC Africa · ~GB | https://feeds.bbci.co.uk/news/world/africa/rss.xml | — | unreviewed | — | same host in OSIRIS (other feed) |
+| BBC Africa · ~GB | https://feeds.bbci.co.uk/news/world/africa/rss.xml | — | unreviewed | — | same host in TAKIP (other feed) |
 | Citi Newsroom · GH | GN `site:citinewsroom.com when:7d` | 3 | unreviewed | — | new |
 | MyJoyOnline · GH | https://www.myjoyonline.com/feed/ | 2 | unreviewed | — | new |
 | Daily Nation · KE | https://nation.africa/kenya/rss.xml | 2 | low | — | new |
@@ -313,14 +313,14 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Africa News | GN `(Africa OR Nigeria OR Kenya OR "South Africa" OR Ethiopia) when:2d` | — | unreviewed | — | new |
 | Africanews | https://www.africanews.com/feed/<br>https://www.africanews.com/feed/rss (en)<br>https://fr.africanews.com/feed/rss (fr) | — | unreviewed | en, fr | already in (news) |
 | BBC Afrique | https://www.bbc.com/afrique/index.xml | — | unreviewed | fr | new |
-| France 24 Africa | https://www.france24.com/en/africa/rss | 2 | **state: France** · medium | — | same host in OSIRIS (other feed) |
-| Guardian Africa | https://www.theguardian.com/world/africa/rss | 2 | low | — | same host in OSIRIS (other feed) |
+| France 24 Africa | https://www.france24.com/en/africa/rss | 2 | **state: France** · medium | — | same host in TAKIP (other feed) |
+| Guardian Africa | https://www.theguardian.com/world/africa/rss | 2 | low | — | same host in TAKIP (other feed) |
 | Jeune Afrique | https://www.jeuneafrique.com/feed/ | — | unreviewed | fr | new |
 | Sahel Crisis | GN `(Sahel OR Mali OR Niger OR "Burkina Faso" OR Wagner) when:3d` | — | unreviewed | — | new |
 
 ### Latin America & Caribbean (25)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | Clarín · AR | https://www.clarin.com/rss/lo-ultimo/ | — | unreviewed | es | new |
 | Infobae Americas · AR | https://www.infobae.com/arc/outboundfeeds/rss/ | — | unreviewed | es | new |
@@ -332,7 +332,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | 14ymedio · CU | https://www.14ymedio.com/rss/ | 2 | medium · Cuban opposition perspective | es | new |
 | Havana Times · CU | https://havanatimes.org/feed/ | 2 | medium · Independent Cuban perspective | — | new |
 | Primicias · ~EC | https://www.primicias.ec/feed/ | — | unreviewed | es | new |
-| BBC Latin America · ~GB | https://feeds.bbci.co.uk/news/world/latin_america/rss.xml | — | unreviewed | — | same host in OSIRIS (other feed) |
+| BBC Latin America · ~GB | https://feeds.bbci.co.uk/news/world/latin_america/rss.xml | — | unreviewed | — | same host in TAKIP (other feed) |
 | AyiboPost · HT | GN `site:ayibopost.com Haiti when:14d` [fr/FR] | 2 | low | fr | new |
 | HaitiLibre English · HT | https://www.haitilibre.com/rss-flash-en.php | 2 | medium | — | new |
 | Mexico News Daily · MX | https://mexiconewsdaily.com/feed/ | 2 | low | — | new |
@@ -340,9 +340,9 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Efecto Cocuyo · VE | https://efectococuyo.com/feed/ | 2 | low | es | new |
 | AP Mexico | GN `site:apnews.com Mexico when:3d` | — | unreviewed | — | new |
 | El Universo | https://www.eluniverso.com/arc/outboundfeeds/rss/category/noticias/?outputType=xml | — | unreviewed | es | new |
-| France 24 LatAm | https://www.france24.com/en/americas/rss | 2 | **state: France** · medium | — | same host in OSIRIS (other feed) |
-| Guardian Americas | https://www.theguardian.com/world/americas/rss | — | unreviewed | — | same host in OSIRIS (other feed) |
-| Guardian Caribbean | https://www.theguardian.com/world/caribbean/rss | 2 | low | — | same host in OSIRIS (other feed) |
+| France 24 LatAm | https://www.france24.com/en/americas/rss | 2 | **state: France** · medium | — | same host in TAKIP (other feed) |
+| Guardian Americas | https://www.theguardian.com/world/americas/rss | — | unreviewed | — | same host in TAKIP (other feed) |
+| Guardian Caribbean | https://www.theguardian.com/world/caribbean/rss | 2 | low | — | same host in TAKIP (other feed) |
 | InSight Crime | https://insightcrime.org/feed/ | — | unreviewed | — | new |
 | Latin America | GN `(Brazil OR Mexico OR Argentina OR Venezuela OR Colombia OR Haiti) when:2d` | — | unreviewed | — | new |
 | Mexico Security | GN `(Mexico cartel OR Mexico violence OR Mexico troops OR narco Mexico) when:2d` | — | unreviewed | — | new |
@@ -350,23 +350,23 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ### Asia-Pacific, South & Central Asia (50)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | Amu TV · AF | https://amu.tv/feed/ | 2 | medium | — | new |
 | Pajhwok Afghan News · AF | GN `site:pajhwok.com Afghanistan when:7d` | 2 | medium | — | new |
 | ABC News Australia · AU | https://www.abc.net.au/news/feed/2942460/rss.xml | 2 | unreviewed | — | new |
-| Guardian Australia · AU | https://www.theguardian.com/australia-news/rss | 2 | unreviewed | — | same host in OSIRIS (other feed) |
+| Guardian Australia · AU | https://www.theguardian.com/australia-news/rss | 2 | unreviewed | — | same host in TAKIP (other feed) |
 | Dhaka Tribune · BD | GN `site:dhakatribune.com when:14d` | 2 | low | — | new |
 | The Daily Star · BD | GN `site:thedailystar.net when:14d` | 2 | low | — | new |
 | MIIT (China) · CN | (WM-internal `/api/miit-news` route, not a public feed) | 1 | **state: China** · **high** | zh | new |
 | MOFCOM (China) · CN | GN `site:mofcom.gov.cn when:7d` [zh-CN/CN] | 1 | **state: China** · **high** | zh | new |
 | South China Morning Post · CN | GN `site:scmp.com when:2d`<br>https://www.scmp.com/rss/91/feed/ | — | unreviewed | — | already in (news) |
 | Xinhua · CN | GN `site:xinhuanet.com OR Xinhua when:1d` | 3 | **state: China** · **high** | — | new |
-| BBC Asia · ~GB | https://feeds.bbci.co.uk/news/world/asia/rss.xml | — | unreviewed | — | same host in OSIRIS (other feed) |
+| BBC Asia · ~GB | https://feeds.bbci.co.uk/news/world/asia/rss.xml | — | unreviewed | — | same host in TAKIP (other feed) |
 | Jakarta Post · ID | GN `site:thejakartapost.com when:3d` | 2 | unreviewed | — | new |
 | Aaj Tak · IN | https://www.aajtak.in/rssfeeds/?id=home | 2 | unreviewed | hi | new |
 | Amar Ujala · IN | https://www.amarujala.com/rss/national.xml | 2 | unreviewed | hi | new |
-| BBC Hindi · IN | https://feeds.bbci.co.uk/hindi/rss.xml | 2 | unreviewed | hi | same host in OSIRIS (other feed) |
+| BBC Hindi · IN | https://feeds.bbci.co.uk/hindi/rss.xml | 2 | unreviewed | hi | same host in TAKIP (other feed) |
 | Indian Express · IN | https://indianexpress.com/section/india/feed/ | — | unreviewed | — | new |
 | NDTV · IN | https://feeds.feedburner.com/ndtvnews-top-stories | — | unreviewed | — | new |
 | NDTV India · IN | https://feeds.feedburner.com/ndtvkhabar-latest | 2 | unreviewed | hi | new |
@@ -393,8 +393,8 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Tuoi Tre News · ~VN | https://news.tuoitre.vn/rss | 2 | unreviewed | vi | new |
 | Bangkok Post | GN `site:bangkokpost.com when:1d` | 2 | unreviewed | th | new |
 | Eurasianet | https://eurasianet.org/rss | 2 | medium | — | new |
-| France 24 Asia Pacific | https://www.france24.com/en/asia-pacific/rss | 2 | **state: France** · medium | — | same host in OSIRIS (other feed) |
-| Guardian Pacific | https://www.theguardian.com/world/pacific-islands/rss | 2 | low | — | same host in OSIRIS (other feed) |
+| France 24 Asia Pacific | https://www.france24.com/en/asia-pacific/rss | 2 | **state: France** · medium | — | same host in TAKIP (other feed) |
+| Guardian Pacific | https://www.theguardian.com/world/pacific-islands/rss | 2 | low | — | same host in TAKIP (other feed) |
 | India News Network | GN `India diplomacy foreign policy news` | — | unreviewed | — | new |
 | Reuters Asia | GN `site:reuters.com (China OR Japan OR Taiwan OR Korea) when:3d` | — | unreviewed | — | new |
 | RFE/RL Central Asia | GN `site:rferl.org Central+Asia when:3d`<br>GN `site:rferl.org Central Asia when:3d` | 2 | **state: USA** · medium | — | new |
@@ -405,7 +405,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ### Defense, intelligence, OSINT, investigations & think tanks (63)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | UK MOD · ~GB | https://www.gov.uk/government/organisations/ministry-of-defence.atom | 1 | unreviewed | — | new |
 | Arms Control Assn | GN `site:armscontrol.org when:7d` | 2 | unreviewed | — | new |
@@ -473,7 +473,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ### Energy, commodities, mining & supply chain (77)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | Agriculture | GN `(wheat OR corn OR soybeans OR coffee OR sugar) price OR commodity when:3d` | — | unreviewed | — | new |
 | Aluminum & Zinc | GN `(aluminum price OR aluminium OR zinc price OR "base metals") when:3d` | — | unreviewed | — | new |
@@ -555,7 +555,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ### Finance, markets, macro & crypto (83)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | Reuters Business | GN `site:reuters.com business markets when:1d` | 1 | unreviewed | — | new |
 | Binance Announcements | GN `site:binance.com/en/support/announcement when:3d` | 2 | medium | — | new |
@@ -632,18 +632,18 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Sovereign Wealth | GN `("sovereign wealth fund" OR "pension fund" OR "institutional investor") when:7d` | — | unreviewed | — | new |
 | Stablecoin Policy | GN `(stablecoin regulation OR "stablecoin bill") when:7d` | — | unreviewed | — | new |
 | Tech IPO News | GN `tech IPO OR "tech company" IPO when:7d` | — | unreviewed | — | new |
-| The Block | GN `site:theblock.co when:1d` | — | unreviewed | — | OSIRIS reads this site's own feed |
+| The Block | GN `site:theblock.co when:1d` | — | unreviewed | — | TAKIP reads this site's own feed |
 | The Defiant | https://thedefiant.io/feed | — | unreviewed | — | new |
 | Trading Tech | GN `("algorithmic trading" OR "trading platform" OR "quantitative finance") when:7d` | — | unreviewed | — | new |
 | Treasury Watch | GN `("US Treasury" OR "Treasury auction" OR "10-year yield" OR "2-year yield") when:2d` | — | unreviewed | — | new |
 | Unchained | https://unchainedcrypto.com/feed/ | — | unreviewed | — | new |
 | Vision 2030 | GN `"Vision 2030" (project OR investment OR announced) when:14d` | — | unreviewed | — | new |
 | Wu Blockchain | GN `site:wublockchain.com when:7d` | — | unreviewed | — | new |
-| Yahoo Finance Commodities | https://finance.yahoo.com/rss/topstories | — | unreviewed | — | same host in OSIRIS (other feed) |
+| Yahoo Finance Commodities | https://finance.yahoo.com/rss/topstories | — | unreviewed | — | same host in TAKIP (other feed) |
 
 ### Tech, AI, cyber & startups (141)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | a16z Blog | https://www.a16z.news/feed<br>GN `site:a16z.com OR "Andreessen Horowitz" blog when:14d` | 2 | unreviewed | — | new |
 | All-In Podcast | GN `"All-In podcast" (Chamath OR Sacks OR Friedberg) when:7d` | 2 | unreviewed | — | new |
@@ -656,7 +656,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Nikkei Tech | GN `site:asia.nikkei.com technology when:3d` | 2 | unreviewed | — | new |
 | Paul Graham Essays | GN `"Paul Graham" essay OR blog when:30d`<br>https://www.aaronsw.com/2002/feeds/pgessays.rss | 2 | unreviewed | — | new |
 | PitchBook News | GN `site:pitchbook.com when:7d`<br>https://pitchbook.com/feed | 2 | unreviewed | — | new |
-| Politico Tech | https://rss.politico.com/technology.xml | 2 | unreviewed | — | same host in OSIRIS (other feed) |
+| Politico Tech | https://rss.politico.com/technology.xml | 2 | unreviewed | — | same host in TAKIP (other feed) |
 | Sequoia Blog | GN `site:sequoiacap.com when:7d`<br>https://www.sequoiacap.com/feed/ | 2 | unreviewed | — | new |
 | Stratechery | https://stratechery.com/feed/ | 2 | unreviewed | — | new |
 | The Information | GN `site:theinformation.com startup OR funding when:3d` | 2 | unreviewed | — | new |
@@ -664,7 +664,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Y Combinator Blog | https://www.ycombinator.com/blog/rss/ | 2 | unreviewed | — | new |
 | 36Kr English | GN `site:36kr.com OR "36Kr" startup china when:7d` | 3 | unreviewed | — | new |
 | AI Regulation | GN `AI regulation OR "artificial intelligence" law OR policy when:7d` | 3 | unreviewed | — | new |
-| Ars Technica | https://feeds.arstechnica.com/arstechnica/technology-lab | 3 | unreviewed | — | same host in OSIRIS (other feed) |
+| Ars Technica | https://feeds.arstechnica.com/arstechnica/technology-lab | 3 | unreviewed | — | same host in TAKIP (other feed) |
 | China Tech Policy | GN `(China tech regulation OR China AI policy OR MIIT technology) when:7d` | 3 | unreviewed | — | new |
 | Contxto (LATAM) | https://contxto.com/feed/ | 3 | unreviewed | — | new |
 | EFF News | GN `site:eff.org OR "Electronic Frontier Foundation" when:14d` | 3 | unreviewed | — | new |
@@ -692,9 +692,9 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | ArXiv AI | https://export.arxiv.org/rss/cs.AI | 4 | unreviewed | — | new |
 | Hacker News | https://hnrss.org/frontpage | 4 | unreviewed | — | new |
 | Layoffs News | GN `(layoffs OR "job cuts" OR "workforce reduction") when:3d` | 4 | unreviewed | — | new |
-| TechCrunch Layoffs | https://techcrunch.com/tag/layoffs/feed/ | 4 | unreviewed | — | same host in OSIRIS (other feed) |
+| TechCrunch Layoffs | https://techcrunch.com/tag/layoffs/feed/ | 4 | unreviewed | — | same host in TAKIP (other feed) |
 | The Verge | https://www.theverge.com/rss/index.xml | 4 | unreviewed | — | already in (oi/newsroom) |
-| The Verge AI | https://www.theverge.com/rss/ai-artificial-intelligence/index.xml | 4 | unreviewed | — | same host in OSIRIS (other feed) |
+| The Verge AI | https://www.theverge.com/rss/ai-artificial-intelligence/index.xml | 4 | unreviewed | — | same host in TAKIP (other feed) |
 | VentureBeat AI | https://venturebeat.com/category/ai/feed/ | 4 | unreviewed | — | new |
 | 20VC Episodes | https://rss.libsyn.com/shows/61840/destinations/240976.xml | — | unreviewed | — | new |
 | 500 Global News | GN `"500 Global" OR "500 Startups" accelerator when:14d` | — | unreviewed | — | new |
@@ -716,7 +716,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Changelog | https://changelog.com/feed | — | unreviewed | — | new |
 | China Startups | GN `China startup funding OR "Chinese startup" when:7d` | — | unreviewed | — | new |
 | China Tech Giants | GN `(Alibaba OR Tencent OR ByteDance OR Baidu OR JD.com OR Xiaomi OR Huawei) when:3d` | — | unreviewed | — | new |
-| CISA Advisories | https://www.cisa.gov/cybersecurity-advisories/all.xml | — | unreviewed | — | same host in OSIRIS (other feed) |
+| CISA Advisories | https://www.cisa.gov/cybersecurity-advisories/all.xml | — | unreviewed | — | same host in TAKIP (other feed) |
 | Cloud Outages | GN `(Azure outage OR "Google Cloud" outage OR Cloudflare outage OR Slack down OR GitHub down) when:1d`<br>GN `(Azure OR GCP OR Cloudflare OR Slack OR GitHub) outage OR down when:1d` | — | unreviewed | — | new |
 | Cyber Incidents | GN `cyber attack OR data breach OR ransomware OR hacking when:3d` | — | unreviewed | — | new |
 | Dark Reading | https://www.darkreading.com/rss.xml | — | unreviewed | — | new |
@@ -768,8 +768,8 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Taiwan Tech | GN `(Taiwan startup OR TSMC OR MediaTek OR Foxconn) when:7d` | — | unreviewed | — | new |
 | Tech Newsletters | GN `("Benedict Evans" OR "Pragmatic Engineer" OR Stratechery) tech when:14d` | — | unreviewed | — | new |
 | TechCrunch | https://techcrunch.com/feed/ | — | unreviewed | — | already in (oi/newsroom) |
-| TechCrunch Startups | https://techcrunch.com/category/startups/feed/ | — | unreviewed | — | same host in OSIRIS (other feed) |
-| TechCrunch Venture | https://techcrunch.com/category/venture/feed/ | — | unreviewed | — | same host in OSIRIS (other feed) |
+| TechCrunch Startups | https://techcrunch.com/category/startups/feed/ | — | unreviewed | — | same host in TAKIP (other feed) |
+| TechCrunch Venture | https://techcrunch.com/category/venture/feed/ | — | unreviewed | — | same host in TAKIP (other feed) |
 | TechMeme | https://www.techmeme.com/feed.xml | — | unreviewed | — | new |
 | Techstars Blog | https://www.techstars.com/blog/feed/ | — | unreviewed | — | new |
 | Techstars News | GN `Techstars accelerator when:14d` | — | unreviewed | — | new |
@@ -789,7 +789,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 ### Positive news & science (Happy variant) (27)
 
-| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | OSIRIS overlap |
+| Outlet | Feed URL | Tier | State-affiliated / propaganda flag | Language | TAKIP overlap |
 |---|---|---|---|---|---|
 | Good News Network | https://www.goodnewsnetwork.org/feed/ | 2 | unreviewed | — | new |
 | Optimist Daily | https://www.optimistdaily.com/feed/ | 2 | unreviewed | — | new |
@@ -824,7 +824,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 **Count.** 71 channels, all enabled: 63 in the `full` set and 8 in the `tech` set. The `finance` set is empty.
 **By World Monitor topic:** geopolitics 19, breaking 14, conflict 12, middleeast 11, cyber 9 (1 full + 8 tech), osint 6.
 **By editorial tier** (from the trust overlay, not the poll tier): T1 13 (government or wire), T2 7, T3 40, T4 11.
-**Risk:** low 8, medium 54, high 9. 19 channels carry a state-affiliation flag. 4 are already in OSIRIS.
+**Risk:** low 8, medium 54, high 9. 19 channels carry a state-affiliation flag. 4 are already in TAKIP.
 
 **How World Monitor reads Telegram.**
 - It runs a GramJS MTProto *user* client on its relay. That needs a free API id and hash from my.telegram.org plus a pre-generated logged-in session string (a phone-number account).
@@ -833,10 +833,10 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 - Messages are de-duplicated by id. Media-only posts are dropped. Text is truncated to 800 characters and kept in a rolling 200-item buffer. Topics are filtered at query time.
 - World Monitor treats post text as restricted (R4): its panel needs a session and is not publicly cacheable.
 
-**OSIRIS method versus World Monitor's.**
-- OSIRIS (`src/lib/telegram.ts` and `api/news`) parses the public `t.me/s/<handle>` HTML preview. It is keyless and stateless, but per the brief's rules it is a `scrape`. It sees only the latest page of posts (about 20) and has no history. A channel that disables its web preview cannot be read this way, and none of World Monitor's 71 handles were tested against the preview.
+**TAKIP method versus World Monitor's.**
+- TAKIP (`src/lib/telegram.ts` and `api/news`) parses the public `t.me/s/<handle>` HTML preview. It is keyless and stateless, but per the brief's rules it is a `scrape`. It sees only the latest page of posts (about 20) and has no history. A channel that disables its web preview cannot be read this way, and none of World Monitor's 71 handles were tested against the preview.
 - MTProto gives full history, reliable ids and media flags, but needs a user account and session management.
-- For OSIRIS the takeaway is the **handle list and its trust overlay**, which drop straight into the existing `t.me/s/` reader, rather than the transport.
+- For TAKIP the takeaway is the **handle list and its trust overlay**, which drop straight into the existing `t.me/s/` reader, rather than the transport.
 
 **Caveats from World Monitor's own audit (15 Sep 2026).**
 - *Tier 1* on Telegram means a wire service or a direct government or intergovernmental publisher. Speed, subscriber count or a state connection alone does not qualify.
@@ -846,7 +846,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 - `BNONews` was upgraded to Tier 1 as a subscription wire.
 - **Poll tier (ops)** is World Monitor's polling priority. **Editorial tier** is the public 1–4 scale from `shared/telegram-channel-trust.ts`. The two are deliberately different.
 
-| Handle | Label | WM topic | Region | Poll tier (ops) | Editorial tier | Type | Risk / state flag | OSIRIS |
+| Handle | Label | WM topic | Region | Poll tier (ops) | Editorial tier | Type | Risk / state flag | TAKIP |
 |---|---|---|---|---|---|---|---|---|
 | [BNONews](https://t.me/s/BNONews) | BNO News | breaking | global | 2 | 1 | wire | low | new |
 | [LiveUAMap](https://t.me/s/LiveUAMap) | LiveUAMap | breaking | global | 2 | 3 | intel | medium | new |
@@ -929,41 +929,41 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 - The webcams are hotspot city views (Jerusalem, Kyiv rotation, Mecca, Istanbul, Taipei, Washington…) and ISS/NASA/SpaceX feeds.
 
 **Usage notes.**
-- **Display only.** These are players, not data. Nothing here produces records OSIRIS could geoparse.
+- **Display only.** These are players, not data. Nothing here produces records TAKIP could geoparse.
 - Entries are tried in order until one is live. A broadcaster's own HLS comes first, then a pinned video, then the channel embed.
 - Pinned YouTube video ids rot whenever a broadcaster restarts a stream. World Monitor runs a daily audit and a cron that resolves each listed channel's current live video id. The cron reads the public `youtube.com/channel/<id>/live` page and its canonical link, checks the player data for live and embeddable, and goes through a residential proxy. That is a scrape. The `UC…` channel ids are the stable part worth keeping.
 - **HLS ownership.** Most manifests sit on the broadcaster's own CDN or its contracted CDN: `bbci.co.uk` (Fastly), DW (`akamaized`), Al Jazeera (`getaj.net`), NHK (`nhkworld.jp`), RT (`rttv.com`), CGTN, Press TV, TRT, tagesschau, NRK, RTVE, RTP, ERT, BFM, TV5Monde, Rudaw, Al Arabiya, Sky News Arabia and ABC AU.
 - A few look like third-party relays or platform feeds, with a doubtful licence for reuse: euronews via `dash4.antik.sk` (a Slovak IPTV operator), Iran International via `live.livetvstream.co.uk`, France 24 via an Amagi Samsung-UK FAST playlist, and Fox News via a `247preview` stream.
 - Some streams are likely geo-restricted, for example the BBC News channel host `vs-hls-push-uk`. Only DW's manifest was probed.
 - State-owned or state-funded broadcasters among the slots: RT (EN/ES/AR), CGTN (EN/ES/AR), Press TV, TRT Haber, TRT World, Al Jazeera (EN/AR/Mubasher), DW (EN/ES/AR), France 24, NHK World, KAN 11, ERT, SABC, Arirang, tagesschau24, NRK and RTVE. Where the same outlet has an RSS row, section 2 gives World Monitor's risk and state flag.
-- **OSIRIS overlap.** `api/live-news` already embeds 14 channels by YouTube channel id (NBC, CBS, ABC, Bloomberg, C-SPAN, CBC, Sky, France 24, DW, Al Jazeera, NHK, CNA, WION, CGTN) plus RT on Rumble. Five channel ids match World Monitor's exactly; nine more outlets are the same with a different URL.
+- **TAKIP overlap.** `api/live-news` already embeds 14 channels by YouTube channel id (NBC, CBS, ABC, Bloomberg, C-SPAN, CBC, Sky, France 24, DW, Al Jazeera, NHK, CNA, WION, CGTN) plus RT on Rumble. Five channel ids match World Monitor's exactly; nine more outlets are the same with a different URL.
 
 #### LIVE_NEWS_SOURCES (91 slots)
 
-| Slot | Entries (type: host / id) | OSIRIS |
+| Slot | Entries (type: host / id) | TAKIP |
 |---|---|---|
-| bloomberg | HLS: `https://bloomberg.com/media-manifest/streams/us.m3u8`<br>YT video: `QB5BNdBFujE`<br>YT channel: `UCIALMKvObZNtJ6AmdCLP7Lg` | outlet in OSIRIS (other URL) |
-| sky | HLS: `https://linear901-oo-hls0-prd-gtm.delivery.skycdp.com/17501/sde-fast-skynews/master.m3u8`<br>YT video: `xDWQ3LkccY8` | outlet in OSIRIS (other URL) |
+| bloomberg | HLS: `https://bloomberg.com/media-manifest/streams/us.m3u8`<br>YT video: `QB5BNdBFujE`<br>YT channel: `UCIALMKvObZNtJ6AmdCLP7Lg` | outlet in TAKIP (other URL) |
+| sky | HLS: `https://linear901-oo-hls0-prd-gtm.delivery.skycdp.com/17501/sde-fast-skynews/master.m3u8`<br>YT video: `xDWQ3LkccY8` | outlet in TAKIP (other URL) |
 | euronews | YT video: `pykpO5kQJ98`<br>HLS: `https://dash4.antik.sk/live/test_euronews/playlist.m3u8` | new |
-| dw | HLS: `https://dwamdstream103.akamaized.net/hls/live/2015526/dwstream103/master.m3u8`<br>YT video: `LuKwFajn37U`<br>YT channel: `UCknLrEdhRCp1aegoMqRaCZg` | same YT channel in OSIRIS |
+| dw | HLS: `https://dwamdstream103.akamaized.net/hls/live/2015526/dwstream103/master.m3u8`<br>YT video: `LuKwFajn37U`<br>YT channel: `UCknLrEdhRCp1aegoMqRaCZg` | same YT channel in TAKIP |
 | cnn | YT video: `GotlA1KKWoo` | new |
 | france24 | HLS: `https://amg00106-france24-france24-samsunguk-qvpp8.amagi.tv/playlist/amg00106-france24-france24-samsunguk/playlist.m3u8`<br>YT video: `HvZt-nh9sGg` | new |
 | alarabiya | HLS: `https://live.alarabiya.net/alarabiapublish/alarabiya.smil/playlist.m3u8`<br>YT video: `n7eQejkXbnM` | new |
-| aljazeera | HLS: `https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8`<br>YT video: `gCNeDWCI0vo`<br>YT channel: `UCNye-wNBqNL5ZzHSJj3l8Bg` | same YT channel in OSIRIS |
+| aljazeera | HLS: `https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8`<br>YT video: `gCNeDWCI0vo`<br>YT channel: `UCNye-wNBqNL5ZzHSJj3l8Bg` | same YT channel in TAKIP |
 | yahoo | YT video: `KQp-e_XQnDE` | new |
 | nasa | YT video: `fO9e9jnhYK8` | new |
 | fox-news | HLS: `https://247preview.foxnews.com/hls/live/2020027/fncv3preview/primary.m3u8` | new |
 | newsmax | HLS: `https://n1ctsota.akamaized.net/hls/live/2113880/Live_1/index.m3u8`<br>HLS: `https://nmxlive.akamaized.net/hls/live/529965/Live_1/index.m3u8`<br>YT video: `RNNFrG4KbH0` | new |
-| abc-news | YT channel: `UCBi2mrWuNuyYy4gbM6fU18Q` | same YT channel in OSIRIS |
-| cbs-news | HLS: `https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8` | outlet in OSIRIS (other URL) |
-| nbc-news | YT channel: `UCeY0bbntWzzVIaj2z3QigXg` | same YT channel in OSIRIS |
-| cbc-news | YT channel: `UCuFFtHWoLl5fauMMD5Ww2jA` | outlet in OSIRIS (other URL) |
+| abc-news | YT channel: `UCBi2mrWuNuyYy4gbM6fU18Q` | same YT channel in TAKIP |
+| cbs-news | HLS: `https://cbsn-us.cbsnstream.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8` | outlet in TAKIP (other URL) |
+| nbc-news | YT channel: `UCeY0bbntWzzVIaj2z3QigXg` | same YT channel in TAKIP |
+| cbc-news | YT channel: `UCuFFtHWoLl5fauMMD5Ww2jA` | outlet in TAKIP (other URL) |
 | ctv-news | (empty — hidden) | new |
 | reuters-tv | (empty — hidden) | new |
 | bbc-news | HLS: `https://vs-hls-push-uk.live.fastly.md.bbci.co.uk/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/iptv_hd_abr_v1.m3u8` | new |
 | gb-news | HLS: `https://live-gbnews.simplestreamcdn.com/live5/gbnews/bitrate1.isml/manifest.m3u8` | new |
 | the-guardian | (empty — hidden) | new |
-| france24-en | YT video: `HvZt-nh9sGg` | outlet in OSIRIS (other URL) |
+| france24-en | YT video: `HvZt-nh9sGg` | outlet in TAKIP (other URL) |
 | rtve | HLS: `https://rtvelivestream.rtve.es/rtvesec/24h/24h_main_dvr.m3u8` | new |
 | phoenix | HLS: `https://zdf-hls-19.akamaized.net/hls/live/2016502/de/veryhigh/master.m3u8` | new |
 | rtp3 | HLS: `https://streaming-live.rtp.pt/livetvhlsDVR/rtpnHDdvr.smil/playlist.m3u8?DVR=` | new |
@@ -971,7 +971,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | ntv-turkey | YT video: `pqq5c6k70kk` | new |
 | cnn-turk | YT channel: `UCV6zcRug6Hqp1UX_FdyUeBg` | new |
 | tv-rain | (empty — hidden) | new |
-| rt | HLS: `https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8` | outlet in OSIRIS (other URL) |
+| rt | HLS: `https://rt-glb.rttv.com/dvr/rtnews/playlist.m3u8` | outlet in TAKIP (other URL) |
 | tvp-info | YT video: `3jKb-uThfrg` | new |
 | telewizja-republika | YT video: `dzntyCTgJMQ` | new |
 | cnn-brasil | YT channel: `UCvdwhh_fDyWccR42-rReZLw` | new |
@@ -991,11 +991,11 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | ann-news | YT video: `coYw-eVU0Ks` | new |
 | ntv-news | YT video: `t9kwjZBLI-A` | new |
 | cti-news | YT video: `-YExqG4Llcw` | new |
-| wion | YT video: `X-7LAkvfA5s` | outlet in OSIRIS (other URL) |
+| wion | YT video: `X-7LAkvfA5s` | outlet in TAKIP (other URL) |
 | ndtv | HLS: `https://ndtvindiaelemarchana.akamaized.net/hls/live/2003679/ndtvindia/master.m3u8` | new |
-| cgtn | HLS: `https://english-livebkali.cgtn.com/live/encgtn.m3u8`<br>YT video: `0i7n3r01L2U` | outlet in OSIRIS (other URL) |
-| cna-asia | YT video: `XWq5kBlakcQ` | outlet in OSIRIS (other URL) |
-| nhk-world | HLS: `https://masterpl.hls.nhkworld.jp/hls/w/live/master.m3u8`<br>YT channel: `UCSPEjw8F2nQDtmUKPFNF7_A` | same YT channel in OSIRIS |
+| cgtn | HLS: `https://english-livebkali.cgtn.com/live/encgtn.m3u8`<br>YT video: `0i7n3r01L2U` | outlet in TAKIP (other URL) |
+| cna-asia | YT video: `XWq5kBlakcQ` | outlet in TAKIP (other URL) |
+| nhk-world | HLS: `https://masterpl.hls.nhkworld.jp/hls/w/live/master.m3u8`<br>YT channel: `UCSPEjw8F2nQDtmUKPFNF7_A` | same YT channel in TAKIP |
 | arirang-news | HLS: `https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8` | new |
 | india-today | HLS: `https://indiatodaylive.akamaized.net/hls/live/2014320/indiatoday/indiatodaylive/playlist.m3u8`<br>YT video: `sYZtOFzM78M` | new |
 | abp-news | YT channel: `UCRWFSbif-RFENbBrSiez1DA` | new |
@@ -1036,7 +1036,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 #### WEBCAM_SOURCES (24 slots)
 
-| Slot | Entries (type: host / id) | OSIRIS |
+| Slot | Entries (type: host / id) | TAKIP |
 |---|---|---|
 | jerusalem | YT video: `zp6LNSoq000` | new |
 | middle-east | YT video: `AkqGOcpDvZU` | new |
@@ -1063,7 +1063,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | space-x | YT video: `mhJRzQsLZGg`<br>YT video: `Jm8wRjD3xVA` | new |
 | space-walk | YT video: `fO9e9jnhYK8` | new |
 
-## 5. Credibility-tiering scheme (for OSIRIS to adopt)
+## 5. Credibility-tiering scheme (for TAKIP to adopt)
 
 World Monitor rates every source on **two independent axes** and combines them, with corroboration, into a per-headline credibility number. That number is kept separate from newsworthiness ("importance"). A state outlet breaking a real story about its own military is meant to score high on importance and low on credibility at the same time.
 
@@ -1097,17 +1097,17 @@ World Monitor rates every source on **two independent axes** and combines them, 
 - State media of adversarial governments stays catalogued but opt-in only, never default-on, and is excluded from one-click presets.
 - A frontline balance is kept: the default set must include at least one primary outlet from each side's independent press, such as a Ukrainian primary and an independent Russian exile outlet.
 - Newly added national institutions (Ukrinform, Suspilne) keep their risk tags wherever they appear.
-- Tier and risk are keyed by exact display name. If OSIRIS adopts this, it should key by publisher identity (domain or handle), so that the same newsroom gets the same rating across RSS, GN, Telegram and X.
+- Tier and risk are keyed by exact display name. If TAKIP adopts this, it should key by publisher identity (domain or handle), so that the same newsroom gets the same rating across RSS, GN, Telegram and X.
 
-**Mapping onto OSIRIS today.** `api/news` already labels each Telegram/RSS item with `lean` and `bloc` (western / russian / regional / independent). World Monitor's scheme would add a declared tier, a risk level, a state-affiliation country and a computed credibility. OSIRIS's 9 Telegram handles that World Monitor also rates are: OSINTdefender T3 medium, DDGeopolitics T4 medium, QudsNen T4 medium, and PressTV T3 high, state: Iran.
+**Mapping onto TAKIP today.** `api/news` already labels each Telegram/RSS item with `lean` and `bloc` (western / russian / regional / independent). World Monitor's scheme would add a declared tier, a risk level, a state-affiliation country and a computed credibility. TAKIP's 9 Telegram handles that World Monitor also rates are: OSINTdefender T3 medium, DDGeopolitics T4 medium, QudsNen T4 medium, and PressTV T3 high, state: Iran.
 
 ## Keyed / paid (shorter)
 
 | Provider | Data | Why keyed | Free key available? |
 |---|---|---|---|
-| Telegram MTProto (World Monitor's Telegram transport) | channel posts with history and ids | MTProto needs an app id and hash plus a logged-in user session (`TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION`) | Yes. The app id is free from my.telegram.org, but it needs a phone-number account. OSIRIS's keyless `t.me/s/` scrape covers the same channels. |
+| Telegram MTProto (World Monitor's Telegram transport) | channel posts with history and ids | MTProto needs an app id and hash plus a logged-in user session (`TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION`) | Yes. The app id is free from my.telegram.org, but it needs a phone-number account. TAKIP's keyless `t.me/s/` scrape covers the same channels. |
 | X API v2 user timelines | posts from 64 curated accounts (56 `full`, 8 `tech`), each pinned to a numeric account id | official API only; World Monitor's registry forbids scraping and treats post text as restricted | No. Reading timelines needs a paid X API tier. |
-| World Monitor's own licence agreement (16 hosts) | headlines from Business Insider, Business Wire, GlobeNewswire, PR Newswire, Chainwire, Coinbase, Binance, Fox Business, Handelsblatt, Welt, Telegraph, Interfax ×2, Jin10, Times of India, Wired | the feeds are keyless, but World Monitor's redistribution rests on its own contract | The feeds are open, but OSIRIS would need to clear the terms itself. Treat them as `terms-review`. |
+| World Monitor's own licence agreement (16 hosts) | headlines from Business Insider, Business Wire, GlobeNewswire, PR Newswire, Chainwire, Coinbase, Binance, Fox Business, Handelsblatt, Welt, Telegraph, Interfax ×2, Jin10, Times of India, Wired | the feeds are keyless, but World Monitor's redistribution rests on its own contract | The feeds are open, but TAKIP would need to clear the terms itself. Treat them as `terms-review`. |
 
 **X accounts (facts only; poll tier):**
 

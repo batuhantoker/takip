@@ -1,13 +1,13 @@
 sub,argus,live,excluded,owned,served,fix,net,net_direct,net_embed,net_resolver,net_inbox,geo,region,cc,hosts,media
-rivergojp,10628,10837,0,11,534,0,10292,10292,0,0,10292,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:10837,cam.river.go.jp:10628,jpg:10628
-twipcam,6013,5874,1,322,536,0,5015,5015,0,0,5015,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TW:5874,c01.twipcam.com:4046;cctvn.freeway.gov.tw:610;cctvc.freeway.gov.tw:562,jpg:4775;mjpeg:1237
+rivergojp,10628,10837,0,11,534,0,10292,10292,0,0,10292,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:10837,cam.river.go.jp:10628,jpg:10628
+twipcam,6013,5874,1,322,536,0,5015,5015,0,0,5015,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TW:5874,c01.twipcam.com:4046;cctvn.freeway.gov.tw:610;cctvc.freeway.gov.tw:562,jpg:4775;mjpeg:1237
 faa-weathercams,3269,3278,0,23,0,0,3255,0,0,3255,0,0,North America - US,US:2700;CA:578,,resolver:faa-weathercam:3269
 arcgis_cams,7668,3816,0,1167,0,897,1752,1752,0,0,1,0,North America - US,US:3813;CA:2;GE:1,atmsqf.iowadot.gov:1211;tripcheck.com:952;cctv.travelmidwest.com:911,jpg:4346;hls:3322
 trafficengland,2307,2440,0,2,0,0,2438,2438,0,0,0,0,Europe,GB:2440,public.highwaystrafficcameras.co.uk:2307,jpg:2307
 opentrafficcam,2684,4686,0,2470,0,0,2216,2216,0,0,0,0,North America - US,US:4686,wzmedia.dot.ca.gov:1400;itscameras.dot.state.oh.us:500;video.deldot.gov:286,hls:1686;jpg:998
 osm-webcams,2197,2269,6,355,4,0,1904,1446,458,0,25,0,Europe,ES:372;FR:342;NO:280,informo.madrid.es:353;ristmikud.tallinn.ee:246;data.nottinghamtravelwise.org.uk:229,jpg:1449;iframe:702;youtube:21
 NEW:ndawn,0,1704,0,0,0,0,1704,1704,0,0,0,0,North America - US,US:1648;CA:56,,
-road-info-prvs,1320,1757,0,1,83,0,1673,1673,0,0,1673,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:1757,www.road-info-prvs.mlit.go.jp:1320,jpg:1320
+road-info-prvs,1320,1757,0,1,83,0,1673,1673,0,0,1673,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:1757,www.road-info-prvs.mlit.go.jp:1320,jpg:1320
 virginia,1469,1564,0,1,0,0,1563,1563,0,0,0,0,North America - US,US:1564,media-sfs1.vdotcameras.com:209;media-sfs3.vdotcameras.com:194;media-sfs6.vdotcameras.com:190,hls:1469
 castlerock,4798,4237,0,2762,0,0,1475,1475,0,0,1,0,North America - US,US:4019;IE:214;GB:2,video.dot.state.mn.us:2507;skysfs3.trafficwise.org:773;skysfs4.trafficwise.org:735,hls:4212;jpg:586
 wsdot,33,1539,0,72,0,1467,0,0,0,0,0,0,North America - US,US:1517;CA:22,images.wsdot.wa.gov:29;www.tripcheck.com:4,jpg:33
@@ -28,7 +28,7 @@ vegvesen,710,702,0,0,0,0,702,702,0,0,0,0,Europe,NO:698;FI:4,kamera.atlas.vegvese
 skaping,800,688,0,3,0,0,685,0,685,0,0,0,Europe,FR:685;CA:2;IT:1,www.skaping.com:800,iframe:800
 NEW:wyoroad,0,693,0,13,0,0,680,680,0,0,0,0,North America - US,US:693,,
 itraffic,569,657,0,0,0,0,657,657,0,0,0,0,Africa,ZA:657,www.i-traffic.co.za:569,jpg:569
-vietnam-traffic,734,695,0,0,85,0,610,610,0,0,610,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",VN:695,giaothong.hochiminhcity.gov.vn:734,jpg:734
+vietnam-traffic,734,695,0,0,85,0,610,610,0,0,610,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",VN:695,giaothong.hochiminhcity.gov.vn:734,jpg:734
 algotraffic,678,607,0,0,0,0,607,607,0,0,0,0,North America - US,US:607,api.algotraffic.com:678,jpg:678
 idokep,1,601,0,0,0,0,601,601,0,0,0,0,Europe,HU:556;SK:17;AT:10,cam.idokep.hu:1,jpg:1
 panomax,601,603,0,1,3,0,599,599,0,0,9,0,Europe,AT:359;IT:66;DE:61,live-image.panomax.com:601,jpg:601
@@ -37,65 +37,65 @@ caltrans,248,623,0,94,0,0,529,529,0,0,0,0,North America - US,US:623,wzmedia.dot.
 webcamtaxi,13,556,0,23,10,0,523,0,523,0,77,0,Europe,US:158;GB:37;JP:34,www.youtube.com:13,youtube:13
 myairportcams,514,501,0,0,0,0,501,501,0,0,0,0,Oceania,AU:459;NZ:21;PG:17,view.myairportcams.com:330;weathercams.airservicesaustralia.com:98;view.onlyweathercams.com:27,jpg:514
 mdchart,541,474,0,0,0,0,474,474,0,0,0,0,North America - US,US:474,strmr5.sha.maryland.gov:313;strmr3.sha.maryland.gov:222;strmr10.sha.maryland.gov:6,hls:541
-topis-seoul,500,493,0,3,23,0,467,467,0,0,467,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:493,topiscctv1.eseoul.go.kr:500,hls:500
+topis-seoul,500,493,0,3,23,0,467,467,0,0,467,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:493,topiscctv1.eseoul.go.kr:500,hls:500
 alberta,447,450,0,0,0,450,0,0,0,0,0,0,North America - Canada,CA:450,511.alberta.ca:447,jpg:447
 oktraffic,31,440,0,0,0,0,440,440,0,0,0,0,North America - US,US:440,stream.oktraffic.org:31,hls:31
-jogjaprov,543,499,0,2,63,0,434,434,0,0,434,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:499,cctv.jogjaprov.go.id:543,hls:543
+jogjaprov,543,499,0,2,63,0,434,434,0,0,434,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:499,cctv.jogjaprov.go.id:543,hls:543
 webcamera-pl,460,429,0,11,0,0,418,418,0,0,0,0,Europe,PL:426;SK:3,imageserver.webcamera.pl:460,jpg:460
 feratel,856,410,0,0,0,0,410,410,0,0,0,0,Europe,AT:118;DE:71;IT:58,wtvpict.feratel.com:856,jpg:856
 bayerninfo,838,843,0,446,0,0,397,397,0,0,0,0,Europe,AT:461;DE:382,map.bayerninfo.de:838,jpg:838
 yorkmaps,386,390,0,0,0,0,390,390,0,0,0,0,North America - Canada,CA:390,ww5.yorkmaps.ca:386,jpg:386
 travelmidwest,412,348,0,0,0,348,0,0,0,0,0,0,North America - US,US:348,cctv.travelmidwest.com:412,jpg:412
 sdot,337,339,0,0,0,0,339,339,0,0,0,0,North America - US,US:339,www.seattle.gov:337,jpg:337
-busan,333,353,0,0,17,0,336,336,0,0,336,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:353,its-stream4.busan.go.kr:102;its-stream3.busan.go.kr:97;its-stream5.busan.go.kr:74,hls:333
+busan,333,353,0,0,17,0,336,336,0,0,336,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:353,its-stream4.busan.go.kr:102;its-stream3.busan.go.kr:97;its-stream5.busan.go.kr:74,hls:333
 informo-madrid,352,352,0,17,0,0,335,335,0,0,0,0,Europe,ES:352,informo.madrid.es:352,jpg:352
 avamet,320,317,1,0,0,0,316,316,0,0,0,0,Europe,ES:317,www.avametnuvol.es:168;oratge.es:60;gotafreda.es:36,jpg:319
-kkr,318,324,0,0,16,0,308,308,0,0,308,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:324,www.seishiga.kkr.mlit.go.jp:318,jpg:318
+kkr,318,324,0,0,16,0,308,308,0,0,308,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:324,www.seishiga.kkr.mlit.go.jp:318,jpg:318
 netravel,363,304,0,0,0,0,304,304,0,0,0,0,Europe,GB:304,www.netraveldata.co.uk:363,jpg:363
 fotowebcam,314,303,0,0,0,0,303,303,0,0,0,0,Europe,AT:181;DE:72;IT:39,www.foto-webcam.eu:314,jpg:314
 ipcamlive-global,333,284,0,5,2,0,277,274,0,3,3,0,North America - US,US:160;GB:18;CA:17,s37.ipcamlive.com:8;s152.ipcamlive.com:8;s54.ipcamlive.com:8,hls:328;resolver:ipcamlive:5
 arlingtonva,260,266,0,0,0,0,266,266,0,0,0,0,North America - US,US:266,itsvideo.arlingtonva.us:260,hls:260
 qldtraffic,261,252,0,0,0,0,252,252,0,0,0,0,Oceania,AU:252,cameras.qldtraffic.qld.gov.au:261,jpg:261
 usgs-ashcam,234,240,0,0,0,0,240,240,0,0,0,0,North America - US,US:240,volcview.wr.usgs.gov:234,jpg:234
-bandung-pelindung,25,271,0,0,32,0,239,239,0,0,239,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:271,pelindung.bandung.go.id:25,hls:25
+bandung-pelindung,25,271,0,0,32,0,239,239,0,0,239,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:271,pelindung.bandung.go.id:25,hls:25
 iframe-extract,245,227,0,0,0,0,227,227,0,0,0,0,Europe,DE:54;US:49;AU:23,trafficcams.vancouver.ca:32;www.airportview.net:10;www.fsg-edld.de:6,jpg:245
 yarnet,278,224,0,0,0,0,224,224,0,0,0,0,Europe,RU:224,img4.saferegion.net:227;img.saferegion.net:51,jpg:278
-ulsan,232,232,0,0,11,0,221,221,0,0,221,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:232,webcctv.its.ulsan.kr:232,hls:232
+ulsan,232,232,0,0,11,0,221,221,0,0,221,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:232,webcctv.its.ulsan.kr:232,hls:232
 earthcam,249,242,0,22,2,0,218,218,0,0,6,0,North America - US,US:200;TW:4;AW:4,videos-3.earthcam.com:245;www.earthcam.com:4,hls:245;jpg:4
-incheon,224,225,0,0,11,0,214,214,0,0,214,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:225,61.40.94.13:224,hls:224
+incheon,224,225,0,0,11,0,214,214,0,0,214,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:225,61.40.94.13:224,hls:224
 infoclimat,201,214,0,0,0,0,214,214,0,0,1,0,Europe,FR:196;RE:14;TN:1,www.infoclimat.fr:201,jpg:201
 calgary,205,213,0,0,0,0,213,213,0,0,0,0,North America - Canada,CA:213,trafficcam.calgary.ca:205,jpg:205
 camsecure,231,213,0,0,0,0,213,213,0,0,0,0,Europe,GB:208;IE:1;DE:1,camsecure.co:114;camsecure.uk:105;camstream.uk:10,hls:229;youtube:2
 trafficwales,213,213,0,0,0,0,213,213,0,0,0,0,Europe,GB:213,members.traffic.wales:213,jpg:213
-ibb-istanbul,374,350,0,0,142,0,208,208,0,0,208,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TR:350,601a55c88ec6d.streamlock.net:189;601a43eea2819.streamlock.net:184;601a5ce60b9a1.streamlock.net:1,hls:374
+ibb-istanbul,374,350,0,0,142,0,208,208,0,0,208,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TR:350,601a55c88ec6d.streamlock.net:189;601a43eea2819.streamlock.net:184;601a5ce60b9a1.streamlock.net:1,hls:374
 trafiroutes,187,194,0,0,0,0,194,194,0,0,0,0,Europe,BE:194,trafiroutes.wallonie.be:187,jpg:187
 siata,190,187,0,0,0,0,187,187,0,0,0,0,Latin America & Caribbean,CO:187,siata.gov.co:190,jpg:190
 nmroads,178,171,0,0,0,0,171,171,0,0,0,0,North America - US,US:171,ss.nmroads.com:178,jpg:178
-daegu,170,177,0,0,9,0,168,168,0,0,168,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:177,carcctv.daegu.go.kr:170,hls:170
-niigata,175,175,0,0,9,0,166,166,0,0,166,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:175,www.live-cam.pref.niigata.jp:175,jpg:175
-goyang,169,173,0,0,8,0,165,165,0,0,165,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:173,210.95.12.126:169,hls:169
+daegu,170,177,0,0,9,0,168,168,0,0,168,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:177,carcctv.daegu.go.kr:170,hls:170
+niigata,175,175,0,0,9,0,166,166,0,0,166,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:175,www.live-cam.pref.niigata.jp:175,jpg:175
+goyang,169,173,0,0,8,0,165,165,0,0,165,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:173,210.95.12.126:169,hls:169
 nysmesonet,162,161,0,7,0,0,154,154,0,0,0,0,North America - US,US:161,api.nysmesonet.org:162,jpg:162
 sddot,134,153,0,0,0,0,153,153,0,0,0,0,North America - US,US:153,sd.cdn.iteris-atis.com:134,jpg:134
 vedetta,153,153,0,0,0,0,153,153,0,0,0,0,Europe,IT:153,vedetta.org:153,jpg:153
 houstontranstar,1142,1031,0,880,0,0,151,151,0,0,0,0,North America - US,US:1031,www.houstontranstar.org:1142,jpg:1142
-mudik,136,161,0,0,14,0,147,147,0,0,147,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:161,pub.hk-opt.com:47;info.serbaraja-tollroad.co.id:23;streaming-cct.co.id:16,hls:136
+mudik,136,161,0,0,14,0,147,147,0,0,147,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:161,pub.hk-opt.com:47;info.serbaraja-tollroad.co.id:23;streaming-cct.co.id:16,hls:136
 terrahd,152,147,0,0,0,0,147,147,0,0,0,0,Europe,DE:129;AT:12;CZ:6,www.terra-hd.de:152,jpg:152
 airservices,144,142,0,0,1,0,141,141,0,0,3,0,Oceania,AU:134;CX:4;NF:4,weathercams.airservicesaustralia.com:144,jpg:144
 climaaovivo,155,142,0,2,0,0,140,0,0,140,0,0,Latin America & Caribbean,BR:141;??:1,,resolver:cav-snapshot:155
 ohgo,119,138,0,2,0,0,136,136,0,0,0,0,North America - US,US:138,itscameras.dot.state.oh.us:119,jpg:119
 njta,136,134,0,0,0,0,134,134,0,0,0,0,North America - US,US:134,wink.njta.com:136,hls:136
 ridot,138,134,0,0,0,0,134,134,0,0,0,0,North America - US,US:134,www.dot.ri.gov:138,jpg:138
-pohang,144,140,0,0,7,0,133,133,0,0,133,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:140,wowza.pohang.go.kr:128;wowza2.pohang.go.kr:16,hls:144
+pohang,144,140,0,0,7,0,133,133,0,0,133,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:140,wowza.pohang.go.kr:128;wowza2.pohang.go.kr:16,hls:144
 tik-estonia,134,131,0,0,0,0,131,131,0,0,0,0,Europe,EE:131,pildid.teeilm.ee:134,jpg:134
-changwon,138,137,0,0,7,0,130,130,0,0,130,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:137,utis.changwon.go.kr:135;vod.machang-bridge.com:2;www.cbway.co.kr:1,hls:138
+changwon,138,137,0,0,7,0,130,130,0,0,130,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:137,utis.changwon.go.kr:135;vod.machang-bridge.com:2;www.cbway.co.kr:1,hls:138
 nps,20,132,0,2,0,0,130,130,0,0,0,0,North America - US,US:131;CA:1,www.nps.gov:20,jpg:20
 trafficwatch-ni,31,127,0,0,0,0,127,127,0,0,0,0,Europe,GB:116;IE:11,cctv.trafficwatchni.com:31,jpg:31
-sakura-live-cams,92,151,0,17,8,0,126,0,126,0,126,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:151,www.youtube.com:92,youtube:92
+sakura-live-cams,92,151,0,17,8,0,126,0,126,0,126,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:151,www.youtube.com:92,youtube:92
 vancouver,124,125,0,0,0,0,125,125,0,0,0,0,North America - Canada,CA:125,trafficcams.vancouver.ca:124,jpg:124
-nexco-japan,131,129,0,0,6,0,123,123,0,0,123,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:129,cdn-livecamera-pic.drivetraffic.jp:131,jpg:131
+nexco-japan,131,129,0,0,6,0,123,123,0,0,123,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:129,cdn-livecamera-pic.drivetraffic.jp:131,jpg:131
 msdot,111,113,0,0,0,0,113,113,0,0,0,0,North America - US,US:113,streamingshvn1.mdottraffic.com:111,hls:111
 kenyaaeroclub,109,112,0,0,0,0,112,112,0,0,0,0,Africa,KE:112,kenyawebcam.com:99;kenyawebcams.com:10,jpg:109
-gwangju,123,113,0,0,6,0,107,107,0,0,107,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:113,gjtic.go.kr:123,hls:123
+gwangju,123,113,0,0,6,0,107,107,0,0,107,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:113,gjtic.go.kr:123,hls:123
 inforoutes06,97,100,0,0,0,0,100,100,0,0,0,0,Europe,FR:100,www.inforoutes06.fr:97,jpg:97
 catalonia,130,96,0,0,0,0,96,96,0,0,0,0,Europe,ES:96,mct.gencat.cat:98;www.bcn.cat:25;emap.terrassa.cat:7,jpg:130
 cic-tenerife,96,96,0,0,0,0,96,96,0,0,0,0,Europe,ES:96,cic.tenerife.es:96,jpg:96
@@ -104,37 +104,37 @@ ipcamlive,115,97,0,1,2,0,94,93,0,1,2,0,Europe,US:32;GB:23;CA:4,s101.ipcamlive.co
 small-cams-2,87,93,0,0,0,0,93,93,0,0,0,0,North America - US,US:93,www.skiutah.com:65;cmgp-coastcam.s3.us-west-2.amazonaws.com:20;www.bouldair.com:1,jpg:87
 chile-dgac,98,92,0,0,0,0,92,0,0,92,0,0,Latin America & Caribbean,CL:92,,resolver:chile-dgac:98
 luxembourg,94,92,0,0,0,0,92,92,0,0,0,0,Europe,LU:92,www.cita.lu:94,jpg:94
-sochi-camera,201,152,0,0,60,0,92,92,0,0,92,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",RU:152,sochi.camera:201,jpg:201
+sochi-camera,201,152,0,0,60,0,92,92,0,0,92,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",RU:152,sochi.camera:201,jpg:201
 wetmet,125,100,0,9,0,0,91,91,0,0,0,0,North America - US,US:100,api.wetmet.net:125,jpg:125
 explore-org,149,89,0,0,0,0,89,0,89,0,0,0,North America - US,US:48;CA:10;ZA:9,www.youtube.com:149,youtube:149
-ansan,89,89,0,0,5,0,84,84,0,0,84,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:89,its.ansan.go.kr:89,hls:89
-jma-volcam,90,88,0,0,5,0,83,83,0,0,83,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:88,www.data.jma.go.jp:90,jpg:90
+ansan,89,89,0,0,5,0,84,84,0,0,84,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:89,its.ansan.go.kr:89,hls:89
+jma-volcam,90,88,0,0,5,0,83,83,0,0,83,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:88,www.data.jma.go.jp:90,jpg:90
 tv-singles,95,81,0,0,0,0,81,81,0,0,0,0,Europe,DE:29;GB:17;AU:11,www.jahorina.org:8;public.disasterwatch-iotp.com.au:7;webcam.wirtzfeld.be:5,jpg:94;hls:1
 webcam-autoroute,87,81,0,0,0,0,81,81,0,0,0,0,Europe,FR:81,www.webcam-autoroute.eu:75;www.bison-fute.gouv.fr:9;s1.vision-environnement.com:2,jpg:87
 cam-aero,88,80,0,0,0,0,80,80,0,0,0,0,Europe,FR:79;BE:1,cam-aero.eu:88,jpg:88
 weatherstem,828,80,0,0,0,0,80,80,0,0,0,0,North America - US,US:80,images.weatherstem.com:828,jpg:828
 NEW:medellin,0,78,0,0,0,0,78,78,0,0,0,0,Latin America & Caribbean,CO:78,,
-NEW:thailand,0,88,0,0,10,0,78,78,0,0,78,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TH:88,,
+NEW:thailand,0,88,0,0,10,0,78,78,0,0,78,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TH:88,,
 ndbc-buoycam,83,77,0,0,0,0,77,77,0,0,0,0,North America - US,US:76;??:1,www.ndbc.noaa.gov:83,jpg:83
 zdw-krakow,94,76,0,0,0,0,76,76,0,0,0,0,Europe,PL:76,www.zdw.krakow.pl:94,jpg:94
 hdontap,82,73,0,1,0,0,72,72,0,0,0,0,North America - US,US:69;TC:3;JE:1,storage.hdontap.com:82,jpg:82
 andorra,72,69,0,0,0,0,69,69,0,0,0,0,Europe,AD:69,imgs.mobilitat.ad:72,jpg:72
-dsat,111,83,0,0,14,0,69,69,0,0,69,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",MO:83,streaming1.dsatmacau.com:111,hls:111
+dsat,111,83,0,0,14,0,69,69,0,0,69,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",MO:83,streaming1.dsatmacau.com:111,hls:111
 forecastweather,174,68,0,0,1,0,67,67,0,0,6,0,Europe,GR:68,streaming.forecastweather.gr:174,hls:174
-kaiho,72,70,0,0,3,0,67,67,0,0,67,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:70,camera.mics.kaiho.mlit.go.jp:72,hls:72
+kaiho,72,70,0,0,3,0,67,67,0,0,67,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:70,camera.mics.kaiho.mlit.go.jp:72,hls:72
 epic-ski,66,66,0,0,0,0,66,0,66,0,0,0,North America - US,US:57;CA:9,player.brownrice.com:66,iframe:66
 livespotting,94,66,0,0,0,0,66,66,0,0,0,0,Europe,DE:64;AT:1;CH:1,cdn.livespotting.com:94,jpg:94
 kukaj-sk,60,65,0,0,0,0,65,65,0,0,0,0,Europe,SK:56;PL:9,kukaj.profi-net.sk:60,hls:60
-mlit-kanto,68,68,0,0,3,0,65,65,0,0,65,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:68,www.ktr.mlit.go.jp:68,jpg:68
+mlit-kanto,68,68,0,0,3,0,65,65,0,0,65,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:68,www.ktr.mlit.go.jp:68,jpg:68
 verkeerscentrum,67,63,0,0,0,0,63,63,0,0,0,0,Europe,BE:63,snapshots.media.verkeerscentrum.be:67,jpg:67
 aopa-nz,68,62,1,0,0,0,61,61,0,0,0,0,Oceania,NZ:62,public.aopa.nz:38;www.primo.nz:4;theflyingclub.co.nz:4,jpg:67
-itic,155,70,0,0,9,0,61,61,0,0,61,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TH:70,camerai1.iticfoundation.org:137;camera1.iticfoundation.org:17;180.180.242.207:1,hls:155
-gimpo,63,63,0,0,3,0,60,60,0,0,60,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:63,gimpo.cctvstream.net:63,hls:63
+itic,155,70,0,0,9,0,61,61,0,0,61,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TH:70,camerai1.iticfoundation.org:137;camera1.iticfoundation.org:17;180.180.242.207:1,hls:155
+gimpo,63,63,0,0,3,0,60,60,0,0,60,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:63,gimpo.cctvstream.net:63,hls:63
 bizkaimove,58,58,0,0,0,0,58,58,0,0,0,0,Europe,ES:58,www.bizkaimove.eus:58,jpg:58
 newbrunswick,57,57,0,0,0,0,57,57,0,0,0,0,North America - Canada,CA:57,prod-nb.ibi511.com:57,jpg:57
 prague-tsk,60,54,0,0,0,0,54,54,0,0,0,0,Europe,CZ:54,www.uamk.cz:60,jpg:60
 recife-cttu,22,54,0,0,0,0,54,54,0,0,0,0,Latin America & Caribbean,BR:54,transito-recife.serttel.com.br:22,jpg:22
-chungju,55,55,0,0,2,0,53,53,0,0,53,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:55,its.chungju.go.kr:55,hls:55
+chungju,55,55,0,0,2,0,53,53,0,0,53,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:55,its.chungju.go.kr:55,hls:55
 novascotia,53,53,0,0,0,0,53,53,0,0,0,0,North America - Canada,CA:53,511.novascotia.ca:53,jpg:53
 saskatchewan,53,53,0,0,0,0,53,53,0,0,0,0,North America - Canada,CA:53,hotline.gov.sk.ca:53,jpg:53
 arso-si,59,51,0,0,0,0,51,51,0,0,0,0,Europe,SI:51,meteo.arso.gov.si:59,jpg:59
@@ -143,11 +143,11 @@ hak,64,63,0,13,0,0,50,50,0,0,0,0,Europe,HR:63,m.hak.hr:64,jpg:64
 hispacams,50,49,0,0,0,0,49,49,0,0,0,0,Europe,ES:49,www.hispacams.com:50,jpg:50
 resortcams,64,49,0,0,0,0,49,49,0,0,0,0,North America - US,US:49,stream.resortcams.com:59;stream.citynet.net:2;www.asmslopecam.com:1,hls:63;jpg:1
 tirol,204,192,0,143,0,0,49,49,0,0,0,0,Europe,AT:192,webcams.tirol.gv.at:200;webcams2.asfinag.at:4,jpg:200;iframe:4
-taiwan-freeway,127,55,0,4,3,0,48,48,0,0,48,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TW:55,cctvc.freeway.gov.tw:89;cctvn5.freeway.gov.tw:31;cctvn.freeway.gov.tw:7,mjpeg:127
+taiwan-freeway,127,55,0,4,3,0,48,48,0,0,48,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TW:55,cctvc.freeway.gov.tw:89;cctvn5.freeway.gov.tw:31;cctvn.freeway.gov.tw:7,mjpeg:127
 newfoundland,47,47,0,0,0,0,47,47,0,0,0,0,North America - Canada,CA:47,511nl.ca:47,jpg:47
 pocono-cams,46,47,0,0,0,0,47,0,47,0,0,0,North America - US,US:47,api.wetmet.net:46,iframe:46
-geoje,50,49,0,0,3,0,46,46,0,0,46,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:49,637bef0325205.streamlock.net:50,hls:50
-sejong,45,48,0,0,2,0,46,46,0,0,46,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KR:48,sejongn2.kr:45,hls:45
+geoje,50,49,0,0,3,0,46,46,0,0,46,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:49,637bef0325205.streamlock.net:50,hls:50
+sejong,45,48,0,0,2,0,46,46,0,0,46,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KR:48,sejongn2.kr:45,hls:45
 swiss-autobahn,60,46,0,0,0,0,46,46,0,0,0,0,Europe,CH:46,www.astramobcam.ch:26;www4.ti.ch:12;www.tbamobcam.ch:9,jpg:60
 ccg-cameras,43,44,0,0,0,0,44,44,0,0,0,0,North America - Canada,CA:44,e-nav.ccg-gcc.gc.ca:43,jpg:43
 oceancity,43,42,0,0,0,0,42,41,0,1,0,0,North America - US,US:42,s142.ipcamlive.com:18;s67.ipcamlive.com:7;s165.ipcamlive.com:4,hls:42;resolver:ipcamlive:1
@@ -157,7 +157,7 @@ pgctrip,45,41,0,0,0,0,41,41,0,0,0,0,North America - US,US:41,s57.us-east-1.skyvd
 africam,43,40,0,0,0,0,40,0,40,0,0,0,Africa,ZA:20;BW:7;KE:6,www.youtube.com:43,youtube:43
 livecameras-gr,38,40,0,0,0,0,40,40,0,0,0,0,Europe,GR:40,livecameras.gr:38,hls:37;jpg:1
 mazury24,51,39,0,0,0,0,39,39,0,0,0,0,Europe,PL:39,stream.mazury24.eu:51,hls:51
-rta-telecom,50,65,0,0,26,0,39,39,0,0,39,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",RU:65,hls.m-ten.ru:50,hls:50
+rta-telecom,50,65,0,0,26,0,39,39,0,0,39,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",RU:65,hls.m-ten.ru:50,hls:50
 avistabaleares,39,38,0,0,0,0,38,38,0,0,0,0,Europe,ES:38,str2.eivotv.es:24;str4.strei.es:15,hls:39
 mauritius-traffic,38,38,0,0,0,0,38,38,0,0,0,0,Africa,MU:38,stream.myt.mu:38,hls:38
 vitoria-gasteiz,1,38,0,0,0,0,38,38,0,0,0,0,Europe,ES:38,www.vitoria-gasteiz.org:1,jpg:1
@@ -165,11 +165,11 @@ webcoos,49,39,0,1,0,0,38,38,0,0,0,0,North America - US,US:39,stage-ams.srv.axds.
 savannah-cams,39,38,0,1,0,0,37,37,0,0,0,0,North America - US,US:38,5b5d5bdb0d55e.streamlock.net:30;6218ad7d8018a.streamlock.net:9,hls:39
 wv511,42,37,0,0,0,0,37,37,0,0,0,0,North America - US,US:37,vtc1.roadsummary.com:42,hls:42
 NEW:essex,0,36,0,0,0,0,36,36,0,0,0,0,Europe,GB:36,,
-bantul,39,41,0,0,5,0,36,36,0,0,36,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:41,stream.bantulkab.go.id:39,hls:39
+bantul,39,41,0,0,5,0,36,36,0,0,36,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:41,stream.bantulkab.go.id:39,hls:39
 meteoswiss,35,36,0,0,0,0,36,36,0,0,0,0,Europe,CH:36,backend.roundshot.com:35,jpg:35
 dir-est,34,34,0,0,0,0,34,34,0,0,0,0,Europe,FR:34,webcam.dir-est.fr:34,jpg:34
 dirce,32,34,0,0,0,0,34,34,0,0,0,0,Europe,FR:34,www.webcams-dir.centre-est.developpement-durable.gouv.fr:32,jpg:32
-biodic,40,35,0,0,2,0,33,33,0,0,33,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:35,www.sizenken.biodic.go.jp:40,jpg:40
+biodic,40,35,0,0,2,0,33,33,0,0,33,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:35,www.sizenken.biodic.go.jp:40,jpg:40
 NEW:brentwood,0,32,0,0,0,0,32,32,0,0,0,0,North America - US,US:32,,
 amsbih,34,32,0,0,0,0,32,32,0,0,0,0,Europe,BA:32,www.amsbih.ba:29;amsbih.ba:5,jpg:34
 tik-latvia,31,32,0,0,0,0,32,32,0,0,0,0,Europe,LV:32,pildid.teeilm.ee:31,jpg:31
@@ -177,17 +177,17 @@ meteogalicia,31,31,0,0,0,0,31,31,0,0,0,0,Europe,ES:31,www.meteogalicia.gal:31,jp
 wowza-streamlock,34,31,0,0,0,0,31,31,0,0,0,0,Europe,PL:22;US:4;NL:3,53c7d208964cd.streamlock.net:24;558312d54930d.streamlock.net:6;565c3c746b763.streamlock.net:3,hls:34
 durham,29,30,0,0,0,0,30,30,0,0,0,0,Europe,GB:30,dcc.ussgroup.co.uk:29,jpg:29
 hdontap-wildlife,45,30,0,0,0,0,30,30,0,0,0,0,North America - US,US:29;CA:1,storage.hdontap.com:45,jpg:45
-selangor-flood,37,34,0,0,4,0,30,30,0,0,30,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",MY:34,infobanjirjps.selangor.gov.my:37,jpg:37
+selangor-flood,37,34,0,0,4,0,30,30,0,0,30,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",MY:34,infobanjirjps.selangor.gov.my:37,jpg:37
 NEW:mtdot,0,33,0,4,0,0,29,29,0,0,0,0,North America - US,US:22;CA:11,,
-astrakhan,45,46,0,0,18,0,28,28,0,0,28,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",RU:46,dvr2.astrakhan.ru:19;dvr.astrakhan.ru:11;dvr5.astrakhan.ru:9,hls:45
-hko-webcams,34,34,0,1,5,0,28,28,0,0,28,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",HK:34,www.hko.gov.hk:34,jpg:34
+astrakhan,45,46,0,0,18,0,28,28,0,0,28,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",RU:46,dvr2.astrakhan.ru:19;dvr.astrakhan.ru:11;dvr5.astrakhan.ru:9,hls:45
+hko-webcams,34,34,0,1,5,0,28,28,0,0,28,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",HK:34,www.hko.gov.hk:34,jpg:34
 camscape-curated,45,32,0,1,4,0,27,5,22,0,5,0,Europe,CZ:9;BG:4;NP:3,www.youtube.com:24;rtsp.me:4;share.earthcam.net:2,youtube:24;iframe:14;hls:7
 meter-ac,47,29,0,0,2,0,27,27,0,0,4,0,Europe,BG:29,meter.ac:47,jpg:47
 iowa-mesonet,6,26,0,0,0,0,26,26,0,0,0,0,North America - US,US:26,mesonet.agron.iastate.edu:6,jpg:6
 txdot,3792,2448,0,2422,0,0,26,0,0,26,0,0,North America - US,US:2448,its.txdot.gov:3792,resolver:txdot:3792
 czech-highways,48,25,0,0,0,0,25,25,0,0,0,0,Europe,CZ:25,www.dopravainformace.cz:48,jpg:48
 emsd-kamchatka,25,25,0,0,0,0,25,25,0,0,0,0,Europe,RU:25,www.emsd.ru:20;volcano.febras.net:5,jpg:25
-freecam-ro,34,32,0,0,7,0,25,25,0,0,10,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",RO:32,digilive.rcs-rds.ro:24;live2.freecam.ro:10,hls:34
+freecam-ro,34,32,0,0,7,0,25,25,0,0,10,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",RO:32,digilive.rcs-rds.ro:24;live2.freecam.ro:10,hls:34
 panocloud-ski,24,25,0,0,0,0,25,25,0,0,0,0,Europe,FI:12;AT:6;DE:3,altenberg.panocloud.webcam:1;brunnach.panocloud.webcam:1;dreizinnen.panocloud.webcam:1,jpg:24
 balticlivecam,25,25,0,0,1,0,24,0,24,0,2,0,Europe,LV:14;LT:4;EE:4,balticlivecam.com:25,iframe:25
 city-webcams,30,25,0,1,0,0,24,2,22,0,0,0,North America - US,US:22;NL:2;ES:1,www.youtube.com:9;player.brownrice.com:9;camserver1.in2thebeach.es:2,iframe:15;youtube:9;hls:5
@@ -202,21 +202,21 @@ florida-beach-cams,25,23,0,1,0,0,22,0,22,0,0,0,North America - US,US:23,g1.ipcam
 gray-tv,22,22,0,0,0,0,22,22,0,0,0,0,North America - US,US:22,webpubcontent.gray.tv:22,jpg:22
 maineturnpike,22,22,0,0,0,0,22,22,0,0,0,0,North America - US,US:22,www.maineturnpike.com:22,jpg:22
 seejh,24,22,0,0,0,0,22,16,6,0,0,0,North America - US,US:22,cams.jacksonhole.com:14;www.youtube.com:8;backend.roundshot.com:2,jpg:16;youtube:8
-tangerang,29,26,0,0,4,0,22,22,0,0,22,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:26,cctv-dishub.tangerangkab.go.id:29,hls:29
+tangerang,29,26,0,0,4,0,22,22,0,0,22,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:26,cctv-dishub.tangerangkab.go.id:29,hls:29
 NEW:horizons,0,21,0,0,0,0,21,21,0,0,0,0,Oceania,NZ:21,,
 stringmeteo,26,25,0,0,4,0,21,21,0,0,5,0,Europe,BG:25,www.stringmeteo.com:26,jpg:26
 sweden-ski,17,21,0,0,0,0,21,21,0,0,0,0,Europe,SE:21,cdn.branasgruppen.se:7;liveevent.se:3;www.liveevent.se:3,jpg:17
 webcamsdemexico,21,21,0,0,0,0,21,21,0,0,0,0,Latin America & Caribbean,MX:21,webcamsdemexico.net:20;webcamsmexico.net:1,jpg:21
 dersp,20,19,0,0,0,0,19,19,0,0,0,0,Latin America & Caribbean,BR:19,34.104.32.249.nip.io:20,hls:20
-stv,20,20,0,1,1,0,18,18,0,0,18,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:20,www.stv.jp:20,jpg:20
-asahan,10,19,0,0,2,0,17,17,0,0,17,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:19,cctv.asahankab.go.id:10,hls:10
+stv,20,20,0,1,1,0,18,18,0,0,18,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:20,www.stv.jp:20,jpg:20
+asahan,10,19,0,0,2,0,17,17,0,0,17,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:19,cctv.asahankab.go.id:10,hls:10
 hvo,16,17,0,0,0,0,17,17,0,0,0,0,North America - US,US:17,volcanoes.usgs.gov:16,jpg:16
-tasikmalaya,20,19,0,0,2,0,17,17,0,0,17,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:19,atcs.tasikmalayakota.go.id:20,hls:20
+tasikmalaya,20,19,0,0,2,0,17,17,0,0,17,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:19,atcs.tasikmalayakota.go.id:20,hls:20
 goes-satellite,16,16,0,0,0,0,16,16,0,0,0,0,Other (Antarctica / satellite / unknown),XX:16,cdn.star.nesdis.noaa.gov:16,jpg:16
-hanshin-expressway,17,17,0,0,1,0,16,16,0,0,16,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:17,www.hanshin-exp.co.jp:17,jpg:17
-mlit-yamagata,17,17,0,0,1,0,16,16,0,0,16,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:17,www2.thr.mlit.go.jp:17,jpg:17
+hanshin-expressway,17,17,0,0,1,0,16,16,0,0,16,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:17,www.hanshin-exp.co.jp:17,jpg:17
+mlit-yamagata,17,17,0,0,1,0,16,16,0,0,16,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:17,www2.thr.mlit.go.jp:17,jpg:17
 tabi-cam,24,16,0,0,0,0,16,0,16,0,2,0,Europe,US:4;CZ:2;NL:2,www.youtube.com:24,youtube:24
-balikesir,26,26,0,0,11,0,15,0,15,0,15,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TR:26,player.tvkur.com:26,iframe:26
+balikesir,26,26,0,0,11,0,15,0,15,0,15,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TR:26,player.tvkur.com:26,iframe:26
 czech-highways-ext,21,15,0,0,0,0,15,15,0,0,0,0,Europe,CZ:15,www.dopravainformace.cz:21,jpg:21
 maunakea-observatories,15,15,0,0,0,0,15,15,0,0,0,0,North America - US,US:15,www.gemini.edu:5;www.naoj.hawaii.edu:5;www2.keck.hawaii.edu:3,jpg:15
 oceancity-com,16,15,0,0,0,0,15,13,0,2,0,0,North America - US,US:15,s133.ipcamlive.com:3;s111.ipcamlive.com:1;s28.ipcamlive.com:1,hls:14;resolver:ipcamlive:2
@@ -226,7 +226,7 @@ daer-rs,18,14,0,0,0,0,14,14,0,0,0,0,Latin America & Caribbean,BR:14,daer.kopp.co
 grandlyon,14,14,0,0,0,0,14,14,0,0,0,0,Europe,FR:14,download.data.grandlyon.com:14,jpg:14
 ineter,14,14,0,0,0,0,14,14,0,0,0,0,Latin America & Caribbean,NI:14,webserver2.ineter.gob.ni:14,jpg:14
 isle-of-man,15,14,0,0,0,0,14,14,0,0,0,0,Europe,IM:14,images.gov.im:10;ipcamlive.com:3;media.bushys.com:1,jpg:15
-numazu-snow,15,15,0,0,1,0,14,14,0,0,14,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:15,snowlive.pref.shizuoka.jp:15,jpg:15
+numazu-snow,15,15,0,0,1,0,14,14,0,0,14,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:15,snowlive.pref.shizuoka.jp:15,jpg:15
 pictimo,13,15,1,0,0,0,14,0,14,0,0,0,Europe,CH:5;FR:3;US:2,laax.roundshot.com:2;www.vision-environnement.com:2;images.opentopia.com:1,iframe:12
 surf-cams,14,14,0,0,0,0,14,14,0,0,0,0,North America - US,US:14,www.805webcams.com:14,jpg:14
 yukon,16,14,0,0,0,0,14,14,0,0,0,0,North America - Canada,CA:14,511yukon.ca:16,jpg:16
@@ -235,8 +235,8 @@ intersaar-saarland,13,13,0,0,0,0,13,13,0,0,0,0,Europe,DE:13,webcam.intersaar.de:
 cbsdenver,12,12,0,0,0,0,12,12,0,0,0,0,North America - US,US:12,radar.cbslocal.com:6;static.cbslocal.com:6,jpg:12
 cumbernauld-airport,12,12,0,0,0,0,12,12,0,0,0,0,Europe,GB:12,www.egpgmet.net:12,jpg:12
 inforoute-alsace,12,12,0,0,0,0,12,12,0,0,0,0,Europe,FR:12,inforoute.alsace.eu:12,jpg:12
-kahramanmaras,21,20,0,0,8,0,12,12,0,0,12,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TR:20,95.0.155.24:21,hls:21
-kg-camera,19,20,0,0,8,0,12,12,0,0,12,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KG:20,webcam.elcat.kg:19,hls:19
+kahramanmaras,21,20,0,0,8,0,12,12,0,0,12,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TR:20,95.0.155.24:21,hls:21
+kg-camera,19,20,0,0,8,0,12,12,0,0,12,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KG:20,webcam.elcat.kg:19,hls:19
 paesaggidigitali,13,12,0,0,0,0,12,12,0,0,0,0,Europe,IT:12,paesaggidigitali.it:13,jpg:13
 perisher,12,12,0,0,0,0,12,12,0,0,0,0,Oceania,AU:12,www.perisher.com.au:12,jpg:12
 railstream,13,13,0,1,0,0,12,0,12,0,0,0,North America - US,US:13,railstream.net:13,iframe:13
@@ -246,8 +246,8 @@ namibia-webcams,12,11,0,0,0,0,11,11,0,0,0,0,Africa,NA:11,weather.namsearch.com:1
 varitech-patagonia,12,11,0,0,0,0,11,11,0,0,0,0,Latin America & Caribbean,AR:11,varitech.ar:12,jpg:12
 vvo-dresden,12,11,0,0,0,0,11,11,0,0,0,0,Europe,DE:11,www.vvo-online.de:12,jpg:12
 wsv-waterway,11,11,0,0,0,0,11,11,0,0,0,0,Europe,DE:11,pss.wsv.de:10;www.bafg.de:1,jpg:11
-xcom-aktau,17,17,0,0,6,0,11,11,0,0,11,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",KZ:17,cam.xcom.kz:17,hls:17
-belarus-customs,14,13,0,0,3,0,10,10,0,0,4,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",BY:13,www.customs.gov.by:14,jpg:14
+xcom-aktau,17,17,0,0,6,0,11,11,0,0,11,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",KZ:17,cam.xcom.kz:17,hls:17
+belarus-customs,14,13,0,0,3,0,10,10,0,0,4,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",BY:13,www.customs.gov.by:14,jpg:14
 fox13tampa,10,10,0,0,0,0,10,10,0,0,0,0,North America - US,US:10,media.foxtv.com:10,jpg:10
 geonet,11,10,0,0,0,0,10,10,0,0,0,0,Oceania,NZ:10,images.geonet.org.nz:11,jpg:11
 govje,10,10,0,0,0,0,10,10,0,0,0,0,Europe,JE:10,sojpublicdata.blob.core.windows.net:10,jpg:10
@@ -255,7 +255,7 @@ worldcam,7,10,0,0,0,0,10,10,0,0,1,0,Europe,AR:2;GR:2;AL:2,www.img.worldcam.pl:4;
 bird-cams,10,9,0,0,0,0,9,0,9,0,0,0,North America - US,US:9,www.youtube.com:10,youtube:10
 bkom-brno,9,9,0,0,0,0,9,9,0,0,0,0,Europe,CZ:9,www.bkom.cz:9,jpg:9
 cetsp,10,9,0,0,0,0,9,9,0,0,0,0,Latin America & Caribbean,BR:9,cameras.cetsp.com.br:10,jpg:10
-dwr-nakhonsri,14,10,0,0,1,0,9,9,0,0,9,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TH:10,tele-nakhonsri.dwr.go.th:14,jpg:14
+dwr-nakhonsri,14,10,0,0,1,0,9,9,0,0,9,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TH:10,tele-nakhonsri.dwr.go.th:14,jpg:14
 ipgp,9,9,0,0,0,0,9,9,0,0,0,0,Africa,RE:9,www.ipgp.fr:9,jpg:9
 nl-port-webcams,9,9,0,0,0,0,9,5,4,0,0,0,Europe,NL:9,584b389d712f9.streamlock.net:4;www.youtube.com:3;5b8d2cbe62ad6.streamlock.net:1,hls:5;youtube:3;iframe:1
 vedrid,8,9,0,0,0,0,9,9,0,0,0,0,Europe,FO:9,vedrid.fo:8,jpg:8
@@ -264,14 +264,14 @@ dwd-webcams,8,8,0,0,0,0,8,8,0,0,0,0,Europe,DE:8,opendata.dwd.de:8,jpg:8
 geilo-cams,8,8,0,0,0,0,8,8,0,0,0,0,Europe,NO:8,nettkamera.cid.no:6;webcam.infotec.no:2,jpg:8
 ibericam,12,8,0,0,0,0,8,8,0,0,0,0,Europe,ES:8,webcam-2.ibericam.com:10;image.ibericam.com:2,hls:10;jpg:2
 ny511,1833,1508,0,1500,0,0,8,8,0,0,1,0,North America - US,US:1498;CA:9;KG:1,s52.nysdot.skyvdn.com:326;s53.nysdot.skyvdn.com:316;s9.nysdot.skyvdn.com:307,hls:1543;jpg:290
-himawari,7,7,0,0,0,0,7,7,0,0,3,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",XX:6;NZ:1,himawari8-dl.nict.go.jp:7,jpg:7
+himawari,7,7,0,0,0,0,7,7,0,0,3,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",XX:6;NZ:1,himawari8-dl.nict.go.jp:7,jpg:7
 livecameras-ru,7,7,0,0,0,0,7,0,7,0,0,0,Europe,RU:7,vkvideo.ru:6;rutube.ru:1,iframe:7
-moldova-roads,13,12,0,0,5,0,7,7,0,0,7,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",MD:12,www.andsa.md:13,jpg:13
+moldova-roads,13,12,0,0,5,0,7,7,0,0,7,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",MD:12,www.andsa.md:13,jpg:13
 nasa-worldview,8,8,0,0,1,0,7,7,0,0,2,0,Other (Antarctica / satellite / unknown),XX:8,wvs.earthdata.nasa.gov:8,jpg:8
 noaa-esrl,7,7,0,0,0,0,7,7,0,0,0,0,North America - US,US:7,gml.noaa.gov:7,jpg:7
 pei,7,7,0,0,0,0,7,7,0,0,0,0,North America - Canada,CA:7,511.gov.pe.ca:7,jpg:7
 starvisor,8,8,0,0,1,0,7,7,0,0,2,0,Europe,RU:7;DE:1,pics.starvisor.net:8,jpg:8
-beachcam-il,9,9,0,0,3,0,6,6,0,0,6,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",IL:9,s122.ipcamlive.com:6;s5.ipcamlive.com:1;s75.ipcamlive.com:1,hls:9
+beachcam-il,9,9,0,0,3,0,6,6,0,0,6,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",IL:9,s122.ipcamlive.com:6;s5.ipcamlive.com:1;s75.ipcamlive.com:1,hls:9
 cbs58,6,6,0,0,0,0,6,6,0,0,0,0,North America - US,US:6,newscdn2.weigelbroadcasting.com:6,jpg:6
 digitraffic,554,2154,0,2148,0,0,6,6,0,0,0,0,Europe,FI:2148;NO:4;SE:2,weathercam.digitraffic.fi:554,jpg:554
 eso-observatories,10,6,0,0,0,0,6,6,0,0,0,0,Latin America & Caribbean,CL:6,elt.eso.org:4;www.rem.inaf.it:4;www.apex-telescope.org:1,jpg:10
@@ -279,7 +279,7 @@ kcscout,181,208,0,202,0,0,6,6,0,0,0,0,North America - US,US:208,www.kcscout.net:
 naodos-gr,6,6,0,0,0,0,6,0,6,0,0,0,Europe,GR:6,g0.ipcamlive.com:6,iframe:6
 ovsicori,6,6,0,0,0,0,6,6,0,0,0,0,Latin America & Caribbean,CR:6,www.ovsicori.una.ac.cr:6,jpg:6
 tallinn,6,6,0,0,0,0,6,6,0,0,0,0,Europe,EE:3;NO:3,ristmikud.tallinn.ee:6,jpg:6
-uludaginfo,7,10,0,0,4,0,6,6,0,0,6,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TR:10,live.dgn.net.tr:7,jpg:7
+uludaginfo,7,10,0,0,4,0,6,6,0,0,6,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TR:10,live.dgn.net.tr:7,jpg:7
 wa-coastcams,5,6,0,0,0,0,6,6,0,0,0,0,Oceania,AU:6,www.transport.wa.gov.au:5,jpg:5
 wreg,2,6,0,0,0,0,6,6,0,0,0,0,North America - US,US:6,wreglivecams.com:2,hls:2
 zurich-airport,6,6,0,0,0,0,6,0,6,0,0,0,Europe,CH:6,cam2.zurich-airport.com:1;cam3.zurich-airport.com:1;cam4.zurich-airport.com:1,iframe:6
@@ -289,7 +289,7 @@ eaglecrest,5,5,0,0,0,0,5,5,0,0,0,0,North America - US,US:5,eaglecams.ci.juneau.a
 kimt,5,5,0,0,0,0,5,5,0,0,0,0,North America - US,US:5,ftp2.kimt.com:5,jpg:5
 livebeaches-yt,10,5,0,0,0,0,5,0,5,0,0,0,North America - US,US:4;MX:1,www.youtube.com:10,youtube:10
 mackinac,5,5,0,0,0,0,5,5,0,0,0,0,North America - US,US:5,www.mackinacbridge.org:5,jpg:5
-novosibirsk,9,9,0,0,4,0,5,5,0,0,5,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",RU:9,wowza-2.novo-sibirsk.ru:9,hls:9
+novosibirsk,9,9,0,0,4,0,5,5,0,0,5,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",RU:9,wowza-2.novo-sibirsk.ru:9,hls:9
 nycdot,80,946,0,941,0,0,5,5,0,0,0,946,North America - US,US:946,webcams.nyctmc.org:80,jpg:80
 panama-canal,5,5,0,0,0,0,5,5,0,0,0,0,Latin America & Caribbean,PA:5,webcams.delcanal.com:5,jpg:5
 portguide,10,5,0,0,0,0,5,0,5,0,0,0,Europe,FR:2;ES:1;IT:1,www.youtube.com:10,youtube:10
@@ -311,7 +311,7 @@ usace-waterways,3,4,0,0,0,0,4,4,0,0,0,0,North America - US,US:4,w3.saj.usace.arm
 viewsurf,308,4,0,0,0,0,4,0,4,0,0,0,Europe,FR:2;AD:2,www.viewsurf.com:308,iframe:308
 villa-gesell,5,4,0,0,0,0,4,4,0,0,0,0,Latin America & Caribbean,AR:4,cam104.gesell.com.ar:1;cam112yplaya.gesell.com.ar:1;cambsasyplaya.gesell.com.ar:1,hls:5
 wastateparks,4,4,0,0,0,0,4,4,0,0,0,0,North America - US,US:4,biz.parks.wa.gov:4,jpg:4
-atv,3,3,0,0,0,0,3,3,0,0,3,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:3,www.atv.jp:3,jpg:3
+atv,3,3,0,0,0,0,3,3,0,0,3,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:3,www.atv.jp:3,jpg:3
 caribbean-ipcamlive,4,3,0,0,0,0,3,3,0,0,0,0,Latin America & Caribbean,VG:1;PR:1;US:1,s90.ipcamlive.com:2;s112.ipcamlive.com:1;s116.ipcamlive.com:1,hls:4
 cotrip,834,3,0,0,0,0,3,3,0,0,0,0,North America - US,US:3,publicstreamer1.cotrip.org:279;publicstreamer3.cotrip.org:200;publicstreamer2.cotrip.org:186,hls:834
 dolnimorava,4,3,0,0,0,0,3,3,0,0,0,0,Europe,CZ:3,exports.holidayinfo.cz:4,jpg:4
@@ -319,29 +319,29 @@ falklands,2,3,0,0,0,0,3,3,0,0,0,0,Latin America & Caribbean,FK:3,webcams.sure.co
 fws-wildlife,2,3,0,0,0,0,3,3,0,0,0,0,North America - US,US:3,portal.hdontap.com:2,jpg:2
 hillhead,3,3,0,0,0,0,3,3,0,0,0,0,Europe,GB:3,content1.hillheadsc.org.uk:3,jpg:3
 nwt,3,3,0,0,0,0,3,3,0,0,0,0,North America - Canada,CA:3,drivenwt.ca:3,jpg:3
-saoras,4,4,0,0,1,0,3,3,0,0,3,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",RU:4,www.sao.ru:4,jpg:4
+saoras,4,4,0,0,1,0,3,3,0,0,3,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",RU:4,www.sao.ru:4,jpg:4
 whsv,3,3,0,0,0,0,3,3,0,0,0,0,North America - US,US:3,virginianewslink.com:3,jpg:3
-NEW:ivideon,0,2,0,0,0,0,2,0,2,0,1,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",UA:1;GB:1,,
+NEW:ivideon,0,2,0,0,0,0,2,0,2,0,1,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",UA:1;GB:1,,
 adelaide,2,2,0,0,0,0,2,2,0,0,0,0,Oceania,AU:2,s3.ap-southeast-2.amazonaws.com:2,jpg:2
-cbr-mlit,11,2,0,0,0,0,2,2,0,0,2,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:2,www.cbr.mlit.go.jp:11,jpg:11
-jp-airports,2,2,0,0,0,0,2,2,0,0,2,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",JP:2,webcam.wni.co.jp:1;misawa-airport.co.jp:1,jpg:2
+cbr-mlit,11,2,0,0,0,0,2,2,0,0,2,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:2,www.cbr.mlit.go.jp:11,jpg:11
+jp-airports,2,2,0,0,0,0,2,2,0,0,2,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",JP:2,webcam.wni.co.jp:1;misawa-airport.co.jp:1,jpg:2
 kielcanal,2,2,0,0,0,0,2,2,0,0,0,0,Europe,DE:2,cdn.livespotting.com:2,jpg:2
 opgc,2,2,0,0,0,0,2,2,0,0,0,0,Europe,FR:2,wwwobs.univ-bpclermont.fr:2,jpg:2
 swellmagnet,2,2,0,0,0,0,2,0,2,0,0,0,North America - US,US:2,www.youtube.com:2,youtube:2
-thai-drr,49,3,0,0,1,0,2,2,0,0,2,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TH:3,drr-kt-svr02.enixma.net:42;drr-kpp-svr02.enixma.net:4;drr-pbi2021pc3-industrial.enixma.net:3,hls:49
+thai-drr,49,3,0,0,1,0,2,2,0,0,2,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TH:3,drr-kt-svr02.enixma.net:42;drr-kpp-svr02.enixma.net:4;drr-pbi2021pc3-industrial.enixma.net:3,hls:49
 tii-ireland,234,2,0,0,0,0,2,2,0,0,0,0,Europe,IE:2,irecam.carsprogram.org:234,jpg:234
 NEW:agpse,0,1,0,0,0,0,1,1,0,0,0,0,Latin America & Caribbean,AR:1,,
 NEW:bulgaria,0,1,0,0,0,0,1,1,0,0,0,0,Europe,BG:1,,
 aspects-holidays,1,1,0,0,0,0,1,1,0,0,0,0,Europe,GB:1,www.aspects-holidays.co.uk:1,jpg:1
 awi,1,1,0,0,0,0,1,1,0,0,0,0,Other (Antarctica / satellite / unknown),AQ:1,www.awi.de:1,jpg:1
-bpjt,11,1,0,0,0,0,1,1,0,0,1,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:1,jmlive.jasamarga.com:11,hls:11
-hatyai-climate,1,1,0,0,0,0,1,1,0,0,1,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",TH:1,hatyaicityclimate.org:1,jpg:1
+bpjt,11,1,0,0,0,0,1,1,0,0,1,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:1,jmlive.jasamarga.com:11,hls:11
+hatyai-climate,1,1,0,0,0,0,1,1,0,0,1,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",TH:1,hatyaicityclimate.org:1,jpg:1
 nasa-epic,2,1,0,0,0,0,1,1,0,0,0,0,Other (Antarctica / satellite / unknown),XX:1,epic.gsfc.nasa.gov:2,jpg:2
 nbc-montana,1,1,0,0,0,0,1,1,0,0,0,0,North America - US,US:1,d237lhmlzpreh2.cloudfront.net:1,hls:1
 nzta,259,245,0,244,0,0,1,1,0,0,0,0,Oceania,NZ:245,www.trafficnz.info:259,jpg:259
 pacific-ipcamlive,2,1,0,0,0,0,1,1,0,0,0,0,Oceania,FJ:1,s72.ipcamlive.com:2,hls:2
 railwebcams,1,1,0,0,0,0,1,1,0,0,0,0,Europe,CH:1,www.air-zermatt.ch:1,jpg:1
-singapore-weather,1,1,0,0,0,0,1,1,0,0,1,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",SG:1,www.singaporeweather.info:1,jpg:1
+singapore-weather,1,1,0,0,0,0,1,1,0,0,1,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",SG:1,www.singaporeweather.info:1,jpg:1
 telpin-argentina,7,1,0,0,0,0,1,0,1,0,0,0,Latin America & Caribbean,AR:1,wowza.telpin.com.ar:6;video.estadodelmar.com.ar:1,hls:6;iframe:1
 tik-lithuania,58,58,0,50,7,0,1,1,0,0,0,0,Europe,LT:58,pildid.teeilm.ee:58,jpg:58
 tripcheck,640,614,0,613,0,0,1,1,0,0,0,0,North America - US,US:614,tripcheck.com:640,jpg:640
@@ -349,7 +349,7 @@ uab-bg,9,8,0,6,1,0,1,1,0,0,0,0,Europe,BG:8,cdn.uab.org:9,jpg:9
 asfinag,1072,1081,0,1081,0,0,0,0,0,0,0,0,Europe,AT:1061;IT:13;SI:4,webcams2.asfinag.at:1072,jpg:1072
 binhdinh,63,0,0,0,0,0,0,0,0,0,0,0,(gone),VN:63,binhdinh.ttgt.vn:63,
 birds-il,3,0,0,0,0,0,0,0,0,0,0,0,(gone),IL:3,server.reali-tech.com:3,
-bondowoso,18,19,19,0,0,0,0,0,0,0,0,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",ID:19,cctv.bondowosokab.go.id:18,
+bondowoso,18,19,19,0,0,0,0,0,0,0,0,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",ID:19,cctv.bondowosokab.go.id:18,
 chmi-webcams,81,0,0,0,0,0,0,0,0,0,0,0,(gone),CZ:81,intranet.chmi.cz:81,
 dars,600,371,371,0,0,0,0,0,0,0,0,0,Europe,SI:371,imgproxy.windy.com:393;images-webcams.windy.com:207,
 ecrmm-udep,1,0,0,0,0,0,0,0,0,0,0,0,(gone),PE:1,ecrmm.udep.edu.pe:1,
@@ -357,8 +357,8 @@ eismoinfo,313,308,0,308,0,0,0,0,0,0,0,0,Europe,LT:308,eismoinfo.lt:313,jpg:313
 euskadi,120,0,0,0,0,0,0,0,0,0,0,0,(gone),ES:120,apps.trafikoa.euskadi.eus:120,
 fintraffic,22,4,0,4,0,0,0,0,0,0,0,0,Europe,FI:4,weathercam.digitraffic.fi:22,jpg:22
 frankfurt-mainziel,24,0,0,0,0,0,0,0,0,0,0,0,(gone),DE:24,mainziel.de:24,
-home-solutions-bg,4,1,0,0,1,0,0,0,0,0,0,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",BG:1,home-solutions.bg:4,jpg:4
-hongkong,987,966,0,814,152,0,0,0,0,0,0,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",HK:966,tdcctv.data.one.gov.hk:987,jpg:987
+home-solutions-bg,4,1,0,0,1,0,0,0,0,0,0,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",BG:1,home-solutions.bg:4,jpg:4
+hongkong,987,966,0,814,152,0,0,0,0,0,0,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",HK:966,tdcctv.data.one.gov.hk:987,jpg:987
 iceland,178,479,0,479,0,0,0,0,0,0,0,0,Europe,IS:479,www.vegagerdin.is:178,jpg:178
 istanbul-ibb,9,0,0,0,0,0,0,0,0,0,0,0,(gone),TR:9,livestream.ibb.gov.tr:9,
 istanbul-ibb-traffic,1,0,0,0,0,0,0,0,0,0,0,0,(gone),TR:1,tkmservices.ibb.gov.tr:1,
@@ -366,7 +366,7 @@ itrafik-jb,22,0,0,0,0,0,0,0,0,0,0,0,(gone),MY:22,itrafik.mbjb.gov.my:22,
 jakarta,571,0,0,0,0,0,0,0,0,0,0,0,(gone),ID:571,cctv.balitower.co.id:571,
 jogjakarta,127,0,0,0,0,0,0,0,0,0,0,0,(gone),ID:127,cctvjss.jogjakota.go.id:127,
 konya,40,0,0,0,0,0,0,0,0,0,0,0,(gone),TR:40,ams-18751.antmedia.cloud:40,
-middle-east-yt,6,1,0,0,1,0,0,0,0,0,0,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",IL:1,www.youtube.com:6,youtube:6
+middle-east-yt,6,1,0,0,1,0,0,0,0,0,0,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",IL:1,www.youtube.com:6,youtube:6
 midot,636,634,0,634,0,0,0,0,0,0,0,0,North America - US,US:629;CA:5,micamerasimages.net:547;mdotjboss.state.mi.us:87;micamerasimages2.us-east-1.skyvdn.com:2,jpg:636
 moscow,2,0,0,0,0,0,0,0,0,0,0,0,(gone),RU:2,vk.com:2,
 nadmorski24,65,65,0,65,0,0,0,0,0,0,0,0,Europe,PL:65,ls.tkchopin.pl:65,hls:65
@@ -381,7 +381,7 @@ portland-or,347,366,0,366,0,0,0,0,0,0,0,0,North America - US,US:366,tripcheck.co
 portofla,1,0,0,0,0,0,0,0,0,0,0,0,(gone),US:1,share.earthcam.net:1,
 quebec,2,0,0,0,0,0,0,0,0,0,0,0,(gone),CA:2,www.quebec511.info:2,
 sba-bg,1,1,0,1,0,0,0,0,0,0,0,0,Europe,BG:1,cdn.uab.org:1,jpg:1
-singapore,90,8,0,7,1,0,0,0,0,0,0,0,"Inside OSIRIS OpenCCTV boxes (Asia, capped today)",SG:8,images.data.gov.sg:90,jpg:90
+singapore,90,8,0,7,1,0,0,0,0,0,0,0,"Inside TAKIP OpenCCTV boxes (Asia, capped today)",SG:8,images.data.gov.sg:90,jpg:90
 skylinewebcams,61,0,0,0,0,0,0,0,0,0,0,0,(gone),IT:10;US:10;GR:8,www.skylinewebcams.com:61,
 surfchex,44,0,0,0,0,0,0,0,0,0,0,0,(gone),US:44,www.surfchex.com:44,
 swisswebcams,2985,1545,1545,0,0,0,0,0,0,0,0,0,Europe,CH:1536;IT:4;DE:3,images-webcams.windy.com:2985,

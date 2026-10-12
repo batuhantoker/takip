@@ -1,5 +1,5 @@
 /**
- * OSIRIS vision worker: runs the camera detector off the main thread, so
+ * TAKIP vision worker: runs the camera detector off the main thread, so
  * counting a frame never stalls the map.
  *
  * ONNX Runtime's WebAssembly build executes the model. It is single-threaded

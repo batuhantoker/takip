@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pointInPolygon, bboxOf, selectInPolygon, MAX_ITEMS_PER_GROUP } from './aoi';
+import { pointInPolygon, bboxOf, selectInPolygon, selectInArea, areaParts, pointInParts, MAX_ITEMS_PER_GROUP } from './aoi';
 
 /** A 2x2 degree square centred on 0,0. */
 const SQUARE = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
@@ -110,5 +110,38 @@ describe('selectInPolygon', () => {
     const r = selectInPolygon(SQUARE, data);
     const cam = r.groups.find(g => g.key === 'cameras')!;
     expect(cam.items[0].detail).toBe('Test, XX');
+  });
+});
+
+describe('selectInArea', () => {
+  /** Two islands either side of the dateline, the western one with a lake. */
+  const ISLANDS: GeoJSON.MultiPolygon = {
+    type: 'MultiPolygon',
+    coordinates: [
+      [[[170, -20], [180, -20], [180, -10], [170, -10], [170, -20]],
+        [[174, -16], [176, -16], [176, -14], [174, -14], [174, -16]]],
+      [[[-180, -20], [-170, -20], [-170, -10], [-180, -10], [-180, -20]]],
+    ],
+  };
+
+  it('counts objects on every part', () => {
+    const data = { cameras: [{ name: 'W', lat: -12, lng: 172 }, { name: 'E', lat: -12, lng: -175 }] };
+    expect(selectInArea(ISLANDS, data).total).toBe(2);
+  });
+
+  it('excludes a point in a hole', () => {
+    const data = { cameras: [{ name: 'lake', lat: -15, lng: 175 }] };
+    expect(selectInArea(ISLANDS, data).total).toBe(0);
+  });
+
+  it('keeps bounds per part, so the parts do not span the globe between them', () => {
+    const parts = areaParts(ISLANDS);
+    expect(parts.map(p => [p.box.west, p.box.east])).toEqual([[170, 180], [-180, -170]]);
+    expect(pointInParts(0, -15, parts)).toBe(false);
+  });
+
+  it('agrees with selectInPolygon on a plain ring', () => {
+    const data = { cameras: [{ name: 'in', lat: 0, lng: 0 }, { name: 'out', lat: 5, lng: 5 }] };
+    expect(selectInArea({ type: 'Polygon', coordinates: [SQUARE] }, data)).toEqual(selectInPolygon(SQUARE, data));
   });
 });

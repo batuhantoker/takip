@@ -308,8 +308,8 @@ function buildRequest(def: ProviderDef, key: string, model: string, req: ChatReq
   const completion = r.completionTokens || def.id === 'openai';
   const headers: Record<string, string> = { 'content-type': 'application/json', authorization: `Bearer ${key}` };
   if (def.id === 'openrouter') {
-    headers['HTTP-Referer'] = 'https://osirisai.live';
-    headers['X-Title'] = 'OSIRIS OI';
+    headers['HTTP-Referer'] = 'https://github.com/batuhantoker/takip';
+    headers['X-Title'] = 'Takip AI';
   }
   return {
     url: `${def.base}/chat/completions`,

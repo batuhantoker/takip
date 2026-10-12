@@ -72,9 +72,9 @@ print(len(data["commercial_flights"]), "commercial")`,
 export function SelfHostingSection() {
   return (
     <Section id="self-hosting" eyebrow="Guide" title="Self-Hosting">
-      <p>OSIRIS needs Node 20+ and no database. A local instance is three commands:</p>
-      <Pre label="Local development" lang="bash">{`git clone https://github.com/simplifaisoul/osiris.git
-cd osiris
+      <p>TAKIP needs Node 20+ and no database. A local instance is three commands:</p>
+      <Pre label="Local development" lang="bash">{`git clone https://github.com/batuhantoker/takip.git
+cd takip
 npm install
 npm run dev        # http://localhost:3000`}</Pre>
       <p>For a production build, or to run the checks:</p>
@@ -84,7 +84,7 @@ npm test           # vitest
 npm run test:live  # includes tests that hit live upstream feeds`}</Pre>
       <p>
         A <Code>Dockerfile</Code> and <Code>docker-compose.yml</Code> ship with the repository. The container
-        always listens on port 3000 internally; <Code>OSIRIS_PORT</Code> controls the host port it is published
+        always listens on port 3000 internally; <Code>TAKIP_PORT</Code> controls the host port it is published
         on.
       </p>
       <Pre label="Docker" lang="bash">{`cp .env.example .env
@@ -114,11 +114,11 @@ export function ConfigurationSection() {
             v: 'Shared secret for /api/sdk/ingest. The endpoint fails closed: while this is unset, ingestion is disabled and returns 503.',
           },
           {
-            k: 'OSIRIS_TELEGRAM_CHANNELS',
+            k: 'TAKIP_TELEGRAM_CHANNELS',
             v: 'Comma-separated public Telegram channel names (no @) for the Telegram OSINT layer, overriding the curated default set.',
           },
           {
-            k: 'OSIRIS_PORT',
+            k: 'TAKIP_PORT',
             v: 'Host port the UI is published on. The container itself always listens on 3000.',
           },
         ].map(row => (

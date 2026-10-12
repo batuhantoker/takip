@@ -1,4 +1,5 @@
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { LOOPBACK, parseProxies } from './access/client-ip';
@@ -35,6 +36,9 @@ const schema = z
     // smtp(s)://user:pass@host:port from any provider. Unset in development: mail prints to the console.
     SMTP_URL: z.string().optional(),
     MAIL_FROM: z.string().optional(),
+    // Replay data platform (docs/architecture/replay-database.md §4.1). Relative paths mean the repo root.
+    TAKIP_DATA_DIR: z.string().default('data').transform(p => resolve(repoRoot, p)),
+    TAKIP_ARCHIVE_DIR: z.string().optional().transform(p => (p ? resolve(repoRoot, p) : undefined)),
     // Peers whose X-Forwarded-For is believed (IPs or CIDR ranges). Loopback covers the Next rewrite in development.
     TRUSTED_PROXIES: z.string().default(LOOPBACK).refine(isProxyList, 'comma-separated IPs or CIDR ranges'),
     // Cloudflare is the edge: believe cf-connecting-ip from a trusted peer.

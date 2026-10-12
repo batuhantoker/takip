@@ -1,5 +1,5 @@
 /**
- * OSIRIS — Markets panel helpers.
+ * TAKIP — Markets panel helpers.
  *
  * The pure pieces of the Markets & Intel panel, kept out of the component so
  * they can be tested: which benchmarks lead the Pulse strip, how a month's
@@ -80,7 +80,7 @@ export function formatMove(pct: number | null | undefined, digits = 2): string {
 
 /* ── watchlist ───────────────────────────────────────────────── */
 
-export const WATCHLIST_KEY = 'osiris.markets.watchlist';
+export const WATCHLIST_KEY = 'takip.markets.watchlist';
 export const WATCHLIST_CAP = 30;
 
 /** Yahoo symbols: letters, digits and ^ = . - (e.g. ^VIX, ES=F, DX-Y.NYB). */

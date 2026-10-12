@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI Assist: one turn of the conversation.
+ * TAKIP OI Assist: one turn of the conversation.
  *
  * The reader says something; the model answers with words and actions; the
  * page carries the actions out, in order; if the model asked to see their

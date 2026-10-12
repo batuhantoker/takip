@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: is the baseline any good?
+ * TAKIP OI: is the baseline any good?
  *
  * The statistical baseline, scored on the instrument's own past: forecasts
  * made on days through the history, each from the year of prices before it,

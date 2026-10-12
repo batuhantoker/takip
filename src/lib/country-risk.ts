@@ -1,5 +1,5 @@
 /**
- * OSIRIS — country risk baseline.
+ * TAKIP — country risk baseline.
  *
  * The `base` numbers below are an editorial judgement, not a measurement.
  * Nobody calibrated them against an outcome dataset, there is no published

@@ -5,7 +5,7 @@ import { layoutTile, tileHeight, tilesOverlap, type TileGeometry } from '@/lib/m
 import type { Map as MlMap } from 'maplibre-gl';
 
 /**
- * OSIRIS — live TV news playing on the map.
+ * TAKIP — live TV news playing on the map.
  *
  * The CCTV previews pin a live frame above a camera marker, but only past zoom
  * 13: there are ~19,000 cameras, so at any wider view the tiles would be a

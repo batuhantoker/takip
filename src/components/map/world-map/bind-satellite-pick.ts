@@ -3,8 +3,8 @@ import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { SatelliteDetail } from '@/components/map/satellite-card';
 import { satColorFor, type MapPalette } from '@/lib/map-palette';
 import type { OiGlobe } from '@/lib/oi/globe';
-import { isReferenceLayerId } from '@/lib/reference/map-layers';
 import { parseColor } from '@/lib/satellite-layer';
+import { hitsClickableLayer } from './clickable-layers';
 import type { SatelliteLayer, SatelliteRow } from './types';
 
 interface SatellitePickArgs {
@@ -22,14 +22,6 @@ interface SatellitePickArgs {
 
 export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, oiGlobeRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, popupRef, paletteRef, setSelectedSat, clearSat }: SatellitePickArgs) {
   // ── Satellites (SatNOGS powered) ──
-  // Layers with their own click handlers. The satellite pick defers to
-  // these, and to nothing else — the basemap is not a click target.
-  const CLICKABLE_LAYERS = new Set(['conflict-icons','cctv-dots','eq-circles','fires-heat',
-    'gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots',
-    'balloon-dots','rad-dots','ship-dots','ship-arrows','sweep-device-dots','scan-targets-dots',
-    'sdk-sea','sdk-air','sdk-intel','malware-dots','cyber-heads','gdelt-events-dots',
-    'cf-outage-dots','cf-attack-dots','fl-commercial','fl-private','fl-jets','fl-military','alert-pin-dots','wx-wind','wx-temp-label']);
-
   // Satellites are picked on the GPU: the pick pass runs the same vertex
   // shader as the visible one, so the target is always exactly where the
   // marker was drawn — including its altitude. A ground-projected hit test
@@ -39,11 +31,7 @@ export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, oiGlobeRef
     if (!layer) return;
     // Defer to any layer that has its own click handler, so a camera or an
     // aircraft under the cursor is not stolen by a satellite behind it.
-    // Only those layers count: querying every feature matches the basemap
-    // land and water fills at essentially any point on the globe, which
-    // made this bail out every single time.
-    const hits = map.queryRenderedFeatures(e.point);
-    if (hits.some(f => f.layer?.id && (CLICKABLE_LAYERS.has(f.layer.id) || isReferenceLayerId(f.layer.id)))) return;
+    if (hitsClickableLayer(map, e.point)) return;
     // An OI arc or point is picked on the GPU too, and it is in front: the click is OI's.
     if (oiGlobeRef.current?.hit(e.point)) return;
     const idx = layer.pick(e.point.x, e.point.y);

@@ -1,7 +1,7 @@
 import type { Map as MapLibreMap, MapMovementEvent } from 'maplibre-gl';
 
 export type CameraMove = { kind: 'zoom'; dir: 1 | -1 } | { kind: 'pan'; dx: number; dy: number };
-const CONTROL_EVENT = { osirisCameraControl: true };
+const CONTROL_EVENT = { takipCameraControl: true };
 const STEP_MS = 240;
 const HOLD_DELAY_MS = 280;
 const LEG_MS = 400;
@@ -79,8 +79,8 @@ export function createMapCameraControls(
     }, HOLD_DELAY_MS);
   };
 
-  const onStart = (event: MapMovementEvent & { osirisCameraControl?: boolean }) => {
-    if (event.osirisCameraControl || issuing) return;
+  const onStart = (event: MapMovementEvent & { takipCameraControl?: boolean }) => {
+    if (event.takipCameraControl || issuing) return;
     // A wheel/pinch/search/view change takes ownership. Do not stop its motion.
     release(false);
     targetZoom = null;

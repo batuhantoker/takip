@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS — places, as Search and Directions both list them.
+ * TAKIP — places, as Search and Directions both list them.
  *
  * One row for a place wherever it appears: a kind icon in a tile, the name
  * with what was typed picked out, where it is, how far it is from where the

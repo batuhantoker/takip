@@ -90,6 +90,20 @@ describe('persistence', () => {
     expect(back[2].meta?.radiusKm).toBeCloseTo(111.19, 2);
   });
 
+  it('keeps a region as a MultiPolygon with its boundary', () => {
+    const geometry: GeoJSON.MultiPolygon = { type: 'MultiPolygon', coordinates: [[[[0, 0], [1, 0], [1, 1], [0, 0]]], [[[5, 0], [6, 0], [6, 1], [5, 0]]]] };
+    const region = toShape({
+      kind: 'region', coords: [], geometry, name: 'Isles',
+      meta: { boundary: { level: 'admin2', id: 'XXX-1', countryId: 'XXX', source: 'geoBoundaries · Src · PD' }, label: [0.5, 0.5] },
+    }, [], 3);
+    const [back] = deserializeShapes(serializeShapes([region]));
+    expect(back.geojson.geometry.type).toBe('MultiPolygon');
+    expect(back.meta?.boundary?.id).toBe('XXX-1');
+    expect(shapesToGeoJSON([region]).features[0].properties).toMatchObject({
+      region_level: 'admin2', region_id: 'XXX-1', region_source: 'geoBoundaries · Src · PD',
+    });
+  });
+
   it('returns nothing for absent or unparseable storage', () => {
     expect(deserializeShapes(null)).toEqual([]);
     expect(deserializeShapes('not json')).toEqual([]);

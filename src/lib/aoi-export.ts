@@ -2,7 +2,7 @@ import type { DrawnShape } from './draw';
 import type { AoiReport } from './aoi';
 
 /**
- * OSIRIS — AOI persistence and export
+ * TAKIP — AOI persistence and export
  *
  * Two jobs that sound unrelated but are the same problem: getting a drawn area,
  * and what was found inside it, out of volatile memory. One goes to
@@ -26,6 +26,8 @@ export function shapesToGeoJSON(shapes: DrawnShape[]): GeoJSON.FeatureCollection
         color: s.color,
         created: new Date(s.createdAt).toISOString(),
         ...(s.meta?.radiusKm != null ? { radius_km: Number(s.meta.radiusKm.toFixed(4)) } : {}),
+        ...(s.meta?.boundary ? { region_level: s.meta.boundary.level, region_id: s.meta.boundary.id } : {}),
+        ...(s.meta?.boundary?.source ? { region_source: s.meta.boundary.source } : {}),
       },
     })),
   };
@@ -76,7 +78,7 @@ export function contentsToCSV(shape: DrawnShape, report: AoiReport): string {
 
 /* ── Persistence ────────────────────────────────────────────────────────── */
 
-export const STORAGE_KEY = 'osiris.aoi.shapes.v1';
+export const STORAGE_KEY = 'takip.aoi.shapes.v1';
 
 /** Only what is needed to rebuild a shape; derived values are recomputed. */
 interface StoredShape {
@@ -118,7 +120,7 @@ export function deserializeShapes(raw: string | null): DrawnShape[] {
   for (const s of parsed as any[]) {
     if (!s || typeof s !== 'object') continue;
     const geom = s.geojson?.geometry;
-    if (!geom || (geom.type !== 'Polygon' && geom.type !== 'LineString')) continue;
+    if (!geom || (geom.type !== 'Polygon' && geom.type !== 'MultiPolygon' && geom.type !== 'LineString')) continue;
     if (!Array.isArray(geom.coordinates) || geom.coordinates.length === 0) continue;
     if (typeof s.id !== 'string' || typeof s.name !== 'string') continue;
 

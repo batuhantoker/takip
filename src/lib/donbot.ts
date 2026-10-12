@@ -1,8 +1,8 @@
 /**
- * OSIRIS — DonBot, DigitalDon's token analyzer, embedded without its script.
+ * TAKIP — DonBot, DigitalDon's token analyzer, embedded without its script.
  *
  * DigitalDon ships an embed.js that runs in the host page and builds an iframe.
- * OSIRIS builds the iframe itself instead, so none of their code ever runs in
+ * TAKIP builds the iframe itself instead, so none of their code ever runs in
  * this page. The frame runs sealed on their own origin; all that crosses the
  * boundary is the query in its URL and the size and result messages it posts
  * back, which are checked here before anything renders them.

@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the simulation over time.
+ * TAKIP OI: the simulation over time.
  *
  * One lane per simulated world, one column per period of simulated time (real
  * dates), each cell where the question stood in that world at the end of the

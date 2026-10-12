@@ -38,6 +38,7 @@ export function useKeyboardShortcuts({
           if (document.fullscreenElement) document.exitFullscreen();
           else document.documentElement.requestFullscreen();
           break;
+        case 't':
         case 'o':
           setOiMode('assist');
           setOiAutoFocus(true);

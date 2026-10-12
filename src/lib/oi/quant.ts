@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: what a market price's own history says, before any actor moves.
+ * TAKIP OI: what a market price's own history says, before any actor moves.
  *
  * For a question that turns on a price (a coin, a share, an index, a
  * commodity, a currency), the outside view is the market itself: where the

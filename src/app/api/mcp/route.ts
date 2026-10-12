@@ -5,7 +5,7 @@ import {
 import { credentials, disabled, limited, siteOrigin } from '@/lib/oi/service';
 
 /**
- * OSIRIS MCP server — Streamable HTTP, stateless.
+ * TAKIP MCP server — Streamable HTTP, stateless.
  *
  *   POST /api/mcp   one JSON-RPC message (or a batch, for 2025-03-26 clients)
  *   GET  /api/mcp   405: this server does not open server-initiated streams
@@ -54,7 +54,7 @@ function originAllowed(req: Request): boolean {
 }
 
 export async function POST(req: Request) {
-  if (disabled()) return rpcResponse({ jsonrpc: '2.0', id: null, error: { code: ERR.internal, message: 'OI is switched off on this server.' } }, 503);
+  if (disabled()) return rpcResponse({ jsonrpc: '2.0', id: null, error: { code: ERR.internal, message: 'TI is switched off on this server.' } }, 503);
   if (!originAllowed(req)) return rpcResponse({ jsonrpc: '2.0', id: null, error: { code: ERR.invalidRequest, message: 'Origin not allowed.' } }, 403);
 
   const version = req.headers.get('mcp-protocol-version');

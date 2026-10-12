@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the run's execution trace.
+ * TAKIP OI: the run's execution trace.
  *
  * What the engine did, step by step, with when and how long: research the
  * question, map the world, cast the actors, each period of simulated time

@@ -1,5 +1,5 @@
 /**
- * OSIRIS vision for a forecast: looking through the cameras its plan asked for.
+ * TAKIP vision for a forecast: looking through the cameras its plan asked for.
  *
  * When a question turns on something a street camera can show (traffic, a
  * crowd, a queue, floodwater, snow), the research plan names the places to

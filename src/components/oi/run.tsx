@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: a run at a glance: where it is, its controls, and the
+ * TAKIP OI: a run at a glance: where it is, its controls, and the
  * prediction so far with how it got there and where each world stands.
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -81,7 +81,7 @@ export function StatusLine({ s }: { s: RunState }) {
     const thinking = Object.keys(s.thinking).length;
     return (
       <p role="status" className="flex items-center gap-2 text-[11.5px] min-w-0 text-[var(--text-secondary)]">
-        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-osiris-pulse" style={{ background: T.gold, boxShadow: `0 0 6px ${gold(0.8)}` }} />
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 animate-takip-pulse" style={{ background: T.gold, boxShadow: `0 0 6px ${gold(0.8)}` }} />
         <span className="truncate min-w-0">{s.phaseLabel || 'Starting'}</span>
         {thinking > 0 && <span className="whitespace-nowrap font-mono text-[10px] tracking-[0.06em] text-[var(--oi-alt)]" title="Actors deciding their move, across the worlds">· {thinking} deciding</span>}
       </p>
@@ -257,7 +257,7 @@ export function Verdict({ s, large = false }: { s: RunState; large?: boolean }) 
             // No figure yet: say when one comes, rather than show an empty number.
             <div className="mt-2">
               <p className="flex items-center gap-2 text-[14px] font-medium text-[var(--text-heading)]">
-                <span className="w-2 h-2 rounded-full animate-osiris-pulse" style={{ background: T.gold, boxShadow: `0 0 8px ${gold(0.8)}` }} /> Forming
+                <span className="w-2 h-2 rounded-full animate-takip-pulse" style={{ background: T.gold, boxShadow: `0 0 8px ${gold(0.8)}` }} /> Forming
               </p>
               <p className="mt-1 text-[11.5px] leading-snug text-[var(--text-secondary)]">The figure appears after the first period of simulated time, then firms up as the worlds play on.</p>
             </div>

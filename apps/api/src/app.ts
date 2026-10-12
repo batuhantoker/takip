@@ -15,11 +15,17 @@ import type { AppDb } from './db/app-db';
 import { requestLogger, silentLogger } from './obs/logger';
 import { createMetrics, httpMetrics, metricsEndpoint, type Metrics } from './obs/metrics';
 import { requestId } from './obs/request-id';
+import type { ReplayData } from './replay/data';
+import { replayRoutes } from './replay/routes';
+import type { SourceSwitchboard } from './replay/sources';
 import { v1Routes } from './v1/openapi';
 
 export type AppObs = { logger?: Logger; metrics?: Metrics; metricsAllow?: readonly string[] };
 
-export function createApp({ auth, access, db, obs = {}, trust = ipTrust(), usage = createUsage(db), enforceLimits = true }: { auth: Auth; access: AccessResolver; db: AppDb; obs?: AppObs; trust?: IpTrust; usage?: Usage; enforceLimits?: boolean }) {
+export function createApp({ auth, access, db, replay, switchboard, obs = {}, trust = ipTrust(), usage = createUsage(db), enforceLimits = true }: {
+  auth: Auth; access: AccessResolver; db: AppDb; replay?: ReplayData; switchboard?: SourceSwitchboard;
+  obs?: AppObs; trust?: IpTrust; usage?: Usage; enforceLimits?: boolean;
+}) {
   const { logger = silentLogger, metrics = createMetrics(), metricsAllow = [] } = obs;
   const app = new Hono();
   // Registered before every route: Hono runs handlers in registration order.
@@ -35,6 +41,10 @@ export function createApp({ auth, access, db, obs = {}, trust = ipTrust(), usage
   app.route('/api/v1', accessRoutes(access));
   app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', v1Routes());
-  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db) }));
+  if (replay) {
+    app.use('/api/replay/*', withAccess(auth, access));
+    app.route('/api/replay', replayRoutes(replay));
+  }
+  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard }));
   return app;
 }

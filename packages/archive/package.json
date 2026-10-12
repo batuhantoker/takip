@@ -1,0 +1,13 @@
+{
+  "name": "@takip/archive",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./control": "./src/control.ts",
+    "./envelope": "./src/envelope.ts",
+    "./paths": "./src/paths.ts",
+    "./reader": "./src/reader.ts",
+    "./recorder": "./src/recorder.ts"
+  }
+}

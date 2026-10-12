@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the newsroom a forecast searches.
+ * TAKIP OI: the newsroom a forecast searches.
  *
  * Publishers' own feeds, which they publish for exactly this (to be read,
  * headline and summary, with a link back to the story), from wire-grade and
@@ -139,7 +139,7 @@ async function readFeed(url: string, api: Fetcher, signal: AbortSignal): Promise
   const kept = feedCache.get(url);
   if (kept && Date.now() - kept.at < FEED_MS) return kept.items;
   const res = await api(url, {
-    headers: { 'user-agent': 'Mozilla/5.0 (compatible; OSIRIS-OI/1.0; +https://osirisai.live/docs#oi)', accept: 'application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8' },
+    headers: { 'user-agent': 'Mozilla/5.0 (compatible; TAKIP-OI/0.1; +https://github.com/batuhantoker/takip)', accept: 'application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8' },
     signal: AbortSignal.any([signal, AbortSignal.timeout(8_000)]),
   }).catch(() => null);
   if (!res?.ok) return kept?.items ?? [];

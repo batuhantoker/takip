@@ -36,7 +36,7 @@ export default function LiveFeedModal({ liveFeedUrl, liveFeedName, liveFeedEmbed
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-2.5 bg-[#111] border-b border-[var(--border-primary)]">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#FF4081] animate-osiris-pulse" />
+                <div className="w-2 h-2 rounded-full bg-[#FF4081] animate-takip-pulse" />
                 <span className="text-[11px] font-mono font-bold text-white tracking-wider">{liveFeedName}</span>
                 <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 font-mono text-[10px] font-bold">LIVE STREAM</span>
                 {!liveFeedEmbedAllowed && (

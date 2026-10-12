@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI on the globe.
+ * TAKIP OI on the globe.
  *
  * While a run thinks, its analysis draws itself on the map: the actors land
  * where they act, their relations rise as arcs through the sky, evidence from

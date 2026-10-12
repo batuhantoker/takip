@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the research plan, what a forecast reads before anything else.
+ * TAKIP OI: the research plan, what a forecast reads before anything else.
  *
  * The model plans it from the question: news searches, the newsroom desks
  * that cover it, the tickers of any price it turns on, searches for

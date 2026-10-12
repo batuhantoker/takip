@@ -149,7 +149,7 @@ export function useCyberLayers({ mapRef, mapReady, data, activeLayers, setGeo }:
 }
 
 export function useSdkLinks({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
-  // ══ OSIRIS SDK — Lattice Sensor Mesh ══
+  // ══ TAKIP SDK — Lattice Sensor Mesh ══
   // Uses real submarine cable data for SEA domain, curated routes for AIR/INTEL
   useEffect(() => {
     if (!mapReady) return;

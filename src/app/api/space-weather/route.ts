@@ -1,16 +1,17 @@
 
 import { NextResponse } from 'next/server';
+import { SCALES_URL, parseNoaaScales, type NoaaScales } from './scales';
 
 /**
- * OSIRIS — Space Weather API
+ * TAKIP — Space Weather API
  * Fetches real-time solar activity from NOAA Space Weather Prediction Center
  * FREE — No API key required
- * Data: Kp index (geomagnetic), solar flares, CME alerts
+ * Data: Kp index (geomagnetic), solar flares, CME alerts, NOAA R/S/G scales
  */
 
 export async function GET() {
   try {
-    const [kpRes, alertsRes, flareRes] = await Promise.allSettled([
+    const [kpRes, alertsRes, flareRes, scalesRes] = await Promise.allSettled([
       fetch('https://services.swpc.noaa.gov/json/planetary_k_index_1m.json', {
         signal: AbortSignal.timeout(8000),
       }).then(r => r.json()),
@@ -18,6 +19,9 @@ export async function GET() {
         signal: AbortSignal.timeout(8000),
       }).then(r => r.json()),
       fetch('https://services.swpc.noaa.gov/json/goes/primary/xray-flares-latest.json', {
+        signal: AbortSignal.timeout(8000),
+      }).then(r => r.json()),
+      fetch(SCALES_URL, {
         signal: AbortSignal.timeout(8000),
       }).then(r => r.json()),
     ]);
@@ -78,6 +82,16 @@ export async function GET() {
       }
     }
 
+    // null when NOAA did not answer, never all-zero scales.
+    let scales: NoaaScales | null = null;
+    if (scalesRes.status === 'fulfilled') {
+      try {
+        scales = parseNoaaScales(scalesRes.value);
+      } catch (e) {
+        console.warn('[TAKIP] NOAA scales unreadable:', e instanceof Error ? e.message : e);
+      }
+    }
+
     return NextResponse.json({
       kp_index: kpIndex,
       kp_available: kpIndex !== null,
@@ -86,13 +100,14 @@ export async function GET() {
       kp_timestamp: kpTimestamp,
       alerts,
       solar_flares: flares,
+      scales,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Space Weather API error:', error);
     return NextResponse.json({
       kp_index: null, kp_available: false, storm_level: 'Unknown', storm_color: '#555',
-      alerts: [], solar_flares: [], error: 'Failed to fetch space weather data',
+      alerts: [], solar_flares: [], scales: null, error: 'Failed to fetch space weather data',
     }, { status: 500 });
   }
 }

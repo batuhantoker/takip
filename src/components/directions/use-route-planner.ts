@@ -145,7 +145,7 @@ export function useRoutePlanner(
    * Fill the origin with wherever the operator is.
    *
    * Tries the browser first (precise, but needs permission and a secure
-   * context), then falls back to OSIRIS's existing IP geolocation, which needs
+   * context), then falls back to TAKIP's existing IP geolocation, which needs
    * neither — so this still does something useful when permission is denied.
    */
   const useMyLocation = useCallback(async () => {

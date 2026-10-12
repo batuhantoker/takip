@@ -15,7 +15,7 @@ export function useOiSession({ mobilePanel, setMobilePanel, setActiveTool, setFl
   setActiveTool: Dispatch<SetStateAction<ToolId | null>>;
   setFlyToLocation: Dispatch<SetStateAction<FlyToTarget | null>>;
 }) {
-  // ── OSIRIS OI ── the run lives here, not in the panel, so the globe keeps
+  // ── TAKIP OI ── the run lives here, not in the panel, so the globe keeps
   // drawing it while the panel is closed. State goes to the map's OI layer
   // directly rather than through a prop, so the map does not re-render per event.
   const oi = useOi();

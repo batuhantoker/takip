@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the model list, organised for choosing.
+ * TAKIP OI: the model list, organised for choosing.
  *
  * A provider's listing is long and flat: OpenAI's holds every dated snapshot
  * of every family next to its alias. This sorts it into what a reader

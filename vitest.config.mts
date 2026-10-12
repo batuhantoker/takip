@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'apps/*/src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'apps/*/src/**/*.test.ts', 'packages/*/src/**/*.test.ts', 'tools/*/**/*.test.ts'],
     // Live-network integration tests are opt-in via RUN_LIVE_TESTS=1
     testTimeout: 30000,
   },

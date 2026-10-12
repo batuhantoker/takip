@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the words of a question, for matching sources on. Pure and
+ * TAKIP OI: the words of a question, for matching sources on. Pure and
  * client-safe, so the research plan (which the scripted demo model uses in
  * the browser too) can share it with the server's feed reader.
  */

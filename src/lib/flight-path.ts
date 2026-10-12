@@ -1,5 +1,5 @@
 /**
- * OSIRIS — the route drawn for a clicked aircraft.
+ * TAKIP — the route drawn for a clicked aircraft.
  *
  * What was flown comes from the aircraft's reported track and is drawn solid.
  * What is still ahead is only known when a schedule agrees with that track, and

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 /**
- * OSIRIS — Global weather grid (Open-Meteo, keyless, CC BY 4.0).
+ * TAKIP — Global weather grid (Open-Meteo, keyless, CC BY 4.0).
  *
  * Open-Meteo bills every location as one call against the free tier (10k/day,
  * 600/min), so the 510-point grid is fetched as a single 24-hour forecast every
@@ -89,7 +89,7 @@ async function loadForecast(): Promise<Forecast | null> {
       return forecast;
     })
     .catch(err => {
-      console.warn('[OSIRIS] Open-Meteo grid refresh failed:', err instanceof Error ? err.message : err);
+      console.warn('[TAKIP] Open-Meteo grid refresh failed:', err instanceof Error ? err.message : err);
       state.nextFetch = Date.now() + RETRY_MS;
       return state.forecast;
     })

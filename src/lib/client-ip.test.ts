@@ -1,7 +1,7 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { getClientIp, isRateLimited, isPublicIp, visitorIp } from './ssrf-guard';
 
-const req = (headers: Record<string, string>) => new Request('https://osiris.test/api/scanner', { headers });
+const req = (headers: Record<string, string>) => new Request('https://takip.test/api/scanner', { headers });
 
 describe('getClientIp', () => {
   afterEach(() => {

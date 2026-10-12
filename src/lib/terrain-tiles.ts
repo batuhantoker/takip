@@ -60,7 +60,7 @@ export function createTerrainTileLoader(maxBytes = MAX_BYTES) {
   };
 
   return (url: string, signal: AbortSignal): Promise<ArrayBuffer> => {
-    const match = /^osiris-dem:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(url);
+    const match = /^takip-dem:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(url);
     if (!match) return Promise.reject(new Error('Invalid terrain tile'));
     const [z, x, y] = match.slice(1).map(Number);
     if (z > 10 || x >= 2 ** z || y >= 2 ** z) return Promise.reject(new Error('Terrain tile out of range'));
@@ -97,7 +97,7 @@ let installed = false;
 export function installTerrainTileProtocol(addProtocol: (name: string, handler: AddProtocolAction) => void) {
   if (installed) return;
   const load = createTerrainTileLoader();
-  addProtocol('osiris-dem', async (request, controller) => ({
+  addProtocol('takip-dem', async (request, controller) => ({
     data: await load(request.url, controller.signal), cacheControl: 'max-age=86400',
   }));
   installed = true;

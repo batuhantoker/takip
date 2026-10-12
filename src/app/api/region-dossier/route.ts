@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server';
 import { ATTRIBUTION } from '@/lib/nominatim';
 import { httpJson } from '@/lib/httpJson';
 import { cachedSource } from '@/lib/sourceCache';
+import { advisoriesFor } from '../advisories/lookup';
+import type { Advisory } from '../advisories/types';
+import { displacementFor } from './unhcr';
+import { streetCrimeNear } from './police-uk';
 
 /**
- * OSIRIS — Region Dossier API
+ * TAKIP — Region Dossier API
  * Provides country intelligence for any coordinate (double right-click on map)
  * Fix #115: Steps 2-4 now run in parallel via Promise.allSettled
  */
@@ -48,7 +52,7 @@ export async function placeAt(lat: number, lng: number): Promise<PhotonPlace | n
         const found = json.features?.[0]?.properties;
         return found ? [found] : [];  // open sea has no place, and no dossier
       } catch (e) {
-        console.warn(`[OSIRIS] Photon reverse failed (attempt ${attempt}):`, e instanceof Error ? e.message : e);
+        console.warn(`[TAKIP] Photon reverse failed (attempt ${attempt}):`, e instanceof Error ? e.message : e);
         if (attempt === 1) await new Promise(resolve => setTimeout(resolve, 800));
       }
     }
@@ -203,8 +207,8 @@ export async function GET(request: Request) {
       };
     }
 
-    // Steps 2-3: Run in PARALLEL after geocode
-    const [wikiResult, wdResult] = await Promise.allSettled([
+    // Steps 2-5: Run in PARALLEL after geocode
+    const [wikiResult, wdResult, adviceResult, unhcrResult, crimeResult] = await Promise.allSettled([
 
       // Step 2: Fetch Wikipedia summary
       (async () => {
@@ -223,7 +227,7 @@ export async function GET(request: Request) {
               thumbnail: wiki.thumbnail?.source,
             };
           }
-        } catch (e) { console.warn('[OSIRIS] Wikipedia fetch error:', e instanceof Error ? e.message : e); }
+        } catch (e) { console.warn('[TAKIP] Wikipedia fetch error:', e instanceof Error ? e.message : e); }
         return null;
       })(),
 
@@ -233,6 +237,12 @@ export async function GET(request: Request) {
         ? cachedSource<CountryFacts>(`dossier:wd:${countryName}`, () => readCountry(countryName), WD_TTL_MS)()
             .then(rows => rows[0] ?? null)
         : Promise.resolve(null),
+
+      // Steps 4-5: UK, US and Australian travel advice and UNHCR displacement, by ISO code.
+      countryCode ? advisoriesFor(countryCode, 2_500) : Promise.resolve(null),
+      countryCode ? displacementFor(countryCode) : Promise.resolve(null),
+      // Step 6: street crime, England, Wales and Northern Ireland only.
+      countryCode === 'GB' ? streetCrimeNear(lat, lng) : Promise.resolve(null),
     ]);
 
     const wikiSummary = wikiResult.status === 'fulfilled' ? wikiResult.value : null;
@@ -240,6 +250,16 @@ export async function GET(request: Request) {
 
     const countryData = facts?.country ?? null;
     const headOfState = facts?.head_of_state ?? null;
+    const advice = adviceResult.status === 'fulfilled' ? adviceResult.value : null;
+    const travelAdvice: Advisory[] = advice?.advisories ?? [];
+    const displacement = unhcrResult.status === 'fulfilled' ? unhcrResult.value : null;
+    const streetCrime = crimeResult.status === 'fulfilled' ? crimeResult.value : null;
+    // A source that failed is named, so its silence never reads as "no warning" or "no displacement".
+    const unavailable = [
+      ...(adviceResult.status === 'rejected' ? ['Travel advice'] : (advice?.sources ?? []).filter(s => !s.ok).map(s => s.issuer)),
+      unhcrResult.status === 'rejected' && 'UNHCR',
+      crimeResult.status === 'rejected' && 'data.police.uk',
+    ].filter((s): s is string => !!s);
 
     return NextResponse.json({
       coordinates: { lat, lng },
@@ -247,6 +267,10 @@ export async function GET(request: Request) {
       country: countryData,
       head_of_state: headOfState,
       wikipedia: wikiSummary,
+      travel_advice: travelAdvice,
+      displacement,
+      street_crime: streetCrime,
+      unavailable,
       /** The place this dossier is about was named by OpenStreetMap. */
       attribution: ATTRIBUTION,
       timestamp: new Date().toISOString(),

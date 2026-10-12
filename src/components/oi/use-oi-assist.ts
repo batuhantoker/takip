@@ -47,10 +47,10 @@ export function useOiAssist({
   // layers, the panels, the live data, and what it marks on the map. It lives
   // here, so closing the panel keeps the conversation and its marks.
   const [oiHighlight, setOiHighlight] = useState<Highlight | null>(null);
-  const [oiVoice, setOiVoice] = useState(() => typeof window !== 'undefined' && localStorage.getItem('osiris.oi.voice') === '1');
+  const [oiVoice, setOiVoice] = useState(() => typeof window !== 'undefined' && localStorage.getItem('takip.oi.voice') === '1');
   const setOiVoicePersist = useCallback((on: boolean) => {
     setOiVoice(on);
-    try { localStorage.setItem('osiris.oi.voice', on ? '1' : '0'); } catch { /* storage blocked */ }
+    try { localStorage.setItem('takip.oi.voice', on ? '1' : '0'); } catch { /* storage blocked */ }
     if (!on && typeof window !== 'undefined') window.speechSynthesis?.cancel();
   }, []);
   const assistView = useRef<ReturnType<Site['view']>>({ lat: 20, lng: 0, zoom: 2.5, projection: 'globe', style: 'dark' });

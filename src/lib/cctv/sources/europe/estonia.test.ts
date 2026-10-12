@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { mapFeature, fetchEstoniaCameras, type TarkTeeFeature } from './estonia';
+import { mapFeature, fetchEstoniaCameras, tarkTeeRoad, type TarkTeeFeature } from './estonia';
 
-// A feature from the road_cameras layer (outSR=4326), 2026-10-12. The weather fields are ignored.
+// A feature from the road_cameras layer (outSR=4326), 2026-10-12. Its weather reading is from 13:50 UTC.
 const sample: TarkTeeFeature = {
   attributes: {
     objectid: 11, site_name: 'Jõhvi', image_path: '94/94_202610121656.jpg',
@@ -14,6 +14,25 @@ const sample: TarkTeeFeature = {
 const withAttrs = (patch: Record<string, unknown>): TarkTeeFeature => ({
   ...sample,
   attributes: { ...sample.attributes, ...patch },
+});
+
+describe('tarkTeeRoad', () => {
+  const NOW = Date.parse('2026-10-12T14:30:00Z');
+
+  it('carries the paired station\'s surface reading', () => {
+    expect(tarkTeeRoad(sample.attributes, NOW)).toEqual({
+      surface: 'Wet', road_temp: 9.4, air_temp: 9.1, observed_at: '2026-10-12T13:50:00.000Z',
+      station: 'Jõhvi', distance_km: 0, source: 'Transpordiamet',
+    });
+    expect(mapFeature(sample, NOW)?.road?.surface).toBe('Wet');
+  });
+
+  it('drops readings Transpordiamet flags as stale, from a station over 10 km away, or past 2 hours', () => {
+    expect(tarkTeeRoad({ ...sample.attributes, road_status_aggregate: 'OVER_2_HOURS' }, NOW)).toBeNull();
+    expect(tarkTeeRoad({ ...sample.attributes, distance: 12.4 }, NOW)).toBeNull();
+    expect(tarkTeeRoad(sample.attributes, Date.parse('2026-10-12T16:00:00Z'))).toBeNull();
+    expect(tarkTeeRoad({ ...sample.attributes, road_status: null }, NOW)).toBeNull();
+  });
 });
 
 describe('mapFeature', () => {

@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import { join } from 'node:path';
 import { createTransport } from 'nodemailer';
 import { ipTrust } from './access/client-ip';
 import { createAccess } from './access/resolver';
@@ -8,6 +9,8 @@ import { createAuth } from './auth/auth';
 import { openAppDb } from './db/app-db';
 import { migrateAppSchema } from './db/migrations';
 import { consoleSender, smtpSender } from './mail/sender';
+import { openReplayData } from './replay/data';
+import { openSourceSwitchboard } from './replay/sources';
 import { loadEnv, loadEnvFiles } from './env';
 import { createLogger } from './obs/logger';
 import { createMetrics } from './obs/metrics';
@@ -20,12 +23,14 @@ migrateAppSchema(db);
 const email = env.SMTP_URL && env.MAIL_FROM ? smtpSender(createTransport(env.SMTP_URL), env.MAIL_FROM) : consoleSender;
 const auth = await createAuth(db, env, email);
 
+const replay = openReplayData(env.TAKIP_DATA_DIR);
+const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive') });
 const usage = createUsage(db);
 const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
 const metrics = createMetrics({ defaults: true });
-const app = createApp({ auth, access: createAccess(db), db, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage });
+const app = createApp({ auth, access: createAccess(db), db, replay, switchboard, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage });
 
 const server = serve({ fetch: app.fetch, hostname: env.API_HOST, port: env.API_PORT }, info => {
   logger.info(`listening on http://${info.address}:${info.port}`);
@@ -37,6 +42,8 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     server.close(() => {
       stopUsage();
       db.close();
+      replay.close();
+      switchboard.close();
       process.exit(0);
     });
   });

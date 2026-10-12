@@ -1,5 +1,5 @@
 /**
- * OSIRIS — alert digest.
+ * TAKIP — alert digest.
  *
  * Turns the Live Alerts feed into threads (which theatre a report is about and
  * what kind of event it describes) and a brief built from those threads. This

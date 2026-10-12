@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo, type Dispatch, type SetStateAction } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Route, Radar, AlertTriangle, Database, Radio, PenLine } from 'lucide-react';
+import { Route, Radar, AlertTriangle, Database, Radio, PenLine, Layers } from 'lucide-react';
 import { type TerrainStatus } from '@/lib/map-terrain';
 import IntelFeed from '@/components/alerts/intel-feed';
 import MarketsPanel from '@/components/markets/markets-panel';
@@ -20,6 +20,7 @@ import LiveAlerts from '@/components/alerts/live-alerts';
 import ArcGISPanel from '@/components/layers/arcgis-panel';
 const WorldMap = dynamic(() => import('@/components/map/world-map'), { ssr: false });
 const LayerPanel = dynamic(() => import('@/components/layers/layer-panel'));
+const LayersPane = dynamic(() => import('@/components/layers/layers-pane'));
 const SpaceCam = dynamic(() => import('@/components/cameras/space-cam'), { ssr: false });
 const CameraViewer = dynamic(() => import('@/components/cameras/camera-viewer'));
 const OsintPanel = dynamic(() => import('@/components/recon/osint-panel'));
@@ -29,13 +30,19 @@ const DrawHud = dynamic(() => import('@/components/draw/draw-hud'), { ssr: false
 // The measurement helpers are pure functions — importing them directly keeps
 // them out of the lazy chunk, so a finished polygon can be measured whether or
 // not the toolbar has loaded yet.
-import { toShape, queryRing, type DrawMode, type DrawnShape, type DrawProgress, type DrawResult } from '@/lib/draw';
-import { selectInPolygon } from '@/lib/aoi';
+import { toShape, queryArea, type DrawMode, type DrawnShape, type DrawProgress, type DrawResult } from '@/lib/draw';
+import { selectInArea } from '@/lib/aoi';
 import { pickLandingCity } from '@/lib/landing-cities';
 import { loadLayers } from '@/lib/saved-layers';
 import { diffSweep, appendEvents, type WatchBaseline, type WatchEvent } from '@/lib/watch';
 import { STORAGE_KEY, serializeShapes, deserializeShapes, shapesToGeoJSON, downloadFile } from '@/lib/aoi-export';
-import { Dock, ToolRail, type RailTool, type ToolId } from '@/components/shell/dock';
+import { Dock, DOCK_WIDTH, NAV_WIDTH, type ToolId } from '@/components/shell/dock';
+import { NavSidebar, type NavItem } from '@/components/shell/nav-sidebar';
+import PanelCard from '@/components/shell/panel-card';
+import MapOptions from '@/components/shell/map-options';
+import MoreMenu from '@/components/shell/more-menu';
+import AccountButton from '@/components/account/account-button';
+import { LAYER_GROUPS, primary } from '@/components/layers/layer-groups';
 import { DEFAULT_LAYERS } from '@/lib/default-layers';
 import { newsTransform } from '@/lib/news-transform';
 import { hudIn } from '@/lib/hud-motion';
@@ -51,10 +58,9 @@ import { useOiSession } from '@/components/oi/use-oi-session';
 import { useOiAssist } from '@/components/oi/use-oi-assist';
 import SplashScreen from '@/components/shell/splash-screen';
 import AppHeader from '@/components/shell/app-header';
-import { StatusCluster, MobileStatus } from '@/components/shell/status-cluster';
+import { LiveStats, MobileStatus } from '@/components/shell/status-cluster';
 import ViewControls from '@/components/shell/view-controls';
 import CursorInfo from '@/components/shell/cursor-info';
-import { HudOverlays, ShortcutHint } from '@/components/shell/hud-overlays';
 import MobileNav from '@/components/shell/mobile-nav';
 import { MobileDrawer, MobileStats } from '@/components/shell/mobile-drawer';
 import SearchSpotlight from '@/components/search/search-spotlight';
@@ -95,9 +101,13 @@ export default function Dashboard() {
 
   const [activeCamera, setActiveCamera] = useState<any>(null);
   const [spaceWeather, setSpaceWeather] = useState<any>(null);
-  const [showLayers, setShowLayers] = useState(true);
-  /** The tool open in the right-hand dock, if any. */
+  /** The panel open beside the sidebar, if any. */
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  /** Layers is a sidebar panel; TI and the L key still switch it like the old rail. */
+  const setShowLayers: Dispatch<SetStateAction<boolean>> = useCallback(v => setActiveTool(cur => {
+    const on = typeof v === 'function' ? v(cur === 'layers') : v;
+    return on ? 'layers' : cur === 'layers' ? null : cur;
+  }), []);
   const [drawMode, setDrawMode] = useState<DrawMode | null>(null);
   const [drawProgress, setDrawProgress] = useState<DrawProgress | null>(null);
   const [drawCommand, setDrawCommand] = useState<{ action: 'undo' | 'finish' | 'cancel'; seq: number } | null>(null);
@@ -171,11 +181,11 @@ export default function Dashboard() {
   const [sweepData, setSweepData] = useState<any>(null);
   const [scanTargets, setScanTargets] = useState<any[]>([]);
   const [drawnPolygons, setDrawnPolygons] = useState<DrawnShape[]>([]);
-  const [osirisTheme, setOsirisTheme] = useState<'core'|'ghost'>('core');
+  const [takipTheme, setTakipTheme] = useState<'core'|'ghost'>('core');
 
   useEffect(() => {
-    document.body.className = osirisTheme === 'core' ? '' : `theme-${osirisTheme}`;
-  }, [osirisTheme]);
+    document.body.className = takipTheme === 'core' ? '' : `theme-${takipTheme}`;
+  }, [takipTheme]);
 
   /* Style Studio overrides are inline on <body>, so they survive the theme
      swap above and only need reapplying once per load. */
@@ -185,10 +195,6 @@ export default function Dashboard() {
   }, []);
 
   const isMobile = useIsMobile();
-  const dockOpen = activeTool !== null && !isMobile;
-  useEffect(() => {
-    document.documentElement.toggleAttribute('data-dock-open', dockOpen);
-  }, [dockOpen]);
   const startTime = useRef(Date.now());
   const geocodeCache = useRef<Map<string, string>>(new Map());
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -379,7 +385,7 @@ export default function Dashboard() {
           setLocationLabel(label);
           lastGeocodedPos.current = coords;
         }
-      } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
+      } catch (e) { console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e); }
     }, 3000); // 3s debounce (was 1.5s)
   }, []);
 
@@ -389,7 +395,7 @@ export default function Dashboard() {
     try {
       const res = await fetch(`/api/region-dossier?lat=${coords.lat}&lng=${coords.lng}`);
       if (res.ok) setRegionDossier(await res.json());
-    } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); } finally { setDossierLoading(false); }
+    } catch (e) { console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e); } finally { setDossierLoading(false); }
   }, []);
   // Entity click handler (hoisted from JSX to comply with Rules of Hooks - Fixes #113)
   const handleEntityClick = useCallback((entity: any) => {
@@ -427,9 +433,9 @@ export default function Dashboard() {
     const fresh: WatchEvent[] = [];
     for (const shape of drawnPolygons) {
       if (!watched.has(shape.id)) continue;
-      const ring = queryRing(shape);
-      if (!ring) continue;
-      const report = selectInPolygon(ring, dataRef.current as any);
+      const area = queryArea(shape);
+      if (!area) continue;
+      const report = selectInArea(area, dataRef.current as any);
       const prev = watchBaselines.current[shape.id] ?? null;
       const { baseline, events } = diffSweep(shape.id, report, prev, now);
       watchBaselines.current[shape.id] = baseline;
@@ -463,7 +469,7 @@ export default function Dashboard() {
 
   const handleExportGeoJSON = useCallback(() => {
     downloadFile(
-      `osiris-aoi-${new Date().toISOString().slice(0, 10)}.geojson`,
+      `takip-aoi-${new Date().toISOString().slice(0, 10)}.geojson`,
       JSON.stringify(shapesToGeoJSON(drawnPolygons), null, 2),
       'application/geo+json',
     );
@@ -496,18 +502,21 @@ export default function Dashboard() {
   };
   const openTool = (tool: ToolId) => { if (activeTool !== tool) toggleTool(tool); };
 
-  const railGroups: RailTool[][] = [
-    [
-      { id: 'draw', label: 'Areas', title: 'Areas — draw an area, see what is inside it, watch it for changes (D)', icon: PenLine, tint: '#00E5FF' },
-      { id: 'alerts', label: 'Alerts', title: 'Live Alerts — earthquakes, conflicts, breaking news (A)', icon: AlertTriangle, tint: '#FF3D3D' },
-      { id: 'recon', label: 'Recon', title: 'OSINT Recon — IP lookup, network sweep, geolocation (I)', icon: Radar, tint: 'var(--cyan-primary)' },
-      { id: 'directions', label: 'Route', title: 'Directions — turn-by-turn routing', icon: Route, tint: 'var(--gold-primary)' },
-    ],
-    [
-      { id: 'space', label: 'Space', title: 'Live from Space — 24/7 video downlink from the ISS', icon: Radio, tint: '#00E5FF' },
-      { id: 'arcgis', label: 'ArcGIS', title: 'ArcGIS — search & import geospatial intel layers', icon: Database, tint: 'var(--gold-primary)', badge: arcgisLayers.length },
-    ],
+  const layersOn = useMemo(
+    () => primary(LAYER_GROUPS.filter(g => g.label !== 'DISPLAY').flatMap(g => g.layers)).filter(l => (activeLayers as Record<string, boolean>)[l.key]).length,
+    [activeLayers],
+  );
+  const navItems: NavItem[] = [
+    { id: 'layers', label: 'Layers', title: 'Layers: choose what the map shows (L)', icon: Layers, badge: layersOn },
+    { id: 'draw', label: 'Areas', title: 'Areas: draw an area, see what is inside it, watch it for changes (D)', icon: PenLine },
+    { id: 'alerts', label: 'Alerts', title: 'Live alerts: earthquakes, conflicts, breaking news (A)', icon: AlertTriangle },
+    { id: 'recon', label: 'Recon', title: 'OSINT recon: IP lookup, network sweep, geolocation (I)', icon: Radar },
+    { id: 'directions', label: 'Route', title: 'Directions: turn-by-turn routing', icon: Route },
+    { id: 'space', label: 'Space', title: 'Live from space: the 24/7 ISS video downlink', icon: Radio },
+    { id: 'arcgis', label: 'ArcGIS', title: 'ArcGIS: search and import geospatial layers', icon: Database, badge: arcgisLayers.length },
   ];
+  /** Where the map's own controls start: right of the sidebar and of any panel open beside it. */
+  const shellLeft = isMobile ? 0 : NAV_WIDTH + (activeTool && !oiTheater ? DOCK_WIDTH + 16 : 0);
 
   /* The planner renders in the dock on a desktop and at the top of a phone. It
      stays mounted underneath a running session: unmounting it would discard the
@@ -540,6 +549,12 @@ export default function Dashboard() {
 
   const dockTool = (tool: ToolId) => {
     switch (tool) {
+      case 'layers': return (
+        <PanelCard title="Layers" icon={Layers} onClose={() => setActiveTool(null)}
+          meta={<span className="text-[11px] font-mono tabular-nums text-[var(--text-muted)]">{layersOn} on</span>}>
+          <LayersPane data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} capabilities={capabilities} />
+        </PanelCard>
+      );
       case 'oi': return (
         <OiPanel oi={oi} selected={oiSelected} onSelect={setOiSelected} onClose={closeOi}
           focus={oiFocus} onFocus={toggleOiFocus} onLocate={handleOiLocate}
@@ -596,7 +611,7 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="fixed inset-0 w-full h-full bg-[var(--bg-void)] overflow-hidden">
+    <main className="fixed inset-0 w-full h-full bg-[var(--bg-void)] overflow-hidden" style={{ '--shell-left': `${shellLeft}px` } as React.CSSProperties}>
 
       {/* ── SPLASH ── */}
       <SplashScreen showSplash={showSplash} splashStage={splashStage} setSplashGone={setSplashGone} />
@@ -606,7 +621,7 @@ export default function Dashboard() {
       {/* ── MAP ── */}
       <ErrorBoundary name="Map">
         <WorldMap 
-          key={osirisTheme}
+          key={takipTheme}
           data={data} 
           activeLayers={activeLayers} 
           projection={mapProjection === 'mercator' ? 'mercator' : 'globe'}
@@ -614,7 +629,7 @@ export default function Dashboard() {
           terrainFocus={terrainFocus}
           terrainRetry={terrainRetry}
           onTerrainStatusChange={setTerrainStatus}
-          mapStyle={mapStyle === 'satellite' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'dark'} 
+          mapStyle={mapStyle === 'satellite' ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : mapStyle === 'topo' ? 'topo' : 'dark'} 
           onEntityClick={handleEntityClick} 
           onMouseCoords={handleMouseCoords} 
           onRightClick={handleRightClick} 
@@ -624,7 +639,7 @@ export default function Dashboard() {
           alertPinIds={pinnedAlertIds}
           sweepData={sweepData}
           scanTargets={scanTargets}
-          theme={osirisTheme}
+          theme={takipTheme}
           arcgisLayers={arcgisLayers.filter(l => l.visible).map(l => ({ id: l.id, title: l.title, geojson: l.geojson, color: l.color, opacity: l.opacity }))}
           onMapCenter={setMapCenter}
           route={activeRoute}
@@ -660,7 +675,7 @@ export default function Dashboard() {
         {isMobile && showDirections && planner}
       </NavigationBanner>
 
-      {/* ── SEARCH — a field in the top bar that opens into a spotlight ── */}
+      {/* ── SEARCH — a field at the top of the map that opens into a spotlight ── */}
       <SearchSpotlight isMobile={isMobile} showDesktopSearch={showDesktopSearch} setShowDesktopSearch={setShowDesktopSearch} drawMode={drawMode}
         navSession={navSession} mapCenter={mapCenter} openDirectionsTo={openDirectionsTo} setFlyToLocation={setFlyToLocation} />
 
@@ -671,17 +686,17 @@ export default function Dashboard() {
           handleAircraftDetail={handleAircraftDetail} isMobile={isMobile} setFlyToLocation={setFlyToLocation} />
       )}
 
-      {/* ── MAP VIEW CONTROLS ── */}
+      {/* ── MAP VIEW CONTROLS — bottom-right, beside the zoom buttons ── */}
       <ViewControls revealed={revealed} isMobile={isMobile} mapProjection={mapProjection} setMapProjection={setMapProjection}
-        selectFlatMap={selectFlatMap} mapStyle={mapStyle} setMapStyle={setMapStyle} mapView={mapView} />
+        selectFlatMap={selectFlatMap} mapStyle={mapStyle} setMapStyle={setMapStyle} mapView={mapView}
+        options={!isMobile && (
+          <MapOptions activeLayers={activeLayers} setActiveLayers={setActiveLayers} theme={takipTheme} setTheme={setTakipTheme}
+            terrainStatus={terrainStatus} on3DModeSelected={terrainPanelProps.on3DModeSelected}
+            onTerrainFocus={terrainPanelProps.onTerrainFocus} onTerrainRetry={terrainPanelProps.onTerrainRetry} />
+        )} />
 
-      {/* ── HEADER ── */}
-      <AppHeader revealed={revealed} isMobile={isMobile} />
-
-
-      {/* ── TOP-RIGHT STATUS (desktop) ── */}
-      <StatusCluster revealed={revealed} backendStatus={backendStatus} activeLayers={activeLayers} data={data} spaceWeather={spaceWeather}
-        onOpenMarkets={() => openTool('markets')} />
+      {/* ── HEADER (phone; the desktop's mark sits atop the sidebar) ── */}
+      {isMobile && <AppHeader revealed={revealed} isMobile />}
 
       {/* ── MOBILE: Compact top status ── */}
       {/* The route planner claims the top of a phone screen; leaving this in
@@ -691,25 +706,22 @@ export default function Dashboard() {
 
 
 
-      {/* ── NEW SIDEBAR (Root Level) ── */}
-      {showLayers && !isMobile && <div data-hud><LayerPanel {...terrainPanelProps} revealed={revealed} data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} theme={osirisTheme} setTheme={setOsirisTheme} capabilities={capabilities} /></div>}
-
-
-
-      {/* ── TOOL RAIL + DOCK (desktop; a phone uses the bottom nav) ── */}
+      {/* ── SIDEBAR + THE PANEL BESIDE IT (desktop; a phone uses the bottom nav) ── */}
       {!isMobile && (
-        <motion.div data-hud initial={{ opacity: 0, x: 12 }} animate={revealed ? { opacity: 1, x: 0 } : { opacity: 0, x: 12 }} transition={hudIn(0.3)} className="absolute right-2 top-[64px] flex flex-col items-center gap-2 z-[250] pointer-events-auto bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/5">
-          <ToolRail groups={railGroups} active={activeTool} onSelect={toggleTool}
-            oiLive={oi.state?.status === 'running' || assist.busy} oiRunning={oi.state?.status === 'running'} />
-        </motion.div>
+        <NavSidebar items={navItems} active={activeTool} onSelect={toggleTool} revealed={revealed}
+          tiLive={oi.state?.status === 'running' || assist.busy} tiRunning={oi.state?.status === 'running'}
+          footer={<>
+            <MoreMenu rail onOpenMarkets={() => openTool('markets')} />
+            <AccountButton rail />
+          </>} />
       )}
       {!isMobile && (
         <Dock>
           {showDirections && <div className={activeTool === 'directions' ? 'min-h-0 max-h-full overflow-y-auto styled-scrollbar' : 'hidden'}>{planner}</div>}
           <AnimatePresence mode="wait" initial={false}>
             {activeTool && activeTool !== 'directions' && (
-              <motion.div key={activeTool} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.15 }}
-                className="min-h-0 max-h-full overflow-y-auto styled-scrollbar">
+              <motion.div key={activeTool} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.15 }}
+                className={activeTool === 'layers' ? 'min-h-0 h-full' : 'min-h-0 max-h-full overflow-y-auto styled-scrollbar'}>
                 {dockTool(activeTool)}
               </motion.div>
             )}
@@ -732,7 +744,7 @@ export default function Dashboard() {
             {mobilePanel === 'layers' && (
               <>
                 <MobileStats totalFlights={totalFlights} data={data} />
-                <LayerPanel {...terrainPanelProps} data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} isMobile={true} theme={osirisTheme} setTheme={setOsirisTheme} capabilities={capabilities} />
+                <LayerPanel {...terrainPanelProps} data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} isMobile={true} theme={takipTheme} setTheme={setTakipTheme} capabilities={capabilities} />
                 <div className="mt-8">
                   <ViewPresets onNavigate={(lat, lng, zoom) => { setFlyToLocation({ lat, lng, zoom, ts: Date.now() }); setMobilePanel(null); }} />
                 </div>
@@ -761,11 +773,6 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* ── BOTTOM CURSOR INFO (desktop) ── */}
-      {!isMobile && <CursorInfo revealed={revealed} coordsDisplayRef={coordsDisplayRef} locationLabel={locationLabel} mapView={mapView} />}
-
-      {/* Scale bar is now integrated into the map controls section above */}
-
       {/* ── Region Dossier ── */}
       {(regionDossier || dossierLoading) && (
         <RegionDossier regionDossier={regionDossier} dossierLoading={dossierLoading}
@@ -793,19 +800,15 @@ export default function Dashboard() {
       )}
 
 
-      {/* ── OVERLAYS ── */}
-      <HudOverlays />
-
       {/* Keyboard Shortcuts Overlay */}
       <KeyboardShortcuts />
 
-      {/* ── GLOBAL STATUS TICKER (bottom) ── */}
-      <div data-hud><GlobalStatusBar revealed={revealed} /></div>
-
-      {/* Shortcut hint — more visible */}
-      <ShortcutHint />
-
-
+      {/* ── STATUS BAR (desktop): pointer readout · ticker · live numbers · links ── */}
+      <div data-hud>
+        <GlobalStatusBar revealed={revealed}
+          left={<CursorInfo coordsDisplayRef={coordsDisplayRef} locationLabel={locationLabel} mapView={mapView} />}
+          right={<LiveStats backendStatus={backendStatus} layersOn={layersOn} data={data} spaceWeather={spaceWeather} />} />
+      </div>
     </main>
   );
 }

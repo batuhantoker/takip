@@ -6,7 +6,7 @@ import { countWords, describeWatch, labelWord } from '@/lib/vision/analysis';
 import { clearLook, look, sourceOf, useLook, type VisionCamera } from '@/lib/vision/store';
 
 /**
- * OSIRIS — the camera's analysis overlay.
+ * TAKIP — the camera's analysis overlay.
  *
  * Analyze counts what is in the current frame; Watch follows the feed for half
  * a minute and reports how it changed. Either runs on the reader's own device,
@@ -76,7 +76,7 @@ export default function CameraVision({ camera, fit, ready }: { camera: VisionCam
       {state?.by === 'oi' && busy && (
         <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 px-2 py-1 bg-black/80 border text-[9px] font-mono tracking-[0.2em]"
           style={{ borderColor: 'var(--cyan-primary)', color: 'var(--cyan-primary)' }}>
-          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--cyan-primary)' }} /> OI IS LOOKING
+          <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--cyan-primary)' }} /> TI IS LOOKING
         </div>
       )}
 
@@ -117,7 +117,7 @@ export default function CameraVision({ camera, fit, ready }: { camera: VisionCam
         <div className="absolute bottom-0 left-0 right-0 z-[31] px-3 py-2 bg-black/85 border-t border-white/10 backdrop-blur-sm" aria-live="polite">
           <div className="flex items-center gap-2 text-[9px] font-mono tracking-[0.18em] text-white/70">
             <Eye className="w-3 h-3" style={{ color: state.by === 'oi' ? 'var(--cyan-primary)' : 'var(--gold-primary)' }} />
-            <span>{state.by === 'oi' ? 'OI LOOKED' : 'ANALYSED'} {clock(a.at)} · ON THIS DEVICE · {a.light.toUpperCase()}</span>
+            <span>{state.by === 'oi' ? 'TI LOOKED' : 'ANALYSED'} {clock(a.at)} · ON THIS DEVICE · {a.light.toUpperCase()}</span>
             <button onClick={() => clearLook(camera.id)} aria-label="Back to the live feed"
               className="ml-auto flex items-center gap-1 px-1.5 py-0.5 border border-white/15 text-white hover:border-white/40">
               <X className="w-2.5 h-2.5" /> LIVE

@@ -1,52 +1,81 @@
-
 import { NextResponse } from 'next/server';
+import { cachedSource } from '@/lib/sourceCache';
+import {
+  EMSC_LIMIT, USGS_URL, emscUrl, mapEmscQuake, mapUsgsQuake, mergeCatalogues, parseFeatures,
+  type EmscFeature, type Quake, type UsgsFeature,
+} from './catalog';
 
 /**
- * OSIRIS — Earthquake Data API
- * Fetches real-time seismic events from USGS (last 24h, M2.5+)
- * No API key required
+ * TAKIP — Earthquake Data API
+ * The last 24 h at M2.5+ from USGS and EMSC, twins folded together (see ./catalog).
+ * No API key required.
  */
+
+const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
+
+interface SourceStatus {
+  ok: boolean;
+  count: number;
+  /** The upstream page was full, so the count is a floor. */
+  capped?: boolean;
+}
+
+interface Payload {
+  earthquakes: Quake[];
+  twins: number;
+  sources: { USGS: SourceStatus; EMSC: SourceStatus };
+}
+
+async function getJson(url: string): Promise<unknown> {
+  const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
+  return res.json();
+}
+
+function rowsOf<T>(res: PromiseSettledResult<unknown>, label: string): T[] | null {
+  try {
+    if (res.status === 'rejected') throw res.reason;
+    return parseFeatures<T>(res.value, label);
+  } catch (error) {
+    console.warn(`[TAKIP] ${label} earthquakes unavailable:`, error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
+async function collect(): Promise<Payload[]> {
+  const [usgsRes, emscRes] = await Promise.allSettled([getJson(USGS_URL), getJson(emscUrl(Date.now()))]);
+
+  const usgsRows = rowsOf<UsgsFeature>(usgsRes, 'USGS');
+  const emscRows = rowsOf<EmscFeature>(emscRes, 'EMSC');
+  // Throwing keeps the last good list in the cache instead of an empty map.
+  if (!usgsRows && !emscRows) throw new Error('no earthquake catalogue answered');
+
+  const usgs = (usgsRows ?? []).map(mapUsgsQuake).filter((q): q is Quake => q !== null);
+  const emsc = (emscRows ?? []).map(mapEmscQuake).filter((q): q is Quake => q !== null);
+  const { quakes, twins } = mergeCatalogues(usgs, emsc);
+  return [{
+    earthquakes: quakes,
+    twins,
+    sources: {
+      USGS: { ok: usgsRows !== null, count: usgs.length },
+      EMSC: { ok: emscRows !== null, count: emsc.length, capped: (emscRows?.length ?? 0) >= EMSC_LIMIT },
+    },
+  }];
+}
+
+const load = cachedSource<Payload>('earthquakes:merged', collect, 60_000);
 
 export async function GET() {
   try {
-    const url = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson';
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!res.ok) {
-      return NextResponse.json({ earthquakes: [], error: 'USGS unavailable' });
-    }
-
-    const data = await res.json();
-    const features = data.features || [];
-
-    const earthquakes = features.map((f: any) => {
-      const coords = f.geometry?.coordinates || [0, 0, 0];
-      const props = f.properties || {};
-      return {
-        id: f.id,
-        lat: coords[1],
-        lng: coords[0],
-        depth: coords[2],
-        magnitude: props.mag,
-        place: props.place,
-        time: props.time,
-        url: props.url,
-        tsunami: props.tsunami,
-        type: props.type,
-        felt: props.felt,
-        alert: props.alert,
-      };
-    });
-
+    const [payload] = await load();
+    if (!payload) throw new Error('no earthquake data');
     return NextResponse.json({
-      earthquakes,
-      total: earthquakes.length,
+      ...payload,
+      total: payload.earthquakes.length,
       timestamp: new Date().toISOString(),
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=60',
       },
     });
   } catch (error) {
@@ -54,4 +83,3 @@ export async function GET() {
     return NextResponse.json({ earthquakes: [], error: 'Failed to fetch earthquake data' }, { status: 500 });
   }
 }
-

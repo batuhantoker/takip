@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the research as a network, after MiroFish's knowledge graph.
+ * TAKIP OI: the research as a network, after MiroFish's knowledge graph.
  *
  * The globe puts every piece of the run where it happens, which also means
  * half of it is round the back of the planet and much of it sits on top of

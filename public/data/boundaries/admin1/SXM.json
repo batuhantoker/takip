@@ -1,0 +1,3 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"id":"SXM-5146","name":"Sint Maarten","country":"Sint Maarten","countryId":"SXM","iso":"NL-SX","label":[-63.0677,18.0401]},"geometry":{"type":"Polygon","coordinates":[[[-63.107,18.062],[-63.018,18.033],[-63.031,18.019],[-63.098,18.036],[-63.119,18.052],[-63.107,18.062]]]}}
+]}

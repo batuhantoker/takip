@@ -2,13 +2,17 @@ import type { Metadata, Viewport } from "next";
 import ErrorBoundary from '@/components/ui/error-boundary';
 import "./globals.css";
 
-const SITE_URL = "https://osirisai.live";
+// TODO: the real domain.
+const SITE_URL = "https://takip.example";
+
+// Settings saved before the rename live under osiris.* / osiris:* keys.
+const MIGRATE_STORAGE_KEYS = `try{for(const k of Object.keys(localStorage)){if(!/^osiris[.:]/.test(k))continue;const n='takip'+k.slice(6);if(localStorage.getItem(n)===null)localStorage.setItem(n,localStorage.getItem(k));localStorage.removeItem(k)}}catch(e){}`;
 const SITE_NAME = "TAKIP";
 const SITE_TITLE = "TAKIP — Open Source Intelligence Platform | Live Flight Tracking, CCTV, OSINT Tools & More";
 const SITE_DESCRIPTION = "The open-source Palantir alternative. Track live aircraft, satellites, and worldwide CCTV cameras on a 3D globe. Run Nmap scans, DNS lookups, WHOIS queries, SSL cert analysis & threat intelligence — all from your browser. 20+ data sources including live earthquake, wildfire, cyber threat and conflict feeds, plus mapped reference data such as nuclear facilities. Free & open source.";
 
 export const viewport: Viewport = {
-  themeColor: "#D4AF37",
+  themeColor: "#070A11",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -182,6 +186,8 @@ export default function RootLayout({
   return (
     <html lang="en" dir="ltr">
       <head>
+        {/* Must run before any client code reads its settings. */}
+        <script dangerouslySetInnerHTML={{ __html: MIGRATE_STORAGE_KEYS }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/favicon.ico" sizes="any" />

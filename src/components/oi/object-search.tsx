@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: find any object in the run by name.
+ * TAKIP OI: find any object in the run by name.
  *
  * Ctrl+K (or ⌘K, or /) from anywhere in the workspace. Arrow keys move,
  * Enter opens, Escape leaves. Results come from lib/oi/objects, best match

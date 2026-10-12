@@ -22,11 +22,11 @@ import {
 import { FEED_SECTIONS, SECTION_OF, T } from '@/lib/markets-terminal';
 
 /**
- * OSIRIS — the markets terminal.
+ * TAKIP — the markets terminal.
  *
  * Driven the way a market terminal is — a command line that takes a ticker or
  * a function code, numbered function keys, one dense monitor — and dressed in
- * OSIRIS's own glass, gold and theme colours, so it sits with RECON and the
+ * TAKIP's own glass, gold and theme colours, so it sits with RECON and the
  * rest of the HUD rather than apart from them. The monitor widens to more
  * columns as the panel does: price and move docked; net change, day range,
  * 52-week position, last trade and volume in full screen.
@@ -345,7 +345,7 @@ export default function MarketsPanel({ data, spaceWeather }: MarketsPanelProps) 
           <button onClick={toggleMax} className="p-1.5 -m-0.5 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 transition-colors" title="Full screen" aria-label="Full screen">
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
-          <div className="w-1.5 h-1.5 rounded-full animate-osiris-pulse" style={{ background: markets.error ? T.down : T.accent }} />
+          <div className="w-1.5 h-1.5 rounded-full animate-takip-pulse" style={{ background: markets.error ? T.down : T.accent }} />
           <button onClick={() => setExpanded(e => !e)} title={expanded ? 'Collapse' : 'Expand'} aria-label={expanded ? 'Collapse' : 'Expand'}>
             {expanded ? <ChevronUp className="w-3.5 h-3.5 text-[var(--text-muted)]" /> : <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
           </button>

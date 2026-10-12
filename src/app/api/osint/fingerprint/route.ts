@@ -3,7 +3,7 @@ import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { scanUsername, isValidUsername } from '@/lib/sherlock';
 
 /**
- * OSIRIS — FINGERPRINT username search, streamed.
+ * TAKIP — FINGERPRINT username search, streamed.
  *
  * The same Sherlock detection rules as /api/osint/username, run across the
  * whole (non-NSFW) site database rather than the priority tier, with every
@@ -64,7 +64,7 @@ export async function GET(req: Request) {
         });
         send({ type: 'done', ...scan, timestamp: new Date().toISOString() });
       } catch (e) {
-        console.error('[OSIRIS] fingerprint scan failed:', e);
+        console.error('[TAKIP] fingerprint scan failed:', e);
         send({ type: 'error', error: e instanceof Error ? e.message : 'Username scan failed' });
       } finally {
         open = false;

@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
-   OSIRIS — Global Intelligence Platform Design System
+   TAKIP — Global Intelligence Platform Design System
    Egyptian Mythology × Dark Ops × Glassmorphism
    ═══════════════════════════════════════════════════════════════ */
 
@@ -22,6 +22,10 @@
   --gold-light: #F0D060;
   --gold-dim: #8B7325;
   --gold-glow: rgba(var(--gold-rgb), 0.3);
+
+  /* ── Brand mark (kept out of themes so the logo matches the icons) ── */
+  --brand-ink: #F2F5FA;
+  --brand-accent: #2F80FF;
 
   /* ── Cyan Intel Stream ── */
   --cyan-primary: #00E5FF;
@@ -231,15 +235,15 @@ html:has(.admin-root) body {
   border-radius: 10px;
 }
 
-/* ── Osiris Gold Glow ── */
-.osiris-glow {
+/* ── TAKIP Gold Glow ── */
+.takip-glow {
   box-shadow:
     0 0 20px rgba(var(--gold-rgb), 0.12),
     0 0 60px rgba(var(--gold-rgb), 0.06),
     0 4px 30px rgba(0, 0, 0, 0.5);
 }
 
-.osiris-glow-cyan {
+.takip-glow-cyan {
   box-shadow:
     0 0 20px rgba(var(--cyan-rgb), 0.1),
     0 0 60px rgba(var(--cyan-rgb), 0.05);
@@ -273,17 +277,17 @@ html:has(.admin-root) body {
 /* ═══════════════════════════════════════════════════════════════
    ANIMATIONS
    ═══════════════════════════════════════════════════════════════ */
-@keyframes osiris-pulse {
+@keyframes takip-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-@keyframes osiris-scan {
+@keyframes takip-scan {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(100vh); }
 }
 
-@keyframes osiris-rotate {
+@keyframes takip-rotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
@@ -303,16 +307,10 @@ html:has(.admin-root) body {
   50% { opacity: 0.6; }
 }
 
-.animate-osiris-pulse { animation: osiris-pulse 2s ease-in-out infinite; }
+.animate-takip-pulse { animation: takip-pulse 2s ease-in-out infinite; }
 .animate-glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
 .animate-data-pulse { animation: data-pulse 2s ease-in-out infinite; }
 .animate-threat-flash { animation: threat-flash 1.5s ease-in-out infinite; }
-
-/* Splash screen scanline drift */
-@keyframes splashScanDrift {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 100vh; }
-}
 
 /* Ticker scroll — pure CSS, GPU-accelerated */
 @keyframes ticker-scroll {
@@ -355,16 +353,6 @@ html:has(.admin-root) body {
 .risk-high { color: #FF9500; text-shadow: 0 0 8px rgba(255, 149, 0, 0.3); }
 .risk-medium { color: #D4AF37; }
 .risk-low { color: #00E676; }
-
-/* ── CRT Scanlines ── */
-.crt-scanlines {
-  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.02) 3px, rgba(255,255,255,0.02) 4px);
-}
-
-/* ── Vignette ── */
-.vignette {
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(4,4,10,0.6) 80%, rgba(4,4,10,0.95) 100%);
-}
 
 /* ═══════════════════════════════════════════════════════════════
    MOBILE DRAWER — Slide-up panels for mobile
@@ -2503,12 +2491,7 @@ html[data-oi-theater] [data-map-controls] {
   transition: opacity 0.3s ease;
 }
 
-/* The dock reaches the bottom-right corner, over the pan pad; zoom stays. */
-html[data-dock-open] [data-pan-pad] {
-  display: none !important;
-}
-
-/* ── OSIRIS OI: gold and black ──
+/* ── TAKIP OI: gold and black ──
    The OI panel and workspace keep to two tones: gold leads (what is selected,
    what is live, the prediction), champagne is its quiet second where the
    platform would use cyan, and the surfaces are black rather than navy. In

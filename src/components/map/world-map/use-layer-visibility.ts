@@ -56,6 +56,10 @@ export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, sat
     setVis(['conflict-icons'], activeLayers.conflict_zones !== false);
 
     setVis(['balloon-dots','balloon-label'], activeLayers.balloons);
+    setVis(['launch-dots','launch-label'], activeLayers.launches);
+    setVis(['aurora-heat'], activeLayers.aurora);
+    setVis(['service-status-dots','service-status-label'], activeLayers.service_status);
+    setVis(['gnss-fill','gnss-line'], activeLayers.gps_jamming);
     setVis(['rad-glow','rad-dots','rad-label'], activeLayers.radiation);
     setVis(['war-alert-glow','war-alert-dots','war-alert-label'], activeLayers.war_alerts);
     setVis(['fire-incident-dots','fire-incident-label'], activeLayers.fires);

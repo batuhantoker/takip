@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the panel's design tokens.
+ * TAKIP OI: the panel's design tokens.
  *
  * Forecast is gold and black. Gold leads: what is selected, what is live, the
  * prediction. Champagne (`alt`) is its quiet second, and ivory and greys

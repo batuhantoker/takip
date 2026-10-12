@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: what the markets say about a question.
+ * TAKIP OI: what the markets say about a question.
  *
  * Two kinds of market, both read without a key:
  *   - the price of what the question turns on (a coin, a share, an index, a

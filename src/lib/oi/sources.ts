@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: what the actors quote, and where it came from.
+ * TAKIP OI: what the actors quote, and where it came from.
  *
  * The actors ground their moves in quotes from numbered sources: a news
  * article the research found (`w2`), background (`b1`), an item of the live

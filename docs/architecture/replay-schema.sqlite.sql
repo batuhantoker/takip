@@ -1,4 +1,5 @@
--- SQLite schema: design sketch, not a migration. See replay-database.md §4 (files) and §11 (portability).
+-- SQLite schema, readable overview. The migrations that create it are in packages/db/src/schema/, one list per
+-- file kind; keep this file in step with them. See replay-database.md §4 (files) and §11 (portability).
 -- Times are INTEGER epoch ms UTC. Validity: *_lo NOT NULL (-8640000000000000 = since forever), *_hi NULL = open.
 -- Geometry is WKB in BLOB; bounding boxes live in R*Tree tables. Table prefix_name maps to Postgres prefix.name.
 -- Precision: 0 unknown, 1 millennium, 2 century, 3 decade, 4 year, 5 month, 6 day, 7 hour, 8 minute, 9 second.
@@ -37,7 +38,11 @@ CREATE TABLE meta_source (
   event_table       TEXT CHECK (event_table IN ('event','stream')),
   track_bit         INTEGER UNIQUE CHECK (track_bit BETWEEN 0 AND 62),  -- bit in trk_segment.source_mask
   recording_since   INTEGER,
-  config            TEXT NOT NULL DEFAULT '{}'
+  config            TEXT NOT NULL DEFAULT '{}',
+  record            INTEGER NOT NULL DEFAULT 1,  -- admin switches (replay-database.md §7.6): write the raw archive
+  build             INTEGER NOT NULL DEFAULT 1,  -- derive history from it
+  switched_at       INTEGER,
+  switched_by       TEXT
 ) STRICT;
 
 CREATE TABLE meta_dataset (
@@ -78,6 +83,7 @@ CREATE TABLE meta_ingest_run (
   error        TEXT
 ) STRICT;
 CREATE INDEX meta_ingest_run_src ON meta_ingest_run (source_id, started_at DESC);
+CREATE INDEX meta_ingest_run_ref ON meta_ingest_run (source_id, archive_ref);
 
 CREATE TABLE meta_coverage (
   source_id  INTEGER NOT NULL REFERENCES meta_source,
@@ -116,6 +122,17 @@ CREATE TABLE meta_shard (
   sealed_at   INTEGER
 ) STRICT, WITHOUT ROWID;
 CREATE INDEX meta_shard_kind ON meta_shard (kind, lod, t_lo);
+
+-- One row per sealed bucket: what replay can serve, and the version its URLs carry (sealed_at).
+CREATE TABLE trk_sealed_bucket (
+  lod            INTEGER NOT NULL,
+  bucket         INTEGER NOT NULL,
+  segments       INTEGER NOT NULL,
+  points         INTEGER NOT NULL,
+  build_version  INTEGER NOT NULL,
+  sealed_at      INTEGER NOT NULL,
+  PRIMARY KEY (lod, bucket)
+) STRICT, WITHOUT ROWID;
 
 CREATE TABLE trk_dirty_bucket (
   lod        INTEGER NOT NULL,
@@ -193,6 +210,10 @@ CREATE TRIGGER core_entity_name_ai AFTER INSERT ON core_entity_name BEGIN
 END;
 CREATE TRIGGER core_entity_name_ad AFTER DELETE ON core_entity_name BEGIN
   INSERT INTO core_entity_name_fts (core_entity_name_fts, rowid, name) VALUES ('delete', OLD.name_id, OLD.name);
+END;
+CREATE TRIGGER core_entity_name_au AFTER UPDATE OF name ON core_entity_name BEGIN
+  INSERT INTO core_entity_name_fts (core_entity_name_fts, rowid, name) VALUES ('delete', OLD.name_id, OLD.name);
+  INSERT INTO core_entity_name_fts (rowid, name) VALUES (NEW.name_id, NEW.name);
 END;
 
 CREATE TABLE core_entity_version (
@@ -385,7 +406,8 @@ CREATE TABLE ev_event_history (
 CREATE TRIGGER ev_event_ai AFTER INSERT ON ev_event WHEN NEW.x0 IS NOT NULL BEGIN
   INSERT INTO ev_event_rtree VALUES (NEW.event_id, NEW.x0, NEW.x1, NEW.y0, NEW.y1, NEW.t_lo, NEW.t_hi);
 END;
-CREATE TRIGGER ev_event_au AFTER UPDATE ON ev_event BEGIN
+-- Only revisions are history: an update that keeps rev (canonical_id, parent_id) would collide on (event_id, rev).
+CREATE TRIGGER ev_event_rev AFTER UPDATE ON ev_event WHEN NEW.rev <> OLD.rev BEGIN
   INSERT INTO ev_event_history (event_id, rev, replaced_at, row_data) VALUES (
     OLD.event_id, OLD.rev, NEW.updated_at,
     json_object('kind_id', OLD.kind_id, 'title', OLD.title, 't_start', OLD.t_start, 't_end', OLD.t_end,
@@ -393,6 +415,8 @@ CREATE TRIGGER ev_event_au AFTER UPDATE ON ev_event BEGIN
                 'lon', OLD.lon, 'lat', OLD.lat, 'geo_prec', OLD.geo_prec, 'magnitude', OLD.magnitude,
                 'severity', OLD.severity, 'confidence', OLD.confidence, 'attrs', json(OLD.attrs),
                 'retracted_at', OLD.retracted_at, 'dataset_id', OLD.dataset_id));
+END;
+CREATE TRIGGER ev_event_box AFTER UPDATE OF x0, x1, y0, y1, t_lo, t_hi ON ev_event BEGIN
   DELETE FROM ev_event_rtree WHERE id = OLD.event_id;
   INSERT INTO ev_event_rtree
     SELECT NEW.event_id, NEW.x0, NEW.x1, NEW.y0, NEW.y1, NEW.t_lo, NEW.t_hi WHERE NEW.x0 IS NOT NULL;
@@ -658,6 +682,7 @@ CREATE TABLE trk_segment (
   segment_id     INTEGER PRIMARY KEY,
   bucket         INTEGER NOT NULL,              -- bucket start, epoch ms
   entity_id      INTEGER NOT NULL,
+  part           INTEGER NOT NULL DEFAULT 0,    -- pieces left by gap and antimeridian splits within one bucket
   class          INTEGER NOT NULL,              -- vessel, aircraft
   category       INTEGER NOT NULL,              -- military, cargo, tanker, commercial, private, …
   label          TEXT,
@@ -668,17 +693,21 @@ CREATE TABLE trk_segment (
   points         BLOB NOT NULL,                 -- TRK1 (replay-database.md §8.3)
   flags          INTEGER NOT NULL DEFAULT 0,
   build_version  INTEGER NOT NULL,
-  UNIQUE (bucket, entity_id)
+  UNIQUE (bucket, entity_id, part)
 ) STRICT;
+-- Coarser LODs are built one entity at a time from this; it also serves an entity's history.
+CREATE INDEX trk_segment_entity ON trk_segment (entity_id, bucket, part);
 
+-- R*Tree stores 32-bit floats: epoch ms round outward to ~2 min, so exact filters go on trk_segment.
 CREATE VIRTUAL TABLE trk_segment_rtree USING rtree(id, min_x, max_x, min_y, max_y, min_t, max_t);
 
--- Chunk query:
---   SELECT s.entity_id, s.class, s.category, s.label, s.points
+-- Chunk query (t_first..t_last in the R*Tree time dims):
+--   SELECT s.entity_id, s.part, s.class, s.category, s.label, s.points
 --   FROM trk_segment_rtree r JOIN trk_segment s ON s.segment_id = r.id
 --   WHERE r.min_x <= :e AND r.max_x >= :w AND r.min_y <= :n AND r.max_y >= :s
---     AND r.min_t <= :bucket AND r.max_t >= :bucket
---     AND (s.source_mask & ~:allowed) = 0;
+--     AND r.min_t < :bucket_end AND r.max_t >= :bucket
+--     AND s.bucket = :bucket AND s.class = :class AND (s.source_mask & ~:allowed) = 0
+--   ORDER BY s.entity_id, s.part;
 
 -- L0 shards only: slow-changing per-track state for that day.
 CREATE TABLE trk_state (

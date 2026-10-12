@@ -7,7 +7,7 @@ import { Keyboard, X } from 'lucide-react';
 // What page.tsx's key handler does; keep the two in step.
 const SHORTCUTS = [
   { key: 'S', desc: 'Search places (or Ctrl/⌘ K)' },
-  { key: 'O', desc: 'Ask OI' },
+  { key: 'T', desc: 'Ask TI' },
   { key: 'D', desc: 'Areas: draw and watch' },
   { key: 'A', desc: 'Live alerts' },
   { key: 'I', desc: 'Recon' },
@@ -46,7 +46,7 @@ export default function KeyboardShortcuts() {
           <div className="absolute inset-0 bg-[var(--bg-void)]/80 backdrop-blur-sm" />
           <motion.div
             onClick={e => e.stopPropagation()}
-            className="relative glass-panel p-6 w-[320px] osiris-glow"
+            className="relative glass-panel p-6 w-[320px] takip-glow"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">

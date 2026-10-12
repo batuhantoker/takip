@@ -31,7 +31,8 @@ None of these needs an API key. Several stream natively, which suits the live-fi
 | Wikidata | Companies, facilities, infrastructure, landmarks, relationships | SPARQL endpoint; dumps | The query service has timeouts and rate limits and asks for a descriptive User-Agent. Use dumps for bulk loads. |
 | NOAA NEXRAD | Live and archived weather radar | Public AWS S3 buckets, anonymous access | Level II files are raw binary and need decoding. For a map layer, rendered radar tiles (NOAA nowCOAST, Iowa Environmental Mesonet) are simpler; check their terms. |
 | Fintraffic Digitraffic | Finnish ship positions (AIS), train locations, road incidents, weather cameras | REST APIs and MQTT streams; CC BY 4.0 | Streams natively. Send the `Digitraffic-User` header they ask for. |
-| Natural Earth | Borders, coastlines, administrative geography, base-map data | Bulk downloads; public domain | Static reference |
+| Natural Earth | Borders, coastlines, administrative geography, base-map data | Bulk downloads; public domain | Static reference. In use: countries (50m) and states/provinces (10m) for the Areas region pick, built by `tools/build-boundaries.mjs` into `public/data/boundaries/` |
+| geoBoundaries (gbOpen) | Districts and sub-districts (ADM2/ADM3) for the Areas region pick | REST API pointing at GitHub LFS files; keyless. Licence varies by country (public domain, ODbL, OGL, Etalab, DL-DE…) and most require attribution | In use: `/api/boundaries/fine` fetches a country on first use and caches it. The credit is shown in the draw HUD and exported as `region_source` |
 | Wikipedia | Pageviews and live edits: shifts in public attention | EventStreams (server-sent events); pageviews API | Streams natively. A User-Agent is required. |
 | NWS / NHC | Weather warnings, hurricane tracks, hazard polygons | `api.weather.gov`; NHC GIS feeds; public domain | `api.weather.gov` requires a User-Agent |
 | NIFC / EFFIS | Wildfire perimeters and activity | ArcGIS services (NIFC); EFFIS services | Check the terms of each endpoint |
@@ -195,6 +196,7 @@ Open data rarely includes true network topology, such as which substation feeds 
 | Natural Earth | Base map data | OK |
 | geoBoundaries | Administrative boundaries | OK |
 | WorldPop, GHSL, Kontur | Population density, for "people affected" estimates | OK |
+| Waymarked Trails | Hiking route overlay tiles and route API (click-to-inspect) from OpenStreetMap (in use) | OK (CC BY-SA 3.0 DE; moderate rates, no bulk download) |
 
 ## Derived data we compute ourselves
 

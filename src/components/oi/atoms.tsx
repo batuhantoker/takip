@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the small parts every view is built from, in the platform's
+ * TAKIP OI: the small parts every view is built from, in the platform's
  * own idiom (HUD labels, the 3D/2D-style segmented control, layer toggles).
  */
 import { createElement, type ReactNode } from 'react';

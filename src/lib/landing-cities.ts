@@ -1,5 +1,5 @@
 /**
- * OSIRIS — where the camera lands on load when the visitor's own city is
+ * TAKIP — where the camera lands on load when the visitor's own city is
  * unknown: no public address to locate (reached over a VPN, a tailnet or a
  * private network), or no geolocation provider answered.
  *
@@ -42,7 +42,7 @@ export function randomLandingCity(exclude: string | null = null, random: () => n
   return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))];
 }
 
-const LAST_KEY = 'osiris.landing.last';
+const LAST_KEY = 'takip.landing.last';
 
 /** randomLandingCity, remembering the pick in this browser so the next visit goes elsewhere. */
 export function pickLandingCity(): LandingCity {

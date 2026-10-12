@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: choosing a model.
+ * TAKIP OI: choosing a model.
  *
  * In place of a long native list: the chosen model with what it is good for,
  * and, opened, a searchable list in groups (Recommended, then each family,

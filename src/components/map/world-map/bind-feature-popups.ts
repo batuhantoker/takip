@@ -6,6 +6,9 @@ import {
   sdkLinkPopupHtml, shipPopupHtml, supplierPopupHtml, sweepDevicePopupHtml, weatherEventPopupHtml,
   weatherPointPopupHtml,
 } from '@/lib/map-popups';
+import { launchPopupHtml } from '@/lib/launch-popup';
+import { serviceStatusPopupHtml } from '@/lib/service-status-popup';
+import { gnssPopupHtml } from '@/lib/gnss-popup';
 import { warAlertPopupHtml } from '@/lib/war-alerts';
 import { fireIncidentPopupHtml } from '@/lib/fire-incidents';
 import { airportDelayPopupHtml } from '@/lib/airport-delays';
@@ -31,6 +34,7 @@ export function bindCctvAndQuakeClicks(map: maplibregl.Map, popup: ShowPopup, on
       stream_url: p.stream_url,
       stream_type: p.stream_type,
       external_url: p.external_url,
+      road: p.road,
       lat: coords[1],
       lng: coords[0],
     });
@@ -89,6 +93,20 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
     popup(coords, attackOriginPopupHtml(p));
   });
 
+  // ── Likely GNSS interference (the cell, popped at its centre) ──
+  map.on('click', 'gnss-fill', e => {
+    const p = e.features?.[0]?.properties;
+    if (!p) return;
+    popup([Number(p.lng), Number(p.lat)], gnssPopupHtml(p));
+  });
+
+  // ── Vendor status-page incidents ──
+  map.on('click', 'service-status-dots', e => {
+    const f = e.features?.[0];
+    if (!f || f.geometry.type !== 'Point') return;
+    popup(f.geometry.coordinates, serviceStatusPopupHtml(f.properties ?? {}));
+  });
+
   // ── GDELT Conflicts (with source article) ──
   map.on('click', 'gdelt-dots', e => {
     if (!e.features?.length) return;
@@ -106,7 +124,7 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
   });
 
 
-  // ── OSIRIS SDK link click ──
+  // ── TAKIP SDK link click ──
   ['sdk-sea','sdk-sea-glow','sdk-air','sdk-air-glow','sdk-intel','sdk-intel-glow'].forEach(layer => {
     map.on('click', layer, e => {
       if (!e.features?.length) return;
@@ -124,7 +142,7 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
   });
 
   // ── Generic hover for clickables ──
-  ['conflict-icons','cctv-dots','eq-circles','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','rad-dots','war-alert-dots','fire-incident-dots','airport-delay-dots','chokepoint-flow-ring','outbreak-rings','ship-dots','ship-arrows','sweep-device-dots','scan-targets-dots','sdk-sea','sdk-sea-glow','sdk-sea-atmo','sdk-air','sdk-air-glow','sdk-air-atmo','sdk-intel','sdk-intel-glow','sdk-intel-atmo','malware-dots','cyber-heads','gdelt-events-dots','cf-outage-dots','cf-attack-dots','alert-pin-dots','wx-wind','wx-temp-label'].forEach(layer => {
+  ['conflict-icons','cctv-dots','eq-circles','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','launch-dots','rad-dots','war-alert-dots','fire-incident-dots','airport-delay-dots','chokepoint-flow-ring','outbreak-rings','ship-dots','ship-arrows','sweep-device-dots','scan-targets-dots','sdk-sea','sdk-sea-glow','sdk-sea-atmo','sdk-air','sdk-air-glow','sdk-air-atmo','sdk-intel','sdk-intel-glow','sdk-intel-atmo','malware-dots','cyber-heads','gdelt-events-dots','cf-outage-dots','cf-attack-dots','service-status-dots','gnss-fill','alert-pin-dots','wx-wind','wx-temp-label'].forEach(layer => {
     map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   });
@@ -151,6 +169,13 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
     if (!p) return;
     const coords = e.features[0].geometry.coordinates.slice();
     popup(coords, sweepDevicePopupHtml(p));
+  });
+
+  // ── Upcoming launches (Launch Library 2) ──
+  map.on('click', 'launch-dots', e => {
+    const f = e.features?.[0];
+    if (!f || f.geometry.type !== 'Point') return;
+    popup(f.geometry.coordinates, launchPopupHtml(f.properties ?? {}));
   });
 
   // ── Balloons / Sondes ──

@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: an object's view.
+ * TAKIP OI: an object's view.
  *
  * Whatever is selected, from the globe, the graph, the timeline, the table or
  * a list, opens here as an object: its type and identity, its properties, and

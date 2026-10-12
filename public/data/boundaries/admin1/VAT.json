@@ -1,0 +1,3 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"id":"VAT+00?","name":"Vatican City","country":"Vatican","countryId":"VAT","iso":"VA-X01~","label":[12.4534,41.9034]},"geometry":{"type":"Polygon","coordinates":[[[12.453,41.904],[12.454,41.904],[12.454,41.903],[12.453,41.903],[12.453,41.903],[12.453,41.903],[12.453,41.904]]]}}
+]}

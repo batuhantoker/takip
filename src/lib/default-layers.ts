@@ -26,6 +26,10 @@ export const DEFAULT_LAYERS = {
   sat_earth: false,
   sat_science: false,
   balloons: false,
+  launches: false,
+  /* The bright stars, Sun, Moon and planets behind the globe — see lib/space/earth-sky-layer. */
+  sky_stars: true,
+  aurora: false,
   cctv: true,
   /* The live preview tiles over the camera dots — see CctvPreviews. */
   cctv_previews: true,
@@ -53,6 +57,8 @@ export const DEFAULT_LAYERS = {
   wx_temperature: false,
   wx_wind: false,
   wx_radar: false,
+  /* Waymarked Trails' OSM hiking routes — see lib/hiking. */
+  hiking_routes: false,
   terrain_3d: false,
   terrain_elevation: false,
   malware: false,
@@ -60,6 +66,8 @@ export const DEFAULT_LAYERS = {
   gdelt_events: false,
   cf_outages: false,
   cf_attacks: false,
+  service_status: false,
+  gps_jamming: false,
   airport_delays: false,
   chokepoint_flow: false,
   outbreaks: false,

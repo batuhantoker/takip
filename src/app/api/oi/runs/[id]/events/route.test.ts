@@ -4,7 +4,7 @@ import { cancelRun, startRun, waitForEnd, type StartInput } from '@/lib/oi/runs'
 import { createDemoChat } from '@/lib/oi/demo';
 import type { ChatFn } from '@/lib/oi/providers';
 
-const streams = () => (globalThis as unknown as { __osirisOiStreams?: Map<string, number> }).__osirisOiStreams;
+const streams = () => (globalThis as unknown as { __takipOiStreams?: Map<string, number> }).__takipOiStreams;
 
 const input = (ip: string): StartInput => ({
   question: 'Will the envoys sign a deal by year end?', seed: '', depth: 'quick', useFeeds: false,

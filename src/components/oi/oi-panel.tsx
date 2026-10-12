@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the panel.
+ * TAKIP OI: the panel.
  *
  * Two ways to use OI, on the reader's own model key. Assist (the default)
  * is a conversation: talk to OI and it works the map for you (flies there,
@@ -174,12 +174,12 @@ export default function OiPanel(props: OiPanelProps) {
   const header = (
     <header className={`flex items-center gap-2.5 ${embedded ? 'pb-3' : 'h-[52px] pl-4 pr-2.5 border-b border-[var(--border-secondary)] bg-black/30'}`}>
       {!embedded && <OiMark size={18} live={s?.status === 'running' || props.assist.busy} assist={assisting} />}
-      {!embedded && <span className="hud-text text-[12px] text-[var(--text-heading)]">OI</span>}
+      {!embedded && <span className="hud-text text-[12px] text-[var(--text-heading)]">TI</span>}
       <div className="ml-auto flex items-center gap-0.5">
         <EnginePill engine={engine} ready={ready} open={engineOpen} onClick={() => setEngineOpen(v => !v)} assist={assisting} />
         {!assisting && <IconButton title={showHistory ? 'Back' : 'Your predictions'} onClick={() => setShowHistory(v => !v)} active={showHistory}><History className="w-3.5 h-3.5" /></IconButton>}
         {!assisting && s && <IconButton title="New prediction" onClick={reset}><Plus className="w-3.5 h-3.5" /></IconButton>}
-        {!embedded && props.onTheater && <IconButton title="Full screen: the OI workspace" onClick={() => props.onTheater?.(true)}><Maximize2 className="w-3.5 h-3.5" /></IconButton>}
+        {!embedded && props.onTheater && <IconButton title="Full screen: the TI workspace" onClick={() => props.onTheater?.(true)}><Maximize2 className="w-3.5 h-3.5" /></IconButton>}
         {props.onClose && !embedded && <IconButton title="Close (the run keeps going)" onClick={props.onClose}><X className="w-3.5 h-3.5" /></IconButton>}
       </div>
     </header>

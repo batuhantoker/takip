@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI Assist: what the assistant marks on the map.
+ * TAKIP OI Assist: what the assistant marks on the map.
  *
  * Labelled points (what it found, or places it named) and, optionally, the
  * circle of the area it searched, drawn above every other layer in the

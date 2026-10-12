@@ -3,7 +3,7 @@ import { cancelRun, getRun, ownsRun, runSummary, waitForEnd, waitSlot } from '@/
 import { disabled, disabledResponse, fail, json, siteOrigin } from '@/lib/oi/service';
 
 /**
- * OSIRIS OI — one run.
+ * TAKIP OI — one run.
  *
  * GET    /api/oi/runs/{id}            the summary
  * GET    /api/oi/runs/{id}?wait=30    waits up to 55 s for the run to finish first

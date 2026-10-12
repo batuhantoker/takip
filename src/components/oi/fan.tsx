@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the price, world by world.
+ * TAKIP OI: the price, world by world.
  *
  * On a question about a price, the cone the market's own moves allow (the
  * band 80% of the resampled paths stay inside, and their middle), from today

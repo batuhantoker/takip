@@ -7,7 +7,7 @@ import { BLOCS, BLOC_ORDER, timeAgo, type AlertBrief, type AlertThread } from '@
 import { hostedAiNotice, type HostedAiBlock } from '@/lib/hosted-ai';
 
 /**
- * OSIRIS — One-Click AI Overview
+ * TAKIP — One-Click AI Overview
  * Drop-in button that generates an intelligence read-out for whatever
  * data payload it's handed. Posts to /api/ai/overview, which works with
  * or without a Gemini key (heuristic analyst fallback), so it always
@@ -206,7 +206,7 @@ export default function AiOverview({
       >
         {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
         {loading ? 'ANALYZING…' : open ? 'HIDE AI OVERVIEW' : 'AI OVERVIEW'}
-        {stale && !loading && <span className="ml-1 w-1.5 h-1.5 rounded-full animate-osiris-pulse" style={{ background: accent }} title="The feed has changed since this read-out" />}
+        {stale && !loading && <span className="ml-1 w-1.5 h-1.5 rounded-full animate-takip-pulse" style={{ background: accent }} title="The feed has changed since this read-out" />}
       </button>
 
       <AnimatePresence initial={false}>

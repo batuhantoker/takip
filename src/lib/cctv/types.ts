@@ -1,3 +1,5 @@
+import type { RoadCondition } from './road-condition';
+
 export type CctvStreamType = 'jpg' | 'hls' | 'iframe' | 'mjpeg' | 'mp4';
 
 export interface CctvCamera {
@@ -14,6 +16,8 @@ export interface CctvCamera {
   stream_type?: CctvStreamType;
   external_url?: string;
   source: string;
+  /** Measured road surface from the operator's paired station (./road-condition). */
+  road?: RoadCondition;
 }
 
 /*

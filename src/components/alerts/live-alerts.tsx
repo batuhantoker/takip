@@ -239,7 +239,7 @@ export default function LiveAlerts({ data, onLocate, onWatchFeed, onRefresh, pin
               className="flex items-center gap-1 cursor-help"
               style={{ color: liveSources === sources.length ? '#00E676' : '#FF9500' }}
             >
-              <span className="h-1.5 w-1.5 rounded-full animate-osiris-pulse" style={{ background: 'currentColor' }} />
+              <span className="h-1.5 w-1.5 rounded-full animate-takip-pulse" style={{ background: 'currentColor' }} />
               {liveSources}/{sources.length} SOURCES LIVE
             </span>
           ) : (

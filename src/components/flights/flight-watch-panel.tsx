@@ -12,7 +12,7 @@ import {
 } from '@/lib/flight-watch';
 
 /* ═══════════════════════════════════════════════════════════════
-   OSIRIS — Flight Watch
+   TAKIP — Flight Watch
    Pin several aircraft and follow them side by side
    ═══════════════════════════════════════════════════════════════ */
 

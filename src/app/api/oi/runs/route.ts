@@ -3,7 +3,7 @@ import { runSummary } from '@/lib/oi/runs';
 import { credentials, disabled, disabledResponse, fail, json, readBody, siteOrigin, startPrediction } from '@/lib/oi/service';
 
 /**
- * OSIRIS OI — start a prediction.
+ * TAKIP OI — start a prediction.
  *
  * POST /api/oi/runs
  *   headers  X-OI-Provider, X-OI-Key, X-OI-Model (optional)

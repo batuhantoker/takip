@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Photon is faked: its public server cannot be made to fail on demand, and the
 // retry is the part worth pinning down.
 const httpJson = vi.fn();
-vi.mock('@/lib/httpJson', () => ({ httpJson: (...args: unknown[]) => httpJson(...args), OSIRIS_UA: 'test' }));
+vi.mock('@/lib/httpJson', () => ({ httpJson: (...args: unknown[]) => httpJson(...args), TAKIP_UA: 'test' }));
 
 import { current, stillHolding, itemId, amountOf, placeAt, type WdStatement } from './route';
 

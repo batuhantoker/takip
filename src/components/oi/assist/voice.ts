@@ -1,10 +1,10 @@
 'use client';
 /**
- * OSIRIS OI Assist: talking to OI.
+ * TAKIP OI Assist: talking to OI.
  *
  * Dictation through the browser's own speech recognition (Chrome, Edge and
  * Safari have it; Firefox does not, and the mic button does not show there),
- * and replies read aloud through its speech synthesis. Neither touches OSIRIS:
+ * and replies read aloud through its speech synthesis. Neither touches TAKIP:
  * recognition is the browser vendor's service, which is why the privacy page
  * names it.
  */

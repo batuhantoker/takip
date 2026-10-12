@@ -1,7 +1,7 @@
 import type { Map, MapSourceDataEvent, ErrorEvent } from 'maplibre-gl';
 import { batchTerrainLayers } from './terrain-layer-order';
 
-export const TERRAIN_SOURCE = 'osiris-terrain-dem';
+export const TERRAIN_SOURCE = 'takip-terrain-dem';
 export type TerrainStatus = 'idle' | 'waiting' | 'loading' | 'ready' | 'error';
 
 // Hysteresis prevents reloading tiles when hovering around the activation zoom.
@@ -48,7 +48,7 @@ export function attachTerrain(map: Map, onStatus: (status: TerrainStatus) => voi
     try {
       map.addSource(TERRAIN_SOURCE, {
         type: 'raster-dem',
-        tiles: ['osiris-dem://{z}/{x}/{y}'],
+        tiles: ['takip-dem://{z}/{x}/{y}'],
         encoding: 'terrarium',
         tileSize: 256,
         maxzoom: 10,
@@ -63,7 +63,7 @@ export function attachTerrain(map: Map, onStatus: (status: TerrainStatus) => voi
       failed = true;
       release();
       report('error');
-      console.warn('[OSIRIS] Terrain unavailable:', error);
+      console.warn('[TAKIP] Terrain unavailable:', error);
     }
   };
   const update = () => {

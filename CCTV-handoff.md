@@ -13,7 +13,7 @@ _Written 2026-10-11 against commit `83b8cd1` plus uncommitted work. The uncommit
     - mid zoom: the best-ranked cameras per cell;
     - zoomed in: every camera in view, with details loaded on click.
 - **None of the five repos below should be bulk-imported.** All are frozen snapshots, and three contain private or credentialed cameras. They are valuable as **leads for live adapters**. Argus is also useful as a **reference design**.
-- **Realistic net-new from all leads is about 60–80k cameras.** Most of that comes from widening the OpenCCTV feed OSIRIS already uses, which now lists about 141k ids. Plan for 250k, with headroom to 1M.
+- **Realistic net-new from all leads is about 60–80k cameras.** Most of that comes from widening the OpenCCTV feed TAKIP already uses, which now lists about 141k ids. Plan for 250k, with headroom to 1M.
 
 ---
 
@@ -81,12 +81,12 @@ OpenCCTV contributes 2,577 cameras across about 100 sub-sources, and only for As
 
 ## 2. The repos
 
-Research subagents assessed each repo. They cloned it, counted its records, probed samples for liveness and grepped OSIRIS for overlap. Their scratch files are in `$TMPDIR/opencode/repos/`.
+Research subagents assessed each repo. They cloned it, counted its records, probed samples for liveness and grepped TAKIP for overlap. Their scratch files are in `$TMPDIR/opencode/repos/`.
 
 | Repo | What it is | Records (claimed → counted) | Data date | License | Private-camera issues | Verdict |
 |---|---|---|---|---|---|---|
 | [GoSlowPoke168/Argus](https://github.com/GoSlowPoke168/Argus) | React/Deck.GL app + Python scraper → SQLite → static JSON | "200k+" → **229,308** | 2026-07-25 | MIT (code only) | 635 Opentopia (residential: driveways, offices), 172 Windy `playerUrl`s with credentials, about 34 raw device URLs | **Don't import.** 65.5% is an OpenCCTV snapshot and 31.4% is Windy. **Mine it for source leads and its storage design.** |
-| [Prime3vil/CCTV](https://github.com/Prime3vil/CCTV) | Leaflet console app (Android/Electron) with a bundled JSON file | "22,000+" → **23,152** | about 2026-09-12 | MIT (code only) | Insecam-sourced cameras with invented labels; 5 leaked Caltrans `rtsp://admin:…@10.x`; a leaked OpenWebcamDB bearer token | **Don't import.** 42% already in OSIRIS; about 4.5–5k playable net-new. Mine for leads. |
+| [Prime3vil/CCTV](https://github.com/Prime3vil/CCTV) | Leaflet console app (Android/Electron) with a bundled JSON file | "22,000+" → **23,152** | about 2026-09-12 | MIT (code only) | Insecam-sourced cameras with invented labels; 5 leaked Caltrans `rtsp://admin:…@10.x`; a leaked OpenWebcamDB bearer token | **Don't import.** 42% already in TAKIP; about 4.5–5k playable net-new. Mine for leads. |
 | [anaghNathwani/openCAM](https://github.com/anaghNathwani/openCAM) | CLI + web app that **downloads** OpenTrafficCamMap `USA.json` | — → **7,029** (stored 6,729: 300 lost to id collisions) | upstream frozen 2024-10-05 | **none** | 5 Caltrans RTSP URLs with credentials | **Skip.** 62% overlap; about 1,450 live net-new (Ohio, Colorado). |
 | [bzsasson/traffic-camera-sources](https://github.com/bzsasson/traffic-camera-sources) | CC BY 4.0 registry of 10 sources + the upstream livetrafficcam.com registry (21) | 24,159 across its upstream | weekly bot (2026-10-05) | CC BY 4.0 | none | **Best leads list.** 6 keyless US sources we lack, all endpoint-tested; uptime data too. |
 | [william-ricchiuti/Live-Environment-Streams](https://github.com/william-ricchiuti/Live-Environment-Streams) | GeoJSON export of a private scenic/traffic stream database | — → **5,997** | 2026-06-12; CI broken | **none** | Bulgarian dynamic-DNS host, ~28 home YouTube cams (Davao), scraped session tokens | **Don't import.** Coordinates unreliable (926 on fallback points; median **42 km** off on shared Skyline cams); YouTube only 51% live (468 of 475 are pinned video ids). |
@@ -94,7 +94,7 @@ Research subagents assessed each repo. They cloned it, counted its records, prob
 ### What to take from each
 
 **Argus**
-- **Recommended path:** widen OSIRIS's *live* OpenCCTV integration (`opencctv.ts`, Asia-only and capped at 600–1,200 per sub-region) instead of importing Argus's frozen copy. OpenCCTV lists 141,331 ids today, and only 95k of Argus's OpenCCTV ids still match.
+- **Recommended path:** widen TAKIP's *live* OpenCCTV integration (`opencctv.ts`, Asia-only and capped at 600–1,200 per sub-region) instead of importing Argus's frozen copy. OpenCCTV lists 141,331 ids today, and only 95k of Argus's OpenCCTV ids still match.
 - **Exclusions:** Opentopia and anything windy.com-hosted.
 - **Windy:** use it through its API (needs a key; image URL tokens expire after 10 min on the free tier) with attribution. Never store its URLs.
 - **Leads we don't have, roughly by size:**
@@ -123,7 +123,7 @@ Research subagents assessed each repo. They cloned it, counted its records, prob
 
 **openCAM**
 - One lesson: key cameras on **source + native id**, never on a hash of location and description. That is how it lost 300 cameras.
-- A side finding we should act on: Caltrans' ArcGIS layer has `streamingVideoURL` for 1,964 cameras. OSIRIS only reads `currentImageURL`. It's a cheap upgrade to HLS; drop the `rtsp:` URLs.
+- A side finding we should act on: Caltrans' ArcGIS layer has `streamingVideoURL` for 1,964 cameras. TAKIP only reads `currentImageURL`. It's a cheap upgrade to HLS; drop the `rtsp:` URLs.
 
 **traffic-camera-sources** (all verified keyless, 2026-10-11)
 
@@ -360,7 +360,7 @@ adapters (existing fetchers: mapIbi511Record, mapCarsSnapshot, opencctv, …)
 ## 8. Quick fixes found during this audit (independent of the DB)
 
 1. **Remove OpenCCTV `opentopia`**: 4 private cameras are live in the catalogue now. Add a sub-source exclusion in `opencctv.ts`. Also consider `ipcamlive*` (dead) and `windy*` (terms of use).
-2. **HK duplicates:** add `tdcctv.data.one.gov.hk` (HK Transport's host) to `COVERED_ELSEWHERE` (165 duplicates). Add `thb.gov.tw` too, but not all of twipcam: most of it is `freeway.gov.tw` and city systems OSIRIS doesn't carry.
+2. **HK duplicates:** add `tdcctv.data.one.gov.hk` (HK Transport's host) to `COVERED_ELSEWHERE` (165 duplicates). Add `thb.gov.tw` too, but not all of twipcam: most of it is `freeway.gov.tw` and city systems TAKIP doesn't carry.
 3. **Fix the 48 reused ids**: `nl-rws-*`, DGT, Live Traffic and OpenCCTV hk/twipcam/windy.
 4. **`us-central` (IDOT):** the upstream returns no cameras and the region still occupies a pool slot. Remove it or replace it with a working Illinois source.
 5. **Kansas box:** the east edge is −94.5, but the KC state line is about −94.61, so about 83 Missouri cameras are captioned "Kansas". Tighten the box near KC, or caption by state.

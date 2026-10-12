@@ -1,5 +1,5 @@
 /**
- * OSIRIS vision: one look at a camera, shared by everyone watching it.
+ * TAKIP vision: one look at a camera, shared by everyone watching it.
  *
  * The reader's Analyze and Watch buttons and OI Assist's camera tool both go
  * through `look`, and the camera viewer's overlay draws whatever this store

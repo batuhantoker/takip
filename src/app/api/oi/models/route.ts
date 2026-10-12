@@ -2,7 +2,7 @@ import { ProviderError, listModels, pickModel, providerInfo } from '@/lib/oi/pro
 import { credentials, disabled, disabledResponse, fail, json, limited, readBody } from '@/lib/oi/service';
 
 /**
- * OSIRIS OI — the models a key can use. Doubles as the key check: a key
+ * TAKIP OI — the models a key can use. Doubles as the key check: a key
  * the provider rejects fails here, before a run spends anything.
  *
  * POST /api/oi/models   { provider }   with X-OI-Key

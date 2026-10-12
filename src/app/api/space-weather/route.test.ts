@@ -55,4 +55,11 @@ describe('GET /api/space-weather', () => {
     expect(body.kp_index).toBe(1);
     expect(body.storm_level).toBe('Quiet');
   });
+
+  it('reports the NOAA scales as unknown when they cannot be read', async () => {
+    mockNoaa('ok');
+    const body = await get();
+
+    expect(body.scales).toBeNull();
+  });
 });

@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: what a prediction rests on, side by side.
+ * TAKIP OI: what a prediction rests on, side by side.
  *
  * The prediction is not one model's opinion: it is weighed against what can
  * be checked. Here they stand on one scale, each a click away from its

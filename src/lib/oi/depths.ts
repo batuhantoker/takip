@@ -4,7 +4,7 @@ import type { Depth } from './types';
 /**
  * How big a simulation is: the actors who play as agents, the periods of
  * simulated time from today to the horizon, the parallel worlds, the items
- * from the live OSIRIS feeds, and the articles the research reads.
+ * from the live TAKIP feeds, and the articles the research reads.
  */
 export const DEPTHS: Record<Depth, { label: string; actors: number; periods: number; worlds: number; feed: number; research: number }> = {
   quick: { label: 'Quick', actors: 4, periods: 3, worlds: 2, feed: 10, research: 6 },

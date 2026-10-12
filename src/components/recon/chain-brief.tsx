@@ -5,7 +5,7 @@ import { Loader2, Sparkles, Bug, Flame, ShieldAlert, ExternalLink } from 'lucide
 import { hostedAiNotice } from '@/lib/hosted-ai';
 
 /**
- * OSIRIS — Daily chain-threat brief.
+ * TAKIP — Daily chain-threat brief.
  *
  * Rendered inside the RECON toolkit's CHAIN INTEL tab. Self-contained: owns
  * its own fetch, window selector, unattended refresh and AI overview, so the

@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the model against the crowd, level by level.
+ * TAKIP OI: the model against the crowd, level by level.
  *
  * A prediction market often prices a price question as a ladder: will it
  * reach $140, $160, $180, $200…, will it dip to $90, $80, $70…, all by the

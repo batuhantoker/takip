@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="21.38 89 481.71 334" width="481.71" height="334">
+  <defs>
+    <clipPath id="tk-globe"><circle cx="256" cy="256" r="150"/></clipPath>
+    <mask id="tk-gaps" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <g fill="#000" stroke="#000" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M37.83 304.76A236 84 -20 1 0 475.96 203.21" fill="none" stroke-width="28"/>
+        <path d="M487.82 172.34L492.09 225.39L474.2 207.82L449.15 208.91Z" stroke-width="20"/><circle cx="179.24" cy="363.26" r="20"/><circle cx="391.27" cy="284.31" r="20"/>
+      </g>
+    </mask>
+    <mask id="tk-behind" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="#fff"/>
+      <circle cx="256" cy="256" r="163" fill="#000"/>
+    </mask>
+    <linearGradient id="tk-fade" gradientUnits="userSpaceOnUse" x1="37.83" y1="304.76" x2="129.67" y2="368.64">
+      <stop offset="0" stop-color="#2F80FF" stop-opacity="0"/>
+      <stop offset="1" stop-color="#2F80FF"/>
+    </linearGradient>
+  </defs>
+  <g mask="url(#tk-gaps)" fill="none" stroke="#0B1220" stroke-linecap="round">
+    <path d="M256 106V406M193 256A63 150 0 1 0 319 256A63 150 0 1 0 193 256M136 256A120 150 0 1 0 376 256A120 150 0 1 0 136 256M155.11 145H356.89M116.06 202H395.94M106 256H406M116.06 310H395.94M155.11 367H356.89" stroke-width="8" clip-path="url(#tk-globe)"/>
+    <circle cx="256" cy="256" r="150" stroke-width="12"/>
+  </g>
+  <path d="M477.15 173.72A236 84 -20 0 0 58.82 275.83" mask="url(#tk-behind)" fill="none" stroke="#2F80FF" stroke-width="8.4" stroke-linecap="round" stroke-dasharray="0.1 22.4" opacity="0.85"/>
+  <path d="M37.83 304.76A236 84 -20 1 0 475.96 203.21" fill="none" stroke="url(#tk-fade)" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="179.24" cy="363.26" r="13" fill="#2F80FF"/><circle cx="391.27" cy="284.31" r="13" fill="#2F80FF"/>
+  <path d="M487.82 172.34L492.09 225.39L474.2 207.82L449.15 208.91Z" fill="#2F80FF" stroke="#0B1220" stroke-width="6" stroke-linejoin="round"/>
+</svg>

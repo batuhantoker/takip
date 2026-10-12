@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI Assist: the conversation, in the page.
+ * TAKIP OI Assist: the conversation, in the page.
  *
  * Holds what has been said and done, runs a turn against the server and the
  * map (agent.converse), and shows each step as it happens: what OI said, each
@@ -38,7 +38,7 @@ export interface AssistDeps {
   onReply?: (text: string) => void;
 }
 
-const STORE = 'osiris.oi.assist';
+const STORE = 'takip.oi.assist';
 const MAX_ENTRIES = 80;
 
 function load(): { entries: Entry[]; history: AssistMessage[] } {
@@ -142,7 +142,7 @@ export function useAssist(deps: AssistDeps) {
       patch(e => ({ ...e, busy: false, actions: e.actions.map(a => (a.status === 'running' || a.status === 'pending' ? { ...a, status: ctrl.signal.aborted ? 'error' : a.status, summary: a.summary ?? (ctrl.signal.aborted ? 'Stopped' : undefined) } : a)) }));
       if (finalSay && !ctrl.signal.aborted) depsRef.current.onReply?.(finalSay);
     } catch (err) {
-      const message = ctrl.signal.aborted ? 'Stopped.' : err instanceof Error ? err.message : 'OI could not answer.';
+      const message = ctrl.signal.aborted ? 'Stopped.' : err instanceof Error ? err.message : 'TI could not answer.';
       patch(e => ({ ...e, busy: false, error: message, retry: ctrl.signal.aborted ? undefined : { text: said, mode }, actions: e.actions.map(a => (a.status === 'running' || a.status === 'pending' ? { ...a, status: 'error' } : a)) }));
     } finally {
       abort.current = null;

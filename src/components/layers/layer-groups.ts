@@ -1,6 +1,6 @@
 import {
   Plane, Satellite, Sun, AlertTriangle, Camera,
-  CloudLightning, Ship, Network, Megaphone, CloudSun
+  CloudLightning, Ship, Network, Megaphone, CloudSun, Mountain
 } from 'lucide-react';
 import { SHIP_CLASSES, SHIPS_UNDERWAY } from '@/lib/ship-filter';
 import { REFERENCE_LAYER_GROUPS } from './reference-groups';
@@ -80,6 +80,9 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'sat_navigation', label: 'GPS / Navigation', dataKey: 'satellites', catKey: 'navigation' },
       { key: 'sat_earth', label: 'Earth Observation', dataKey: 'satellites', catKey: 'earth_obs' },
       { key: 'sat_science', label: 'Stations / Telescopes', dataKey: 'satellites', catKey: 'science' },
+      { key: 'launches', label: 'Upcoming Launches', description: 'Launch Library 2 · next launch per pad', dataKey: 'launches' },
+      { key: 'sky_stars', label: 'Stars & Planets', description: 'Real sky behind the globe · JPL Horizons · Yale BSC', dataKey: '' },
+      { key: 'aurora', label: 'Aurora Forecast', description: 'NOAA OVATION · 30-min nowcast · ignores cloud', dataKey: '' },
     ],
   },
   {
@@ -114,6 +117,7 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'alert_pins', label: 'Live Alert Pins', dataKey: 'alert_pins' },
       { key: 'gdelt_events', label: 'GDELT Events', dataKey: 'gdelt_events' },
       { key: 'war_alerts', label: 'Air-Raid Alerts', description: 'Israel sirens · Ukraine oblasts · live', dataKey: 'war_alerts' },
+      { key: 'gps_jamming', label: 'GNSS Interference', description: 'Inferred from aircraft position accuracy · 2° cells', dataKey: 'gps_jamming' },
     ],
   },
   {
@@ -132,9 +136,18 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
     layers: [
       { key: 'cf_outages', label: 'Internet Outages', dataKey: 'cf_outages', requires: 'cloudflare' },
       { key: 'cf_attacks', label: 'Attack Origins', dataKey: 'cf_attack_origins', requires: 'cloudflare' },
+      { key: 'service_status', label: 'Service Incidents', description: 'Vendor status pages · pinned at HQ', dataKey: 'service_status' },
     ],
   },
   ...REFERENCE_LAYER_GROUPS,
+  {
+    label: 'OUTDOOR',
+    fullLabel: 'OUTDOOR',
+    icon: Mountain,
+    layers: [
+      { key: 'hiking_routes', label: 'Hiking Routes', description: 'Waymarked Trails · OpenStreetMap · worldwide', dataKey: '' },
+    ],
+  },
   {
     label: 'DISPLAY',
     fullLabel: 'DISPLAY',

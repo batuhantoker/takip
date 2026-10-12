@@ -1,5 +1,5 @@
 /**
- * OSIRIS — bounded work pool.
+ * TAKIP — bounded work pool.
  *
  * The camera catalogue fans out to 48 regions, several of which fan out again
  * to their own sub-sources, so an uncapped `region=all` opened somewhere north

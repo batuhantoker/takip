@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SIGN_IN_LINK, SETTINGS_CALLBACK } from '@/lib/account-links';
+import { TakipMark } from '@/components/brand/takip-mark';
+import { TakipWordmark } from '@/components/brand/takip-wordmark';
 import { onLocked } from './admin-api';
 import UnlockForm from './unlock-form';
 
@@ -13,6 +15,7 @@ const NAV = [
   { href: '/admin', label: 'Overview' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/plans', label: 'Plans' },
+  { href: '/admin/sources', label: 'Sources' },
   { href: '/admin/audit', label: 'Audit log' },
 ];
 
@@ -48,7 +51,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="admin-root min-h-screen bg-[var(--bg-void)] text-[var(--text-primary)]">
       <header className="sticky top-0 z-10 flex items-center gap-6 px-6 h-12 border-b border-[var(--border-primary)] bg-[#070707]/95 backdrop-blur">
-        <Link href="/admin" className="text-[12px] font-mono tracking-[0.3em] text-[var(--gold-primary)]">TAKIP ADMIN</Link>
+        <Link href="/admin" className="flex items-center gap-2 text-[var(--brand-ink)]">
+          <TakipMark variant="small" className="h-5 w-auto" />
+          <TakipWordmark className="h-[10px] w-auto" />
+          <span className="text-[11px] font-mono tracking-[0.3em] text-[var(--text-muted)]">ADMIN</span>
+        </Link>
         {!gate && (
           <nav className="flex items-center gap-1 overflow-x-auto">
             {NAV.map(item => {

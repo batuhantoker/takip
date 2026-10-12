@@ -41,9 +41,9 @@ export function useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle }: Ba
         // and render heights. No second worldwide vector source is needed.
 
         // ── 3D BUILDING EXTRUSION LAYER ──
-        if (!map.getLayer('osiris-3d-buildings')) {
+        if (!map.getLayer('takip-3d-buildings')) {
           map.addLayer({
-            id: 'osiris-3d-buildings',
+            id: 'takip-3d-buildings',
             source: 'carto',
             'source-layer': 'building',
             type: 'fill-extrusion',
@@ -83,20 +83,40 @@ export function useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle }: Ba
 
       } else {
         // ── DISABLE 3D ──
-        if (map.getLayer('osiris-3d-buildings')) map.removeLayer('osiris-3d-buildings');
+        if (map.getLayer('takip-3d-buildings')) map.removeLayer('takip-3d-buildings');
       }
     } catch (e) {
-      console.warn('[OSIRIS] 3D terrain toggle error:', e);
+      console.warn('[TAKIP] 3D terrain toggle error:', e);
     }
   }, [mapReady, activeLayers.terrain_3d, mapRef]);
 
-  // Satellite / Dark style switching
+  // Satellite / Topo / Dark style switching
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
 
     try {
-      if (mapStyle !== 'dark') {
+      // OpenTopoMap: CC-BY-SA, attribution required; fair use only, so no prefetching. Tiles stop at z17.
+      if (mapStyle === 'topo') {
+        if (!map.getSource('topo-tiles')) {
+          map.addSource('topo-tiles', {
+            type: 'raster',
+            tiles: ['a', 'b', 'c'].map(s => `https://${s}.tile.opentopomap.org/{z}/{x}/{y}.png`),
+            tileSize: 256,
+            maxzoom: 17,
+            attribution: 'Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM · Style © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
+          });
+        }
+        if (!map.getLayer('topo-layer')) {
+          map.addLayer({ id: 'topo-layer', type: 'raster', source: 'topo-tiles', paint: { 'raster-opacity': 0.9 } }, 'day-night-fill');
+        } else {
+          map.setLayoutProperty('topo-layer', 'visibility', 'visible');
+        }
+      } else if (map.getLayer('topo-layer')) {
+        map.setLayoutProperty('topo-layer', 'visibility', 'none');
+      }
+
+      if (mapStyle !== 'dark' && mapStyle !== 'topo') {
         // Add satellite raster tiles
         if (!map.getSource('satellite-tiles')) {
           map.addSource('satellite-tiles', {

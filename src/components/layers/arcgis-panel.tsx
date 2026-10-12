@@ -17,7 +17,7 @@ import ArcGISImportedLayers from './arcgis-imported-layers';
 import ArcGISSearchResults from './arcgis-search-results';
 
 /* ═══════════════════════════════════════════════════════════════
-   ArcGIS Search & Import Panel — OSIRIS OSINT Dashboard
+   ArcGIS Search & Import Panel — TAKIP OSINT Dashboard
    Premium dark-ops glassmorphism aesthetic
    ═══════════════════════════════════════════════════════════════ */
 

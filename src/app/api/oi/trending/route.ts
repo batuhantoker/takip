@@ -2,7 +2,7 @@ import { trending } from '@/lib/oi/markets';
 import { disabled, disabledResponse, fail, json, limited } from '@/lib/oi/service';
 
 /**
- * OSIRIS OI — what the world is betting on: the busiest questions on
+ * TAKIP OI — what the world is betting on: the busiest questions on
  * Polymarket that can be rehearsed (not games, at least two weeks out), each
  * with the crowd's price, for the ask form to suggest. Read without a key and
  * kept ten minutes.

@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI: the run as objects.
+ * TAKIP OI: the run as objects.
  *
  * Everything a run produces is an object of a type, under the same research
  * key the globe, the graph and the lists use: actors (`a:`), sources from the

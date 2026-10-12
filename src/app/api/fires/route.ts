@@ -6,7 +6,7 @@ import { bcUrl, cwfisUrl, parseBcFires, parseCwfis, type FireIncident } from './
 export const dynamic = 'force-dynamic';
 
 /**
- * OSIRIS — Active Fire & Wildfire Tracking
+ * TAKIP — Active Fire & Wildfire Tracking
  * Multi-source: NASA FIRMS Open Data (primary for global fires), NASA EONET (volcanoes),
  * and agency-reported Canadian wildfire incidents (CWFIS, with BC Wildfire names).
  */
@@ -36,7 +36,6 @@ async function loadIncidents(): Promise<FireIncident[]> {
   return incidentsInflight;
 }
 
-
 export async function GET() {
   try {
     let fires: any[] = [];
@@ -53,7 +52,7 @@ export async function GET() {
       try {
         const res = await fetch(url, {
           signal: AbortSignal.timeout(15000),
-          headers: { 'User-Agent': 'OSIRIS-Intelligence-Platform/3.5' },
+          headers: { 'User-Agent': 'TAKIP-Intelligence-Platform/0.1' },
         });
         if (res.ok) {
           const text = await res.text();
@@ -94,7 +93,7 @@ export async function GET() {
         fires = [...fires, ...volcanoes];
         if (!source) source = 'NASA-EONET';
       }
-    } catch (e) { console.warn('[OSIRIS] Suppressed EONET error:', e instanceof Error ? e.message : e); }
+    } catch (e) { console.warn('[TAKIP] Suppressed EONET error:', e instanceof Error ? e.message : e); }
 
     return NextResponse.json({
       fires,

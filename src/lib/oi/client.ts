@@ -7,7 +7,7 @@
  *
  * The key is kept in this browser only: in localStorage if the visitor asks
  * to be remembered, otherwise in sessionStorage, which the tab forgets when it
- * closes. It travels to OSIRIS in a header on each call that needs it.
+ * closes. It travels to TAKIP in a header on each call that needs it.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ProviderId } from './providers';
@@ -37,10 +37,10 @@ export interface HistoryEntry {
   model: string;
 }
 
-const ENGINE_KEY = 'osiris.oi.engine';
-const HISTORY_KEY = 'osiris.oi.history';
-const TOKENS_KEY = 'osiris.oi.tokens';
-const keySlot = (p: string) => `osiris.oi.key.${p}`;
+const ENGINE_KEY = 'takip.oi.engine';
+const HISTORY_KEY = 'takip.oi.history';
+const TOKENS_KEY = 'takip.oi.tokens';
+const keySlot = (p: string) => `takip.oi.key.${p}`;
 const HISTORY_CAP = 25;
 
 function store(kind: 'local' | 'session'): Storage | null {
@@ -117,7 +117,7 @@ export const headersFor = (engine: Engine, key: string): Record<string, string> 
 /** What went wrong, in OI's words if it gave any. */
 export async function errorOf(res: Response): Promise<string> {
   const body = await res.json().catch(() => null);
-  return (body && typeof body.error === 'string' ? body.error : '') || `OI answered ${res.status}.`;
+  return (body && typeof body.error === 'string' ? body.error : '') || `TI answered ${res.status}.`;
 }
 
 export interface StartInput {
@@ -188,7 +188,7 @@ export function useOi() {
     setToken(tokens()[id] ?? null);
     const res = await fetch(`/api/oi/runs/${id}`, { cache: 'no-store' }).catch(() => null);
     if (!res?.ok) {
-      setError(res?.status === 404 ? 'That forecast has expired. Runs are kept for a few hours.' : 'Could not reach OI.');
+      setError(res?.status === 404 ? 'That forecast has expired. Runs are kept for a few hours.' : 'Could not reach TI.');
       setRunId(null);
       setUrlRun(null);
       return false;
@@ -227,7 +227,7 @@ export function useOi() {
         body: JSON.stringify({ question: input.question, seed: input.seed, seed_scope: input.seedScope, depth: input.depth, use_feeds: input.useFeeds }),
       });
     } catch {
-      setError('Could not reach OI.');
+      setError('Could not reach TI.');
       return null;
     }
     if (!res.ok) { setError(await errorOf(res)); return null; }
@@ -255,7 +255,7 @@ export function useOi() {
       headers: { 'content-type': 'application/json', 'x-oi-run-token': token },
       body: JSON.stringify({ text }),
     }).catch(() => null);
-    if (!res) return 'Could not reach OI.';
+    if (!res) return 'Could not reach TI.';
     return res.ok ? null : errorOf(res);
   }, [runId, token]);
 
@@ -266,7 +266,7 @@ export function useOi() {
       headers: headersFor(engine, key),
       body: JSON.stringify({ target, message }),
     }).catch(() => null);
-    if (!res) return { error: 'Could not reach OI.' };
+    if (!res) return { error: 'Could not reach TI.' };
     if (!res.ok) return { error: await errorOf(res) };
     return { reply: (await res.json()).reply };
   }, [runId]);
@@ -302,7 +302,7 @@ export async function checkKey(provider: ProviderId, key: string): Promise<{ mod
     headers: { 'content-type': 'application/json', 'x-oi-provider': provider, ...(key ? { 'x-oi-key': key } : {}) },
     body: JSON.stringify({ provider }),
   }).catch(() => null);
-  if (!res) return { error: 'Could not reach OI.' };
+  if (!res) return { error: 'Could not reach TI.' };
   if (!res.ok) return { error: await errorOf(res) };
   const body = await res.json();
   return { models: body.models ?? [], preferred: body.default ?? '', listed: body.listed !== false };
@@ -353,6 +353,6 @@ export function toMarkdown(s: RunState, url: string): string {
   const used = new Set(s.links.filter(l => l.kind === 'cite' || l.kind === 'evidence').flatMap(l => [l.from, l.to]).filter(k => k.startsWith('c:')).map(k => k.slice(2)));
   const sources = s.context.filter(c => used.has(c.id));
   if (sources.length) lines.push('', '## Sources', ...sources.map(c => `- [${c.id}] ${c.kind === 'data' && c.id !== 'data' ? `“${c.title}”` : c.url ? `[${c.title.replace(/[[\]]/g, '')}](${c.url})` : c.title} (${[c.source, c.place, c.published.slice(0, 10)].filter(Boolean).join(', ')})`));
-  lines.push('', `Run on ${s.provider} / ${s.model}, ${s.usage.calls} model calls. Watch: ${url}`, '', '_TAKIP OI: a prediction engine after MiroFish, rebuilt natively: the actors simulated in parallel worlds. A simulation, not a guarantee._');
+  lines.push('', `Run on ${s.provider} / ${s.model}, ${s.usage.calls} model calls. Watch: ${url}`, '', '_TI (Takip AI): a prediction engine after MiroFish, rebuilt natively: the actors simulated in parallel worlds. A simulation, not a guarantee._');
   return lines.filter(l => l !== '').join('\n').replace(/\n(#+ )/g, '\n\n$1');
 }

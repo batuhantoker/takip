@@ -1,0 +1,39 @@
+import { Prec } from '@takip/core/time';
+import { describe, expect, it } from 'vitest';
+import { Reporter } from '../context';
+import { cowDate, WAC_MATCHES } from './cow';
+import { yyyymm } from './icow';
+
+describe('cow dates', () => {
+  it('lowers the precision for -9 and NA parts and keeps the raw value', () => {
+    const rep = new Reporter();
+    expect(cowDate(rep, '1914', '7', '28')).toEqual({ t: Date.UTC(1914, 6, 28), prec: Prec.day });
+    expect(cowDate(rep, '1914', '7', '-9')).toEqual({ t: Date.UTC(1914, 6, 1), prec: Prec.month, raw: '1914-7--9' });
+    expect(cowDate(rep, '1914', '-9', '-9')).toEqual({ t: Date.UTC(1914, 0, 1), prec: Prec.year, raw: '1914--9--9' });
+    expect(cowDate(rep, '2022', 'NA', 'NA')).toEqual({ t: Date.UTC(2022, 0, 1), prec: Prec.year, raw: '2022-NA-NA' });
+    expect(rep.toJSON().sentinels).toEqual({ 'day -9 → month prec': 1, 'month -9 → year prec': 1, 'month NA → year prec': 1 });
+  });
+
+  it('never turns -8 or -9 years into dates', () => {
+    const rep = new Reporter();
+    expect(cowDate(rep, '-8', '-8', '-8')).toBeNull();
+    expect(cowDate(rep, '-9', '1', '1')).toBeNull();
+  });
+});
+
+describe('icow dates', () => {
+  it('reads YYYYMM, with month 00 as year precision and 99 as no date', () => {
+    const rep = new Reporter();
+    expect(yyyymm(rep, '197108')).toEqual({ t: Date.UTC(1971, 7, 1), prec: Prec.month });
+    expect(yyyymm(rep, '185000')).toEqual({ t: Date.UTC(1850, 0, 1), prec: Prec.year, raw: '185000' });
+    expect(yyyymm(rep, '200199')).toBeNull();
+  });
+});
+
+describe('cow links', () => {
+  it('lists each COW war once and maps WWII to the WAC row, not CNF-0002', () => {
+    const wars = WAC_MATCHES.map(m => m[0]);
+    expect(new Set(wars).size).toBe(wars.length);
+    expect(WAC_MATCHES.find(m => m[0] === '139')?.[1]).toBe('CNF-0013');
+  });
+});

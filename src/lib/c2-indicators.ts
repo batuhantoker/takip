@@ -1,5 +1,5 @@
 /**
- * OSIRIS — abuse.ch Feodo Tracker C2 indicators.
+ * TAKIP — abuse.ch Feodo Tracker C2 indicators.
  *
  * Feodo Tracker publishes a botnet C2 *blocklist*: one row per known
  * command-and-control server. A row says where a C2 is hosted and whether it

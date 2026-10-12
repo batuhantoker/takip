@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import type { LayerDef } from './layer-groups';
+import { sentenceCase } from './sentence-case';
 
 /* ── Minimal Toggle Switch ── */
 /**
@@ -9,30 +10,30 @@ import type { LayerDef } from './layer-groups';
  * button is invalid HTML — the browser reparents it, which breaks hydration and
  * silently drops the click handler on the inner control.
  */
-function ToggleSwitch({ active }: { active: boolean }) {
+function ToggleSwitch({ active, small }: { active: boolean; small?: boolean }) {
+  const [w, h, knob] = small ? [24, 14, 10] : [28, 16, 12];
   return (
     <span
       role="presentation"
       className="relative flex-shrink-0 block"
-      style={{ width: 28, height: 14 }}
+      style={{ width: w, height: h }}
     >
-      <div
-        className="absolute inset-0 rounded-full transition-all duration-300"
+      <span
+        className="absolute inset-0 rounded-full transition-colors duration-200"
         style={{
-          background: active ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.04)',
-          border: active ? '1px solid rgba(255,255,255,0.45)' : '1px solid rgba(255,255,255,0.28)',
-          boxShadow: active ? '0 0 8px rgba(255,255,255,0.1)' : 'none',
+          background: active ? 'rgba(var(--cyan-rgb), 0.3)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${active ? 'rgba(var(--cyan-rgb), 0.6)' : 'rgba(255,255,255,0.22)'}`,
         }}
       />
-      <motion.div
-        className="absolute top-[2px] rounded-full"
+      <motion.span
+        className="absolute rounded-full"
         style={{
-          width: 10,
-          height: 10,
-          background: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)',
-          boxShadow: active ? '0 0 6px rgba(255,255,255,0.4)' : 'none',
+          top: (h - knob) / 2,
+          width: knob,
+          height: knob,
+          background: active ? 'var(--cyan-primary)' : 'rgba(255,255,255,0.45)',
         }}
-        animate={{ left: active ? 16 : 2 }}
+        animate={{ left: active ? w - knob - 2 : 2 }}
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
       />
     </span>
@@ -47,7 +48,7 @@ function SubLayerStem() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute left-[6px] top-0 h-1/2 w-[8px] rounded-bl-[3px] border-b border-l border-white/[0.25]"
+      className="pointer-events-none absolute left-[15px] top-0 h-[15px] w-[9px] rounded-bl-[3px] border-b border-l border-white/[0.18]"
     />
   );
 }
@@ -59,7 +60,7 @@ export function BulkButton({ onClick, disabled, children, label }: { onClick: ()
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       disabled={disabled}
       aria-label={label}
-      className="px-1.5 py-0.5 rounded text-[10px] font-mono tracking-wider text-white/70 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-35 disabled:pointer-events-none focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+      className="px-2 py-0.5 rounded text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/[0.07] transition-colors disabled:opacity-35 disabled:pointer-events-none focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
     >
       {children}
     </button>
@@ -69,23 +70,29 @@ export function BulkButton({ onClick, disabled, children, label }: { onClick: ()
 export function LayerRow({ layer, active, count, dormant, onToggle, mobile }: {
   layer: LayerDef; active: boolean; count: number | null; dormant: boolean; onToggle: () => void; mobile?: boolean;
 }) {
+  const sub = !!layer.parent;
+  const label = sentenceCase(layer.label);
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-pressed={active}
-      aria-label={layer.label}
+      aria-label={label}
       title={dormant ? 'Turn the layer above on to use this' : undefined}
-      className={`relative w-full flex items-center gap-3 ${mobile ? 'py-2' : 'py-1'} rounded-md hover:bg-white/[0.06] transition-colors cursor-pointer text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 ${layer.parent ? 'pl-[22px] pr-1' : 'px-1'} ${dormant ? 'opacity-50' : ''}`}
+      className={`relative w-full flex items-start gap-2.5 ${mobile ? 'py-2' : 'py-1.5'} rounded-md hover:bg-white/[0.05] transition-colors cursor-pointer text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 ${sub ? 'pl-[30px] pr-2' : 'px-2'} ${dormant ? 'opacity-45' : ''}`}
     >
-      {layer.parent && <SubLayerStem />}
-      <ToggleSwitch active={active} />
-      <span className={`text-[11px] font-mono uppercase tracking-wider flex-1 transition-colors duration-200 ${active ? 'text-white' : 'text-white/65'}`}>
-        {layer.label}
-        {layer.description && <span className="block mt-0.5 text-[9px] normal-case tracking-normal text-white/55">{layer.description}</span>}
+      {sub && <SubLayerStem />}
+      <span className={`flex items-center ${sub ? 'h-[18px]' : 'h-5'}`}>
+        <ToggleSwitch active={active} small={sub} />
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className={`block transition-colors duration-200 ${sub ? 'text-[12px] leading-[18px]' : 'text-[13px] leading-5'} ${active ? 'text-[var(--text-primary)]' : 'text-white/70'}`}>
+          {label}
+        </span>
+        {layer.description && <span className="block mt-0.5 text-[11px] leading-4 text-[var(--text-secondary)] opacity-80">{layer.description}</span>}
       </span>
       {count !== null && (
-        <span className={`text-[10px] font-mono tabular-nums transition-colors ${active ? 'text-white/75' : 'text-white/45'}`}>
+        <span className={`${sub ? 'leading-[18px]' : 'leading-5'} text-[11px] font-mono tabular-nums transition-colors ${active ? 'text-white/75' : 'text-white/35'}`}>
           {count.toLocaleString()}
         </span>
       )}

@@ -4,6 +4,12 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./entitlements": "./src/entitlements.ts"
+    "./aircraft": "./src/aircraft.ts",
+    "./entitlements": "./src/entitlements.ts",
+    "./tiles": "./src/tiles.ts",
+    "./time": "./src/time.ts",
+    "./tracks": "./src/tracks.ts",
+    "./trk": "./src/trk.ts",
+    "./vessel": "./src/vessel.ts"
   }
 }

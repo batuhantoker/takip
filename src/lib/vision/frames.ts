@@ -1,9 +1,9 @@
 /**
- * OSIRIS vision on the server: a camera's current frame, by the camera's id.
+ * TAKIP vision on the server: a camera's current frame, by the camera's id.
  *
  * The detector reads pixels, and a browser only gives those up for a picture
- * from the page's own site, so still frames reach it through OSIRIS. Only
- * cameras in OSIRIS's own catalogue can be fetched: callers name a camera, never
+ * from the page's own site, so still frames reach it through TAKIP. Only
+ * cameras in TAKIP's own catalogue can be fetched: callers name a camera, never
  * a URL, so this cannot be turned into a way to fetch anything else. Every hop
  * still goes through the SSRF guard, only real pictures are passed on, and a
  * frame is held for a few seconds so a dozen readers watching the same camera

@@ -3,7 +3,7 @@
 import { ExternalLink, Orbit, Satellite, X } from 'lucide-react';
 
 /**
- * OSIRIS — selected satellite readout
+ * TAKIP — selected satellite readout
  *
  * Satellites are the one layer drawn off the surface, and that broke the popup
  * they used to get. A MapLibre popup can only be anchored to a ground
@@ -88,7 +88,7 @@ export default function SatelliteCard({ sat, onClose }: { sat: SatelliteDetail; 
 
   return (
     <div
-      className="pointer-events-auto absolute left-2 right-2 top-16 z-[350] overflow-hidden rounded-lg border bg-[var(--bg-panel)] shadow-[0_6px_20px_rgba(0,0,0,0.45)] backdrop-blur-2xl md:left-[72px] md:right-auto md:top-[88px] md:w-[248px]"
+      className="pointer-events-auto absolute left-2 right-2 top-16 z-[350] overflow-hidden rounded-lg border bg-[var(--bg-panel)] shadow-[0_6px_20px_rgba(0,0,0,0.45)] backdrop-blur-2xl md:left-auto md:right-3 md:top-3 md:w-[248px]"
       style={{ borderColor: `${accent}33` }}
       role="dialog"
       aria-label={`Satellite ${sat.name}`}

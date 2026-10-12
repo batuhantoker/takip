@@ -1,5 +1,5 @@
 /**
- * OSIRIS OI Assist: the conversation protocol.
+ * TAKIP OI Assist: the conversation protocol.
  *
  * OI Assist is a model on the reader's own key that can act on the map. Every
  * provider OI supports can return JSON, so the protocol is plain JSON rather
@@ -95,10 +95,10 @@ map_view {projection?: "globe"|"flat", style?: "dark"|"satellite"}
   Switch between the 3D globe and the flat map, and the night or satellite basemap.
 
 forecast {question, depth?: "quick"|"standard"|"deep"}
-  Start an OI prediction: OI researches the question, casts the actors who decide it, and plays them against each other over dated periods to the horizon in several parallel simulated worlds, then writes the predicted path, what each actor does, and a calibrated figure (a probability, shares per outcome, or an estimate with a range). It makes 30 to 130 model calls on the reader's key, so only when they ask for a forecast, prediction or odds, or chose Forecast mode. Phrase the question so it resolves by a date.
+  Start a TI prediction: TI researches the question, casts the actors who decide it, and plays them against each other over dated periods to the horizon in several parallel simulated worlds, then writes the predicted path, what each actor does, and a calibrated figure (a probability, shares per outcome, or an estimate with a range). It makes 30 to 130 model calls on the reader's key, so only when they ask for a forecast, prediction or odds, or chose Forecast mode. Phrase the question so it resolves by a date.
 
 workspace {open?: boolean, view?: "globe"|"graph"|"timeline"|"table"}
-  Open the full-screen OI workspace (open: false closes it) and choose what its centre shows: the live globe, or for the current forecast its research graph, the timeline of its simulated worlds, or tables of its objects. graph, timeline and table need a forecast.
+  Open the full-screen TI workspace (open: false closes it) and choose what its centre shows: the live globe, or for the current forecast its research graph, the timeline of its simulated worlds, or tables of its objects. graph, timeline and table need a forecast.
 
 select {name}
   Open an object of the current forecast by name: an actor, a simulated world ("World A"), an event, a source, a scenario or a signpost (see the forecast's objects in CONTEXT). It opens in the object view and lights up on the globe and in the graph.
@@ -108,10 +108,10 @@ clear {}
 }
 
 /** How the system prompt begins: the demo provider knows an assist step by it. */
-export const ASSIST_SYSTEM_START = 'You are OI, the AI built into TAKIP';
+export const ASSIST_SYSTEM_START = 'You are TI (Takip AI), the AI built into TAKIP';
 
 export function systemPrompt(): string {
-  return `${ASSIST_SYSTEM_START}, a live global intelligence map: flights, ships, satellites, earthquakes, fires, weather, news, cameras, markets and more, on a 3D globe. You talk with the reader and operate the map for them: you take them to places, switch layers, find live things, mark them on the map and put what they ask for on screen. You can also start OI forecasts.
+  return `${ASSIST_SYSTEM_START}, a live global intelligence map: flights, ships, satellites, earthquakes, fires, weather, news, cameras, markets and more, on a 3D globe. You talk with the reader and operate the map for them: you take them to places, switch layers, find live things, mark them on the map and put what they ask for on screen. You can also start TI forecasts.
 
 Answer with ONE JSON object and nothing else:
 {"say": string, "actions": [{"tool": string, "args": object}], "done": boolean}
@@ -155,7 +155,7 @@ function contextBlock(c: AssistContext): string {
     `Map: centre ${c.view.lat.toFixed(2)}, ${c.view.lng.toFixed(2)} · zoom ${c.view.zoom.toFixed(1)} · ${c.view.projection} · ${c.view.style}${c.view.bounds ? ` · in view lat ${c.view.bounds.south.toFixed(1)}..${c.view.bounds.north.toFixed(1)}, lng ${c.view.bounds.west.toFixed(1)}..${c.view.bounds.east.toFixed(1)}` : ''}`,
     `Layers on: ${c.layersOn.length ? c.layersOn.join(', ') : 'none'}`,
     `Live data held: ${loaded || 'nothing yet'}`,
-    c.forecast ? `OI forecast in the panel: "${clip(c.forecast.question, 160)}" (${c.forecast.status}${c.forecast.answer ? `, ${c.forecast.answer}` : ''})` : 'OI forecast in the panel: none',
+    c.forecast ? `TI forecast in the panel: "${clip(c.forecast.question, 160)}" (${c.forecast.status}${c.forecast.answer ? `, ${c.forecast.answer}` : ''})` : 'TI forecast in the panel: none',
     ...(c.forecast?.objects?.length ? [`Its objects: ${c.forecast.objects.join(', ')}`] : []),
     `Workspace: ${c.ui?.fullscreen ? `open, showing the ${c.ui.stage}` : 'closed'}`,
   ].join('\n');
@@ -170,7 +170,7 @@ export function transcript(messages: AssistMessage[], maxChars = 24_000): string
   const lines: string[] = [];
   for (const m of messages) {
     if (m.role === 'user') lines.push(`USER (mode ${m.mode}): ${clip(m.text, 1200)}`);
-    else if (m.role === 'assistant') lines.push(`OI: ${clip(m.say, 800)}${m.calls.length ? `\n  actions: ${m.calls.map(callLine).join(' | ')}` : ''}`);
+    else if (m.role === 'assistant') lines.push(`TI: ${clip(m.say, 800)}${m.calls.length ? `\n  actions: ${m.calls.map(callLine).join(' | ')}` : ''}`);
     else lines.push(`RESULTS:\n${m.results.map(r => `  ${r.tool} ${r.ok ? '✓' : '✗'} ${clip(r.summary, 300)}${r.data !== undefined ? `\n    ${clip(JSON.stringify(r.data), 3500)}` : ''}`).join('\n')}`);
   }
   // The newest turns matter most: drop from the front until it fits.

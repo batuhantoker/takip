@@ -49,6 +49,7 @@ threatfox.json
 # Intermediate scrape of somebody else's index — regenerate it with
 # scratch/scrape_public_webcams.js harvest rather than keeping a copy here.
 scratch/public-webcams-harvest.json
+scratch/mlit-river-harvest.json
 
 # Dev scripts (one-time migration helpers)
 scripts/
@@ -70,8 +71,13 @@ scanner_backend_backup.js
 # Saved camera catalogue
 /.cache/
 
-# Accounts database (password hashes, sessions)
+# Accounts database (password hashes, sessions) and the replay database files
 /data/db/
+# Raw feed archive and the other replay data areas (docs/architecture/replay-database.md §4.1)
+/data/archive/
+/data/cold/
+/data/media/
+/data/tiles/
 
 # Local checkouts of third-party tools; not part of this app
 /scratch/astra/

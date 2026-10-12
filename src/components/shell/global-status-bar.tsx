@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { Keyboard } from 'lucide-react';
 
 interface CryptoPrice { symbol: string; price: number; change24h?: number; }
 interface Earthquake { id: string; magnitude: number; place: string; time: number; depth: number; }
@@ -71,8 +72,9 @@ const formatChange = (change: number | undefined) => {
   );
 };
 
-/** `revealed` is false while the splash is up; the bar rises when it turns true. */
-export default function GlobalStatusBar({ revealed = true }: { revealed?: boolean }) {
+/** The desktop's bottom edge: `left` and `right` hold the pointer readout and the live numbers; the ticker runs between.
+ *  `revealed` is false while the splash is up; the bar rises when it turns true. */
+export default function GlobalStatusBar({ revealed = true, left, right }: { revealed?: boolean; left?: ReactNode; right?: ReactNode }) {
   const [crypto, setCrypto] = useState<CryptoPrice[]>([]);
   const [quakes, setQuakes] = useState<Earthquake[]>([]);
   const [hoveredQuake, setHoveredQuake] = useState<Earthquake | null>(null);
@@ -124,58 +126,26 @@ export default function GlobalStatusBar({ revealed = true }: { revealed?: boolea
             .slice(0, 5);
           setQuakes(majorQuakes);
         }
-      } catch (e) { console.warn('[OSIRIS] Suppressed error:', e instanceof Error ? e.message : e); }
+      } catch (e) { console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e); }
     };
     fetchData();
     const iv = setInterval(fetchData, 60000);
     return () => clearInterval(iv);
   }, []);
 
-  // Keep the bar mounted even with no feed data — the left-hand community and
-  // docs links must stay reachable when CoinGecko/USGS are rate-limited or down.
+  // Keep the bar mounted even with no feed data — the community and docs links
+  // must stay reachable when CoinGecko/USGS are rate-limited or down.
   const hasTicker = crypto.length > 0 || quakes.length > 0;
-
-  const solPrice = crypto.find(c => c.symbol === 'SOL');
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={revealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
       transition={{ delay: 0.5, duration: 0.6 }}
-      className="hidden md:block absolute bottom-0 left-0 right-0 z-[210] pointer-events-none"
+      className="hidden md:block absolute bottom-0 left-0 right-0 z-[270] pointer-events-none"
     >
-      <div className="h-[28px] overflow-hidden bg-[#0a0a0f]/95 border-t border-white/[0.06] flex items-center text-[10px] font-mono tracking-wider backdrop-blur-xl relative">
-        {/* Animated scan line */}
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--cyan-primary)]/30 to-transparent" style={{ animation: 'hud-scanline 4s linear infinite' }} />
-        
-        {/* ── LEFT: Social & Community Links ── */}
-        <div className="flex-shrink-0 h-full flex items-center pointer-events-auto">
-          {/* Discord — highlighted */}
-          <a href="https://discord.gg/EPaFD5FFKf" target="_blank" rel="noopener noreferrer"
-            className="h-full px-3 flex items-center gap-1.5 bg-[#5865F2]/10 hover:bg-[#5865F2]/25 border-r border-white/[0.04] transition-all duration-200 group"
-          >
-            <DiscordIcon />
-          </a>
-          {/* X / Twitter */}
-          <a href="https://x.com/soulsimplifai" target="_blank" rel="noopener noreferrer"
-            className="h-full px-2.5 flex items-center gap-1.5 text-white/40 hover:text-white hover:bg-white/[0.04] border-r border-white/[0.04] transition-all duration-200"
-          >
-            <XIcon />
-          </a>
-          {/* Documentation & API reference */}
-          <Link href="/docs" prefetch title="Documentation & API Reference" aria-label="Documentation & API Reference"
-            className="h-full px-3 flex items-center gap-1.5 bg-[var(--gold-primary)]/10 text-[var(--gold-primary)]/80 hover:text-[var(--gold-primary)] hover:bg-[var(--gold-primary)]/25 border-r border-white/[0.04] transition-all duration-200"
-          >
-            <DocsIcon />
-            <span className="text-[9px] font-bold tracking-[0.15em] uppercase">Docs</span>
-          </Link>
-          {/* Data & privacy — what leaves this instance, and when */}
-          <Link href="/privacy" title="Data & Privacy" aria-label="Data and Privacy"
-            className="h-full px-3 hidden sm:flex items-center text-white/40 hover:text-white hover:bg-white/[0.04] border-r border-white/[0.04] transition-all duration-200"
-          >
-            <span className="text-[9px] font-bold tracking-[0.15em] uppercase">Privacy</span>
-          </Link>
-        </div>
+      <div className="h-7 overflow-hidden bg-[#08080d]/95 border-t border-white/[0.06] flex items-center text-[10px] font-mono tracking-wider backdrop-blur-xl relative">
+        <div className="flex-shrink-0 h-full flex items-center pointer-events-auto min-w-0 font-sans tracking-normal">{left}</div>
 
         {/* ── CENTER: Scrolling ticker ── */}
         <div className="flex-1 overflow-hidden relative" style={{ maskImage: 'linear-gradient(to right, transparent, black 3%, black 97%, transparent)' }}>
@@ -213,13 +183,31 @@ export default function GlobalStatusBar({ revealed = true }: { revealed?: boolea
           </div>
         </div>
 
-        {/* ── RIGHT: Live SOL Price + Links ── */}
-        <div className="flex-shrink-0 h-full flex items-center pointer-events-auto border-l border-white/[0.04]">
-
-          {/* Status indicator */}
-          <div className="h-full px-3 flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#00E676] animate-pulse" />
-            <span className="text-[#00E676]/70 text-[9px] tracking-[0.2em]">ONLINE</span>
+        <div className="flex-shrink-0 h-full flex items-center pointer-events-auto border-l border-white/[0.05] font-sans tracking-normal">
+          {right}
+          <div className="h-full flex items-center border-l border-white/[0.05] text-[10.5px]">
+            <Link href="/docs" prefetch title="Documentation and API reference"
+              className="h-full px-2.5 flex items-center gap-1.5 text-[var(--gold-primary)]/80 hover:text-[var(--gold-primary)] hover:bg-white/[0.04] transition-colors">
+              <DocsIcon />
+              <span>Docs</span>
+            </Link>
+            <Link href="/privacy" title="Data and privacy"
+              className="h-full px-2.5 hidden lg:flex items-center text-white/40 hover:text-white hover:bg-white/[0.04] transition-colors">
+              Privacy
+            </Link>
+            <a href="https://discord.gg/EPaFD5FFKf" target="_blank" rel="noopener noreferrer" title="Discord" aria-label="Discord"
+              className="h-full px-2.5 flex items-center text-[#8891F7] hover:text-white hover:bg-[#5865F2]/25 transition-colors">
+              <DiscordIcon />
+            </a>
+            <a href="https://x.com/soulsimplifai" target="_blank" rel="noopener noreferrer" title="X" aria-label="X"
+              className="h-full px-2.5 flex items-center text-white/40 hover:text-white hover:bg-white/[0.04] transition-colors">
+              <XIcon />
+            </a>
+            <button type="button" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"
+              onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))}
+              className="h-full px-2.5 flex items-center text-white/40 hover:text-white hover:bg-white/[0.04] transition-colors">
+              <Keyboard className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>

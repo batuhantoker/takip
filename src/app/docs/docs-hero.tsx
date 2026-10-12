@@ -16,12 +16,12 @@ export function DocsHero() {
         <span className="text-[var(--text-heading)]">Build on the</span>
         <br />
         <span className="bg-gradient-to-r from-[var(--gold-primary)] via-[#F0D060] to-[var(--cyan-primary)] bg-clip-text text-transparent">
-          OSIRIS platform
+          TAKIP platform
         </span>
       </h1>
 
       <p className="text-[15px] leading-[1.75] text-[var(--text-secondary)] max-w-[42rem]">
-        OSIRIS aggregates aviation, maritime, seismic, conflict, cyber, and OSINT feeds onto a single
+        TAKIP aggregates aviation, maritime, seismic, conflict, cyber, and OSINT feeds onto a single
         GPU-rendered map — and exposes every one of them as a plain HTTP endpoint. This is the same API the
         dashboard runs on. There is no separate, privileged internal tier.
       </p>

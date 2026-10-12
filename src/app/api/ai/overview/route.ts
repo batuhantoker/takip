@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- *  OSIRIS — One-Click AI Overview
+ *  TAKIP — One-Click AI Overview
  *  POST /api/ai/overview   body: { mode: 'alerts' | 'markets' | 'chain', payload }
  *
  *  Generates an intelligence read-out for the Alerts, Markets or Chain
@@ -302,7 +302,7 @@ async function geminiOverview(mode: Mode, digest: Digest, keys: string[], headli
     const text = result.response.text().trim();
     return text || null;
   } catch (e) {
-    console.warn('[OSIRIS] Gemini overview failed, using heuristic:', e);
+    console.warn('[TAKIP] Gemini overview failed, using heuristic:', e);
     return null;
   }
 }

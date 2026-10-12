@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the table view.
+ * TAKIP OI: the table view.
  *
  * Every object of a kind in one sortable table: the actors with what they
  * did, every move made in every world, the events the worlds produced, the

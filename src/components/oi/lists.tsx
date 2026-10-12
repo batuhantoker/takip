@@ -1,6 +1,6 @@
 'use client';
 /**
- * OSIRIS OI: the run as lists: the simulation as it happened, period by
+ * TAKIP OI: the run as lists: the simulation as it happened, period by
  * period and world by world, the actors who play it, the world model and the
  * sources it read, and a way to question the actors afterwards.
  */
