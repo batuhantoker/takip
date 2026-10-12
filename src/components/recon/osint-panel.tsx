@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LocateFixed, Radar, ChevronDown, ChevronUp, AlertTriangle, Clock, Maximize2 } from 'lucide-react';
-import { lookupError, lookupUrl, parseLeaks, runSweep, SIGN_IN_REQUIRED } from '@/lib/recon-lookup';
+import { authClient } from '@/lib/auth-client';
+import { lookupError, lookupUrl, needsSignIn, parseLeaks, runSweep, SIGN_IN_REQUIRED } from '@/lib/recon-lookup';
 import { StructuredResults } from '@/components/recon/tools/structured-results';
 import { TABS, type ToolDef } from './recon-tools';
 import FingerprintSearch, { useFingerprintSearch } from './fingerprint-search';
@@ -40,6 +41,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
   const fingerprint = useFingerprintSearch();
   /** DonBot's open token, kept for the same reason; its frame reloads on the remount, on the same token. */
   const [donbotQuery, setDonbotQuery] = useState<string | null>(null);
+  const signedIn = Boolean(authClient.useSession().data);
 
   const selectTool = useCallback((id: string) => {
     setActiveTab(id);
@@ -127,6 +129,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
 
   const runLookup = useCallback(async () => {
     if (!query.trim() || loading) return;
+    if (needsSignIn(activeTab, signedIn)) { setResults(null); setSweepResult(null); setError(SIGN_IN_REQUIRED); return; }
     setLoading(true); setError(''); setResults(null);
 
     // IP Sweep — separate flow (only for the sweep tab)
@@ -194,7 +197,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
       }
     } catch { setError('Network error'); }
     finally { setLoading(false); }
-  }, [query, activeTab, scanType, loading, sweepCidr]);
+  }, [query, activeTab, scanType, loading, sweepCidr, signedIn]);
 
   const currentTab = TABS.find(t => t.id === activeTab);
 
