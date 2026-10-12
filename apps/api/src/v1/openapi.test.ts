@@ -31,16 +31,22 @@ describe('GET /api/v1/openapi.json', () => {
   });
 
   it('lists the ported routes with their query parameters', () => {
-    expect(Object.keys(spec.paths)).toEqual(expect.arrayContaining(['/geo/search', '/geo/reverse', '/directions']));
+    expect(Object.keys(spec.paths)).toEqual(
+      expect.arrayContaining(['/geo/search', '/geo/reverse', '/directions', '/aircraft', '/flight-route']),
+    );
     expect(params('/geo/search')).toEqual(['q', 'lat', 'lng']);
     expect(params('/geo/reverse')).toEqual(['lat!', 'lng!']);
     expect(params('/directions')).toEqual(['from!', 'to!', 'mode', 'via', 'avoid']);
+    expect(params('/aircraft')).toEqual(['icao24!', 'detail', 'legs']);
+    expect(params('/flight-route')).toEqual(['callsign!', 'icao24', 'lat', 'lng', 'speed']);
   });
 
   it('describes every status each route answers with', () => {
     expect(Object.keys(spec.paths['/geo/search'].get!.responses)).toEqual(['200', '500']);
     expect(Object.keys(spec.paths['/geo/reverse'].get!.responses)).toEqual(['200', '400']);
     expect(Object.keys(spec.paths['/directions'].get!.responses)).toEqual(['200', '400', '500', '502']);
+    expect(Object.keys(spec.paths['/aircraft'].get!.responses)).toEqual(['200', '400', '404', '500']);
+    expect(Object.keys(spec.paths['/flight-route'].get!.responses)).toEqual(['200', '400']);
     expect(schemaOf('/geo/reverse', 400)).toEqual({ $ref: '#/components/schemas/Error' });
   });
 
@@ -53,6 +59,12 @@ describe('GET /api/v1/openapi.json', () => {
     expect(Object.keys(spec.components.schemas)).toEqual(
       expect.arrayContaining(['Directions', 'Route', 'DirectionStep', 'ElevationPoint', 'Error']),
     );
+    expect(schemaOf('/aircraft', 200)).toEqual({ $ref: '#/components/schemas/AircraftDetail' });
+    expect(schemaOf('/aircraft', 404)).toEqual({ $ref: '#/components/schemas/AircraftNotFound' });
+    expect(schemaOf('/flight-route', 200)).toMatchObject({
+      oneOf: [{ $ref: '#/components/schemas/FlightRoute' }, { $ref: '#/components/schemas/FlightRouteMissing' }],
+    });
+    expect(spec.components.schemas.Airport.required).toEqual(['iata', 'icao', 'name', 'city', 'country', 'lat', 'lng']);
   });
 });
 

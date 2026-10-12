@@ -44,10 +44,10 @@ function Row({ flight, telem, onRemove, onLocate, onDetail }: {
     // know what the aircraft is and where it has been, the route lookup knows
     // which airports it is booked between.
     Promise.all([
-      fetch(`/api/aircraft?icao24=${flight.icao24}`)
+      fetch(`/api/v1/aircraft?icao24=${flight.icao24}`)
         .then((r) => (r.ok ? r.json() : null)).catch(() => null),
       cs
-        ? fetch(`/api/flight-route?callsign=${encodeURIComponent(cs)}&icao24=${flight.icao24}`)
+        ? fetch(`/api/v1/flight-route?callsign=${encodeURIComponent(cs)}&icao24=${flight.icao24}`)
             .then((r) => (r.ok ? r.json() : null)).catch(() => null)
         : Promise.resolve(null),
     ]).then(([ac, route]) => {

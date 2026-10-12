@@ -26,7 +26,9 @@ export const reverseRoute = createRoute({
   },
   responses: {
     200: {
-      description: 'The place name, or null when Nominatim has none (or refused the lookup).',
+      description:
+        'The place name, or null when Nominatim has none. A null from a failed or refused lookup is sent with ' +
+        'Cache-Control: no-store.',
       content: json(z.object({ label: z.string().nullable(), attribution: z.string() })),
     },
     400: { description: 'lat or lng is missing or out of range.', content: json(ErrorBody) },
@@ -59,7 +61,7 @@ export const reverse: RouteHandler<typeof reverseRoute> = async c => {
   return c.json(
     { label: label || null, attribution: ATTRIBUTION },
     200,
-    // A tenth of a degree does not change: a month at the edge, a day in the browser.
-    { 'Cache-Control': 'public, s-maxage=2592000, max-age=86400, stale-while-revalidate=86400' },
+    // A tenth of a degree does not change: a month at the edge, a day in the browser. Never a failed lookup.
+    { 'Cache-Control': row ? 'public, s-maxage=2592000, max-age=86400, stale-while-revalidate=86400' : 'no-store' },
   );
 };

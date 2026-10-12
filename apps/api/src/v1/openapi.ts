@@ -1,5 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { Scalar } from '@scalar/hono-api-reference';
+import { aviationRoutes } from './aviation/routes';
 import { directionsRoutes } from './directions/routes';
 import { geoRoutes } from './geo/routes';
 
@@ -12,6 +13,7 @@ export function v1Routes() {
   const app = new OpenAPIHono();
   app.route('/geo', geoRoutes());
   app.route('/directions', directionsRoutes());
+  app.route('/', aviationRoutes());
 
   app.doc31('/openapi.json', {
     openapi: '3.1.0',
