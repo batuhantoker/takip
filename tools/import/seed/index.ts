@@ -30,6 +30,8 @@ const LICENCES = [
   { code: 'cow-terms', name: 'Correlates of War: free use with citation', url: 'https://correlatesofwar.org/data-sets/', commercial: null, redistribution: 'attribution' },
   { code: 'gtd-terms', name: 'GTD terms of use: non-commercial, no redistribution', url: 'https://www.start.umd.edu/gtd/terms-of-use/', commercial: 0, redistribution: 'none' },
   { code: 'glwd-terms', name: 'GLWD: free for non-commercial use', url: 'https://www.worldwildlife.org/pages/global-lakes-and-wetlands-database', commercial: 0, redistribution: 'attribution' },
+  // "Reuse and adaptation encouraged for scholarly work; commercial use strictly prohibited; inform the authors of changes."
+  { code: 'stanford-shl-nc', name: 'Stanford Spatial History Lab: scholarly reuse, no commercial use', url: 'https://web.stanford.edu/group/spatialhistory/static/publications/pub51.html', commercial: 0, redistribution: 'attribution' },
   { code: 'unknown', name: 'No licence stated', url: null, commercial: null, redistribution: 'unknown' },
 ] as const;
 
@@ -57,6 +59,7 @@ export const SOURCES: SourceSeed[] = [
   { code: 'iq-2023', name: 'International IQ (2023 compilation)', owner: 'Kaggle compilation', licence: 'unknown' },
   { code: 'unesco-whc', name: 'UNESCO World Heritage List 2021', owner: 'UNESCO World Heritage Centre', url: 'https://whc.unesco.org/en/syndication', licence: 'cc-by-sa-3.0-igo' },
   { code: 'glwd', name: 'Global Lakes and Wetlands Database, level 1', owner: 'WWF / University of Kassel', url: 'https://www.worldwildlife.org/pages/global-lakes-and-wetlands-database', licence: 'glwd-terms' },
+  { code: 'ww2-borders', name: 'European Borders, World War II (1938–1945)', owner: 'Stanford Spatial History Lab (M. De Groot)', url: 'https://web.stanford.edu/group/spatialhistory/static/publications/pub51.html', licence: 'stanford-shl-nc', events: true },
 ];
 
 const TIERS = ['anon', 'free', 'paid', 'internal'] as const;

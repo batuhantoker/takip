@@ -13,7 +13,8 @@ const WEB_BURST_SECONDS = 3;
 const REPLAY_BURST = 200;
 export const REPLAY_GROUP = 'replay';
 
-const bucketKey = (p: Principal) =>
+/** The caller a limit is kept against: a key, an account, or an anonymous visitor's address block. */
+export const bucketKey = (p: Principal) =>
   p.kind === 'key' ? `key:${p.keyId}` : p.kind === 'user' ? `user:${p.userId}` : `ip:${addressBlock(p.ip)}`;
 
 /** Requests per second the caller's plan allows: `api.rps` for keys, `web.rps` otherwise. */

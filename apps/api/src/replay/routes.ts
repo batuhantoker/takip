@@ -6,6 +6,7 @@ import type { SqliteCatalogStore } from '@takip/db';
 import { type Context, Hono } from 'hono';
 import type { AccessEnv } from '../access/middleware';
 import type { ReplayData } from './data';
+import { featuresRoutes } from './features';
 import { historyRoutes } from './history';
 import { seriesRoutes } from './series';
 
@@ -145,6 +146,7 @@ export function replayRoutes(data: ReplayData) {
 
   app.route('/history', historyRoutes(data));
   app.route('/history/series', seriesRoutes(data));
+  app.route('/history/features', featuresRoutes(data));
 
   return app;
 }

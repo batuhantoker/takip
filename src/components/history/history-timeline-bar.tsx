@@ -6,6 +6,7 @@ import type { HistorySession } from '@/lib/history/session';
 import { formatTime, HISTORY_START, parseJump } from '@/lib/replay/time-input';
 import TimelineScrubber from '@/components/replay/timeline-scrubber';
 import CountryLegend from './country-legend';
+import WarLegend from './war-legend';
 import { useHistoryTick } from './use-history';
 
 const DAY_S = 86_400;
@@ -19,6 +20,7 @@ const SPEEDS = [
 const yearStart = (year: number) => Date.UTC(year, 0, 1);
 /** How far back the scrubber reaches, ending now. */
 const RANGES = [
+  { id: '2000', label: 'Since 2000', from: yearStart(2000) },
   { id: '1900', label: 'Since 1900', from: yearStart(1900) },
   { id: '1800', label: 'Since 1800', from: yearStart(1800) },
   { id: '1500', label: 'Since 1500', from: yearStart(1500) },
@@ -75,6 +77,7 @@ export default function HistoryTimelineBar({ session, onExit }: { session: Histo
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--alert-red)]" />LIVE
       </button>
       {session.countries.state().status !== 'off' && <CountryLegend session={session} />}
+      {session.layers().length > 0 && <WarLegend session={session} />}
     </div>
   );
 }

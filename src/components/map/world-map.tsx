@@ -42,6 +42,7 @@ import { useLayerVisibility } from './world-map/use-layer-visibility';
 import { useReplayLayer } from './world-map/use-replay-layer';
 import { useChoroplethLayer } from './world-map/use-choropleth-layer';
 import { useHistoryLayer } from './world-map/use-history-layer';
+import { useWarLayers } from './world-map/use-war-layers';
 import { useMapPalette } from './world-map/use-map-palette';
 import { useDirections, useUserLocation } from './world-map/use-navigation';
 import { useCyberLayers, useSdkLinks } from './world-map/use-network-layers';
@@ -245,6 +246,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef, replayActive: !!replay || !!history });
   useReplayLayer({ mapRef, mapReady, replay, activeLayers });
   useChoroplethLayer({ mapRef, mapReady, history, mapStyle });
+  useWarLayers({ mapRef, mapReady, history, popupRef });
   const eventFamilies = useMemo(() => (history ? historyFamilies : replay && activeLayers.earthquakes ? QUAKES : NO_FAMILIES),
     [history, historyFamilies, replay, activeLayers.earthquakes]);
   useHistoryLayer({ mapRef, mapReady, timeline: history ?? replay, families: eventFamilies, popupRef });

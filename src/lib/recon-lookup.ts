@@ -6,6 +6,12 @@ export type ReconData = any;
 /** What a recon route answers a visitor; the panel offers sign-in in place of the error. */
 export const SIGN_IN_REQUIRED = 'sign_in_required';
 
+/** Tabs whose probes go from the browser straight to the provider, so no route of ours can ask for an account. */
+export const BROWSER_PROBE_TABS: ReadonlySet<string> = new Set(['leaks', 'shodan', 'sweep']);
+
+/** True when the tab has to offer sign-in itself instead of running its probes. */
+export const needsSignIn = (tab: string, signedIn: boolean) => !signedIn && BROWSER_PROBE_TABS.has(tab);
+
 const wait = (seconds: number) => (seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`);
 
 /** The message for a refused lookup, with a per-account limit put in words. */
