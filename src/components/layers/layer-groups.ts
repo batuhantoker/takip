@@ -40,7 +40,7 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
     fullLabel: 'GLOBAL WEATHER',
     icon: CloudSun,
     layers: [
-      { key: 'wx_temperature', label: 'Temperature', description: 'Open-Meteo · global · hourly', dataKey: '' },
+      { key: 'wx_temperature', label: 'Temperature', description: 'NOAA GFS · 0.25° · readings by Open-Meteo', dataKey: '' },
       { key: 'wx_wind', label: 'Wind', description: 'Open-Meteo · 10 m · arrows show where it blows', dataKey: '' },
       { key: 'wx_radar', label: 'Rain Radar', description: 'RainViewer · where ground radar exists', dataKey: '' },
       { key: 'live_clouds', label: 'Live Clouds', description: 'NOAA satellites · lit in 3D · hourly', dataKey: '' },

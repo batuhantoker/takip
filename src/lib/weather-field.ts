@@ -12,36 +12,94 @@ export interface WeatherGrid {
   }[];
 }
 
+/** A regular lat/lng grid of °C, row-major. Rows may run north to south (`dLat` < 0). NaN is a gap. */
+export interface TemperatureField {
+  time: string;
+  lat0: number; dLat: number;
+  lng0: number; dLng: number;
+  rows: number; cols: number;
+  values: Float32Array;
+}
+
 export const WX_PROTOCOL = 'takip-wx';
 export const WX_ATTRIBUTION = '<a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather © Open-Meteo.com</a> (CC BY 4.0)';
+export const GFS_ATTRIBUTION = '<a href="https://www.ncei.noaa.gov/products/weather-climate-models/global-forecast" target="_blank" rel="noopener">Temperature: NOAA GFS</a> via <a href="https://www.unidata.ucar.edu/software/tds/" target="_blank" rel="noopener">Unidata THREDDS</a>';
 export const RADAR_ATTRIBUTION = '<a href="https://www.rainviewer.com/" target="_blank" rel="noopener">Radar © RainViewer</a>';
 /** RainViewer's free tiles stop at z7 and answer deeper zooms with a placeholder image. */
 export const RADAR_MAX_ZOOM = 7;
-/** The grid is 10°; deeper tiles would only resample the same numbers. */
+/** The Open-Meteo grid is 10°; deeper tiles would only resample the same numbers. */
 export const FIELD_MAX_ZOOM = 3;
+/** A 0.25° GFS cell is ~6 px of a z6 tile; deeper tiles would only resample it. */
+export const GFS_MAX_ZOOM = 6;
 const TILE_PX = 128;
 
-/** Bilinear temperature at a point. Longitude wraps; latitude clamps to the outer rows. */
-export function temperatureAt(grid: WeatherGrid, lat: number, lng: number): number | null {
+/** The Open-Meteo grid as a field, for when the GFS field is out of reach. */
+export function fieldFromGrid(grid: WeatherGrid): TemperatureField {
   const { lats, lngs, points } = grid;
-  const rows = lats.length, cols = lngs.length;
-  if (rows < 2 || cols < 2 || points.length !== rows * cols) return null;
+  return {
+    time: grid.time,
+    lat0: lats[0], dLat: lats[1] - lats[0],
+    lng0: lngs[0], dLng: lngs[1] - lngs[0],
+    rows: lats.length, cols: lngs.length,
+    values: Float32Array.from(points, p => p.temp ?? NaN),
+  };
+}
 
-  const fy = Math.min(Math.max((lat - lats[0]) / (lats[1] - lats[0]), 0), rows - 1);
-  const fx = ((((lng - lngs[0]) / (lngs[1] - lngs[0])) % cols) + cols) % cols;
+/** Bilinear temperature at a point. Longitude wraps; latitude clamps to the outer rows. */
+export function temperatureAt(field: TemperatureField, lat: number, lng: number): number | null {
+  const { rows, cols, values } = field;
+  if (rows < 2 || cols < 2 || values.length !== rows * cols) return null;
+
+  const fy = Math.min(Math.max((lat - field.lat0) / field.dLat, 0), rows - 1);
+  const fx = ((((lng - field.lng0) / field.dLng) % cols) + cols) % cols;
   const y0 = Math.min(Math.floor(fy), rows - 2), ty = fy - y0;
   const x0 = Math.floor(fx) % cols, x1 = (x0 + 1) % cols, tx = fx - Math.floor(fx);
 
-  const corners: [number | null, number][] = [
-    [points[y0 * cols + x0].temp, (1 - tx) * (1 - ty)],
-    [points[y0 * cols + x1].temp, tx * (1 - ty)],
-    [points[(y0 + 1) * cols + x0].temp, (1 - tx) * ty],
-    [points[(y0 + 1) * cols + x1].temp, tx * ty],
-  ];
   // A missing corner drops out and the others are re-weighted, so one gap is not a hole.
   let sum = 0, weight = 0;
-  for (const [v, w] of corners) if (v != null) { sum += v * w; weight += w; }
+  for (let k = 0; k < 4; k++) {
+    const v = values[(y0 + (k >> 1)) * cols + (k & 1 ? x1 : x0)];
+    if (Number.isNaN(v)) continue;
+    const w = (k & 1 ? tx : 1 - tx) * (k >> 1 ? ty : 1 - ty);
+    sum += v * w; weight += w;
+  }
   return weight > 0 ? sum / weight : null;
+}
+
+// On the wire: a JSON header line, then int16 LE tenths of a degree, delta-coded in row-major order.
+const GAP = -32768;
+
+export function encodeField(field: TemperatureField): Uint8Array {
+  const { values, ...header } = field;
+  const head = new TextEncoder().encode(JSON.stringify(header) + '\n');
+  const out = new Uint8Array(head.length + values.length * 2);
+  out.set(head);
+  const view = new DataView(out.buffer, head.length);
+  let prev = 0;
+  for (let i = 0; i < values.length; i++) {
+    const q = Number.isNaN(values[i]) ? GAP : Math.round(values[i] * 10);
+    // setInt16 wraps, and so does the decoder, so a jump to or from a gap still decodes exactly.
+    view.setInt16(i * 2, q - prev, true);
+    prev = q;
+  }
+  return out;
+}
+
+export function decodeField(buf: ArrayBuffer): TemperatureField {
+  const bytes = new Uint8Array(buf);
+  const nl = bytes.indexOf(10);
+  if (nl < 0) throw new Error('Temperature field has no header');
+  const header: Omit<TemperatureField, 'values'> = JSON.parse(new TextDecoder().decode(bytes.subarray(0, nl)));
+  const view = new DataView(buf, nl + 1);
+  const n = header.rows * header.cols;
+  if (view.byteLength !== n * 2) throw new Error(`Temperature field holds ${view.byteLength / 2} of ${n} cells`);
+  const values = new Float32Array(n);
+  let q = 0;
+  for (let i = 0; i < n; i++) {
+    q = ((q + view.getInt16(i * 2, true)) << 16) >> 16;
+    values[i] = q === GAP ? NaN : q / 10;
+  }
+  return { ...header, values };
 }
 
 const RAMP: [number, [number, number, number]][] = [
@@ -70,7 +128,7 @@ export function temperatureColor(t: number): [number, number, number] {
 }
 
 /** RGBA pixels for one Web Mercator tile of the temperature field. */
-export function renderTemperatureTile(grid: WeatherGrid, z: number, x: number, y: number, size = TILE_PX): Uint8ClampedArray {
+export function renderTemperatureTile(field: TemperatureField, z: number, x: number, y: number, size = TILE_PX): Uint8ClampedArray {
   const out = new Uint8ClampedArray(size * size * 4);
   const n = 2 ** z;
   for (let py = 0; py < size; py++) {
@@ -78,7 +136,7 @@ export function renderTemperatureTile(grid: WeatherGrid, z: number, x: number, y
     const lat = (Math.atan(Math.sinh(Math.PI * (1 - 2 * my))) * 180) / Math.PI;
     for (let px = 0; px < size; px++) {
       const lng = ((x + (px + 0.5) / size) / n) * 360 - 180;
-      const t = temperatureAt(grid, lat, lng);
+      const t = temperatureAt(field, lat, lng);
       if (t == null) continue;
       const [r, g, b] = temperatureColor(t);
       const o = (py * size + px) * 4;
@@ -88,16 +146,16 @@ export function renderTemperatureTile(grid: WeatherGrid, z: number, x: number, y
   return out;
 }
 
-let current: WeatherGrid | null = null;
+let current: TemperatureField | null = null;
 let installed = false;
 
-export function setWeatherGrid(grid: WeatherGrid | null): void {
-  current = grid;
+export function setTemperatureField(field: TemperatureField | null): void {
+  current = field;
 }
 
-/** Tile URL for the field; the hour in the query busts MapLibre's tile cache when the grid moves on. */
-export const fieldTileUrl = (grid: WeatherGrid | null) =>
-  `${WX_PROTOCOL}://temperature/{z}/{x}/{y}?t=${encodeURIComponent(grid?.time ?? 'none')}`;
+/** Tile URL for the field; the hour and grid width bust MapLibre's tile cache when the field moves on. */
+export const fieldTileUrl = (field: TemperatureField | null) =>
+  `${WX_PROTOCOL}://temperature/{z}/{x}/{y}?t=${encodeURIComponent(field?.time ?? 'none')}&n=${field?.cols ?? 0}`;
 
 export function installWeatherProtocol(addProtocol: (name: string, handler: AddProtocolAction) => void): void {
   if (installed) return;

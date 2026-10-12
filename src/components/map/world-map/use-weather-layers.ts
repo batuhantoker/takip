@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { CLOUDS_ATTRIBUTION, CLOUDS_CREDIT, CLOUDS_LAYER, frameTime } from '@/lib/live-clouds';
 import { createCloudLayer } from '@/lib/live-clouds-layer';
 import { EMPTY_FC } from '@/lib/map-base-layers';
-import { FIELD_MAX_ZOOM, RADAR_ATTRIBUTION, RADAR_MAX_ZOOM, WX_ATTRIBUTION, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setWeatherGrid, type WeatherGrid } from '@/lib/weather-field';
+import {
+  FIELD_MAX_ZOOM, GFS_ATTRIBUTION, GFS_MAX_ZOOM, RADAR_ATTRIBUTION, RADAR_MAX_ZOOM, WX_ATTRIBUTION,
+  decodeField, fieldFromGrid, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setTemperatureField,
+  type TemperatureField, type WeatherGrid,
+} from '@/lib/weather-field';
 import { stackGroundRasters } from './stack-ground-rasters';
 import type { LayerHookArgs, MapRef, WorldMapProps } from './types';
 
@@ -18,6 +22,30 @@ export function useWeatherGridLayer({ mapReady, data, activeLayers, setGeo }: La
       ? grid.points.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { ...p, hour } }))
       : []);
   }, [mapReady, data.weather_grid, activeLayers.wx_temperature, activeLayers.wx_wind, setGeo]);
+}
+
+/** The 0.25° GFS field while the temperature layer is on; null until it loads, or if the route never answers. */
+function useGfsField(active: boolean): TemperatureField | null {
+  const [field, setField] = useState<TemperatureField | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    const ctrl = new AbortController();
+    const load = async () => {
+      try {
+        const res = await fetch('/api/weather-field', { signal: ctrl.signal });
+        if (!res.ok) throw new Error(`answered ${res.status}`);
+        const next = decodeField(await res.arrayBuffer());
+        setField(prev => (prev?.time === next.time ? prev : next));
+      } catch (e) {
+        if (!ctrl.signal.aborted) console.warn('[TAKIP] Temperature field load failed:', e instanceof Error ? e.message : e);
+      }
+    };
+    load();
+    // The route moves to the next 3-hour step on its own; this just picks it up.
+    const refresh = setInterval(() => { if (!document.hidden) load(); }, 15 * 60_000);
+    return () => { ctrl.abort(); clearInterval(refresh); };
+  }, [active]);
+  return field;
 }
 
 interface WeatherRasterArgs {
@@ -61,21 +89,31 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
     return () => clearInterval(refresh);
   }, [mapReady, activeLayers.live_clouds, mapStyle, mapRef, cloudLayerRef]);
 
-  // Temperature field — painted client-side from the Open-Meteo grid (lib/weather-field).
+  // Temperature field — GFS at 0.25° once it loads, the Open-Meteo grid until then
+  // or if it never does; painted client-side either way (lib/weather-field).
+  const gfs = useGfsField(!!activeLayers.wx_temperature);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
     const grid: WeatherGrid | null = data.weather_grid ?? null;
-    setWeatherGrid(grid);
+    const field = gfs ?? (grid ? fieldFromGrid(grid) : null);
+    setTemperatureField(field);
     if (!activeLayers.wx_temperature) {
       if (map.getLayer('wx-field')) map.removeLayer('wx-field');
       return;
     }
     installWeatherProtocol(maplibregl.addProtocol);
-    const url = fieldTileUrl(grid);
-    const source = map.getSource('wx-field') as maplibregl.RasterTileSource | undefined;
+    const url = fieldTileUrl(field);
+    const maxzoom = gfs ? GFS_MAX_ZOOM : FIELD_MAX_ZOOM;
+    let source = map.getSource('wx-field') as maplibregl.RasterTileSource | undefined;
+    // A source fixes its zoom cap and credit when added, so moving between GFS and the grid re-adds it.
+    if (source && source.maxzoom !== maxzoom) {
+      if (map.getLayer('wx-field')) map.removeLayer('wx-field');
+      map.removeSource('wx-field');
+      source = undefined;
+    }
     if (!source) {
-      map.addSource('wx-field', { type: 'raster', tiles: [url], tileSize: 256, maxzoom: FIELD_MAX_ZOOM, attribution: WX_ATTRIBUTION });
+      map.addSource('wx-field', { type: 'raster', tiles: [url], tileSize: 256, maxzoom, attribution: gfs ? GFS_ATTRIBUTION : WX_ATTRIBUTION });
     } else if (source.tiles?.[0] !== url) {
       source.setTiles([url]);
     }
@@ -83,7 +121,7 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
       map.addLayer({ id: 'wx-field', type: 'raster', source: 'wx-field', paint: { 'raster-opacity': 0.5, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } }, 'day-night-fill');
     }
     stackGroundRasters(map);
-  }, [mapReady, activeLayers.wx_temperature, data.weather_grid, mapStyle, mapRef]);
+  }, [mapReady, activeLayers.wx_temperature, data.weather_grid, gfs, mapStyle, mapRef]);
 
   // Precipitation radar — RainViewer's latest frame, where ground radar exists.
   useEffect(() => {
