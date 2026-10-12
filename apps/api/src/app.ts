@@ -7,6 +7,7 @@ import { adminRoutes } from './admin/routes';
 import type { Auth } from './auth/auth';
 import { authRoutes } from './auth/routes';
 import type { AppDb } from './db/app-db';
+import { v1Routes } from './v1/openapi';
 
 export function createApp({ auth, access, db }: { auth: Auth; access: AccessResolver; db: AppDb }) {
   const app = new Hono();
@@ -15,6 +16,7 @@ export function createApp({ auth, access, db }: { auth: Auth; access: AccessReso
   app.route('/api', authRoutes(auth));
   app.use('/api/v1/*', withAccess(auth, access));
   app.route('/api/v1', accessRoutes(access));
+  app.route('/api/v1', v1Routes());
   app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db) }));
   return app;
 }
