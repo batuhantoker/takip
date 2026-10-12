@@ -19,6 +19,7 @@ export const CATALOGUE = {
   'workspaces.share': bool,
   'export.enabled': bool,
   'ai.hosted': bool,
+  'ads.off': bool,
   'data.licence_tier': { type: 'enum', values: licenceTiers, fallback: 'anon' },
 } as const;
 

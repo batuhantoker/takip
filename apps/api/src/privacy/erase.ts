@@ -9,6 +9,7 @@ import { SEND_EMAIL_JOB } from '../mail/mail-queue';
  */
 const OWNED: readonly { table: string; where: string }[] = [
   { table: 'api_key', where: 'user_id = @id' },
+  { table: 'ws_workspace', where: 'owner_id = @id' },
   { table: 'admin_unlock', where: 'user_id = @id' },
   { table: 'bill_subject_override', where: "subject_type = 'user' AND subject_id = @id" },
   { table: 'bill_subscription', where: "subject_type = 'user' AND subject_id = @id" },
