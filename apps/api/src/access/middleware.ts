@@ -22,7 +22,10 @@ export function withAccess(auth: Auth, access: AccessResolver, keys?: ApiKeys) {
     const token = bearerToken(c.req.header('authorization'));
     let principal: Principal;
     if (keys && token !== undefined) {
-      const verified = keys.verify(token);
+      const verified = keys.verify(token, ip);
+      if (!verified.ok && verified.status === 429) {
+        return c.json({ error: verified.error, retry_after: verified.retryAfterS }, 429, { 'Retry-After': String(verified.retryAfterS) });
+      }
       if (!verified.ok) {
         return c.json({ error: verified.error }, verified.status, verified.status === 401 ? { 'WWW-Authenticate': 'Bearer error="invalid_token"' } : {});
       }

@@ -6,6 +6,7 @@ import { createLogger } from '../obs/logger';
 import { Jar, USER, linkIn, startApp, type TestApp } from '../testing/helpers';
 import { createApiKeys } from './api-keys';
 import { requiresScope } from './scopes';
+import { newKey } from './token';
 
 const OPERATOR = { type: 'admin', id: 'test' } as const;
 const NOW = new Date('2026-10-12T12:00:00.000Z');
@@ -211,6 +212,55 @@ describe('a refused key', () => {
     await refusedWith(await withKey(key), 403, 'account_banned');
     later(60 * 60_000);
     expect((await withKey(key)).status).toBe(200);
+  });
+});
+
+describe('guessed keys', () => {
+  const from = (remoteAddress: string) => ({ incoming: { socket: { remoteAddress } } });
+  const guess = (peer: string, key = newKey().key) =>
+    t.app.request('/api/v1/me/access', { headers: { authorization: `Bearer ${key}` } }, from(peer));
+  const statuses = async (n: number, peer: string, key?: string) => {
+    const seen: number[] = [];
+    for (let i = 0; i < n; i++) seen.push((await guess(peer, key)).status);
+    return seen;
+  };
+  const times = (n: number, status: number) => Array<number>(n).fill(status);
+
+  it('get 429 after ten failed lookups a minute from one address, and get through again as it refills', async () => {
+    expect(await statuses(10, '203.0.113.5')).toEqual(times(10, 401));
+    const throttled = await guess('203.0.113.5');
+    expect([throttled.status, throttled.headers.get('Retry-After'), await json(throttled)]).toEqual([429, '6', { error: 'rate_limited', retry_after: 6 }]);
+    expect((await guess('203.0.113.6')).status).toBe(401);
+
+    later(6_000);
+    expect(await statuses(2, '203.0.113.5')).toEqual([401, 429]);
+    later(60_000);
+    expect(await statuses(11, '203.0.113.5')).toEqual([...times(10, 401), 429]);
+  });
+
+  it('are counted per IPv6 /64', async () => {
+    expect(await statuses(10, '2001:db8:1:2::1')).toEqual(times(10, 401));
+    expect((await guess('2001:db8:1:2::ffff')).status).toBe(429);
+    expect((await guess('2001:db8:1:3::1')).status).toBe(401);
+  });
+
+  it('count only lookups that reach the database, not cached or malformed ones', async () => {
+    expect(await statuses(20, '203.0.113.5', UNKNOWN_KEY)).toEqual(times(20, 401));
+    expect(await statuses(20, '203.0.113.5', 'tk_short')).toEqual(times(20, 401));
+    expect(await statuses(9, '203.0.113.5')).toEqual(times(9, 401));
+    expect((await guess('203.0.113.5')).status).toBe(429);
+  });
+
+  it('hold back only uncached lookups: a key already in the cache still works from a throttled address', async () => {
+    setPlan('api.keys.max', '2');
+    const used = await createKey({ name: 'used' });
+    const fresh = await createKey({ name: 'fresh' });
+    expect((await withKey(used.key)).status).toBe(200);
+    await statuses(10, '203.0.113.5');
+
+    expect((await guess('203.0.113.5', used.key)).status).toBe(200);
+    expect((await guess('203.0.113.5', fresh.key)).status).toBe(429);
+    expect((await guess('203.0.113.6', fresh.key)).status).toBe(200);
   });
 });
 

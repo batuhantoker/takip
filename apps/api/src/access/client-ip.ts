@@ -2,6 +2,7 @@ import { BlockList, isIP } from 'node:net';
 import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { convertIPv6ToBinary } from 'hono/utils/ipaddr';
+import { parseCidr } from '../net/cidr';
 
 /** Better Auth reads the client IP from here (auth.ts). Always overwritten by `clientIp`, never taken from the caller. */
 export const RESOLVED_IP_HEADER = 'x-resolved-client-ip';
@@ -20,17 +21,20 @@ export function canonicalIp(value: string | null | undefined): string | null {
   return isIP(ip) ? ip : null;
 }
 
+/** The address part as canonicalIp reads it (`[::1]/128` → `::1/128`); unchanged when it isn't one. */
+function canonicalRule(entry: string) {
+  const slash = entry.indexOf('/');
+  const ip = canonicalIp(slash < 0 ? entry : entry.slice(0, slash));
+  return ip ? ip + (slash < 0 ? '' : entry.slice(slash)) : entry;
+}
+
 /** Comma-separated IPs and CIDR ranges; throws on an entry that is neither. */
 export function parseProxies(list: string): BlockList {
   const proxies = new BlockList();
   for (const entry of list.split(',').map(s => s.trim()).filter(Boolean)) {
-    const [, address, bits] = /^([^/]+)(?:\/(\d{1,3}))?$/.exec(entry) ?? [];
-    const ip = canonicalIp(address);
-    const family = ip && isIP(ip) === 4 ? 'ipv4' : 'ipv6';
-    const max = family === 'ipv4' ? 32 : 128;
-    const prefix = bits === undefined ? max : Number(bits);
-    if (!ip || prefix > max) throw new Error(`not an IP address or CIDR range: ${entry}`);
-    proxies.addSubnet(ip, prefix, family);
+    const cidr = parseCidr(canonicalRule(entry));
+    if (!cidr) throw new Error(`not an IP address or CIDR range: ${entry}`);
+    proxies.addSubnet(cidr.address, cidr.prefix, cidr.type);
   }
   return proxies;
 }
