@@ -177,6 +177,11 @@ const MIGRATIONS: string[] = [
   ) STRICT;
   CREATE INDEX IF NOT EXISTS job_ready ON job (run_at) WHERE done_at IS NULL AND failed_at IS NULL;
   `,
+  // Pro takes the ads away (src/components/ads). OR IGNORE keeps a row an operator added first.
+  `
+  INSERT OR IGNORE INTO bill_plan_entitlement (plan_id, key, value) VALUES
+    ('anon', 'ads.off', 'false'), ('free', 'ads.off', 'false'), ('pro', 'ads.off', 'true');
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

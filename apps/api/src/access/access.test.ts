@@ -60,6 +60,10 @@ describe('seeded plans', () => {
     expect(t.access.plan('pro').entitlements).toMatchObject({ 'ai.hosted': true, 'api.rps': 20 });
   });
 
+  it('take ads away for pro only', () => {
+    expect(['anon', 'free', 'pro'].map(id => t.access.plan(id).entitlements['ads.off'])).toEqual([false, false, true]);
+  });
+
   it('keep an operator\'s edit when the seed update runs', () => {
     const value = (key: string) => t.db.prepare("SELECT value FROM bill_plan_entitlement WHERE plan_id = 'free' AND key = ?").pluck().get(key);
     // Back to before migration 3, with one row still at its seed and one edited by an operator.

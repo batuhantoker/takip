@@ -183,6 +183,7 @@ requestId → pino logger → principal → rate limit → entitlement guard →
 | `workspaces.share` | bool | ✗ | ✓ | ✓ |
 | `export.enabled` | bool | ✗ | ✗ | ✓ |
 | `ai.hosted` | bool | ✗ | ✗ | later |
+| `ads.off` | bool | ✗ | ✗ | ✓ |
 | `data.licence_tier` | enum | `anon` | `free` | `paid` |
 
 Moving a feature between tiers is a row edit made in the admin console. No deploy is needed.
