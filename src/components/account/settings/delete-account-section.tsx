@@ -28,7 +28,8 @@ export default function DeleteAccountSection({ email }: { email: string }) {
       ) : (
         <>
           <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
-            Deletes your account, its sign-in methods and every signed-in device. This can&apos;t be undone.
+            Deletes your account with its sign-in methods, devices and API keys. Usage counts and account history stay, without your email
+            address. This can&apos;t be undone.
           </p>
           <FormError message={error} />
           {step === 'idle' ? (

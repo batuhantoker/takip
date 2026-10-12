@@ -10,6 +10,7 @@ import PlanSection from './plan-section';
 import ProfileSection from './profile-section';
 import SignInMethods from './sign-in-methods';
 import TwoFactorSection from './two-factor-section';
+import YourDataSection from './your-data-section';
 
 export default function AccountSettings({ notice }: { notice?: string }) {
   const { data, isPending } = authClient.useSession();
@@ -35,6 +36,7 @@ export default function AccountSettings({ notice }: { notice?: string }) {
       <TwoFactorSection enabled={Boolean(data.user.twoFactorEnabled)} admin={data.user.role === 'admin'} />
       <DevicesSection currentId={data.session.id} />
       <ApiKeysSection />
+      <YourDataSection />
       <DeleteAccountSection email={data.user.email} />
     </div>
   );
