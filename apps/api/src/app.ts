@@ -19,6 +19,7 @@ import { keyRoutes } from './keys/routes';
 import { requestLogger, silentLogger } from './obs/logger';
 import { createMetrics, httpMetrics, metricsEndpoint, type Metrics } from './obs/metrics';
 import { requestId } from './obs/request-id';
+import { privacyRoutes } from './privacy/routes';
 import type { ReplayData } from './replay/data';
 import { replayRoutes } from './replay/routes';
 import type { SourceSwitchboard } from './replay/sources';
@@ -45,6 +46,7 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   app.route('/api/v1', accessRoutes(access));
   app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', keyRoutes(keys));
+  app.route('/api/v1', privacyRoutes({ db, auth, usage }));
   app.route('/api/v1', v1Routes());
   if (replay) {
     app.use('/api/replay/*', withAccess(auth, access));

@@ -39,6 +39,12 @@ const CONNECT_ERRORS: Record<string, string> = {
   access_denied: 'Connecting was cancelled.',
 };
 
+/** Why a deletion link didn't delete anything, by Better Auth's error code. */
+const DELETE_ERRORS: Record<string, string> = {
+  FAILED_TO_GET_USER_INFO: 'Nothing was deleted: the link only works in a browser signed in to that account. Sign in here, then open the link again.',
+  INVALID_TOKEN: 'Nothing was deleted: that link has expired, was already used, or belongs to another account. Ask for a new one under Delete account.',
+};
+
 function viewFor(link: AccountLink): View {
   switch (link.kind) {
     case 'verified': return { kind: 'sent', title: 'Email confirmed', body: "You're signed in." };
@@ -50,7 +56,13 @@ function viewFor(link: AccountLink): View {
     case 'settings':
       return { kind: 'settings', notice: link.error && (CONNECT_ERRORS[link.error] ?? "Connecting didn't work. Try again.") };
     case 'deleted':
-      return { kind: 'sent', title: 'Account deleted', body: 'Your account, its sign-in methods and its sessions are gone.' };
+      return {
+        kind: 'sent',
+        title: 'Account deleted',
+        body: 'Your account is gone, with its sign-in methods, devices and API keys. Usage counts and account history stay, without your email address.',
+      };
+    case 'delete-failed':
+      return { kind: 'settings', notice: DELETE_ERRORS[link.error] ?? "Nothing was deleted: that link didn't work. Ask for a new one under Delete account." };
     case 'sign-in':
       return { kind: 'sign-in' };
   }
