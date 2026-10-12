@@ -122,6 +122,45 @@ const MIGRATIONS: string[] = [
   UPDATE bill_plan_entitlement SET value = '2'    WHERE plan_id = 'free' AND key = 'api.rps'              AND value = '0';
   UPDATE bill_plan_entitlement SET value = 'true' WHERE plan_id = 'pro'  AND key = 'ai.hosted'            AND value = 'false';
   `,
+  // Billing provider records (billing/) and the background job queue (jobs/). Re-runnable: a test rewinds user_version.
+  `
+  CREATE TABLE IF NOT EXISTS bill_customer (
+    provider      TEXT NOT NULL,
+    customer_id   TEXT NOT NULL,
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('user','org')),
+    subject_id    TEXT NOT NULL,
+    created_at    INTEGER NOT NULL,
+    PRIMARY KEY (provider, customer_id)
+  ) STRICT, WITHOUT ROWID;
+  CREATE UNIQUE INDEX IF NOT EXISTS bill_customer_subject ON bill_customer (subject_type, subject_id, provider);
+
+  CREATE TABLE IF NOT EXISTS bill_event (
+    provider     TEXT NOT NULL,
+    event_id     TEXT NOT NULL,
+    type         TEXT NOT NULL,
+    received_at  INTEGER NOT NULL,
+    processed_at INTEGER,
+    error        TEXT,
+    payload      TEXT NOT NULL,
+    PRIMARY KEY (provider, event_id)
+  ) STRICT, WITHOUT ROWID;
+
+  CREATE TABLE IF NOT EXISTS job (
+    job_id       INTEGER PRIMARY KEY,
+    kind         TEXT NOT NULL,
+    payload      TEXT NOT NULL DEFAULT '{}',
+    run_at       INTEGER NOT NULL,
+    attempts     INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 8,
+    locked_until INTEGER,
+    last_error   TEXT,
+    done_at      INTEGER,
+    failed_at    INTEGER,
+    dedupe_key   TEXT UNIQUE,
+    created_at   INTEGER NOT NULL
+  ) STRICT;
+  CREATE INDEX IF NOT EXISTS job_ready ON job (run_at) WHERE done_at IS NULL AND failed_at IS NULL;
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {
