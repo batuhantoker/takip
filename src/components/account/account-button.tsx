@@ -9,7 +9,7 @@ import AccountMenu from './account-menu';
 /** `rail` is the sidebar's version: an icon over a label, its menu opening beside the sidebar. */
 export default function AccountButton({ compact = false, rail = false }: { compact?: boolean; rail?: boolean }) {
   const { data, isPending } = authClient.useSession();
-  if (data) return <AccountMenu user={data.user} compact={compact} rail={rail} />;
+  if (data) return <AccountMenu user={data.user} impersonating={Boolean(data.session.impersonatedBy)} compact={compact} rail={rail} />;
 
   if (rail) {
     return (

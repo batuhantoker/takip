@@ -26,7 +26,12 @@ export default function AuditTable({ events, showSubject = true }: { events: Aud
           {events.map(e => (
             <tr key={e.id}>
               <td className={`${TD} whitespace-nowrap text-[var(--text-muted)]`}>{when(e.at)}</td>
-              <td className={`${TD} whitespace-nowrap`}>{e.actorEmail ?? e.actorId ?? e.actorType}</td>
+              <td className={`${TD} whitespace-nowrap`}>
+                {e.actorEmail ?? e.actorId ?? e.actorType}
+                {e.impersonator && e.impersonator !== e.actorId && (
+                  <span className="block text-[11px] text-[var(--alert-red)]">via {e.impersonatorEmail ?? e.impersonator}</span>
+                )}
+              </td>
               <td className={`${TD} font-mono text-[11px] text-[var(--gold-primary)] whitespace-nowrap`}>{e.action}</td>
               {showSubject && (
                 <td className={TD}>

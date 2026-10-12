@@ -14,7 +14,15 @@ const FAILURE_WINDOW_MS = 15 * 60 * 1000;
 export type AdminUser = { userId: string; email: string; sessionId: string };
 export type AdminEnv = { Variables: { admin: AdminUser } };
 
-export type GateStatus = { signedIn: boolean; admin: boolean; twoFactor: boolean; unlockedUntil: number | null };
+export type GateStatus = {
+  signedIn: boolean;
+  admin: boolean;
+  twoFactor: boolean;
+  impersonating: boolean;
+  unlockedUntil: number | null;
+  /** Set while too many wrong codes keep the step-up locked. */
+  retryAfterSeconds: number | null;
+};
 
 type Refusal = { status: 400 | 401 | 403 | 429; body: { error: string; retryAfterSeconds?: number } };
 
@@ -38,8 +46,16 @@ export function createAdminGate(auth: Auth, db: AppDb, now = () => Date.now()) {
     return at === undefined ? null : at + UNLOCK_TTL_MS;
   }
 
+  /** Seconds until the step-up accepts codes again, or null when it isn't locked. */
+  function lockedFor(userId: string) {
+    const recent = (failures.get(userId) ?? []).filter(at => at > now() - FAILURE_WINDOW_MS);
+    return recent.length >= MAX_FAILURES ? Math.ceil((recent[0] + FAILURE_WINDOW_MS - now()) / 1000) : null;
+  }
+
   function refuse(session: Awaited<ReturnType<typeof sessionOf>>): Refusal | null {
     if (!session) return { status: 401, body: { error: 'sign_in_required' } };
+    // Before the role check, so a target promoted mid-impersonation still gets no console.
+    if (session.session.impersonatedBy) return { status: 403, body: { error: 'impersonating' } };
     if (session.user.role !== 'admin') return { status: 403, body: { error: 'admin_only' } };
     if (!session.user.twoFactorEnabled) return { status: 403, body: { error: 'two_factor_required' } };
     return null;
@@ -48,11 +64,14 @@ export function createAdminGate(auth: Auth, db: AppDb, now = () => Date.now()) {
   return {
     async status(headers: Headers): Promise<GateStatus> {
       const session = await sessionOf(headers);
+      const admin = Boolean(session && !session.session.impersonatedBy && session.user.role === 'admin');
       return {
         signedIn: Boolean(session),
-        admin: session?.user.role === 'admin',
+        admin,
         twoFactor: Boolean(session?.user.twoFactorEnabled),
-        unlockedUntil: session && session.user.role === 'admin' ? unlockedUntil(session.session.id) : null,
+        impersonating: Boolean(session?.session.impersonatedBy),
+        unlockedUntil: admin ? unlockedUntil(session!.session.id) : null,
+        retryAfterSeconds: admin ? lockedFor(session!.user.id) : null,
       };
     },
 
@@ -63,18 +82,18 @@ export function createAdminGate(auth: Auth, db: AppDb, now = () => Date.now()) {
       if (refusal || !session) return refusal!;
 
       const userId = session.user.id;
-      const recent = (failures.get(userId) ?? []).filter(at => at > now() - FAILURE_WINDOW_MS);
-      if (recent.length >= MAX_FAILURES) {
-        return { status: 429, body: { error: 'too_many_attempts', retryAfterSeconds: Math.ceil((recent[0] + FAILURE_WINDOW_MS - now()) / 1000) } };
-      }
+      const locked = lockedFor(userId);
+      if (locked !== null) return { status: 429, body: { error: 'too_many_attempts', retryAfterSeconds: locked } };
 
       try {
         // Better Auth applies no lockout to these on an existing session, hence the count above.
         if (/^\d{6}$/.test(code)) await auth.api.verifyTOTP({ headers, body: { code } });
         else await auth.api.verifyBackupCode({ headers, body: { code } });
       } catch {
-        failures.set(userId, [...recent, now()]);
-        return { status: 401, body: { error: 'invalid_code' } };
+        failures.set(userId, [...(failures.get(userId) ?? []).filter(at => at > now() - FAILURE_WINDOW_MS), now()]);
+        // The code that locks the step-up says so, so the form can count down without another try.
+        const lockedNow = lockedFor(userId);
+        return { status: 401, body: { error: 'invalid_code', ...(lockedNow !== null && { retryAfterSeconds: lockedNow }) } };
       }
 
       failures.delete(userId);
