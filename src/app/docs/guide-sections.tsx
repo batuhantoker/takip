@@ -59,8 +59,8 @@ print(len(data["commercial_flights"]), "commercial")`,
 # { "stats": { "flights": 9241, "sats": 2043, "cctv": 2117,
 #              "weather": 58, "nuclear": 191, "incidents": 412 },
 #   "timestamp": "2026-07-29T12:00:00Z" }`}</Pre>
-      <p>The OSINT lookups each take one subject, so they compose cleanly in a pipeline:</p>
-      <Pre label="Passive subdomain enumeration" lang="bash">{`curl -s "${origin}/api/osint/certs?domain=example.com" | jq -r '.subdomains[]'`}</Pre>
+      <p>The OSINT lookups each take one subject, so they compose cleanly in a pipeline. They need an account, so send an API key:</p>
+      <Pre label="Passive subdomain enumeration" lang="bash">{`curl -s -H "Authorization: Bearer $YOUR_API_KEY" "${origin}/api/osint/certs?domain=example.com" | jq -r '.subdomains[]'`}</Pre>
       <Callout tone="info" title="Try before you write code">
         Every GET endpoint in the reference below has a <strong>Send request</strong> button that runs it against
         this instance and shows the live response.
