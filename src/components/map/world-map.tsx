@@ -39,6 +39,7 @@ import { useAirportDelaysLayer } from './world-map/use-airport-delays-layer';
 import { useChokepointFlowLayer } from './world-map/use-chokepoint-flow-layer';
 import { useOutbreaksLayer } from './world-map/use-outbreaks-layer';
 import { useLayerVisibility } from './world-map/use-layer-visibility';
+import { useReplayLayer } from './world-map/use-replay-layer';
 import { useMapPalette } from './world-map/use-map-palette';
 import { useDirections, useUserLocation } from './world-map/use-navigation';
 import { useCyberLayers, useSdkLinks } from './world-map/use-network-layers';
@@ -53,7 +54,7 @@ import { useSatelliteDismiss, useSatelliteLayer } from './world-map/use-satellit
 import { useWeatherGridLayer, useWeatherRasters } from './world-map/use-weather-layers';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null }: WorldMapProps) {
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null, replay = null, onReplayToggle }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -235,7 +236,8 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useLiveNewsLayer(layerArgs);
   useAlertPins({ ...layerArgs, alertPinsRef, alertPinIds });
   useConflictZones(layerArgs);
-  useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef });
+  useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef, replayActive: !!replay });
+  useReplayLayer({ mapRef, mapReady, replay, activeLayers });
   useReconLayers({ ...layerArgs, sweepData, scanTargets });
   useReferenceLayers(layerArgs);
 
@@ -367,7 +369,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
         />
       )}
       {selectedSat && <SatelliteCard sat={selectedSat} onClose={clearSat} />}
-      {mapReady && <MapControls mapRef={mapRef} onInteract={onFollowInterrupt} />}
+      {mapReady && <MapControls mapRef={mapRef} onInteract={onFollowInterrupt} replayActive={!!replay} onReplayToggle={onReplayToggle} />}
     </>
   );
 }

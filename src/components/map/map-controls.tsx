@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Minus, Plus } from 'lucide-react';
+import { History, Minus, Plus } from 'lucide-react';
 import type { Map as MlMap } from 'maplibre-gl';
 import { createMapCameraControls, type CameraMove } from '@/lib/map-camera-controls';
 
 interface MapControlsProps {
   mapRef: React.RefObject<MlMap | null>;
   onInteract?: () => void;
+  replayActive?: boolean;
+  /** Absent: no replay button. */
+  onReplayToggle?: () => void;
 }
 
-/** Zoom in and out; hold to keep going. The arrow keys pan. */
-export default function MapControls({ mapRef, onInteract }: MapControlsProps) {
+/** Zoom in and out; hold to keep going. The arrow keys pan. The clock opens replay. */
+export default function MapControls({ mapRef, onInteract, replayActive = false, onReplayToggle }: MapControlsProps) {
   const controller = useRef<ReturnType<typeof createMapCameraControls> | null>(null);
   const interact = useRef(onInteract);
   const [limits, setLimits] = useState({ min: false, max: false });
@@ -51,6 +54,18 @@ export default function MapControls({ mapRef, onInteract }: MapControlsProps) {
         <Btn label="Zoom in" move={{ kind: 'zoom', dir: 1 }} icon={Plus} disabled={limits.max} press={press} release={release} step={step} />
         <Btn label="Zoom out" move={{ kind: 'zoom', dir: -1 }} icon={Minus} disabled={limits.min} press={press} release={release} step={step} />
       </div>
+      {onReplayToggle && (
+        <div role="group" aria-label="Replay"
+          className="mt-1.5 flex flex-col p-[3px] rounded-xl border border-white/10 bg-[var(--bg-panel)] backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.55)]">
+          <button type="button" aria-pressed={replayActive} onClick={onReplayToggle}
+            title={replayActive ? 'Back to the live map' : 'Replay: watch recorded ships and aircraft, with satellites where they were'}
+            aria-label={replayActive ? 'Leave replay' : 'Replay'}
+            className={`w-10 h-10 md:w-8 md:h-8 rounded-md flex items-center justify-center hover:bg-[var(--hover-accent)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--gold-primary)] ${
+              replayActive ? 'text-[var(--gold-light)] bg-[var(--gold-primary)]/10' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+            <History className="w-3.5 h-3.5" strokeWidth={1.5} />
+          </button>
+        </div>
+      )}
     </motion.div>
   );
 }

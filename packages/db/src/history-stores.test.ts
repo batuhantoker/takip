@@ -88,6 +88,11 @@ describe('EventStore', () => {
     expect(events.candidates(q)).toEqual([]);
     expect(events.upsertEvents([war()])).toMatchObject({ changed: 1 });
     expect(events.candidates(q)).toHaveLength(1);
+    expect(events.retract(1, ['w1', 'missing'])).toBe(1);
+    expect(events.retract(1, ['w1'])).toBe(0);
+    expect(events.retract(2, ['far'])).toBe(0);
+    expect(events.candidates(q)).toEqual([]);
+    expect(events.candidates({ ...q, bbox: { w: 100, s: 0, e: 130, n: 20 } })).toHaveLength(1);
   });
 
   it('links children to parents loaded earlier and refuses unknown parents', () => {

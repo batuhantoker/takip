@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { DAY_MS, floorTo, HOUR_MS } from '@takip/core/time';
 import { isTile, tileBbox } from '@takip/core/tiles';
-import { AIRCRAFT_CATEGORIES, LOD_LEVELS, LODS, type Lod, trackClassByName, VESSEL_CATEGORIES } from '@takip/core/tracks';
+import { AIRCRAFT_CATEGORIES, isProvisional, LOD_LEVELS, LODS, type Lod, trackClassByName, VESSEL_CATEGORIES } from '@takip/core/tracks';
 import type { SqliteCatalogStore } from '@takip/db';
 import { type Context, Hono } from 'hono';
 import type { AccessEnv } from '../access/middleware';
@@ -73,7 +73,9 @@ export function replayRoutes(data: ReplayData) {
         fetchZoom: spec.fetchZoom,
         minZoom: spec.minZoom,
         maxZoom: spec.maxZoom,
-        buckets: s.catalog.sealedBuckets(lod, floorTo(from, spec.bucketMs), to).map(b => [b.bucket / 1000, b.sealedAt]),
+        // [bucket (s), version, provisional]: a provisional bucket is sealed again, with a new version, once final.
+        buckets: s.catalog.sealedBuckets(lod, floorTo(from, spec.bucketMs), to)
+          .map(b => [b.bucket / 1000, b.sealedAt, isProvisional(lod, b.bucket, b.sealedAt) ? 1 : 0]),
       };
     });
     const sources = s.catalog.sources().filter(src => s.sourceIds.has(src.sourceId));

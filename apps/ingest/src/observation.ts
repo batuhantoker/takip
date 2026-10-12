@@ -1,9 +1,10 @@
 import type { RawEnvelope } from '@takip/archive/envelope';
 import type { TrackClassName } from '@takip/core/tracks';
+import type { EventInput } from '@takip/db';
 
 /*
- * What connectors turn archive envelopes into (replay-database.md §7.2). The track and tle shapes
- * are built; event, series, catalog and document arrive with their stores.
+ * What connectors turn archive envelopes into (replay-database.md §7.2). The track, tle and event shapes
+ * are built; series, catalog and document arrive with their stores.
  */
 
 export type TrackFix = {
@@ -42,7 +43,13 @@ export type TrackState = {
 
 export type TleObservation = { shape: 'tle'; norad: number; epoch: number; line1: string; line2: string; name: string | null };
 
-export type Observation = TrackFix | TrackState | TleObservation;
+/** A history.db event; the loader adds the source and dataset. */
+export type EventObservation = { shape: 'event' } & Omit<EventInput, 'sourceId' | 'datasetId'> & {
+  /** Other ids the source has used for this event; the newest observation's id stands and these are retracted. */
+  supersedes?: string[];
+};
+
+export type Observation = TrackFix | TrackState | TleObservation | EventObservation;
 
 export interface Connector {
   /** meta_source.code, and the archive directory. */

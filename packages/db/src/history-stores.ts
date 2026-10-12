@@ -103,6 +103,8 @@ export interface EventStore {
   upsertEvents(rows: EventInput[], now?: number): UpsertResult;
   /** Sets retracted_at on the source's events that a new dataset version no longer contains. Returns how many. */
   retractMissing(sourceId: number, keep: ReadonlySet<string>, now?: number): number;
+  /** Sets retracted_at on these records of the source, e.g. an id the publisher replaced. Returns how many. */
+  retract(sourceId: number, recordIds: readonly string[], now?: number): number;
   eventId(sourceId: number, sourceRecordId: string): number | undefined;
   relate(fromId: number, rel: 'part_of' | 'same_as' | 'follows' | 'related', toId: number, confidence?: number, sourceId?: number): void;
   /** Drops the relations a source asserted, before it re-adds them from its current mapping. */

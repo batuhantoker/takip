@@ -331,8 +331,10 @@ Some upstreams publish their own history, which can fill time before recording s
 ```text
 npm run ingest -- backfill adsblol-history <day> [last day]   whole UTC days, ~3 GB each to stream
 npm run ingest -- backfill opensky <from> [to]                up to 1 h back; needs an OpenSky account
+npm run ingest -- backfill usgs <from> [to] [min magnitude]   earthquakes since 1900 into history.db (default M2.5)
 ```
 
+- **Provisional hours:** besides final sealing at H+2:05, the worker seals the hours that aren't final yet every 5 minutes, along with their incomplete L1 and L2 buckets. So replay reaches to within minutes of now. A provisional bucket (`isProvisional` in `@takip/core/tracks`, and flagged in the manifest) is sealed again once final, with a new version.
 - **Who seals:** a backfill seals its hours itself when no worker is running. Otherwise it queues them in `trk_dirty_bucket`, and the worker reseals about 6 hours a minute and rebuilds their L1 and L2. Two processes creating entities at once would each miss the other's identifiers and duplicate them, so `seal` and `rebuild` follow the same rule.
 - **Bulk sources** (`delivery = 'bulk'`) write coverage only for hours they have data in. They're also left out of the worker's own range, so one backfilled day in January doesn't make the worker seal every hour since.
 - *Built:*
@@ -341,6 +343,13 @@ npm run ingest -- backfill opensky <from> [to]                up to 1 h back; ne
     - Traces are thinned to one point per 30 s, keeping leg starts and points after silences, and written as one line per aircraft per hour.
     - **The archive holds a thinned extract, not the bytes as received.** That's the one exception to §3 rule 1: the immutable GitHub release is the raw, and each line's `url` names the release and the entry.
     - Checked on the first 4 MB of 2026-10-11: 96 aircraft, 162,209 points thinned to 30,404. The whole day, run on 2026-10-12, streamed 3.16 GiB into 55,469 aircraft and 18.95 M points over 25 hours: 383 MB of archive, 256 MB of L0, and about 125 MB of L1 and 45 MB of L2.
+  - **USGS earthquakes** (`backfill/usgs.ts`, `connectors/usgs.ts`, source `usgs`, public domain): the first event pipeline.
+    - **Live:** the worker fetches the source itself; it isn't a Next tap. It reads the CDN summary feed (`2.5_day.geojson`) every 10 minutes, and once a day runs an FDSN `updatedafter` query over the last 30 days to pick up reviews and magnitude changes. On start, it fills the gap since the last archived hour from the FDSN query; on a first run, that's 30 days.
+    - **Backfill:** FDSN queries in 30-day windows at M2.5+ (1-day windows below). A window over the 20,000-event limit is refused with 400 and asked again in halves. There's a 1 s pause between requests.
+    - **Loading:** `jobs/ingest-events.ts` maps archived hours to `hazard.quake` events and upserts them into `history.db` on `(source, USGS id)`. A revision bumps `rev`. It then rebuilds the `hazard` timeline bins. An open hour is loaded again after each poll; a settled one is recorded in `meta_ingest_run` and not read again. The CLI backfill loads its hours itself: event upserts are transactional, so unlike sealing they don't need the worker.
+    - **Row:** `magnitude` = mag, `geoPrec` exact, `tStartPrec` second. `attrs` holds depth_km, place, mag_type, alert, tsunami, felt, sig, status, net, ids and url. `severity` is left empty.
+    - **Renamed events:** USGS sometimes changes an event's preferred id early on. The connector passes the event's other ids as `supersedes`. Within an hour the newest fetch wins, and the ids it replaced are retracted with `EventStore.retract` rather than upserted, since an upsert would revive them.
+    - *Not handled yet:* deleted events are never retracted. The timeline rebuild covers the whole family, which is cheap at 30 days but not after a decades-long backfill.
   - **OpenSky** (`backfill/opensky.ts`): accounts can ask `states/all?time=` up to an hour back; anonymous requests ignore `time`. It steps at the live cadence (90 s) and stops with 1,000 credits left for the live map. *Untested against the live API:* no account is configured yet.
 - **No history offered:** aisstream, adsb.fi, CelesTrak (its GP data has no history) and the camera feeds.
 - **Satellites need no recording for recent replay:** SGP4 runs backwards as well as forwards. `tleAt` falls back to the oldest set after `t` (within 30 days), and `/api/satellites?at=` propagates today's cached sets to any time. Accuracy falls off over days, and objects launched since then show up early.
@@ -350,7 +359,6 @@ npm run ingest -- backfill opensky <from> [to]                up to 1 h back; ne
   |---|---|---|
   | Satellites | Space-Track `gp_history` | Free account; its user agreement limits redistribution |
   | Vessels | Danish Maritime Authority and NOAA MarineCadastre AIS files | Only their own waters; large daily files |
-  | Earthquakes | USGS FDSN event service | Whole catalogue, keyless; needs the event pipeline first |
   | GDELT events | GDELT 2.0 raw files | Every 15 minutes since 2015 |
   | Weather | Open-Meteo historical API (ERA5) | Hourly grids; free for non-commercial use |
   | Fires | NASA FIRMS archive | Needs a `MAP_KEY` |
@@ -393,7 +401,8 @@ The client loads buckets that overlap the visible timeline window and prefetches
 | L1 | 5–7 | z4 | 6 h | one per month | SED ≤ 100 m, at most one point per 30 s | 30 min | 90 days |
 | L2 | ≤ 4 | z1 | 1 day | one per year | SED ≤ 2 km, at least one point per 10 min while moving | 60 min | forever |
 
-- **SED simplification** keeps the time-interpolated position within the tolerance, so animation timing stays correct. Gaps longer than the limit split the segment. The client draws them as gaps and never interpolates across them.
+- **SED simplification** keeps the time-interpolated position within the tolerance, so animation timing stays correct. Gaps longer than the limit split the segment, and the sealed data keeps that split.
+- **The client may bridge a short silence** (up to 20 min) between two segments of the same entity. It draws the bridge as a straight run, dimmer than measured track, so sparse polling (anonymous OpenSky every 15 min, adsb.lol every 10) and hour boundaries don't read as teleporting. Longer gaps stay gaps, and after its last fix an entity is held, fading, for 15 min.
 - **Aircraft get 4 minutes rather than 2.** OpenSky is polled every 90 s, so one missed poll leaves a 3-minute gap.
 - **Segments that cross the antimeridian** are split into two segments.
 - **Segment row:** `(bucket, entity_id, part)` → `class`, `category`, `label`, `source_mask`, `n`, `points`, `flags`. `part` numbers the pieces that gap and antimeridian splits leave in one bucket. A 3-D R\*Tree indexes `(lon, lat, t)`, with exact filters on the row: the R\*Tree stores 32-bit floats, so epoch ms round outward to about 2 minutes.
@@ -418,12 +427,16 @@ The client loads buckets that overlap the visible timeline window and prefetches
   - `v` is the bucket's `sealed_at`, from the manifest. With it the response is `immutable`; without it, it's cached for 60 s. A global layer version would have changed every old bucket's URL on each hourly seal.
   - `p` is explained in §8.7.
   - An hour that isn't sealed yet answers `404 not_sealed`, until the worker serves the open hour.
-- *Built:* the codecs (`@takip/core/trk`, browser-safe), the store and the routes (`apps/api/src/replay/`). *Not built:* the client layer below.
+- *Built:* the codecs (`@takip/core/trk`, browser-safe), the store and the routes (`apps/api/src/replay/`), and the client below.
 - **Sizes:**
   - A busy z7 tile for one hour at L0 is about 0.3–1 MB.
   - The whole world for one day at L2 is about 6–10 MB.
   - For comparison, today's live `/api/flights` sends about 3 MB of JSON per poll.
-- **Client:** decodes into typed arrays and uploads them once. A custom MapLibre layer, like the existing `sat-3d`, interpolates at time `T` in the vertex shader and draws trails over `[T − trail, T]`. Per frame, the only cost is a uniform update.
+- **Client:** decodes into typed arrays. A custom MapLibre layer (`src/lib/replay/track-layer.ts`, using the same projection prelude as `sat-3d`) draws trails over `[T − trail, T]`.
+  - *As built,* positions are interpolated on the CPU, a binary search per entity into a reused `Float32Array`. They're drawn as instanced quads shaped in the fragment shader: planes, ship arrows, and ship dots below zoom 6.
+  - Trail vertices carry times as offsets from a per-buffer base, because float32 can't hold epoch seconds.
+  - The first version redrew GeoJSON 8 times a second and froze a tab at about 40k points. This one leaves the renderer near idle.
+  - Interpolating in the vertex shader remains an option if the CPU pass ever shows up in a profile.
 
 ### 8.4 Event tiles
 
@@ -616,9 +629,12 @@ Move when **any** of these is true:
   - The TLE cache move became archive-derived: `tracks/tle.db` is filled from recorded CelesTrak payloads.
   - *Deferred:* the camera catalogue → `catalog.db` cameras, nominatim → `cache.db`, and the remaining seeds, which go with the importers.
 - **1c, partly built:** `apps/ingest` with the worker, connectors' `map()`, L0 sealing, L1 and L2, TLE loading, coverage and the source switches (§7.3, §7.6). Connectors still poll from Next.
-- **2, partly built:** `/api/replay/manifest`, `/tracks/…` and `/tle` in `apps/api`, plus the admin Sources page. *Not built:* event and feature tiles, histogram, series, docs, entity-at-time, the timeline UI, the GPU track layer and the nginx rules.
-- **Recording is on (2026-10-12 20:58 UTC)** in development: `TAKIP_ARCHIVE_DIR` and `TAKIP_WEB_URL` are in `.env.local`, and the worker runs beside `npm run dev`. Backfill is built for adsb.lol history and OpenSky (§7.7).
-- **Next:** the timeline controller and the GPU track layer, so recorded days can be watched. Then the open hour from the worker.
+- **2, partly built:** `/api/replay/manifest`, `/tracks/…` and `/tle` in `apps/api`, plus the admin Sources page, and the client.
+  - **Client:** a clock button under the zoom controls; a timeline bar in place of the status bar while replaying, with play, speeds from 1× to 1 year/s, a jump box ("1916", "2003-03-20", "500 BCE"), ranges from 24 h to all of history, and "not recorded" shading; and the WebGL track layer.
+  - *Not built:* event and feature tiles (the importer session is building the history route and layer), histogram, series, docs, entity-at-time, picking a replayed track, and the nginx rules.
+- **Recording is on (2026-10-12 20:58 UTC)** in development: `TAKIP_ARCHIVE_DIR` and `TAKIP_WEB_URL` are in `.env.local`, and the worker runs beside `npm run dev`. Backfill is built for adsb.lol history, OpenSky and USGS (§7.7).
+- **Earthquakes recorded since 2026-10-12** (USGS, M2.5+, with the 30 days before filled on first start). They replay through the importer session's history layer, which follows the `earthquakes` toggle; ships and aircraft follow their own toggles.
+- **Next:** historical events on the same timeline (importer session), clicking a replayed ship or aircraft, and the replay rate-limit bucket (backend session).
 
 ## 14. Risks and open questions
 

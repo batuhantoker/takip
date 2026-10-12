@@ -1,25 +1,30 @@
 import { existsSync } from 'node:fs';
 import { controlFile, writeControl } from '@takip/archive/control';
 import { archivedHours } from '@takip/archive/reader';
+import { Recorder } from '@takip/archive/recorder';
 import { DAY_MS, floorTo, HOUR_MS } from '@takip/core/time';
-import { LODS } from '@takip/core/tracks';
-import { LIVE_TRACK_SOURCES } from './connectors';
+import { isProvisional, LODS, SEAL_DELAY_MS } from '@takip/core/tracks';
+import { pollUsgs } from './backfill/usgs';
+import { EVENT_SOURCES, LIVE_TRACK_SOURCES } from './connectors';
 import type { IngestCtx } from './context';
 import { acquireLock, lockPath } from './lock';
 import { buildLod, lodDue } from './jobs/build-lod';
+import { eventRef, HOUR_SETTLED_MS, ingestEventHours } from './jobs/ingest-events';
 import { sealHours } from './jobs/seal-hours';
 import { ingestTleHour, tleRef } from './jobs/ingest-tle';
 import { startKeepalive } from './jobs/keepalive';
-import { SEAL_DELAY_MS, sealHour } from './jobs/seal-tracks';
+import { sealHour } from './jobs/seal-tracks';
 
 const TICK_MS = 60_000;
 /** Recorded hours sealed per tick, so a long catch-up still yields to the other jobs. Empty hours are free. */
 const MAX_SEALS = 6;
 const MAX_TLE_HOURS = 24;
+const MAX_EVENT_HOURS = 24;
 /** Coarser buckets are checked over this window each tick; older ones are rebuilt by `rebuild`. */
 const LOD_WINDOW_MS = 3 * DAY_MS;
-/** An archive hour stops changing once the recorder's last flush for it has landed. */
-const HOUR_SETTLED_MS = HOUR_MS + 5 * 60_000;
+/** How often the hours that aren't final yet are sealed provisionally, so replay reaches almost to now. */
+const PROVISIONAL_EVERY_MS = 5 * 60_000;
+const lastProvisional = new Map<string, number>();
 
 const writtenControl = new Map<string, string>();
 
@@ -32,9 +37,23 @@ export function syncControl(ctx: IngestCtx) {
   writtenControl.set(ctx.archiveDir, json);
 }
 
-export async function tick(ctx: IngestCtx) {
+/** Sources the worker fetches itself rather than through the web app's routes. */
+export type LiveFetch = { rec: Recorder; get?: typeof fetch };
+
+export async function tick(ctx: IngestCtx, live?: LiveFetch) {
   syncControl(ctx);
   const now = ctx.now();
+
+  // Its own try: a USGS outage mustn't hold up sealing.
+  if (live && ctx.catalog.source('usgs')?.record) {
+    try {
+      const hours = await pollUsgs(live.rec, ctx.archiveDir, { get: live.get, now: ctx.now, log: ctx.log });
+      const r = await ingestEventHours(ctx, 'usgs', hours);
+      if (r?.inserted || r?.changed || r?.retracted) ctx.log(`USGS: ${r.inserted} new, ${r.changed} revised and ${r.retracted} renamed quakes`);
+    } catch (error) {
+      ctx.log(`USGS poll failed: ${(error as Error).message}`);
+    }
+  }
 
   // Every hour from the first recorded day on is sealed, recorded or not: an hour without files becomes an
   // empty bucket with not_recording coverage, so the timeline shows the gap and L1/L2 can still complete.
@@ -44,7 +63,8 @@ export async function tick(ctx: IngestCtx) {
   if (recorded.size) {
     const first = floorTo(Math.min(...recorded), DAY_MS);
     const last = floorTo(now - SEAL_DELAY_MS, HOUR_MS);
-    const sealed = new Set(ctx.catalog.sealedBuckets(0, first, last + 1).map(b => b.bucket));
+    // Provisional seals don't count: once an hour is final it is sealed again.
+    const sealed = new Set(ctx.catalog.sealedBuckets(0, first, last + 1).filter(b => !isProvisional(0, b.bucket, b.sealedAt)).map(b => b.bucket));
     let withData = 0;
     let empty = 0;
     for (let hour = first; hour <= last && withData < MAX_SEALS; hour += HOUR_MS) {
@@ -58,6 +78,18 @@ export async function tick(ctx: IngestCtx) {
       }
     }
     if (empty) ctx.log(`sealed ${empty} hours with nothing recorded`);
+  }
+
+  // The hours not final yet, sealed early and again every few minutes, plus their incomplete L1 and L2 buckets.
+  if (recorded.size && now - (lastProvisional.get(ctx.archiveDir) ?? 0) >= PROVISIONAL_EVERY_MS) {
+    lastProvisional.set(ctx.archiveDir, now);
+    const first = Math.max(floorTo(now - SEAL_DELAY_MS, HOUR_MS) + HOUR_MS, floorTo(Math.min(...recorded), HOUR_MS));
+    const hours: number[] = [];
+    for (let hour = first; hour <= floorTo(now, HOUR_MS); hour += HOUR_MS) hours.push(hour);
+    for (const hour of hours) await sealHour(ctx, hour);
+    for (const lod of [1, 2] as const) {
+      for (const bucket of new Set(hours.map(h => floorTo(h, LODS[lod].bucketMs)))) buildLod(ctx, lod, bucket);
+    }
   }
 
   // Hours other processes queued (backfills, rebuilds): this worker is the one writer of identities and shards.
@@ -86,6 +118,16 @@ export async function tick(ctx: IngestCtx) {
       if (r) ctx.log(`TLEs ${iso(hour)}: ${r.inserted} new of ${r.records}`);
     }
   }
+
+  for (const code of Object.keys(EVENT_SOURCES)) {
+    const source = ctx.catalog.source(code);
+    if (!source?.build) continue;
+    const due = (await archivedHours(ctx.archiveDir, code))
+      .filter(h => h + HOUR_SETTLED_MS <= now && !ctx.catalog.hasRun(source.sourceId, eventRef(code, h)))
+      .slice(0, MAX_EVENT_HOURS);
+    const r = await ingestEventHours(ctx, code, due);
+    if (r) ctx.log(`${code}: loaded ${due.length} hours, ${r.inserted} new and ${r.changed} revised events of ${r.records}`);
+  }
 }
 
 const iso = (t: number) => new Date(t).toISOString().slice(0, 16);
@@ -95,6 +137,7 @@ export async function runWorker(ctx: IngestCtx, { webUrl }: { webUrl?: string })
   // Sources not in the catalogue default to on, as the recorder treats them.
   const recording = (code: string) => ctx.catalog.source(code)?.record ?? true;
   const stopKeepalive = webUrl ? startKeepalive(webUrl, recording, ctx.log) : undefined;
+  const rec = new Recorder({ dir: ctx.archiveDir, log: ctx.log }).start();
   ctx.log(`worker started (archive ${ctx.archiveDir}${webUrl ? `, keeping ${webUrl} polling` : ''})`);
   let stopping = false;
   let wake: (() => void) | undefined;
@@ -107,7 +150,7 @@ export async function runWorker(ctx: IngestCtx, { webUrl }: { webUrl?: string })
   try {
     while (!stopping) {
       try {
-        await tick(ctx);
+        await tick(ctx, { rec });
       } catch (error) {
         ctx.log(`tick failed: ${(error as Error).stack ?? error}`);
       }
@@ -121,6 +164,7 @@ export async function runWorker(ctx: IngestCtx, { webUrl }: { webUrl?: string })
     }
   } finally {
     stopKeepalive?.();
+    await rec.close();
     release();
     ctx.close();
     ctx.log('worker stopped');

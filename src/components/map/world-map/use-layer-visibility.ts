@@ -11,9 +11,11 @@ interface LayerVisibilityArgs {
   setVis: (ids: string[], visible: boolean) => void;
   satRowsRef: RefObject<SatelliteRow[]>;
   satLayerRef: RefObject<SatelliteLayer | null>;
+  /** Replay draws ships and aircraft itself; the live ones hide meanwhile. */
+  replayActive?: boolean;
 }
 
-export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef }: LayerVisibilityArgs) {
+export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef, replayActive = false }: LayerVisibilityArgs) {
   // Visibility
   useEffect(() => {
     if (!mapReady) return;
@@ -34,10 +36,10 @@ export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, sat
     setVis(['network-mesh-atmo', 'network-mesh-glow', 'network-mesh-core'], activeLayers.internet_outages || activeLayers.malware);
     setVis(['cyber-heads','cyber-labels'], (activeLayers as any).cyber_attacks);
     setVis(['day-night-fill'], activeLayers.day_night);
-    setVis(['fl-commercial'], activeLayers.flights);
-    setVis(['fl-private'], activeLayers.private);
-    setVis(['fl-jets'], activeLayers.jets);
-    setVis(['fl-military'], activeLayers.military);
+    setVis(['fl-commercial'], activeLayers.flights && !replayActive);
+    setVis(['fl-private'], activeLayers.private && !replayActive);
+    setVis(['fl-jets'], activeLayers.jets && !replayActive);
+    setVis(['fl-military'], activeLayers.military && !replayActive);
     setVis(['cctv-glow','cctv-dots','cctv-label'], activeLayers.cctv);
     setVis(['fires-heat'], activeLayers.fires);
     setVis(['weather-glow','weather-dots','weather-label'], activeLayers.weather);
@@ -46,7 +48,7 @@ export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, sat
     setVis(['infra-glow','infra-dots','infra-label'], activeLayers.infrastructure);
     setVis(['maritime-glow','maritime-dots','maritime-label'], activeLayers.maritime);
     setVis(['choke-glow','choke-dots','choke-label'], activeLayers.maritime);
-    setVis(['ship-dots','ship-arrows','ship-label'], activeLayers.maritime);
+    setVis(['ship-dots','ship-arrows','ship-label'], activeLayers.maritime && !replayActive);
     const shipsShown = shipFilter(activeLayers);
     for (const id of ['ship-dots','ship-arrows','ship-label']) {
       if (mapRef.current?.getLayer(id)) mapRef.current.setFilter(id, shipsShown);
@@ -71,5 +73,5 @@ export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, sat
     setVis(['sdk-intel','sdk-intel-glow','sdk-intel-atmo'], activeLayers.sdk_naval !== false);
     // Sweep layers always visible when data is present (controlled by useEffect)
     setVis(['sweep-connections','sweep-pulse-ring','sweep-device-glow','sweep-device-dots','sweep-device-labels'], true);
-  }, [mapReady, activeLayers, setVis, mapRef, satRowsRef, satLayerRef]);
+  }, [mapReady, activeLayers, setVis, mapRef, satRowsRef, satLayerRef, replayActive]);
 }

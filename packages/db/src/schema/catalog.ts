@@ -377,4 +377,12 @@ export const CATALOG: string[] = [
     FROM meta_licence WHERE code = 'adsblol-odbl'
   ON CONFLICT (code) DO NOTHING;
   `,
+  // USGS earthquakes (US federal work, public domain): the worker polls the M2.5+ feed into history.db events.
+  `
+  INSERT INTO meta_source (code, name, owner, url, licence_id, delivery, refresh_ms, event_table)
+    SELECT 'usgs', 'USGS earthquake catalogue', 'U.S. Geological Survey', 'https://earthquake.usgs.gov/fdsnws/event/1/',
+      licence_id, 'poll', 600000, 'event'
+    FROM meta_licence WHERE code = 'public-domain'
+  ON CONFLICT (code) DO NOTHING;
+  `,
 ];

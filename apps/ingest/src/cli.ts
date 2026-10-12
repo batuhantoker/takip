@@ -1,11 +1,15 @@
 import { writeControl } from '@takip/archive/control';
+import { Recorder } from '@takip/archive/recorder';
 import { DAY_MS, floorTo, HOUR_MS } from '@takip/core/time';
 import { LODS } from '@takip/core/tracks';
 import { openIngest } from './context';
 import { ingestEnv, loadEnvFiles } from './env';
 import { backfillDay, HISTORY_SOURCE } from './backfill/adsblol-history';
 import { backfillOpenSky } from './backfill/opensky';
+import { backfillUsgs } from './backfill/usgs';
+import { MIN_MAG } from './connectors/usgs';
 import { buildLod } from './jobs/build-lod';
+import { ingestEventHours } from './jobs/ingest-events';
 import { ingestTleHour } from './jobs/ingest-tle';
 import { sealOrQueue } from './jobs/seal-hours';
 import { runWorker } from './worker';
@@ -19,6 +23,8 @@ const USAGE = `npm run ingest -- <command>
   backfill adsblol-history <day> [last day]
                                  stream adsb.lol's published history for whole UTC days (~3 GB each, ODbL)
   backfill opensky <from> [to]   past state vectors, up to 1 h back; needs an OpenSky account
+  backfill usgs <from> [to] [min magnitude]
+                                 USGS earthquakes since 1900 into history.db (default M2.5; to defaults to now)
   lod <1|2> <from> [to]          build L1 or L2 buckets
   tle <from> [to]                load archived CelesTrak hours into tracks/tle.db
   sources                        list sources and their record/build switches
@@ -89,7 +95,20 @@ async function main([command, ...args]: string[]) {
           console.log(`OpenSky: ${r.calls} calls`);
           return report(await sealOrQueue(ctx, r.hours, 'backfill opensky', { lods: true }));
         }
-        throw new Error(`no backfill for ${source ?? '(none)'}: adsblol-history and opensky have one (replay-database.md §7.7)`);
+        if (source === 'usgs') {
+          if (!rest[0]) throw new Error('name the start, e.g. backfill usgs 2026-01-01 (M2.5+ is a few thousand quakes a month)');
+          const minMag = rest[2] ? Number(rest[2]) : MIN_MAG;
+          if (!Number.isFinite(minMag)) throw new Error(`not a magnitude: ${rest[2]}`);
+          if (!ctx.catalog.source('usgs')?.record) throw new Error('usgs recording is switched off; the archive would drop every answer');
+          const rec = new Recorder({ dir: ctx.archiveDir, log: m => console.log(m) });
+          const r = await backfillUsgs(rec, parseTime(rest[0], now), rest[1] ? parseTime(rest[1], now) : now, { minMag, log: m => console.log(m) });
+          await rec.close();
+          const loaded = await ingestEventHours(ctx, 'usgs', r.hours);
+          console.log(`USGS: ${r.calls} requests; ${loaded ? `${loaded.inserted} new and ${loaded.changed} revised quakes of ${loaded.records}` : 'usgs is switched off (build)'}`);
+          if (r.failed) process.exitCode = 1;
+          return;
+        }
+        throw new Error(`no backfill for ${source ?? '(none)'}: adsblol-history, opensky and usgs have one (replay-database.md §7.7)`);
       }
       case 'lod': {
         const lod = Number(args[0]);

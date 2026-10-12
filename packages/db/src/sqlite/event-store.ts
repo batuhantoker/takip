@@ -202,6 +202,17 @@ export class SqliteEventStore implements EventStore {
     return n;
   }
 
+  retract(sourceId: number, recordIds: readonly string[], now = Date.now()) {
+    const retract = this.sql(`
+      UPDATE ev_event SET retracted_at = ?, rev = rev + 1, updated_at = ? WHERE source_id = ? AND source_record_id = ? AND retracted_at IS NULL
+    `);
+    let n = 0;
+    this.db.transaction(() => {
+      for (const key of recordIds) n += retract.run(now, now, sourceId, key).changes;
+    })();
+    return n;
+  }
+
   eventId(sourceId: number, sourceRecordId: string) {
     return this.sql(`SELECT event_id FROM ev_event WHERE source_id = ? AND source_record_id = ?`).pluck().get(sourceId, sourceRecordId) as
       | number

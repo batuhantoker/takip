@@ -90,7 +90,8 @@ describe('/api/replay', () => {
     const m = (await res.json()) as Manifest;
     // A 6 hour window ends at now, whatever was asked for.
     expect(m.from).toBe((NOW - 6 * 3_600_000) / 1000);
-    expect(m.tracks.lods[0].buckets).toEqual([[H / 1000, SEALED_AT]]);
+    // Sealed at H+2:05, so final rather than provisional.
+    expect(m.tracks.lods[0].buckets).toEqual([[H / 1000, SEALED_AT, 0]]);
     expect(m.coverage).toEqual([expect.objectContaining({ source: 'aisstream', status: 'ok' })]);
     expect(m.attribution).toContain('The OpenSky Network, https://opensky-network.org');
     expect(m.token).toMatch(/^[0-9a-f]{12}$/);

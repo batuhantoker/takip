@@ -11,8 +11,7 @@ import { buildSegments, dedupe, type Fix } from '../tracks/segments';
 /** Bump when segment building changes, so rebuilt buckets are told apart from old ones. */
 export const BUILD_VERSION = 1;
 
-/** Hour H is sealed at H+2:05: fixes for H can arrive in H+1's file (§7.3). */
-export const SEAL_DELAY_MS = 2 * HOUR_MS + 5 * 60_000;
+export { SEAL_DELAY_MS } from '@takip/core/tracks';
 
 export const TRACK_LAYERS = ['tracks:vessel', 'tracks:aircraft'];
 
@@ -53,7 +52,7 @@ export async function sealHour(ctx: IngestCtx, hour: number): Promise<SealSummar
         if (fileHour === hour) count(stats, line);
         if (!isEnvelope(line) || !source.build) continue;
         for (const obs of connector.map(line)) {
-          if (obs.shape === 'tle') continue;
+          if (obs.shape === 'tle' || obs.shape === 'event') continue;
           const key = `${obs.scheme}:${obs.key}`;
           if (obs.shape === 'state') {
             // Static data from either file describes the hour well enough; it changes over voyages, not minutes.

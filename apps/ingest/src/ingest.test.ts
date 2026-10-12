@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { GB, Recorder } from '@takip/archive/recorder';
 import { HOUR_MS } from '@takip/core/time';
 import { lonLatToTile, tileBbox } from '@takip/core/tiles';
-import { AIRCRAFT_CATEGORIES, TrackClass, TrkFlag, VESSEL_CATEGORIES } from '@takip/core/tracks';
+import { AIRCRAFT_CATEGORIES, isProvisional, TrackClass, TrkFlag, VESSEL_CATEGORIES } from '@takip/core/tracks';
 import { decodeChunk, decodeTrk1 } from '@takip/core/trk';
 import { dataLayout, SqliteTrackStore } from '@takip/db';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -234,8 +234,10 @@ describe('sealing from the archive', () => {
     now = Date.parse('2026-10-12T19:05:00Z');
     await tick(ctx);
     const sealed = ctx.catalog.sealedBuckets(0, day, day + 86_400_000);
-    // From the first recorded day's midnight to 17:00, the last hour that is 2:05 old.
-    expect(sealed.map(b => new Date(b.bucket).getUTCHours())).toEqual([...Array(18).keys()]);
+    // Final from the first recorded day's midnight to 17:00, the last hour 2:05 old; 18:00 and 19:00 provisional.
+    const hourOf = (b: { bucket: number }) => new Date(b.bucket).getUTCHours();
+    expect(sealed.filter(b => !isProvisional(0, b.bucket, b.sealedAt)).map(hourOf)).toEqual([...Array(18).keys()]);
+    expect(sealed.filter(b => isProvisional(0, b.bucket, b.sealedAt)).map(hourOf)).toEqual([18, 19]);
     expect(sealed.find(b => b.bucket === H + HOUR_MS)?.segments).toBe(0);
     expect(ctx.catalog.coverage(H + HOUR_MS, H + 2 * HOUR_MS).find(c => c.source === 'aisstream')?.status).toBe('not_recording');
     // 12:00–18:00 was built in the same tick, now that all six of its hours are sealed.
@@ -245,8 +247,9 @@ describe('sealing from the archive', () => {
   it('runs a worker tick: seals settled hours only, loads TLEs and writes the control file', async () => {
     await recordHour();
     await tick(ctx);
-    // H+1 has a file (the late OpenSky poll) but is not 2:05 old yet.
-    expect(ctx.catalog.sealedBuckets(0, H, H + 2 * HOUR_MS).map(b => b.bucket)).toEqual([H]);
+    // H is final; H+1 has a file (the late OpenSky poll) but isn't 2:05 old yet, so it is only provisional.
+    const sealed = ctx.catalog.sealedBuckets(0, H, H + 2 * HOUR_MS);
+    expect(sealed.map(b => [b.bucket, isProvisional(0, b.bucket, b.sealedAt)])).toEqual([[H, false], [H + HOUR_MS, true]]);
     expect(ctx.catalog.hasRun(4, 'celestrak/2026-10-12T13')).toBe(true);
     const control = JSON.parse(readFileSync(join(dir, 'archive', 'control.json'), 'utf8'));
     expect(control.sources.aisstream).toEqual({ record: true });

@@ -124,6 +124,7 @@ describe('SqliteCatalogStore', () => {
     );
     expect(s.dirtyBuckets(0, 10)).toEqual([H + 3_600_000]);
     expect(s.source('adsblol-history')).toMatchObject({ delivery: 'bulk', trackBit: 4 });
+    expect(s.source('usgs')).toMatchObject({ delivery: 'poll', trackBit: null, record: true, build: true });
   });
 
   it('publishes a sealed bucket with its shard and bumps layer versions', () => {

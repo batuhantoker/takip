@@ -48,6 +48,15 @@ export const LODS: Record<Lod, LodSpec> = {
   2: { bucketMs: DAY_MS, shard: 'year', fetchZoom: 1, minZoom: 0, maxZoom: 5, scale: 1e4, sedM: 2000, minIntervalS: 0, maxIntervalS: 600, maxGapS: { vessel: 3600, aircraft: 3600 }, servedDays: Infinity },
 };
 
+/**
+ * Hour H is final at H+2:05: fixes for H can still arrive in H+1's file (§7.3). A bucket sealed before
+ * it is final is provisional, and is sealed again once it is.
+ */
+export const SEAL_DELAY_MS = 2 * HOUR_MS + 5 * 60_000;
+
+export const isProvisional = (lod: Lod, bucket: number, sealedAt: number) =>
+  sealedAt < bucket + LODS[lod].bucketMs - HOUR_MS + SEAL_DELAY_MS;
+
 /** The LOD drawn at a map zoom. */
 export const lodForZoom = (zoom: number): Lod => (zoom >= LODS[0].minZoom ? 0 : zoom >= LODS[1].minZoom ? 1 : 2);
 

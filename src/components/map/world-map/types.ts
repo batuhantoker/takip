@@ -4,6 +4,7 @@ import type { DrawAction, DrawMode, DrawProgress, DrawResult } from '@/lib/draw'
 import type { TerrainStatus } from '@/lib/map-terrain';
 import type { Highlight } from '@/lib/oi/assist/tools';
 import type { OiGlobe, OiHover } from '@/lib/oi/globe';
+import type { ReplaySession } from '@/lib/replay/session';
 import type { createSatelliteLayer } from '@/lib/satellite-layer';
 
 /** The catalogue fields the satellite layer and its popup actually read. */
@@ -30,6 +31,10 @@ export interface WorldMapProps {
   flyToLocation?: { lat: number; lng: number; zoom?: number; alertId?: string; duration?: number; ts: number } | null;
   /** Fires once, when the map has drawn its first complete frame. */
   onReady?: () => void;
+  /** Replay mode: ships and aircraft drawn at this session's clock instead of live. */
+  replay?: ReplaySession | null;
+  /** The clock button in the map controls. */
+  onReplayToggle?: () => void;
   /** Which Live Alerts to pin — the reports the feed is showing. Null pins them all. */
   alertPinIds?: string[] | null;
   projection?: 'mercator' | 'globe';
