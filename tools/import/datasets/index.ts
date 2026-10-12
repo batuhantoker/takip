@@ -17,6 +17,7 @@ import { importUcdp } from './ucdp';
 import { importWac1914 } from './wac1914';
 import { importWdi } from './wdi';
 import { importWw1 } from './ww1';
+import { importWw2Borders } from './ww2';
 
 /** Run order matters: later importers link to events earlier ones loaded (COW → WAC same_as, WW1 → WAC part_of). */
 export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
@@ -39,4 +40,5 @@ export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
   admin0: importAdmin0,
   'unesco-whc': importUnesco,
   glwd: importGlwd,
+  'ww2-borders': importWw2Borders,
 };

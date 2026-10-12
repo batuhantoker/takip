@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
 import { rampFor, readingAt, type SeriesPayload, yearAt } from '@/lib/history/series';
 import type { HistorySession } from '@/lib/history/session';
+import { hatchImage } from './hatch';
 import type { MapRef } from './types';
 
 /*
@@ -23,26 +24,13 @@ const STEP_YEARS = 0.02;
 
 const hasValue = ['==', ['typeof', ['feature-state', 't']], 'number'];
 
-/** 45° hairlines on transparent, 8 px repeat. */
-function hatch(): { width: number; height: number; data: Uint8Array } {
-  const size = 8;
-  const data = new Uint8Array(size * size * 4);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      if ((x + y) % size !== 0) continue;
-      data.set([138, 135, 127, 150], (y * size + x) * 4);
-    }
-  }
-  return { width: size, height: size, data };
-}
-
 /** Under the basemap's labels and every overlay, which all sit above its first symbol layer. */
 function beneath(map: maplibregl.Map) {
   return map.getStyle().layers?.find(l => l.type === 'symbol')?.id;
 }
 
 function addLayers(map: maplibregl.Map, dark: boolean) {
-  if (!map.hasImage(HATCH)) map.addImage(HATCH, hatch());
+  if (!map.hasImage(HATCH)) map.addImage(HATCH, hatchImage([138, 135, 127, 150]));
   if (!map.getSource(SOURCE)) map.addSource(SOURCE, { type: 'geojson', data: '/data/boundaries/countries.json', promoteId: 'id' });
   const before = beneath(map);
   const ramp = rampFor(dark);

@@ -153,6 +153,7 @@ Open data rarely includes true network topology, such as which substation feeds 
 | UCDP | Conflict events | OK |
 | ACLED | Conflict events | Paid |
 | Global Terrorism Database | Terrorist attacks | NC |
+| Stanford Spatial History Lab, European Borders WWII (already in) | Every European polity's borders and war status at each month's end, Feb 1938 – May 1945, plus 81 dated annexations; the History tab's wartime borders. Commercial use prohibited; inform the authors of changes | NC |
 | ReliefWeb | Humanitarian reports | OK\* |
 | HDX | Humanitarian datasets | Varies |
 | US State Dept, UK FCDO | Travel advisories | OK |

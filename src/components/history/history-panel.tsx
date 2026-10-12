@@ -6,6 +6,7 @@ import PanelCard from '@/components/shell/panel-card';
 import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES } from '@/lib/history-popup';
 import { VIEW_GROUPS } from '@/lib/history/country-view';
 import type { HistorySession } from '@/lib/history/session';
+import { WAR_LAYERS, type WarLayer } from '@/lib/history/war-layers';
 import IndicatorSearch from './indicator-search';
 import { useHistoryTick } from './use-history';
 
@@ -27,12 +28,15 @@ const MOMENTS = [
   { label: 'Berlin Wall falls', at: Date.UTC(1989, 10, 9) },
   { label: 'USSR dissolves', at: Date.UTC(1991, 11, 26) },
   { label: '9/11', at: Date.UTC(2001, 8, 11) },
+  { label: 'COVID-19 pandemic', at: Date.UTC(2020, 2, 11) },
 ];
 
 const SECTION = 'text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)] mb-2';
 const MORE = '__more';
 
-function Controls({ session }: { session: HistorySession }) {
+type FlyTo = (view: WarLayer['view']) => void;
+
+function Controls({ session, onFlyTo }: { session: HistorySession; onFlyTo?: FlyTo }) {
   useHistoryTick(session, 1000);
   const [searching, setSearching] = useState(false);
   const families = session.families();
@@ -40,6 +44,16 @@ function Controls({ session }: { session: HistorySession }) {
   const state = view.state();
   const code = state.status === 'off' ? '' : state.code;
   const curated = VIEW_GROUPS.some(g => g.views.some(v => v.code === code));
+  const layers = session.layers();
+  /** The war from its first month, a month a second, with its battles on; the borders already show the annexations. */
+  const play = (war: WarLayer) => {
+    session.setLayer(war.code, true);
+    session.setFamily('conflict', true);
+    session.clock.seek(war.start);
+    session.clock.setSpeed(30 * 86_400);
+    session.clock.play();
+    onFlyTo?.(war.view);
+  };
 
   return (
     <div className="p-4 flex flex-col gap-5">
@@ -66,6 +80,26 @@ function Controls({ session }: { session: HistorySession }) {
             );
           })}
         </ul>
+      </section>
+
+      <section>
+        <h3 className={SECTION}>Wartime borders</h3>
+        {WAR_LAYERS.map(war => (
+          <div key={war.code} className="px-2 py-1.5 rounded-md hover:bg-[var(--hover-accent)]">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" checked={layers.includes(war.code)} onChange={e => session.setLayer(war.code, e.target.checked)} className="mt-0.5 accent-[var(--gold-primary)]" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12.5px] text-[var(--text-primary)]">{war.label}</span>
+                <span className="block text-[11px] text-[var(--text-muted)]">Allies, Axis, occupied and neutral, month by month · {war.years}</span>
+              </span>
+            </label>
+            <button type="button" onClick={() => play(war)}
+              className="mt-1.5 ml-6 h-7 px-2.5 rounded-md border border-[var(--gold-primary)]/40 text-[11.5px] text-[var(--gold-light)] hover:bg-[var(--gold-primary)]/10">
+              Play {war.years}
+            </button>
+          </div>
+        ))}
+        <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">Showing borders replaces any country colouring.</p>
       </section>
 
       <section>
@@ -108,10 +142,10 @@ function Controls({ session }: { session: HistorySession }) {
 }
 
 /** The History tab: what the historical map shows. The mode itself starts when the tab opens and ends with LIVE. */
-export default function HistoryPanel({ session, onOpen, onClose }: { session: HistorySession | null; onOpen: () => void; onClose: () => void }) {
+export default function HistoryPanel({ session, onOpen, onClose, onFlyTo }: { session: HistorySession | null; onOpen: () => void; onClose: () => void; onFlyTo?: FlyTo }) {
   return (
     <PanelCard title="History" icon={Hourglass} onClose={onClose}>
-      {session ? <Controls session={session} /> : (
+      {session ? <Controls session={session} onFlyTo={onFlyTo} /> : (
         <div className="p-4">
           <p className="text-[12px] text-[var(--text-secondary)] mb-3">Wars, attacks and country statistics on a timeline back to 1500 and beyond.</p>
           <button type="button" onClick={onOpen}
