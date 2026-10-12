@@ -14,7 +14,7 @@ const limitHeaders = (res: Response) => ['RateLimit-Limit', 'RateLimit-Remaining
 let t: TestApp;
 
 beforeEach(async () => {
-  t = await startApp();
+  t = await startApp({}, undefined, { enforceLimits: true });
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-12T12:00:00.000Z'));
 });
@@ -67,6 +67,15 @@ describe('on /api/v1', () => {
     expect((await call('203.0.113.5')).headers.get('RateLimit-Limit')).toBe('2');
     expect((await call('203.0.113.6')).status).toBe(200);
     expect((await call('203.0.113.7')).status).toBe(429);
+  });
+
+  it('cover the public v1 routes, each counted under its own group', async () => {
+    for (const path of ['/api/v1/geo/search', '/api/v1/directions', '/api/v1/openapi.json', '/api/v1/docs', '/api/v1/no-such-route']) {
+      expect((await t.app.request(path, {}, from('203.0.113.5'))).headers.get('RateLimit-Limit'), path).toBe('10');
+    }
+    t.usage.flush();
+    expect(t.db.prepare('SELECT route_group FROM usage_counter ORDER BY route_group').pluck().all())
+      .toEqual(['directions', 'docs', 'geo', 'openapi.json', 'other']);
   });
 
   it('count refused requests as denied', async () => {

@@ -65,14 +65,15 @@ export const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 export type TestApp = Awaited<ReturnType<typeof startApp>>;
 
-export async function startApp(social: SocialEnv = {}, obs?: AppObs) {
+// Limits are off unless a test is about them: most tests send many requests from one in-memory client.
+export async function startApp(social: SocialEnv = {}, obs?: AppObs, { enforceLimits = false } = {}) {
   const db = openAppDb(':memory:');
   migrateAppSchema(db);
   const inbox = new Inbox();
   const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: 'q3Yp8vVx1kR7tLm2Zc9Wd4Hs6Nb0Fg5J', ...social }, inbox);
   const access = createAccess(db);
   const usage = createUsage(db);
-  const app = createApp({ auth, access, db, obs, usage });
+  const app = createApp({ auth, access, db, obs, usage, enforceLimits });
 
   const post = (path: string, body: unknown, { cookie = '', origin = ORIGIN } = {}) =>
     app.request(path, {

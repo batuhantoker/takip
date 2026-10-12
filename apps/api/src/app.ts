@@ -19,7 +19,7 @@ import { v1Routes } from './v1/openapi';
 
 export type AppObs = { logger?: Logger; metrics?: Metrics; metricsAllow?: readonly string[] };
 
-export function createApp({ auth, access, db, obs = {}, trust = ipTrust(), usage = createUsage(db) }: { auth: Auth; access: AccessResolver; db: AppDb; obs?: AppObs; trust?: IpTrust; usage?: Usage }) {
+export function createApp({ auth, access, db, obs = {}, trust = ipTrust(), usage = createUsage(db), enforceLimits = true }: { auth: Auth; access: AccessResolver; db: AppDb; obs?: AppObs; trust?: IpTrust; usage?: Usage; enforceLimits?: boolean }) {
   const { logger = silentLogger, metrics = createMetrics(), metricsAllow = [] } = obs;
   const app = new Hono();
   // Registered before every route: Hono runs handlers in registration order.
@@ -31,7 +31,7 @@ export function createApp({ auth, access, db, obs = {}, trust = ipTrust(), usage
   // Before the access middleware, so sign-in traffic never pays for a plan lookup.
   app.route('/api', authRoutes(auth));
   app.use('/api/v1/*', withAccess(auth, access));
-  app.use('/api/v1/*', rateLimit(usage), meter(usage));
+  app.use('/api/v1/*', rateLimit(usage, { enforce: enforceLimits }), meter(usage));
   app.route('/api/v1', accessRoutes(access));
   app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', v1Routes());

@@ -24,10 +24,17 @@ function setHeaders(c: Context, headers: Record<string, string>) {
  * owner's `api.requests_per_day`, which resets at UTC midnight (backend.md §5.3). Admitted requests are
  * counted here, before the handler, so concurrent requests can't overshoot the quota.
  */
-export function rateLimit(usage: Usage, { buckets = createTokenBuckets(), now = () => Date.now() }: { buckets?: TokenBuckets; now?: () => number } = {}) {
+export function rateLimit(
+  usage: Usage,
+  { buckets = createTokenBuckets(), now = () => Date.now(), enforce = true }: { buckets?: TokenBuckets; now?: () => number; enforce?: boolean } = {},
+) {
   return createMiddleware<AccessEnv>(async (c, next) => {
     const { principal, access } = c.var;
     const group = routeGroup(c);
+    if (!enforce) {
+      usage.admit(principal, group);
+      return next();
+    }
 
     if (principal.kind === 'key') {
       const limit = access.entitlements['api.requests_per_day'];
