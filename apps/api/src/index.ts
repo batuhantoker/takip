@@ -4,6 +4,7 @@ import { createTransport } from 'nodemailer';
 import { ipTrust } from './access/client-ip';
 import { createAccess } from './access/resolver';
 import { createUsage } from './access/usage';
+import { schedulePruneUsage, usageJobs } from './access/usage-prune';
 import { createApp } from './app';
 import { createAuth } from './auth/auth';
 import { billingJobs, scheduleReconcile } from './billing/reconcile';
@@ -37,7 +38,12 @@ const access = createAccess(db);
 const billing = billingProviderFor(env);
 const jobs = createJobQueue(db);
 if (billing) scheduleReconcile(jobs, Date.now());
-const stopJobs = createJobRunner(jobs, billingJobs({ db, access, provider: billing, queue: jobs, logger }), { logger }).start();
+schedulePruneUsage(jobs, Date.now());
+const retention = { days: env.USAGE_RETENTION_DAYS, anonDays: env.USAGE_ANON_RETENTION_DAYS };
+const stopJobs = createJobRunner(jobs, {
+  ...billingJobs({ db, access, provider: billing, queue: jobs, logger }),
+  ...usageJobs({ db, queue: jobs, retention, logger }),
+}, { logger }).start();
 
 const metrics = createMetrics({ defaults: true });
 const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage });

@@ -32,6 +32,9 @@ const schema = z
     API_HOST: z.string().default('127.0.0.1'),
     API_PORT: z.coerce.number().int().positive().default(4100),
     APP_DB_PATH: z.string().default(`${repoRoot}data/db/app.db`),
+    // Days of usage_counter kept for accounts and their keys, and for anonymous visitors.
+    USAGE_RETENTION_DAYS: z.coerce.number().int().positive().default(400),
+    USAGE_ANON_RETENTION_DAYS: z.coerce.number().int().positive().default(35),
     // The origin the browser sees (the web app), not this server's own address.
     BETTER_AUTH_URL: z.url().default('http://localhost:3000'),
     BETTER_AUTH_SECRET: z.string().min(32).optional(),
