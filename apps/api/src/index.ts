@@ -5,6 +5,7 @@ import { ipTrust } from './access/client-ip';
 import { createAccess } from './access/resolver';
 import { createUsage } from './access/usage';
 import { schedulePruneUsage, usageJobs } from './access/usage-prune';
+import { auditJobs, schedulePruneAudit } from './audit/audit-prune';
 import { createApp } from './app';
 import { createAuth } from './auth/auth';
 import { billingJobs, scheduleReconcile } from './billing/reconcile';
@@ -39,10 +40,12 @@ const access = createAccess(db);
 const jobs = createJobQueue(db);
 if (billing) scheduleReconcile(jobs, Date.now());
 schedulePruneUsage(jobs, Date.now());
+schedulePruneAudit(jobs, Date.now());
 const retention = { days: env.USAGE_RETENTION_DAYS, anonDays: env.USAGE_ANON_RETENTION_DAYS };
 const stopJobs = createJobRunner(jobs, {
   ...billingJobs({ db, access, provider: billing, queue: jobs, logger }),
   ...usageJobs({ db, queue: jobs, retention, logger }),
+  ...auditJobs({ db, queue: jobs, days: env.AUDIT_RETENTION_DAYS, logger }),
 }, { logger }).start();
 
 const metrics = createMetrics({ defaults: true });

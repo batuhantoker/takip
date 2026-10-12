@@ -385,6 +385,13 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
   - Bad API keys are throttled per address block (10 a minute).
   - The daily `usage.prune` job keeps usage for 400 days (accounts and keys) and 35 days (anonymous); set by `USAGE_RETENTION_DAYS` and `USAGE_ANON_RETENTION_DAYS`.
   - `app.onError` returns `{error:'internal_error', request_id}`. There's one CIDR parser, `net/cidr.ts`.
+- **The four decisions** (the user's answers, 2026-10-12):
+  - **Honest aviation lookups** (`fe2d82a`): adsbdb, hexdb and airplanes.live get `TAKIP_UA` and no `X-Forwarded-For`/`X-Real-IP`. `stealthFetch` itself stays for the CCTV adapters (`src/lib/cctv/*`), `/api/{conflicts,gdelt,weather}` and the `src/lib/stealthFetch.ts` shim.
+  - **No deletion while paying** (`1f56864`): `POST /api/auth/delete-user` answers 409 `subscription_active` before any email goes out, and `user.deleteUser.beforeDelete` checks again when the link is opened. Active means the resolver's rule, from a provider other than `manual`. The response's `billing_portal` says whether Settings can offer Manage billing.
+    - Not in `databaseHooks.user.delete.before`: Better Auth deletes sessions and accounts before that hook runs, outside a transaction, so refusing there locks the user out.
+    - The admin plugin's `removeUser` skips `beforeDelete`; nothing calls it over HTTP.
+  - **Encrypted OAuth tokens** (`9a38e7e`): `account.encryptOAuthTokens` covers access and refresh tokens. Better Auth never encrypts ID tokens, so an account hook drops them. Each boot clears plaintext tokens (`auth/oauth-tokens.ts`); on a copy of the dev DB that was one Google access token and one ID token. Rotating `BETTER_AUTH_SECRET` makes stored tokens unreadable, and nothing reads them.
+  - **Audit retention, 30 days** (this commit): a daily `audit.prune` job (`AUDIT_RETENTION_DAYS`). `docs/privacy-draft.md` now states 30 days.
 - The dev DB is at `user_version` 6.
 
 ### Landing branches here
@@ -392,12 +399,6 @@ Several sessions share one working copy, so `git merge` refuses whenever a merge
 - The dry run lists every file as clean, 3-way merged or conflicting, and writes conflict files with markers to a temp folder.
 - Resolve them into a folder and pass `--resolved=<dir>`, then `--apply`. The commit gets the branch's content; other sessions' edits stay unstaged in the working copy.
 - `--delete-dirty` lets a branch delete files that others have edited. Check those edits first.
-
-### Waiting on the user
-1. **`stealthFetch`:** drop the fake browser user agents and the made-up `X-Forwarded-For` sent to adsbdb, hexdb and airplanes.live? The lead recommends yes.
-2. **Account deletion with an active paid subscription:** refuse it until the subscription is cancelled (recommended), cancel at the provider, or document it.
-3. **OAuth tokens** are stored in plain text by Better Auth, and nothing of ours uses them: turn on `encryptOAuthTokens` (recommended).
-4. **Audit log retention period:** needed for the privacy text.
 
 ### Follow-ups
 - **Spoofable api IP without nginx.** Next's external rewrites pass the client's `X-Forwarded-For` through unchanged (httpxy without `xfwd`). In dev, or the Docker image without nginx, a client can choose its api IP. Fix: nginx in front, as planned, or a `src/proxy.ts` that strips forwarding headers on `/api/(auth|v1|admin|replay)`.
@@ -409,7 +410,6 @@ Several sessions share one working copy, so `git merge` refuses whenever a merge
   - the CIDR parsing is duplicated in `access/client-ip.ts` and `obs/peer-allow.ts`.
 - **Errors print twice** (Hono's default `onError` and pino); set `app.onError`.
 - **Region-dossier port** was blocked on another session's FCDO/UNHCR changes; they're committed now (`5953407`), so it can be ported.
-- **`stealthFetch`** sends adsbdb, hexdb and airplanes.live random browser user agents and made-up `X-Forwarded-For`/`X-Real-IP` headers (moved as-is for parity). Dropping them is recommended and awaits the user's answer.
 - **Coupling:** `/api/v1/satellites/orbit` reads the TLE cache the web app writes (`.next/cache/satellites-tle-cache.json`). It breaks if the api runs apart from Next; ingest's TLE should replace it.
 - **Production default:** `INTEL_URL` falls back to `http://takip-intel:4000` in production.
 - **Key scopes** exist (`requiresScope`), but no route needs one yet.
