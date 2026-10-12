@@ -172,7 +172,9 @@ html, body {
    opt out by rendering .docs-root, which releases the lock without affecting
    the map. */
 html:has(.docs-root),
-html:has(.docs-root) body {
+html:has(.docs-root) body,
+html:has(.admin-root),
+html:has(.admin-root) body {
   height: auto;
   overflow-x: hidden;
   overflow-y: auto;

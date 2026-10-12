@@ -1,0 +1,519 @@
+# History and replay database
+
+> **Status:** design, not built. Written 2026-10-12 and revised the same day to **SQLite first, PostgreSQL later**.
+> Companion files:
+> - [`replay-schema.sqlite.sql`](./replay-schema.sqlite.sql): the schema to build now.
+> - [`replay-schema.postgres.sql`](./replay-schema.postgres.sql): the migration target.
+> - [`dataset-import-map.md`](./dataset-import-map.md): how each raw dataset lands.
+> - [`backend.md`](./backend.md): services, auth, plans and entitlements, public API, admin, and the migration of the legacy routes.
+>
+> Builds on `ARCHITECTURE.md` (entity and observation formats, the seven rules), `TODO.md` §1 and §6, and `CCTV-handoff.md` §3, which already chose SQLite for cameras.
+
+## 1. Decisions
+
+| Topic | Decision |
+|---|---|
+| Engine now | **SQLite 3 in WAL mode, through `better-sqlite3`.** Several database files on local disk. No database server. |
+| Engine later | PostgreSQL + PostGIS (+ TimescaleDB), when one of the triggers in §12 is hit. Ids, track blobs, API and tile URLs stay the same. |
+| Portability | All SQL lives behind six store interfaces in `src/lib/db/`. The schema uses a subset that both engines support (§11), and one export command moves everything (§11.3). |
+| Raw archive | Hourly `ndjson.zst` per source, starting in phase 0. **This is the source of truth.** |
+| Spatial | R\*Tree, with time as an extra dimension, plus WKB geometry blobs. Clipping, simplification and MVT encoding are done in TypeScript. **No SpatiaLite** (a native extension that's hard to package on Alpine). |
+| Search | FTS5. The trigram tokenizer handles names and aliases. |
+| Analysis | DuckDB, optional and later. It reads SQLite files and `ndjson.zst` directly, so nothing needs exporting. |
+| Unchanged from the first design | Self-hosted on a NUC (≤16 GB, ~1 TB); one timeline from 10,000 BCE to now; tiered track retention; camera catalogue history; places and infrastructure with validity; licence gating per tier; smooth playback with trails; TypeScript everywhere; recording starts now; a few users. |
+
+## 2. Why SQLite now, and its limits
+
+- **It fits the workload.**
+  - There is one host, one writer process (the ingest worker) and several readers (the web app). That is exactly what WAL mode is designed for.
+  - With no server, nothing has to be configured, upgraded or held in memory. The NUC's RAM goes to the OS page cache instead.
+  - **A file is the unit of everything:** retention means deleting a file, a backup is a copy, and migration reads one file at a time.
+- **The write load is small.** The database never sees individual positions (§7.3). Tracks arrive as sealed hourly segments, about 30k rows per hour. Everything else adds up to a few hundred rows per second at peak.
+- **What it can't do,** each of which is a reason to move later (§12):
+  - writers on more than one host;
+  - spatial analysis beyond bounding boxes (polygon intersections over large sets, buffers);
+  - built-in compression;
+  - many concurrent queries that miss the cache.
+
+## 3. Principles
+
+1. **The raw archive is the source of truth, and the database is derived from it.** Track segments are a pure function of the archive's hours, so live sealing and rebuilds run the same code.
+2. **Every source maps to one or more of five shapes:**
+
+   | Shape | What it holds | Tables |
+   |---|---|---|
+   | Track | Moving entities: ships, aircraft. Satellites are stored as orbits, not positions. | `trk_*` |
+   | Event | Something that happened at a time, optionally at a place; an instant or an interval | `ev_*` |
+   | Series | Numbers over time for one subject: country-year indicators, conflict-year deaths, prices | `ts_*` |
+   | Feature | Geometry with a validity period: places, infrastructure, lakes, borders | `geo/*` files, plus `core_entity` for features with an identity |
+   | Document | Text or media that serves as evidence for events and entities | `doc_*` |
+
+   Catalogues are current state plus versioned history. They apply to cameras (`cam_*`), slowly changing entity attributes (`core_entity_version`) and track state (`trk_state`).
+3. **Store data in the format it's served in.** A track chunk is the stored blobs concatenated together. Sealed time buckets never change, so their responses can be cached forever.
+4. **Filter time in the browser.** Tiles carry `t0`/`t1` properties, so scrubbing changes a filter or a GPU uniform without making a request.
+5. **Missing is never zero.** Each source has coverage intervals, and each imported dataset declares its gaps. The timeline shows both.
+6. **Canonical core, full-fidelity extensions.** Core tables hold the fields that cross datasets. Wide datasets keep their other columns in typed extension tables, such as `x_gtd_incident`.
+7. **Files are partitions.**
+   - Data that has a time axis and a retention period goes into time-sharded files.
+   - Each static layer version is one file.
+   - Sealing, dropping, backing up and migrating are all file operations.
+
+## 4. Files and topology
+
+Service names and the API layer are defined in [`backend.md`](./backend.md). Replay, tiles and live data are served by `api` (Hono), not by the Next app.
+
+```text
+                         ┌───────────────────────────────── NUC ─────────────────────────────────┐
+ upstreams ──► ingest (TS worker)                                                                │
+  AIS ws,      ├─ connectors ─► recorder ─► data/archive/raw/{src}/YYYY/MM/DD/HH.ndjson.zst      │
+  OpenSky,     ├─ map + resolve ids (in-memory id cache)                                         │
+  CCTV, …      ├─ batch writer ─────► data/db/catalog.db, history.db, stream/*.db                │
+               ├─ seal jobs (read the archive) ─► data/db/tracks/**.db                           │
+               └─ live state + open-hour tracks (memory) ──internal WS/HTTP──┐                    │
+                                                                             ▼                    │
+ browser ◄── nginx (cache) ◄── api (Hono: read-only handles + worker-thread pool) ◄── data/db    │
+            └── web (Next.js UI) ── calls api                                                     │
+ importers (npm run import <dataset>) ─► data/db/stage/<dataset>.db ─► history.db, geo/*.db      │
+                         └───────────────────────────────────────────────────────────────────────┘
+```
+
+### 4.1 File layout
+
+```text
+data/
+  archive/raw/{source}/YYYY/MM/DD/HH.ndjson.zst   raw envelopes, 90 days
+  db/
+    catalog.db                  meta_*, core_*, cam_*, geo_layer        small, mutable
+    history.db                  ev_* (curated), ts_* (historical), doc_*, agg_timeline_bin, x_*
+    geo/{layer}@{version}.db    one file per reference layer version    read-only once built
+    stream/YYYY-MM.db           ev_event_stream, ts_point_hf, ts_grid_frame, agg_event_cell
+    tracks/l0/YYYY/MM/DD.db     segments for 1 day at full resolution, plus trk_state
+    tracks/l1/YYYY-MM.db        segments for 1 month at L1
+    tracks/l2/YYYY.db           segments for 1 year at L2
+    tracks/tle.db               full TLE history
+    cache.db                    disposable: geocoder answers, HTTP caches
+    stage/{dataset}.db          disposable: importer staging
+  cold/tracks/l0/...            L0 shards older than 14 days: kept, not served
+  media/ab/cd/{sha256}          content-addressed media
+  tiles/{layer}@{version}.mbtiles   optional pre-baked tiles (MBTiles is SQLite)
+  cache/                        nginx response cache
+```
+
+`catalog.meta_shard` lists every sharded file: its path, kind, LOD, period, status (`open`, `sealed`, `cold`), byte count, row count and checksum. The API uses it to find files, and backups and migrations use it as their manifest.
+
+### 4.2 Who writes what
+
+| File | Writers | Readers |
+|---|---|---|
+| `catalog.db` | Ingest worker (entities, cameras, runs, coverage) and importers (polities, organisations, datasets). All transactions are short. | api, worker |
+| `history.db` | Importers, and the worker for live events that get revised (quakes, alerts, C2 servers, outages) | api |
+| `geo/*.db` | Importers only. They build a new file, then publish by renaming it. | api |
+| `stream/*.db` | Worker | api |
+| `tracks/**` | Worker seal jobs | api |
+| `cache.db` | api | api |
+| `app.db` (accounts, billing, workspaces; [`backend.md`](./backend.md) §12) | api | api |
+
+- **Each file has at most one writer at a time.** Writes to `catalog.db` from both the worker and an importer are serialised by `busy_timeout`, and every transaction there stays under about 50 ms.
+- **Bulk loads never touch `catalog.db` in one long transaction.** Importers stage into their own file, then write in batches of about 5k rows.
+- **SQLite gives no atomicity across files.** Writers therefore follow a fixed order: entities first, facts second, publication flag last. Every step is idempotent, so a failed run is simply run again.
+
+### 4.3 Docker
+
+- **`./data` is bind-mounted into `api`, `ingest` and `web`,** owned by uid 1001. Nothing may write inside `/app`, which is owned by root.
+- **WAL needs a local filesystem shared by processes on the same host.** A bind mount on the NUC's disk works. NFS and SMB do not. On macOS, run development natively rather than over Docker Desktop bind mounts.
+- **`better-sqlite3` is a native module.**
+  - `api`, `ingest` and `cli` load it directly.
+  - Next only needs it during the phase-0 to 1a transition, through `serverExternalPackages`.
+  - Check that its musl prebuild installs on `node:22-alpine`. If it doesn't, add `python3 make g++` to the builder stage.
+- **Memory:** there is no database container any more. The per-service budget is in [`backend.md`](./backend.md) §15. It totals about 5.3 GB, which leaves about 10 GB for the OS page cache that SQLite reads through.
+
+## 5. Time model
+
+Every row that has a time uses the same columns.
+
+| Column | Type | Meaning |
+|---|---|---|
+| `t_start`, `t_end` | `INTEGER` | The stated time, as epoch milliseconds UTC. BCE dates are negative; 10,000 BCE is about −3.8e14, well inside JS's ±8.64e15. A null `t_end` means an instant. |
+| `t_start_prec`, `t_end_prec` | `INTEGER` | 0 unknown, 1 millennium, 2 century, 3 decade, 4 year, 5 month, 6 day, 7 hour, 8 minute, 9 second |
+| `ongoing` | `INTEGER` 0/1 | Still open at the dataset's `as_of` date |
+| `t_lo`, `t_hi` | `INTEGER` | The **expanded** interval the record covers. A `1917-05` start with month precision has `t_lo = 1917-05-01`, and its `t_hi` is the end of May. When `ongoing` is set, `t_hi` is 8.64e15. These are the columns indexed in the R\*Tree. |
+| `valid_lo`, `valid_hi` | `INTEGER` | Validity of versions and identifiers. `valid_hi` null means still valid; `valid_lo = −8.64e15` means valid since forever. |
+
+Rules:
+- **Sentinels never become fake dates.** GTD month and day `0`, ICOW `00` and `200199`, COW `-8`/`-9`, `ONGOING`, `-1` and `DAM_YEAR 0` become null or a lower precision, and the original goes into `attrs.t_raw`.
+- **Each dataset has an `as_of` date.**
+- **Observation, publication, ingest and validity times are kept separate.** Ships carry only the time we received each message, so their rows get `flags.t_is_receive`.
+- **On the wire, times are epoch seconds as float64.** Inside binary chunks, times are offsets from the start of the bucket.
+
+## 6. Identity model
+
+Follows `ARCHITECTURE.md` "Entities". The tables are in `catalog.db`.
+
+- **`core_entity` holds every identifiable thing:** vessel, aircraft, satellite, camera, airport, port, facility, heritage site, waterbody, polity, region group, organisation, instrument, public person.
+- **`core_entity_identifier(scheme, value, valid_lo, valid_hi)`** has the primary key `(scheme_id, value, valid_lo)`.
+  - **Identifier reuse has a time dimension.** That covers MMSI reuse, re-registered ICAO24 addresses and country codes. For example, COW code `365` maps to the Russian Empire before 1917, the USSR from 1922 to 1991, and Russia after that.
+  - **The writer refuses overlapping validity periods,** and `npm run db:check` checks for them. Postgres would enforce this with an `EXCLUDE` constraint.
+- **One resolver:** `resolve(scheme, value, at)`. The ingest worker keeps a hot in-memory copy (about 300k ids, about 30 MB). Importers resolve with SQL joins against the staging file attached with `ATTACH`. Anything unresolved goes to the staging file's `unresolved` table and is reported.
+- **Names:** `core_entity_name` holds every name, plus a normalised column (lower-case, diacritics removed in TS) and a trigram FTS5 index. Aliases are seeded from every variant found in the datasets.
+- **Polities and borders:**
+  - Modern borders come from Natural Earth admin-0, as layer `admin0` in `geo/`.
+  - Historical polities are drawn through `core_polity_render`: the USSR colours its 15 successor shapes.
+  - Historical borders (CShapes) can be added later as time-valid features.
+  - **Aggregates are region groups, not polities.** `core_region_member` lists their members.
+- **Links:** `core_entity_link` holds part-of, located-in, operates and successor-of, the dependency relations feeds, connects and serves, and same-as.
+
+## 7. Ingest
+
+### 7.1 Phase 0: record now, before any database
+
+This runs inside the existing Next process, because that is where the payloads are today. A second poller would also double the OpenSky quota.
+
+- **A `recorder.append(source, envelope)` function with a bounded queue.**
+  - A single writer appends to `data/archive/raw/{source}/YYYY/MM/DD/HH.ndjson.zst`. It writes a zstd frame every 10 s and rotates on the hour.
+  - The frames are independent, so a reader can decode a file that's still open.
+  - It uses `node:zlib` zstd (Node 22.15 or later), falling back to gzip.
+  - It is enabled by `OSIRIS_ARCHIVE_DIR`, and is off by default in development.
+- **Envelope:** `{"v":1,"src":"opensky","at":<ms>,"url":"<keys stripped>","status":200,"etag":null,"ms":812,"sha256":"…","body":{…}}`. For AIS, each WebSocket frame is one line.
+- **Taps:**
+
+  | Tap | Source(s) |
+  |---|---|
+  | `flights/route.ts` fetch (l.319–471) | OpenSky (full `states/all`, **keeping `time_position`/`last_contact`**), adsb.fi |
+  | `maritime/route.ts` `applyAisMessage` (l.147) | aisstream frames |
+  | `satellites/route.ts` refresh | CelesTrak TLE sets |
+  | `cctv/catalog-refresh.ts` `persistCatalogue` | Per-region camera lists |
+  | `cachedSource` fetcher (`lib/sourceCache.ts:49`) | Weather events, news/Telegram, markets |
+  | `gdeltEvents.ts` export fetch | GDELT 15-minute exports |
+  | `fires`, `earthquakes`, `cloudflare-radar`, `cyber-attacks`, `malware` polls | FIRMS, USGS, Radar, Feodo, URLhaus |
+  | `weather-grid` `fetchForecast` | Open-Meteo |
+
+- **Nothing is dropped silently.**
+  - A queue overflow writes a `_recorder` drop line.
+  - Each source writes a heartbeat once a minute, which tells "source alive but empty" apart from "recorder down".
+  - Below 50 GB of free disk, the recorder pauses AIS first, then OpenSky, and logs it.
+- **Before recording starts,** replace the unstable ids (`gdacs-N`, `osint-live-N`, `gdelt-pt-N`) with the providers' own ids.
+
+### 7.2 Phase 1: the ingest worker
+
+The connector interface and pipeline are unchanged from the first design:
+
+```ts
+interface Connector {
+  source: string;                                      // meta_source.code
+  run(ctx: ConnectorCtx): AsyncIterable<RawEnvelope>;   // stream or poll loop
+  map(env: RawEnvelope): Iterable<Observation>;         // pure; tested against recorded envelopes
+}
+
+type Observation =
+  | { shape: 'track';    key: IdKey; t: number; lon: number; lat: number; alt?: number; speed?: number; course?: number; heading?: number; flags: number; state?: TrackState }
+  | { shape: 'event';    sourceRecordId: string; kind: string; tStart: number; tEnd?: number; prec: Prec; geom?: Geo; attrs: object; links?: EntityLink[]; stream?: boolean }
+  | { shape: 'series';   metric: string; subject: IdKey; t: number; v: number; prec?: Prec }
+  | { shape: 'catalog';  key: IdKey; fields: object }
+  | { shape: 'document'; sourceRecordId: string; url: string; title: string; publishedAt: number; links?: DocLink[] }
+  | { shape: 'tle';      norad: number; epoch: number; line1: string; line2: string };
+```
+
+For each envelope, the worker archives it, maps it, resolves ids, buffers it, then writes it to the destination below. Positions go nowhere near the database at this stage:
+
+| Destination | How it's written |
+|---|---|
+| Live state and open-hour fixes | Kept in memory: the latest fix per entity, plus the last 3 hours of fixes, about 90 MB |
+| Entities, versions, cameras | Upserts in `catalog.db`, as short transactions |
+| Revisable events | `INSERT … ON CONFLICT DO UPDATE … WHERE changed` into `history.db`. A trigger copies the old row into `ev_event_history` and bumps `rev`. |
+| Stream events, high-frequency series, grid frames | Batched every 2 s into the current `stream/YYYY-MM.db` |
+| TLEs | Into `tracks/tle.db`, ignoring duplicates |
+
+- **Positions are deduplicated in memory:** a fix is kept only if its `t` is newer than the entity's last fix (for OpenSky, `time_position`).
+- **On restart,** the worker rebuilds its in-memory window by re-reading the last 3 hours of the archive, which takes a few seconds.
+- **The worker serves live state and provisional chunks for the open hour** to `api` over an internal WebSocket and HTTP (`backend.md` §9). This replaces `globalThis.shipsCache` and the flights module variables.
+- **Catalogue diffs** (cameras and reference places) work per successful run:
+  - The worker hashes each record's meaningful fields. A changed hash closes the old version and opens a new one.
+  - **A run that comes back more than 5% short counts as failed and changes nothing.**
+  - A record that is missing from 3 complete runs in a row, or for more than 3 days, has its version closed.
+
+### 7.3 Sealing and jobs
+
+All jobs run inside the worker, with a lock file guaranteeing a single instance.
+
+| Job | When | Does |
+|---|---|---|
+| `seal-tracks` | Every hour, for the hour that ended about 1 h ago (H is sealed at H+2:05) | Reads archive hours H and H+1, keeps the fixes whose observed time falls in H, and runs the same `map()`. Builds the L0 segments and writes them to the day's shard, in one transaction that replaces the bucket. Every 6 h it also builds L1, and once a day L2, both from L0. Updates `agg_track_bin` and bumps `meta_layer_version`. |
+| `rebuild` | When asked | Re-seals any hour that is still in the archive. This covers parser fixes and late data (`trk_dirty_bucket`). |
+| `finalise-shard` | Daily, for the previous day | Runs `ANALYZE` and `VACUUM INTO` a compact copy, swaps it in, records its checksum in `meta_shard`, and marks it `sealed` (read-only from then on) |
+| `cool-shards` | Daily | Moves L0 shards older than 14 days to `cold/` (kept, not served). Deletes L1 shards older than 90 days. |
+| `aggregate-events` | Every hour | `agg_event_cell` and `agg_timeline_bin` for the sealed hours of the stream |
+| `coverage` | Every 5 min | Extends or closes `meta_coverage` intervals from runs and heartbeats |
+| `prune-raw` | Daily | Deletes archive hours older than 90 days, but only if their L0 shard and stream shard are sealed |
+| `optimize` | Every 6 h | `PRAGMA optimize` and `wal_checkpoint(TRUNCATE)` on every file that has a writer |
+
+- **The 2-hour seal delay covers late fixes.** For example, OpenSky can report a `time_position` that belongs to the previous hour just after the boundary. Until an hour is sealed, its chunks come from the worker's memory.
+- **L0 shards in `cold/` are a lossless, normalised position archive kept forever,** at about 55 GB a year. They replace the Parquet tier of the first design, so no DuckDB or Parquet is needed now.
+
+### 7.4 Coverage
+
+- `meta_coverage(source, t_lo, t_hi, status)` holds continuous intervals with status `ok`, `degraded`, `down` or `not_recording`. The writer extends the latest interval or starts a new one.
+- `meta_dataset_gap` holds the gaps that datasets declare: GTD has no 1993, and UCDP's 2025 data is preliminary.
+- The replay manifest returns both. The timeline greys those spans out, and tracks are never interpolated across an outage.
+
+### 7.5 Importers
+
+Command: `npm run import <dataset> [--version] [--dry-run]`. Each importer has a manifest listing its files, checksums, licence, source and parser options. Steps:
+
+1. **Register.** Hash the files; if `meta_dataset` already has the same checksums, skip. Otherwise insert the dataset with status `loading`.
+2. **Stage.** Stream the CSV into `data/db/stage/<dataset>.db` with every column as text. Decoding tries UTF-8 per field, then falls back to cp1252. BOMs, `\xa0` and `[n]` markers are stripped.
+3. **Transform.** SQL in `tools/import/<dataset>/*.sql` runs with `history.db` and `catalog.db` attached. It upserts on `(source_id, source_record_id)`. Rows missing from a new version get `retracted_at` set and are not deleted, so ids stay stable.
+4. **Apply manual fixes.** `tools/import/manual-fixes.csv` is checked in, for example the WW1 Aisne date of 2024 that should be 1917.
+5. **Publish.** Write the gaps, set the dataset to `active` and the previous version to `superseded`, and bump `meta_layer_version`.
+   - For a geo layer, publishing means building `geo/<layer>@<v>.db` and renaming it into place.
+6. **Report.** Write row counts, rejects, unresolved values and mapped sentinels to `meta_dataset.report`. Then delete the staging file.
+
+The per-dataset mapping is in [`dataset-import-map.md`](./dataset-import-map.md).
+
+## 8. Replay serving
+
+### 8.1 What the browser receives
+
+| Shape | Transport | Time handling | Cache |
+|---|---|---|---|
+| Feature (places, infrastructure, lakes, borders, camera catalogue) | MVT `/api/tiles/{layer}/{z}/{x}/{y}.mvt?v=` | `t0`/`t1` properties, filtered in the browser | Immutable per `v` |
+| Event, curated (wars, battles, GTD, claims, tariffs, quakes, alerts) | MVT `/api/tiles/events/{group}/{bucket}/{z}/{x}/{y}.mvt?v=` | `t0`/`t1` plus precision, filtered in the browser | Immutable per `v` |
+| Event, stream (fires, GDELT, news) | Same, in day or hour buckets, aggregated at low zoom | Same | Sealed buckets immutable |
+| Track (ships, aircraft) | Binary `/api/replay/tracks/{class}/{lod}/{z}/{x}/{y}/{bucket}.bin?v=` | Per-point times; the GPU interpolates | Sealed buckets immutable |
+| Satellites | JSON `/api/replay/tle?at=` | SGP4 in the browser (`satellite.js`) | Per day |
+| Series / choropleth | Binary `/api/replay/series/{metric}` | The whole series once; `feature-state` changes per frame | Immutable per `v` |
+| Documents | JSON `/api/replay/docs?event=` or `?entity=` | On click | Short |
+| Histogram | JSON `/api/replay/histogram?layers=&from=&to=&bins=` | Density bars and gap shading on the scrubber | Per `v` |
+| Manifest | JSON `/api/replay/manifest?from=&to=` | Layers, LODs, coverage, gaps, versions, attributions | Short |
+| Entity at a time | JSON `/api/replay/entity/{id}?at=` | Version, state and last fix at that time | Short |
+
+**Live is replay pinned to now:** the open bucket comes from the worker's memory, so live and replay share one code path.
+
+### 8.2 Time buckets
+
+| Layer kind | Bucket |
+|---|---|
+| Sparse history (wars, claims, territorial changes, the 1914–2026 conflicts, UNESCO) | `all` |
+| Medium (GTD) | Decade below z6, year from z6; `all` for WW1 and tariffs |
+| Stream | Day below z7 (served from aggregates), hour from z7 |
+| Tracks | Set by LOD (§8.3) |
+
+The client loads buckets that overlap the visible timeline window and prefetches 2 buckets ahead in the play direction. It keeps them in an LRU capped at about 300 MB.
+
+### 8.3 Tracks
+
+| LOD | Map zoom | Fetched as tiles at | Bucket | Shard file | Simplification | Longest gap inside a segment | Served for |
+|---|---|---|---|---|---|---|---|
+| L0 | ≥ 8 | z7 | 1 h | one per day | None (dedup only) | ships 15 min, aircraft 2 min | 14 days (then `cold/`, kept) |
+| L1 | 5–7 | z4 | 6 h | one per month | SED ≤ 100 m, at most one point per 30 s | 30 min | 90 days |
+| L2 | ≤ 4 | z1 | 1 day | one per year | SED ≤ 2 km, at least one point per 10 min while moving | 60 min | forever |
+
+- **SED simplification** keeps the time-interpolated position within the tolerance, so animation timing stays correct. Gaps longer than the limit split the segment. The client draws them as gaps and never interpolates across them.
+- **Segments that cross the antimeridian** are split into two segments.
+- **Segment row:** `(bucket, entity_id)` → `class`, `category`, `label`, `source_mask`, `n`, `points`, `flags`. A 3-D R\*Tree indexes `(lon, lat, bucket)`.
+- **Chunk query:** a single R\*Tree probe, a join, and `(source_mask & ~allowed) = 0`. The server then writes the blobs one after another. About 720k L0 rows are written per day, across 24 buckets in that day's shard.
+- **`points` encoding (TRK1):** little-endian, columnar varint-delta, about 6–9 bytes per point:
+
+  ```text
+  varint n | f64 t_first (epoch s)
+  dt       uvarint ×(n-1)       seconds
+  lon, lat zigzag varint delta  round(deg·1e5), first absolute  (L2: 1e4)
+  alt      zigzag varint delta  10 m          if flags.has_alt
+  speed    uvarint              0.1 kn        if flags.has_speed
+  heading  u8                   360/256 °     if flags.has_heading
+  gaps     bitset               1 = do not interpolate into this point
+  ```
+
+- **Chunk response:** `TRKC v1 | bucket | lod | count | (entity varint, class u8, category u8, label str, len varint, blob)*`. Duplicates across tile edges are removed by the client on `(entity, bucket)`.
+- **Sizes:**
+  - A busy z7 tile for one hour at L0 is about 0.3–1 MB.
+  - The whole world for one day at L2 is about 6–10 MB.
+  - For comparison, today's live `/api/flights` sends about 3 MB of JSON per poll.
+- **Client:** decodes into typed arrays and uploads them once. A custom MapLibre layer, like the existing `sat-3d`, interpolates at time `T` in the vertex shader and draws trails over `[T − trail, T]`. Per frame, the only cost is a uniform update.
+
+### 8.4 Event tiles
+
+- **Curated events.** The R\*Tree `ev_event_rtree(lon, lat, t)` returns the candidates for the tile envelope and the bucket's time range. The query then filters on `kind`, `source_id`, `retracted_at` and `event_id = canonical_id`.
+- **Stream events** use the index `(kind_id, t_hour, cell)`, where `cell` is a z14 Morton code. Every tile at z ≤ 14 is one contiguous `cell` range, so an hour-bucket tile is a single index range scan.
+- **Low zoom.** When a tile has more than 2,000 points, it gets features aggregated by cell (a 64×64 grid per tile) and by sub-bucket. Each aggregate carries `t0`/`t1`, `n` and `mag_sum`, so browser-side time filtering still works.
+  - Stream aggregates are precomputed in `agg_event_cell`.
+  - Curated layers are aggregated on demand and cached.
+- **Encoding.** Candidates are converted to tile coordinates and clipped. Simplification only happens for lines and polygons, and those come pre-simplified from `feature_gen`. Tiles are encoded with `vt-pbf`. Encoding runs in the worker-thread pool (§10.2).
+
+### 8.5 Features
+
+- **Each `geo/<layer>@<v>.db` holds three things:**
+  - `feature`, with the canonical WKB geometry, properties and validity;
+  - `feature_gen`, with tile-ready pieces for each zoom band, simplified and cut to at most 256 vertices at import;
+  - `gen_rtree(lon, lat, t, zband)`.
+- **A tile is one R\*Tree probe for the zoom band,** followed by clipping and MVT encoding.
+- **Heavy layers can be pre-baked** into `tiles/<layer>@<v>.mbtiles` for z0–z10 at import time. The highway planning network, with 626k lines, is the obvious candidate.
+- **This implements the existing `ReferenceStore` seam** in `src/lib/reference/file-store.ts`, so `/api/reference` keeps working.
+
+### 8.6 Series and choropleths
+
+- **The client fetches a metric's whole series once.** For WDI that is about 15k values, roughly 120 KB.
+- **The server resolves render polities as it writes the response:** a USSR value for 1985 is sent once for each of the 15 successor shapes, tagged `via`.
+- **The `admin0` tiles use `promoteId = entity_id`.** Scrubbing calls `setFeatureState` on about 250 features.
+
+### 8.7 Licence gating and caching
+
+- **Each tier has a set of allowed source ids,** with an allowed bitmask for track sources. They are computed once per tier and kept in memory.
+- **Every query filters on `source_id`,** and track chunks on `source_mask`.
+- **Cache keys include a policy hash,** so only a few variants exist.
+- **The manifest returns attribution text.**
+- **Exports are gated separately** (`can_export`).
+- **nginx caches `/api/tiles/` and `/api/replay/`** under the key `$uri$is_args$args`, honouring `immutable`, with a 20 GB cap.
+
+## 9. Storage estimates (year 1, today's volumes)
+
+| Store | Daily | Retention | Size |
+|---|---|---|---|
+| Raw `ndjson.zst` (AIS 0.4, OpenSky + adsb.fi 0.35, others 0.1 GB/day) | ~0.85 GB | 90 days | ~77 GB |
+| `tracks/l0` served | ~0.15 GB | 14 days | ~2 GB |
+| `cold/tracks/l0` | | forever, deletable | ~55 GB/yr |
+| `tracks/l1` / `l2` | 0.03 / 0.015 GB | 90 days / forever | ~3 GB / ~6 GB per yr |
+| `tracks/tle.db` | ~5 MB | forever | ~2 GB/yr |
+| `stream/*.db` (~300k events/day, uncompressed, with index) | ~45 MB | forever | ~16 GB/yr |
+| `history.db` (imports, revisable live events, documents) | small | forever | ~2 GB + ~1 GB/yr |
+| `catalog.db` (entities, identifiers, camera history) | small | forever | ~1 GB |
+| `geo/*.db` (US infrastructure, GLWD, admin0, with generalised pieces) | once | | ~5–7 GB |
+| `tiles/`, nginx cache | | capped | ≤ 20 GB |
+| **Total** | | | **~190 GB after year 1, then ~80 GB/yr** |
+
+That fits in 1 TB for about 5 years. The cold L0 shards and the raw archive are the two settings to turn down if disk gets tight.
+
+## 10. Performance
+
+### 10.1 SQLite settings
+
+| Setting | Value | Why |
+|---|---|---|
+| `journal_mode` | `WAL` | Readers never block the writer |
+| `synchronous` | `NORMAL` | Durable at checkpoints. A power cut can lose the last transactions, and the archive replays them. |
+| `busy_timeout` | `5000` | Serialises the occasional second writer |
+| `cache_size` | writer `-131072` (128 MB), reader `-32768` | |
+| `mmap_size` | `4294967296` | Reads go through the OS page cache with no copies |
+| `temp_store` | `MEMORY` | |
+| `page_size` (set at creation) | 16384 for tracks, stream and geo; 4096 for catalog and history | Large pages suit blob- and R\*Tree-heavy files |
+| `wal_autocheckpoint` | `0` on the writer, which then runs `PASSIVE` every 30 s and `TRUNCATE` every 6 h | Keeps checkpoints off the ingest path |
+| `journal_size_limit` | 64 MB | |
+| `foreign_keys` | `ON` (only within a file) | |
+
+Sealed shards are `VACUUM INTO`'d, `ANALYZE`d and then opened read-only.
+
+### 10.2 Connections and threads
+
+- **Worker:** one write connection per file, with prepared statements and batched transactions.
+- **api:**
+  - Read-only handles are opened lazily, with an LRU of at most 64 open shard handles.
+  - **`better-sqlite3` is synchronous.** Route handlers only run indexed lookups that take under 5 ms.
+  - Tile encoding, chunk assembly over several shards, and histograms run in a `worker_threads` pool (`piscina`, 3 threads). Each thread has its own read-only handles.
+- **Importers:** run in their own process at `nice 10`, with at most 4 workers, as the project memory notes require.
+
+### 10.3 Budgets
+
+| Path | Target |
+|---|---|
+| Ingest | 2,000 fixes/s into memory plus the archive, at under 15% of one core. One hour seals in under 60 s. |
+| Upstream → live | p95 under 5 s. Sealed history follows about 2 h later. |
+| Scrubbing loaded buckets | No network; under 4 ms per frame |
+| Cached tile or chunk | p95 under 20 ms (nginx) |
+| Cold MVT tile | p95 under 300 ms |
+| Cold track chunk | p95 under 100 ms (one R\*Tree probe plus copying bytes) |
+| Track payload | ≤ 1 MB per z7 tile-hour at L0; ≤ 10 MB per world-day at L2 |
+| Web and api process memory | Under 1 GB each once live state moves to the worker |
+
+## 11. Portability: staying ready for Postgres
+
+### 11.1 Rules
+
+1. **Table names map mechanically:** `prefix_name` becomes `prefix.name` (`ev_event` → `ev.event`). Layer files map to `geo.feature` with a `layer_id`, and shards map to hypertable chunks.
+2. **Only four column types:** `INTEGER`, `REAL`, `TEXT` and `BLOB`. Tables are `STRICT`, so SQLite enforces types the way Postgres does.
+3. **Times are epoch milliseconds as `INTEGER`.** Validity uses `_lo`/`_hi` pairs: a null `_hi` means open, and `_lo = −8.64e15` means since forever.
+4. **Geometry is WKB in a `BLOB`,** plus `lon`/`lat` columns for points and bounding boxes in the R\*Tree. Nothing relies on SQLite-only geometry functions.
+5. **JSON is stored as `TEXT`.** Only `json_extract` and `->>` are used, and only inside the store layer.
+6. **Only SQL both engines run:** `ON CONFLICT … DO UPDATE … WHERE`, `RETURNING`, CTEs, window functions, partial indexes and `UPSERT`-style idempotency.
+   - Never `INSERT OR REPLACE`: it deletes and re-inserts, which changes the rowid.
+   - Never rely on type affinity, and never use an implicit rowid except as the R\*Tree join key.
+7. **Engine-specific code stays inside `src/lib/db/sqlite/`:** R\*Tree, FTS5, sharding and `ATTACH`. A lint rule forbids SQL strings outside `src/lib/db/**`.
+8. **Ids allocated in SQLite are kept in Postgres;** the identity sequences restart above the maximum.
+9. **Constraints Postgres would enforce** (validity periods that don't overlap, cross-file references) are enforced by the writers and checked by `npm run db:check`.
+
+### 11.2 Store interfaces (the only callers of SQL)
+
+```ts
+interface CatalogStore  { resolve(scheme: string, value: string, at: number): EntityId | undefined; upsertEntities(rows: EntityRow[]): void; applyCatalogDiff(source: SourceId, run: RunId, records: CatalogRecord[]): DiffResult; cameraTile(z: number, x: number, y: number, at?: number): Uint8Array }
+interface EventStore    { upsert(rows: EventRow[]): void; appendStream(rows: StreamRow[]): void; tile(q: EventTileQuery): Uint8Array; histogram(q: HistogramQuery): Bin[] }
+interface TrackStore    { sealBucket(lod: Lod, bucket: number, segments: Segment[]): void; chunk(q: TrackChunkQuery): Uint8Array; tleAt(t: number): Tle[] }
+interface SeriesStore   { upsertPoints(rows: PointRow[]): void; metric(metricId: number, allowed: SourceSet): SeriesPayload }
+interface FeatureStore extends ReferenceStore { tile(layer: string, z: number, x: number, y: number): Uint8Array; publishLayer(layer: string, file: string): void }
+interface DocStore      { upsert(rows: DocRow[]): void; link(rows: DocLink[]): void; forTarget(type: TargetType, id: number): DocRow[]; search(q: string): DocHit[] }
+```
+
+`OSIRIS_DB=sqlite` (the default) selects the SQLite implementations. A Postgres set implements the same interfaces later, and nothing outside `src/lib/db/` changes.
+
+### 11.3 Type mapping and the move
+
+| SQLite now | Postgres later |
+|---|---|
+| `INTEGER PRIMARY KEY` | `bigint GENERATED … AS IDENTITY` (sequence set above the maximum) |
+| `INTEGER` epoch ms | `timestamptz` (via `to_timestamp(ms / 1000.0)`) |
+| `t_lo`/`t_hi`, `valid_lo`/`valid_hi` + R\*Tree time dimension | `tstzrange` + GiST |
+| WKB `BLOB` + R\*Tree bbox | `geometry` + GiST |
+| `TEXT` JSON | `jsonb` |
+| FTS5 (trigram) | `tsvector` + GIN, and `pg_trgm` |
+| Time-sharded files | Hypertables (or native partitions) |
+| `geo/<layer>@<v>.db` | `geo.feature` partition per layer |
+| `source_mask INTEGER` | `smallint[]` (or keep the mask) |
+| Overlap checks in the writer | `EXCLUDE USING gist` |
+| `ATTACH 'x.db' AS x` | Schema `x` |
+
+Steps to move:
+
+1. Create [`replay-schema.postgres.sql`](./replay-schema.postgres.sql).
+2. Run `npm run db:export --to postgres://…`. For each table and shard (listed in `meta_shard`), it streams rows with `COPY` and converts types as in the table above. R\*Tree and FTS tables are rebuilt as GiST and GIN.
+3. Compare row counts and checksums per table and shard.
+4. Set `OSIRIS_DB=postgres` and bump layer versions so caches roll over. The API, wire formats and tile URLs stay the same.
+5. Keep the SQLite files read-only for a while as a rollback.
+
+**A partial move is also valid.** `catalog.db`, `history.db` and the stream can go to Postgres while the sealed track shards stay as files. They are blobs looked up by key, and Postgres adds little for them.
+
+## 12. When to move to Postgres
+
+Move when **any** of these is true:
+
+- **A second host or process has to write:** ingest on another machine, or several web replicas behind a load balancer.
+- **Analysis goes beyond bounding boxes:** polygon × polygon over large sets (hazard areas × infrastructure, impact analysis), buffers or network queries.
+- **Write contention shows up:** `busy_timeout` waits on `catalog.db` during normal operation.
+- **Read load outgrows the cache:** more than about 50 concurrent users with cache-missing queries, or a cold tile p95 over 300 ms after caching.
+- **User accounts and collaborative data arrive with the paid tier:** annotations, team workspaces, saved replays.
+- **A single hot file grows past about 100 GB** (`history.db` or a stream shard), making `VACUUM` and backups painful.
+
+## 13. Build order
+
+| Phase | Scope | Unblocks |
+|---|---|---|
+| **0, now** | `./data` volumes and ownership. The recorder and its taps (§7.1). Stop dropping OpenSky `time_position`. Stable GDACS and conflict ids. Disk guard. | Starts recording live history |
+| **1a** | `src/lib/db` with the store interfaces and SQLite implementation. A migration runner: numbered `.sql` files per file kind, tracked with `PRAGMA user_version`. Seeds: licences, sources, Natural Earth admin-0, code crosswalk, aliases. **Move today's file caches into SQLite:** `.cache/cctv-catalog.json` → `catalog.db` cameras (camera catalogue history starts), `.next/cache/satellites-tle-cache.json` → `tracks/tle.db` (orbit history starts), `.cache/nominatim.json` → `cache.db`. | Everything below |
+| **1b** | Importers → `history.db` and `geo/*.db`. `ReferenceStore` on SQLite. | The historical atlas, which needs no live data |
+| **1c** | `osiris-ingest`: AIS, OpenSky and CCTV connectors moved out of Next, seal jobs, stream shards, coverage | Replay over recorded days |
+| **2** | `/api/replay/*` and `/api/tiles/*`, the timeline UI (one time controller with an adapter per shape), the GPU track layer, the nginx cache | The replay feature |
+| **3** | FIRMS, GDELT and news streams; documents; aggregates; density maps; correlation. Postgres once a §12 trigger is hit. | `ARCHITECTURE.md` phase 3 |
+
+## 14. Risks and open questions
+
+- **No backups.** All of this sits on one disk. SQLite makes backups cheap once wanted:
+  - sealed shards never change, so plain `rsync` is enough;
+  - the live files can be copied nightly with `VACUUM INTO`;
+  - Litestream can stream WAL to S3 later.
+- **No atomicity across files.** Writers follow the fixed order and idempotency of §4.2.
+- **Constraints are enforced by writers and checks,** not by the engine (§11.1 rule 9).
+- **WAL needs a local disk on one host.** This is the main reason a multi-host setup forces the move.
+- **`better-sqlite3` packaging:** it must work in Next's standalone output and on musl Alpine. Verify both in phase 1a.
+- **The driver is synchronous.** Anything heavy belongs in the thread pool (§10.2), or it will stall the web server.
+- **Licences are unverified:** GTD is non-commercial; OpenSky and Yahoo restrict redistribution. Gating is built in, but each tier's policy needs a decision.
+- **AIS only has receive time.** If aisstream exposes per-message timestamps, use them.
+- **OpenSky quota:** keep a single poller until the worker owns it.
+- **GTD keys are synthetic,** stable for the same file. An official GTD export would become a new source, linked as same-as.
+- **Free-text places need a gazetteer** (GeoNames `cities15000`, CC BY). Until then those events fall back to the polity centroid.
+- **Historical borders are deferred.** When a value is drawn through the render map (`via` is set), the UI has to say so.

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { APP_VERSION } from '@/lib/app-version';
 import { hudIn } from '@/lib/hud-motion';
+import AccountButton from '@/components/account/account-button';
 import type { ActiveLayers } from '@/lib/default-layers';
 import MoreMenu from './more-menu';
 import type { BackendStatus, LiveData } from './dashboard-types';
@@ -75,6 +76,7 @@ export function StatusCluster({ revealed, backendStatus, activeLayers, data, spa
       <span className="text-[11px] font-bold tracking-[0.2em] text-[var(--text-muted)] opacity-50">{APP_VERSION}</span>
       
       <MoreMenu onOpenMarkets={onOpenMarkets} />
+      <AccountButton />
     </motion.div>
   );
 }
@@ -84,6 +86,7 @@ export function MobileStatus({ revealed, onOpenMarkets }: { revealed: boolean; o
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: revealed ? 1 : 0 }} transition={hudIn(0.35)} className="absolute top-3 right-3 z-[200] pointer-events-auto flex flex-col items-end gap-1.5">
       <div className="flex items-center gap-2">
         <MoreMenu compact onOpenMarkets={onOpenMarkets} />
+        <AccountButton compact />
       </div>
     </motion.div>
   );

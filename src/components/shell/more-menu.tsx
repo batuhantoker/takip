@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, ChevronDown, Coffee, ShoppingBag, TrendingUp, type LucideIcon } from 'lucide-react';
+import { MENU_ITEM, MENU_PANEL, MENU_TRIGGER } from '@/components/ui/menu-styles';
+import { useDismiss } from '@/components/ui/use-dismiss';
 import TokenChart from './token-chart';
 
 /* Everything kept off the main screen: Markets, the token chart, and the ways to support the project. */
@@ -35,8 +37,6 @@ function ItemBody({ Icon, label, detail, color }: { Icon: LucideIcon; label: str
   );
 }
 
-const ITEM = 'w-full text-left flex items-center gap-2.5 px-2.5 py-2 hover:bg-white/5 focus:bg-white/5 focus:outline-none transition-colors';
-
 export default function MoreMenu({ compact = false, onOpenMarkets }: { compact?: boolean; onOpenMarkets: () => void }) {
   const [open, setOpen] = useState(false);
   const [tokenOpen, setTokenOpen] = useState(false);
@@ -44,26 +44,7 @@ export default function MoreMenu({ compact = false, onOpenMarkets }: { compact?:
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
 
-  // Close on a press anywhere else, or on Escape — which also hands focus back
-  // to the button, so a keyboard user is not left stranded.
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-    document.addEventListener('pointerdown', onPointer);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  useDismiss(open, () => setOpen(false), rootRef, buttonRef);
 
   return (
     <div ref={rootRef} className={`relative pointer-events-auto ${compact ? '' : 'ml-3'}`}>
@@ -74,9 +55,7 @@ export default function MoreMenu({ compact = false, onOpenMarkets }: { compact?:
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
-        className={`glass-panel flex items-center gap-1.5 text-[9px] font-mono tracking-widest hover:opacity-80 transition-opacity border-[var(--gold-primary)]/40 bg-[var(--gold-primary)]/10 ${
-          compact ? 'px-2 py-1' : 'px-3 py-1.5'
-        }`}
+        className={`${MENU_TRIGGER} ${compact ? 'px-2 py-1' : 'px-3 py-1.5'}`}
       >
         <span className="text-[var(--gold-primary)] font-bold">MORE</span>
         <ChevronDown
@@ -94,12 +73,12 @@ export default function MoreMenu({ compact = false, onOpenMarkets }: { compact?:
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 z-[1000] w-60 bg-[#0A0A0A]/95 backdrop-blur-md border border-[var(--gold-primary)]/25 shadow-2xl p-1"
+            className={MENU_PANEL}
           >
-            <button type="button" role="menuitem" className={ITEM} onClick={() => { setOpen(false); onOpenMarkets(); }}>
+            <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => { setOpen(false); onOpenMarkets(); }}>
               <ItemBody Icon={BarChart3} label="MARKETS" detail="Prices, indices, the DonBot token analyzer (M)" color="var(--gold-primary)" />
             </button>
-            <button type="button" role="menuitem" className={ITEM} onClick={() => { setOpen(false); setTokenOpen(true); }}>
+            <button type="button" role="menuitem" className={MENU_ITEM} onClick={() => { setOpen(false); setTokenOpen(true); }}>
               <ItemBody Icon={TrendingUp} label="$OSIRIS CHART" detail="Live token chart on Dexscreener" color="#14F195" />
             </button>
             <div className="my-1 h-px bg-white/5" />
@@ -111,7 +90,7 @@ export default function MoreMenu({ compact = false, onOpenMarkets }: { compact?:
                 rel="noopener noreferrer"
                 role="menuitem"
                 onClick={() => setOpen(false)}
-                className={ITEM}
+                className={MENU_ITEM}
               >
                 <ItemBody Icon={Icon} label={label} detail={detail} color={color} />
               </a>

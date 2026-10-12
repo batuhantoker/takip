@@ -148,8 +148,10 @@ Run `npm test` for offline checks or `RUN_LIVE_TESTS=1 npx vitest run src/app/ap
 git clone https://github.com/batuhantoker/takip.git
 cd takip
 npm install
-npm run dev
+npm run dev       # the map and the accounts api (sign-in) together
 ```
+
+To open the admin console at `/admin`: sign up, run `npm run admin -- promote you@example.com`, turn on two-factor authentication in Account settings, then enter a code at `/admin`.
 
 Open [http://localhost:3000](http://localhost:3000)
 
@@ -159,7 +161,6 @@ Open [http://localhost:3000](http://localhost:3000)
 git clone https://github.com/batuhantoker/takip.git
 cd takip
 cp .env.example .env                  # optional — configure keys / port
-docker network create umami_default   # once; the compose file joins it for analytics
 docker compose up -d
 ```
 
@@ -181,7 +182,9 @@ TAKIP runs without any API keys: the core feeds use public, keyless sources. Cop
 | `SDK_INGEST_KEY` | `POST /api/sdk/ingest`. Disabled when unset. |
 | `GITHUB_WEBHOOK_SECRET`, `GITHUB_WEBHOOK_FORWARD_URL` | `/api/github-webhook`. Disabled unless both are set. |
 | `INTEL_URL` | The entity-resolution backend behind `/api/entity/expand`. |
-| `UMAMI_WEBSITE_ID` | Umami analytics. Off when unset. |
+| `BETTER_AUTH_SECRET` | Signs session cookies for accounts. Required in production. |
+| `GOOGLE_CLIENT_ID`/`_SECRET`, `FACEBOOK_…`, `APPLE_…`, `MICROSOFT_…`, `GITHUB_…`, `X_…`, `DISCORD_…` | Social sign-in buttons, one per configured provider. Setup notes and the redirect URI are in `.env.example`. |
+| `SMTP_URL`, `MAIL_FROM` | Sends account emails (verification, password reset). Required in production; in development the links print in the `npm run dev` terminal. |
 
 The host port, the Telegram channel list and the other runtime options are documented in `.env.example`. `.env` is gitignored; only the example is committed.
 

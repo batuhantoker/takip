@@ -56,7 +56,7 @@ Output: one report with P0–P3 findings, a keep/rewrite/delete verdict per modu
 - [ ] **Delivery, dependencies, tests and lifecycle**
   - [ ] CI only publishes the Docker image; it has no lint, typecheck or test gate.
   - [ ] Docker has no volume, so `.cache/` is lost on every rebuild.
-  - [ ] `deploy.sh` runs `git add -A` and has the server address hardcoded.
+  - [x] `deploy.sh` runs `git add -A` and has the server address hardcoded. Removed: it deployed to the upstream author's server.
   - [ ] Find unused dependencies and run `npm audit`.
   - [ ] Bound the in-memory caches.
   - [ ] Review the semantics of `/api/health`.
@@ -92,7 +92,7 @@ Output: one report with P0–P3 findings, a keep/rewrite/delete verdict per modu
 
 - [x] Display text renamed OSIRIS → TAKIP: UI, metadata, AI prompts.
 - [ ] Docs: README, DOCKER.md, SECURITY.md, `.env.example`.
-- [ ] Config: `package.json` name, `docker-compose.yml` (service names, CasaOS metadata), `deploy.sh`.
+- [ ] Config: `package.json` name, `docker-compose.yml` (service names, CasaOS metadata).
 - [ ] Env vars `OSIRIS_*` → new prefix, reading the old names as a fallback.
 - [ ] Storage keys `osiris.*`: migrate them so users keep their settings.
 - [ ] Identifiers: `OsirisMap`, `window.osirisWatchFlight`, terrain source ids, the AOI export filename, the `[OSIRIS]` log prefix.

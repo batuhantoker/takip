@@ -1,0 +1,112 @@
+import type { AppDb } from './app-db';
+
+/*
+ * Our own app.db tables (Better Auth migrates its auth_* tables itself). Each entry runs once,
+ * tracked by PRAGMA user_version; append new entries, never edit applied ones.
+ * Conventions follow docs/architecture/backend-schema.sqlite.sql.
+ */
+const MIGRATIONS: string[] = [
+  `
+  CREATE TABLE bill_plan (
+    plan_id      TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    public       INTEGER NOT NULL DEFAULT 1,
+    sort         INTEGER NOT NULL DEFAULT 0,
+    prices       TEXT NOT NULL DEFAULT '{}',
+    created_at   INTEGER NOT NULL,
+    archived_at  INTEGER
+  ) STRICT, WITHOUT ROWID;
+
+  CREATE TABLE bill_plan_entitlement (
+    plan_id  TEXT NOT NULL REFERENCES bill_plan,
+    key      TEXT NOT NULL,
+    value    TEXT NOT NULL,
+    PRIMARY KEY (plan_id, key)
+  ) STRICT, WITHOUT ROWID;
+
+  CREATE TABLE bill_subject_override (
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('user','org')),
+    subject_id    TEXT NOT NULL,
+    key           TEXT NOT NULL,
+    value         TEXT NOT NULL,
+    expires_at    INTEGER,
+    granted_by    TEXT NOT NULL,
+    reason        TEXT,
+    PRIMARY KEY (subject_type, subject_id, key)
+  ) STRICT, WITHOUT ROWID;
+
+  CREATE TABLE bill_subscription (
+    subscription_id      INTEGER PRIMARY KEY,
+    provider             TEXT NOT NULL,
+    provider_sub_id      TEXT NOT NULL,
+    subject_type         TEXT NOT NULL CHECK (subject_type IN ('user','org')),
+    subject_id           TEXT NOT NULL,
+    plan_id              TEXT NOT NULL REFERENCES bill_plan,
+    status               TEXT NOT NULL CHECK (status IN
+                           ('trialing','active','past_due','canceled','incomplete','paused','expired')),
+    current_period_end   INTEGER,
+    cancel_at            INTEGER,
+    grace_until          INTEGER,
+    provider_data        TEXT NOT NULL DEFAULT '{}',
+    created_at           INTEGER NOT NULL,
+    updated_at           INTEGER NOT NULL,
+    UNIQUE (provider, provider_sub_id)
+  ) STRICT;
+  CREATE INDEX bill_subscription_subject ON bill_subscription (subject_type, subject_id, status);
+
+  CREATE TABLE audit_event (
+    audit_id      INTEGER PRIMARY KEY,
+    at            INTEGER NOT NULL,
+    actor_type    TEXT NOT NULL CHECK (actor_type IN ('user','admin','system','provider')),
+    actor_id      TEXT,
+    impersonator  TEXT,
+    action        TEXT NOT NULL,
+    subject_type  TEXT,
+    subject_id    TEXT,
+    ip_hash       TEXT,
+    data          TEXT NOT NULL DEFAULT '{}'
+  ) STRICT;
+  CREATE INDEX audit_event_at ON audit_event (at);
+  CREATE INDEX audit_event_subject ON audit_event (subject_type, subject_id, at);
+  CREATE INDEX audit_event_actor ON audit_event (actor_id, at);
+
+  -- Starting values from backend.md §7.2. They are placeholders: change rows, not code.
+  INSERT INTO bill_plan (plan_id, name, public, sort, created_at) VALUES
+    ('anon', 'Anonymous', 0, 0, unixepoch() * 1000),
+    ('free', 'Free',      1, 1, unixepoch() * 1000),
+    ('pro',  'Pro',       1, 2, unixepoch() * 1000);
+
+  INSERT INTO bill_plan_entitlement (plan_id, key, value) VALUES
+    ('anon', 'map.live', 'true'),             ('free', 'map.live', 'true'),             ('pro', 'map.live', 'true'),
+    ('anon', 'api.enabled', 'false'),         ('free', 'api.enabled', 'false'),         ('pro', 'api.enabled', 'true'),
+    ('anon', 'api.keys.max', '0'),            ('free', 'api.keys.max', '0'),            ('pro', 'api.keys.max', '5'),
+    ('anon', 'api.requests_per_day', '0'),    ('free', 'api.requests_per_day', '0'),    ('pro', 'api.requests_per_day', '100000'),
+    ('anon', 'api.rps', '0'),                 ('free', 'api.rps', '0'),                 ('pro', 'api.rps', '20'),
+    ('anon', 'web.rps', '10'),                ('free', 'web.rps', '20'),                ('pro', 'web.rps', '50'),
+    ('anon', 'replay.lookback_days', '1'),    ('free', 'replay.lookback_days', '7'),    ('pro', 'replay.lookback_days', '3650'),
+    ('anon', 'replay.window_hours', '6'),     ('free', 'replay.window_hours', '24'),    ('pro', 'replay.window_hours', '720'),
+    ('anon', 'workspaces.max', '0'),          ('free', 'workspaces.max', '5'),          ('pro', 'workspaces.max', '100'),
+    ('anon', 'workspaces.share', 'false'),    ('free', 'workspaces.share', 'true'),     ('pro', 'workspaces.share', 'true'),
+    ('anon', 'export.enabled', 'false'),      ('free', 'export.enabled', 'false'),      ('pro', 'export.enabled', 'true'),
+    ('anon', 'ai.hosted', 'false'),           ('free', 'ai.hosted', 'false'),           ('pro', 'ai.hosted', 'false'),
+    ('anon', 'data.licence_tier', '"anon"'),  ('free', 'data.licence_tier', '"free"'),  ('pro', 'data.licence_tier', '"paid"');
+  `,
+  // A session that passed the admin console's 2FA check, and when.
+  `
+  CREATE TABLE admin_unlock (
+    session_id   TEXT PRIMARY KEY,
+    user_id      TEXT NOT NULL,
+    unlocked_at  INTEGER NOT NULL
+  ) STRICT, WITHOUT ROWID;
+  `,
+];
+
+export function migrateAppSchema(db: AppDb) {
+  const applied = db.pragma('user_version', { simple: true }) as number;
+  for (let version = applied; version < MIGRATIONS.length; version++) {
+    db.transaction(() => {
+      db.exec(MIGRATIONS[version]);
+      db.pragma(`user_version = ${version + 1}`);
+    })();
+  }
+}

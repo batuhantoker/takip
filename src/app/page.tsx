@@ -63,6 +63,7 @@ import FlightWatchOverlay from '@/components/flights/flight-watch-overlay';
 import OiHoverCard from '@/components/oi/oi-hover-card';
 import LiveFeedModal from '@/components/cameras/live-feed-modal';
 import RegionDossier from '@/components/map/region-dossier';
+import AccountDialog from '@/components/account/account-dialog';
 
 export default function Dashboard() {
   const dataRef = useRef<LiveData>({});
@@ -686,6 +687,7 @@ export default function Dashboard() {
       {/* The route planner claims the top of a phone screen; leaving this in
           place would put the support badge underneath the destination field. */}
       {isMobile && !showDirections && !navSession && <MobileStatus revealed={revealed} onOpenMarkets={() => setMobilePanel('markets')} />}
+      <AccountDialog />
 
 
 

@@ -4,18 +4,25 @@
   "private": true,
   "scripts": {
     "predev": "node tools/prepare-map-worker.mjs",
-    "dev": "next dev",
+    "dev": "node tools/dev.mjs",
+    "predev:web": "node tools/prepare-map-worker.mjs",
+    "dev:web": "next dev",
+    "dev:api": "npm run dev -w @takip/api",
     "prebuild": "node tools/prepare-map-worker.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:live": "RUN_LIVE_TESTS=1 vitest run"
+    "test:live": "RUN_LIVE_TESTS=1 vitest run",
+    "plan": "npm run plan -w @takip/api --",
+    "admin": "npm run admin -w @takip/api --"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@takip/core": "*",
     "@vercel/analytics": "^2.0.1",
+    "better-auth": "^1.7.7",
     "framer-motion": "^12.38.0",
     "google-libphonenumber": "^3.2.44",
     "hls.js": "^1.6.16",
@@ -31,6 +38,7 @@
     "rss-parser": "^3.13.0",
     "satellite.js": "^7.0.0",
     "sharp": "^0.35.5",
+    "uqr": "0.1.3",
     "ws": "^8.21.0"
   },
   "devDependencies": {
@@ -44,6 +52,10 @@
     "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^2.1.9"
-  }
+    "vitest": "^4.1.11"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
 }

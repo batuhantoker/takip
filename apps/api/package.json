@@ -1,0 +1,27 @@
+{
+  "name": "@takip/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --include ../../.env --include ../../.env.local src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "plan": "tsx src/cli/plan.ts",
+    "admin": "tsx src/cli/admin.ts"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/nodemailer": "8.0.2",
+    "tsx": "^4.23.15"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.4",
+    "@takip/core": "*",
+    "better-auth": "^1.7.7",
+    "better-sqlite3": "^13.0.3",
+    "hono": "^4.13.13",
+    "nodemailer": "10.0.11",
+    "zod": "^4.6.7"
+  }
+}

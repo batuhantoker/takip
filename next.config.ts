@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/**': ['./node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs', './node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm'],
   },
-  transpilePackages: ['react-map-gl', 'mapbox-gl', 'maplibre-gl'],
+  transpilePackages: ['react-map-gl', 'mapbox-gl', 'maplibre-gl', '@takip/core'],
   // Type errors block the build again. They were suppressed while 17 stood
   // unfixed; those are cleared, so the gate can do its job — the AstraPanel
   // crash (createPortal used without an import) shipped precisely because
@@ -38,6 +38,19 @@ const nextConfig: NextConfig = {
      `hostname: '**'` let anyone use /_next/image to fetch and resize pictures
      from any host through this server. A remote image source added later
      should be listed by exact host. */
+  // Accounts live in apps/api; proxying keeps the session cookie same-origin. Read at build time.
+  async rewrites() {
+    const api = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4100';
+    return {
+      beforeFiles: [
+        { source: '/api/auth/:path*', destination: `${api}/api/auth/:path*` },
+        { source: '/api/v1/:path*', destination: `${api}/api/v1/:path*` },
+        { source: '/api/admin/:path*', destination: `${api}/api/admin/:path*` },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
   async headers() {
     return [
       /* The worker path carries the MapLibre version, so a given URL never
