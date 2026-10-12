@@ -15,8 +15,8 @@ export {
 export type { RouteStep, RouteResult, LiveLocation } from '@/lib/route-plan';
 
 /* ═══════════════════════════════════════════════════════════════
-   OSIRIS — Directions
-   Turn-by-turn routing over /api/directions (Valhalla + OSRM): a start, any
+   TAKIP — Directions
+   Turn-by-turn routing over /api/v1/directions (Valhalla + OSRM): a start, any
    stops and a destination on one rail; the fastest route and its
    alternatives, each with the road it takes; the steps; and a hand-off to
    live navigation. Places it is given or picks are remembered for next time.

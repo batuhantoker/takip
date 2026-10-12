@@ -121,7 +121,7 @@ export function useOiAssist({
     },
     geocode: async q => {
       try {
-        const res = await fetch(`/api/geosearch?q=${encodeURIComponent(q)}`);
+        const res = await fetch(`/api/v1/geo/search?q=${encodeURIComponent(q)}`);
         const hit = (await res.json())?.results?.[0];
         return hit && Number.isFinite(hit.lat) && Number.isFinite(hit.lng) ? { name: hit.name, lat: hit.lat, lng: hit.lng, kind: hit.kind } : null;
       } catch { return null; }

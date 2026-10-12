@@ -3,5 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": {}
+  "exports": {
+    "./http-json": "./src/http-json.ts",
+    "./nominatim": "./src/nominatim.ts",
+    "./source-cache": "./src/source-cache.ts"
+  }
 }

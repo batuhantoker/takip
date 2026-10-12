@@ -11,6 +11,7 @@ import type { AppDb } from './db/app-db';
 import { requestLogger, silentLogger } from './obs/logger';
 import { createMetrics, httpMetrics, metricsEndpoint, type Metrics } from './obs/metrics';
 import { requestId } from './obs/request-id';
+import { v1Routes } from './v1/openapi';
 
 export type AppObs = { logger?: Logger; metrics?: Metrics; metricsAllow?: readonly string[] };
 
@@ -25,6 +26,7 @@ export function createApp({ auth, access, db, obs = {} }: { auth: Auth; access: 
   app.route('/api', authRoutes(auth));
   app.use('/api/v1/*', withAccess(auth, access));
   app.route('/api/v1', accessRoutes(access));
+  app.route('/api/v1', v1Routes());
   app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db) }));
   return app;
 }

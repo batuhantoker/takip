@@ -82,7 +82,7 @@ export default function PlaceInput({
         const bias = biasLat !== undefined && biasLng !== undefined
           ? `&lat=${biasLat}&lng=${biasLng}` : '';
         const res = await fetch(
-          `/api/geosearch?q=${encodeURIComponent(q)}${bias}`,
+          `/api/v1/geo/search?q=${encodeURIComponent(q)}${bias}`,
           { signal: ctrl.signal },
         );
         const data: { results?: GeoHit[] } = await res.json();
