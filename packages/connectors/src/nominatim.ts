@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { httpJson } from './http-json';
 
 /**
- * OSIRIS — the one door to nominatim.openstreetmap.org.
+ * TAKIP — the one door to nominatim.openstreetmap.org.
  *
  * On 2026-09-20 Nominatim's sysadmin told us we were running at over 10
  * requests a second against a service whose policy allows one, across every
@@ -37,13 +37,13 @@ const HOST = 'https://nominatim.openstreetmap.org';
  * How long to leave between requests: half the policy's one a second, since
  * instances of this app cannot see each other's budgets.
  *
- * `OSIRIS_NOMINATIM_GAP_MS` exists so tests do not have to wait seconds. Under
+ * `TAKIP_NOMINATIM_GAP_MS` exists so tests do not have to wait seconds. Under
  * anything but a test run the policy's own limit is the floor, whatever the
  * environment asks for — a typo in a deployment config must not be able to
  * turn this into the traffic that got us written to.
  */
 export function requestGapMs(env: NodeJS.ProcessEnv = process.env): number {
-  const asked = Number(env.OSIRIS_NOMINATIM_GAP_MS);
+  const asked = Number(env.TAKIP_NOMINATIM_GAP_MS);
   if (!Number.isFinite(asked) || asked <= 0) return 2_000;
   return env.NODE_ENV === 'test' ? asked : Math.max(1_000, asked);
 }
@@ -70,7 +70,7 @@ let lastRequestAt = 0;
 /** Counted so the log can show what we are actually sending. */
 const stats = { served: 0, fromCache: 0, sent: 0, refused: 0, failed: 0 };
 
-const snapshotPath = () => process.env.OSIRIS_NOMINATIM_CACHE || join(process.cwd(), '.cache', 'nominatim.json');
+const snapshotPath = () => process.env.TAKIP_NOMINATIM_CACHE || join(process.cwd(), '.cache', 'nominatim.json');
 
 let loaded: Promise<void> | null = null;
 let dirty = false;
@@ -78,7 +78,7 @@ let dirty = false;
 /** Reads the cache written by an earlier run, once. */
 function ensureLoaded(): Promise<void> {
   loaded ??= (async () => {
-    if (process.env.OSIRIS_NOMINATIM_CACHE === 'off') return;
+    if (process.env.TAKIP_NOMINATIM_CACHE === 'off') return;
     try {
       const raw = await fs.readFile(snapshotPath(), 'utf8');
       const saved = JSON.parse(raw) as Record<string, Entry>;
@@ -86,7 +86,7 @@ function ensureLoaded(): Promise<void> {
       for (const [key, entry] of Object.entries(saved)) {
         if (entry && entry.expires > now) cache.set(key, entry);
       }
-      console.log(`[OSIRIS] Nominatim cache restored: ${cache.size} answers from disk`);
+      console.log(`[TAKIP] Nominatim cache restored: ${cache.size} answers from disk`);
     } catch { /* first run, or an unreadable snapshot — start empty */ }
   })();
   return loaded;
@@ -95,7 +95,7 @@ function ensureLoaded(): Promise<void> {
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 function scheduleSave() {
   dirty = true;
-  if (saveTimer || process.env.OSIRIS_NOMINATIM_CACHE === 'off') return;
+  if (saveTimer || process.env.TAKIP_NOMINATIM_CACHE === 'off') return;
   // Batched: a burst of lookups costs one write, a minute after the first.
   saveTimer = setTimeout(() => {
     saveTimer = null;
@@ -114,7 +114,7 @@ async function save(): Promise<void> {
     await fs.writeFile(temporary, JSON.stringify(Object.fromEntries(cache)), 'utf8');
     await fs.rename(temporary, path);
   } catch (error) {
-    console.warn('[OSIRIS] Could not save the Nominatim cache:', error);
+    console.warn('[TAKIP] Could not save the Nominatim cache:', error);
   }
 }
 
@@ -178,7 +178,7 @@ export async function nominatim<T>(
          usually a name Nominatim does not hold, and asking again in a second
          is exactly the behaviour that got us noticed. */
       remember(key, null, FAIL_TTL_MS);
-      console.warn(`[OSIRIS] Nominatim ${endpoint} failed:`, error instanceof Error ? error.message : error);
+      console.warn(`[TAKIP] Nominatim ${endpoint} failed:`, error instanceof Error ? error.message : error);
       return null;
     } finally {
       queueDepth--;
