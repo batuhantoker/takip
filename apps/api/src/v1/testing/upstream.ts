@@ -2,17 +2,17 @@
 process.env.TAKIP_NOMINATIM_CACHE = 'off';
 process.env.TAKIP_NOMINATIM_GAP_MS = '1';
 
-type Answer = (url: string) => unknown;
+type Answer = (url: string, init?: RequestInit) => unknown;
 
 /** Stands in for httpJson and fetch: answers by URL prefix, fails anything unexpected, and records every request. */
 function fakeUpstream() {
   const calls: string[] = [];
   const answers: [prefix: string, answer: Answer][] = [];
-  const respond = async (url: string) => {
+  const respond = async (url: string, init?: RequestInit) => {
     calls.push(url);
     const hit = answers.find(([prefix]) => url.startsWith(prefix));
     if (!hit) throw new Error(`HTTP 599: no fake answer for ${url}`);
-    return hit[1](url);
+    return hit[1](url, init);
   };
   return {
     calls,
@@ -24,11 +24,12 @@ function fakeUpstream() {
       answers.length = 0;
     },
     httpJson: async (url: string) => respond(url),
-    /** Stands in for global fetch: an answer that throws `HTTP <status>` becomes a response with that status. */
-    fetch: async (input: string | URL | Request) => {
+    /** Stands in for global fetch: an answer that throws `HTTP <status>` becomes a response with that status; a Response is sent as is. */
+    fetch: async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       try {
-        return Response.json(await respond(url));
+        const answer = await respond(url, init);
+        return answer instanceof Response ? answer : Response.json(answer);
       } catch (error) {
         const status = /^HTTP (\d{3})/.exec(error instanceof Error ? error.message : '')?.[1];
         if (status) return new Response(null, { status: Number(status) });

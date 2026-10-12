@@ -1,8 +1,12 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { Scalar } from '@scalar/hono-api-reference';
+import { arcgisRoutes } from './arcgis/arcgis';
 import { aviationRoutes } from './aviation/routes';
 import { directionsRoutes } from './directions/routes';
+import { entityRoutes } from './entity/expand';
 import { geoRoutes } from './geo/routes';
+import { marketsRoutes } from './markets/history';
+import { satellitesRoutes } from './satellites/orbit';
 
 export const OPENAPI_PATH = '/api/v1/openapi.json';
 // Pinned: Scalar's default CDN URL floats to its latest release (several a week).
@@ -14,6 +18,10 @@ export function v1Routes() {
   app.route('/geo', geoRoutes());
   app.route('/directions', directionsRoutes());
   app.route('/', aviationRoutes());
+  app.route('/', arcgisRoutes());
+  app.route('/satellites', satellitesRoutes());
+  app.route('/markets', marketsRoutes());
+  app.route('/entity', entityRoutes());
 
   app.doc31('/openapi.json', {
     openapi: '3.1.0',
