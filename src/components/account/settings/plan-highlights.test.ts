@@ -6,12 +6,12 @@ import { planGains } from './plan-highlights';
 const free: Entitlements = {
   'map.live': true, 'api.enabled': true, 'api.keys.max': 1, 'api.requests_per_day': 1000, 'api.rps': 2, 'web.rps': 20,
   'replay.lookback_days': 7, 'replay.window_hours': 24, 'workspaces.max': 5, 'workspaces.share': true,
-  'export.enabled': false, 'ai.hosted': false, 'data.licence_tier': 'free',
+  'export.enabled': false, 'ai.hosted': false, 'data.licence_tier': 'free', 'ads.off': false,
 };
 const pro: Entitlements = {
   ...free, 'api.keys.max': 5, 'api.requests_per_day': 100000, 'api.rps': 20, 'web.rps': 50,
   'replay.lookback_days': 3650, 'replay.window_hours': 720, 'workspaces.max': 100, 'export.enabled': true, 'ai.hosted': true,
-  'data.licence_tier': 'paid',
+  'data.licence_tier': 'paid', 'ads.off': true,
 };
 
 describe('planGains', () => {
