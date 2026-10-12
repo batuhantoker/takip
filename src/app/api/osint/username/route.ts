@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { scanUsername, isValidUsername } from '@/lib/sherlock';
-import { reconGate } from '@/lib/recon-gate';
 
 /**
  * TAKIP — Username enumeration across social platforms.
@@ -18,8 +17,6 @@ import { reconGate } from '@/lib/recon-gate';
 export const maxDuration = 60;
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'people');
-  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const username = (searchParams.get('username') || '').trim();
 
@@ -57,7 +54,7 @@ export async function GET(req: Request) {
     });
     return NextResponse.json(
       { ...scan, timestamp: new Date().toISOString() },
-      { headers: { 'Cache-Control': 'private, max-age=300' } }
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
     );
   } catch (e) {
     console.error('[TAKIP] username scan failed:', e);

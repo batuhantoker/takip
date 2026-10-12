@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { analyseAddress, capabilities, detectChain, type Chain } from '@/lib/chainIntel';
-import { reconGate } from '@/lib/recon-gate';
 
 /**
  * TAKIP — On-chain wallet intelligence.
@@ -17,8 +16,6 @@ export const maxDuration = 60;
 const CHAINS: Chain[] = ['bitcoin', 'ethereum', 'solana'];
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'network');
-  if (denied) return denied;
   const { searchParams } = new URL(req.url);
 
   // Capability probe — lets the UI decide what to offer without an upstream call.
@@ -57,7 +54,7 @@ export async function GET(req: Request) {
     const intel = await analyseAddress(address, (chainParam as Chain) || undefined);
     return NextResponse.json(
       { ...intel, capabilities: capabilities(), timestamp: new Date().toISOString() },
-      { headers: { 'Cache-Control': 'private, max-age=60' } }
+      { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } }
     );
   } catch (e) {
     console.error('[TAKIP] crypto intel failed:', e);

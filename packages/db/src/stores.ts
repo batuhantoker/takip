@@ -58,6 +58,11 @@ export type Tier = 'anon' | 'free' | 'paid' | 'internal';
 /** What a licence tier may see: computed once per tier and kept in memory (§8.7). */
 export type Policy = { tier: Tier; sourceIds: ReadonlySet<number>; trackMask: number; hash: string };
 
+/** A polity with a map key (scheme `takip`): ADM0_A3 for today's shapes, `hist:*` for historical polities. */
+export type PolityKey = { entityId: number; key: string; name: string | null; kind: string };
+/** A historical polity drawn on today's shape `renderKey` while [validLo, validHi) holds (§6). */
+export type PolityRender = { entityId: number; renderKey: string; validLo: number; validHi: number | null };
+
 export interface CatalogStore {
   sources(): SourceRow[];
   source(code: string): SourceRow | undefined;
@@ -82,6 +87,8 @@ export interface CatalogStore {
   coverage(from: number, to: number): CoverageRow[];
   layerVersions(): Record<string, number>;
   policy(tier: Tier): Policy;
+  /** Every polity's map key and the render map, for painting series onto shapes (§8.6). Region groups have no polity row. */
+  polityShapes(): { polities: PolityKey[]; render: PolityRender[] };
 }
 
 export type SegmentRow = {

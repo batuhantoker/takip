@@ -6,6 +6,8 @@ import type { SqliteCatalogStore } from '@takip/db';
 import { type Context, Hono } from 'hono';
 import type { AccessEnv } from '../access/middleware';
 import type { ReplayData } from './data';
+import { historyRoutes } from './history';
+import { seriesRoutes } from './series';
 
 /*
  * /api/replay (replay-database.md §8). Times on the wire are epoch seconds. Sealed chunks never
@@ -140,6 +142,9 @@ export function replayRoutes(data: ReplayData) {
       tles: tles.map(t => ({ norad: t.noradId, name: t.name, epoch: t.epoch / 1000, line1: t.line1, line2: t.line2 })),
     }, 200, { 'Cache-Control': at < now - DAY_MS ? 'public, max-age=86400' : 'public, max-age=300' });
   });
+
+  app.route('/history', historyRoutes(data));
+  app.route('/history/series', seriesRoutes(data));
 
   return app;
 }

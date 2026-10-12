@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { validateHost, isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { reconGate } from '@/lib/recon-gate';
 
 /**
  * OSIRIS — Scanner Proxy (Hardened)
@@ -38,8 +37,6 @@ const ALLOWED_SCANS: Record<string, { endpoint: string; timeout: number }> = {
 //   ports    → arbitrary port range scanning
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'scan');
-  if (denied) return denied;
   // 1. Check scanner is configured
   if (!SCANNER_KEY) {
     return NextResponse.json({ error: 'Scanner not configured', hint: 'Set SCANNER_URL and SCANNER_KEY in .env' }, { status: 503 });

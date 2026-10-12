@@ -8,6 +8,8 @@ import type {
   IdentityItem,
   IngestRun,
   Policy,
+  PolityKey,
+  PolityRender,
   SealedBucket,
   ShardRow,
   SourceRow,
@@ -272,5 +274,21 @@ export class SqliteCatalogStore implements CatalogStore {
     };
     this.policies.set(tier, { policy, at: this.now() });
     return policy;
+  }
+
+  polityShapes() {
+    const polities = this.db.prepare(`
+      SELECT p.entity_id AS entityId, i.value AS key, e.name, p.kind
+      FROM core_polity p JOIN core_entity e USING (entity_id)
+      JOIN core_entity_identifier i ON i.entity_id = p.entity_id AND i.scheme_id = (SELECT scheme_id FROM core_id_scheme WHERE code = 'takip')
+      ORDER BY i.value
+    `).all() as PolityKey[];
+    const render = this.db.prepare(`
+      SELECT r.polity_id AS entityId, i.value AS renderKey, r.valid_lo AS validLo, r.valid_hi AS validHi
+      FROM core_polity_render r
+      JOIN core_entity_identifier i ON i.entity_id = r.render_polity_id AND i.scheme_id = (SELECT scheme_id FROM core_id_scheme WHERE code = 'takip')
+      ORDER BY r.polity_id, i.value, r.valid_lo
+    `).all() as PolityRender[];
+    return { polities, render };
   }
 }

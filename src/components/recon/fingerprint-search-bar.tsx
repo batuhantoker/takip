@@ -3,9 +3,7 @@
 import { AtSign, Mail, Phone, Search, Square, ArrowRight, AlertTriangle } from 'lucide-react';
 import type { SearchType } from '@/lib/fingerprint';
 import { ACCENT } from '@/lib/recon-fingerprint';
-import { SIGN_IN_REQUIRED } from '@/lib/recon-lookup';
 import type { FingerprintState } from './use-fingerprint-search';
-import { SignInNotice } from './sign-in-notice';
 
 const MODES: { id: SearchType; label: string; icon: typeof AtSign; placeholder: string; covers: string }[] = [
   { id: 'username', label: 'Username', icon: AtSign, placeholder: 'Enter a username…', covers: 'Every public site in the Sherlock database, checked in parallel' },
@@ -74,7 +72,7 @@ export function FingerprintSearchBar({ fp, running }: { fp: FingerprintState; ru
         Public sources only · {modeDef.covers.toLowerCase()}
       </div>
 
-      {fp.error === SIGN_IN_REQUIRED ? <SignInNotice /> : fp.error && (
+      {fp.error && (
         <div className="p-2.5 rounded-lg border border-red-500/30 bg-red-500/10 text-[10px] font-mono text-red-400 flex items-center gap-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />{fp.error}
         </div>

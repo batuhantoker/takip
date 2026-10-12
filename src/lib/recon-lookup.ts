@@ -3,17 +3,6 @@ import { ipToNumber, numberToIp, calculateSubnetStart, classifyDevice, assessRis
 // Lookup routes answer with unvalidated JSON of many shapes.
 export type ReconData = any;
 
-/** What a recon route answers a visitor; the panel offers sign-in in place of the error. */
-export const SIGN_IN_REQUIRED = 'sign_in_required';
-
-const wait = (seconds: number) => (seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`);
-
-/** The message for a refused lookup, with a per-account limit put in words. */
-export function lookupError(body: { error?: string; retry_after?: number }, fallback: string): string {
-  if (body.error === 'rate_limited' && body.retry_after) return `Limit reached. Try again in ${wait(body.retry_after)}.`;
-  return body.error || fallback;
-}
-
 export function lookupUrl(activeTab: string, query: string, scanType: string) {
   let url = '';
   switch (activeTab) {
@@ -64,7 +53,7 @@ export function parseLeaks(data: ReconData, query: string) {
 export async function runSweep(query: string, cidr: number, totalHosts: number, onProgress: (done: number) => void) {
   const t0 = Date.now();
   const res = await fetch(`/api/osint/sweep?ip=${encodeURIComponent(query)}&cidr=${cidr}`);
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(lookupError(e, `Sweep failed (${res.status})`)); }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `Sweep failed (${res.status})`); }
   const initData = await res.json();
 
   const ipParts = initData.target_ip.split('.').map(Number) as [number, number, number, number];

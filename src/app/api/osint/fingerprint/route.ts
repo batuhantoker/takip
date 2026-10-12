@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { scanUsername, isValidUsername } from '@/lib/sherlock';
-import { reconGate } from '@/lib/recon-gate';
 
 /**
  * TAKIP — FINGERPRINT username search, streamed.
@@ -24,8 +23,6 @@ import { reconGate } from '@/lib/recon-gate';
 export const maxDuration = 120;
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'people');
-  if (denied) return denied;
   const username = (new URL(req.url).searchParams.get('username') || '').trim();
 
   if (!username) {

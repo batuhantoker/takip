@@ -2,6 +2,8 @@ import { expand, OPEN_HI, Prec } from '@takip/core/time';
 import type {
   EventCandidate,
   EventCandidateQuery,
+  EventCell,
+  EventCellQuery,
   EventDetail,
   EventInput,
   EventKindInput,
@@ -17,6 +19,16 @@ const CANDIDATE_COLS = `
   coalesce(e.lon, (e.x0 + e.x1) / 2) AS lon, coalesce(e.lat, (e.y0 + e.y1) / 2) AS lat,
   e.t_lo AS t0, e.t_hi AS t1, e.t_start AS tStart, e.t_end AS tEnd, e.t_start_prec AS prec, e.ongoing,
   e.geo_prec AS geoPrec, e.magnitude, e.severity, e.confidence, e.geom`;
+
+/** FROM and WHERE for a box and window: canonical, unretracted, licence-gated events (§8.4, §8.7). */
+const IN_WINDOW = `
+  FROM ev_event_rtree r JOIN ev_event e ON e.event_id = r.id JOIN ev_kind k ON k.kind_id = e.kind_id
+  WHERE r.min_x <= @e AND r.max_x >= @w AND r.min_y <= @n AND r.max_y >= @s AND r.min_t < @tHi AND r.max_t >= @tLo
+    AND e.t_lo < @tHi AND e.t_hi > @tLo
+    AND e.retracted_at IS NULL AND e.event_id = e.canonical_id
+    AND e.source_id IN (SELECT value FROM json_each(@sources))
+    AND (@families IS NULL OR k.family IN (SELECT value FROM json_each(@families)))
+    AND (@kinds IS NULL OR k.code IN (SELECT value FROM json_each(@kinds)))`;
 
 type Existing = { event_id: number; sig: string; retracted_at: number | null };
 
@@ -298,31 +310,42 @@ export class SqliteEventStore implements EventStore {
     })();
   }
 
-  candidates(q: EventCandidateQuery): EventCandidate[] {
-    const { bbox } = q;
-    return this.sql(`
-      SELECT ${CANDIDATE_COLS}
-      FROM ev_event_rtree r JOIN ev_event e ON e.event_id = r.id JOIN ev_kind k ON k.kind_id = e.kind_id
-      WHERE r.min_x <= @e AND r.max_x >= @w AND r.min_y <= @n AND r.max_y >= @s AND r.min_t < @tHi AND r.max_t >= @tLo
-        AND e.t_lo < @tHi AND e.t_hi > @tLo
-        AND e.retracted_at IS NULL AND e.event_id = e.canonical_id
-        AND e.source_id IN (SELECT value FROM json_each(@sources))
-        AND (@families IS NULL OR k.family IN (SELECT value FROM json_each(@families)))
-        AND (@kinds IS NULL OR k.code IN (SELECT value FROM json_each(@kinds)))
-      ORDER BY e.magnitude DESC NULLS LAST, e.event_id
-      LIMIT @limit
-    `).all({
-      w: bbox.w,
-      s: bbox.s,
-      e: bbox.e,
-      n: bbox.n,
+  private static window(q: Omit<EventCandidateQuery, 'limit'>) {
+    return {
+      w: q.bbox.w,
+      s: q.bbox.s,
+      e: q.bbox.e,
+      n: q.bbox.n,
       tLo: q.tLo,
       tHi: q.tHi,
       sources: JSON.stringify([...q.sourceIds]),
       families: q.families ? JSON.stringify(q.families) : null,
       kinds: q.kinds ? JSON.stringify(q.kinds) : null,
-      limit: q.limit ?? -1,
-    }) as EventCandidate[];
+    };
+  }
+
+  candidates(q: EventCandidateQuery): EventCandidate[] {
+    return this.sql(`
+      SELECT ${CANDIDATE_COLS} ${IN_WINDOW}
+      ORDER BY e.magnitude DESC NULLS LAST, e.event_id
+      LIMIT @limit
+    `).all({ ...SqliteEventStore.window(q), limit: q.limit ?? -1 }) as EventCandidate[];
+  }
+
+  familyCounts(q: Omit<EventCandidateQuery, 'limit'>) {
+    const rows = this.sql(`SELECT k.family, count(*) AS n ${IN_WINDOW} GROUP BY k.family`).all(SqliteEventStore.window(q)) as { family: string; n: number }[];
+    return Object.fromEntries(rows.map(r => [r.family, r.n]));
+  }
+
+  cells(q: EventCellQuery): EventCell[] {
+    // Offsets keep the casts non-negative, so truncation is floor; an event starting before the window joins bin 0.
+    const rows = this.sql(`
+      SELECT k.family, avg(coalesce(e.lon, (e.x0 + e.x1) / 2)) AS lon, avg(coalesce(e.lat, (e.y0 + e.y1) / 2)) AS lat,
+        max(0, cast((e.t_lo - @tLo) / @bin AS INTEGER)) AS b, count(*) AS n, sum(e.magnitude) AS magSum
+      ${IN_WINDOW}
+      GROUP BY k.family, cast((coalesce(e.lon, (e.x0 + e.x1) / 2) + 180) / @cell AS INTEGER), cast((coalesce(e.lat, (e.y0 + e.y1) / 2) + 90) / @cell AS INTEGER), b
+    `).all({ ...SqliteEventStore.window(q), cell: q.cellDeg, bin: q.binMs }) as { family: string; lon: number; lat: number; b: number; n: number; magSum: number | null }[];
+    return rows.map(({ b, ...r }) => ({ ...r, t0: q.tLo + b * q.binMs, t1: Math.min(q.tLo + (b + 1) * q.binMs, q.tHi) }));
   }
 
   event(id: number): EventDetail | undefined {

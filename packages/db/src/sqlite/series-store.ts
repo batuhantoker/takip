@@ -106,4 +106,14 @@ export class SqliteSeriesStore implements SeriesStore {
       ORDER BY s.source_id, p.t
     `).all(metricCode, subjectType, subjectId, JSON.stringify([...sourceIds])) as SeriesPointRow[];
   }
+
+  entityMetrics(sourceIds: ReadonlySet<number>) {
+    const rows = this.sql(`
+      SELECT m.metric_id AS metricId, m.code, m.name, m.unit, m.granularity, m.agg, m.topic, m.attrs, count(DISTINCT s.subject_id) AS subjects
+      FROM ts_metric m JOIN ts_series s USING (metric_id)
+      WHERE s.subject_type = 'entity' AND s.source_id IN (SELECT value FROM json_each(?))
+      GROUP BY m.metric_id ORDER BY m.code
+    `).all(JSON.stringify([...sourceIds])) as (Omit<MetricRow, 'attrs'> & { attrs: string; subjects: number })[];
+    return rows.map(r => ({ ...SqliteSeriesStore.metricRow(r), subjects: r.subjects }));
+  }
 }

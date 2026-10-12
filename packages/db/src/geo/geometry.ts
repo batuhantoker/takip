@@ -145,7 +145,7 @@ export function fromWkb(bytes: Uint8Array): Geometry {
 
 /** POINT, LINESTRING, POLYGON, MULTILINESTRING and MULTIPOLYGON in 2-D WKT. */
 export function fromWkt(wkt: string): Geometry {
-  const m = wkt.trim().match(/^(\w+)\s*(.*)$/s);
+  const m = wkt.trim().match(/^(\w+)\s*([\s\S]*)$/);
   if (!m) throw new Error('bad WKT');
   const type = m[1].toUpperCase();
   let i = 0;

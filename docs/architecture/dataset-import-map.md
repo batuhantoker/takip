@@ -218,3 +218,8 @@ Where `tools/import/` departs from the map above, and why:
 - **OWID:** rows without a code become region groups, including England, Scotland, Wales and Northern Ireland, which aren't separate polities.
 - **IQ:** visible to every tier while its terms are pending, like every other source, rather than `internal`.
 
+- **Serving, until the MVT event tiles of replay-database.md §8.4:**
+  - `GET /api/replay/history/events?bbox=w,s,e,n&from=&to=&z=&families=` returns GeoJSON in epoch seconds. When a family has more than 2,000 events in the view, it comes back as counted cells: a 12-per-tile grid × 10 time bins, from `EventStore.cells`. GTD is usually the family that gets merged.
+  - `GET /api/replay/history/events/:id` returns one event with its source's attribution.
+  - Both routes are gated by licence tier only, not by `replay.lookback_days`.
+- **Map:** `use-history-layer.ts` draws events in replay mode. It fetches one view per time bucket, sized from playback speed: a year when slow, up to a decade when fast. A cell's count therefore covers a tenth of the bucket. The clock only moves the layer filter. A mark with `geo_prec` ≥ 4 is hollow, because the source gave no coordinates.

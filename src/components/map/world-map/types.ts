@@ -4,6 +4,7 @@ import type { DrawAction, DrawMode, DrawProgress, DrawResult } from '@/lib/draw'
 import type { TerrainStatus } from '@/lib/map-terrain';
 import type { Highlight } from '@/lib/oi/assist/tools';
 import type { OiGlobe, OiHover } from '@/lib/oi/globe';
+import type { HistorySession } from '@/lib/history/session';
 import type { ReplaySession } from '@/lib/replay/session';
 import type { createSatelliteLayer } from '@/lib/satellite-layer';
 
@@ -35,6 +36,10 @@ export interface WorldMapProps {
   replay?: ReplaySession | null;
   /** The clock button in the map controls. */
   onReplayToggle?: () => void;
+  /** History mode (the History tab): events and country colouring at this session's clock. Never with `replay`. */
+  history?: HistorySession | null;
+  /** The event families History shows. */
+  historyFamilies?: readonly string[];
   /** Which Live Alerts to pin — the reports the feed is showing. Null pins them all. */
   alertPinIds?: string[] | null;
   projection?: 'mercator' | 'globe';

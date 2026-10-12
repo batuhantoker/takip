@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { reconGate } from '@/lib/recon-gate';
 
 // BGP/ASN Lookup — remplacé après shutdown de bgpview.io
 // Sources: ip-api.com + RIPE Stat
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'network');
-  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const query = searchParams.get('query');
   if (!query) return NextResponse.json({ error: 'Missing query parameter (IP, ASN number, or prefix)' }, { status: 400 });

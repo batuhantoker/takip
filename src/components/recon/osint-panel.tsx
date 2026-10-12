@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LocateFixed, Radar, ChevronDown, ChevronUp, AlertTriangle, Clock, Maximize2 } from 'lucide-react';
-import { lookupError, lookupUrl, parseLeaks, runSweep, SIGN_IN_REQUIRED } from '@/lib/recon-lookup';
+import { lookupUrl, parseLeaks, runSweep } from '@/lib/recon-lookup';
 import { StructuredResults } from '@/components/recon/tools/structured-results';
 import { TABS, type ToolDef } from './recon-tools';
 import FingerprintSearch, { useFingerprintSearch } from './fingerprint-search';
@@ -13,7 +13,6 @@ import { ToolGrid } from './tool-grid';
 import { QueryBar } from './query-bar';
 import { SweepProgress, SweepResults } from './sweep-results';
 import { ExpandedView } from './expanded-view';
-import { SignInNotice } from './sign-in-notice';
 
 interface OsintPanelProps { isMobile?: boolean; onSweepVisualize?: (data: any) => void; onScanGeolocate?: (target: string, data: any) => void; }
 
@@ -190,7 +189,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
             .catch(() => {});
         }
       } else {
-        setError(lookupError(data, 'Lookup failed'));
+        setError(data.error || 'Lookup failed');
       }
     } catch { setError('Network error'); }
     finally { setLoading(false); }
@@ -254,7 +253,7 @@ function OsintPanelInner({ isMobile, onSweepVisualize, onScanGeolocate }: OsintP
       />
       )}
 
-      {error === SIGN_IN_REQUIRED ? <SignInNotice /> : error && (
+      {error && (
         <div className="p-2.5 rounded-lg border border-red-500/30 bg-red-500/10 text-[10px] font-mono text-red-400 flex items-center gap-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />{error}
         </div>

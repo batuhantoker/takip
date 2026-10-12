@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, memo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { installTerrainTileProtocol } from '@/lib/terrain-tiles';
 import { createCloudLayer } from '@/lib/live-clouds-layer';
@@ -40,6 +40,8 @@ import { useChokepointFlowLayer } from './world-map/use-chokepoint-flow-layer';
 import { useOutbreaksLayer } from './world-map/use-outbreaks-layer';
 import { useLayerVisibility } from './world-map/use-layer-visibility';
 import { useReplayLayer } from './world-map/use-replay-layer';
+import { useChoroplethLayer } from './world-map/use-choropleth-layer';
+import { useHistoryLayer } from './world-map/use-history-layer';
 import { useMapPalette } from './world-map/use-map-palette';
 import { useDirections, useUserLocation } from './world-map/use-navigation';
 import { useCyberLayers, useSdkLinks } from './world-map/use-network-layers';
@@ -54,7 +56,11 @@ import { useSatelliteDismiss, useSatelliteLayer } from './world-map/use-satellit
 import { useWeatherGridLayer, useWeatherRasters } from './world-map/use-weather-layers';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null, replay = null, onReplayToggle }: WorldMapProps) {
+/** Replay draws recorded quakes from the history events; History draws the families its panel picks. */
+const NO_FAMILIES: readonly string[] = [];
+const QUAKES: readonly string[] = ['hazard'];
+
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -236,8 +242,12 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useLiveNewsLayer(layerArgs);
   useAlertPins({ ...layerArgs, alertPinsRef, alertPinIds });
   useConflictZones(layerArgs);
-  useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef, replayActive: !!replay });
+  useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef, replayActive: !!replay || !!history });
   useReplayLayer({ mapRef, mapReady, replay, activeLayers });
+  useChoroplethLayer({ mapRef, mapReady, history, mapStyle });
+  const eventFamilies = useMemo(() => (history ? historyFamilies : replay && activeLayers.earthquakes ? QUAKES : NO_FAMILIES),
+    [history, historyFamilies, replay, activeLayers.earthquakes]);
+  useHistoryLayer({ mapRef, mapReady, timeline: history ?? replay, families: eventFamilies, popupRef });
   useReconLayers({ ...layerArgs, sweepData, scanTargets });
   useReferenceLayers(layerArgs);
 

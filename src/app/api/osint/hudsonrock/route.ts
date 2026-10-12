@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { reconGate } from '@/lib/recon-gate';
 
 /**
  * TAKIP — Hudson Rock Infostealer Intelligence
@@ -45,8 +44,6 @@ export function detectAssetType(raw: string): AssetType {
 }
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'breach');
-  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const query = (searchParams.get('query') || '').trim();
   const forced = searchParams.get('type') as AssetType | null;
@@ -94,7 +91,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(
       { query, type, compromised, source: 'Hudson Rock Cavalier', ...data },
-      { headers: { 'Cache-Control': 'private, max-age=300' } }
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
     );
   } catch (err: any) {
     const timedOut = err?.name === 'TimeoutError' || err?.name === 'AbortError';

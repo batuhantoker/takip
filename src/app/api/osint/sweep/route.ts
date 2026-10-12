@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { parseIPv4, isPrivateOrReserved } from '@/lib/osint-utils';
-import { reconGate } from '@/lib/recon-gate';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +31,6 @@ function checkRateLimit(requesterIp: string): boolean {
 }
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'scan');
-  if (denied) return denied;
   const { searchParams } = new URL(req.url);
 
   // --- 1. IP Validation ---

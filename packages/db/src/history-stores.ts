@@ -83,6 +83,11 @@ export type EventCandidate = {
   geom: Uint8Array | null;
 };
 
+export type EventCellQuery = Omit<EventCandidateQuery, 'limit'> & { cellDeg: number; binMs: number };
+
+/** One family's events merged by grid cell and time bin, for views too dense to send one by one (§8.4). */
+export type EventCell = { family: string; lon: number; lat: number; t0: number; t1: number; n: number; magSum: number | null };
+
 export type EventDetail = EventCandidate & {
   sourceRecordId: string;
   canonicalId: number;
@@ -115,6 +120,8 @@ export interface EventStore {
   rebuildTimeline(families: readonly string[]): void;
 
   candidates(q: EventCandidateQuery): EventCandidate[];
+  familyCounts(q: Omit<EventCandidateQuery, 'limit'>): Record<string, number>;
+  cells(q: EventCellQuery): EventCell[];
   event(id: number): EventDetail | undefined;
   timeline(layers: readonly string[], unit: TimelineBin['unit'], from: number, to: number, sourceIds: ReadonlySet<number>): TimelineBin[];
 }
@@ -163,6 +170,8 @@ export interface SeriesStore {
   points(metricCode: string, sourceIds: ReadonlySet<number>, from?: number, to?: number): SeriesPointRow[];
   /** One subject's series for a metric. */
   subjectPoints(metricCode: string, subjectType: 'entity' | 'event', subjectId: number, sourceIds: ReadonlySet<number>): SeriesPointRow[];
+  /** Metrics with entity series from the given sources, and how many entities each covers. */
+  entityMetrics(sourceIds: ReadonlySet<number>): (MetricRow & { subjects: number })[];
 }
 
 export type DocumentInput = {
