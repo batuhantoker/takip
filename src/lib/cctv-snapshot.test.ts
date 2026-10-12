@@ -8,13 +8,13 @@ import { buildPayload, clearPayload, getPayload, readSnapshot, writeSnapshot } f
 let directory: string;
 
 beforeEach(async () => {
-  directory = await mkdtemp(join(tmpdir(), 'osiris-snap-'));
-  process.env.OSIRIS_CCTV_SNAPSHOT = join(directory, 'nested', 'cctv-catalog.json');
+  directory = await mkdtemp(join(tmpdir(), 'takip-snap-'));
+  process.env.TAKIP_CCTV_SNAPSHOT = join(directory, 'nested', 'cctv-catalog.json');
   clearPayload();
 });
 
 afterEach(async () => {
-  delete process.env.OSIRIS_CCTV_SNAPSHOT;
+  delete process.env.TAKIP_CCTV_SNAPSHOT;
   await rm(directory, { recursive: true, force: true });
 });
 
@@ -35,13 +35,13 @@ describe('camera catalogue snapshot', () => {
     expect(await readSnapshot()).toBeNull();
 
     await writeSnapshot({ uk: [{ id: 'a' }] });
-    await writeFile(process.env.OSIRIS_CCTV_SNAPSHOT!, '{"version":1,"regions":{"uk":[{"id"');
+    await writeFile(process.env.TAKIP_CCTV_SNAPSHOT!, '{"version":1,"regions":{"uk":[{"id"');
     expect(await readSnapshot()).toBeNull();
   });
 
   it('reuses unaffected regions while invalidating outdated camera mappings', async () => {
     await writeSnapshot({ uk: [{ id: 'london' }] });
-    const path = process.env.OSIRIS_CCTV_SNAPSHOT!;
+    const path = process.env.TAKIP_CCTV_SNAPSHOT!;
     await writeFile(path, JSON.stringify({ version: 1, builtAt: Date.now(), regions: {
       uk: [{ id: 'london' }], texas: [{ id: 'old-texas' }], florida: [{ id: 'old-florida' }],
       georgia: [{ id: 'old-georgia' }], northcarolina: [{ id: 'old-northcarolina' }],
@@ -54,9 +54,9 @@ describe('camera catalogue snapshot', () => {
   });
 
   it('rejects a catalogue written by a different format version', async () => {
-    await writeFile(process.env.OSIRIS_CCTV_SNAPSHOT!.replace(/nested[\\/]/, ''), '{}').catch(() => {});
+    await writeFile(process.env.TAKIP_CCTV_SNAPSHOT!.replace(/nested[\\/]/, ''), '{}').catch(() => {});
     await writeSnapshot({ uk: [{ id: 'a' }] });
-    const path = process.env.OSIRIS_CCTV_SNAPSHOT!;
+    const path = process.env.TAKIP_CCTV_SNAPSHOT!;
     await writeFile(path, JSON.stringify({ version: 99, builtAt: Date.now(), regions: { uk: [{ id: 'a' }] } }));
     expect(await readSnapshot()).toBeNull();
   });

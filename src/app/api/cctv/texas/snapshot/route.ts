@@ -1,4 +1,4 @@
-import { TEXAS_DISTRICTS, TXDOT_BASE } from '../../texas';
+import { TEXAS_DISTRICTS, TXDOT_BASE } from '@/lib/cctv/sources/us/texas';
 
 export const runtime = 'nodejs';
 

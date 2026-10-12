@@ -12,7 +12,7 @@ const flushIO = () => vi.advanceTimersByTimeAsync(0);
 vi.mock('@/lib/stealthFetch', () => ({ stealthFetch: vi.fn(), stealthHeaders: vi.fn(() => ({})) }));
 /* Keep these cases on the live fetch path; a saved catalogue would answer
    for them before any upstream was asked. */
-beforeEach(() => { process.env.OSIRIS_CCTV_SNAPSHOT = 'off'; vi.useFakeTimers(); vi.resetAllMocks(); clearSourceCache(); clearCctvRefreshes(); });
+beforeEach(() => { process.env.TAKIP_CCTV_SNAPSHOT = 'off'; vi.useFakeTimers(); vi.resetAllMocks(); clearSourceCache(); clearCctvRefreshes(); });
 /* Drain first: a mock that never settles is holding a pool slot, and the pool
    is module state shared with the next case. */
 afterEach(async () => { await flushIO(); await vi.advanceTimersByTimeAsync(12_000); vi.useRealTimers(); });
