@@ -1,4 +1,4 @@
-import { cachedSource } from '@/lib/sourceCache';
+import { cachedSource } from './source-cache';
 
 /**
  * TAKIP — street-level crime within a mile, latest published month, from data.police.uk; no key, OGL v3.
