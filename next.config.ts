@@ -46,6 +46,7 @@ const nextConfig: NextConfig = {
         { source: '/api/auth/:path*', destination: `${api}/api/auth/:path*` },
         { source: '/api/v1/:path*', destination: `${api}/api/v1/:path*` },
         { source: '/api/admin/:path*', destination: `${api}/api/admin/:path*` },
+        { source: '/api/billing/:path*', destination: `${api}/api/billing/:path*` },
         // Legacy paths still called from page.tsx and bind-flight-clicks.ts.
         { source: '/api/geo/reverse', destination: `${api}/api/v1/geo/reverse` },
         { source: '/api/aircraft', destination: `${api}/api/v1/aircraft` },
