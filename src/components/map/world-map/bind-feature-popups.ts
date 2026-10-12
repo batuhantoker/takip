@@ -6,6 +6,11 @@ import {
   sdkLinkPopupHtml, shipPopupHtml, supplierPopupHtml, sweepDevicePopupHtml, weatherEventPopupHtml,
   weatherPointPopupHtml,
 } from '@/lib/map-popups';
+import { warAlertPopupHtml } from '@/lib/war-alerts';
+import { fireIncidentPopupHtml } from '@/lib/fire-incidents';
+import { airportDelayPopupHtml } from '@/lib/airport-delays';
+import { chokepointFlowPopupHtml } from '@/lib/chokepoint-flow';
+import { outbreakPopupHtml } from '@/lib/outbreaks';
 import type { ShowPopup, WorldMapProps } from './types';
 
 export function bindCctvAndQuakeClicks(map: maplibregl.Map, popup: ShowPopup, onEntityClick: WorldMapProps['onEntityClick']) {
@@ -119,7 +124,7 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
   });
 
   // ── Generic hover for clickables ──
-  ['conflict-icons','cctv-dots','eq-circles','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','rad-dots','ship-dots','ship-arrows','sweep-device-dots','scan-targets-dots','sdk-sea','sdk-sea-glow','sdk-sea-atmo','sdk-air','sdk-air-glow','sdk-air-atmo','sdk-intel','sdk-intel-glow','sdk-intel-atmo','malware-dots','cyber-heads','gdelt-events-dots','cf-outage-dots','cf-attack-dots','alert-pin-dots','wx-wind','wx-temp-label'].forEach(layer => {
+  ['conflict-icons','cctv-dots','eq-circles','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','rad-dots','war-alert-dots','fire-incident-dots','airport-delay-dots','chokepoint-flow-ring','outbreak-rings','ship-dots','ship-arrows','sweep-device-dots','scan-targets-dots','sdk-sea','sdk-sea-glow','sdk-sea-atmo','sdk-air','sdk-air-glow','sdk-air-atmo','sdk-intel','sdk-intel-glow','sdk-intel-atmo','malware-dots','cyber-heads','gdelt-events-dots','cf-outage-dots','cf-attack-dots','alert-pin-dots','wx-wind','wx-temp-label'].forEach(layer => {
     map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   });
@@ -162,6 +167,41 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
     const p = e.features[0].properties as any;
     const coords = (e.features[0].geometry as any).coordinates;
     popup(coords, radiationPopupHtml(p));
+  });
+
+  // ── War and air-raid alerts ──
+  map.on('click', 'war-alert-dots', e => {
+    const f = e.features?.[0];
+    if (!f || f.geometry.type !== 'Point') return;
+    popup(f.geometry.coordinates, warAlertPopupHtml(f.properties ?? {}));
+  });
+
+  // ── Agency-reported wildfires (CWFIS) ──
+  map.on('click', 'fire-incident-dots', e => {
+    const f = e.features?.[0];
+    if (!f || f.geometry.type !== 'Point') return;
+    popup(f.geometry.coordinates, fireIncidentPopupHtml(f.properties ?? {}));
+  });
+
+  // ── FAA airport delays ──
+  map.on('click', 'airport-delay-dots', e => {
+    const f = e.features?.[0];
+    if (!f || f.geometry.type !== 'Point') return;
+    popup(f.geometry.coordinates, airportDelayPopupHtml(f.properties ?? {}));
+  });
+
+  // ── PortWatch chokepoint traffic ──
+  map.on('click', 'chokepoint-flow-ring', e => {
+    const f = e.features?.[0];
+    if (!f || f.geometry.type !== 'Point') return;
+    popup(f.geometry.coordinates, chokepointFlowPopupHtml(f.properties ?? {}));
+  });
+
+  // ── Disease outbreak notices ──
+  map.on('click', 'outbreak-rings', e => {
+    const f = e.features?.[0];
+    if (!f || f.geometry.type !== 'Point') return;
+    popup(f.geometry.coordinates, outbreakPopupHtml(f.properties ?? {}));
   });
 
   // ── Weather grid point (Open-Meteo) ──

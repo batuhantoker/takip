@@ -2,6 +2,37 @@
 
 Source: World Monitor clone at commit 968eac6 (AGPL-3.0). Only facts are recorded here: endpoints, parameters, fields and methods. No code was copied. Checklist: the geo slice of World Monitor's `shared/source-attribution-manifest.json` (164 providers, 172 hosts). Every provider in it appears below, either in the main table, the out-of-slice table, or the keyed table.
 
+## Implementation status (2026-10-12)
+
+Built from the facts below and re-probed before each one. All of it is uncommitted on `ui/shell-reorg`. Sources this doc shares with `provenance.md` (NHC, GDACS volcanoes, gpsjam, UNHCR, FCDO, Statuspage, adsb.lol, TeleGeography) belong to that work; its status section covers them.
+
+- **Weather and civil alerts → `/api/weather`** (Severe Weather layer, Live Alerts):
+  - **WMO SWIC** (`weather/wmo-swic.ts`). `wmo_all.json` has no coordinates, so each alert's CAP file (`/v2/cap-alerts/{capURL}`) is read once for its polygon or circle. Kept: Severe and Extreme (`s` ≥ 3) outside the US and Canada, about 260 alerts. Members that publish region codes only (CMA, BoM, HNMS, Meteoam…) become one country-level event per member, not stacked pins.
+  - **ECCC** (`weather/eccc.ts`): one event per alert area, `issued` and `continued` paged separately; severity from the risk colour.
+  - **Hong Kong Observatory** `warnsum` (`weather/hko.ts`). HKO publishes nothing through SWIC.
+  - **Canadian civil alerts** (`weather/canada-civil.ts`): B.C. evacuation orders and alerts, SaskAlert minus Environment Canada's duplicates, Alberta Emergency Alert (empty when built, so its parser follows GeoRSS/CAP).
+  - **GDACS volcanoes** (the provenance work's `weather/gdacs-volcanoes.ts`) wired here; EONET volcanoes within 100 km of a GDACS one are dropped (`weather/dedupe.ts`).
+  - The weather popup now escapes issuer text and shows the issuer and area.
+- **Radiation → `/api/radiation`**, which revives the existing Radiation layer (its May 2026 route made readings up and was reverted):
+  - **EPA RadNet**: 31 curated fixed monitors, each rated against its own previous 168 readings (WM's bands: +8/+15 nSv/h or z 2/3; σ floored at 1 nSv/h). A monitor silent for 6 h is OFFLINE, not dropped (NYC since 2026-07, Chicago since 2026-09). Denver publishes counts without a dose rate and is left out. The endpoint needs a non-JSON `Accept` (406 otherwise).
+  - **Safecast**: `tt.safecast.org/devices` instead of `measurements.json`, about 150 real-time sensors reporting in the last day. Latest values only, so UNRATED.
+- **War and air-raid alerts → `/api/war-alerts`** and the existing `war_alerts` slot (Air-Raid Alerts, THREAT):
+  - **Tzeva Adom** `notifications` plus `alerts-history`, placed with Tzeva Adom's own `static/cities.json`. Threat ids from its client: 0 rockets, 1 hazmat, 2 infiltration, 3 earthquake, 4 tsunami, 5 UAV, 6 non-conventional, 7 radiological, 8 general, 9 drill.
+  - **Ukraine**: `ubilling.net.ua/aerialalerts/`, not alerts.com.ua (see below). Oblast alerts are anchored at the administrative centre; a mirror more than 10 minutes behind is reported as down, never as all-clear.
+- **Canadian wildfire incidents → `/api/fires`** (`fire_incidents`, drawn under Active Fires): CWFIS `cwfif_national_activefires` filtered to the versions current now (the layer keeps every past version, ~190k rows), joined to BC Wildfire by fire number for names, links and "fire of note".
+- **FAA NAS Status → `/api/airport-status`** and a new Airport Delays layer (AVIATION). WM's delay bands; a closure limited to a class of aircraft ("CLSD TO NON SKED TRANSIENT GA") is minor and `partial`, since most last months.
+- **IMF PortWatch → `/api/chokepoints`** and a new Chokepoint Traffic layer (MARITIME). WM's 7-day vs ~90-day method, anchored to the latest published day (weekly upstream), with a 2 vessels/day baseline floor. An active red PortWatch disruption outranks the ratio on the map: Hormuz's baseline is already the collapse.
+- **Travel advisories → `/api/advisories`** (US State Department and Smartraveller, whole feeds; `?iso2=` adds the provenance work's FCDO) and the region dossier's `travel_advice`, all on FCDO's 0–4 scale (US 1/2/3/4 → 0/1/2/4; AU 2/5–5/5 → 0/1/2/4). **Smartraveller is unreachable from this network** (Akamai drops the whole host); its parser was built from the 2026-10-01 Wayback copy and reports `ok: false` until it is tried from the server.
+- **Disease outbreaks → `/api/outbreaks`** and a new Disease Outbreaks layer (HAZARD): WHO DON (OData), CDC travel notices and ECDC epidemiological updates and risk assessments. One ring per country, never a pin. Kept: a known disease and a country, under 90 days except CDC (which lists a notice only while it is in force); the highest CDC level wins over a newer, lower notice. A notice naming more than 50 countries (CDC's Global Measles, 238) is listed under `worldwide` instead of drawn.
+- **NGA MSI → `/api/nav-warnings`**, route only, no layer. The API has served nothing issued after **2024-05-10** (its own `latest-warning` says so, and NGA's NavWarnings page uses the same endpoint); the route reports `latestIssued` and `stale`.
+- **Not built:**
+  - **HDX HAPI**: both `hapi.humdata.org` and `data.humdata.org` answer 406 "Blocked due to bot activity" to this network, with or without an app identifier.
+  - **alerts.com.ua**: live for Kyiv city only. On 2026-10-12 it showed 2 oblasts on alert while ubilling's mirror showed 16 during the same attack.
+  - **C2IntelFeeds**: bare IPs with no hosting country; placing them means bulk IP geolocation.
+  - **GCP `incidents.json`**: 7 incidents, none active; AWS health now serves HTML.
+  - **CorridorRisk**: needs a forged Referer on an undocumented API.
+  - **OREF** (Israeli IP only), **ThinkGlobalHealth** (bundle scrape), **USNI**, **PizzINT**, **Toronto** feeds, **TTC** (protobuf), **VIA Rail**, **WTO Hormuz** (Power BI scrape), climate series and news RSS: low value for the map or scrapes.
+
 ## Summary
 
 - **Counts (164 providers, 172 hosts in the chunk):** 133 keyless, 23 free key or free registration, 7 paid, and 1 placeholder that is not a source. The 133 keyless include 31 cloud status pages, 16 news RSS feeds (9 aviation, 7 climate), 13 US-embassy alert feeds, about 8 scrapes, and 7 out-of-slice relay neighbours. That leaves about 55 keyless geo-signal sources.

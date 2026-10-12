@@ -77,7 +77,7 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
   createDot(map, 'dot-fire', isGhost ? phantomPurple : '#E65100', 10);
   createDot(map, 'dot-cctv', cameraColor, 10);
 
-  const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'network-mesh', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks', 'alert-pins', 'wx-points'];
+  const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','cctv','fires','fire-incidents','airport-delays','chokepoint-flow','outbreaks','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'network-mesh', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks', 'alert-pins', 'wx-points'];
   sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
   // ── FLIGHT ROUTE VISUALIZATION SOURCES & LAYERS ──
@@ -288,7 +288,7 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
   }});
   map.addLayer({ id: 'weather-dots', type: 'circle', source: 'weather', paint: {
     'circle-radius': ['interpolate',['linear'],['zoom'], 1,5, 5,8, 10,14],
-    'circle-color': ['match', ['get','icon'], 'cyclone','#7E57C2', 'volcano','#D32F2F', '#7E57C2'],
+    'circle-color': ['match', ['get','icon'], 'volcano','#D32F2F', 'alert','#FF6D00', ['match', ['get','severity'], 'high','#D500F9', 'medium','#9C6ADE', '#6A5A9A']],
     'circle-opacity': 0.75,
     'circle-stroke-width': 1.5, 'circle-stroke-color': '#7E57C2', 'circle-stroke-opacity': 0.35,
   }});
@@ -501,22 +501,84 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
     'text-offset': [0, 1.2], 'text-max-width': 12, 'text-allow-overlap': false,
   }, paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
 
-  // Radiation — violet base, threat spectrum for danger/warning
+  // Radiation — violet when within its own week's range (or unrated), amber/orange above it, grey once silent
+  const RAD_COLOR: LayerColor = ['match', ['get','status'], 'SPIKE','#E65100', 'ELEVATED','#FFB300', 'OFFLINE','#5C5A54', 'UNRATED','#9575CD', '#7E57C2'];
   map.addLayer({ id: 'rad-glow', type: 'circle', source: 'radiation', paint: {
     'circle-radius': ['interpolate',['linear'],['zoom'], 1,10, 5,20, 10,40],
-    'circle-color': ['match', ['get','status'], 'DANGER','#D32F2F', 'WARNING','#E65100', '#7E57C2'],
+    'circle-color': RAD_COLOR,
     'circle-opacity': 0.12, 'circle-blur': 1,
   }});
   map.addLayer({ id: 'rad-dots', type: 'circle', source: 'radiation', paint: {
     'circle-radius': ['interpolate',['linear'],['zoom'], 1,4, 5,6, 10,8],
-    'circle-color': ['match', ['get','status'], 'DANGER','#D32F2F', 'WARNING','#E65100', '#7E57C2'],
+    'circle-color': RAD_COLOR,
     'circle-opacity': 0.85,
-    'circle-stroke-width': 1.5, 'circle-stroke-color': ['match', ['get','status'], 'DANGER','#D32F2F', 'WARNING','#E65100', '#7E57C2'], 'circle-stroke-opacity': 0.35,
+    'circle-stroke-width': 1.5, 'circle-stroke-color': RAD_COLOR, 'circle-stroke-opacity': 0.35,
   }});
   map.addLayer({ id: 'rad-label', type: 'symbol', source: 'radiation', minzoom: 5, layout: {
     'text-field': ['concat', ['to-string', ['get','reading']], ' nSv/h'], 'text-size': 9, 'text-font': ['Open Sans Bold'],
     'text-offset': [0, 1.5], 'text-allow-overlap': false,
-  }, paint: { 'text-color': ['match', ['get','status'], 'DANGER','#D32F2F', 'WARNING','#E65100', '#7E57C2'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
+  }, paint: { 'text-color': RAD_COLOR, 'text-halo-color': '#000', 'text-halo-width': 1 }});
+
+  // War and air-raid alerts — full strength while the siren or oblast alert stands, faint once it has ended
+  map.addLayer({ id: 'war-alert-glow', type: 'circle', source: 'war-alerts-targets', paint: {
+    'circle-radius': ['interpolate',['linear'],['zoom'], 1, ['match',['get','precision'],'oblast',14,8], 6, ['match',['get','precision'],'oblast',40,18]],
+    'circle-color': ['get','color'],
+    'circle-opacity': ['case', ['==',['get','active'],true], 0.22, 0.06], 'circle-blur': 1,
+  }});
+  map.addLayer({ id: 'war-alert-dots', type: 'circle', source: 'war-alerts-targets', paint: {
+    'circle-radius': ['interpolate',['linear'],['zoom'], 1,3.5, 6,6, 10,8],
+    'circle-color': ['get','color'],
+    'circle-opacity': ['case', ['==',['get','active'],true], 0.95, 0.4],
+    'circle-stroke-width': 1, 'circle-stroke-color': '#fff', 'circle-stroke-opacity': ['case', ['==',['get','active'],true], 0.7, 0.2],
+  }});
+  map.addLayer({ id: 'war-alert-label', type: 'symbol', source: 'war-alerts-targets', minzoom: 4, layout: {
+    'text-field': ['get','place'], 'text-size': 9, 'text-font': ['Open Sans Bold'],
+    'text-offset': [0, 1.3], 'text-allow-overlap': false,
+  }, paint: { 'text-color': ['get','color'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
+
+  // Agency-reported wildfires (CWFIS) over the FIRMS hotspots — sized by burned area, coloured by stage of control
+  map.addLayer({ id: 'fire-incident-dots', type: 'circle', source: 'fire-incidents', paint: {
+    'circle-radius': ['interpolate',['linear'],['zoom'], 2, ['interpolate',['linear'],['get','size'], 0,2.5, 10000,6, 100000,9], 8, ['interpolate',['linear'],['get','size'], 0,5, 10000,12, 100000,18]],
+    'circle-color': ['get','color'], 'circle-opacity': 0.85,
+    'circle-stroke-width': 1.2, 'circle-stroke-color': '#000', 'circle-stroke-opacity': 0.6,
+  }});
+  map.addLayer({ id: 'fire-incident-label', type: 'symbol', source: 'fire-incidents', minzoom: 6, layout: {
+    'text-field': ['get','name'], 'text-size': 9, 'text-font': ['Open Sans Bold'],
+    'text-offset': [0, 1.4], 'text-allow-overlap': false,
+  }, paint: { 'text-color': ['get','color'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
+
+  // FAA airport delay programmes — one pin per airport at its worst programme
+  map.addLayer({ id: 'airport-delay-dots', type: 'circle', source: 'airport-delays', paint: {
+    'circle-radius': ['interpolate',['linear'],['zoom'], 2,5, 6,8, 10,11],
+    'circle-color': ['get','color'], 'circle-opacity': 0.9,
+    'circle-stroke-width': 2, 'circle-stroke-color': '#0C0E1A', 'circle-stroke-opacity': 0.9,
+  }});
+  map.addLayer({ id: 'airport-delay-label', type: 'symbol', source: 'airport-delays', minzoom: 3, layout: {
+    'text-field': ['get','code'], 'text-size': 9, 'text-font': ['Open Sans Bold'],
+    'text-offset': [0, 1.3], 'text-allow-overlap': false,
+  }, paint: { 'text-color': ['get','color'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
+
+  // PortWatch chokepoint traffic — rings, so they sit apart from the static chokepoint markers
+  map.addLayer({ id: 'chokepoint-flow-ring', type: 'circle', source: 'chokepoint-flow', paint: {
+    'circle-radius': ['interpolate',['linear'],['zoom'], 1,7, 5,13, 9,20],
+    'circle-color': 'rgba(0,0,0,0)',
+    'circle-stroke-width': ['case', ['==',['get','status'],'disrupted'], 3, 2], 'circle-stroke-color': ['get','color'], 'circle-stroke-opacity': 0.9,
+  }});
+  map.addLayer({ id: 'chokepoint-flow-label', type: 'symbol', source: 'chokepoint-flow', minzoom: 3, layout: {
+    'text-field': ['get','name'], 'text-size': 9, 'text-font': ['Open Sans Bold'],
+    'text-offset': [0, 2], 'text-allow-overlap': false,
+  }, paint: { 'text-color': ['get','color'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
+
+  // Outbreak notices — a soft ring at the country centroid, never a pin: the issuers name countries, not places
+  map.addLayer({ id: 'outbreak-rings', type: 'circle', source: 'outbreaks', paint: {
+    'circle-radius': ['interpolate',['linear'],['zoom'], 1, ['+', 8, ['*', 2, ['get','count']]], 5, ['+', 22, ['*', 4, ['get','count']]]],
+    'circle-color': ['get','color'], 'circle-opacity': 0.1,
+    'circle-stroke-width': 1.5, 'circle-stroke-color': ['get','color'], 'circle-stroke-opacity': 0.8,
+  }});
+  map.addLayer({ id: 'outbreak-label', type: 'symbol', source: 'outbreaks', minzoom: 2.5, layout: {
+    'text-field': ['get','label'], 'text-size': 9, 'text-font': ['Open Sans Regular'],
+    'text-max-width': 14, 'text-allow-overlap': false,
+  }, paint: { 'text-color': ['get','color'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
 
   // ══ OSIRIS SDK — Lattice Intelligence Mesh ══
   // Polybolos Style: Delicate, translucent, steel-blue splined mesh

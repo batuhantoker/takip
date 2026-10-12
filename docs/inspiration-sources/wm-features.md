@@ -2,6 +2,16 @@
 
 Based on the World Monitor clone at commit 968eac6 (AGPL-3.0). I read its feature docs, `docs/methodology/`, the named `data-sources.mdx` sections and the derived-signal seed scripts, and restated their methods here in prose. No code was copied. Constants, thresholds and field names appear as facts.
 
+## Implementation status (2026-10-12)
+
+Only the logic that belongs to a single source was built; the cross-source engines (#1, #2, #4–#12, #23 onwards) and the provenance, licence and freshness format (#5–#7) wait on the backend plan. Details in `wm-geo-signals.md`.
+
+- **#3 Chokepoint transit anomalies:** `chokepoints/flow.ts`, as described, plus a 2 vessels/day baseline floor (Kerch read as "disrupted" at ratio 0 without it). The method rates a strait only against its own recent past, so a long closure becomes the baseline (Hormuz since 2026-03); the map lets an active red PortWatch disruption outrank the ratio.
+- **#13 Radiation watch:** RadNet station baselines in `radiation/radnet.ts`. Safecast's real-time feed has no history, so its sensors are unrated and corroboration is not built.
+- **#14 Natural-hazard fusion:** volcanoes only, GDACS over EONET within 100 km (`weather/dedupe.ts`).
+- **#20 Airport disruption severity:** FAA bands in `airport-status/nas-status.ts`; NOTAM closures need the keyed ICAO API and are not built.
+- **#26 NGA warnings:** the parser (cable faults vs operations, cable ships, firing areas, DMS positions) is in `nav-warnings/nga-msi.ts`, but the API stopped at 2024-05-10, so no chokepoint score or cable health is derived from it.
+
 ## Top picks (summary)
 
 1. **Geographic convergence cells.** Put every geolocated observation in a 1° cell over 24 h and alert when 3+ independent kinds co-occur. Every input is already fetched by OSIRIS without a key. S·H

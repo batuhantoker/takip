@@ -60,6 +60,9 @@ export const DEFAULT_LAYERS = {
   gdelt_events: false,
   cf_outages: false,
   cf_attacks: false,
+  airport_delays: false,
+  chokepoint_flow: false,
+  outbreaks: false,
   ...REFERENCE_LAYER_DEFAULTS,
 };
 

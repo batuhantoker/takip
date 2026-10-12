@@ -1,11 +1,20 @@
 import { NextResponse } from 'next/server';
 import { stealthFetch } from '@/lib/stealthFetch';
 import { cachedSource } from '@/lib/sourceCache';
+import { httpJson } from '@/lib/httpJson';
+import { loadSwicEvents } from './wmo-swic';
+import { loadEcccEvents } from './eccc';
+import { loadCanadaCivilEvents } from './canada-civil';
+import { HKO_WARNSUM_URL, parseHkoWarnsum } from './hko';
+import { GDACS_VO_URL, parseGdacsVolcanoes } from './gdacs-volcanoes';
+import { dropNearDuplicates } from './dedupe';
 
 /**
  * OSIRIS — Severe Weather & Anomalies API
  * Fetches active natural events from NASA EONET (global storms/volcanoes/sea ice),
- * NOAA/NWS active alerts (U.S. only), and GDACS (global cyclones/floods/droughts).
+ * NOAA/NWS active alerts (U.S. only), ECCC alerts and provincial civil emergencies (Canada),
+ * WMO SWIC Severe/Extreme warnings from other national services, Hong Kong Observatory signals,
+ * and GDACS (global cyclones/floods/droughts/volcanoes).
  * NWS alone only covers the U.S.; GDACS fills the rest of the world with the same
  * severity/coordinate shape so the map layer shows weather events everywhere.
  */
@@ -25,7 +34,7 @@ type WeatherEvent = {
   expires?: string;
   area?: string;
   source: string;
-  provider: 'NASA EONET' | 'NOAA/NWS' | 'GDACS';
+  provider: 'NASA EONET' | 'NOAA/NWS' | 'GDACS' | 'WMO SWIC' | 'ECCC' | 'B.C. EMCR' | 'SaskAlert' | 'Alberta Emergency Alert' | 'HKO';
 };
 
 type EonetEvent = {
@@ -174,7 +183,7 @@ export async function GET() {
 
 async function collectEvents(): Promise<WeatherEvent[]> {
   {
-    const [eonetRes, nwsRes, gdacsRes] = await Promise.allSettled([
+    const [eonetRes, nwsRes, gdacsRes, swicRes, ecccRes, civilRes, hkoRes, volcanoRes] = await Promise.allSettled([
       stealthFetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=100', {
         signal: AbortSignal.timeout(10000),
       }),
@@ -188,6 +197,11 @@ async function collectEvents(): Promise<WeatherEvent[]> {
       stealthFetch('https://www.gdacs.org/xml/rss.xml', {
         signal: AbortSignal.timeout(10000),
       }),
+      loadSwicEvents(),
+      loadEcccEvents(),
+      loadCanadaCivilEvents(),
+      httpJson(HKO_WARNSUM_URL, { timeoutMs: 10_000 }).then(parseHkoWarnsum),
+      httpJson(GDACS_VO_URL, { timeoutMs: 10_000 }).then(parseGdacsVolcanoes),
     ]);
 
     const events: WeatherEvent[] = [];
@@ -289,11 +303,21 @@ async function collectEvents(): Promise<WeatherEvent[]> {
       }
     }
 
+    for (const [name, res] of [['WMO SWIC', swicRes], ['ECCC', ecccRes], ['Canadian civil alerts', civilRes], ['HKO', hkoRes], ['GDACS volcanoes', volcanoRes]] as const) {
+      if (res.status === 'fulfilled') {
+        events.push(...res.value);
+        providerSucceeded = true;
+      } else {
+        console.error(`${name} error:`, res.reason);
+      }
+    }
+
     /* Every provider failed: throw rather than return nothing, so the cache
        serves the last good warnings instead of an empty panel. */
     if (!providerSucceeded) throw new Error('no weather provider answered');
 
-    return events;
+    // GDACS grades a volcano's alert level; EONET only says it is active, so GDACS wins a pair.
+    return dropNearDuplicates(events, e => e.provider === 'NASA EONET' && e.icon === 'volcano', e => e.provider === 'GDACS' && e.icon === 'volcano', 100);
   }
 }
 

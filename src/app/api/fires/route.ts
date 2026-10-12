@@ -1,17 +1,47 @@
 
 import { NextResponse } from 'next/server';
+import { httpJson } from '@/lib/httpJson';
+import { bcUrl, cwfisUrl, parseBcFires, parseCwfis, type FireIncident } from './cwfis';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * OSIRIS — Active Fire & Wildfire Tracking
- * Multi-source: NASA FIRMS Open Data (primary for global fires), NASA EONET (volcanoes)
+ * Multi-source: NASA FIRMS Open Data (primary for global fires), NASA EONET (volcanoes),
+ * and agency-reported Canadian wildfire incidents (CWFIS, with BC Wildfire names).
  */
+
+const INCIDENTS_TTL_MS = 30 * 60_000;
+let incidents: { at: number; rows: FireIncident[] } | null = null;
+let incidentsInflight: Promise<FireIncident[]> | null = null;
+
+/** Last good list on failure; an empty list is kept as-is, since a quiet winter has no fires. */
+async function loadIncidents(): Promise<FireIncident[]> {
+  if (incidents && Date.now() - incidents.at < INCIDENTS_TTL_MS) return incidents.rows;
+  incidentsInflight ??= (async () => {
+    try {
+      const [cwfis, bc] = await Promise.all([
+        httpJson<unknown>(cwfisUrl(new Date()), { timeoutMs: 30_000 }),
+        httpJson<unknown>(bcUrl(), { timeoutMs: 30_000 }).then(parseBcFires, () => undefined),
+      ]);
+      incidents = { at: Date.now(), rows: parseCwfis(cwfis, bc) };
+    } catch (e) {
+      console.warn('[TAKIP] CWFIS incidents failed:', e instanceof Error ? e.message : e);
+      if (!incidents) return [];
+    } finally {
+      incidentsInflight = null;
+    }
+    return incidents!.rows;
+  })();
+  return incidentsInflight;
+}
+
 
 export async function GET() {
   try {
     let fires: any[] = [];
     let source = '';
+    const incidentsPromise = loadIncidents();
 
     // Source 1: NASA FIRMS Open Data (Global 24h CSV) - no API key needed
     const firmsSources = [
@@ -68,6 +98,7 @@ export async function GET() {
 
     return NextResponse.json({
       fires,
+      fire_incidents: await incidentsPromise,
       total: fires.length,
       source: source || 'Unknown',
       timestamp: new Date().toISOString(),

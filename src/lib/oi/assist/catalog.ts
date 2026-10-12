@@ -26,7 +26,7 @@ export interface Entity {
 
 export type FindLayer =
   | 'flights' | 'military_flights' | 'ships' | 'ports' | 'chokepoints' | 'earthquakes' | 'news'
-  | 'incidents' | 'weather' | 'fires' | 'cameras' | 'satellites';
+  | 'incidents' | 'weather' | 'fires' | 'fire_incidents' | 'cameras' | 'satellites' | 'radiation' | 'air_raid_alerts';
 
 interface Source {
   /** What a model reads to choose it. */
@@ -119,7 +119,7 @@ export const SOURCES: Record<FindLayer, Source> = {
     normalize: (r, i) => ({ id: str(r.id) || `inc-${i}`, layer: 'incidents', ...coords(r.lat, r.lng), title: str(r.name), detail: join(r.type), time: null, value: null, url: link(r.url) }),
   },
   weather: {
-    about: 'Official weather and hazard events (NOAA/NWS warnings, NASA EONET storms, wildfires, volcanoes).',
+    about: 'Official weather, hazard and civil-emergency warnings: NOAA/NWS, NHC, ECCC, WMO members (Severe/Extreme), Hong Kong Observatory, Canadian evacuation orders, GDACS, NASA EONET storms and volcanoes.',
     layers: ['weather'], keys: ['weather_events'],
     normalize: (r, i) => ({ id: str(r.id) || `wx-${i}`, layer: 'weather', ...coords(r.lat, r.lng), title: str(r.title), detail: join(r.type, r.severity ? `${str(r.severity)} severity` : '', r.provider), time: time(r.date), value: null }),
   },
@@ -127,6 +127,21 @@ export const SOURCES: Record<FindLayer, Source> = {
     about: 'Active fire detections from NASA FIRMS satellites. value = fire radiative power (MW).',
     layers: ['fires'], keys: ['fires'], value: 'fire power (MW)',
     normalize: (r, i) => ({ id: `fire-${i}`, layer: 'fires', ...coords(r.lat, r.lng), title: `Fire, ${num(r.frp) ?? '?'} MW`, detail: join(r.confidence ? `${str(r.confidence)} confidence` : '', r.date), time: time(r.date), value: num(r.frp) }),
+  },
+  fire_incidents: {
+    about: 'Agency-reported Canadian wildfires (CWFIS) with stage of control. value = burned area (ha).',
+    layers: ['fires'], keys: ['fire_incidents'], value: 'area (ha)',
+    normalize: (r, i) => ({ id: str(r.id) || `cwfis-${i}`, layer: 'fire_incidents', ...coords(r.lat, r.lng), title: str(r.name) || 'Wildfire', detail: join(r.stageLabel, r.agency), time: time(r.updated), value: num(r.sizeHa), url: link(r.url) }),
+  },
+  radiation: {
+    about: 'Gamma dose-rate monitors (EPA RadNet, rated against each station\'s previous week; Safecast sensors, unrated). value = nSv/h.',
+    layers: ['radiation'], keys: ['radiation'], value: 'dose rate (nSv/h)',
+    normalize: (r, i) => ({ id: str(r.id) || `rad-${i}`, layer: 'radiation', ...coords(r.lat, r.lng), title: str(r.name), detail: join(r.status, r.city, r.network), time: time(r.time), value: num(r.reading), url: link(r.source) }),
+  },
+  air_raid_alerts: {
+    about: 'Israeli Home Front Command sirens by locality (last 24 h) and Ukrainian air-raid alerts by oblast (standing now).',
+    layers: ['war_alerts'], keys: ['war_alerts'],
+    normalize: (r, i) => ({ id: str(r.id) || `war-${i}`, layer: 'air_raid_alerts', ...coords(r.lat, r.lng), title: `${str(r.label)}: ${str(r.place)}`, detail: join(r.active === true ? 'active' : 'ended', r.country, r.provider), time: time(r.since), value: null, url: link(r.source) }),
   },
   cameras: {
     about: 'Live public traffic and city cameras.',
@@ -297,6 +312,9 @@ export const LAYERS: Record<string, string> = {
   global_incidents: 'disaster alerts (GDACS)',
   alert_pins: 'news reports pinned to the places they name',
   war_alerts: 'war and air-raid alerts',
+  airport_delays: 'US airport ground stops and delays (FAA)',
+  chokepoint_flow: 'shipping traffic through strategic straits against its own baseline (IMF PortWatch)',
+  outbreaks: 'disease outbreak notices by country (WHO, CDC, ECDC)',
   day_night: 'day and night shading',
   cables: 'undersea internet cables',
   live_clouds: 'live satellite cloud cover',

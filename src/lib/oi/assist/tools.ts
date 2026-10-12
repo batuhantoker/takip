@@ -104,7 +104,9 @@ const LAYER_ALIASES: Record<string, FindLayer> = {
   quake: 'earthquakes', quakes: 'earthquakes', earthquake: 'earthquakes', seismic: 'earthquakes',
   headlines: 'news', reports: 'news', osint: 'news', alerts: 'news',
   incident: 'incidents', disasters: 'incidents', gdacs: 'incidents', storms: 'weather', hazards: 'weather', warnings: 'weather',
-  fire: 'fires', wildfires: 'fires', camera: 'cameras', cctv: 'cameras', webcams: 'cameras', satellite: 'satellites', sats: 'satellites',
+  fire: 'fires', wildfires: 'fires', wildfire_incidents: 'fire_incidents', cwfis: 'fire_incidents', evacuations: 'weather',
+  radioactivity: 'radiation', nuclear_radiation: 'radiation', sirens: 'air_raid_alerts', air_raid: 'air_raid_alerts', war_alerts: 'air_raid_alerts', rockets: 'air_raid_alerts',
+  camera: 'cameras', cctv: 'cameras', webcams: 'cameras', satellite: 'satellites', sats: 'satellites',
 };
 
 export function findLayer(v: unknown): FindLayer | null {

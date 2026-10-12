@@ -365,15 +365,38 @@ export function balloonPopupHtml(p: FeatureProps): string {
       </div>`;
 }
 
+const RAD_COLORS: Record<string, string> = { SPIKE: '#FF9500', ELEVATED: '#FFB300', OFFLINE: '#8A877F', UNRATED: '#B39DDB' };
+
+/** What the status means for this reading; UNRATED and OFFLINE are not "normal". */
+function radiationVerdict(p: FeatureProps): string {
+  const base = Number.isFinite(Number(p.baseline)) ? `${p.baseline} nSv/h` : null;
+  const delta = Number(p.delta);
+  switch (p.status) {
+    case 'SPIKE':
+    case 'ELEVATED':
+      return `${delta >= 0 ? '+' : ''}${delta} over its 7-day mean${base ? ` of ${base}` : ''}. Rain washing radon out of the air does this for a few hours.`;
+    case 'NORMAL':
+      return `Within its own previous week${base ? ` (mean ${base})` : ''}.`;
+    case 'OFFLINE':
+      return 'No reading for over 6 hours; this is the last one it sent.';
+    default:
+      return 'No history to judge this reading against.';
+  }
+}
+
 export function radiationPopupHtml(p: FeatureProps): string {
-  const color = p.status === 'DANGER' ? '#FF1744' : p.status === 'WARNING' ? '#FF9500' : '#AB47BC';
+  const color = RAD_COLORS[String(p.status)] ?? '#AB47BC';
+  const t = Date.parse(String(p.time ?? ''));
+  const when = Number.isFinite(t) ? `${new Date(t).toISOString().slice(0, 16).replace('T', ' ')} UTC` : '—';
+  const place = [p.city, p.country].filter(Boolean).map(htmlEsc).join(', ');
   return `<div style="${pStyle}border:1px solid ${color}40;">
-        <div style="color:${color};font-size:12px;font-weight:700;margin-bottom:4px;">☢️ ${p.name}</div>
-        <div style="font-size:9px;color:#aaa;margin-bottom:8px;">${p.city}, ${p.country}</div>
+        <div style="color:${color};font-size:12px;font-weight:700;margin-bottom:4px;">☢️ ${htmlEsc(p.name)}</div>
+        ${place ? `<div style="font-size:9px;color:#aaa;margin-bottom:8px;">${place}</div>` : ''}
         <div style="display:grid;grid-template-columns:1fr;gap:4px;font-size:11px;">
-          <div><span style="color:#5C5A54;font-size:9px;">READING</span><br/><span style="color:${color};font-weight:bold;">${p.reading} nSv/h</span></div>
-          <div><span style="color:#5C5A54;font-size:9px;">STATUS</span><br/><span style="color:${color};">${p.status}</span></div>
-          <div><span style="color:#5C5A54;font-size:9px;">NETWORK</span><br/><span style="color:#E8E6E0;">${p.network}</span></div>
+          <div><span style="color:#5C5A54;font-size:9px;">READING</span><br/><span style="color:${color};font-weight:bold;">${htmlEsc(p.reading)} nSv/h</span></div>
+          <div><span style="color:#5C5A54;font-size:9px;">STATUS</span><br/><span style="color:${color};">${htmlEsc(p.status)}</span><br/><span style="color:#aaa;font-size:9px;">${htmlEsc(radiationVerdict(p))}</span></div>
+          <div><span style="color:#5C5A54;font-size:9px;">MEASURED</span><br/><span style="color:#E8E6E0;">${htmlEsc(when)}</span></div>
+          <div><span style="color:#5C5A54;font-size:9px;">NETWORK</span><br/><span style="color:#E8E6E0;">${htmlEsc(p.network)}</span></div>
         </div>
       </div>`;
 }
@@ -427,16 +450,17 @@ export function shipPopupHtml(p: FeatureProps, coords: number[]): string {
 }
 
 export function weatherEventPopupHtml(p: FeatureProps, coords: number[]): string {
-  const iconEmoji = p.icon === 'cyclone' ? '🌀' : p.icon === 'volcano' ? '🌋' : p.icon === 'flood' ? '🌊' : p.icon === 'drought' ? '🏜️' : p.icon === 'ice' ? '🧊' : p.icon === 'weather' ? '⚠️' : '⚡';
-  return `<div style="${pStyle}border:1px solid rgba(224,64,251,0.3);">
-        <div style="color:#E040FB;font-size:14px;font-weight:700;margin-bottom:6px;">${iconEmoji} ${p.type || 'Weather Event'}</div>
-        <div style="font-size:10px;color:#E8E6E0;margin-bottom:8px;line-height:1.4;">${p.title || 'Unknown event'}</div>
+  const iconEmoji = p.icon === 'cyclone' ? '🌀' : p.icon === 'volcano' ? '🌋' : p.icon === 'flood' ? '🌊' : p.icon === 'drought' ? '🏜️' : p.icon === 'ice' ? '🧊' : p.icon === 'weather' ? '⚠️' : p.icon === 'alert' ? '🚨' : '⚡';
+  return `<div style="${pStyle}border:1px solid rgba(224,64,251,0.3);max-width:320px;">
+        <div style="color:#E040FB;font-size:14px;font-weight:700;margin-bottom:6px;">${iconEmoji} ${htmlEsc(p.type || 'Weather Event')}</div>
+        <div style="font-size:10px;color:#E8E6E0;margin-bottom:8px;line-height:1.4;">${htmlEsc(p.title || 'Unknown event')}</div>
+        ${p.area ? `<div style="font-size:9px;color:#aaa;margin-bottom:8px;line-height:1.4;">${htmlEsc(p.area)}</div>` : ''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;margin-bottom:8px;">
-          <div><span style="color:#5C5A54;">SEVERITY</span><br/><span style="color:${p.severity === 'high' ? '#FF1744' : '#FFD700'};">${(p.severity||'low').toUpperCase()}</span></div>
-          <div><span style="color:#5C5A54;">COORDS</span><br/><span style="color:#E8E6E0;">${coords[1].toFixed(3)}°, ${coords[0].toFixed(3)}°</span></div>
+          <div><span style="color:#5C5A54;">SEVERITY</span><br/><span style="color:${p.severity === 'high' ? '#FF1744' : '#FFD700'};">${htmlEsc(String(p.severity || 'low').toUpperCase())}</span></div>
+          <div><span style="color:#5C5A54;">${p.provider ? 'ISSUER' : 'COORDS'}</span><br/><span style="color:#E8E6E0;">${p.provider ? htmlEsc(p.provider) : `${coords[1].toFixed(3)}°, ${coords[0].toFixed(3)}°`}</span></div>
         </div>
         <div style="display:flex;gap:6px;">
-          ${p.source ? `<a href="${p.source}" target="_blank" style="${linkStyle}color:#E040FB;border:1px solid rgba(224,64,251,0.4);background:rgba(224,64,251,0.1);">📡 SOURCE</a>` : ''}
+          ${p.source ? `<a href="${urlSafe(p.source)}" target="_blank" rel="noopener noreferrer" style="${linkStyle}color:#E040FB;border:1px solid rgba(224,64,251,0.4);background:rgba(224,64,251,0.1);">📡 SOURCE</a>` : ''}
         </div>
       </div>`;
 }

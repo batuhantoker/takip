@@ -55,6 +55,7 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'private', label: 'Private', dataKey: 'private_flights' },
       { key: 'jets', label: 'Private Jets', dataKey: 'private_jets' },
       { key: 'military', label: 'Military', dataKey: 'military_flights' },
+      { key: 'airport_delays', label: 'Airport Delays', description: 'FAA ground stops and delays · US', dataKey: 'airport_delays' },
     ],
   },
   {
@@ -65,6 +66,7 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'maritime', label: 'Maritime / Naval', dataKey: 'maritime_ships,maritime_ports,maritime_chokepoints' },
       { key: SHIPS_UNDERWAY, label: 'Underway only', description: 'Hide anchored and moored', dataKey: '', parent: 'maritime' },
       ...SHIP_CLASSES.map(c => ({ key: c.key, label: c.label, dataKey: '', parent: 'maritime' })),
+      { key: 'chokepoint_flow', label: 'Chokepoint Traffic', description: 'IMF PortWatch · daily transits vs. own baseline', dataKey: 'chokepoint_flow' },
     ],
   },
   {
@@ -96,8 +98,10 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
     icon: CloudLightning,
     layers: [
       { key: 'earthquakes', label: 'Earthquakes', dataKey: 'earthquakes' },
-      { key: 'fires', label: 'Active Fires', dataKey: 'fires' },
+      { key: 'fires', label: 'Active Fires', description: 'NASA FIRMS hotspots · CWFIS incidents (Canada)', dataKey: 'fires' },
       { key: 'weather', label: 'Severe Weather', dataKey: 'weather_events' },
+      { key: 'radiation', label: 'Radiation', description: 'EPA RadNet · Safecast · hourly', dataKey: 'radiation' },
+      { key: 'outbreaks', label: 'Disease Outbreaks', description: 'WHO · CDC · ECDC notices · by country', dataKey: 'outbreaks' },
     ],
   },
   {
@@ -109,6 +113,7 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'global_incidents', label: 'Global Incidents', dataKey: 'gdelt' },
       { key: 'alert_pins', label: 'Live Alert Pins', dataKey: 'alert_pins' },
       { key: 'gdelt_events', label: 'GDELT Events', dataKey: 'gdelt_events' },
+      { key: 'war_alerts', label: 'Air-Raid Alerts', description: 'Israel sirens · Ukraine oblasts · live', dataKey: 'war_alerts' },
     ],
   },
   {

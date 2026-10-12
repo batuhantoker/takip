@@ -18,7 +18,7 @@ export function useNaturalEventLayers({ mapReady, data, activeLayers, setGeo }: 
 
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('weather', activeLayers.weather && data.weather_events ? data.weather_events.map((w: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [w.lng, w.lat] }, properties: { title: w.title, type: w.type, icon: w.icon, severity: w.severity, source: w.source, id: w.id } })) : []);
+    setGeo('weather', activeLayers.weather && data.weather_events ? data.weather_events.map((w: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [w.lng, w.lat] }, properties: { title: w.title, type: w.type, icon: w.icon, severity: w.severity, source: w.source, id: w.id, area: w.area, provider: w.provider } })) : []);
   }, [mapReady, data.weather_events, activeLayers.weather, setGeo]);
 }
 
@@ -48,6 +48,6 @@ export function useBalloonLayer({ mapReady, data, activeLayers, setGeo }: LayerH
 export function useRadiationLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('radiation', activeLayers.radiation && data.radiation ? data.radiation.map((r: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [r.lng, r.lat] }, properties: { name: r.name, city: r.city, country: r.country, reading: r.reading, status: r.status, network: r.network } })) : []);
+    setGeo('radiation', activeLayers.radiation && data.radiation ? data.radiation.map((r: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [r.lng, r.lat] }, properties: { name: r.name, city: r.city, country: r.country, reading: r.reading, status: r.status, network: r.network, time: r.time, baseline: r.baseline, delta: r.delta } })) : []);
   }, [mapReady, data.radiation, activeLayers.radiation, setGeo]);
 }

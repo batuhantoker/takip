@@ -57,6 +57,11 @@ export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, sat
 
     setVis(['balloon-dots','balloon-label'], activeLayers.balloons);
     setVis(['rad-glow','rad-dots','rad-label'], activeLayers.radiation);
+    setVis(['war-alert-glow','war-alert-dots','war-alert-label'], activeLayers.war_alerts);
+    setVis(['fire-incident-dots','fire-incident-label'], activeLayers.fires);
+    setVis(['airport-delay-dots','airport-delay-label'], activeLayers.airport_delays);
+    setVis(['chokepoint-flow-ring','chokepoint-flow-label'], activeLayers.chokepoint_flow);
+    setVis(['outbreak-rings','outbreak-label'], activeLayers.outbreaks);
     setVis(['sdk-sea','sdk-sea-glow','sdk-sea-atmo'], activeLayers.sdk_sea !== false);
     setVis(['sdk-air','sdk-air-glow','sdk-air-atmo'], activeLayers.sdk_air !== false);
     setVis(['sdk-intel','sdk-intel-glow','sdk-intel-atmo'], activeLayers.sdk_naval !== false);

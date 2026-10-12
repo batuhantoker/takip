@@ -221,6 +221,22 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       loadLayerOnce('weather_grid', '/api/weather-grid', d => ({ weather_grid: d }));
     }
 
+    if (activeLayers.war_alerts) {
+      loadLayerOnce('war_alerts', '/api/war-alerts', d => ({ war_alerts: d.alerts ?? [] }));
+    }
+
+    if (activeLayers.airport_delays) {
+      loadLayerOnce('airport_delays', '/api/airport-status', d => ({ airport_delays: d.airports ?? [] }));
+    }
+
+    if (activeLayers.chokepoint_flow) {
+      loadLayerOnce('chokepoint_flow', '/api/chokepoints', d => ({ chokepoint_flow: d.chokepoints ?? [], chokepoint_disruptions: d.disruptions ?? [] }));
+    }
+
+    if (activeLayers.outbreaks) {
+      loadLayerOnce('outbreaks', '/api/outbreaks', d => ({ outbreaks: d.outbreaks ?? [] }));
+    }
+
 
   }, [activeLayers]);
 
@@ -237,6 +253,16 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     }
     if (activeLayers.radiation) {
       intervals.push(setInterval(() => fetchEndpoint('/api/radiation', d => ({ radiation: d.stations })), 300000)); // 5m
+    }
+    if (activeLayers.outbreaks) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/outbreaks', d => ({ outbreaks: d.outbreaks ?? [] }), undefined, { skipWhenHidden: true }), 3_600_000));
+    }
+    if (activeLayers.airport_delays) {
+      intervals.push(setInterval(() => fetchEndpoint('/api/airport-status', d => ({ airport_delays: d.airports ?? [] }), undefined, { skipWhenHidden: true }), 300_000));
+    }
+    if (activeLayers.war_alerts) {
+      // A siren lasts a minute or two; the route re-reads its upstreams every 20-30 s.
+      intervals.push(setInterval(() => fetchEndpoint('/api/war-alerts', d => ({ war_alerts: d.alerts ?? [] }), undefined, { skipWhenHidden: true }), 60_000));
     }
     if (activeLayers.wx_temperature || activeLayers.wx_wind) {
       // The route moves to the next forecast hour on its own; this just picks it up.
