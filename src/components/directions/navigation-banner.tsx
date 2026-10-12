@@ -35,7 +35,7 @@ export default function NavigationBanner({ navSession, setNavSession, liveLocati
               const dest = navSession.route.geometry.coordinates.at(-1)!;
               try {
                 const res = await fetch(
-                  `/api/directions?from=${fromPt.lat},${fromPt.lng}&to=${dest[1]},${dest[0]}&mode=auto`,
+                  `/api/v1/directions?from=${fromPt.lat},${fromPt.lng}&to=${dest[1]},${dest[0]}&mode=auto`,
                 );
                 const data = await res.json();
                 if (res.ok && !data.error) {
