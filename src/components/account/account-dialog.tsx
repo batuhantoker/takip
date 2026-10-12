@@ -7,6 +7,7 @@ import { readAccountLink, type AccountLink } from '@/lib/account-links';
 import { useDismiss } from '@/components/ui/use-dismiss';
 import { showAccountDialog, useAccountDialog, type View } from './account-dialog-state';
 import CredentialsForm from './credentials-form';
+import ImpersonationBanner from './impersonation-banner';
 import ForgotPasswordForm from './forgot-password-form';
 import NewPasswordForm from './new-password-form';
 import TwoFactorForm from './two-factor-form';
@@ -43,6 +44,7 @@ const CONNECT_ERRORS: Record<string, string> = {
 const DELETE_ERRORS: Record<string, string> = {
   FAILED_TO_GET_USER_INFO: 'Nothing was deleted: the link only works in a browser signed in to that account. Sign in here, then open the link again.',
   INVALID_TOKEN: 'Nothing was deleted: that link has expired, was already used, or belongs to another account. Ask for a new one under Delete account.',
+  subscription_active: 'Nothing was deleted: your subscription is still active. Cancel it first, then ask for a new link under Delete account.',
 };
 
 function viewFor(link: AccountLink): View {
@@ -68,7 +70,7 @@ function viewFor(link: AccountLink): View {
   }
 }
 
-/** Mount once per page. Opens itself when an emailed link lands here. */
+/** Mount once per page. Opens itself when an emailed link lands here. Carries the impersonation banner, since it is mounted in every map state, phones included. */
 export default function AccountDialog() {
   const view = useAccountDialog();
 
@@ -79,7 +81,12 @@ export default function AccountDialog() {
     showAccountDialog(viewFor(landed.link));
   }, []);
 
-  return <AnimatePresence>{view && <Panel view={view} />}</AnimatePresence>;
+  return (
+    <>
+      <ImpersonationBanner />
+      <AnimatePresence>{view && <Panel view={view} />}</AnimatePresence>
+    </>
+  );
 }
 
 function Panel({ view }: { view: View }) {

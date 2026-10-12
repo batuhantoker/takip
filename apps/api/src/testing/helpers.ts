@@ -22,6 +22,7 @@ export const RESET = '/?account=reset-password';
 export const SIGN_IN_FAILED = '/?account=sign-in-failed';
 export const USER = { name: 'Ada', email: 'ada@example.com', password: 'correct horse battery' };
 export const GOOGLE = { GOOGLE_CLIENT_ID: 'google-id', GOOGLE_CLIENT_SECRET: 'google-secret' };
+export const AUTH_SECRET = 'q3Yp8vVx1kR7tLm2Zc9Wd4Hs6Nb0Fg5J';
 
 /** Collects mail; `next()` waits for the next message, since Better Auth sends after responding. */
 export class Inbox implements EmailSender {
@@ -76,7 +77,7 @@ export async function startApp(social: SocialEnv = {}, obs?: AppObs, { enforceLi
   const db = openAppDb(':memory:');
   migrateAppSchema(db);
   const inbox = new Inbox();
-  const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: 'q3Yp8vVx1kR7tLm2Zc9Wd4Hs6Nb0Fg5J', ...social }, inbox);
+  const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: AUTH_SECRET, ...social }, inbox, { billingPortal: billing !== null });
   const access = createAccess(db);
   const usage = createUsage(db);
   const app = createApp({ auth, access, db, obs, usage, enforceLimits, billing, replay });

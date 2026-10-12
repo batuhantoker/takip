@@ -374,6 +374,30 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
   - The old `/api/arcgis` would fetch any URL a caller named. The v1 route pins https and the ArcGIS REST shape, and `safeFetch` refuses private and reserved addresses on every hop.
   - `ssrf-guard`, `orbit` and `market-tickers` moved to `@takip/connectors`.
   - `/api/satellites/orbit` is still called from `bind-satellite-pick.ts`, through a rewrite.
+- **H** (`d69bf74`): privacy.
+  - `GET /api/v1/account/export`: session only, recent sign-in, no secrets.
+  - Deletion goes through `privacy/erase.ts`: one list of owned tables (a new user-data table adds a line). `audit_event` rows keep their ids but lose emails, IPs and user agents; a `user.delete` row records who deleted the account.
+  - The "Your data" section in Account settings. Deletion links opened elsewhere land on the map.
+  - `docs/privacy-draft.md` is for the user to rewrite (19 `TODO(user)`).
+  - Verified live with a throwaway account, removed afterwards.
+- **A2** (`1deb308`): hardening.
+  - `/api/replay/*`: its own buckets (burst 200, refill 2 × the plan rate), metered as `replay`. API keys are accepted, and `read:tracks` is needed when a key has scopes.
+  - Bad API keys are throttled per address block (10 a minute).
+  - The daily `usage.prune` job keeps usage for 400 days (accounts and keys) and 35 days (anonymous); set by `USAGE_RETENTION_DAYS` and `USAGE_ANON_RETENTION_DAYS`.
+  - `app.onError` returns `{error:'internal_error', request_id}`. There's one CIDR parser, `net/cidr.ts`.
+- **I** (`ad3bcf0`): the admin console.
+  - New pages: API keys (all users, filters, revoke), Usage (30 days by group, top consumers per day), and Billing (subscriptions, webhook log, job queue, re-run reconciliation).
+  - Impersonation: started from the user page with a reason; at most 30 min; refused for admins and banned users. The impersonated session gets 403 `impersonating` on admin APIs and on key creation. `POST /api/admin/impersonation/stop` works without admin powers. Start and stop are audited with `impersonator`.
+  - The "Viewing as … · Stop" banner mounts from `account-dialog.tsx`. `admin/impersonation-guard.ts` stops Better Auth's sliding refresh from extending an impersonated session (it relies on an internal detail: re-check it on better-auth upgrades).
+  - The step-up countdown (`retryAfterSeconds`); no ban form on your own page.
+  - Verified live (start and stop through Next, the banner on desktop, the audit rows). Keys and Usage returned 404 from a dev server whose route manifest missed the new folders; they need a restart of `npm run dev` before checking.
+- **The four decisions** (the user's answers, 2026-10-12):
+  - **Honest aviation lookups** (`fe2d82a`): adsbdb, hexdb and airplanes.live get `TAKIP_UA` and no `X-Forwarded-For`/`X-Real-IP`. `stealthFetch` itself stays for the CCTV adapters (`src/lib/cctv/*`), `/api/{conflicts,gdelt,weather}` and the `src/lib/stealthFetch.ts` shim.
+  - **No deletion while paying** (`1f56864`): `POST /api/auth/delete-user` answers 409 `subscription_active` before any email goes out, and `user.deleteUser.beforeDelete` checks again when the link is opened. Active means the resolver's rule, from a provider other than `manual`. The response's `billing_portal` says whether Settings can offer Manage billing.
+    - Not in `databaseHooks.user.delete.before`: Better Auth deletes sessions and accounts before that hook runs, outside a transaction, so refusing there locks the user out.
+    - The admin plugin's `removeUser` skips `beforeDelete`; nothing calls it over HTTP.
+  - **Encrypted OAuth tokens** (`9a38e7e`): `account.encryptOAuthTokens` covers access and refresh tokens. Better Auth never encrypts ID tokens, so an account hook drops them. Each boot clears plaintext tokens (`auth/oauth-tokens.ts`); on a copy of the dev DB that was one Google access token and one ID token. Rotating `BETTER_AUTH_SECRET` makes stored tokens unreadable, and nothing reads them.
+  - **Audit retention, 30 days** (`b0f614f`): a daily `audit.prune` job (`AUDIT_RETENTION_DAYS`). `docs/privacy-draft.md` now states 30 days.
 - The dev DB is at `user_version` 6.
 
 ### Landing branches here
@@ -392,7 +416,6 @@ Several sessions share one working copy, so `git merge` refuses whenever a merge
   - the CIDR parsing is duplicated in `access/client-ip.ts` and `obs/peer-allow.ts`.
 - **Errors print twice** (Hono's default `onError` and pino); set `app.onError`.
 - **Region-dossier port** was blocked on another session's FCDO/UNHCR changes; they're committed now (`5953407`), so it can be ported.
-- **`stealthFetch`** sends adsbdb, hexdb and airplanes.live random browser user agents and made-up `X-Forwarded-For`/`X-Real-IP` headers (moved as-is for parity). Dropping them is recommended and awaits the user's answer.
 - **Coupling:** `/api/v1/satellites/orbit` reads the TLE cache the web app writes (`.next/cache/satellites-tle-cache.json`). It breaks if the api runs apart from Next; ingest's TLE should replace it.
 - **Production default:** `INTEL_URL` falls back to `http://takip-intel:4000` in production.
 - **Key scopes** exist (`requiresScope`), but no route needs one yet.

@@ -113,7 +113,7 @@ export interface TrackStore {
   /** Segments of buckets in [from, to) of one shard, one entity at a time, each in time order. */
   segmentsByEntity(lod: Lod, from: number, to: number): Generator<SegmentRow[]>;
   insertTles(rows: TleRow[]): number;
-  /** The newest element set per object at `t`, from the 30 days before it. */
+  /** The newest element set per object at `t` from the 30 days before it, else the oldest from the 30 days after. */
   tleAt(t: number): TleRow[];
   close(): void;
 }

@@ -1,6 +1,7 @@
+import { symmetricDecrypt } from 'better-auth/crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadEnv } from '../env';
-import { GOOGLE, Jar, ORIGIN, SIGN_IN_FAILED, USER, consentUrl, googleApproves, startApp, viaGoogle, type TestApp } from '../testing/helpers';
+import { AUTH_SECRET, GOOGLE, Jar, ORIGIN, SIGN_IN_FAILED, USER, consentUrl, googleApproves, startApp, viaGoogle, type TestApp } from '../testing/helpers';
 
 const FACEBOOK = { FACEBOOK_CLIENT_ID: 'facebook-id', FACEBOOK_CLIENT_SECRET: 'facebook-secret' };
 
@@ -84,5 +85,25 @@ describe('Google sign-in', () => {
     expect(await t.session(jar.get())).toBeNull();
     const squatter = t.db.prepare('SELECT id FROM auth_user WHERE email = ?').pluck().get(USER.email) as string;
     expect(accountsOf(squatter)).toEqual(['credential']);
+  });
+
+  it("stores Google's access token encrypted, and no ID token, at every sign-in", async () => {
+    googleApproves({ email: 'ada@gmail.com', email_verified: true });
+    const stored = () => t.db.prepare("SELECT accessToken, refreshToken, idToken FROM auth_account WHERE providerId = 'google'").get() as
+      { accessToken: string; refreshToken: string | null; idToken: string | null };
+
+    await signInWithGoogle();
+    const first = stored();
+    expect(first.accessToken).not.toBe('access');
+    expect(first.accessToken).toMatch(/^[0-9a-f]+$/);
+    expect(await symmetricDecrypt({ key: AUTH_SECRET, data: first.accessToken })).toBe('access');
+    expect(first).toMatchObject({ refreshToken: null, idToken: null });
+
+    const { jar } = await signInWithGoogle();
+    expect(await t.session(jar.get())).toMatchObject({ user: { email: 'ada@gmail.com' } });
+    const second = stored();
+    expect(second.accessToken).not.toBe(first.accessToken);
+    expect(await symmetricDecrypt({ key: AUTH_SECRET, data: second.accessToken })).toBe('access');
+    expect(second.idToken).toBeNull();
   });
 });

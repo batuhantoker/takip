@@ -3,10 +3,11 @@ import { bodyLimit } from 'hono/body-limit';
 import { createMiddleware } from 'hono/factory';
 import { z } from 'zod';
 import { withAccess, type AccessEnv } from '../access/middleware';
-import { isActive, type AccessResolver } from '../access/resolver';
+import type { AccessResolver } from '../access/resolver';
 import type { Auth } from '../auth/auth';
 import type { AppDb } from '../db/app-db';
 import { createEventReceiver } from './events';
+import { paidSubscriptionCheck } from './paid-subscription';
 import { WebhookError, type BillingEvent, type BillingProvider } from './provider';
 import { BillingError, createSubscriptions } from './subscriptions';
 
@@ -65,9 +66,7 @@ export function billingRoutes({ db, auth, access, provider }: Deps) {
   const planPrices = db.prepare('SELECT prices FROM bill_plan WHERE plan_id = ? AND public = 1 AND archived_at IS NULL').pluck();
   const customerOf = db.prepare("SELECT customer_id FROM bill_customer WHERE subject_type = 'user' AND subject_id = ? AND provider = ?").pluck();
   const emailOf = db.prepare('SELECT email FROM auth_user WHERE id = ?').pluck();
-  const paidSubscriptions = db.prepare(`
-    SELECT provider, plan_id, status, current_period_end, cancel_at, grace_until FROM bill_subscription
-    WHERE subject_type = 'user' AND subject_id = ? AND provider != 'manual'`);
+  const hasPaidSubscription = paidSubscriptionCheck(db);
   const recordCustomer = db.prepare(`
     INSERT INTO bill_customer (provider, customer_id, subject_type, subject_id, created_at) VALUES (?, ?, 'user', ?, ?)
     ON CONFLICT DO NOTHING`);
@@ -99,10 +98,7 @@ export function billingRoutes({ db, auth, access, provider }: Deps) {
     const priceId = prices ? (JSON.parse(prices) as Record<string, Record<string, string>>)[billing.id]?.[interval] : undefined;
     if (!priceId) return c.json({ error: 'plan_unavailable', plan, interval }, 400);
     const { userId } = c.var;
-    const now = Date.now();
-    if ((paidSubscriptions.all(userId) as Parameters<typeof isActive>[0][]).some(sub => isActive(sub, now))) {
-      return c.json({ error: 'already_subscribed' }, 409);
-    }
+    if (hasPaidSubscription(userId)) return c.json({ error: 'already_subscribed' }, 409);
 
     const customerId = customerOf.get(userId, billing.id) as string | undefined;
     const result = await callProvider(c, () => billing.checkout({

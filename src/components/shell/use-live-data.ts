@@ -6,12 +6,13 @@ import { newsTransform } from '@/lib/news-transform';
 import type { ActiveLayers } from '@/lib/default-layers';
 import type { BackendStatus, LiveData } from './dashboard-types';
 
-export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpaceWeather, activeLayers }: {
+export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpaceWeather, activeLayers, replayActive = false }: {
   dataRef: RefObject<LiveData>;
   setDataVersion: Dispatch<SetStateAction<number>>;
   setBackendStatus: Dispatch<SetStateAction<BackendStatus>>;
   setSpaceWeather: Dispatch<SetStateAction<any>>;
   activeLayers: ActiveLayers;
+  replayActive?: boolean;
 }) {
   // ── SHARED FETCH UTILITY (Fixes #107 — single definition, not 3 copies) ──
   /* `skipWhenHidden` is for background polling only — skipping a *user-initiated*
@@ -124,7 +125,8 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       // fetched once and never re-polled, so by the time an orbit is requested
       // these markers can be a long way out of date — the orbit route needs the
       // marker's epoch to draw a track that still passes through it.
-      fetchEndpoint('/api/satellites', d => ({ ...d, satellites_at: d.timestamp }));
+      // In replay useReplaySatellites loads them, and a live answer racing it would win.
+      if (!replayActive) fetchEndpoint('/api/satellites', d => ({ ...d, satellites_at: d.timestamp }));
       layerFetchedRef.current.add('satellites');
     }
     // Fires
@@ -249,7 +251,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     }
 
 
-  }, [activeLayers]);
+  }, [activeLayers, replayActive]);
 
   // ── LAYER-AWARE POLLING — only poll data for active layers ──
   useEffect(() => {

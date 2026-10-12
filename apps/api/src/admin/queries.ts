@@ -46,7 +46,7 @@ export function adminQueries(db: AppDb, access: AccessResolver) {
         access: access.resolve({ type: 'user', id }),
         accounts: db.prepare('SELECT providerId, createdAt FROM auth_account WHERE userId = ? ORDER BY createdAt').all(id),
         sessions: db.prepare(`
-          SELECT id, userAgent, ipAddress, createdAt, updatedAt, expiresAt FROM auth_session
+          SELECT id, userAgent, ipAddress, createdAt, updatedAt, expiresAt, impersonatedBy FROM auth_session
           WHERE userId = ? AND expiresAt > ? ORDER BY updatedAt DESC`).all(id, new Date().toISOString()),
         overrides: db.prepare(`
           SELECT key, value, expires_at AS expiresAt, granted_by AS grantedBy, reason FROM bill_subject_override
@@ -88,9 +88,11 @@ export function adminQueries(db: AppDb, access: AccessResolver) {
       if (before) { clauses.push('a.audit_id < ?'); params.push(before); }
       return db.prepare(`
         SELECT a.audit_id AS id, a.at, a.actor_type AS actorType, a.actor_id AS actorId, actor.email AS actorEmail,
+               a.impersonator, impersonator.email AS impersonatorEmail,
                a.action, a.subject_id AS subjectId, subject.email AS subjectEmail, a.data
         FROM audit_event a
         LEFT JOIN auth_user actor ON actor.id = a.actor_id
+        LEFT JOIN auth_user impersonator ON impersonator.id = a.impersonator
         LEFT JOIN auth_user subject ON subject.id = a.subject_id
         ${clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''}
         ORDER BY a.audit_id DESC LIMIT ?`).all(...params, limit)

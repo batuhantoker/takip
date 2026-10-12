@@ -1,5 +1,6 @@
 'use client';
 
+import { authClient } from '@/lib/auth-client';
 import { describeDevice } from '@/lib/device-label';
 import { adminSend, useAdminData } from './admin-api';
 import { Badge, Button, Card, ErrorText, Muted, PageTitle, when } from './admin-parts';
@@ -7,6 +8,7 @@ import type { PlansResponse, UserDetail } from './admin-types';
 import AuditTable from './audit-table';
 import { useAdminAction } from './use-admin-action';
 import UserBanCard from './user-ban-card';
+import UserImpersonateCard from './user-impersonate-card';
 import UserKeysCard from './user-keys-card';
 import UserOverridesCard from './user-overrides-card';
 import UserPlanCard from './user-plan-card';
@@ -15,10 +17,12 @@ export default function UserPage({ id }: { id: string }) {
   const { data, error, reload } = useAdminData<UserDetail>(`/users/${id}`);
   const plans = useAdminData<PlansResponse>('/plans');
   const signOut = useAdminAction(reload);
+  const me = authClient.useSession().data?.user.id;
 
   if (error) return <ErrorText message={error} />;
   if (!data || !plans.data) return <Muted>Loading…</Muted>;
   const { user, accounts, sessions } = data;
+  const self = me === user.id;
 
   return (
     <>
@@ -51,7 +55,7 @@ export default function UserPage({ id }: { id: string }) {
             <ul className="flex flex-col gap-1.5 text-[12px]">
               {sessions.map(s => (
                 <li key={s.id}>
-                  {describeDevice(s.userAgent)}
+                  {describeDevice(s.userAgent)} {s.impersonatedBy && <Badge tone="danger">admin viewing as them</Badge>}
                   <span className="text-[11px] text-[var(--text-muted)]"> · active {when(s.updatedAt)}{s.ipAddress ? ` · ${s.ipAddress}` : ''}</span>
                 </li>
               ))}
@@ -71,7 +75,8 @@ export default function UserPage({ id }: { id: string }) {
           <ErrorText message={signOut.error} />
         </Card>
 
-        <UserBanCard detail={data} reload={reload} />
+        <UserBanCard detail={data} self={self} reload={reload} />
+        <UserImpersonateCard detail={data} self={self} />
         <UserOverridesCard detail={data} catalogue={plans.data.catalogue} reload={reload} />
         <UserKeysCard userId={id} email={user.email} onChange={reload} />
       </div>

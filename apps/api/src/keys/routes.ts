@@ -37,6 +37,8 @@ export function keyRoutes(keys: ApiKeys, now = () => Date.now()) {
     const parsed = createBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: 'invalid_request', message: z.prettifyError(parsed.error) }, 400);
     const { name, scopes = [], expiresAt = null } = parsed.data;
+    // A key would outlive the impersonation and act as the user with nobody watching.
+    if (c.var.principal.kind === 'user' && c.var.principal.impersonatedBy) return c.json({ error: 'impersonating' }, 403);
     if (expiresAt !== null && expiresAt <= now()) return c.json({ error: 'invalid_request', message: 'expiresAt is in the past' }, 400);
 
     const { entitlements } = c.var.access;
@@ -50,7 +52,9 @@ export function keyRoutes(keys: ApiKeys, now = () => Date.now()) {
   app.delete('/keys/:id', c => {
     const userId = sessionUser(c);
     if (userId instanceof Response) return userId;
-    const revoked = keys.revoke(userId, c.req.param('id'), { type: 'user', id: userId });
+    const { principal } = c.var;
+    const impersonator = principal.kind === 'user' ? principal.impersonatedBy : undefined;
+    const revoked = keys.revoke(userId, c.req.param('id'), { type: 'user', id: userId, impersonator });
     return revoked ? c.json({ ok: true }) : c.json({ error: 'not_found' }, 404);
   });
 

@@ -77,6 +77,8 @@ export function createApiKeys(db: AppDb, { ttlMs = 30_000, now = () => Date.now(
 
     list: store.list,
 
+    listAll: (p: Omit<Parameters<typeof store.listAll>[0], 'now'>) => store.listAll({ ...p, now: now() }),
+
     create: (p: { userId: string; name: string; scopes: Scope[]; expiresAt: number | null; max: number }) => store.create({ ...p, at: now() }),
 
     revoke(userId: string, keyId: string, actor: KeyActor) {

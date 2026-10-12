@@ -68,13 +68,14 @@ const SEGMENTS_BY_ENTITY_SQL = `
   FROM trk_segment s JOIN trk_segment_rtree r ON r.id = s.segment_id
   WHERE s.bucket >= ? AND s.bucket < ? ORDER BY s.entity_id, s.bucket, s.part`;
 
+// Newest set at or before t, else the oldest after it: SGP4 runs backwards too, so pre-recording times get orbits.
 const TLE_AT_SQL = `
   SELECT norad_id AS noradId, epoch, line1, line2, name, source_id AS sourceId, fetched_at AS fetchedAt FROM (
-    SELECT *, row_number() OVER (PARTITION BY norad_id ORDER BY epoch DESC) AS rn
-    FROM trk_tle WHERE epoch <= ? AND epoch > ?
+    SELECT *, row_number() OVER (PARTITION BY norad_id ORDER BY epoch > ?, abs(epoch - ?)) AS rn
+    FROM trk_tle WHERE epoch > ? AND epoch <= ?
   ) WHERE rn = 1 ORDER BY norad_id`;
 
-const TLE_LOOKBACK_MS = 30 * 86_400_000;
+const TLE_REACH_MS = 30 * 86_400_000;
 
 /**
  * Track shards and tle.db. 'write' is the seal jobs' single writer (it reads through the same handles);
@@ -172,7 +173,7 @@ export class SqliteTrackStore implements TrackStore {
 
   tleAt(t: number): TleRow[] {
     const db = this.open(this.layout.tle, 'tle', false);
-    return db ? (this.handles.stmt(db, TLE_AT_SQL).all(t, t - TLE_LOOKBACK_MS) as TleRow[]) : [];
+    return db ? (this.handles.stmt(db, TLE_AT_SQL).all(t, t, t - TLE_REACH_MS, t + TLE_REACH_MS) as TleRow[]) : [];
   }
 
   close() {

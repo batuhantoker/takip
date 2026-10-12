@@ -1,9 +1,12 @@
 import type { Subject } from './resolver';
 
-/** Who is calling (backend.md §5.1). `ip` is the resolved client address (client-ip.ts); `scopes` empty or absent: unrestricted (keys/scopes.ts). */
+/**
+ * Who is calling (backend.md §5.1). `ip` is the resolved client address (client-ip.ts); `scopes` empty or absent: unrestricted
+ * (keys/scopes.ts); `impersonatedBy` is the admin viewing as this user (admin/impersonation.ts).
+ */
 export type Principal =
   | { kind: 'anon'; ip: string }
-  | { kind: 'user'; userId: string; ip: string }
+  | { kind: 'user'; userId: string; ip: string; impersonatedBy?: string }
   | { kind: 'key'; keyId: string; userId: string; ip: string; scopes?: readonly string[] };
 
 /** The account whose plan and quota apply; a key counts against its owner. */

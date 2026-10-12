@@ -2,11 +2,12 @@
 
 import type { FormEvent } from 'react';
 import { adminSend } from './admin-api';
-import { Button, Card, ErrorText, Input, Label, when } from './admin-parts';
+import { Button, Card, ErrorText, Input, Label, Muted, when } from './admin-parts';
 import type { UserDetail } from './admin-types';
 import { useAdminAction } from './use-admin-action';
 
-export default function UserBanCard({ detail, reload }: { detail: UserDetail; reload: () => void }) {
+/** `self`: the signed-in admin's own page; the api refuses a self-ban too. */
+export default function UserBanCard({ detail, self, reload }: { detail: UserDetail; self: boolean; reload: () => void }) {
   const { busy, error, run } = useAdminAction(reload);
   const { id, email, banned, banReason, banExpires } = detail.user;
 
@@ -26,6 +27,8 @@ export default function UserBanCard({ detail, reload }: { detail: UserDetail; re
           </p>
           <Button disabled={busy} className="self-start" onClick={() => run(() => adminSend('POST', `/users/${id}/unban`))}>Unban</Button>
         </>
+      ) : self ? (
+        <Muted>You can&apos;t ban yourself.</Muted>
       ) : (
         <form onSubmit={ban} className="grid grid-cols-2 gap-2 items-end">
           <Label text="Reason (shown in the log)">
