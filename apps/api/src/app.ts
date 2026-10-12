@@ -50,7 +50,7 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', keyRoutes(keys));
   app.route('/api/v1', privacyRoutes({ db, auth, usage }));
-  app.route('/api/v1', v1Routes());
+  app.route('/api/v1', v1Routes({ db }));
   if (replay) {
     app.use('/api/replay/*', withAccess(auth, access, keys));
     app.use('/api/replay/*', replayRateLimit(usage, { enforce: enforceLimits }), meter(usage, REPLAY_GROUP), requiresScope('read:tracks'));
