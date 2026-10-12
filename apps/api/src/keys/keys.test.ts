@@ -313,6 +313,16 @@ describe('key management', () => {
     await withKey(key);
     expect(await lastUsed()).toBe(Date.now());
   });
+
+  it('logs a failed last_used_at write and still lets the key in', async () => {
+    const { id, key } = await createKey();
+    const lines: string[] = [];
+    const keys = createApiKeys(t.db, { logger: createLogger({ LOG_LEVEL: 'info', NODE_ENV: 'production' }, { write: line => lines.push(line) }) });
+    t.db.exec("CREATE TRIGGER no_touch BEFORE UPDATE OF last_used_at ON api_key BEGIN SELECT RAISE(ABORT, 'disk I/O error'); END");
+
+    expect(keys.verify(key, '203.0.113.7').ok).toBe(true);
+    expect(lines.map(line => JSON.parse(line))).toMatchObject([{ level: 50, msg: 'last_used_at write failed', keyId: id, err: { message: 'disk I/O error' } }]);
+  });
 });
 
 describe('scopes', () => {

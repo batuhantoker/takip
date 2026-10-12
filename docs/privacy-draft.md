@@ -83,6 +83,6 @@ Contact for privacy questions: `TODO(user)`: an email address you'll read, e.g. 
 ## Notes for you, not for the page
 
 - **OAuth tokens:** access and refresh tokens are stored encrypted (`account.encryptOAuthTokens`, keyed by `BETTER_AUTH_SECRET`); ID tokens aren't kept. Tokens stored in plain text before this were cleared at boot (`apps/api/src/auth/oauth-tokens.ts`). Nothing of ours uses them.
-- **Retention jobs:** daily jobs delete usage counts after 400 days (35 for visitors; `USAGE_RETENTION_DAYS`, `USAGE_ANON_RETENTION_DAYS`) and account history after 30 days (`AUDIT_RETENTION_DAYS`). Change a period there and here together. Expired sessions are still deleted only when Better Auth next sees them.
+- **Retention jobs:** daily jobs delete usage counts after 400 days (35 for visitors; `USAGE_RETENTION_DAYS`, `USAGE_ANON_RETENTION_DAYS`), account history after 30 days (`AUDIT_RETENTION_DAYS`), and finished background jobs, sent mail included, 7 days after they finish (`JOB_RETENTION_DAYS`). Change a period there and here together. Expired sessions are still deleted only when Better Auth next sees them.
 - **Billing webhooks:** the raw provider events are kept (`bill_event`) to process each one once. Deletion strips your email address from them; the provider's own IDs stay.
 - **Admin accounts:** the account history of an admin includes actions they took on other users. Deleting an admin keeps those rows (without email or IP addresses), so the history stays complete.
