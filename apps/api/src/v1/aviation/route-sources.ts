@@ -1,9 +1,10 @@
 import { lookupAirport, lookupAirportAsync, type Airport } from '@takip/connectors/airports';
-import { stealthFetch } from '@takip/connectors/stealth-fetch';
+import { TAKIP_UA } from '@takip/connectors/http-json';
 
 export type RoutePair = { origin: Airport; destination: Airport };
 
 const FETCH_TIMEOUT = 4000;
+const UPSTREAM_HEADERS = { 'User-Agent': TAKIP_UA, Accept: 'application/json' };
 const COOLDOWN_MS = 3 * 60 * 1000;
 
 /** Per source, when it may be asked again after answering 429. */
@@ -70,7 +71,7 @@ function splitRoute(route: unknown): [string, string] | null {
 
 async function ask(src: string, url: string): Promise<unknown> {
   if (isCooledDown(src)) throw new Error(`${src} cooled down`);
-  const res = await stealthFetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+  const res = await fetch(url, { headers: UPSTREAM_HEADERS, signal: AbortSignal.timeout(FETCH_TIMEOUT) });
   if (res.status === 429) { setCooldown(src); throw new Error(`${src} 429`); }
   if (!res.ok) throw new Error(`${src} ${res.status}`);
   return res.json();
