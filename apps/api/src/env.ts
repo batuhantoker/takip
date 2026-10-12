@@ -6,7 +6,7 @@ import { LOOPBACK, parseProxies } from './access/client-ip';
 import { SOCIAL_PROVIDERS, type SocialPrefix } from './auth/social-providers';
 import { PROVIDER_IDS } from './billing/provider';
 import { unavailableReason } from './billing/registry';
-import { parseCidr } from './obs/peer-allow';
+import { parseCidr } from './net/cidr';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
