@@ -34,7 +34,7 @@ describe('GET /api/v1/openapi.json', () => {
     expect(Object.keys(spec.paths)).toEqual(
       expect.arrayContaining([
         '/geo/search', '/geo/reverse', '/directions', '/aircraft', '/flight-route',
-        '/arcgis', '/satellites/orbit', '/markets/history', '/entity/expand',
+        '/arcgis', '/satellites/orbit', '/markets/history', '/entity/expand', '/region-dossier',
       ]),
     );
     expect(params('/geo/search')).toEqual(['q', 'lat', 'lng']);
@@ -46,6 +46,7 @@ describe('GET /api/v1/openapi.json', () => {
     expect(params('/satellites/orbit')).toEqual(['id!', 't']);
     expect(params('/markets/history')).toEqual(['symbol!', 'range']);
     expect(params('/entity/expand')).toEqual(['type!', 'id!', 'registration', 'model', 'icao24']);
+    expect(params('/region-dossier')).toEqual(['lat!', 'lng!']);
   });
 
   it('describes every status each route answers with', () => {
@@ -58,6 +59,7 @@ describe('GET /api/v1/openapi.json', () => {
     expect(Object.keys(spec.paths['/satellites/orbit'].get!.responses)).toEqual(['200', '400', '404', '422']);
     expect(Object.keys(spec.paths['/markets/history'].get!.responses)).toEqual(['200', '400', '500', '502']);
     expect(Object.keys(spec.paths['/entity/expand'].get!.responses)).toEqual(['200', '400', '429', '502', 'default']);
+    expect(Object.keys(spec.paths['/region-dossier'].get!.responses)).toEqual(['200', '500']);
     expect(schemaOf('/geo/reverse', 400)).toEqual({ $ref: '#/components/schemas/Error' });
   });
 
@@ -85,6 +87,7 @@ describe('GET /api/v1/openapi.json', () => {
     expect(schemaOf('/markets/history', 502)).toEqual({ $ref: '#/components/schemas/PriceHistoryError' });
     expect(schemaOf('/entity/expand', 200)).toEqual({ $ref: '#/components/schemas/EntityGraph' });
     expect(spec.components.schemas.Candle.required).toEqual(['time', 'open', 'high', 'low', 'close', 'volume']);
+    expect(schemaOf('/region-dossier', 200)).toEqual({ $ref: '#/components/schemas/RegionDossier' });
   });
 });
 

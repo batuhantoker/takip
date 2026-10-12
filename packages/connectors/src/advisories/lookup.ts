@@ -8,12 +8,20 @@ import { fetchUsAdvisories } from './us-state';
 
 const HOUR = 60 * 60_000;
 
-const FEEDS: { issuer: AdvisoryIssuer; load: MemoLoader<ParsedAdvisories> }[] = [
+const feeds = (): { issuer: AdvisoryIssuer; load: MemoLoader<ParsedAdvisories> }[] => [
   { issuer: 'US State Department', load: memoSource(fetchUsAdvisories, HOUR) },
   { issuer: 'Australia Smartraveller', load: memoSource(fetchSmartraveller, HOUR) },
 ];
+const fcdoMemo = () => memoByKey<FcdoAdvisory | null>(fetchFcdoAdvisory, HOUR);
 
-const loadFcdo = memoByKey<FcdoAdvisory | null>(fetchFcdoAdvisory, HOUR);
+let FEEDS = feeds();
+let loadFcdo = fcdoMemo();
+
+/** Test seam — every issuer back to never loaded. */
+export function clearAdvisoryMemos(): void {
+  FEEDS = feeds();
+  loadFcdo = fcdoMemo();
+}
 
 function sourceOf(issuer: AdvisoryIssuer, m: Memoized<unknown>): AdvisorySource {
   if (!m.loaded) return { issuer, ok: false, error: m.error ?? 'not loaded' };

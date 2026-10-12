@@ -8,6 +8,7 @@ import { directionsRoutes } from './directions/routes';
 import { entityRoutes } from './entity/expand';
 import { geoRoutes } from './geo/routes';
 import { marketsRoutes } from './markets/history';
+import { regionDossierRoutes } from './region-dossier/region-dossier';
 import { satellitesRoutes } from './satellites/orbit';
 
 export const OPENAPI_PATH = '/api/v1/openapi.json';
@@ -24,6 +25,7 @@ export function v1Routes({ db }: { db: AppDb }) {
   app.route('/satellites', satellitesRoutes());
   app.route('/markets', marketsRoutes());
   app.route('/entity', entityRoutes());
+  app.route('/', regionDossierRoutes());
   app.route('/', workspaceRoutes(db));
 
   app.openAPIRegistry.registerComponent('securitySchemes', 'apiKey', {
