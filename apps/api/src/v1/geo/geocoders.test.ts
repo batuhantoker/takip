@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { classifyKind, normalizePhoton, normalizeNominatim, mergeResults, type GeoResult } from './route';
+import { classifyKind, normalizePhoton, normalizeNominatim, mergeResults } from './geocoders';
+import type { GeoResult } from './schemas';
 
 describe('classifyKind', () => {
   it('separates the kinds the UI gives distinct icons', () => {

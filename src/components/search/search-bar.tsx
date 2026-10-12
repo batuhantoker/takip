@@ -31,7 +31,7 @@ interface SearchBarProps {
   embedded?: boolean;
 }
 
-/** How close to fly for each kind /api/geosearch returns. */
+/** How close to fly for each kind /api/v1/geo/search returns. */
 const ZOOM_BY_KIND: Record<string, number> = {
   address: 18,
   street: 16,
@@ -129,7 +129,7 @@ export default function SearchBar({ onLocate, center = null, onClose, onDirectio
       abortRef.current = ctrl;
       try {
         const bias = center ? `&lat=${center.lat}&lng=${center.lng}` : '';
-        const res = await fetch(`/api/geosearch?q=${encodeURIComponent(q)}${bias}`, { signal: ctrl.signal });
+        const res = await fetch(`/api/v1/geo/search?q=${encodeURIComponent(q)}${bias}`, { signal: ctrl.signal });
         const data = await res.json();
         if (ctrl.signal.aborted) return;
         setResults((data.results || []).map((r: { name: string; context: string; lat: number; lng: number; kind: string }) => ({

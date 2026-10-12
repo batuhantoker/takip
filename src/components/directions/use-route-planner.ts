@@ -67,7 +67,7 @@ export function useRoutePlanner(
       const avoidList = Object.entries(av).filter(([, on]) => on).map(([k]) => k);
       const avoidParam = avoidList.length ? `&avoid=${avoidList.join(',')}` : '';
       const res = await fetch(
-        `/api/directions?from=${a.lat},${a.lng}&to=${b.lat},${b.lng}&mode=${m}${viaParam}${avoidParam}`,
+        `/api/v1/directions?from=${a.lat},${a.lng}&to=${b.lat},${b.lng}&mode=${m}${viaParam}${avoidParam}`,
       );
       const data = await res.json();
       if (!res.ok || data.error) {

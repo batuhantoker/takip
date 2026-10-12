@@ -1,7 +1,7 @@
 import { expect, vi } from 'vitest';
 import { createAccess } from '../access/resolver';
 import { createUsage } from '../access/usage';
-import { createApp } from '../app';
+import { createApp, type AppObs } from '../app';
 import { createAuth } from '../auth/auth';
 import { openAppDb } from '../db/app-db';
 import { migrateAppSchema } from '../db/migrations';
@@ -65,14 +65,14 @@ export const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 export type TestApp = Awaited<ReturnType<typeof startApp>>;
 
-export async function startApp(social: SocialEnv = {}) {
+export async function startApp(social: SocialEnv = {}, obs?: AppObs) {
   const db = openAppDb(':memory:');
   migrateAppSchema(db);
   const inbox = new Inbox();
   const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: 'q3Yp8vVx1kR7tLm2Zc9Wd4Hs6Nb0Fg5J', ...social }, inbox);
   const access = createAccess(db);
   const usage = createUsage(db);
-  const app = createApp({ auth, access, db, usage });
+  const app = createApp({ auth, access, db, obs, usage });
 
   const post = (path: string, body: unknown, { cookie = '', origin = ORIGIN } = {}) =>
     app.request(path, {
