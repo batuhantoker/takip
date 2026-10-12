@@ -1,6 +1,6 @@
 import { fetchFcdoAdvisory, type FcdoAdvisory } from './fcdo';
 import { fetchSmartraveller } from './smartraveller';
-import { memoByKey, memoSource, type Memoized } from './source-memo';
+import { memoByKey, memoSource, type MemoLoader, type Memoized } from './source-memo';
 import type { Advisory, AdvisoryIssuer, AdvisorySource, ParsedAdvisories } from './types';
 import { fetchUsAdvisories } from './us-state';
 
@@ -8,7 +8,7 @@ import { fetchUsAdvisories } from './us-state';
 
 const HOUR = 60 * 60_000;
 
-const FEEDS: { issuer: AdvisoryIssuer; load: () => Promise<Memoized<ParsedAdvisories>> }[] = [
+const FEEDS: { issuer: AdvisoryIssuer; load: MemoLoader<ParsedAdvisories> }[] = [
   { issuer: 'US State Department', load: memoSource(fetchUsAdvisories, HOUR) },
   { issuer: 'Australia Smartraveller', load: memoSource(fetchSmartraveller, HOUR) },
 ];
@@ -29,11 +29,16 @@ function within<T>(p: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([p, new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), ms); })]).finally(() => clearTimeout(timer));
 }
 
-const NOT_YET: Memoized<ParsedAdvisories> = { loaded: false, value: undefined, error: 'no answer within the time budget', fetchedAt: null };
+const LATE = 'no answer within the time budget';
+
+/** A refresh that overran the budget still leaves the last good copy to serve, marked stale. */
+function late(m: Memoized<ParsedAdvisories>): Memoized<ParsedAdvisories> {
+  return m.loaded ? { ...m, error: LATE } : { loaded: false, value: undefined, error: LATE, fetchedAt: null };
+}
 
 /** Every country from the whole-feed issuers (US, Australia). */
 export async function allAdvisories(budgetMs = Infinity): Promise<{ advisories: Advisory[]; unmatched: string[]; sources: AdvisorySource[] }> {
-  const feeds = await Promise.all(FEEDS.map(async f => ({ issuer: f.issuer, memo: (await within(f.load(), budgetMs)) ?? NOT_YET })));
+  const feeds = await Promise.all(FEEDS.map(async f => ({ issuer: f.issuer, memo: (await within(f.load(), budgetMs)) ?? late(f.load.peek()) })));
   return {
     advisories: feeds.flatMap(f => f.memo.value?.advisories ?? []).sort(byCountry),
     unmatched: feeds.flatMap(f => f.memo.value?.unmatched ?? []),
