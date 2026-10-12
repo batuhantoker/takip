@@ -6,7 +6,8 @@ process.env.OSIRIS_NOMINATIM_CACHE = 'off';
 process.env.OSIRIS_NOMINATIM_GAP_MS = '20';
 
 const httpJson = vi.fn();
-vi.mock('@/lib/httpJson', () => ({
+// The module nominatim itself imports, not the src/lib shim.
+vi.mock('@takip/connectors/http-json', () => ({
   httpJson: (...args: unknown[]) => httpJson(...args),
   OSIRIS_UA: 'test',
 }));
