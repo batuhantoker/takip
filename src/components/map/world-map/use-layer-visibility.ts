@@ -1,0 +1,66 @@
+'use client';
+
+import { useEffect, type RefObject } from 'react';
+import { shipFilter } from '@/lib/ship-filter';
+import type { MapRef, SatelliteLayer, SatelliteRow, WorldMapProps } from './types';
+
+interface LayerVisibilityArgs {
+  mapRef: MapRef;
+  mapReady: boolean;
+  activeLayers: WorldMapProps['activeLayers'];
+  setVis: (ids: string[], visible: boolean) => void;
+  satRowsRef: RefObject<SatelliteRow[]>;
+  satLayerRef: RefObject<SatelliteLayer | null>;
+}
+
+export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef }: LayerVisibilityArgs) {
+  // Visibility
+  useEffect(() => {
+    if (!mapReady) return;
+    setVis(['eq-circles','eq-label'], activeLayers.earthquakes);
+    const anySat = activeLayers.satellites || (activeLayers as any).sat_comms || (activeLayers as any).sat_military || (activeLayers as any).sat_navigation || (activeLayers as any).sat_earth || (activeLayers as any).sat_science;
+    // The circle layers stay hidden whatever the toggles say — the 3D layer
+    // is the single representation, and showing both drew every satellite
+    // twice, once flat on the ground and once at altitude.
+    setVis(['sat-glow','sat-dots'], false);
+    // Clearing the 3D layer is what actually turns satellites off.
+    if (!anySat) { satRowsRef.current = []; satLayerRef.current?.setPoints([]); }
+    setVis(['gdelt-dots'], activeLayers.global_incidents);
+    setVis(['gdelt-events-dots'], (activeLayers as any).gdelt_events);
+    setVis(['cf-outage-halo','cf-outage-dots','cf-outage-label'], (activeLayers as any).cf_outages);
+    setVis(['cf-attack-dots','cf-attack-label'], (activeLayers as any).cf_attacks);
+
+    setVis(['malware-glow','malware-dots','malware-label','malware-new-ring'], activeLayers.malware);
+    setVis(['network-mesh-atmo', 'network-mesh-glow', 'network-mesh-core'], activeLayers.internet_outages || activeLayers.malware);
+    setVis(['cyber-heads','cyber-labels'], (activeLayers as any).cyber_attacks);
+    setVis(['day-night-fill'], activeLayers.day_night);
+    setVis(['fl-commercial'], activeLayers.flights);
+    setVis(['fl-private'], activeLayers.private);
+    setVis(['fl-jets'], activeLayers.jets);
+    setVis(['fl-military'], activeLayers.military);
+    setVis(['cctv-glow','cctv-dots','cctv-label'], activeLayers.cctv);
+    setVis(['fires-heat'], activeLayers.fires);
+    setVis(['weather-glow','weather-dots','weather-label'], activeLayers.weather);
+    setVis(['wx-temp-label'], !!activeLayers.wx_temperature);
+    setVis(['wx-wind'], !!activeLayers.wx_wind);
+    setVis(['infra-glow','infra-dots','infra-label'], activeLayers.infrastructure);
+    setVis(['maritime-glow','maritime-dots','maritime-label'], activeLayers.maritime);
+    setVis(['choke-glow','choke-dots','choke-label'], activeLayers.maritime);
+    setVis(['ship-dots','ship-arrows','ship-label'], activeLayers.maritime);
+    const shipsShown = shipFilter(activeLayers);
+    for (const id of ['ship-dots','ship-arrows','ship-label']) {
+      if (mapRef.current?.getLayer(id)) mapRef.current.setFilter(id, shipsShown);
+    }
+    setVis(['news-glow','news-dots','news-label'], activeLayers.live_news);
+    setVis(['alert-pin-glow','alert-pin-dots','alert-pin-label','alert-pin-pulse','alert-pin-selected'], activeLayers.alert_pins);
+    setVis(['conflict-icons'], activeLayers.conflict_zones !== false);
+
+    setVis(['balloon-dots','balloon-label'], activeLayers.balloons);
+    setVis(['rad-glow','rad-dots','rad-label'], activeLayers.radiation);
+    setVis(['sdk-sea','sdk-sea-glow','sdk-sea-atmo'], activeLayers.sdk_sea !== false);
+    setVis(['sdk-air','sdk-air-glow','sdk-air-atmo'], activeLayers.sdk_air !== false);
+    setVis(['sdk-intel','sdk-intel-glow','sdk-intel-atmo'], activeLayers.sdk_naval !== false);
+    // Sweep layers always visible when data is present (controlled by useEffect)
+    setVis(['sweep-connections','sweep-pulse-ring','sweep-device-glow','sweep-device-dots','sweep-device-labels'], true);
+  }, [mapReady, activeLayers, setVis, mapRef, satRowsRef, satLayerRef]);
+}

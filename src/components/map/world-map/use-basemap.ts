@@ -1,0 +1,123 @@
+'use client';
+
+import { useEffect } from 'react';
+import { EMPTY_FC } from '@/lib/map-base-layers';
+import { computeSolarTerminator } from '@/lib/map-solar-terminator';
+import type { MapRef, WorldMapProps } from './types';
+
+interface BasemapArgs {
+  mapRef: MapRef;
+  mapReady: boolean;
+  activeLayers: WorldMapProps['activeLayers'];
+}
+
+export function useDayNight({ mapRef, mapReady, activeLayers }: BasemapArgs) {
+  // Day/Night
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const update = () => {
+      const src = map.getSource('day-night') as any;
+      if (!src) return;
+      if (!activeLayers.day_night) { src.setData(EMPTY_FC); return; }
+      src.setData({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [computeSolarTerminator()] }, properties: {} }] });
+    };
+    update();
+    const iv = setInterval(update, 300000); // 5 min (was 1 min — shadow barely moves)
+    return () => clearInterval(iv);
+  }, [mapReady, activeLayers.day_night, mapRef]);
+}
+
+export function useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle }: BasemapArgs & { mapStyle: string }) {
+  // 3D buildings are independent of the elevation renderer.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const enabled = activeLayers.terrain_3d;
+
+    try {
+      if (enabled) {
+        // CARTO's already-loaded vector tiles include the building footprints
+        // and render heights. No second worldwide vector source is needed.
+
+        // ── 3D BUILDING EXTRUSION LAYER ──
+        if (!map.getLayer('osiris-3d-buildings')) {
+          map.addLayer({
+            id: 'osiris-3d-buildings',
+            source: 'carto',
+            'source-layer': 'building',
+            type: 'fill-extrusion',
+            minzoom: 14.5,
+            paint: {
+              'fill-extrusion-color': [
+                'interpolate', ['linear'], ['get', 'render_height'],
+                0, '#1a1a2e',
+                20, '#16213e',
+                50, '#0f3460',
+                120, '#533483',
+                300, '#e94560',
+              ],
+              'fill-extrusion-height': [
+                'interpolate', ['linear'], ['zoom'],
+                14.5, 0,
+                15.5, ['get', 'render_height']
+              ],
+              'fill-extrusion-base': [
+                'interpolate', ['linear'], ['zoom'],
+                14.5, 0,
+                15.5, ['get', 'render_min_height']
+              ],
+              'fill-extrusion-opacity': [
+                'interpolate', ['linear'], ['zoom'],
+                14.5, 0,
+                15, 0.7,
+              ],
+            },
+          });
+        }
+
+        // Pitch the camera to reveal the 3D skyline
+        if (map.getPitch() < 40) {
+          map.easeTo({ pitch: 50, duration: 1200 });
+        }
+
+      } else {
+        // ── DISABLE 3D ──
+        if (map.getLayer('osiris-3d-buildings')) map.removeLayer('osiris-3d-buildings');
+      }
+    } catch (e) {
+      console.warn('[OSIRIS] 3D terrain toggle error:', e);
+    }
+  }, [mapReady, activeLayers.terrain_3d, mapRef]);
+
+  // Satellite / Dark style switching
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+
+    try {
+      if (mapStyle !== 'dark') {
+        // Add satellite raster tiles
+        if (!map.getSource('satellite-tiles')) {
+          map.addSource('satellite-tiles', {
+            type: 'raster',
+            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+            tileSize: 256,
+            maxzoom: 18,
+          });
+        }
+        if (!map.getLayer('satellite-layer')) {
+          map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite-tiles', paint: { 'raster-opacity': 0.85 } }, 'day-night-fill');
+        } else {
+          map.setLayoutProperty('satellite-layer', 'visibility', 'visible');
+        }
+      } else {
+        if (map.getLayer('satellite-layer')) {
+          map.setLayoutProperty('satellite-layer', 'visibility', 'none');
+        }
+      }
+    } catch (e) {
+      console.warn('Style switch failed:', e);
+    }
+  }, [mapReady, mapStyle, mapRef]);
+}
