@@ -17,7 +17,8 @@ export type ApiKeyView = {
 /** What verification needs: the row, its hash, and its owner's ban (Better Auth's columns). */
 export type StoredKey = ApiKeyView & { userId: string; hash: Buffer; banned: boolean; banExpires: number | null };
 
-export type KeyActor = { type: 'user' | 'admin'; id: string };
+/** `impersonator`: the admin acting through an impersonated session of the user. */
+export type KeyActor = { type: 'user' | 'admin'; id: string; impersonator?: string };
 
 type Row = Omit<ApiKeyView, 'scopes'> & { scopes: string };
 type OwnedRow = Row & { userId: string; hash: Buffer; banned: number | null; banExpires: string | null };
@@ -48,11 +49,11 @@ export function keyStore(db: AppDb) {
     FROM api_key k JOIN auth_user u ON u.id = k.user_id WHERE k.key_hash = ?`);
   const touch = db.prepare('UPDATE api_key SET last_used_at = ? WHERE key_id = ?');
   const audit = db.prepare(`
-    INSERT INTO audit_event (at, actor_type, actor_id, action, subject_type, subject_id, data)
-    VALUES (?, ?, ?, ?, 'user', ?, ?)`);
+    INSERT INTO audit_event (at, actor_type, actor_id, impersonator, action, subject_type, subject_id, data)
+    VALUES (?, ?, ?, ?, ?, 'user', ?, ?)`);
 
   const record = (at: number, actor: KeyActor, action: string, userId: string, data: object) =>
-    audit.run(at, actor.type, actor.id, action, userId, JSON.stringify(data));
+    audit.run(at, actor.type, actor.id, actor.impersonator ?? null, action, userId, JSON.stringify(data));
 
   return {
     /** Every key the user has, newest first; revoked ones only when asked. */

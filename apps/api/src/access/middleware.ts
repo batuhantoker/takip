@@ -30,7 +30,8 @@ export function withAccess(auth: Auth, access: AccessResolver, keys?: ApiKeys) {
       principal = { kind: 'key', keyId: id, userId, ip, scopes };
     } else {
       const session = await auth.api.getSession({ headers: c.req.raw.headers });
-      principal = session ? { kind: 'user', userId: session.user.id, ip } : { kind: 'anon', ip };
+      const impersonatedBy = session?.session.impersonatedBy ?? undefined;
+      principal = session ? { kind: 'user', userId: session.user.id, ip, ...(impersonatedBy && { impersonatedBy }) } : { kind: 'anon', ip };
     }
     c.set('principal', principal);
     c.set('access', access.resolve(subjectOf(principal)));

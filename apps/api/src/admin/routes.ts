@@ -8,6 +8,7 @@ import type { AppDb } from '../db/app-db';
 import type { ApiKeys } from '../keys/api-keys';
 import { adminKeyRoutes } from '../keys/admin-routes';
 import type { AdminEnv, AdminGate } from './gate';
+import { impersonation } from './impersonation';
 import { adminQueries } from './queries';
 import type { SourceSwitchboard } from '../replay/sources';
 import { sourcesRoutes } from './sources-routes';
@@ -41,7 +42,7 @@ function change(c: Context, run: () => void, access: AccessResolver) {
   return c.json({ ok: true });
 }
 
-/** Mounted at /api/admin. Everything but status and unlock sits behind the gate. */
+/** Mounted at /api/admin. Everything but status, unlock and stopping an impersonation sits behind the gate. */
 export function adminRoutes({ auth, db, access, gate, switchboard, keys }: { auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate; switchboard?: SourceSwitchboard; keys: ApiKeys }) {
   const app = new Hono<AdminEnv>();
   const queries = adminQueries(db, access);
@@ -51,6 +52,7 @@ export function adminRoutes({ auth, db, access, gate, switchboard, keys }: { aut
       INSERT INTO audit_event (at, actor_type, actor_id, action, subject_type, subject_id, data)
       VALUES (?, 'admin', ?, ?, 'user', ?, ?)`).run(Date.now(), c.var.admin.userId, action, subjectId, JSON.stringify(data));
   const exists = (id: string) => Boolean(db.prepare('SELECT 1 FROM auth_user WHERE id = ?').get(id));
+  const viewAs = impersonation({ auth, db });
 
   app.get('/status', async c => c.json(await gate.status(c.req.raw.headers), 200, { 'Cache-Control': 'no-store' }));
 
@@ -60,6 +62,8 @@ export function adminRoutes({ auth, db, access, gate, switchboard, keys }: { aut
     const result = await gate.unlock(c.req.raw.headers, parsed.code);
     return c.json(result.body, result.status);
   });
+
+  app.post('/impersonation/stop', viewAs.stop);
 
   app.use('*', gate.requireAdmin);
   app.use('*', async (c, next) => {
@@ -131,6 +135,8 @@ export function adminRoutes({ auth, db, access, gate, switchboard, keys }: { aut
     audit(c, 'user.unban', userId, {});
     return c.json({ ok: true });
   });
+
+  app.post('/users/:id/impersonate', viewAs.start);
 
   app.post('/users/:id/sign-out', async c => {
     const userId = c.req.param('id');

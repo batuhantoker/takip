@@ -3,6 +3,7 @@ import { admin, twoFactor } from 'better-auth/plugins';
 import { getMigrations } from 'better-auth/db/migration';
 import { APP_NAME, LINK_TTL_S, deleteAccountEmail, existingAccountEmail, resetPasswordEmail, verificationEmail } from './emails';
 import { RESOLVED_IP_HEADER } from '../access/client-ip';
+import { impersonationGuard } from '../admin/impersonation-guard';
 import type { AppDb } from '../db/app-db';
 import { deleteUserKeys } from '../keys/store';
 import type { EmailSender } from '../mail/sender';
@@ -10,6 +11,8 @@ import type { Env } from '../env';
 import { socialProviders, type SocialEnv } from './social-providers';
 
 const DAY_S = 24 * 60 * 60;
+/** How long an admin's "view as" session lasts (admin/impersonation.ts). */
+export const IMPERSONATION_S = 30 * 60;
 
 type AuthEnv = Pick<Env, 'BETTER_AUTH_URL' | 'BETTER_AUTH_SECRET'> & SocialEnv;
 
@@ -64,7 +67,8 @@ function authOptions(db: AppDb, env: AuthEnv, email: EmailSender) {
     verification: { modelName: 'auth_verification' },
     plugins: [
       // Roles and bans. Its own /api/auth/admin/* endpoints are blocked (auth/routes.ts): the console calls it server-side, behind our 2FA gate.
-      admin({ defaultRole: 'user', adminRoles: ['admin'] }),
+      admin({ defaultRole: 'user', adminRoles: ['admin'], impersonationSessionDuration: IMPERSONATION_S }),
+      impersonationGuard(),
       // Guards password sign-in only; social sign-in relies on the provider's own second factor.
       twoFactor({ issuer: APP_NAME, allowPasswordless: true, schema: { twoFactor: { modelName: 'auth_two_factor' } } }),
     ],
