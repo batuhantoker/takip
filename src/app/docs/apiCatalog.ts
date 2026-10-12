@@ -318,15 +318,16 @@ export const API_GROUPS: ApiGroup[] = [
         env: ['AIS_API_KEY'],
       },
       {
-        path: '/api/arcgis',
+        path: '/api/v1/arcgis',
         method: 'GET',
-        summary: 'Queries a configured ArcGIS feature service.',
+        summary: 'Searches ArcGIS Online for public Feature Services, or reads one layer as GeoJSON.',
         params: [
-          { name: 'service', desc: 'Service identifier to query.' },
-          { name: 'q', desc: 'Attribute query string.' },
+          { name: 'q', desc: 'Words to search the catalogue for. Wins over `service`.' },
+          { name: 'service', desc: 'An https ArcGIS REST FeatureServer or MapServer URL on a host name, from a search result; a layer number is optional.' },
           { name: 'bbox', desc: 'Bounding box filter, `minLng,minLat,maxLng,maxLat`.' },
         ],
-        returns: ['…feature collection'],
+        returns: ['results', '…or a feature collection'],
+        notes: 'Service reads are limited to 30 a minute per caller. IP literals, non-https URLs and hosts that resolve to private addresses are refused.',
       },
       {
         path: '/api/proxy-tiles',
@@ -540,7 +541,7 @@ export const API_GROUPS: ApiGroup[] = [
     blurb: 'Link analysis over entities surfaced elsewhere in the platform.',
     endpoints: [
       {
-        path: '/api/entity/expand',
+        path: '/api/v1/entity/expand',
         method: 'GET',
         summary: 'Expands one graph node into its neighbours.',
         params: [

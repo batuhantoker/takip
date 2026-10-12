@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { featureServiceTarget, layerQueryUrl } from './route';
+import { featureServiceTarget, layerQueryUrl, unsupportedServiceKind } from './service-target';
 
 /*
  * `service` used to reach fetch() unchecked, which made this route an
@@ -84,5 +84,16 @@ describe('accepting a real Feature Service', () => {
   it('drops a query string the caller attached', () => {
     expect(featureServiceTarget(`${base}/0?f=html&token=stolen`)?.root.search).toBe('');
     expect(queried(`${base}/0?f=html&token=stolen`)).toBe(`${base}/0/query`);
+  });
+});
+
+describe('naming a service that holds no features', () => {
+  it('names imagery and other servers, and stays quiet for feature and map services', () => {
+    expect(unsupportedServiceKind('https://x.example.gov/arcgis/rest/services/Landsat/ImageServer')).toBe('ImageServer');
+    expect(unsupportedServiceKind('https://x.example.gov/arcgis/rest/services/Elevation/ImageServer/0?f=json')).toBe('ImageServer');
+    expect(unsupportedServiceKind('https://x.example.gov/arcgis/rest/services/Geocode/GeocodeServer/')).toBe('GeocodeServer');
+    expect(unsupportedServiceKind('https://x.example.gov/arcgis/rest/services/Roads/FeatureServer/0')).toBeNull();
+    expect(unsupportedServiceKind('https://x.example.gov/arcgis/rest/services/Roads/MapServer')).toBeNull();
+    expect(unsupportedServiceKind('https://evil.example.com/')).toBeNull();
   });
 });

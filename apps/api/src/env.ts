@@ -50,6 +50,8 @@ const schema = z
     METRICS_ALLOW: z.string().default('')
       .transform(list => list.split(',').map(rule => rule.trim()).filter(Boolean))
       .pipe(z.array(z.string().refine(rule => parseCidr(rule) !== null, 'expected a CIDR such as 10.0.0.0/8'))),
+    // The entity-resolution service (intel/) behind /api/v1/entity/expand; empty means the default below.
+    INTEL_URL: z.union([z.url(), z.literal('')]).optional(),
     // Payment provider for /api/billing (backend.md §7.3). Unset: billing is off and checkout answers 501.
     BILLING_PROVIDER: z.preprocess(v => (v === '' ? undefined : v), z.enum(PROVIDER_IDS).optional()),
     ...socialShape,
@@ -67,7 +69,8 @@ const schema = z
         ctx.addIssue({ code: 'custom', path: [`${prefix}_CLIENT_ID`], message: `set both ${prefix}_CLIENT_ID and ${prefix}_CLIENT_SECRET, or neither` });
       }
     }
-  });
+  })
+  .transform(e => ({ ...e, INTEL_URL: e.INTEL_URL || (e.NODE_ENV === 'production' ? 'http://takip-intel:4000' : 'http://localhost:4000') }));
 
 export type Env = z.infer<typeof schema>;
 

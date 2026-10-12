@@ -6,8 +6,11 @@
   "exports": {
     "./airports": "./src/airports.ts",
     "./http-json": "./src/http-json.ts",
+    "./market-tickers": "./src/market-tickers.ts",
     "./nominatim": "./src/nominatim.ts",
+    "./orbit": "./src/orbit.ts",
     "./source-cache": "./src/source-cache.ts",
+    "./ssrf-guard": "./src/ssrf-guard.ts",
     "./stealth-fetch": "./src/stealth-fetch.ts"
   }
 }

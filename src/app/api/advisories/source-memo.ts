@@ -16,12 +16,15 @@ export interface Memoized<T> {
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function memoSource<T>(load: () => Promise<T>, ttlMs: number, retryMs = 10 * 60_000): () => Promise<Memoized<T>> {
+/** `peek` reads the memo as it stands, without waiting on a refresh. */
+export type MemoLoader<T> = (() => Promise<Memoized<T>>) & { peek: () => Memoized<T> };
+
+export function memoSource<T>(load: () => Promise<T>, ttlMs: number, retryMs = 10 * 60_000): MemoLoader<T> {
   const state: Memoized<T> = { loaded: false, value: undefined, error: null, fetchedAt: null };
   let nextAt = 0;
   let inflight: Promise<void> | null = null;
 
-  return async () => {
+  const get = async () => {
     if (Date.now() >= nextAt) {
       inflight ??= load().then(
         value => {
@@ -37,11 +40,12 @@ export function memoSource<T>(load: () => Promise<T>, ttlMs: number, retryMs = 1
     }
     return { ...state };
   };
+  return Object.assign(get, { peek: () => ({ ...state }) });
 }
 
 /** One memo per key, oldest evicted past `maxKeys`. */
 export function memoByKey<T>(load: (key: string) => Promise<T>, ttlMs: number, retryMs = 5 * 60_000, maxKeys = 300) {
-  const memos = new Map<string, () => Promise<Memoized<T>>>();
+  const memos = new Map<string, MemoLoader<T>>();
   return (key: string): Promise<Memoized<T>> => {
     let memo = memos.get(key);
     if (!memo) {
