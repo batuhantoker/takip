@@ -1,0 +1,38 @@
+'use client';
+
+import { ALL_SECTIONS } from './docs-sections';
+
+export function DocsRail({ active }: { active: string }) {
+  return (
+    <aside className="hidden xl:block w-52 shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto styled-scrollbar py-16">
+      <div className="text-[10px] font-mono tracking-[0.3em] uppercase text-[var(--text-muted)]/70 mb-3">
+        On this page
+      </div>
+      <div className="space-y-0.5">
+        {ALL_SECTIONS.map(s => (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            className={`block text-[11.5px] py-1 transition-colors ${
+              active === s.id
+                ? 'text-[var(--gold-primary)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            {s.title}
+          </a>
+        ))}
+      </div>
+
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="mt-6 flex items-center gap-1.5 text-[11px] font-mono tracking-[0.15em] uppercase text-[var(--text-muted)] hover:text-[var(--gold-primary)] transition-colors"
+      >
+        <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m18 15-6-6-6 6" />
+        </svg>
+        Back to top
+      </button>
+    </aside>
+  );
+}
