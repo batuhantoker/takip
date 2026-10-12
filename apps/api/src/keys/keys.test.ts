@@ -80,6 +80,11 @@ describe('a new key', () => {
     expect(log.join('')).not.toContain(created.key.slice(3));
   });
 
+  it('answers access as its owner, the account its limits are kept against', async () => {
+    const { key } = await createKey();
+    expect(await json(await withKey(key))).toMatchObject({ subject: { type: 'user', id: userId } });
+  });
+
   it('wins over a session cookie sent alongside it', async () => {
     const { key } = await createKey();
     const res = await request('/api/v1/me/access', { cookie: jar.get(), key });

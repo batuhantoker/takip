@@ -58,6 +58,9 @@ export interface ApiGroup {
   endpoints: ApiEndpoint[];
 }
 
+/** OSINT and recon routes need an account: a signed-in session, or an API key. */
+const ACCOUNT = { Authorization: 'Bearer $YOUR_API_KEY' };
+
 export const API_GROUPS: ApiGroup[] = [
   {
     id: 'system',
@@ -380,11 +383,12 @@ export const API_GROUPS: ApiGroup[] = [
     id: 'osint',
     title: 'OSINT Toolkit',
     blurb:
-      'The lookup tools behind the RECON panel. Every route takes a single subject and returns a normalised result, so they compose well in scripts.',
+      'The lookup tools behind the RECON panel. Every route takes a single subject and returns a normalised result, so they compose well in scripts. Each needs an account: call it signed in, or with an API key, whose calls count against its daily quota; without one it answers 401 `sign_in_required`. Limits are per account: 20 breach lookups (leaks, Hudson Rock) an hour, 30 people searches (phone, GitHub, username) an hour, 30 sweeps an hour shared with the scanner, 30 CVE lookups a minute, and 15 of the other lookups a minute.',
     endpoints: [
       {
         path: '/api/osint/dns',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Resolves A, AAAA, MX, NS, TXT, and SOA records.',
         params: [{ name: 'domain', required: true, desc: 'Domain to resolve.', example: 'example.com' }],
         returns: ['…record sets'],
@@ -392,6 +396,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/whois',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Registration and registrar detail for a domain.',
         params: [{ name: 'domain', required: true, desc: 'Domain to look up.', example: 'example.com' }],
         returns: ['…registration record'],
@@ -399,6 +404,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/certs',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Certificate transparency search — an effective passive subdomain enumerator.',
         params: [{ name: 'domain', required: true, desc: 'Apex domain to search.', example: 'example.com' }],
         returns: ['certificates', 'subdomains', 'total_certs', 'unique_subdomains', 'timestamp'],
@@ -406,6 +412,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/ip',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Geolocation, ASN, and network ownership for an address.',
         params: [{ name: 'ip', required: true, desc: 'IPv4 or IPv6 address.', example: '8.8.8.8' }],
         returns: ['…address record'],
@@ -413,6 +420,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/shodan',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Exposed services, banners, and known vulnerabilities for a host.',
         params: [{ name: 'ip', required: true, desc: 'Address to query.', example: '8.8.8.8' }],
         returns: ['status', 'ports', 'hostnames', 'cpes', 'vulns', 'tags', 'detail'],
@@ -420,6 +428,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/bgp',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'ASN, prefix, and peering relationships.',
         params: [{ name: 'query', required: true, desc: 'ASN, prefix, or IP.', example: 'AS15169' }],
         returns: ['…routing record'],
@@ -427,6 +436,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/mac',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Resolves a MAC address or OUI prefix to its hardware vendor.',
         params: [{ name: 'mac', required: true, desc: 'MAC address or OUI prefix.', example: '00:1A:2B:3C:4D:5E' }],
         returns: ['mac', 'prefix', 'vendor', 'address', 'detail'],
@@ -434,6 +444,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/phone',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Validates and classifies a phone number in E.164 form.',
         params: [{ name: 'number', required: true, desc: 'Number in international format.', example: '+442071234567' }],
         returns: [
@@ -451,6 +462,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/github',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Public profile metadata for a GitHub account.',
         params: [{ name: 'user', required: true, desc: 'GitHub username.', example: 'torvalds' }],
         returns: ['username', 'name', 'bio', 'company', 'location', 'blog', 'email', 'twitter', 'public_repos'],
@@ -458,6 +470,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/leaks',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Checks an address against known breach corpora.',
         params: [{ name: 'email', required: true, desc: 'Email address to check.' }],
         returns: ['breached', 'breaches', 'data_exposed', 'detail'],
@@ -465,6 +478,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/hudsonrock',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Reports whether an asset appears in Hudson Rock\'s infostealer corpus — machines compromised by credential-stealing malware.',
         params: [
           { name: 'query', required: true, desc: 'Email, domain, username or phone number.', example: 'tesla.com' },
@@ -475,6 +489,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/cve',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Full NVD record for a single CVE identifier.',
         params: [{ name: 'cve', required: true, desc: 'CVE ID.', example: 'CVE-2021-44228' }],
         returns: ['id', 'description', 'cvss', 'cvss_vector', 'severity', 'published', 'references', 'source'],
@@ -482,6 +497,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/sanctions',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Searches the OpenSanctions mirror of the US OFAC SDN list.',
         params: [
           { name: 'query', required: true, desc: 'Name of a person, organisation, or vessel.' },
@@ -493,6 +509,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/threats',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Reputation and threat-intel enrichment for an indicator.',
         params: [{ name: 'query', required: true, desc: 'IP, domain, or file hash.' }],
         returns: ['…enrichment record'],
@@ -500,6 +517,7 @@ export const API_GROUPS: ApiGroup[] = [
       {
         path: '/api/osint/sweep',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Sweeps a single address or a CIDR range for reachable hosts.',
         params: [
           { name: 'ip', desc: 'Single address to sweep.' },
@@ -513,11 +531,12 @@ export const API_GROUPS: ApiGroup[] = [
   {
     id: 'recon',
     title: 'Recon Scanner',
-    blurb: 'Active scanning, delegated to a separate backend so the web tier never runs scans itself.',
+    blurb: 'Active scanning, delegated to a separate backend so the web tier never runs scans itself. Needs an account, like the OSINT toolkit: 30 scans an hour, shared with sweeps.',
     endpoints: [
       {
         path: '/api/scanner',
         method: 'GET',
+        headers: ACCOUNT,
         summary: 'Runs a scan against a target via the RECON scanner backend.',
         params: [
           {

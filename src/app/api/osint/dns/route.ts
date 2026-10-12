@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
+import { reconGate } from '@/lib/recon-gate';
 
 // DNS Lookup via Google DNS-over-HTTPS (free, no key)
 export async function GET(req: Request) {
+  const denied = await reconGate(req, 'network');
+  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const domain = searchParams.get('domain');
   if (!domain) return NextResponse.json({ error: 'Missing domain parameter' }, { status: 400 });
