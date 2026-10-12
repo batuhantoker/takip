@@ -16,6 +16,8 @@ type SubscriptionRow = {
 const MAX_CACHED = 10_000;
 
 export function isActive(sub: SubscriptionRow, at: number) {
+  // Canceled at the period end: access stops on that date even if the provider's final webhook is late.
+  if (sub.cancel_at !== null && sub.cancel_at <= at) return false;
   if (sub.status === 'past_due') return (sub.grace_until ?? 0) > at;
   if (sub.status !== 'active' && sub.status !== 'trialing') return false;
   // A provider's subscription ends through its webhooks; a manual grant ends on its own date.

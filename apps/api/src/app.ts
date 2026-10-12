@@ -11,6 +11,8 @@ import { createAdminGate } from './admin/gate';
 import { adminRoutes } from './admin/routes';
 import type { Auth } from './auth/auth';
 import { authRoutes } from './auth/routes';
+import type { BillingProvider } from './billing/provider';
+import { billingRoutes } from './billing/routes';
 import type { AppDb } from './db/app-db';
 import { requestLogger, silentLogger } from './obs/logger';
 import { createMetrics, httpMetrics, metricsEndpoint, type Metrics } from './obs/metrics';
@@ -22,8 +24,8 @@ import { v1Routes } from './v1/openapi';
 
 export type AppObs = { logger?: Logger; metrics?: Metrics; metricsAllow?: readonly string[] };
 
-export function createApp({ auth, access, db, replay, switchboard, obs = {}, trust = ipTrust(), usage = createUsage(db), enforceLimits = true }: {
-  auth: Auth; access: AccessResolver; db: AppDb; replay?: ReplayData; switchboard?: SourceSwitchboard;
+export function createApp({ auth, access, db, replay, switchboard, billing = null, obs = {}, trust = ipTrust(), usage = createUsage(db), enforceLimits = true }: {
+  auth: Auth; access: AccessResolver; db: AppDb; replay?: ReplayData; switchboard?: SourceSwitchboard; billing?: BillingProvider | null;
   obs?: AppObs; trust?: IpTrust; usage?: Usage; enforceLimits?: boolean;
 }) {
   const { logger = silentLogger, metrics = createMetrics(), metricsAllow = [] } = obs;
@@ -45,6 +47,7 @@ export function createApp({ auth, access, db, replay, switchboard, obs = {}, tru
     app.use('/api/replay/*', withAccess(auth, access));
     app.route('/api/replay', replayRoutes(replay));
   }
+  app.route('/api/billing', billingRoutes({ db, auth, access, provider: billing }));
   app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard }));
   return app;
 }
