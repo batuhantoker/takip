@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import ErrorBoundary from '@/components/ErrorBoundary';
+import ErrorBoundary from '@/components/ui/error-boundary';
 import "./globals.css";
 
 const SITE_URL = "https://osirisai.live";

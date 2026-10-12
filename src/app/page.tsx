@@ -6,31 +6,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Layers, BarChart3, Newspaper, Search, X, Globe, MapPinned, Route, Radar, Satellite, Moon, ExternalLink, AlertTriangle, Activity, Database, Wifi, Play, Network, Crosshair, Pentagon, Radio , PenLine, Orbit } from 'lucide-react';
 import { type TerrainStatus } from '@/lib/map-terrain';
 import { loadCameraCatalog, mergeCameraCatalog } from '@/lib/camera-catalog';
-import IntelFeed from '@/components/IntelFeed';
-import MarketsPanel from '@/components/MarketsPanel';
-import SearchBar from '@/components/SearchBar';
-import DirectionsBar, { type RouteResult, type LiveLocation } from '@/components/DirectionsBar';
-import NavigationView from '@/components/NavigationView';
-import FlightWatchPanel, { type WatchedFlight, type FlightTelemetry, type AircraftDetail, type Airport } from '@/components/FlightWatchPanel';
+import IntelFeed from '@/components/alerts/intel-feed';
+import MarketsPanel from '@/components/markets/markets-panel';
+import SearchBar from '@/components/search/search-bar';
+import DirectionsBar, { type RouteResult, type LiveLocation } from '@/components/directions/directions-bar';
+import NavigationView from '@/components/directions/navigation-view';
+import FlightWatchPanel, { type WatchedFlight, type FlightTelemetry, type AircraftDetail, type Airport } from '@/components/flights/flight-watch-panel';
 import type { NavProgress } from '@/lib/navigation';
 import type { LiveDetection } from '@/lib/malware-intel';
-import ScaleBar from '@/components/ScaleBar';
-import ErrorBoundary from '@/components/ErrorBoundary';
+import ScaleBar from '@/components/map/scale-bar';
+import ErrorBoundary from '@/components/ui/error-boundary';
 import { applySettings, loadSavedSettings } from '@/lib/style-tokens';
-import SharePanel from '@/components/SharePanel';
-import ViewPresets from '@/components/ViewPresets';
-import KeyboardShortcuts from '@/components/KeyboardShortcuts';
-import GlobalStatusBar from '@/components/GlobalStatusBar';
-import LiveAlerts from '@/components/LiveAlerts';
-import ArcGISPanel from '@/components/ArcGISPanel';
-const OsirisMap = dynamic(() => import('@/components/OsirisMap'), { ssr: false });
-const LayerPanel = dynamic(() => import('@/components/LayerPanel'));
-const SpaceCam = dynamic(() => import('@/components/SpaceCam'), { ssr: false });
-const CameraViewer = dynamic(() => import('@/components/CameraViewer'));
-const OsintPanel = dynamic(() => import('@/components/OsintPanel'));
-const OiPanel = dynamic(() => import('@/components/OiPanel'));
-const DrawingToolbar = dynamic(() => import('@/components/DrawingToolbar'), { ssr: false });
-const DrawHud = dynamic(() => import('@/components/DrawHud'), { ssr: false });
+import SharePanel from '@/components/shell/share-panel';
+import ViewPresets from '@/components/map/view-presets';
+import KeyboardShortcuts from '@/components/shell/keyboard-shortcuts';
+import GlobalStatusBar from '@/components/shell/global-status-bar';
+import LiveAlerts from '@/components/alerts/live-alerts';
+import ArcGISPanel from '@/components/layers/arcgis-panel';
+const WorldMap = dynamic(() => import('@/components/map/world-map'), { ssr: false });
+const LayerPanel = dynamic(() => import('@/components/layers/layer-panel'));
+const SpaceCam = dynamic(() => import('@/components/cameras/space-cam'), { ssr: false });
+const CameraViewer = dynamic(() => import('@/components/cameras/camera-viewer'));
+const OsintPanel = dynamic(() => import('@/components/recon/osint-panel'));
+const OiPanel = dynamic(() => import('@/components/oi/oi-panel'));
+const DrawingToolbar = dynamic(() => import('@/components/draw/drawing-toolbar'), { ssr: false });
+const DrawHud = dynamic(() => import('@/components/draw/draw-hud'), { ssr: false });
 // The measurement helpers are pure functions — importing them directly keeps
 // them out of the lazy chunk, so a finished polygon can be measured whether or
 // not the toolbar has loaded yet.
@@ -40,15 +40,15 @@ import { pickLandingCity } from '@/lib/landing-cities';
 import { loadLayers, saveLayers } from '@/lib/saved-layers';
 import { diffSweep, appendEvents, type WatchBaseline, type WatchEvent } from '@/lib/watch';
 import { STORAGE_KEY, serializeShapes, deserializeShapes, shapesToGeoJSON, downloadFile } from '@/lib/aoi-export';
-const TokenPanel = dynamic(() => import('@/components/TokenPanel'));
-import SupportMenu from '@/components/SupportMenu';
+const TokenPanel = dynamic(() => import('@/components/shell/token-panel'));
+import SupportMenu from '@/components/shell/support-menu';
 import { useOi } from '@/lib/oi/client';
 import { useAssist } from '@/lib/oi/assist/client';
 import type { Highlight, Site } from '@/lib/oi/assist/tools';
 import { currentAnswer } from '@/lib/oi/state';
-import type { OiMode } from '@/components/OiPanel';
+import type { OiMode } from '@/components/oi/oi-panel';
 import { OiMark } from '@/components/oi/atoms';
-import type { Stage } from '@/components/oi/Workspace';
+import type { Stage } from '@/components/oi/workspace';
 import { searchObjects, TYPE_LABEL, objectsOf } from '@/lib/oi/objects';
 import { workspaceInsets } from '@/lib/oi/layout';
 import type { OiGlobe, OiHover } from '@/lib/oi/globe';
@@ -892,7 +892,7 @@ export default function Dashboard() {
   }, []);
 
   // ── Drawing / AOI ──
-  // OsirisMap already owns the draw interaction and the polygon rendering;
+  // WorldMap already owns the draw interaction and the polygon rendering;
   // this only turns a finished ring into a measured, named, coloured record.
   // Restore drawn areas on load. Work that vanishes on refresh is work the
   // operator will not trust the tool with.
@@ -1569,7 +1569,7 @@ export default function Dashboard() {
 
       {/* ── MAP ── */}
       <ErrorBoundary name="Map">
-        <OsirisMap 
+        <WorldMap 
           key={osirisTheme}
           data={data} 
           activeLayers={activeLayers} 

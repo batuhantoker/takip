@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, MapPin, ExternalLink, Radio, Maximize2, Minimize2,
   Search, X, RefreshCw, Image as ImageIcon, Play, Eye, Repeat2, CornerDownRight, Waves, Layers, AlertTriangle,
 } from 'lucide-react';
-import AiOverview from './AiOverview';
+import AiOverview from './ai-overview';
 import {
   ALERT_KINDS, BLOCS, BLOC_ORDER, buildThreads, groupStatements, timeAgo, type AlertKind, type Bloc, type DigestReport,
 } from '@/lib/alert-digest';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { embedUrl } from './LiveNewsPreviews';
+import { embedUrl } from './live-news-previews';
 
 /** Verbatim from /api/live-news. */
 const SKY = 'https://www.youtube.com/embed/live_stream?channel=UCoMdktPbSTixAyNGwb-UYkQ&autoplay=1&mute=1';

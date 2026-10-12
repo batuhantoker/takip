@@ -14,15 +14,15 @@ import { MAP_DEFAULTS, MAP_PALETTE_KEYS, readMapPalette, satColorFor, type MapPa
 import { STYLE_EVENT } from '@/lib/style-tokens';
 import { arrivalBeacons } from '@/lib/malware-intel';
 import { ALERT_KINDS, timeAgo, type AlertKind } from '@/lib/alert-digest';
-import SatelliteCard, { type SatelliteDetail } from '@/components/SatelliteCard';
-import CctvPreviews, { type PreviewCamera } from '@/components/CctvPreviews';
-import MapControls from '@/components/MapControls';
-import LiveNewsPreviews, { type PreviewFeed } from '@/components/LiveNewsPreviews';
+import SatelliteCard, { type SatelliteDetail } from './satellite-card';
+import CctvPreviews, { type PreviewCamera } from '@/components/cameras/cctv-previews';
+import MapControls from './map-controls';
+import LiveNewsPreviews, { type PreviewFeed } from '@/components/cameras/live-news-previews';
 import { attachTerrain, type TerrainStatus } from '@/lib/map-terrain';
 import { flightPathFeatures, routeFor } from '@/lib/flight-path';
 import { SHIP_CLASSES, SHIP_FALLBACK_COLOR, shipColor, shipColorArms, shipFilter } from '@/lib/ship-filter';
 import { FIELD_MAX_ZOOM, RADAR_ATTRIBUTION, RADAR_MAX_ZOOM, WX_ATTRIBUTION, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setWeatherGrid, weatherLabel, type WeatherGrid } from '@/lib/weather-field';
-import type { AircraftDetail, ScheduledRoute } from '@/components/FlightWatchPanel';
+import type { AircraftDetail, ScheduledRoute } from '@/components/flights/flight-watch-panel';
 
 import { applyMapProjection } from '@/lib/map-projection';
 
@@ -39,7 +39,7 @@ interface SatelliteRow {
 }
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-interface OsirisMapProps {
+interface WorldMapProps {
   data: any;
   activeLayers: Record<string, boolean>;
   onEntityClick?: (entity: any) => void;
@@ -204,7 +204,7 @@ interface AlertPinFeature {
   properties: AlertPinProps;
 }
 
-function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null }: OsirisMapProps) {
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -3646,4 +3646,4 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
   );
 }
 
-export default memo(OsirisMap);
+export default memo(WorldMap);

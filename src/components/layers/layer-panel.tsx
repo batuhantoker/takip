@@ -7,7 +7,7 @@ import {
   CloudLightning, Ship, Network, Database, Ghost,
   Flame, Tv, Radio, Mountain, Anchor, Megaphone, SlidersHorizontal, CloudSun
 } from 'lucide-react';
-import StyleStudio from './StyleStudio';
+import StyleStudio from '@/components/shell/style-studio';
 import { TERRAIN_MIN_ZOOM, type TerrainStatus } from '@/lib/map-terrain';
 import { SHIP_CLASSES, SHIPS_UNDERWAY } from '@/lib/ship-filter';
 

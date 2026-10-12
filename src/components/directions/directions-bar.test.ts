@@ -9,7 +9,7 @@ import {
   nextManeuver,
   elevationPath,
   type RouteStep,
-} from './DirectionsBar';
+} from './directions-bar';
 
 const step = (instruction: string, distance: number): RouteStep => ({
   instruction, distance, duration: 0, location: [0, 0], type: 'turn',

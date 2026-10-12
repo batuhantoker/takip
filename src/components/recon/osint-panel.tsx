@@ -12,10 +12,10 @@ import {
   Maximize2, Minimize2, Gavel, Bitcoin, Phone, Terminal, ShieldAlert, User
 } from 'lucide-react';
 import { ipToNumber, numberToIp, calculateSubnetStart, classifyDevice, assessRisk, batchFetch, ShodanInternetDBResponse, SweepDevice } from '@/lib/osint-utils';
-import ChainBrief from '@/components/ChainBrief';
-import FingerprintSearch, { useFingerprintSearch } from '@/components/FingerprintSearch';
-import DonBotScan from '@/components/DonBotScan';
-import DigitalDonMark from '@/components/DigitalDonMark';
+import ChainBrief from './chain-brief';
+import FingerprintSearch, { useFingerprintSearch } from './fingerprint-search';
+import DonBotScan from '@/components/markets/donbot-scan';
+import DigitalDonMark from '@/components/markets/digital-don-mark';
 
 /**
  * Tool groups. At 19 modules a flat grid forces 8px truncated labels

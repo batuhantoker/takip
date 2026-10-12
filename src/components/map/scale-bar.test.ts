@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scaleFor } from './ScaleBar';
+import { scaleFor } from './scale-bar';
 
 const OTTAWA_LAT = 45.5268;
 

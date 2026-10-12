@@ -6,7 +6,7 @@ import { X, ExternalLink, RefreshCw, MapPin, Camera, CameraOff, Maximize2, PlayC
 import Hls from 'hls.js';
 import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView, withdrawalCheck } from '@/lib/camera-feed';
 import { clearLook, registerVideo } from '@/lib/vision/store';
-import CameraVision from './CameraVision';
+import CameraVision from './camera-vision';
 
 interface CameraViewerProps {
   camera: any | null;

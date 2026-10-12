@@ -11,7 +11,7 @@ import { checkKey, forgetKey, loadKey, saveEngine, saveKey, type Engine } from '
 import type { Depth, Frame } from '@/lib/oi/types';
 import { FIELD, KIND_SHORT, LABEL, T, blue, gold, shortName } from './theme';
 import { Kbd, Overline, SectionTitle, Segmented, Switch, TextButton } from './atoms';
-import { ModelPicker } from './ModelPicker';
+import { ModelPicker } from './model-picker';
 
 export function EnginePill({ engine, ready, open, onClick, assist = false }: { engine: Engine; ready: boolean; open: boolean; onClick: () => void; /** In Assist the pill wears Assist's blue. */ assist?: boolean }) {
   const info = providerInfo(engine.provider);

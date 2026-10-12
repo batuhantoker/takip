@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { toWarning, urgency, expiryLabel, type WarningAlert } from './LiveAlerts';
+import { toWarning, urgency, expiryLabel, type WarningAlert } from './live-alerts';
 
 /* Shaped as /api/weather sends them — NOAA/NWS, GDACS and NASA EONET. */
 const nws = {

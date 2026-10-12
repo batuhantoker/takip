@@ -8,9 +8,9 @@ import {
   BarChart3, Bitcoin, ChevronDown, ChevronUp, DollarSign, Droplets, Gem, LineChart,
   Maximize2, Minimize2, Shield, Star, TriangleAlert,
 } from 'lucide-react';
-import AiOverview from './AiOverview';
-import DonBotScan from './DonBotScan';
-import DigitalDonMark from './DigitalDonMark';
+import AiOverview from '@/components/alerts/ai-overview';
+import DonBotScan from './donbot-scan';
+import DigitalDonMark from './digital-don-mark';
 import {
   FUNCTIONS, PULSE, WEI_REGIONS,
   exchangeClocks, formatMove, formatNet, formatPrice, formatVolume, heat, longName, monthChange,
@@ -35,7 +35,7 @@ import {
 
 // Canvas charting has no business in the server bundle, and it only mounts
 // once a security is loaded.
-const MarketChart = dynamic(() => import('./MarketChart'), { ssr: false });
+const MarketChart = dynamic(() => import('./market-chart'), { ssr: false });
 
 interface MarketsPanelProps { data: any; spaceWeather?: any; }
 

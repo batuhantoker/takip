@@ -8,7 +8,7 @@ import {
   AlertTriangle, Loader2, type LucideIcon,
 } from 'lucide-react';
 import { loadRecent, rememberPlace, type RecentPlace } from '@/lib/recent-places';
-import { PlaceRow } from './places';
+import { PlaceRow } from '@/components/search/places';
 
 /* ═══════════════════════════════════════════════════════════════
    OSIRIS — Directions

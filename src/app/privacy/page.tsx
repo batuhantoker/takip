@@ -20,8 +20,8 @@ export const metadata: Metadata = {
  * src/app/api/ai/*, src/app/api/oi/*, src/lib/oi/* (client, service, web,
  * newsroom, markets), src/lib/sanctions.ts, src/lib/sherlock.ts,
  * src/lib/chainIntel.ts, src/app/page.tsx (IP location, storage),
- * src/components/OsirisMap.tsx (base map, satellite), src/app/globals.css
- * (fonts), src/components/LiveAlerts.tsx, src/lib/live-clouds.ts,
+ * src/components/map/world-map.tsx (base map, satellite), src/app/globals.css
+ * (fonts), src/components/alerts/live-alerts.tsx, src/lib/live-clouds.ts,
  * src/lib/donbot.ts, src/components/oi/assist/voice.ts, the CCTV sources, and
  * every localStorage and sessionStorage key in src/.
  */

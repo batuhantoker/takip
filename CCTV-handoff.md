@@ -65,7 +65,7 @@ OpenCCTV contributes 2,577 cameras across about 100 sub-sources, and only for As
 ### How it works today, and why it won't scale
 
 - **Fetching is tied to requests.** `src/app/api/cctv/route.ts` registers 66 region fetchers. Each one is cached in memory for 30 minutes (`lib/sourceCache`), run four at a time, with a 12 s budget and a 5-minute backoff. The whole catalogue is saved to `.cache/cctv-catalog.json`.
-- **The client downloads everything.** It loads `region=all` once (`lib/camera-catalog.ts`). `OsirisMap.tsx:2257` turns every camera into one GeoJSON source with no clustering. Labels appear from zoom 10 and preview tiles from zoom 13 (`CctvPreviews.tsx`).
+- **The client downloads everything.** It loads `region=all` once (`lib/camera-catalog.ts`). `components/map/world-map.tsx:2346` turns every camera into one GeoJSON source with no clustering. Labels appear from zoom 10 and preview tiles from zoom 13 (`components/cameras/cctv-previews.tsx`).
 - **Other code reads the catalogue too:**
   - `lib/vision/frames.ts` (lookup by id, `stillsNear`)
   - `/api/cctv/frame`

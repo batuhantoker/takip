@@ -26,16 +26,16 @@ import { ArrowRight, History, Maximize2, Plus, X } from 'lucide-react';
 import { PROVIDERS, providerInfo } from '@/lib/oi/providers';
 import { loadEngine, loadKey, type Engine, type OiClient } from '@/lib/oi/client';
 import { resolve } from '@/lib/oi/research';
-import { T } from './oi/theme';
-import { IconButton, OiMark } from './oi/atoms';
-import { ModeSwitch, modeTint, type OiMode } from './oi/ModeSwitch';
-import { AssistView } from './oi/assist/AssistView';
+import { T } from './theme';
+import { IconButton, OiMark } from './atoms';
+import { ModeSwitch, modeTint, type OiMode } from './mode-switch';
+import { AssistView } from './assist/assist-view';
 import type { AssistClient } from '@/lib/oi/assist/client';
-import { AskForm, EnginePill, EngineSheet } from './oi/engine';
-import { Connecting, InjectBox, RunHead, UsageLine, Verdict } from './oi/run';
-import { HistoryList, RunTabs, type Tab } from './oi/lists';
-import { ObjectView } from './oi/ObjectView';
-import { Workspace, type Stage } from './oi/Workspace';
+import { AskForm, EnginePill, EngineSheet } from './engine';
+import { Connecting, InjectBox, RunHead, UsageLine, Verdict } from './run';
+import { HistoryList, RunTabs, type Tab } from './lists';
+import { ObjectView } from './object-view';
+import { Workspace, type Stage } from './workspace';
 
 export interface OiPanelProps {
   oi: OiClient;
