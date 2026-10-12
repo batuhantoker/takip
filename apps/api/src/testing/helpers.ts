@@ -1,5 +1,6 @@
 import { expect, vi } from 'vitest';
 import { createAccess } from '../access/resolver';
+import { createUsage } from '../access/usage';
 import { createApp } from '../app';
 import { createAuth } from '../auth/auth';
 import { openAppDb } from '../db/app-db';
@@ -70,7 +71,8 @@ export async function startApp(social: SocialEnv = {}) {
   const inbox = new Inbox();
   const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: 'q3Yp8vVx1kR7tLm2Zc9Wd4Hs6Nb0Fg5J', ...social }, inbox);
   const access = createAccess(db);
-  const app = createApp({ auth, access, db });
+  const usage = createUsage(db);
+  const app = createApp({ auth, access, db, usage });
 
   const post = (path: string, body: unknown, { cookie = '', origin = ORIGIN } = {}) =>
     app.request(path, {
@@ -93,7 +95,7 @@ export async function startApp(social: SocialEnv = {}) {
     return jar;
   };
 
-  return { db, inbox, auth, app, access, post, session, signUpVerified, close: () => db.close() };
+  return { db, inbox, auth, app, access, usage, post, session, signUpVerified, close: () => db.close() };
 }
 
 const base64url = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
