@@ -2,13 +2,13 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  Bot, Camera, ChevronDown, ExternalLink, HardDrive, KeyRound, Map as MapIcon, MessageCircle, Search, ShieldCheck, Sparkles, UserX, EyeOff,
+  Bot, Camera, ChevronDown, ExternalLink, HardDrive, KeyRound, Map as MapIcon, Megaphone, MessageCircle, Search, ShieldCheck, Sparkles, UserX, EyeOff,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Privacy',
   description:
-    'Privacy at TAKIP, in plain words: no accounts, no tracking, your settings on your device, and exactly which services hear from us when you use a feature.',
+    'Privacy at TAKIP, in plain words: no accounts, no analytics, your settings on your device, how ads work, and exactly which services hear from us when you use a feature.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -23,10 +23,11 @@ export const metadata: Metadata = {
  * src/components/map/world-map.tsx (base map, satellite), src/app/globals.css
  * (fonts), src/components/alerts/live-alerts.tsx, src/lib/live-clouds.ts,
  * src/lib/donbot.ts, src/components/oi/assist/voice.ts, the CCTV sources, and
- * every localStorage and sessionStorage key in src/.
+ * src/components/ads/* and src/lib/ads.ts, and every localStorage and
+ * sessionStorage key in src/.
  */
 
-const REVIEWED = '4 October 2026';
+const REVIEWED = '12 October 2026';
 
 /* ───────────── The pieces ───────────── */
 
@@ -93,11 +94,12 @@ const STORED: { what: string; detail: string }[] = [
   { what: 'Areas you draw on the map', detail: 'So a refresh does not wipe your work.' },
   { what: 'How the map looks', detail: 'Your Style Studio colours, which layers are switched on, and the last city the map opened on.' },
   { what: 'Your market watchlist and recent fingerprint searches', detail: 'So they are there next time. The search list can be cleared from the search panel.' },
+  { what: 'When you last waved off the ad blocker note', detail: 'So it asks at most once a day.' },
 ];
 
 const PROMISES: { icon: ReactNode; title: string; body: string }[] = [
   { icon: <UserX className="h-4 w-4" />, title: 'No account, ever', body: 'There is nothing to sign up for and nothing to log in to. We do not know who you are, and we have not asked.' },
-  { icon: <EyeOff className="h-4 w-4" />, title: 'No tracking', body: 'No analytics, no advertising networks, no tracking cookies. We do not build a profile of you or of what you do here.' },
+  { icon: <EyeOff className="h-4 w-4" />, title: 'No tracking of our own', body: 'No analytics, and no profile of you or of what you do here. The free plans show a few Google ads, and Google sets its own cookies for them; Pro has none.' },
   { icon: <HardDrive className="h-4 w-4" />, title: 'Your things stay with you', body: 'Your settings, history and keys are kept in your own browser, where you can see them and clear them. Not on our servers.' },
   { icon: <KeyRound className="h-4 w-4" />, title: 'Your AI key is yours', body: 'Used only for the request you make, passed straight to the provider you chose, and never stored on our servers or written to a log.' },
 ];
@@ -136,6 +138,7 @@ export default function PrivacyPage() {
               'Features that use AI run on the key and provider you choose, and we pass your request straight through.',
               'We do not keep a record of what you search. Your address is held only briefly, in memory, to keep usage fair for everyone.',
               'The site reaches you through Cloudflare, which carries the connection between your browser and our server, as it does for much of the web.',
+              'The free plans show a few ads from Google, never on the map. Google may use cookies to choose and measure them. Pro shows none.',
             ].map(t => (
               <li key={t} className="flex gap-3">
                 <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--gold-light)]" />
@@ -223,6 +226,26 @@ export default function PrivacyPage() {
               </p>
             </Flow>
 
+            <Flow icon={<Megaphone className="h-4 w-4" />} title="Seeing ads, on the free plans"
+              summary={<>
+                A small ad sits under some sidebar panels and in the docs; the map, TI and the tools you are working in
+                never carry one, and Pro shows none at all. The ads come from Google AdSense: your browser loads them from
+                Google, which sees your IP address and the page you are on. Google and its partners use cookies to show
+                ads based on your visits to this and other sites, to cap how often you see one and to count clicks.
+                Visitors in Europe and the UK are asked first, in Google&apos;s consent message, and can say no. If an ad
+                blocker stops them, a note asks, at most once a day, whether you would let them through; nothing stops
+                working either way.
+              </>}
+              services={[
+                { name: 'Google AdSense (googlesyndication.com, doubleclick.net)', what: 'your IP address, the page, and its own cookies, to choose, show and count ads' },
+              ]}>
+              <p className="mt-3 text-[13px] leading-relaxed text-[var(--text-muted)]">
+                How Google uses what it learns here:{' '}
+                <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer"
+                  className="text-[var(--cyan-primary)] hover:underline">policies.google.com/technologies/partner-sites</a>.
+              </p>
+            </Flow>
+
             <Flow icon={<Bot className="h-4 w-4" />} title="AI briefings and token scans"
               summary={<>
                 The briefing, analysis and overview buttons send the feed headlines they summarise to Google Gemini, on this
@@ -251,6 +274,9 @@ export default function PrivacyPage() {
         <Section id="choices" title="Your choices">
           <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-[var(--text-muted)]">
             <li><span className="text-[var(--text-primary)]">Clear everything</span> by clearing this site’s data in your browser settings.</li>
+            <li><span className="text-[var(--text-primary)]">Turn off personalised ads</span> in{' '}
+              <a href="https://myadcenter.google.com" target="_blank" rel="noopener noreferrer" className="text-[var(--cyan-primary)] hover:underline">Google&apos;s My Ad Center</a>,
+              or decline in the consent message; you then see ads that do not depend on your history.</li>
             <li><span className="text-[var(--text-primary)]">Keep your AI key to one session</span> by leaving “Remember on this device” unticked; it is then forgotten when the tab closes.</li>
             <li><span className="text-[var(--text-primary)]">Use only what you need</span>: map layers, cameras and AI features reach out only when you switch them on or use them.</li>
             <li><span className="text-[var(--text-primary)]">Run your own copy</span>: TAKIP is open source, so you can host it yourself and decide who operates it.</li>

@@ -7,6 +7,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Baked into the build, so env_file below can't set them.
+      args:
+        NEXT_PUBLIC_ADSENSE_CLIENT: ${NEXT_PUBLIC_ADSENSE_CLIENT:-}
+        NEXT_PUBLIC_ADSENSE_SLOT_PANEL: ${NEXT_PUBLIC_ADSENSE_SLOT_PANEL:-}
+        NEXT_PUBLIC_ADSENSE_SLOT_PAGE: ${NEXT_PUBLIC_ADSENSE_SLOT_PAGE:-}
     container_name: takip
     # Host port is configurable via TAKIP_PORT in .env (defaults to 3000).
     ports:

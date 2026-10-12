@@ -716,7 +716,7 @@ export default function Dashboard() {
           </>} />
       )}
       {!isMobile && (
-        <Dock>
+        <Dock tool={activeTool}>
           {showDirections && <div className={activeTool === 'directions' ? 'min-h-0 max-h-full overflow-y-auto styled-scrollbar' : 'hidden'}>{planner}</div>}
           <AnimatePresence mode="wait" initial={false}>
             {activeTool && activeTool !== 'directions' && (

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import AdsProvider from '@/components/ads/ads-provider';
 import ErrorBoundary from '@/components/ui/error-boundary';
 import "./globals.css";
 
@@ -205,7 +206,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ErrorBoundary name="TAKIP Core">
-          {children}
+          <AdsProvider>{children}</AdsProvider>
         </ErrorBoundary>
       </body>
     </html>

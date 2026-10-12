@@ -13,6 +13,8 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* is inlined by next build, so the ad settings must arrive as build args.
+ARG NEXT_PUBLIC_ADSENSE_CLIENT NEXT_PUBLIC_ADSENSE_SLOT_PANEL NEXT_PUBLIC_ADSENSE_SLOT_PAGE
 RUN npm run build
 
 FROM node:22-alpine AS runner

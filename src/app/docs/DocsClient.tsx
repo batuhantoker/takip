@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AdSlot from '@/components/ads/ad-slot';
+import { AD_SLOTS } from '@/lib/ads';
 import CommandPalette, { buildPaletteItems } from './CommandPalette';
 import { ApiReference } from './api-reference';
 import { DocsHeader } from './docs-header';
@@ -134,6 +136,8 @@ export default function DocsClient() {
           <InterfaceSection />
           <OiGuideSection origin={origin} />
           <ShortcutsSection />
+
+          <AdSlot slot={AD_SLOTS.page} variant="page" className="my-12" />
 
           <ApiReference origin={origin} />
 
