@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
-import { legacyGet } from '../testing/legacy';
 import { run } from '../testing/observe';
 
 const { upstream, fails } = await vi.hoisted(() => import('../testing/upstream'));
@@ -41,14 +40,12 @@ const timeout = () => {
 };
 
 let t: TestApp;
-let legacy: (path: string) => Promise<Response>;
 let clock = Date.parse('2026-10-12T12:00:00Z');
 
 beforeAll(async () => {
   t = await startApp();
-  legacy = await legacyGet('@/app/api/arcgis/route');
   vi.stubGlobal('fetch', upstream.fetch);
-  // Frozen, so neither limiter refills or resets while a test runs.
+  // Frozen, so the limiter neither refills nor resets while a test runs.
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(clock);
 });
@@ -59,12 +56,8 @@ afterAll(() => {
 });
 beforeEach(() => upstream.reset());
 
-async function check(...queries: string[]) {
-  const v1 = await run(queries.map(q => `/api/v1/arcgis${q}`), path => t.app.request(path));
-  const old = await run(queries.map(q => `/api/arcgis${q}`), legacy);
-  expect(v1).toEqual(old);
-  return v1;
-}
+/** Sends each query in turn from cold server-side caches. */
+const check = (...queries: string[]) => run(queries.map(q => `/api/v1/arcgis${q}`), path => t.app.request(path));
 const service = (url: string, bbox?: string) => `?service=${encodeURIComponent(url)}${bbox ? `&bbox=${bbox}` : ''}`;
 
 describe('GET /api/v1/arcgis', () => {

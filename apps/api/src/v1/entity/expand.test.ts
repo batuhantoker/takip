@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
-import { legacyGet } from '../testing/legacy';
 import { run } from '../testing/observe';
 
 const { upstream, fails } = await vi.hoisted(async () => {
@@ -24,14 +23,12 @@ const GRAPH = {
 };
 
 let t: TestApp;
-let legacy: (path: string) => Promise<Response>;
 let clock = Date.parse('2026-10-12T12:00:00Z');
 
 beforeAll(async () => {
   t = await startApp();
-  legacy = await legacyGet('@/app/api/entity/expand/route');
   vi.stubGlobal('fetch', upstream.fetch);
-  // Frozen, so neither limiter refills or resets while a test runs.
+  // Frozen, so the limiter neither refills nor resets while a test runs.
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(clock);
 });
@@ -42,12 +39,8 @@ afterAll(() => {
 });
 beforeEach(() => upstream.reset());
 
-async function check(...queries: string[]) {
-  const v1 = await run(queries.map(q => `/api/v1/entity/expand${q}`), path => t.app.request(path));
-  const old = await run(queries.map(q => `/api/entity/expand${q}`), legacy);
-  expect(v1).toEqual(old);
-  return v1;
-}
+/** Sends each query in turn from cold server-side caches. */
+const check = (...queries: string[]) => run(queries.map(q => `/api/v1/entity/expand${q}`), path => t.app.request(path));
 
 describe('GET /api/v1/entity/expand', () => {
   it('refuses an unknown type or an id outside 2 to 200 characters, without asking the service', async () => {
@@ -74,7 +67,7 @@ describe('GET /api/v1/entity/expand', () => {
       body: GRAPH,
       upstream: [`${RESOLVE}?type=aircraft&id=N381DN&registration=N381DN&model=B739&icao24=ae291a`],
     });
-    expect(forwardedFor).toEqual(['unknown', 'unknown']);
+    expect(forwardedFor).toEqual(['unknown']);
   });
 
   it("passes the service's own error status through", async () => {

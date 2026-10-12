@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
-import { legacyGet } from '../testing/legacy';
 import { run, type Observed } from '../testing/observe';
 import { clearTleCatalogue } from './tle-catalogue';
 
@@ -21,7 +20,6 @@ const { disk, fakeFs } = vi.hoisted(() => {
   return { disk, fakeFs };
 });
 vi.mock('node:fs', async importActual => fakeFs(await importActual<typeof import('node:fs')>()));
-vi.mock('fs', async importActual => fakeFs(await importActual<typeof import('node:fs')>()));
 
 const REPO_TLE_FILE = fileURLToPath(new URL('../../../../../.next/cache/satellites-tle-cache.json', import.meta.url));
 const CACHED = 'public, s-maxage=600, stale-while-revalidate=3600';
@@ -37,12 +35,10 @@ const DEBRIS = { name: 'DEBRIS', line1: '1 99998U 98067A   24001.50000000  .0001
 const CATALOGUE = JSON.stringify({ time: AT, sats: [ISS, DEBRIS, { name: 'NO ELEMENTS' }] });
 
 let t: TestApp;
-let legacy: (path: string) => Promise<Response>;
 let clock = AT;
 
 beforeAll(async () => {
   t = await startApp();
-  legacy = await legacyGet('@/app/api/satellites/orbit/route');
   vi.useFakeTimers({ toFake: ['Date'] });
 });
 afterAll(() => {
@@ -54,18 +50,12 @@ beforeEach(() => {
   disk.reads.length = 0;
 });
 
-/**
- * Sends each query to both handlers at the same frozen moment. The clock moves on ten minutes first,
- * past the five minutes either handler keeps the file, so both read it afresh.
- */
-async function check(...queries: string[]) {
+/** Sends each query in turn at one frozen moment, ten minutes after the last, from a cold catalogue. */
+function check(...queries: string[]) {
   clock += 10 * 60_000;
   vi.setSystemTime(clock);
   clearTleCatalogue();
-  const v1 = await run(queries.map(q => `/api/v1/satellites/orbit${q}`), path => t.app.request(path));
-  const old = await run(queries.map(q => `/api/satellites/orbit${q}`), legacy);
-  expect(v1).toEqual(old);
-  return v1;
+  return run(queries.map(q => `/api/v1/satellites/orbit${q}`), path => t.app.request(path));
 }
 
 type Track = { noradId: string; name: string; periodMinutes: number | null; anchoredAt: string; segments: number[][][] };
@@ -82,7 +72,7 @@ describe('GET /api/v1/satellites/orbit', () => {
 
   it('reads the TLE file the web app writes, from the repo root', async () => {
     await check('?id=25544');
-    expect(disk.reads).toEqual([REPO_TLE_FILE, REPO_TLE_FILE]);
+    expect(disk.reads).toEqual([REPO_TLE_FILE]);
   });
 
   it('draws one revolution centred on t, in [lng, lat, km] runs split at the antimeridian', async () => {

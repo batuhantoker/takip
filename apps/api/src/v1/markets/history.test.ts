@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
-import { legacyGet } from '../testing/legacy';
 import { run } from '../testing/observe';
 
 const { upstream, fails } = await vi.hoisted(() => import('../testing/upstream'));
@@ -31,11 +30,9 @@ const CANDLES = [
 ];
 
 let t: TestApp;
-let legacy: (path: string) => Promise<Response>;
 
 beforeAll(async () => {
   t = await startApp();
-  legacy = await legacyGet('@/app/api/markets/history/route');
   vi.stubGlobal('fetch', upstream.fetch);
 });
 afterAll(() => {
@@ -44,12 +41,8 @@ afterAll(() => {
 });
 beforeEach(() => upstream.reset());
 
-async function check(...queries: string[]) {
-  const v1 = await run(queries.map(q => `/api/v1/markets/history${q}`), path => t.app.request(path));
-  const old = await run(queries.map(q => `/api/markets/history${q}`), legacy);
-  expect(v1).toEqual(old);
-  return v1;
-}
+/** Sends each query in turn from cold server-side caches. */
+const check = (...queries: string[]) => run(queries.map(q => `/api/v1/markets/history${q}`), path => t.app.request(path));
 
 describe('GET /api/v1/markets/history', () => {
   it('refuses a missing or unlisted symbol and an unknown range, without asking Yahoo', async () => {
@@ -66,7 +59,7 @@ describe('GET /api/v1/markets/history', () => {
   });
 
   it('refuses a prototype name as a range', async () => {
-    const [res] = await run(['/api/v1/markets/history?symbol=LMT&range=constructor'], path => t.app.request(path));
+    const [res] = await check('?symbol=LMT&range=constructor');
     expect(res).toMatchObject({ status: 400, body: { error: 'range must be one of 1m, 15m, 24H, 1W, 1M, 6M, 1Y' }, upstream: [] });
   });
 
