@@ -122,6 +122,22 @@ const MIGRATIONS: string[] = [
   UPDATE bill_plan_entitlement SET value = '2'    WHERE plan_id = 'free' AND key = 'api.rps'              AND value = '0';
   UPDATE bill_plan_entitlement SET value = 'true' WHERE plan_id = 'pro'  AND key = 'ai.hosted'            AND value = 'false';
   `,
+  // API keys (keys/). Only the key's SHA-256 is kept; the prefix lets its owner recognise it. scopes '[]' means unrestricted.
+  `
+  CREATE TABLE IF NOT EXISTS api_key (
+    key_id        TEXT PRIMARY KEY,
+    user_id       TEXT NOT NULL,
+    name          TEXT NOT NULL,
+    prefix        TEXT NOT NULL,
+    key_hash      BLOB NOT NULL UNIQUE,
+    scopes        TEXT NOT NULL DEFAULT '[]',
+    created_at    INTEGER NOT NULL,
+    expires_at    INTEGER,
+    last_used_at  INTEGER,
+    revoked_at    INTEGER
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS api_key_user ON api_key (user_id, created_at);
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

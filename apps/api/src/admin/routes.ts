@@ -5,6 +5,8 @@ import { clearOverride, grantPlan, revokePlan, setOverride, setPlanValue, type A
 import type { AccessResolver } from '../access/resolver';
 import type { Auth } from '../auth/auth';
 import type { AppDb } from '../db/app-db';
+import type { ApiKeys } from '../keys/api-keys';
+import { adminKeyRoutes } from '../keys/admin-routes';
 import type { AdminEnv, AdminGate } from './gate';
 import { adminQueries } from './queries';
 import type { SourceSwitchboard } from '../replay/sources';
@@ -40,7 +42,7 @@ function change(c: Context, run: () => void, access: AccessResolver) {
 }
 
 /** Mounted at /api/admin. Everything but status and unlock sits behind the gate. */
-export function adminRoutes({ auth, db, access, gate, switchboard }: { auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate; switchboard?: SourceSwitchboard }) {
+export function adminRoutes({ auth, db, access, gate, switchboard, keys }: { auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate; switchboard?: SourceSwitchboard; keys: ApiKeys }) {
   const app = new Hono<AdminEnv>();
   const queries = adminQueries(db, access);
   const actor = (c: Context<AdminEnv>): Actor => ({ type: 'admin', id: c.var.admin.userId });
@@ -65,6 +67,7 @@ export function adminRoutes({ auth, db, access, gate, switchboard }: { auth: Aut
     c.header('Cache-Control', 'no-store');
   });
   if (switchboard) app.route('/sources', sourcesRoutes({ db, switchboard }));
+  app.route('/users', adminKeyRoutes(keys));
 
   app.get('/overview', c => c.json({ ...queries.overview(), recent: queries.audit({ limit: 10 }) }));
 
@@ -115,6 +118,7 @@ export function adminRoutes({ auth, db, access, gate, switchboard }: { auth: Aut
     const banExpiresIn = parsed.until ? Math.max(1, Math.round((parsed.until - Date.now()) / 1000)) : undefined;
     // Bans also end every session the user has.
     await auth.api.banUser({ headers: c.req.raw.headers, body: { userId, banReason: parsed.reason, banExpiresIn } });
+    keys.forgetUser(userId);
     audit(c, 'user.ban', userId, { reason: parsed.reason, until: parsed.until ?? null });
     return c.json({ ok: true });
   });
@@ -123,6 +127,7 @@ export function adminRoutes({ auth, db, access, gate, switchboard }: { auth: Aut
     const userId = c.req.param('id');
     if (!exists(userId)) return c.json({ error: 'not_found' }, 404);
     await auth.api.unbanUser({ headers: c.req.raw.headers, body: { userId } });
+    keys.forgetUser(userId);
     audit(c, 'user.unban', userId, {});
     return c.json({ ok: true });
   });
