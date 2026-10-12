@@ -142,7 +142,7 @@ export default function MarketChart({ symbol, name, onClose, large = false }: Ma
   useEffect(() => {
     let cancelled = false;
 
-    fetch(`/api/markets/history?symbol=${encodeURIComponent(symbol)}&range=${range}`)
+    fetch(`/api/v1/markets/history?symbol=${encodeURIComponent(symbol)}&range=${range}`)
       .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((d) => {
         if (cancelled) return;

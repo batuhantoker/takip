@@ -63,7 +63,7 @@ export default function ArcGISPanel({
         const params = new URLSearchParams({ q: searchQuery });
         if (bboxParam) params.set('bbox', bboxParam);
 
-        const res = await fetch(`/api/arcgis?${params.toString()}`);
+        const res = await fetch(`/api/v1/arcgis?${params.toString()}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || `Search failed (${res.status})`);
@@ -91,7 +91,7 @@ export default function ArcGISPanel({
         const params = new URLSearchParams({ service: result.url });
         if (bboxParam) params.set('bbox', bboxParam);
 
-        const res = await fetch(`/api/arcgis?${params.toString()}`);
+        const res = await fetch(`/api/v1/arcgis?${params.toString()}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || `Import failed (${res.status})`);
