@@ -417,7 +417,35 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
   - The OSINT decision is recorded in `TODO.md` §7 and `backend.md` §13 and §17.
   - The api-keys logger and the `bucketKey` reuse.
 - **History note:** `d4bd69d` (History, another session) was built from a tree that predates `fa8a201`, so taken alone it drops D3's files. `f493407` restores them, and the tip is correct. Bisecting across `d4bd69d` will see the OSINT gate missing.
+- **C, part 4** (`94d153f`): the advisories module (`lookup`, issuers, `source-memo`, `country-codes`, `rss`) moved to `@takip/connectors/advisories`, with shims, so `/api/advisories` and outbreaks are unchanged. `unhcr` and `police-uk` moved too.
+  - `GET /api/v1/region-dossier` matches the legacy route in 11 parity cases, including the 2.5 s budget and stale copies.
+  - **The legacy route is still live, and the map still calls it.** See the follow-ups.
 - The dev DB is at `user_version` 8.
+
+### Wrap-up state (2026-10-12, evening)
+The user asked everyone to wrap up. Every backend workstream above has landed; no backend branches or worktrees remain.
+
+**Not done: the shell commit and the workspaces chip.**
+- `src/app/page.tsx` can't be committed yet. Its uncommitted import closure includes osiris-5f's orphaned shell redesign (5f has exited; the user approved committing it) and space files osiris-82 is still building (at the user's direct request).
+- Whoever commits `page.tsx` next (most naturally with the space work) must include:
+  - **5f's shell files:** `src/components/shell/{dock-tools,mobile-shell,nav-items,use-cursor-readout,use-splash,use-startup,use-theme}`, `shell/splash/*`, and the edits to `dock`, `map-options`, `view-controls` and `splash-screen`.
+  - **The hooks it imports:** `cameras/use-live-feed`, `directions/{route-planner,use-directions}`, `draw/use-areas`, `layers/use-arcgis-layers`, `map/use-region-dossier`, `oi/use-oi-share-link`, `recon/use-recon-overlays`.
+  - **The orphaned `src/components/replay/use-replay-satellites.ts`** (2 eslint `any`s at line 17).
+  - **osiris-92's replay lines and osiris-a5's History lines** in `page.tsx`, `dock.tsx`, `nav-items.ts` and `dock-tools.tsx`.
+  - **osiris-82's space files and hunks.**
+- **Then mount the workspaces chip** (E's lines):
+  - `page.tsx`: `import WorkspaceHost from '@/components/workspaces/workspace-host';` and `<WorkspaceHost />` right after `<AccountDialog />`.
+  - Desktop, `search-spotlight.tsx`: wrap the trigger as `<div data-hud className="absolute top-3 z-[450] flex items-center gap-2 transition-[left] duration-200" style={{ left: AT_LEFT, width: 'min(560px, calc(100vw - var(--shell-left, 0px) - 120px))' }}><div className="flex-1 min-w-0"><SearchTrigger onOpen={() => setShowDesktopSearch(true)} /></div><WorkspaceChip /></div>`.
+  - Phone, `mobile-shell.tsx`, after `<AppHeader … isMobile />`: `<div data-hud className="absolute top-4 right-4 z-[210]"><WorkspaceChip align="right" /></div>`.
+- **Register the parts** in `page.tsx`, after `openTool` (`useWorkspacePart` from `@/components/workspaces/use-workspace`; `areasFrom`, `layersOver`, `oneOf` and `storedAreas` from `@/lib/workspaces/adapters`):
+  - `basemap` from `mapStyle`/`mapProjection`;
+  - `layers` from `activeLayers` (setter `setActiveLayers(cur => layersOver(cur, saved))`);
+  - `viewport` from `mapCenter` and `mapView.zoom` (setter `setFlyToLocation({ …, ts: Date.now() })`);
+  - `areas` from `areas.drawnPolygons` via `storedAreas`/`areasFrom`;
+  - `tool` from `activeTool`/`openTool`;
+  - `time` needs `useReplay` to expose `openAt(t)`, `close()` and an `anchor` that changes only on open, seek or pause (not `clock.time()`, or autosave fires every ~12 s).
+  - Also skip `useStartup`'s IP auto-locate when `localStorage['takip.workspaces.current']` is set.
+- Then add `'workspaces.max', 'workspaces.share'` to `BUILT` in `plan-highlights.ts`, and rewrite its "leaves out saved workspaces" test.
 
 ### Landing branches here
 Several sessions share one working copy, so `git merge` refuses whenever a merged file has someone's uncommitted edits. Use `python3 tools/land-branch.py <branch> "<message>"`:
@@ -437,7 +465,13 @@ Several sessions share one working copy, so `git merge` refuses whenever a merge
   - the flush logs through `console.error`, not pino;
   - the CIDR parsing is duplicated in `access/client-ip.ts` and `obs/peer-allow.ts`.
 - **Errors print twice** (Hono's default `onError` and pino); set `app.onError`.
-- **Region-dossier port** was blocked on another session's FCDO/UNHCR changes; they're committed now (`5953407`), so it can be ported.
+- **Finish the region-dossier switch:**
+  - add `{ source: '/api/region-dossier', destination: \`${api}/api/v1/region-dossier\` }` to `next.config.ts` (the caller, `use-region-dossier.ts`, is still uncommitted);
+  - delete `src/app/api/region-dossier/` and `apps/api/src/v1/testing/legacy.ts`;
+  - turn the parity cases into contract tests;
+  - move the old unit tests to `place.test.ts`/`wikidata.test.ts`;
+  - update `apiCatalog.ts`.
+- **Kept for parity, worth fixing:** a failed data.police.uk lookup reads as "no data", and missing `lat`/`lng` isn't refused in the region dossier.
 - **Coupling:** `/api/v1/satellites/orbit` reads the TLE cache the web app writes (`.next/cache/satellites-tle-cache.json`). It breaks if the api runs apart from Next; ingest's TLE should replace it.
 - **Production default:** `INTEL_URL` falls back to `http://takip-intel:4000` in production.
 - **Key scopes** exist (`requiresScope`), but no route needs one yet.
