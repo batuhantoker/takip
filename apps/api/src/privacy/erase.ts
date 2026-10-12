@@ -45,8 +45,8 @@ const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&
 
 /**
  * Removes what belongs to a user and pseudonymises what stays: audit rows keep their subject and actor ids but
- * lose email and IP addresses, and usage_counter never held either. Runs in one transaction, before Better Auth
- * deletes the auth_user row, so a failure here stops the deletion instead of leaving data behind.
+ * lose email and IP addresses, and usage_counter never held either. Runs in one transaction just before Better Auth
+ * deletes the auth_user row: on failure it rolls back and that row stays, rather than going with data left behind.
  */
 export function eraseUser(db: AppDb, user: { id: string; email: string }, actor: EraseActor, now = Date.now()) {
   const email = user.email.toLowerCase();

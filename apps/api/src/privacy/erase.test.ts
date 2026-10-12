@@ -86,7 +86,7 @@ describe('account deletion', () => {
     expect(auditOf(ada.userId).at(-1)).toMatchObject({ action: 'user.delete', actor_type: 'admin', actor_id: bo.userId });
   });
 
-  it('stops the deletion when the clean-up fails, so nothing is left half-erased', async () => {
+  it('rolls the clean-up back and keeps the user row when it fails', async () => {
     const ada = await p.withEverything();
     p.t.db.exec('DROP TABLE admin_unlock');
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -95,6 +95,8 @@ describe('account deletion', () => {
     expect(count('SELECT count(*) FROM auth_user WHERE id = ?', ada.userId)).toBe(1);
     expect(count('SELECT count(*) FROM api_key WHERE user_id = ?', ada.userId)).toBe(1);
     expect(count("SELECT count(*) FROM audit_event WHERE action = 'user.delete'")).toBe(0);
+    // Better Auth removes sessions and sign-in methods before the user row; "Forgot password" restores a way in.
+    expect(count('SELECT count(*) FROM auth_account WHERE userId = ?', ada.userId)).toBe(0);
   });
 });
 
