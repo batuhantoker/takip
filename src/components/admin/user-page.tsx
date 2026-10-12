@@ -7,6 +7,7 @@ import type { PlansResponse, UserDetail } from './admin-types';
 import AuditTable from './audit-table';
 import { useAdminAction } from './use-admin-action';
 import UserBanCard from './user-ban-card';
+import UserKeysCard from './user-keys-card';
 import UserOverridesCard from './user-overrides-card';
 import UserPlanCard from './user-plan-card';
 
@@ -72,6 +73,7 @@ export default function UserPage({ id }: { id: string }) {
 
         <UserBanCard detail={data} reload={reload} />
         <UserOverridesCard detail={data} catalogue={plans.data.catalogue} reload={reload} />
+        <UserKeysCard userId={id} email={user.email} onChange={reload} />
       </div>
 
       <Card title="History" className="mt-4">

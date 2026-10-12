@@ -14,6 +14,8 @@ import { authRoutes } from './auth/routes';
 import type { BillingProvider } from './billing/provider';
 import { billingRoutes } from './billing/routes';
 import type { AppDb } from './db/app-db';
+import { createApiKeys, type ApiKeys } from './keys/api-keys';
+import { keyRoutes } from './keys/routes';
 import { requestLogger, silentLogger } from './obs/logger';
 import { createMetrics, httpMetrics, metricsEndpoint, type Metrics } from './obs/metrics';
 import { requestId } from './obs/request-id';
@@ -24,9 +26,9 @@ import { v1Routes } from './v1/openapi';
 
 export type AppObs = { logger?: Logger; metrics?: Metrics; metricsAllow?: readonly string[] };
 
-export function createApp({ auth, access, db, replay, switchboard, billing = null, obs = {}, trust = ipTrust(), usage = createUsage(db), enforceLimits = true }: {
+export function createApp({ auth, access, db, replay, switchboard, billing = null, obs = {}, trust = ipTrust(), usage = createUsage(db), keys = createApiKeys(db), enforceLimits = true }: {
   auth: Auth; access: AccessResolver; db: AppDb; replay?: ReplayData; switchboard?: SourceSwitchboard; billing?: BillingProvider | null;
-  obs?: AppObs; trust?: IpTrust; usage?: Usage; enforceLimits?: boolean;
+  obs?: AppObs; trust?: IpTrust; usage?: Usage; keys?: ApiKeys; enforceLimits?: boolean;
 }) {
   const { logger = silentLogger, metrics = createMetrics(), metricsAllow = [] } = obs;
   const app = new Hono();
@@ -38,16 +40,17 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   app.use('/api/*', clientIp(trust));
   // Before the access middleware, so sign-in traffic never pays for a plan lookup.
   app.route('/api', authRoutes(auth));
-  app.use('/api/v1/*', withAccess(auth, access));
+  app.use('/api/v1/*', withAccess(auth, access, keys));
   app.use('/api/v1/*', rateLimit(usage, { enforce: enforceLimits }), meter(usage));
   app.route('/api/v1', accessRoutes(access));
   app.route('/api/v1', usageRoutes(usage));
+  app.route('/api/v1', keyRoutes(keys));
   app.route('/api/v1', v1Routes());
   if (replay) {
     app.use('/api/replay/*', withAccess(auth, access));
     app.route('/api/replay', replayRoutes(replay));
   }
   app.route('/api/billing', billingRoutes({ db, auth, access, provider: billing }));
-  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard }));
+  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard, keys }));
   return app;
 }

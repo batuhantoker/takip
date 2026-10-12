@@ -2,7 +2,7 @@ import type { InputHTMLAttributes, ReactNode } from 'react';
 
 export const PASSWORDS_DIFFER = "The two passwords don't match.";
 
-const INPUT =
+export const INPUT =
   'w-full h-8 px-2.5 bg-black/40 border border-white/10 text-[11px] font-mono text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--gold-primary)]/50';
 
 export function Field({ label, ...input }: { label: string } & InputHTMLAttributes<HTMLInputElement>) {
