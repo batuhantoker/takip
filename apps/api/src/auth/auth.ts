@@ -4,9 +4,9 @@ import { getMigrations } from 'better-auth/db/migration';
 import { APP_NAME, LINK_TTL_S, deleteAccountEmail, existingAccountEmail, resetPasswordEmail, verificationEmail } from './emails';
 import { RESOLVED_IP_HEADER } from '../access/client-ip';
 import type { AppDb } from '../db/app-db';
-import { deleteUserKeys } from '../keys/store';
 import type { EmailSender } from '../mail/sender';
 import type { Env } from '../env';
+import { deletedBy, eraseUser } from '../privacy/erase';
 import { socialProviders, type SocialEnv } from './social-providers';
 
 const DAY_S = 24 * 60 * 60;
@@ -60,7 +60,9 @@ function authOptions(db: AppDb, env: AuthEnv, email: EmailSender) {
     },
     account: { modelName: 'auth_account' },
     // Fires on every path that deletes a user; a key already cached lapses within 30 s.
-    databaseHooks: { user: { delete: { after: async user => deleteUserKeys(db, user.id) } } },
+    databaseHooks: {
+      user: { delete: { before: async (user, ctx) => void eraseUser(db, user, deletedBy(user.id, ctx?.context.session?.user.id)) } },
+    },
     verification: { modelName: 'auth_verification' },
     plugins: [
       // Roles and bans. Its own /api/auth/admin/* endpoints are blocked (auth/routes.ts): the console calls it server-side, behind our 2FA gate.
