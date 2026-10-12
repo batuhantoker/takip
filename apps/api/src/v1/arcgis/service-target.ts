@@ -1,22 +1,7 @@
 import { isIP } from 'node:net';
 
-/*
- * `service` is a URL the caller chooses: the panel takes it from a catalog
- * search result, and organisations self-host ArcGIS Server on their own
- * domains, so there is no single host to pin. What can be pinned is the
- * shape — https, a genuine ArcGIS REST service path — and the target being
- * somewhere other than our own network, which safeFetch enforces on every
- * hop including redirects.
- *
- * This route previously passed `service` to fetch() with no checks at all, so
- * it would fetch any address the caller named and hand back the body: a
- * loopback service, another container, or a cloud metadata endpoint. The
- * mandatory "/query" suffix was no obstacle either, because it was appended to
- * the raw string — a trailing "#" made it part of a fragment, which is dropped
- * before the request goes out, so "http://127.0.0.1/internal#" fetched
- * /internal unchanged. The URL is therefore rebuilt through the URL object
- * here, never by concatenation.
- */
+// Caller-chosen (organisations self-host ArcGIS Server), so pin https and the REST service shape, and rebuild
+// through URL, never by concatenation: a trailing '#' once smuggled arbitrary paths past the '/query' suffix.
 const ARCGIS_SERVICE_ROOT = /\/rest\/services\/.+\/(?:Feature|Map)Server$/i;
 
 export interface ServiceTarget {
