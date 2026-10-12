@@ -4,16 +4,19 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Keyboard, X } from 'lucide-react';
 
+// What page.tsx's key handler does; keep the two in step.
 const SHORTCUTS = [
-  { key: 'F', desc: 'Toggle fullscreen' },
-  { key: 'S', desc: 'Share current view' },
-  { key: 'L', desc: 'Toggle layer panel' },
-  { key: 'M', desc: 'Toggle markets panel' },
+  { key: 'S', desc: 'Search places (or Ctrl/⌘ K)' },
   { key: 'O', desc: 'Ask OI' },
-  { key: 'I', desc: 'Toggle intel feed' },
+  { key: 'D', desc: 'Areas: draw and watch' },
+  { key: 'A', desc: 'Live alerts' },
+  { key: 'I', desc: 'Recon' },
+  { key: 'M', desc: 'Markets' },
+  { key: 'L', desc: 'Toggle layer panel' },
+  { key: 'G', desc: 'Switch globe / flat map' },
   { key: 'R', desc: 'Reset to global view' },
+  { key: 'F', desc: 'Toggle fullscreen' },
   { key: '?', desc: 'Show this help' },
-  { key: 'ESC', desc: 'Close panels / popups' },
 ];
 
 export default function KeyboardShortcuts() {
@@ -21,7 +24,8 @@ export default function KeyboardShortcuts() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as Element)?.tagName)) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) || t.isContentEditable)) return;
       if (e.key === '?' || (e.key === '/' && e.shiftKey)) setIsOpen(p => !p);
       if (e.key === 'Escape') setIsOpen(false);
     };

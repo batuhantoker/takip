@@ -159,7 +159,7 @@ export default function DrawingToolbar({
   return (
     <div className="pointer-events-auto">
       <div 
-        className="w-[280px] bg-black/90 backdrop-blur-xl border rounded-lg overflow-hidden flex flex-col glass-panel transition-all duration-500"
+        className="w-full bg-black/90 backdrop-blur-xl border rounded-lg overflow-hidden flex flex-col glass-panel transition-all duration-500"
         style={{
           boxShadow: flash 
             ? '0 0 20px #00E67666, 0 25px 50px -12px rgba(0,0,0,0.5)' 

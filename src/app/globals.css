@@ -2501,6 +2501,11 @@ html[data-oi-theater] [data-map-controls] {
   transition: opacity 0.3s ease;
 }
 
+/* The dock reaches the bottom-right corner, over the pan pad; zoom stays. */
+html[data-dock-open] [data-pan-pad] {
+  display: none !important;
+}
+
 /* ── OSIRIS OI: gold and black ──
    The OI panel and workspace keep to two tones: gold leads (what is selected,
    what is live, the prediction), champagne is its quiet second where the

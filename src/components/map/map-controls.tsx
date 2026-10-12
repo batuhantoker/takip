@@ -52,7 +52,7 @@ export default function MapControls({ mapRef, onInteract }: MapControlsProps) {
           <Btn label="Zoom in" move={{ kind: 'zoom', dir: 1 }} icon={Plus} disabled={limits.max} press={press} release={release} step={step} />
           <Btn label="Zoom out" move={{ kind: 'zoom', dir: -1 }} icon={Minus} disabled={limits.min} press={press} release={release} step={step} />
         </div>
-        <div className="desktop-only flex items-center gap-1">
+        <div data-pan-pad className="desktop-only flex items-center gap-1">
           <div aria-hidden="true" className="h-12 w-px mx-1 bg-[var(--border-secondary)]" />
           <div className="grid grid-cols-3 grid-rows-3 gap-[3px]">
             <Btn cell="col-start-2 row-start-1" label="Pan north" move={{ kind: 'pan', dx: 0, dy: -1 }} icon={ChevronUp} press={press} release={release} step={step} />
