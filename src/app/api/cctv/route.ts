@@ -35,10 +35,14 @@ import { fetchNewZealandCameras } from './newzealand';
 import { fetchLithuaniaCameras } from './lithuania';
 import { fetchEdmontonCameras } from './edmonton';
 import { fetchOregonCameras } from './oregon';
+import { fetchWsdotCameras } from './wsdot';
+import { fetchCaltransCameras } from './caltrans';
 import { fetchMichiganCameras } from './michigan';
 import { fetchIndianaCameras } from './indiana';
 import { fetchKentuckyCameras } from './kentucky';
+import { fetchNycCameras } from './nyc';
 import { STATE_FEEDS } from './us-511';
+import { FEEDS } from './feeds';
 import { fetchNevadaCameras } from './nevada';
 import { fetchLouisianaCameras } from './louisiana';
 import { fetchFloridaCameras } from './florida';
@@ -87,50 +91,6 @@ async function fetchTfLCameras(): Promise<any[]> {
   } catch (e) { return []; }
 }
 
-// ── US-WEST: WSDOT Washington State (~500) ──
-async function fetchWSDOTCameras(): Promise<any[]> {
-  try {
-    const res = await stealthFetch('https://data.wsdot.wa.gov/log/public/cameras.json', { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data || []).map((cam: any) => ({
-      id: `wsdot-${cam.CameraID}`, lat: cam.CameraLocation?.Latitude, lng: cam.CameraLocation?.Longitude,
-      name: cam.Title || 'WSDOT Camera', city: 'Washington', country: 'US',
-      feed_url: cam.ImageURL || '', source: 'WSDOT',
-    })).filter((c: any) => c.lat && c.lng && c.feed_url);
-  } catch (e) { return []; }
-}
-
-// ── US-WEST: Caltrans California ──
-async function fetchCaltransCameras(): Promise<any[]> {
-  try {
-    const res = await stealthFetch('https://caltrans-gis.dot.ca.gov/arcgis/rest/services/CHhighway/CCTV/FeatureServer/0/query?where=1%3D1&outFields=*&f=json', { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const cams = [];
-    for (const feature of (data?.features || [])) {
-      const p = feature.attributes;
-      const lat = p.latitude;
-      const lng = p.longitude;
-      const url = p.currentImageURL;
-      if (!lat || !lng || !url) continue;
-      cams.push({
-        id: `cal-${p.OBJECTID}`,
-        lat,
-        lng,
-        name: p.locationName || 'Caltrans',
-        city: p.nearbyPlace || p.county || 'California',
-        country: 'US',
-        feed_url: url,
-        source: 'Caltrans'
-      });
-    }
-    return cams;
-  } catch (e) {
-    return [];
-  }
-}
-
 /**
  * One sub-source of a multi-source region, fetched with a single retry.
  *
@@ -163,6 +123,12 @@ async function subSource(label: string, url: string, timeoutMs: number) {
   return null;
 }
 
+/** 511 Ontario and 511 Alberta answer an unkeyed request with HTTP 400 "Invalid Key" (since 2026-09 and 2026-08). */
+function keyed511(label: string, base: string, key: string | undefined) {
+  if (!key) return Promise.resolve(null);
+  return subSource(label, `${base}/api/v2/get/cameras?format=json&key=${encodeURIComponent(key)}`, 10000);
+}
+
 // ── CANADA: Ottawa, Toronto, Montreal, Quebec ──
 async function fetchCanadaCameras(): Promise<any[]> {
   const cams: any[] = [];
@@ -175,11 +141,11 @@ async function fetchCanadaCameras(): Promise<any[]> {
   const [ottawa, quebec, ontario, montreal, alberta, toronto, drivebc] = await Promise.all([
     subSource('City of Ottawa', 'https://traffic.ottawa.ca/beta/camera_list', 12000),
     subSource('Quebec 511', 'https://ws.mapserver.transports.gouv.qc.ca/swtq?service=wfs&version=2.0.0&request=getfeature&typename=ms:infos_cameras&outfile=Camera&srsname=EPSG:4326&outputformat=geojson', 10000),
-    subSource('511 Ontario', 'https://511on.ca/api/v2/get/cameras', 10000),
+    keyed511('511 Ontario', 'https://511on.ca', process.env.ONTARIO_511_KEY?.trim()),
     subSource('Ville MTL', 'https://ville.montreal.qc.ca/circulation/sites/ville.montreal.qc.ca.circulation/files/cameras.json', 8000),
-    subSource('511 Alberta', 'https://511.alberta.ca/api/v2/get/cameras', 10000),
+    keyed511('511 Alberta', 'https://511.alberta.ca', process.env.ALBERTA_511_KEY?.trim()),
     subSource('City of Toronto', 'https://ckan0.cf.opendata.inter.prod-toronto.ca/dataset/a3309088-5fd4-4d34-8297-77c8301840ac/resource/4a568300-c7f8-496d-b150-dff6f5dc6d4f/download/traffic-camera-list-4326.geojson', 10000),
-    subSource('DriveBC', 'https://drivebc.ca/api/webcams', 10000),
+    subSource('DriveBC', 'https://www.drivebc.ca/api/webcams/', 10000),
   ]);
 
 
@@ -304,7 +270,7 @@ async function fetchCanadaCameras(): Promise<any[]> {
         cams.push({
           id: `bc-cam-${cam.id}`, lat, lng,
           name: cam.name || cam.caption || 'BC Highway Camera', city: 'British Columbia', country: 'Canada',
-          feed_url: `https://drivebc.ca${cam.links.imageDisplay}`, source: 'DriveBC',
+          feed_url: `https://www.drivebc.ca${cam.links.imageDisplay}`, source: 'DriveBC',
         });
       }
     }
@@ -487,7 +453,7 @@ type RegionFetcher = () => Promise<any[]>;
 const RAW_REGION_FETCHERS: Record<string, RegionFetcher> = {
   'middle-east': fetchMiddleEastCameras,
   'uk': fetchTfLCameras,
-  'us-west': async () => { const [w, c] = await Promise.all([fetchWSDOTCameras(), fetchCaltransCameras()]); return [...w, ...c]; },
+  'us-west': async () => { const [w, c] = await Promise.all([fetchWsdotCameras(), fetchCaltransCameras()]); return [...w, ...c]; },
   'us-east': fetchUSEastCameras,
   'us-central': fetchUSCentralCameras,
   'canada': fetchCanadaCameras,
@@ -525,6 +491,7 @@ const RAW_REGION_FETCHERS: Record<string, RegionFetcher> = {
   'michigan': fetchMichiganCameras,
   'indiana': fetchIndianaCameras,
   'kentucky': fetchKentuckyCameras,
+  'nyc': fetchNycCameras,
   'nevada': fetchNevadaCameras,
   'louisiana': fetchLouisianaCameras,
   'florida': fetchFloridaCameras,
@@ -547,7 +514,8 @@ const RAW_REGION_FETCHERS: Record<string, RegionFetcher> = {
   'public-webcams-rest': fetchRestPublicWebcams,
 };
 
-for (const feed of STATE_FEEDS) {
+const ALL_FEEDS = [...STATE_FEEDS, ...FEEDS];
+for (const feed of ALL_FEEDS) {
   // A registry entry must not silently replace a hand-written region.
   if (feed.region in RAW_REGION_FETCHERS) throw new Error(`cctv region '${feed.region}' is registered twice`);
   RAW_REGION_FETCHERS[feed.region] = feed.fetch;
@@ -841,6 +809,7 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (lat > 37.7 && lat < 41.9 && lng > -88.2 && lng < -84.6) regions.push('indiana');
   // Kentucky (KYTC) — explicit, since us-central only covers Illinois
   if (lat > 36.4 && lat < 39.2 && lng > -89.6 && lng < -81.9) regions.push('kentucky');
+  if (lat > 40.47 && lat < 40.95 && lng > -74.28 && lng < -73.68) regions.push('nyc');
   // Louisiana (LADOTD 511) — explicit, since neither us-central nor us-east reaches the Gulf coast
   if (lat > 28.8 && lat < 33.1 && lng > -94.2 && lng < -88.6) regions.push('louisiana');
   /* The rest of the southern tier, all on the same IBI 511 stack. Each is
@@ -850,7 +819,7 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (lat > 30.3 && lat < 35.1 && lng > -85.7 && lng < -80.8) regions.push('georgia');
   if (lat > 33.8 && lat < 36.6 && lng > -84.4 && lng < -75.4) regions.push('northcarolina');
   if (lat > 31.3 && lat < 37.1 && lng > -115.0 && lng < -109.0) regions.push('arizona');
-  for (const { region, bounds: b } of STATE_FEEDS) {
+  for (const { region, bounds: b } of ALL_FEEDS) {
     if (lat > b.minLat && lat < b.maxLat && lng > b.minLng && lng < b.maxLng) regions.push(region);
   }
   // Canada

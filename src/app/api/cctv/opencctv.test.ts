@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapRecord, streamKind, sample, type OpenCctvRecord } from './opencctv';
+import { mapRecord, streamKind, sample, hasCredentials, type OpenCctvRecord } from './opencctv';
 
 /** A representative row from /api/cameras/batch. */
 const sampleRow: OpenCctvRecord = {
@@ -99,6 +99,22 @@ describe('mapRecord', () => {
       feed_type: 'image',
       feed_url: 'https://eismoinfo.lt/eismoinfo-backend/image-provider/camera/last?id=1072',
     })).toBeNull();
+  });
+
+  it('never carries Windy-hosted or Opentopia cameras', () => {
+    const still = { ...sampleRow, feed_type: 'image' };
+    expect(mapRecord({ ...still, source: 'windy', feed_url: 'https://imgproxy.windy.com/_/full/plain/current/1234/original.jpg' })).toBeNull();
+    expect(mapRecord({ ...still, source: 'swisswebcams', feed_url: 'https://images-webcams.windy.com/12/1234/current/full/1234.jpg' })).toBeNull();
+    expect(mapRecord({ ...still, source: 'opentopia', feed_url: 'https://images.opentopia.com/cams/1234/big.jpg' })).toBeNull();
+    // A lookalike host is not caught.
+    expect(mapRecord({ ...still, feed_url: 'https://notwindy.com/cam.jpg' })).not.toBeNull();
+  });
+
+  it('drops a URL that carries a login', () => {
+    expect(mapRecord({ ...sampleRow, feed_type: 'mjpeg', feed_url: 'https://cctv.example.go.id/cgi-bin/nph-zms?mode=jpeg&monitor=5&user=admin&pass=secret' })).toBeNull();
+    expect(mapRecord({ ...sampleRow, feed_url: 'https://admin:secret@cam.example/live.m3u8' })).toBeNull();
+    expect(hasCredentials('https://cam.example/snap.jpg?pwd=1')).toBe(true);
+    expect(hasCredentials('https://cam.example/snap.jpg?id=5&t=1')).toBe(false);
   });
 
   it('falls back through name, city, then a placeholder', () => {

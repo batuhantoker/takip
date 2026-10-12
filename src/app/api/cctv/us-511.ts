@@ -1,6 +1,7 @@
 import type { CctvCamera } from './types';
 import { loadIbi511Cameras, type Ibi511Source } from './ibi511';
 import { loadCarsCameras, type Bounds, type CarsSource } from './cars';
+import { loadCars511xCameras, type Cars511xSource } from './cars511x';
 
 /**
  * OSIRIS — state DOTs on a shared 511 platform. Adding one is adding an entry here: the region, its map box and its
@@ -19,6 +20,9 @@ const ibi = (region: string, cfg: Ibi511Source): StateFeed =>
 
 const cars = (region: string, cfg: CarsSource): StateFeed =>
   ({ region, idPrefix: cfg.idPrefix, bounds: cfg.bounds, fetch: () => loadCarsCameras(cfg) });
+
+const x511 = (region: string, cfg: Cars511xSource): StateFeed =>
+  ({ region, idPrefix: cfg.idPrefix, bounds: cfg.bounds, fetch: () => loadCars511xCameras(cfg) });
 
 export const STATE_FEEDS: StateFeed[] = [
   // IBI 511 — the deployments ./florida, ./georgia, ./northcarolina and ./arizona also run on.
@@ -64,5 +68,13 @@ export const STATE_FEEDS: StateFeed[] = [
   cars('nebraska', {
     host: '511.nebraska.gov', idPrefix: 'nedot', source: 'NDOT Nebraska', state: 'Nebraska',
     bounds: { minLat: 39.9, maxLat: 43.1, minLng: -104.1, maxLng: -95.3 },
+  }),
+
+  // CARS 511x — Castle Rock's newer stack.
+  x511('newyork', {
+    api: 'https://api-511x-nysdot.carsprogram.org', idPrefix: 'nysdot', source: 'NYSDOT', state: 'New York',
+    bounds: { minLat: 40.4, maxLat: 45.1, minLng: -79.8, maxLng: -71.7 },
+    // ./nyc carries these from NYC DOT's own feed.
+    excludeOwners: ['NYC DOT'],
   }),
 ];

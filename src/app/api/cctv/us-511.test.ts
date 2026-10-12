@@ -8,8 +8,8 @@ describe('STATE_FEEDS', () => {
   });
 
   it('prefixes ids per agency, so two states cannot collide on a numeric id', () => {
-    // Includes the hand-written IBI and CARS modules' prefixes.
-    const prefixes = [...STATE_FEEDS.map(f => f.idPrefix), 'fdot', 'gdot', 'ncdot', 'adot', 'udot', 'ndot', 'ladotd', 'indot'];
+    // Includes the hand-written modules' prefixes.
+    const prefixes = [...STATE_FEEDS.map(f => f.idPrefix), 'fdot', 'gdot', 'ncdot', 'adot', 'udot', 'ndot', 'ladotd', 'indot', 'nycdot'];
     expect(new Set(prefixes).size).toBe(prefixes.length);
   });
 
