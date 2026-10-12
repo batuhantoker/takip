@@ -72,6 +72,8 @@ export function createAutosave({ capture, save, onStatus, delayMs = 2000, timers
 
   function changed() {
     if (stopped) return;
+    // A difference is already pending and run() captures afresh, so a burst of changes pays for one comparison.
+    if (timer !== undefined) return schedule();
     if (canonical(capture()) === saved) {
       cancel();
       if (!inFlight) setStatus('saved');
