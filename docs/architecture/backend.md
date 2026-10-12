@@ -10,7 +10,7 @@
 | Starting point | **Assembled from libraries; no SaaS boilerplate.** The common starters (next-saas-starter, Makerkit, Supastarter, ShipFast, ixartz) assume Postgres plus Vercel, Supabase or Clerk, and expect to own the app. Ours is a large map app with its own data platform. Starters are reading material only. |
 | Repository | **Refactored in place into a monorepo.** The current Next app moves to `apps/web` unchanged. New services sit next to it. The 85 API routes move out gradually (§13). |
 | Services | `web` (Next.js UI), `api` (Hono on Node: auth, billing, public API, data serving), `ingest` (always-on worker), `intel` (existing). The `api` service owns every database write except ingest and imports. |
-| Auth | **Better Auth.** Email and password with verification and reset, plus Google and GitHub OAuth. Sessions are cookies backed by the database. Plugins: `admin`, `apiKey`; `organization` and `twoFactor` are ready to switch on. It supports SQLite now and Postgres later through the same config. |
+| Auth | **Better Auth.** Email and password with verification and reset, plus Google and GitHub OAuth. Sessions are cookies backed by the database. Plugins: `admin` and `twoFactor`; `organization` is ready to switch on. API keys are our own table (§6). It supports SQLite now and Postgres later through the same config. |
 | Paywall | Subscription tiers. **Entitlements are stored as data, not code,** so "we will see" means editing rows. The billing provider sits behind an adapter and is chosen later (§7.4). |
 | Paid at launch | API access and quotas. Everything else is an entitlement row that can be moved between tiers. |
 | Anonymous | The live map stays open without an account. An account adds saved workspaces, API keys and whatever plans unlock. |
@@ -132,10 +132,10 @@ requestId → pino logger → principal → rate limit → entitlement guard →
   - Stored in the database, valid 30 days, sliding refresh once a day.
   - Cookies `takip.session_token` and `takip.session_data` (the 5-minute cache), `HttpOnly`, `SameSite=Lax`. Over https they become `Secure` and gain the `__Secure-` prefix.
   - `session.cookieCache` is on, valid 5 minutes, so most requests don't read the database.
-- **Tables** live in `app.db` with an `auth_` prefix (`auth_user`, `auth_session`, `auth_account`, `auth_verification`, `auth_apikey`), set through Better Auth's `modelName` options. The Better Auth CLI generates and applies their migrations. They map to the Postgres schema `auth.*`.
+- **Tables** live in `app.db` with an `auth_` prefix (`auth_user`, `auth_session`, `auth_account`, `auth_verification`, `auth_two_factor`), set through Better Auth's `modelName` options. The Better Auth CLI generates and applies their migrations. They map to the Postgres schema `auth.*`.
 - **Plugins:**
   - `admin`: roles `user` and `admin`, ban, impersonation (audited).
-  - `apiKey`: key creation, prefix `tk_`, hashing, expiry, revocation. **Check whether verifying a key writes to the database on every request** (`lastRequest`, remaining-count updates). If it does, use the plugin only to manage keys, and verify through the cached lookup and in-memory meter (§5), to keep request traffic off `app.db`'s write lock.
+  - ~~`apiKey`~~ *Not used.* In 1.7 it is a separate package (`@better-auth/api-key`) whose verification writes to the database on every request. Keys live in our own `api_key` table instead (`apps/api/src/keys/`): `tk_` and 32 random bytes, stored as a SHA-256 hash with a display prefix, verified through a 30-second cached lookup, with `last_used_at` written at most once a minute.
   - `organization`: off for now. It becomes team workspaces and team plans later.
 - **Rate limits** on `/api/auth/*` use Better Auth's built-in limiter, stored in the database, with strict limits on sign-in, sign-up and reset.
 - **Email** for verification and reset is sent by the `EmailSender`, queued through the `job` table, and retried. *Built so far:* sent directly in the background after the response (no queue or retry yet).
