@@ -14,7 +14,7 @@ import {
   type AircraftDetail,
   type Airport,
   type ScheduledRoute,
-} from '@/components/flights/flight-watch-panel';
+} from './flight-watch';
 
 type LngLat = [number, number];
 

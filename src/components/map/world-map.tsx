@@ -22,7 +22,7 @@ import { attachTerrain, type TerrainStatus } from '@/lib/map-terrain';
 import { flightPathFeatures, routeFor } from '@/lib/flight-path';
 import { SHIP_CLASSES, SHIP_FALLBACK_COLOR, shipColor, shipColorArms, shipFilter } from '@/lib/ship-filter';
 import { FIELD_MAX_ZOOM, RADAR_ATTRIBUTION, RADAR_MAX_ZOOM, WX_ATTRIBUTION, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setWeatherGrid, weatherLabel, type WeatherGrid } from '@/lib/weather-field';
-import type { AircraftDetail, ScheduledRoute } from '@/components/flights/flight-watch-panel';
+import type { AircraftDetail, ScheduledRoute } from '@/lib/flight-watch';
 
 import { applyMapProjection } from '@/lib/map-projection';
 

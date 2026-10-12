@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { bearing, flightPathFeatures, greatCircle, routeFor, unwrap } from './flight-path';
-import type { Airport } from '@/components/flights/flight-watch-panel';
+import type { Airport } from './flight-watch';
 
 const ap = (icao: string, iata: string, lat: number, lng: number): Airport => ({ icao, iata, lat, lng });
 const DTW = ap('KDTW', 'DTW', 42.2124, -83.3534);

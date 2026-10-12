@@ -7,7 +7,7 @@ import {
   resolveEndpoints,
   type Airport,
   type AircraftDetail,
-} from './flight-watch-panel';
+} from './flight-watch';
 
 const ap = (icao: string, iata: string, lat: number, lng: number): Airport =>
   ({ icao, iata, lat, lng });
