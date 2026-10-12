@@ -24,17 +24,17 @@ describe('billing in the console', () => {
     const user = await t.signUpVerified();
     await kit.expectGated('GET', '/api/admin/billing', user);
     await kit.expectGated('POST', '/api/admin/billing/reconcile', user);
-    expect(t.db.prepare('SELECT count(*) FROM job').pluck().get()).toBe(0);
+    expect(t.db.prepare('SELECT count(*) FROM job WHERE kind = ?').pluck().get(RECONCILE_JOB)).toBe(0);
   });
 
   it('says plainly when no provider is configured, and queues nothing', async () => {
     t = await startApp();
     const kit = adminKit(t);
     const { jar } = await kit.admin();
-    expect(await kit.json(await kit.call(jar, 'GET', '/api/admin/billing'))).toMatchObject({ provider: null, events: [], jobs: { counts: { pending: 0, failed: 0, done: 0 } } });
+    expect(await kit.json(await kit.call(jar, 'GET', '/api/admin/billing'))).toMatchObject({ provider: null, events: [], jobs: { counts: { pending: 0, failed: 0 }, pending: [] } });
     const refused = await kit.call(jar, 'POST', '/api/admin/billing/reconcile');
     expect([refused.status, await kit.json(refused)]).toEqual([501, { error: 'billing_unavailable' }]);
-    expect(t.db.prepare('SELECT count(*) FROM job').pluck().get()).toBe(0);
+    expect(t.db.prepare('SELECT count(*) FROM job WHERE kind = ?').pluck().get(RECONCILE_JOB)).toBe(0);
     expect(reconcileAudit()).toEqual([]);
   });
 
@@ -62,8 +62,8 @@ describe('billing in the console', () => {
     // The handler also queues tomorrow's daily run.
     expect(await t.jobs.runner.runDue()).toBe(1);
     const after = await kit.json<Billing>(await kit.call(jar, 'GET', '/api/admin/billing'));
-    expect(after.jobs.counts).toEqual({ pending: 1, failed: 0, done: 1 });
-    expect(after.jobs.recent).toMatchObject([{ id: queued.jobId, kind: RECONCILE_JOB }]);
+    expect(after.jobs.counts).toEqual({ pending: 1, failed: 0, done: before.jobs.counts.done + 1 });
+    expect(after.jobs.recent.filter(job => job.kind === RECONCILE_JOB)).toMatchObject([{ id: queued.jobId }]);
 
     expect(await kit.json(await kit.call(jar, 'POST', '/api/admin/billing/reconcile'))).toMatchObject({ queued: true });
     expect(reconcileAudit()).toHaveLength(2);

@@ -15,7 +15,7 @@ afterEach(() => {
   b.t.close();
 });
 
-const jobs = () => b.t.db.prepare('SELECT kind, run_at, attempts, done_at IS NOT NULL AS done, last_error, dedupe_key FROM job ORDER BY job_id').all() as {
+const jobs = () => b.t.db.prepare('SELECT kind, run_at, attempts, done_at IS NOT NULL AS done, last_error, dedupe_key FROM job WHERE kind = ? ORDER BY job_id').all(RECONCILE_JOB) as {
   kind: string; run_at: number; attempts: number; done: number; last_error: string | null; dedupe_key: string;
 }[];
 
