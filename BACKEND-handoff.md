@@ -62,6 +62,8 @@ Everything below exists only in the working tree of `ui/shell-reorg`, interleave
 
 ## 1. Where we are
 
+> **§1 describes the state at 15:53 on 2026-10-12, before the lead session.** §8 is current and supersedes it, especially §1.5's gaps (gating, plan copy, the delete link elsewhere, session IPs and `getClientIp` are all done) and the test counts (the api suite is now about 600 tests).
+
 ### 1.1 Shape
 
 ```
