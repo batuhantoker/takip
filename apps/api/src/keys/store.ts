@@ -17,7 +17,18 @@ export type ApiKeyView = {
 /** What verification needs: the row, its hash, and its owner's ban (Better Auth's columns). */
 export type StoredKey = ApiKeyView & { userId: string; hash: Buffer; banned: boolean; banExpires: number | null };
 
-export type KeyActor = { type: 'user' | 'admin'; id: string };
+/** `impersonator`: the admin acting through an impersonated session of the user. */
+export type KeyActor = { type: 'user' | 'admin'; id: string; impersonator?: string };
+
+/** A key in the console's list of every key, with its owner. */
+export type OwnedKeyView = ApiKeyView & { userId: string; email: string | null; ownerName: string | null };
+export type KeyState = 'active' | 'expired' | 'revoked';
+
+const STATE_SQL: Record<KeyState, string> = {
+  active: 'k.revoked_at IS NULL AND (k.expires_at IS NULL OR k.expires_at > @now)',
+  expired: 'k.revoked_at IS NULL AND k.expires_at <= @now',
+  revoked: 'k.revoked_at IS NOT NULL',
+};
 
 type Row = Omit<ApiKeyView, 'scopes'> & { scopes: string };
 type OwnedRow = Row & { userId: string; hash: Buffer; banned: number | null; banExpires: string | null };
@@ -43,11 +54,11 @@ export function keyStore(db: AppDb) {
     FROM api_key k JOIN auth_user u ON u.id = k.user_id WHERE k.key_hash = ?`);
   const touch = db.prepare('UPDATE api_key SET last_used_at = ? WHERE key_id = ?');
   const audit = db.prepare(`
-    INSERT INTO audit_event (at, actor_type, actor_id, action, subject_type, subject_id, data)
-    VALUES (?, ?, ?, ?, 'user', ?, ?)`);
+    INSERT INTO audit_event (at, actor_type, actor_id, impersonator, action, subject_type, subject_id, data)
+    VALUES (?, ?, ?, ?, ?, 'user', ?, ?)`);
 
   const record = (at: number, actor: KeyActor, action: string, userId: string, data: object) =>
-    audit.run(at, actor.type, actor.id, action, userId, JSON.stringify(data));
+    audit.run(at, actor.type, actor.id, actor.impersonator ?? null, action, userId, JSON.stringify(data));
 
   return {
     /** Every key the user has, newest first; revoked ones only when asked. */
@@ -87,6 +98,27 @@ export function keyStore(db: AppDb) {
     },
 
     touch: (keyId: string, at: number) => touch.run(at, keyId),
+
+    /** Every user's keys, newest first, optionally in one state and matching owner, name or prefix; with counts per state. */
+    listAll({ state, q = '', offset, limit, now }: { state?: KeyState; q?: string; offset: number; limit: number; now: number }) {
+      const params = { now, like: `%${q.trim()}%`, offset, limit };
+      const search = q.trim() ? '(u.email LIKE @like OR u.name LIKE @like OR k.name LIKE @like OR k.prefix LIKE @like)' : '1';
+      const where = state ? `${search} AND ${STATE_SQL[state]}` : search;
+      const from = 'FROM api_key k LEFT JOIN auth_user u ON u.id = k.user_id';
+      const counts = db.prepare(`
+        SELECT count(*) AS all_, coalesce(sum(${STATE_SQL.active}), 0) AS active,
+               coalesce(sum(${STATE_SQL.expired}), 0) AS expired, coalesce(sum(${STATE_SQL.revoked}), 0) AS revoked
+        ${from} WHERE ${search}`).get(params) as Record<'all_' | KeyState, number>;
+      const rows = db.prepare(`
+        SELECT ${COLUMNS}, k.user_id AS userId, u.email, u.name AS ownerName
+        ${from} WHERE ${where} ORDER BY k.created_at DESC, k.key_id LIMIT @limit OFFSET @offset`).all(params) as (Row & { userId: string; email: string | null; ownerName: string | null })[];
+      const { all_, ...byState } = counts;
+      return {
+        counts: { all: all_, ...byState },
+        total: state ? byState[state] : all_,
+        keys: rows.map(({ userId, email, ownerName, ...row }): OwnedKeyView => ({ ...view(row), userId, email, ownerName })),
+      };
+    },
   };
 }
 

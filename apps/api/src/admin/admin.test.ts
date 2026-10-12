@@ -57,7 +57,9 @@ describe('admin gate', () => {
   it('asks each session for a code, then stays open for 12 hours', async () => {
     const { jar, secret } = await admin({ unlocked: false });
     expect(await json(await call(jar, 'GET', '/api/admin/users'))).toEqual({ error: 'unlock_required' });
-    expect(await json(await call(jar, 'GET', '/api/admin/status'))).toEqual({ signedIn: true, admin: true, twoFactor: true, unlockedUntil: null });
+    expect(await json(await call(jar, 'GET', '/api/admin/status'))).toEqual({
+      signedIn: true, admin: true, twoFactor: true, impersonating: false, unlockedUntil: null, retryAfterSeconds: null,
+    });
 
     expect((await call(jar, 'POST', '/api/admin/unlock', { code: '000000' })).status).toBe(401);
     expect((await call(jar, 'POST', '/api/admin/unlock', { code: totp(secret) })).status).toBe(200);
@@ -68,12 +70,22 @@ describe('admin gate', () => {
     expect(await json(await call(jar, 'GET', '/api/admin/users'))).toEqual({ error: 'unlock_required' });
   });
 
-  it('stops accepting codes after five wrong ones', async () => {
+  it('stops accepting codes after five wrong ones, saying when it will again', async () => {
     const { jar, secret } = await admin({ unlocked: false });
-    for (let i = 0; i < 5; i++) expect((await call(jar, 'POST', '/api/admin/unlock', { code: '000000' })).status).toBe(401);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    for (let i = 0; i < 4; i++) expect(await json(await call(jar, 'POST', '/api/admin/unlock', { code: '000000' }))).toEqual({ error: 'invalid_code' });
+    vi.setSystemTime(Date.now() + 60_000);
+    const fifth = await call(jar, 'POST', '/api/admin/unlock', { code: '000000' });
+    expect([fifth.status, await json(fifth)]).toEqual([401, { error: 'invalid_code', retryAfterSeconds: 14 * 60 }]);
+
     const locked = await call(jar, 'POST', '/api/admin/unlock', { code: totp(secret) });
-    expect(locked.status).toBe(429);
-    expect(await json(locked)).toMatchObject({ error: 'too_many_attempts' });
+    expect([locked.status, await json(locked)]).toEqual([429, { error: 'too_many_attempts', retryAfterSeconds: 14 * 60 }]);
+    vi.setSystemTime(Date.now() + 10 * 60_000);
+    expect(await json(await call(jar, 'GET', '/api/admin/status'))).toMatchObject({ unlockedUntil: null, retryAfterSeconds: 4 * 60 });
+
+    vi.setSystemTime(Date.now() + 4 * 60_000);
+    expect(await json(await call(jar, 'GET', '/api/admin/status'))).toMatchObject({ retryAfterSeconds: null });
+    expect((await call(jar, 'POST', '/api/admin/unlock', { code: totp(secret) })).status).toBe(200);
   });
 
   it('accepts each backup code once', async () => {

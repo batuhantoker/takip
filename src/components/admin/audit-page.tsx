@@ -12,6 +12,11 @@ const KINDS = [
   ['plan.', 'Plans and grants'],
   ['override.', 'Overrides'],
   ['user.', 'Users (bans, sign-outs, roles)'],
+  ['impersonation.', 'Viewing as users'],
+  ['apikey.', 'API keys'],
+  ['subscription.', 'Subscriptions'],
+  ['billing.', 'Billing reconciliation'],
+  ['source.', 'Sources'],
   ['admin.', 'Console unlocks'],
 ] as const;
 
