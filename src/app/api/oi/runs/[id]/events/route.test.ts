@@ -12,7 +12,7 @@ const input = (ip: string): StartInput => ({
 });
 
 const get = (id: string, ip: string, signal?: AbortSignal) =>
-  GET(new Request(`http://localhost/api/oi/runs/${id}/events`, { headers: { 'x-real-ip': ip }, signal }), { params: Promise.resolve({ id }) });
+  GET(new Request(`http://localhost/api/oi/runs/${id}/events`, { headers: { 'x-forwarded-for': ip }, signal }), { params: Promise.resolve({ id }) });
 
 describe('the event stream', () => {
   it('replays a finished run, closes, and gives the slot back every time', async () => {
@@ -34,7 +34,7 @@ describe('the event stream', () => {
     const started = startRun(input('203.0.113.2'), { chat: createDemoChat() });
     if (!started.ok) throw new Error(started.error);
     await waitForEnd(started.run, 10_000);
-    const res = await GET(new Request(`http://localhost/api/oi/runs/${started.run.id}/events`, { headers: { 'x-real-ip': '203.0.113.10', 'last-event-id': '5' } }), { params: Promise.resolve({ id: started.run.id }) });
+    const res = await GET(new Request(`http://localhost/api/oi/runs/${started.run.id}/events`, { headers: { 'x-forwarded-for': '203.0.113.10', 'last-event-id': '5' } }), { params: Promise.resolve({ id: started.run.id }) });
     const ids = [...(await res.text()).matchAll(/^id: (\d+)$/gm)].map(m => Number(m[1]));
     expect(ids[0]).toBe(6);
   });

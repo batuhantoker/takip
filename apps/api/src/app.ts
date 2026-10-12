@@ -1,8 +1,12 @@
 import { Hono } from 'hono';
 import type { Logger } from 'pino';
+import { clientIp, ipTrust, type IpTrust } from './access/client-ip';
+import { rateLimit } from './access/limits';
 import { withAccess } from './access/middleware';
 import type { AccessResolver } from './access/resolver';
 import { accessRoutes } from './access/routes';
+import { createUsage, meter, type Usage } from './access/usage';
+import { usageRoutes } from './access/usage-routes';
 import { createAdminGate } from './admin/gate';
 import { adminRoutes } from './admin/routes';
 import type { Auth } from './auth/auth';
@@ -15,17 +19,21 @@ import { v1Routes } from './v1/openapi';
 
 export type AppObs = { logger?: Logger; metrics?: Metrics; metricsAllow?: readonly string[] };
 
-export function createApp({ auth, access, db, obs = {} }: { auth: Auth; access: AccessResolver; db: AppDb; obs?: AppObs }) {
+export function createApp({ auth, access, db, obs = {}, trust = ipTrust(), usage = createUsage(db), enforceLimits = true }: { auth: Auth; access: AccessResolver; db: AppDb; obs?: AppObs; trust?: IpTrust; usage?: Usage; enforceLimits?: boolean }) {
   const { logger = silentLogger, metrics = createMetrics(), metricsAllow = [] } = obs;
   const app = new Hono();
   // Registered before every route: Hono runs handlers in registration order.
   app.use(httpMetrics(metrics), requestId(), requestLogger(logger));
   app.get('/metrics', metricsEndpoint(metrics, metricsAllow));
   app.get('/health', c => c.json({ ok: true }));
+  // Before the auth routes: Better Auth records the address it resolves.
+  app.use('/api/*', clientIp(trust));
   // Before the access middleware, so sign-in traffic never pays for a plan lookup.
   app.route('/api', authRoutes(auth));
   app.use('/api/v1/*', withAccess(auth, access));
+  app.use('/api/v1/*', rateLimit(usage, { enforce: enforceLimits }), meter(usage));
   app.route('/api/v1', accessRoutes(access));
+  app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', v1Routes());
   app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db) }));
   return app;

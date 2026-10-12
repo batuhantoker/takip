@@ -99,6 +99,29 @@ const MIGRATIONS: string[] = [
     unlocked_at  INTEGER NOT NULL
   ) STRICT, WITHOUT ROWID;
   `,
+  // Requests per UTC day, flushed from memory every 10 s (access/usage.ts). subject_id is a salted hash for anon.
+  `
+  CREATE TABLE usage_counter (
+    day           INTEGER NOT NULL,
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('anon','user','org')),
+    subject_id    TEXT NOT NULL,
+    key_id        TEXT NOT NULL DEFAULT '',
+    route_group   TEXT NOT NULL,
+    requests      INTEGER NOT NULL DEFAULT 0,
+    bytes         INTEGER NOT NULL DEFAULT 0,
+    denied        INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, subject_type, subject_id, key_id, route_group)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX usage_counter_subject ON usage_counter (subject_type, subject_id, day);
+  `,
+  // The user's answers of 2026-10-12: free gets a small API, pro gets hosted AI. Rows an operator already changed stay.
+  `
+  UPDATE bill_plan_entitlement SET value = 'true' WHERE plan_id = 'free' AND key = 'api.enabled'          AND value = 'false';
+  UPDATE bill_plan_entitlement SET value = '1'    WHERE plan_id = 'free' AND key = 'api.keys.max'         AND value = '0';
+  UPDATE bill_plan_entitlement SET value = '1000' WHERE plan_id = 'free' AND key = 'api.requests_per_day' AND value = '0';
+  UPDATE bill_plan_entitlement SET value = '2'    WHERE plan_id = 'free' AND key = 'api.rps'              AND value = '0';
+  UPDATE bill_plan_entitlement SET value = 'true' WHERE plan_id = 'pro'  AND key = 'ai.hosted'            AND value = 'false';
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

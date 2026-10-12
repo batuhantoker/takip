@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Jar, startApp, type TestApp } from '../testing/helpers';
 import { CATALOGUE, parseValue, type Access, type EntitlementKey } from '@takip/core/entitlements';
+import { migrateAppSchema } from '../db/migrations';
 import { clearOverride, grantPlan, revokePlan, setOverride, setPlanValue } from './grants';
 import { requires, withAccess } from './middleware';
 
@@ -53,6 +54,22 @@ describe('seeded plans', () => {
     expect(plans.map(p => p.id)).toEqual(['free', 'pro']);
     expect(plans[1].entitlements['api.enabled']).toBe(true);
   });
+
+  it('give free a small API and pro hosted AI', () => {
+    expect(t.access.plan('free').entitlements).toMatchObject({ 'api.enabled': true, 'api.keys.max': 1, 'api.requests_per_day': 1000, 'api.rps': 2 });
+    expect(t.access.plan('pro').entitlements).toMatchObject({ 'ai.hosted': true, 'api.rps': 20 });
+  });
+
+  it('keep an operator\'s edit when the seed update runs', () => {
+    const value = (key: string) => t.db.prepare("SELECT value FROM bill_plan_entitlement WHERE plan_id = 'free' AND key = ?").pluck().get(key);
+    // Back to before migration 3, with one row still at its seed and one edited by an operator.
+    t.db.pragma('user_version = 3');
+    t.db.prepare("UPDATE bill_plan_entitlement SET value = 'false' WHERE plan_id = 'free' AND key = 'api.enabled'").run();
+    t.db.prepare("UPDATE bill_plan_entitlement SET value = '5' WHERE plan_id = 'free' AND key = 'api.rps'").run();
+    migrateAppSchema(t.db);
+    expect(value('api.enabled')).toBe('true');
+    expect(value('api.rps')).toBe('5');
+  });
 });
 
 describe('who gets what', () => {
@@ -103,7 +120,7 @@ describe('who gets what', () => {
     const { jar, userId } = await signedInUser();
     setOverride(t.db, { userId, key: 'workspaces.max', value: '500', until: Date.now() + DAY, actor: OPERATOR, reason: 'partner' });
     t.access.invalidate();
-    expect(await accessOf(jar)).toMatchObject({ plan: { id: 'free' }, entitlements: { 'workspaces.max': 500, 'api.enabled': false } });
+    expect(await accessOf(jar)).toMatchObject({ plan: { id: 'free' }, entitlements: { 'workspaces.max': 500, 'export.enabled': false } });
 
     later(2 * DAY);
     expect((await accessOf(jar)).entitlements['workspaces.max']).toBe(5);
@@ -119,9 +136,9 @@ describe('who gets what', () => {
 
   it('changes a plan for everyone on it', async () => {
     const { jar } = await signedInUser();
-    setPlanValue(t.db, { planId: 'free', key: 'api.enabled', value: 'true', actor: OPERATOR });
+    setPlanValue(t.db, { planId: 'free', key: 'export.enabled', value: 'true', actor: OPERATOR });
     t.access.invalidate();
-    expect((await accessOf(jar)).entitlements['api.enabled']).toBe(true);
+    expect((await accessOf(jar)).entitlements['export.enabled']).toBe(true);
   });
 
   it('refuses unknown plans, unknown keys and values of the wrong type', async () => {

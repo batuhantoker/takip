@@ -118,7 +118,7 @@ describe('a frame', () => {
 });
 
 describe('GET /api/cctv/frame', () => {
-  const get = (q: string, ip = '203.0.113.9') => GET(new Request(`http://localhost/api/cctv/frame${q}`, { headers: { 'x-real-ip': ip } }));
+  const get = (q: string, ip = '203.0.113.9') => GET(new Request(`http://localhost/api/cctv/frame${q}`, { headers: { 'x-forwarded-for': ip } }));
 
   it("serves a camera's frame by its id", async () => {
     useCatalogue();

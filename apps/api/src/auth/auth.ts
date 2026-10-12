@@ -2,6 +2,7 @@ import { betterAuth, type BetterAuthOptions } from 'better-auth';
 import { admin, twoFactor } from 'better-auth/plugins';
 import { getMigrations } from 'better-auth/db/migration';
 import { APP_NAME, LINK_TTL_S, deleteAccountEmail, existingAccountEmail, resetPasswordEmail, verificationEmail } from './emails';
+import { RESOLVED_IP_HEADER } from '../access/client-ip';
 import type { AppDb } from '../db/app-db';
 import type { EmailSender } from '../mail/sender';
 import type { Env } from '../env';
@@ -66,6 +67,8 @@ function authOptions(db: AppDb, env: AuthEnv, email: EmailSender) {
     ],
     advanced: {
       cookiePrefix: 'takip',
+      // Set per request by access/client-ip.ts, which alone knows the socket peer and which proxies to believe.
+      ipAddress: { ipAddressHeaders: [RESOLVED_IP_HEADER] },
       // Pinned: Better Auth otherwise skips the origin check whenever NODE_ENV=test.
       disableOriginCheck: false,
       // Mail goes out after the response, so a known address doesn't answer slower than an unknown one.
