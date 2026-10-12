@@ -58,7 +58,7 @@ export function localEmbed(camera: ResolvableCamera | null | undefined): string 
  * seconds — so this offers the live feed alongside it rather than instead of
  * it, and lets the viewer label the still as a snapshot rather than as live.
  *
- * Kayseri's municipal cameras are the same shape (see api/cctv/turkey.ts).
+ * Kayseri's municipal cameras are the same shape (see lib/cctv/sources/turkey/turkey.ts).
  */
 export function liveFeedAtSource(camera: ResolvableCamera | null | undefined): string | null {
   if (!camera?.external_url || !camera.feed_url || camera.stream_url) return null;

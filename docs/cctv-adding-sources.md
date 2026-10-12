@@ -1,8 +1,16 @@
 # Adding a camera source
 
-Read this before adding or fixing a CCTV source. It should save you from re-reading `src/app/api/cctv/` from scratch.
+Read this before adding or fixing a CCTV source. It should save you from re-reading `src/lib/cctv/` from scratch.
 
-- Last verified: 2026-10-11, at commit `fde0872` plus the 511NY / NYC DOT work.
+Where things live:
+
+- `src/app/api/cctv/`: HTTP handlers only (`route.ts`, `proxy/`, `resolve/`, `frame/`, per-source still and stream routes).
+- `src/lib/cctv/types.ts`: the camera record.
+- `src/lib/cctv/catalog/`: region wiring (`feeds.ts`, `registry.ts`, `bounds.ts`, `refresh.ts`, `response.ts`, `sources.ts`).
+- `src/lib/cctv/sources/<group>/`: one adapter per file, tests beside it. Groups: `platforms` (shared 511 stacks), `global`, `us`, `canada`, `latin-america`, `europe`, `turkey`, `asia`, `oceania`, `africa`.
+- `src/lib/cctv/generated/`: `*.generated.ts` lists written by `scratch/scrape_*.js`.
+
+- Last verified: 2026-10-12, at commit `4794154` plus the uncommitted Wyoming, Mississippi, Arkansas and South Africa work.
 - Background reading: [`CCTV-handoff.md`](../CCTV-handoff.md) has catalogue numbers, the duplicates audit and the planned DB design.
 - **Keep this file current.** If you change a platform helper, a rule or the wiring, update the section here in the same commit.
 
@@ -18,7 +26,7 @@ The catalogue will move from in-memory region fetchers to **SQLite, or possibly 
 | Platform helpers (`ibi511.ts`, `cars.ts`, `cars511x.ts`) | **Stays** |
 | The rules in §6 (bounds, https, throwing on failure, prefixed ids, …) | **Stays.** They become ingest admission rules. |
 | Fixture tests and live tests (§7) | **Stays** |
-| Region wiring in `route.ts`: `RAW_REGION_FETCHERS`, `getRegionsForBounds`, `cachedSource`, the 12 s budget, the snapshot file | **Goes away.** Expect to delete it. Don't add logic there. |
+| Region wiring in `catalog/registry.ts`, `catalog/bounds.ts` and `catalog/refresh.ts`: `RAW_REGION_FETCHERS`, `getRegionsForBounds`, `cachedSource`, the 12 s budget, the snapshot file | **Goes away.** Expect to delete it. Don't add logic there. |
 | The `STATE_FEEDS` registry in `us-511.ts` | It will probably become rows in the `source` table. Keep entries declarative. |
 
 What this means for an adapter:
@@ -36,14 +44,11 @@ What this means for an adapter:
 
 1. **Probe the upstream** (§4). Record the count, the fields, the bounds, the media type, the https/CORS status and any overlap with sources we already have.
 2. **Identify the platform** (§5). If it is IBI, CARS GraphQL or CARS 511x, adding it is **one entry in `us-511.ts`**. Then skip to step 6.
-3. Otherwise **write `src/app/api/cctv/<name>.ts`**: types for the raw row, a pure `mapX()` and an exported `fetchXCameras()`. Copy `kentucky.ts` or `nyc.ts`.
-4. **Wire it up in `src/app/api/cctv/route.ts`**:
-   - import it;
-   - add `'<region>': fetchXCameras` to `RAW_REGION_FETCHERS`;
-   - add the bounds box to `getRegionsForBounds()`.
+3. Otherwise **write `src/lib/cctv/sources/<group>/<name>.ts`**: types for the raw row, a pure `mapX()` and an exported `fetchXCameras()`. Copy `sources/us/kentucky.ts` or `sources/us/nyc.ts`.
+4. **Wire it up with one entry in `FEEDS` (`src/lib/cctv/catalog/feeds.ts`)**: `{ region, idPrefix, bounds, fetch }`. That registers the region and the box it loads for.
 5. If the media host needs it (plain http, Referer quirks), **add it to the proxy allowlist** (§6).
 6. **Write tests** (§7): fixture tests for the mapper, plus one live test. Add a new id prefix to `us-511.test.ts`.
-7. **Verify** (§8): `npx vitest run src/app/api/cctv/<name>.test.ts`, the live test, `npx tsc --noEmit`, `npx eslint <files>`, and then the dev server.
+7. **Verify** (§8): `npx vitest run src/lib/cctv/sources/<group>/<name>.test.ts`, the live test, `npx tsc --noEmit`, `npx eslint <files>`, and then the dev server.
 8. **Update this doc**: the source table in §10, and any platform you discovered.
 
 ---
@@ -59,7 +64,7 @@ Browser ── GET /api/cctv?region=all ──▶ src/app/api/cctv/route.ts
                                           prebuilt gzip payload + .cache/cctv-catalog.json snapshot
         ◀── merged JSON (every camera, ~1.5 MB gzipped) ──
 src/lib/camera-catalog.ts   merges by id; retries pending regions only
-OsirisMap.tsx               one 'cctv' GeoJSON source → cctv-dots / cctv-label layers
+use-point-layers.ts         one 'cctv' GeoJSON source → cctv-dots / cctv-label layers
 CameraViewer.tsx            plays hls / mp4 / mjpeg / iframe, or a jpg refreshed every 5 s (?_t=)
 CctvPreviews.tsx            preview tiles from zoom 13 (jpg refreshed every 15 s)
 ```
@@ -69,7 +74,7 @@ CctvPreviews.tsx            preview tiles from zoom 13 (jpg refreshed every 15 s
 
 ---
 
-## 3. The camera record (`src/app/api/cctv/types.ts`)
+## 3. The camera record (`src/lib/cctv/types.ts`)
 
 ```ts
 interface CctvCamera {
@@ -87,7 +92,7 @@ interface CctvCamera {
 ```
 
 - **Setting both `feed_url` and `stream_url` + `'hls'` is ideal.** The viewer plays the stream, and preview tiles and vision use the still.
-- The map forwards only these fields (`OsirisMap.tsx`, in the `setGeo('cctv', …)` call). A new field needs that line changed too.
+- The map forwards only these fields (`world-map/use-point-layers.ts`, in the `setGeo('cctv', …)` call). A new field needs that line changed too.
 
 ---
 
@@ -105,7 +110,7 @@ EOF
 
 # The media: is it https, does it sniff as an image, does it tolerate ?_t=, and does HLS allow CORS?
 curl -s -m 10 -D - -o /tmp/f "<STILL_URL>?_t=1" | grep -iE "^HTTP|content-type|cache-control|last-modified"; file /tmp/f
-curl -s -m 10 -D - -o /dev/null "<M3U8_URL>" -H "Origin: https://osirisai.live" | grep -iE "^HTTP|access-control-allow-origin"
+curl -s -m 10 -D - -o /dev/null "<M3U8_URL>" -H "Origin: https://takip.example" | grep -iE "^HTTP|access-control-allow-origin"
 # Check a chunklist and a .ts segment too: some edges allow CORS on the playlist only.
 ```
 
@@ -128,7 +133,7 @@ What to write down:
 
 ## 5. Pick a path
 
-### 5.1 Known shared platforms: one line in `src/app/api/cctv/us-511.ts`
+### 5.1 Known shared platforms: one line in `src/lib/cctv/sources/platforms/us-511.ts`
 
 `STATE_FEEDS` entries carry the region, the id prefix, the bounds and the fetcher. `route.ts` registers both the region and its viewport box from them automatically.
 
@@ -186,19 +191,18 @@ export async function fetchXCameras(): Promise<CctvCamera[]> {
 }
 ```
 
-Then make three edits in `route.ts`:
+Then add one entry to `FEEDS` in `catalog/feeds.ts`:
 
 ```ts
-import { fetchXCameras } from './x';
-// in RAW_REGION_FETCHERS:
-'x': fetchXCameras,
-// in getRegionsForBounds():
-if (lat > MIN_LAT && lat < MAX_LAT && lng > MIN_LNG && lng < MAX_LNG) regions.push('x');
+import { X_BOUNDS, fetchXCameras } from '@/lib/cctv/sources/<group>/x';
+{ region: 'x', idPrefix: 'x', bounds: X_BOUNDS, fetch: fetchXCameras },
 ```
+
+Older modules are wired by hand in `catalog/registry.ts` (`RAW_REGION_FETCHERS`) and `catalog/bounds.ts` (`getRegionsForBounds`). Don't add new ones there.
 
 Choosing an HTTP client:
 
-- **Government APIs:** use plain `fetch` with an honest `UA = 'OSIRIS/5.0 (+https://osirisai.live)'`.
+- **Government APIs:** use plain `fetch` with an honest `UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)'`.
 - **Sites that block bots:** `stealthFetch` (`src/lib/stealthFetch.ts`) randomises the UA and spoofs forwarding headers.
 
 ### 5.3 Overlapping sources: who owns a row
@@ -214,6 +218,8 @@ Examples:
 ### 5.4 Static or generated lists
 
 Use `public-webcams.ts`, `world-live.ts`, `asia-live.ts` and the `*.generated.ts` files, regenerated by scripts in `scratch/`. Use this path only when there is no live API. Never bulk-import other people's frozen snapshots (CCTV-handoff.md §2, §5).
+
+`openwebcamdb.generated.ts` (`scratch/scrape_openwebcamdb.js`) is the template for a directory of operator streams: read the index once, keep each operator's own media, probe stills for freshness and embeds for framing, and dedupe against `.cache/cctv-catalog.json` by media URL or YouTube id.
 
 ---
 
@@ -234,7 +240,7 @@ Use `public-webcams.ts`, `world-live.ts`, `asia-live.ts` and the `*.generated.ts
 
 ---
 
-## 7. Tests (vitest, `src/app/api/cctv/<name>.test.ts`)
+## 7. Tests (vitest, `src/lib/cctv/sources/<group>/<name>.test.ts`)
 
 Patterns used across the existing tests:
 
@@ -257,12 +263,12 @@ Patterns used across the existing tests:
 - **Registry test:** `us-511.test.ts` checks that regions and prefixes are unique and that the bounds are sane.
 
 ```bash
-npx vitest run src/app/api/cctv/<name>.test.ts                   # offline
-RUN_LIVE_TESTS=1 npx vitest run src/app/api/cctv/<name>.test.ts  # hits the upstream
-npm test                                                          # everything offline
+npx vitest run src/lib/cctv/sources/<group>/<name>.test.ts                   # offline
+RUN_LIVE_TESTS=1 npx vitest run src/lib/cctv/sources/<group>/<name>.test.ts  # hits the upstream
+npm test                                                                      # everything offline
 ```
 
-`route.test.ts` › "serves an already-cached region without going upstream again" fails on `main`; that is known (TODO.md). With `OSIRIS_CCTV_SNAPSHOT=off`, tests write a stray file named `off` in the repo root. Don't commit it.
+`route.test.ts` › "serves an already-cached region without going upstream again" fails on `main`; that is known (TODO.md). With `TAKIP_CCTV_SNAPSHOT=off`, tests write a stray file named `off` in the repo root. Don't commit it.
 
 ---
 
@@ -270,7 +276,7 @@ npm test                                                          # everything o
 
 ```bash
 npx tsc --noEmit
-npx eslint src/app/api/cctv/<name>.ts src/app/api/cctv/<name>.test.ts src/app/api/cctv/route.ts
+npx eslint src/lib/cctv/sources/<group>/<name>.ts src/lib/cctv/sources/<group>/<name>.test.ts src/lib/cctv/catalog/feeds.ts
 npm run dev
 curl -s "localhost:3000/api/cctv?region=<region>" | python3 -c "import json,sys;d=json.load(sys.stdin);print({k:v for k,v in d.items() if k!='cameras'});print(len(d.get('cameras',[])))"
 curl -s "localhost:3000/api/cctv?lat=<lat>&lng=<lng>" | head -c 300     # does the viewport box pick the region?
@@ -286,8 +292,9 @@ Then on the map: zoom in, click a camera and check that the still refreshes and 
 - **ArcGIS reports errors as HTTP 200** with an `error` body. Check `json.error`.
 - **IBI throttles bursts** rather than refusing them. One retry pass of the failed pages fixes it.
 - **The CARS GraphQL `views[].url` must be selected through `... on CameraView`.** Selecting it bare gets a 400.
-- **Placeholder images.** Alaska and Arizona serve the same 15,136-byte "no feed" PNG. Status checking is planned for after the DB migration.
+- **Placeholder images.** Alaska and Arizona serve the same 15,136-byte "no feed" PNG; it looks like the IBI platform default, because SANRAL i-traffic serves it too. i-traffic also serves a 5,939-byte "No live camera feed at this time" JPEG. On 2026-10-12, 33 of 60 sampled i-traffic stills were one of the two (11 of 15 in Gauteng). Status checking is planned for after the DB migration.
 - **"PNG" stills that are JPEG.** `public.carsprogram.org/*.flv.png` is labelled `image/jpeg` but is a PNG. Browsers sniff the format, so it renders fine.
+- **Malformed HTTP/1.1 headers.** undici rejects some hosts that curl and browsers tolerate (its.act.pr.gov). Use `http2Request` (`src/lib/http2.ts`) for those.
 
 ---
 
@@ -302,18 +309,104 @@ Then on the map: zoom in, click a camera and check that the still refreshes and 
 
 511NY also lists 969 NYC DOT cameras. 961 of them are the same uuids as the direct feed, so they are excluded there (`excludeOwners`). The 8 that appear only in 511NY look like cameras NYC TMC has retired. Four more NYSDOT rows are dropped by the bounds box: three are parked at (0,0) and one has lost its longitude's sign. About 115 NYSDOT/NYC DOT pairs sit within 30 m of each other, but they are different devices from different agencies, so all of them are kept.
 
-### Leads, with tested endpoints (details in CCTV-handoff.md §2)
+Added 2026-10-12, from a gap audit against Traffic Cam Archive's state list (the operators' own feeds; TCA itself encrypts its camera payload, so it was not used):
+
+| Region | Module | Source | Cameras | Media |
+|---|---|---|---|---|
+| `maryland` | `mdchart.ts` | MDOT SHA CHART, `chartexp1.sha.maryland.gov/…/getCameraMapDataJSON.do` | 517 of 552 (ONLINE + OK/COMM_MARGINAL) | HLS only; the playlist is built from `cctvIp` + `id` |
+| `missouri` | `modot.ts` | MoDOT, `traveler.modot.org/timconfig/feed/desktop/StreamingCams2.json` | 555 of 880 | HLS only. The 322 KC Scout `tisvc/…/CameraStream` rows 303 to tokenized, Referer-gated Wowza URLs and are dropped |
+| `northdakota` | `nddot.ts` | NDDOT, `travelfiles.dot.nd.gov/geojson/cameras/cameras.json` | 809 views | still JPG |
+| `rhodeisland` | `ridot.ts` | RIDOT, `risegis.ri.gov/…/Rhodeways/MapServer/6` | 139 (5 stills 307 to the home page) | still JPG; HLS needs RIDOT's Referer, so not used |
+| `newmexico` | `nmdot.ts` | NMDOT, `servicev5.nmroads.com/RealMapWAR/GetCameraInfo` | 185 (about 1 in 5 stills is a placeholder or empty) | still via `GetCameraImage`; video is RTMP only |
+| `westvirginia` | `wv511.ts` | WV511, `wv511.org/wsvc/gmap.asmx/buildCamerasJSONjs` + one `flowplayeri.aspx` lookup per camera for its `vtcN` host | 133 (about 19 playlists 404) | HLS only |
+| `oklahoma` | `oktraffic.ts` | OKTraffic, `oktraffic.org/api/CameraPoles` with a `filter` | 459 | HLS only. Without the filter the server also returns non-public CCTV/Security cameras, so the mapper re-checks |
+| `norway` | `vegvesen.ts` | Statens vegvesen, `road-weather-and-view.atlas.vegvesen.no/weather-information/measurement-sites` (needs `Accept: application/vnd.svv.v1+json` and `X-System-ID`) | 859 views, 134 with HLS | still + HLS |
+| `arkansas` | `ardot.ts` | ARDOT IDrive Arkansas, `layers.idrivearkansas.com/cameras.geojson` | 514 of 552 | still (`layers.idrivearkansas.com/cameras/<id>.jpg`); HLS needs CloudFront signed cookies, so not used |
+| `mississippi` | `mdottraffic.ts` | MDOTtraffic (MDOT), `www.mdottraffic.com/default.aspx/LoadCameraData` (JSON POST) + one `mapbubbles/camerasite.aspx?site=<n>` per site for its views | 1,068 of 1,189 views at 456 sites (the rest show `novideo.jpg`) | HLS + still, both on the view's Wowza host (16 `streaming*.mdottraffic.com` hosts, CORS `*` on playlist, chunklist and segments) |
+| `wyoming` | `wydot.ts` + `wydot-sites.generated.ts` (`scratch/scrape_wydot_sites.js`) | WYDOT, `www.wyoroad.info/pls/Browse/WRR.Cameras` (one HTML page, 228 sites, 761 views) | 698 views at 210 sites | still JPG (`/web-cam/cache?ref=<opaque token>`, 1280×720, tolerates `&_t=`) |
+| `southafrica` | `i-traffic.ts` + `itraffic-names.generated.ts` (`scratch/scrape_itraffic_names.js`) | SANRAL i-traffic, `www.i-traffic.co.za/map/mapIcons/Cameras` (ids + coordinates, 1.1 s) | 1,239 (every marker; about half show a "No live camera feed" card, §9) | still (`/map/Cctv/<camera>--<agency>`) |
+| `saskatchewan`, `manitoba`, `newfoundland`, `pei`, `yukon` | `us-511.ts` → `ibi511.ts` | `hotline.gov.sk.ca`, `manitoba511.ca`, `511nl.ca`, `511.gov.pe.ca`, `511yukon.ca` | 54 / 46 / 48 / 7 / 14 | still JPG |
+
+ARDOT (re-probed 2026-10-12; terms pending: IDrive's camera terms prohibit embedding or linking to camera images):
+
+- The list is a keyless S3/CloudFront GeoJSON (552 rows, 0.3 s). The stills answer 200 with CORS `*` and no cookies, tolerate `?_t=`, and refresh about every 20 minutes. They are served as `image/png` despite the `.jpg` name. IDrive's own `actis.idrivearkansas.com/index.php/api/cameras/image?camera=<id>` 302s to the same file.
+- Video stays out: `cdn.idrivearkansas.com/live/idrive_<id>_base.stream/playlist.m3u8` answers 403 `MissingKey` (CloudFront signed cookie, minted by `api.idrivearkansas.com/vend`, which we don't call), and the relay `actis…/api/cameras/feed/<id>.m3u8` answers 403.
+- The mapper drops 38 relayed rows by `ahtd_camera_number` (`TN…`, `MS…`): 35 TDOT Memphis cameras whose stills had not changed in 26 days, and 3 MDOT cameras showing MDOT's "temporarily unavailable" card. Three ARDOT stills (722, 866, 867) are ARDOT's own placeholder.
+- Traffic Cam Archive's Arkansas list (~562 names in 11 city groups) is all ARDOT, matching this feed. No city, metro (Metroplan, NWA), university or county public camera feed turned up. The only ArcGIS hit, `iDriveCCTV_20260707_v2` (Garver), is a consultant's frozen copy of the same IDrive list.
+
+MDOT (re-probed 2026-10-12; terms pending: MDOT's portal terms allow non-commercial use only, and commercial terms go through MDOT's CIO):
+
+- There is no bulk view list. `LoadCameraData` has sites only, and neither the other `default.aspx` page methods nor `listView_cameraSites.aspx` carry stream ids. The video wall needs a login. So the fetcher reads each site's bubble, 10 at a time with one retry pass. That takes about 3.8 s for 456 sites, which fits a region.
+- The view's stream id is the native id (`010406`, `D6-0042`; unique across all 1,189). The bubble's thumbnail host is also the HLS host on all 16 hosts.
+- Before this, the only cameras inside Mississippi were 11 FAA WeatherCams.
+
+WYDOT (added 2026-10-12; terms pending: wyoroad.info's disclaimer sets no reuse limit, but WYDOT hides its 511 map feed, so ask wyoroad@wyo.gov before commercial use):
+
+- The statewide page lists route, nearest town, site name, milepost and every view's still. The `ref` tokens are base64 of an AES ("Salted__") blob: used verbatim, never decoded. They are the same on every page and between loads, and the stills need no cookie or Referer.
+- The page has no coordinates. The 511 map has them, in a protobuf feed whose URL the bundle deliberately obscures; that feed is not used. Instead `scratch/scrape_wydot_sites.js` places each site once from WYDOT's public ArcGIS org (`services2.arcgis.com/WI04Bd6haCzitbuQ`): 35 RWIS stations (same name, within 0.3 mi of the camera's milepost) use the `RWIS` layer's surveyed position, and the rest are interpolated on `COPY_2020mileposts_10thsZIP` (tenth-mile reference markers by WYDOT route id, `ML80B` etc.). The signed highway → WYDOT route match uses the route pages' location text ("6.9 miles east of Evanston") against Census place centroids, RWIS's route ids, and neighbouring sites. Milepost placements land a median 27 m from nearby RWIS stations, and no two sites on one WYDOT route sit farther apart than the road between their mileposts (the script checks this; I-90's milepost equation near Sheridan is the one expected exception).
+- 18 sites whose location text only names a far town or a county/state line stay unplaced; `wydot.ts` skips them and logs the count. Rerun the script when that count grows, because a moved or new site drops out until then.
+- The view id is `wydot-<site slug>-<caption suffix>` (`wydot-i80summit-west`). The slug is WYDOT's own (`view?site=I80Summit`), joined from the four route pages by route + milepost when the table is generated.
+
+SANRAL i-traffic (names added 2026-10-12; terms pending: i-traffic forbids republishing without SANRAL's written consent):
+
+- This is the older IBI stack. `/List/GetData/Cameras` wants a POSTed DataTables body with the full `columns` array (a bare body 302s to `/Error`), so `ibi511.ts`, which GETs a query string, doesn't apply. It needs no key, cookie, anti-forgery token or Referer, but it takes 15–20 s for all 1,239 rows, paged or not, and the server stalls past three parallel pages.
+- So the region reads the fast marker list, and names plus metro (`displayName`, `cityName`) come from a table that `scratch/scrape_itraffic_names.js` reads once from the list. `i-traffic.ts` logs how many cameras lack a generated name; rerun the script when that count grows.
+- No list field (`visible`, `displayCamera`, `blocked`) predicts the dead stills.
+
+OpenWebcamDB, generated (§5.4), terms pending: its API is non-commercial and rules out aggregators.
+
+| Region | Module | Source | Cameras | Media |
+|---|---|---|---|---|
+| `owdb-americas`, `owdb-emea`, `owdb-apac` | `openwebcamdb.generated.ts` (`scratch/scrape_openwebcamdb.js`) | `openwebcamdb.com/webcams.geojson` + each camera page's VideoObject | 1,372 of 1,861 (385 / 774 / 213) | 520 YouTube channel `/live`, 267 YouTube video ids (live when generated), 315 iframe, 181 still, 26 HLS, 63 link |
+
+Dropped: 247 dead or ended YouTube ids, 96 stills older than a day, 68 already in the catalogue, 31 privacy exclusions (indoor workplaces, children, private occasions, garden feeders), and a few http-only, tokenised or non-CORS streams. `opencctv.ts` drops its `openwebcamdb` sub-source (`COVERED_SOURCES`) so this list owns those rows.
+
+Added 2026-10-12 from `docs/inspiration-sources/provenance.md` (all terms pending; see each `feeds.ts` comment):
+
+| Region | Module | Source | Cameras | Media |
+|---|---|---|---|---|
+| `texas` (HOU) | `houston-transtar.ts` (`placeUnmatchedTranstar`) | City of Houston GIS `services.arcgis.com/NummVBqZSIJKUeVR/…/Trantar_Camera_Locations/FeatureServer/0` | ~140 more TranStar cameras (`transtar-<n>`) | still JPG (`traffic.houstontranstar.org/snapshots/cctv/<n>.jpg`) |
+| `scotland` | `traffic-scotland.ts` + `traffic-scotland/frame` route | Transport Scotland, `www.traffic.gov.scot/tsis/cameras` | 415 | still, decoded by our route from `tsis/camerahtml?sid=<n>` (a base64 JPEG in HTML; there is no image URL) |
+| `puertorico` | `act-pr.ts` | ACT, `POST its.act.pr.gov/es/Default.aspx/GetCctv` (body `{}`, answer in the ASP.NET `d` envelope) | 42 (2 stills 500, 2 days stale on 2026-10-12) | still JPG (`/images/cameras/<name>.jpg`) |
+| `bellingen` | `bellingen.ts` | Bellingen Shire Council (NSW), `services7.arcgis.com/kkiBaYsUIhK1wEpz/…/Flood_Camera_Network/FeatureServer/0` | 6 bridge flood cameras | still JPEG (`public.disasterwatch-iotp.com.au/prospectpublicimages/<n>/…`) |
+| `bosnia-bihamk` | `bihamk.ts` | BIHAMK, `bihamk.ba/spi/kamere` (HTML cards) | 13 of 15 (Prisika and RICO Tuzla can't be placed) | still JPG (`video-nadzor.bihamk.ba/videosurveillence/<KEY>.jpg`) |
+| `serbia-borders` | `mup-serbia.ts` | Serbian MUP, `www.mup.gov.rs/wps/portal/sr/kamerе/kamerеGP` (Cyrillic `е`; `toggleCamera(...)` calls) | the live ones among 20 streams at 10 placed crossings: 8 on 2026-10-12 (13 of all 32 were live; 5 are at Đala, Vatin and Batrovci, which aren't placed) | HLS only (`kamere.mup.gov.rs:4443`, CORS `*` on playlist and segments) |
+
+- **Houston.** The TxDOT name join (`matchHoustonTranstarCameras`) places 460 of TranStar's 923 listed cameras. The city's layer has 451 sites: 243 are already joined, and 141 more are listed by TranStar and get placed by the fill. The fill only uses ids TranStar still lists, because some sites in the layer have frames a week old. `fetchTexasCameras` drops a `transtar-*` row when the YKM join has already placed the same frame.
+- **Traffic Scotland.** The frame route takes a numeric `sid`, never a URL, and caches for 60 s (`next: { revalidate: 60 }`). Because the still is a relative URL, `lib/vision/frames.ts` has no still for these cameras, as with TxDOT.
+- **ACT Puerto Rico.** The host sends ` Permissions-Policy` with a leading space, so undici's HTTP/1.1 parser throws ("Unexpected whitespace after header value"). `lib/http2.ts` reads the list over HTTP/2 instead. Browsers load the stills fine.
+- **BIHAMK and MUP have no coordinates.** Crossings are placed from OSM `barrier=border_control` nodes, taken from Overpass, Nominatim and Photon on 2026-10-12. Four BIHAMK city/pass cameras use OSM place points a few hundred metres off. Unplaceable cameras are left out, never guessed.
+- **MUP liveness.** About half the playlists answer 404 at any one time, so the fetcher reads each playlist (6 at a time) and keeps only `#EXTM3U` answers.
+
+### Leads, with tested endpoints
 
 | Lead | Cameras | Notes |
 |---|---|---|
-| CDOT COtrip | ~1,035 | **One `x511()` line:** `api-511x-co.carsprogram.org` |
-| MassDOT | ~309 | **One `cars()` line:** `mass511.com` |
-| SCDOT / SDDOT / MDT | 789 / 713 / 464 | One shared Iteris loader: `{st}.cdn.iteris-atis.com/geojson/icons/metadata/icons.cameras.geojson` |
+| 511 Ontario / Alberta 511 (keyless) | ~1,581 / ~580 views | `/List/GetData/Cameras` answers without a key, so these could be `ibi()` lines instead of the `keyed511` path. Alberta 500s at 100 rows a page and needs 50. Drop Ontario's `City of Toronto` rows (the direct feed owns them) |
+| TDOT SmartWay (TN) | ~661 (TDOT's figure), HLS + still | Re-probed 2026-10-12. The catalogue has no Tennessee-operator cameras. The only index is `tdot.tn.gov/opendata/api/public/RoadwayCameras` (Swagger at `tdot.tn.gov/opendata/`). Without a key it answers 401. It wants an `apiKey` header from a "TDOT Api Key Holder account", and there is no self-serve sign-up, so ask TDOT.Comments@tn.gov. Don't reuse the key in SmartWay's front-end. The media needs no key (checked in all four regions): HLS `mcleansfs{1-5}.us-east-1.skyvdn.com/rtplive/<R#_###>/playlist.m3u8` has CORS `*` on the playlist, chunklist and segments, and the still is `tnsnapshots.com/<R#_###>.png` (the row's `/thumbs/<id>.flv.png` 301s there). Row fields: `id`, `title`, `jurisdiction`, `route`, `mileMarker`, `active` ("True"/"False"), `httpsVideoUrl`, `thumbnailUrl`, `location.coordinates`. A keyed adapter would follow `keyed511()` in `catalog/sources.ts` |
+| Illinois (IDOT Gateway) | ~3,019 views | ArcGIS `services2.arcgis.com/aIrBD8yn1TDTEXoz/…/TrafficCamerasTM_Public/FeatureServer/0`. `cctv.travelmidwest.com` stills 403 a foreign Referer (needs the proxy). IDOT asks for registration and a 5-minute minimum per image. This replaces the dead `us-central` |
+| BPJT (Indonesia toll roads) | ~439 usable HLS | Inline `allStreams` JSON on `bpjt.pu.go.id/cctv/`. Use this instead of the trafficvision.live URL in CCTV-handoff.md |
 | FAA WeatherCams | ~3,549 | `weathercams.faa.gov/api/cameras`; the latest image needs one call per camera |
 | Caltrans HLS upgrade | 1,964 | Read `streamingVideoURL` in the existing fetcher; drop `rtsp:` |
-| Austin | ~1,005 | Socrata `data.austintexas.gov/resource/b4k4-adkb.json` |
-| Ohio | ~1,091 | `itscameras.dot.state.oh.us` |
-| VDOT, Houston TranStar, Bayern, Vegvesen, National Highways | — | Not probed yet |
+| Catalonia SCT, Trafikoa | — | Not probed yet |
+| JP Putevi Srbije toll plazas | 38 at 19 plazas | `kamere.toll4all.com` lists `cam-item` posters (`cam.bitinfo.co.rs/<slug>/index.jpg`, `jpps.bitinfo.co.rs/…`; fresh on 2026-10-12) with no positions. HLS 403s without `Referer: https://kamere.toll4all.com/`, so the cameras would be stills only. Blocked on a gazetteer: Overpass answered 504 all evening, and Photon only knows 4 plazas (EV chargers at Preševo, Stara Pazova, Subotica, Vrčin). Retry `barrier=toll_booth` in Serbia |
+| CET São Paulo | ~11 | No list API, so a hand table would be needed; only about 10 of the 205 `/cams/<n>/1.jpg` folders are live |
+
+### Probed and not added
+
+| Source | Why |
+|---|---|
+| ALDOT ALGO (AL) | Terms prohibit "transmitting … without the permission of ALDOT"; video is FairPlay/Widevine DRM |
+| HDOT GoAkamai (HI) | Terms forbid display without written permission; the list API is locked to goakamai.org's Origin |
+| City of Biloxi (MS) | Its camera page now sits under `/traffic-broken/` and embeds 12 of MDOT's own views from a retired host (`http://streaming5.mdottraffic.com:1935`, NXDOMAIN). `mdottraffic.ts` carries those cameras |
+| DDOT (DC) | DDOT's camera link is dead; TrafficLand needs a token and a licence |
+| National Highways | Licence-only (VIH). Traffic Scotland, held here earlier for "may not hyperlink directly to the traffic camera images", is now shown with terms pending (see above) |
+| Traffic Cam Archive | Commercial archive; the camera payload is encrypted client-side |
+| trafficvision.live | robots.txt disallows `/camera-data/`; terms forbid scrapers and bulk download |
+| `RoadwayCameras` FeatureServers on ArcGIS Online (TN) | `services7.arcgis.com/33Tmvrm3G2UZLFK9/…/RoadwayCameras_a4e3…` and `services8.arcgis.com/hkhKI6Qq7rjvBjZU/…/RoadwayCameras` are JSON-to-CSV dumps of TDOT's feed by non-TDOT accounts. Both have 570 rows, with data last edited 2022-12 and 2020-11. They are frozen snapshots (§5.4) and probably the source of Argus's "TN 527". TDOT's own ArcGIS (`spatial.tdot.tn.gov`, org `nf3p7v7Zy4fTOh6M`) has no camera layer |
+| Murfreesboro, Franklin (TN) | Murfreesboro's city layer `services5.arcgis.com/A5C0MR9xfkxVRwat/…/Cameras/FeatureServer/0` has 37 points with no media field, and its CityTV YouTube channel has no live cameras. Both cities' sites 403 an honest UA (Cloudflare, Akamai) |
+| Clarksville (TN) | The live cameras appear only as `g1.ipcamlive.com` iframes on a news site (clarksvillenow.com), and the page doesn't say who operates them. The city has withdrawn public access to one camera |
+| Nashville, Knoxville, Chattanooga, Memphis, Brentwood (TN) | No feed of their own: they point to SmartWay. Memphis's city cameras feed the police Real-Time Crime Center (privacy). Brentwood shows a camera tour on cable channel 19 only |
 
 ### Known broken
 

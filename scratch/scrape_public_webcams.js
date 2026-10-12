@@ -1,18 +1,18 @@
 /**
- * OSIRIS — harvester for publicly broadcast webcams (throwaway, like
+ * TAKIP — harvester for publicly broadcast webcams (throwaway, like
  * scrape_germany.js).
  *
  * These cameras are open data: their operators publish them themselves, on
  * their own sites and channels. What they lack is a catalogue, so this reads a
  * public index of them — a list of pages, not of feeds, with no coordinates
- * and no stream URLs across 383 different hosts — and turns the part OSIRIS
+ * and no stream URLs across 383 different hosts — and turns the part TAKIP
  * can actually show into a generated CctvCamera module.
  *
  * Three stages, run in order:
  *
  *   node scratch/scrape_public_webcams.js harvest   -> public-webcams-harvest.json
  *   node scratch/scrape_public_webcams.js geocode   -> public-webcams-places.json
- *   node scratch/scrape_public_webcams.js emit      -> ../src/app/api/cctv/public-webcams.generated.ts
+ *   node scratch/scrape_public_webcams.js emit      -> ../src/lib/cctv/generated/public-webcams.generated.ts
  *
  * The places file is committed so `emit` is reproducible without hitting
  * Nominatim again.
@@ -26,11 +26,11 @@ const path = require('path');
 const INDEX_BASE = 'https://www.bekijkhet.nu/';
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
 /** Nominatim's usage policy asks callers to identify themselves. */
-const NOMINATIM_UA = 'osiris-cctv/1.0 (+https://github.com/simplifaisoul/osiris)';
+const NOMINATIM_UA = 'takip-cctv/0.1 (+https://github.com/batuhantoker/takip)';
 const HERE = __dirname;
 const HARVEST = path.join(HERE, 'public-webcams-harvest.json');
 const PLACES = path.join(HERE, 'public-webcams-places.json');
-const OUT = path.join(HERE, '..', 'src', 'app', 'api', 'cctv', 'public-webcams.generated.ts');
+const OUT = path.join(HERE, '..', 'src', 'lib', 'cctv', 'generated', 'public-webcams.generated.ts');
 
 const PAGES = [
   ['wd', 'cams-wd.html'], ['fr', 'cams-fr.html'], ['gr', 'cams-gr.html'],
@@ -446,7 +446,7 @@ async function geocode() {
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /**
- * What OSIRIS can do with a link.
+ * What TAKIP can do with a link.
  *
  *   'hls'      — a token-free .m3u8 we can play in place.
  *   'youtube'  — a channel live link. /api/cctv/resolve turns it into the
@@ -625,14 +625,14 @@ function emit() {
   const header = `import type { CctvCamera } from './types';
 
 /**
- * OSIRIS — publicly broadcast webcams (GENERATED).
+ * TAKIP — publicly broadcast webcams (GENERATED).
  *
  * Open data, in the plainest sense: every camera here is one its operator
  * publishes themselves, on their own site or their own channel. What the web
  * does not have is a catalogue of them, so these were gathered by reading a
  * public index of such cameras — a list of pages rather than of feeds, with no
  * coordinates and no stream URLs, across 383 different hosts. This file is
- * what is left after reading those pages, and only what OSIRIS can actually
+ * what is left after reading those pages, and only what TAKIP can actually
  * show. Regenerate with scratch/scrape_public_webcams.js.
  *
  * The 26 Rijkswaterstaat motorway cameras that index also lists are skipped:

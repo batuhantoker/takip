@@ -55,7 +55,7 @@ Everything below exists only in the working tree of `ui/shell-reorg`, interleave
    The working file keeps everyone's edits. Dry-run on 2026-10-12: the diff showed exactly the two lines.
 4. **`docs/architecture/`** (the plan) was untracked before this work began. It is the user's; ask whether it goes in this commit.
 5. Leave alone; these belong to other sessions:
-   - CCTV: `src/app/api/cctv/*`, `DATA-SOURCES.md`, `docs/cctv-adding-sources.md`, `scratch/*`, `off`
+   - CCTV: `src/app/api/cctv/*`, `src/lib/cctv/*`, `DATA-SOURCES.md`, `docs/cctv-adding-sources.md`, `scratch/*`, `off`
    - drawing and boundaries: `src/lib/{draw,aoi,aoi-export,boundaries,boundary-store,geoboundaries}*`, `src/components/draw/*`, `src/components/map/*`, `src/app/api/boundaries/*`, `public/data/boundaries/`, `tools/build-boundaries.mjs`
    - other: `docs/SPACE-expension.md`
 6. Check `git diff --cached --stat` before committing. A file showing a whole-file rewrite means line endings flipped (§3.3).

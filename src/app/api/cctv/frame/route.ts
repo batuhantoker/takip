@@ -2,15 +2,15 @@ import { catalogue, frameOf, FrameError } from '@/lib/vision/frames';
 import { getClientIp, isRateLimited } from '@/lib/ssrf-guard';
 
 /**
- * OSIRIS — a camera's current still frame, for the built-in detector.
+ * TAKIP — a camera's current still frame, for the built-in detector.
  *
  * GET /api/cctv/frame?id=<camera id>
  *   returns  the picture (JPEG, PNG, WebP or GIF), with X-Frame-At: when it was fetched
  *
- * The browser can only read the pixels of a picture from OSIRIS's own site, and
+ * The browser can only read the pixels of a picture from TAKIP's own site, and
  * most camera hosts serve theirs without permission for anyone else to, so the
  * detector's frames come through here. It takes a camera's id, never a URL:
- * only cameras in OSIRIS's catalogue can be fetched.
+ * only cameras in TAKIP's catalogue can be fetched.
  */
 export const dynamic = 'force-dynamic';
 export const maxDuration = 15;
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     return new Response(new Uint8Array(frame.bytes), {
       headers: {
         'Content-Type': frame.type,
-        // The same few seconds OSIRIS holds a frame: a busy camera is fetched once, however many people are watching it.
+        // The same few seconds TAKIP holds a frame: a busy camera is fetched once, however many people are watching it.
         'Cache-Control': 'public, max-age=4',
         'X-Frame-At': frame.at,
         'X-Content-Type-Options': 'nosniff',

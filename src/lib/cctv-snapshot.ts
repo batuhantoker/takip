@@ -4,7 +4,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 /**
- * OSIRIS — the camera catalogue, saved.
+ * TAKIP — the camera catalogue, saved.
  *
  * Cameras were assembled live, per request, from 48 upstreams. That put every
  * visitor behind the slowest provider of the moment: production served 23,240
@@ -29,7 +29,7 @@ const INVALIDATED_LEGACY_REGIONS = new Set(['texas', 'florida', 'georgia', 'nort
 
 /** Overridable so a test never writes into the real cache directory. */
 export const snapshotPath = () =>
-  process.env.OSIRIS_CCTV_SNAPSHOT || join(process.cwd(), '.cache', 'cctv-catalog.json');
+  process.env.TAKIP_CCTV_SNAPSHOT || join(process.cwd(), '.cache', 'cctv-catalog.json');
 
 interface SnapshotFile {
   version: number;
@@ -42,7 +42,7 @@ export async function readSnapshot(): Promise<SnapshotFile | null> {
   // 'off' keeps tests off the filesystem entirely: real disk I/O cannot be
   // flushed deterministically under fake timers, and these caches are module
   // state that leaks between cases if a read lands late.
-  if (process.env.OSIRIS_CCTV_SNAPSHOT === 'off') return null;
+  if (process.env.TAKIP_CCTV_SNAPSHOT === 'off') return null;
   try {
     const raw = await readFile(snapshotPath(), 'utf8');
     const parsed = JSON.parse(raw) as SnapshotFile;

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getPayload } from '@/lib/cctv-snapshot';
 
 export const maxDuration = 60;
-import { getRegionsForBounds } from './catalog-bounds';
+import { getRegionsForBounds } from '@/lib/cctv/catalog/bounds';
 import {
   ALL_REGIONS,
   PAYLOAD_REFRESH_MS,
@@ -12,15 +12,15 @@ import {
   persistCatalogue,
   rebuildInBackground,
   rebuildPayload,
-} from './catalog-refresh';
-import { servePayload } from './catalog-response';
+} from '@/lib/cctv/catalog/refresh';
+import { servePayload } from '@/lib/cctv/catalog/response';
 
-export { warmCctvCatalog, clearCctvRefreshes } from './catalog-refresh';
+export { warmCctvCatalog, clearCctvRefreshes } from '@/lib/cctv/catalog/refresh';
 
 /**
- * OSIRIS — Worldwide CCTV Camera API v2
+ * TAKIP — Worldwide CCTV Camera API v2
  * Viewport-aware: pass ?region=xx to load cameras for specific regions
- * Supports: uk, us-east, us-west, us-central, canada, europe, asia
+ * Supports: uk, us-east, us-west, canada, europe, asia
  * Or pass ?lat=x&lng=y&radius=5 for proximity-based loading
  */
 
