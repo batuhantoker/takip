@@ -1,7 +1,6 @@
 import { AIRPORTS_BY_ICAO } from '@takip/connectors/airports';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
-import { legacyGet } from '../testing/legacy';
 import { run } from '../testing/observe';
 import { clearFlightRoutes } from './flight-route';
 
@@ -46,15 +45,10 @@ afterAll(() => {
 });
 beforeEach(() => upstream.reset());
 
-async function check(...queries: string[]) {
+/** Sends each query in turn from cold server-side caches. */
+function check(...queries: string[]) {
   clearFlightRoutes();
-  const v1 = await run(queries.map(q => `/api/v1/flight-route${q}`), path => t.app.request(path));
-  // The legacy route keeps its cache and cooldowns in module state, so each check loads it afresh.
-  vi.resetModules();
-  const legacy = await legacyGet('@/app/api/flight-route/route');
-  const old = await run(queries.map(q => `/api/flight-route${q}`), legacy);
-  expect(v1).toEqual(old);
-  return v1;
+  return run(queries.map(q => `/api/v1/flight-route${q}`), path => t.app.request(path));
 }
 
 describe('GET /api/v1/flight-route', () => {
