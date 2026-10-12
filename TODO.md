@@ -135,6 +135,10 @@ Today every feed runs inside the Next.js web process. The AIS WebSocket and ever
 ### Saving data
 
 - [ ] Start the raw archive now (§1): compressed NDJSON, one file per source per hour. AIS, flights and the weather grid first.
+- [ ] Create an OpenSky API client and set `OPENSKY_CLIENT_ID` / `OPENSKY_CLIENT_SECRET` in `.env.local` and on the server. Get it free at opensky-network.org → Account → API client.
+  - Anonymous OpenSky allows one global poll per 15 minutes (400 credits a day), so recorded aircraft tracks are sparse. An account allows one per 90 s (4,000 credits a day).
+  - It also enables `npm run ingest -- backfill opensky`, which reaches up to 1 hour back.
+  - Use a separate client per environment, so the laptop and the server don't share one daily budget (`docs/architecture/replay-database.md` §7.1).
 - [ ] Choose a sampling rate per feed before storing positions: e.g. one fix per vessel or aircraft per minute, the weather grid hourly. Rough size for ships alone: ~18k × 1/min ≈ 26M rows/day.
 - [ ] Storage path: files and SQLite first. Move to Postgres with PostGIS or TimescaleDB, or Parquet in object storage, once volume needs it.
 
