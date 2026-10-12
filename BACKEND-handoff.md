@@ -354,7 +354,13 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
   - Token buckets per principal on `/api/v1/*` (one second of burst). Daily quotas for keys, and a usage meter flushed to `usage_counter` every 10 s. `GET /api/v1/usage`.
   - Migrations 2 (`usage_counter`) and 3 (§6 seeds: free gets a small API, pro gets `ai.hosted`). Tested on a copy of the dev DB, which is now at `user_version` 4.
   - Web `getClientIp` trusts one hop by default (`TRUSTED_PROXY_HOPS`, `CLIENT_IP_HEADER`).
-- osiris-92's replay routes (`/api/replay/*`) and the Sources admin page are mounted, but uncommitted along with the rest of the data-platform work.
+- **D** (`4258b90`):
+  - The server-key fallback of `ai/analyze` and `ai/briefing` needs `ai.hosted`; `ai/overview` degrades to its keyless read-out. Bring-your-own-key is free.
+  - `X-OI-Key` carries model keys; `Authorization: Bearer <model key>` works for one more release, with a warning, and never for `tk_` tokens.
+  - `getAccess` forwards the client IP to the api.
+- **C, part 2** (`bc31d4c`, `35c6816`): `/api/v1/aircraft` and `/api/v1/flight-route` (with `airports` and `stealth-fetch` moved to `@takip/connectors`), plus rewrites for the legacy paths still used by `bind-flight-clicks.ts`. Failed reverse lookups are sent with `no-store`.
+- **Burst** (`a04ad38`): web callers get 3 s of token-bucket burst, so a Flight Watch panel or a tile fetch fits; keys keep 1 s.
+- **Consolidation** (`5953407`, another session, at the user's request): everything uncommitted, including the OSIRIS → TAKIP rename, the replay data platform, osiris-92's replay routes and Sources admin page, and their wiring in `app.ts`, `env.ts` and `index.ts`. Pushed to `origin/ui/shell-reorg`. `4d0577a` then dropped the `OSIRIS_UA` alias.
 
 ### Landing branches here
 Several sessions share one working copy, so `git merge` refuses whenever a merged file has someone's uncommitted edits. Use `python3 tools/land-branch.py <branch> "<message>"`:
@@ -371,5 +377,7 @@ Several sessions share one working copy, so `git merge` refuses whenever a merge
   - the flush logs through `console.error`, not pino;
   - the CIDR parsing is duplicated in `access/client-ip.ts` and `obs/peer-allow.ts`.
 - **Errors print twice** (Hono's default `onError` and pino); set `app.onError`.
-- **Region-dossier port** is blocked on another session's uncommitted FCDO/UNHCR changes to that route.
+- **Region-dossier port** was blocked on another session's FCDO/UNHCR changes; they're committed now (`5953407`), so it can be ported.
+- **`stealthFetch`** sends adsbdb, hexdb and airplanes.live random browser user agents and made-up `X-Forwarded-For`/`X-Real-IP` headers (moved as-is for parity). Dropping them is recommended and awaits the user's answer.
+- **Next ports**, clean apart from the rename: `arcgis`, `satellites/orbit`, `markets/history` and `entity/expand`.
 - **CI test gate** fails on two tests outside the backend: `src/app/api/cctv/route.test.ts`, whose `writeSnapshot()` ignores the `…_CCTV_SNAPSHOT=off` env and writes `./off`, and `src/lib/oi/context.test.ts`.
