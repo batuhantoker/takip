@@ -50,14 +50,23 @@ describe('GET /api/v1/geo/reverse', () => {
     expect(res.body).toEqual({ label: 'Ely, East, UK', attribution: ATTRIBUTION });
   });
 
-  it('answers a null label when there is no address or the lookup fails', async () => {
+  it('answers a null label when there is no address or the lookup fails, and caches only the answer', async () => {
     upstream.on(`${NOMINATIM}?format=jsonv2&accept-language=en&lat=0.0`, () => ({}));
     upstream.on(`${NOMINATIM}?format=jsonv2&accept-language=en&lat=10.0`, fails(429));
     const [sea, failed] = await check('?lat=0&lng=-30', '?lat=10&lng=10');
     for (const res of [sea, failed]) {
-      expect(res).toMatchObject({ status: 200, cache: CACHED, body: { label: null, attribution: ATTRIBUTION } });
+      expect(res).toMatchObject({ status: 200, body: { label: null, attribution: ATTRIBUTION } });
       expect(res.upstream).toHaveLength(1);
     }
+    expect(sea.cache).toBe(CACHED);
+    expect(failed.cache).toBe('no-store');
+  });
+
+  it('sends no-store for a failure remembered from an earlier lookup', async () => {
+    upstream.on(NOMINATIM, fails(503));
+    const [failed, again] = await check('?lat=10&lng=10', '?lat=10&lng=10');
+    expect(failed.cache).toBe('no-store');
+    expect(again).toMatchObject({ cache: 'no-store', body: { label: null }, upstream: [] });
   });
 
   it('answers a nearby point in the same cell from the cache', async () => {
