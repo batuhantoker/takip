@@ -15,6 +15,7 @@ import { backupJobs, scheduleBackup } from './db/backup';
 import { migrateAppSchema } from './db/migrations';
 import { createJobQueue } from './jobs/queue';
 import { createJobRunner } from './jobs/runner';
+import { createMailQueue } from './mail/mail-queue';
 import { consoleSender, smtpSender } from './mail/sender';
 import { openReplayData } from './replay/data';
 import { openSourceSwitchboard } from './replay/sources';
@@ -29,7 +30,9 @@ const db = openAppDb(env.APP_DB_PATH);
 migrateAppSchema(db);
 const email = env.SMTP_URL && env.MAIL_FROM ? smtpSender(createTransport(env.SMTP_URL), env.MAIL_FROM) : consoleSender;
 const billing = billingProviderFor(env);
-const auth = await createAuth(db, env, email, { billingPortal: billing !== null, logger });
+const jobs = createJobQueue(db);
+const mail = createMailQueue(jobs, email, { logger });
+const auth = await createAuth(db, env, mail.sender, { billingPortal: billing !== null, logger });
 
 const replay = openReplayData(env.TAKIP_DATA_DIR);
 const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive') });
@@ -38,7 +41,6 @@ const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
 const access = createAccess(db);
-const jobs = createJobQueue(db);
 if (billing) scheduleReconcile(jobs, Date.now());
 schedulePruneUsage(jobs, Date.now());
 schedulePruneAudit(jobs, Date.now());
@@ -50,6 +52,7 @@ const stopJobs = createJobRunner(jobs, {
   ...auditJobs({ db, queue: jobs, days: env.AUDIT_RETENTION_DAYS, logger }),
   ...backupJobs({ db, queue: jobs, dir: env.APP_BACKUP_DIR, keep: env.APP_BACKUP_KEEP, logger }),
 }, { logger }).start();
+const stopMail = mail.start();
 
 const metrics = createMetrics({ defaults: true });
 const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage });
@@ -63,6 +66,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     logger.info({ signal }, 'shutting down');
     server.close(async () => {
       await stopJobs();
+      await stopMail();
       stopUsage();
       db.close();
       replay.close();

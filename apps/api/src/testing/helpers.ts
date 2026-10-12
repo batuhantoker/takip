@@ -9,6 +9,7 @@ import { openAppDb } from '../db/app-db';
 import { migrateAppSchema } from '../db/migrations';
 import { createJobQueue } from '../jobs/queue';
 import { createJobRunner } from '../jobs/runner';
+import { createMailQueue } from '../mail/mail-queue';
 import type { EmailMessage, EmailSender } from '../mail/sender';
 import type { ReplayData } from '../replay/data';
 import type { SocialEnv } from '../auth/social-providers';
@@ -72,17 +73,18 @@ export const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 export type TestApp = Awaited<ReturnType<typeof startApp>>;
 
 // Limits are off unless a test is about them: most tests send many requests from one in-memory client.
-// The job runner is built but never started: tests call jobs.runner.runDue() themselves.
+// The job runners are never started: tests call jobs.runner.runDue() themselves, and mail runs as it's queued.
 export async function startApp(social: SocialEnv = {}, obs?: AppObs, { enforceLimits = false, billing = null, replay }: { enforceLimits?: boolean; billing?: BillingProvider | null; replay?: ReplayData } = {}) {
   const db = openAppDb(':memory:');
   migrateAppSchema(db);
   const inbox = new Inbox();
-  const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: AUTH_SECRET, ...social }, inbox, { billingPortal: billing !== null });
+  const queue = createJobQueue(db);
+  const mail = createMailQueue(queue, inbox);
+  const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: AUTH_SECRET, ...social }, mail.sender, { billingPortal: billing !== null });
   const access = createAccess(db);
   const usage = createUsage(db);
   const app = createApp({ auth, access, db, obs, usage, enforceLimits, billing, replay });
-  const queue = createJobQueue(db);
-  const jobs = { queue, runner: createJobRunner(queue, billingJobs({ db, access, provider: billing, queue })) };
+  const jobs = { queue, runner: createJobRunner(queue, billingJobs({ db, access, provider: billing, queue })), mail };
 
   const post = (path: string, body: unknown, { cookie = '', origin = ORIGIN } = {}) =>
     app.request(path, {
