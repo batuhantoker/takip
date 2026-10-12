@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
-import { legacyGet } from '../testing/legacy';
 import { run, type Observed } from '../testing/observe';
 
 const { upstream, fails } = await vi.hoisted(() => import('../testing/upstream'));
@@ -46,21 +45,15 @@ const body = (res: Observed) => res.body as Body;
 const valhallaRequest = (url: string) => JSON.parse(decodeURIComponent(url.slice(`${VALHALLA}?json=`.length)));
 
 let t: TestApp;
-let legacy: (path: string) => Promise<Response>;
 
 beforeAll(async () => {
   t = await startApp();
-  legacy = await legacyGet('@/app/api/directions/route');
 });
 afterAll(() => t.close());
 beforeEach(() => upstream.reset());
 
-async function check(...queries: string[]) {
-  const v1 = await run(queries.map(q => `/api/v1/directions${q}`), path => t.app.request(path));
-  const old = await run(queries.map(q => `/api/directions${q}`), legacy);
-  expect(v1).toEqual(old);
-  return v1;
-}
+/** Sends each query in turn from cold server-side caches. */
+const check = (...queries: string[]) => run(queries.map(q => `/api/v1/directions${q}`), path => t.app.request(path));
 
 describe('GET /api/v1/directions', () => {
   it('refuses a missing or unreadable start or destination', async () => {

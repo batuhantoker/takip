@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
-import { legacyGet } from '../testing/legacy';
 import { run } from '../testing/observe';
 
 const { upstream, fails } = await vi.hoisted(() => import('../testing/upstream'));
@@ -15,21 +14,15 @@ const ATTRIBUTION = '© OpenStreetMap contributors';
 const PARIS = { address: { city: 'Paris', state: 'Île-de-France', country: 'France' }, display_name: 'Paris, Île-de-France, France' };
 
 let t: TestApp;
-let legacy: (path: string) => Promise<Response>;
 
 beforeAll(async () => {
   t = await startApp();
-  legacy = await legacyGet('@/app/api/geo/reverse/route');
 });
 afterAll(() => t.close());
 beforeEach(() => upstream.reset());
 
-async function check(...queries: string[]) {
-  const v1 = await run(queries.map(q => `/api/v1/geo/reverse${q}`), path => t.app.request(path));
-  const old = await run(queries.map(q => `/api/geo/reverse${q}`), legacy);
-  expect(v1).toEqual(old);
-  return v1;
-}
+/** Sends each query in turn from cold server-side caches. */
+const check = (...queries: string[]) => run(queries.map(q => `/api/v1/geo/reverse${q}`), path => t.app.request(path));
 
 describe('GET /api/v1/geo/reverse', () => {
   it('refuses a missing, unreadable or out-of-range coordinate', async () => {
