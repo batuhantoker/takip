@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { TICKERS } from '../route';
+import { TICKERS } from '@takip/connectors/market-tickers';
 
 /**
  * TAKIP — Instrument price history.
