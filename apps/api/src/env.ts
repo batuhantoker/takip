@@ -32,6 +32,9 @@ const schema = z
     API_HOST: z.string().default('127.0.0.1'),
     API_PORT: z.coerce.number().int().positive().default(4100),
     APP_DB_PATH: z.string().default(`${repoRoot}data/db/app.db`),
+    // Nightly app.db snapshots (db/backup.ts), and how many of them are kept.
+    APP_BACKUP_DIR: z.string().default(`${repoRoot}data/backups`),
+    APP_BACKUP_KEEP: z.coerce.number().int().positive().default(14),
     // Days of usage_counter kept for accounts and their keys, and for anonymous visitors.
     USAGE_RETENTION_DAYS: z.coerce.number().int().positive().default(400),
     USAGE_ANON_RETENTION_DAYS: z.coerce.number().int().positive().default(35),
