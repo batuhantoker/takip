@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plane, Satellite, Sun, AlertTriangle, Camera,
   CloudLightning, Ship, Network, Database, Ghost,
-  Flame, Tv, Radio, Mountain, Anchor, Megaphone, SlidersHorizontal
+  Flame, Tv, Radio, Mountain, Anchor, Megaphone, SlidersHorizontal, CloudSun
 } from 'lucide-react';
 import StyleStudio from './StyleStudio';
 import { TERRAIN_MIN_ZOOM, type TerrainStatus } from '@/lib/map-terrain';
+import { SHIP_CLASSES, SHIPS_UNDERWAY } from '@/lib/ship-filter';
 
 interface LayerPanelProps {
   data: any;
@@ -56,6 +57,16 @@ const LAYER_GROUPS: LayerGroupDef[] = [
     icon: Network,
     layers: [
       { key: 'sdk_sea', label: 'Maritime Lines', dataKey: 'sdk_entities' },
+    ],
+  },
+  {
+    label: 'WEATHER',
+    fullLabel: 'GLOBAL WEATHER',
+    icon: CloudSun,
+    layers: [
+      { key: 'wx_temperature', label: 'Temperature', description: 'Open-Meteo · global · hourly', dataKey: '' },
+      { key: 'wx_wind', label: 'Wind', description: 'Open-Meteo · 10 m · arrows show where it blows', dataKey: '' },
+      { key: 'wx_radar', label: 'Rain Radar', description: 'RainViewer · where ground radar exists', dataKey: '' },
       { key: 'live_clouds', label: 'Live Clouds', description: 'NOAA satellites · lit in 3D · hourly', dataKey: '' },
     ],
   },
@@ -76,6 +87,8 @@ const LAYER_GROUPS: LayerGroupDef[] = [
     icon: Ship,
     layers: [
       { key: 'maritime', label: 'Maritime / Naval', dataKey: 'maritime_ships,maritime_ports,maritime_chokepoints' },
+      { key: SHIPS_UNDERWAY, label: 'Underway only', description: 'Hide anchored and moored', dataKey: '', parent: 'maritime' },
+      ...SHIP_CLASSES.map(c => ({ key: c.key, label: c.label, dataKey: '', parent: 'maritime' })),
     ],
   },
   {
@@ -303,7 +316,8 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
     if (on && layers.some(l => isTerrain(l.key) && !activeLayers[l.key])) on3DModeSelected?.();
     setActiveLayers((prev: any) => {
       const next = { ...prev };
-      for (const l of layers) next[l.key] = on;
+      // Sub-layers are settings on their parent, not layers; bulk switches leave them be.
+      for (const l of primary(layers)) next[l.key] = on;
       return next;
     });
   };
@@ -319,7 +333,7 @@ function LayerPanel({ data, activeLayers, setActiveLayers, isMobile, theme = 'co
 
   const allLayers = visibleGroups.flatMap(g => g.layers);
   const totalOn = primary(allLayers).filter(l => activeLayers[l.key]).length;
-  const everyOn = allLayers.every(l => activeLayers[l.key]);
+  const everyOn = primary(allLayers).every(l => activeLayers[l.key]);
 
   const getCount = (dk: string, catKey?: string): number | null => {
     if (!dk) return null;

@@ -464,6 +464,16 @@ export default function Dashboard() {
     jets: false,
     military: false,
     maritime: true,
+    /* Vessel-class filters under Maritime — see lib/ship-filter. */
+    ships_underway: false,
+    ships_cargo: true,
+    ships_tanker: true,
+    ships_passenger: true,
+    ships_fishing: true,
+    ships_military: true,
+    ships_service: true,
+    ships_leisure: true,
+    ships_other: true,
     // On from the start: the orbiting fleet around the globe is the first
     // thing the splash lifts onto.
     satellites: true,
@@ -496,6 +506,10 @@ export default function Dashboard() {
     /* NOAA's infrared cloud mosaic — see lib/live-clouds. Off until asked for:
        it veils everything under it. */
     live_clouds: false,
+    /* Global weather — Open-Meteo grid and RainViewer radar; see lib/weather-field. */
+    wx_temperature: false,
+    wx_wind: false,
+    wx_radar: false,
     terrain_3d: false,
     terrain_elevation: false,
     malware: false,
@@ -675,9 +689,14 @@ export default function Dashboard() {
     const layers = p.get('layers');
     if (layers !== null) {
       const active = layers.split(',');
+      // Links from before the vessel filters existed name none of them; keep the defaults then.
+      const linkSetsShips = active.some(k => k.startsWith('ships_'));
       setActiveLayers(prev => {
         const next = { ...prev };
-        Object.keys(next).forEach(k => { (next as any)[k] = active.includes(k); });
+        Object.keys(next).forEach(k => {
+          if (k.startsWith('ships_') && !linkSetsShips) return;
+          (next as any)[k] = active.includes(k);
+        });
         return next;
       });
     } else {
@@ -758,7 +777,7 @@ export default function Dashboard() {
       setOiFocus(false);
       return;
     }
-    const KEEP = new Set(['day_night', 'live_clouds', 'terrain_3d', 'terrain_elevation']);
+    const KEEP = new Set(['day_night', 'live_clouds', 'wx_temperature', 'wx_wind', 'wx_radar', 'terrain_3d', 'terrain_elevation']);
     setActiveLayers(prev => {
       focusSaved.current = prev;
       return Object.fromEntries(Object.entries(prev).map(([k, v]) => [k, KEEP.has(k) ? v : false])) as typeof prev;
@@ -1148,6 +1167,11 @@ export default function Dashboard() {
       }));
     }
 
+    // Open-Meteo grid — one request backs temperature and wind
+    if (activeLayers.wx_temperature || activeLayers.wx_wind) {
+      loadLayerOnce('weather_grid', '/api/weather-grid', d => ({ weather_grid: d }));
+    }
+
 
   }, [activeLayers]);
 
@@ -1164,6 +1188,10 @@ export default function Dashboard() {
     }
     if (activeLayers.radiation) {
       intervals.push(setInterval(() => fetchEndpoint('/api/radiation', d => ({ radiation: d.stations })), 300000)); // 5m
+    }
+    if (activeLayers.wx_temperature || activeLayers.wx_wind) {
+      // The route moves to the next forecast hour on its own; this just picks it up.
+      intervals.push(setInterval(() => fetchEndpoint('/api/weather-grid', d => ({ weather_grid: d }), undefined, { skipWhenHidden: true }), 900000)); // 15m
     }
     if (activeLayers.maritime) {
       /* Ten seconds is the cadence a moving vessel needs. The other two thirds

@@ -20,6 +20,8 @@ import MapControls from '@/components/MapControls';
 import LiveNewsPreviews, { type PreviewFeed } from '@/components/LiveNewsPreviews';
 import { attachTerrain, type TerrainStatus } from '@/lib/map-terrain';
 import { flightPathFeatures, routeFor } from '@/lib/flight-path';
+import { SHIP_CLASSES, SHIP_FALLBACK_COLOR, shipColor, shipColorArms, shipFilter } from '@/lib/ship-filter';
+import { FIELD_MAX_ZOOM, RADAR_ATTRIBUTION, RADAR_MAX_ZOOM, WX_ATTRIBUTION, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setWeatherGrid, weatherLabel, type WeatherGrid } from '@/lib/weather-field';
 import type { AircraftDetail, ScheduledRoute } from '@/components/FlightWatchPanel';
 
 import { applyMapProjection } from '@/lib/map-projection';
@@ -128,6 +130,18 @@ function computeSolarTerminator(): [number, number][] {
 }
 
 const EMPTY_FC = { type: 'FeatureCollection' as const, features: [] };
+
+type CirclePaint = NonNullable<Extract<Parameters<maplibregl.Map['addLayer']>[0], { type: 'circle' }>['paint']>;
+
+/** Temperature, then clouds, then radar, all under the place names (above the imagery on SAT). */
+function stackWeather(map: maplibregl.Map) {
+  const satellite = map.getLayer('satellite-layer') && map.getLayoutProperty('satellite-layer', 'visibility') !== 'none';
+  const firstLabel = map.getStyle().layers.find(layer => layer.type === 'symbol')?.id;
+  const anchor = satellite || !firstLabel ? 'day-night-fill' : firstLabel;
+  for (const id of ['wx-field', CLOUDS_LAYER, 'wx-radar']) {
+    if (map.getLayer(id)) map.moveLayer(id, anchor);
+  }
+}
 
 /** What /api/flight-route adds to the schedule when given a position. */
 type ScheduleReply = ScheduledRoute & {
@@ -444,7 +458,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       createDot(map, 'dot-fire', isGhost ? phantomPurple : '#E65100', 10);
       createDot(map, 'dot-cctv', cameraColor, 10);
 
-      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'network-mesh', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks', 'alert-pins'];
+      const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','cctv','fires','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'network-mesh', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks', 'alert-pins', 'wx-points'];
       sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
       // ── FLIGHT ROUTE VISUALIZATION SOURCES & LAYERS ──
@@ -934,16 +948,59 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
         'line-opacity': ['interpolate',['linear'],['zoom'], 1, 0.3, 5, 0.45, 10, 0.7],
       }});
 
-      // Maritime Ships (moving entities) — ocean teal family
-      map.addLayer({ id: 'ship-dots', type: 'circle', source: 'maritime-ships', paint: {
-        'circle-radius': ['interpolate',['linear'],['zoom'], 1,2, 5,4, 10,6],
-        'circle-color': ['match', ['get','type'], 'military','#D32F2F', 'tanker','#E65100', 'cargo','#26C6DA', '#B0BEC5'],
-        'circle-opacity': 0.75,
+      // Weather grid (Open-Meteo) — wind arrows and temperature readings; the field itself is a raster, see below.
+      if (!map.hasImage('wx-arrow')) {
+        const w = 16, h = 28, c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d')!;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(w / 2 - 1.5, 9, 3, h - 11);
+        ctx.beginPath(); ctx.moveTo(w / 2, 1); ctx.lineTo(w - 2, 12); ctx.lineTo(2, 12); ctx.closePath(); ctx.fill();
+        map.addImage('wx-arrow', { width: w, height: h, data: new Uint8Array(ctx.getImageData(0, 0, w, h).data) }, { sdf: true });
+      }
+      map.addLayer({ id: 'wx-wind', type: 'symbol', source: 'wx-points', filter: ['!=', ['get','wind'], null], layout: {
+        'icon-image': 'wx-arrow',
+        // Meteorological direction is where the wind comes from; the arrow points where it goes.
+        'icon-rotate': ['+', ['coalesce', ['get','windDir'], 0], 180], 'icon-rotation-alignment': 'map',
+        'icon-size': ['interpolate',['linear'],['zoom'],
+          1, ['interpolate',['linear'],['get','wind'], 0,0.35, 60,0.75],
+          5, ['interpolate',['linear'],['get','wind'], 0,0.6, 60,1.2]],
+        'icon-allow-overlap': true, 'icon-ignore-placement': true,
+      }, paint: {
+        'icon-color': ['interpolate',['linear'],['get','wind'], 0,'#E1F5FE', 15,'#81D4FA', 30,'#FFF176', 50,'#FFB74D', 75,'#E57373', 100,'#D81B60'],
+        'icon-opacity': 0.9,
       }});
-      map.addLayer({ id: 'ship-label', type: 'symbol', source: 'maritime-ships', minzoom: 5, layout: {
+      map.addLayer({ id: 'wx-temp-label', type: 'symbol', source: 'wx-points', filter: ['!=', ['get','temp'], null], layout: {
+        'text-field': ['concat', ['to-string', ['round', ['get','temp']]], '°'],
+        'text-size': ['interpolate',['linear'],['zoom'], 1,9, 5,12],
+        'text-font': ['Open Sans Bold'], 'text-offset': [0, 1.3], 'text-allow-overlap': false,
+      }, paint: { 'text-color': '#FFFFFF', 'text-halo-color': 'rgba(0,0,0,0.85)', 'text-halo-width': 1.4 }});
+
+      // Maritime Ships — coloured by vessel class; arrows take over once headings are legible.
+      if (!map.hasImage('ship-arrow')) {
+        const s = 24, c = document.createElement('canvas');
+        c.width = s; c.height = s;
+        const ctx = c.getContext('2d')!;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.moveTo(s / 2, 2); ctx.lineTo(s - 5, s - 3); ctx.lineTo(s / 2, s - 8); ctx.lineTo(5, s - 3); ctx.closePath(); ctx.fill();
+        map.addImage('ship-arrow', { width: s, height: s, data: new Uint8Array(ctx.getImageData(0, 0, s, s).data) }, { sdf: true });
+      }
+      const shipColorExpr = ['match', ['get','type'], ...shipColorArms(), SHIP_FALLBACK_COLOR] as unknown as CirclePaint['circle-color'];
+      map.addLayer({ id: 'ship-dots', type: 'circle', source: 'maritime-ships', maxzoom: 6, paint: {
+        'circle-radius': ['interpolate',['linear'],['zoom'], 1,1.3, 4,2.4, 6,3.5],
+        'circle-color': shipColorExpr,
+        'circle-opacity': 0.8,
+      }});
+      map.addLayer({ id: 'ship-arrows', type: 'symbol', source: 'maritime-ships', minzoom: 6, layout: {
+        'icon-image': 'ship-arrow',
+        'icon-size': ['interpolate',['linear'],['zoom'], 6,0.5, 10,0.8, 14,1.1],
+        'icon-rotate': ['coalesce', ['get','heading'], 0], 'icon-rotation-alignment': 'map',
+        'icon-allow-overlap': true, 'icon-ignore-placement': true,
+      }, paint: { 'icon-color': shipColorExpr }});
+      map.addLayer({ id: 'ship-label', type: 'symbol', source: 'maritime-ships', minzoom: 8, layout: {
         'text-field': ['get','name'], 'text-size': 9, 'text-font': ['Open Sans Regular'],
         'text-offset': [0, 1.2], 'text-allow-overlap': false,
-      }, paint: { 'text-color': ['match', ['get','type'], 'military','#D32F2F', 'tanker','#E65100', 'cargo','#26C6DA', '#B0BEC5'], 'text-halo-color': '#000', 'text-halo-width': 1 }});
+      }, paint: { 'text-color': shipColorExpr, 'text-halo-color': '#000', 'text-halo-width': 1 }});
 
 
       setMapReady(true);
@@ -1215,9 +1272,9 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     // these, and to nothing else — the basemap is not a click target.
     const CLICKABLE_LAYERS = new Set(['conflict-icons','cctv-dots','eq-circles','fires-heat',
       'gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots',
-      'balloon-dots','rad-dots','ship-dots','sweep-device-dots','scan-targets-dots',
+      'balloon-dots','rad-dots','ship-dots','ship-arrows','sweep-device-dots','scan-targets-dots',
       'sdk-sea','sdk-air','sdk-intel','malware-dots','cyber-heads','gdelt-events-dots',
-      'cf-outage-dots','cf-attack-dots','fl-commercial','fl-private','fl-jets','fl-military','alert-pin-dots']);
+      'cf-outage-dots','cf-attack-dots','fl-commercial','fl-private','fl-jets','fl-military','alert-pin-dots','wx-wind','wx-temp-label']);
 
     // Satellites are picked on the GPU: the pick pass runs the same vertex
     // shader as the visible one, so the target is always exactly where the
@@ -1549,7 +1606,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     });
 
     // ── Generic hover for clickables ──
-    ['conflict-icons','cctv-dots','eq-circles','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','rad-dots','ship-dots','sweep-device-dots','scan-targets-dots','sdk-sea','sdk-sea-glow','sdk-sea-atmo','sdk-air','sdk-air-glow','sdk-air-atmo','sdk-intel','sdk-intel-glow','sdk-intel-atmo','malware-dots','cyber-heads','gdelt-events-dots','cf-outage-dots','cf-attack-dots','alert-pin-dots'].forEach(layer => {
+    ['conflict-icons','cctv-dots','eq-circles','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','rad-dots','ship-dots','ship-arrows','sweep-device-dots','scan-targets-dots','sdk-sea','sdk-sea-glow','sdk-sea-atmo','sdk-air','sdk-air-glow','sdk-air-atmo','sdk-intel','sdk-intel-glow','sdk-intel-atmo','malware-dots','cyber-heads','gdelt-events-dots','cf-outage-dots','cf-attack-dots','alert-pin-dots','wx-wind','wx-temp-label'].forEach(layer => {
       map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
     });
@@ -1650,28 +1707,60 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
       </div>`);
     });
 
+    // ── Weather grid point (Open-Meteo) ──
+    map.on('click', ['wx-wind', 'wx-temp-label'], e => {
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const p = feature.properties as Record<string, unknown>;
+      const coords = (feature.geometry as GeoJSON.Point).coordinates;
+      const color = '#4FC3F7';
+      const val = (v: unknown, unit: string, digits = 0) => (v == null || v === '' || !Number.isFinite(Number(v)) ? '—' : `${Number(v).toFixed(digits)}${unit}`);
+      const compass = (deg: unknown) => {
+        const d = Number(deg);
+        return Number.isFinite(d) ? ['N','NE','E','SE','S','SW','W','NW'][Math.round(((d % 360) + 360) % 360 / 45) % 8] : '';
+      };
+      const cell = (label: string, value: string) => `<div><span style="color:#5C5A54;">${label}</span><br/><span style="color:${color};font-family:monospace;">${value}</span></div>`;
+      popup(coords, `<div style="${pStyle}border:1px solid ${color}60;min-width:220px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${color}40;padding-bottom:6px;margin-bottom:8px;">
+          <div style="color:${color};font-size:12px;font-weight:700;letter-spacing:0.1em;">[ WEATHER ]</div>
+          <div style="color:#5C5A54;font-size:9px;">${htmlEsc(p.hour ?? '')}</div>
+        </div>
+        <div style="color:#E8E6E0;font-size:20px;font-weight:bold;">${val(p.temp, '°C', 1)}</div>
+        <div style="color:#E8E6E0;font-size:10px;margin-bottom:10px;">${htmlEsc(weatherLabel(p.code == null ? null : Number(p.code)))}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:9px;margin-bottom:8px;background:rgba(0,0,0,0.3);padding:6px;border-radius:4px;">
+          ${cell('WIND', `${val(p.wind, ' km/h')} ${compass(p.windDir)}`)}
+          ${cell('GUSTS', val(p.gust, ' km/h'))}
+          ${cell('PRECIP (1H)', val(p.precip, ' mm', 1))}
+          ${cell('CLOUD', val(p.cloud, '%'))}
+        </div>
+        <div style="color:#5C5A54;font-size:9px;">${coords[1].toFixed(0)}°, ${coords[0].toFixed(0)}° · 10° grid sample · Open-Meteo (CC BY 4.0)</div>
+      </div>`);
+    });
+
     // ── Maritime Ships ──
-    map.on('click', 'ship-dots', e => {
+    map.on('click', ['ship-dots', 'ship-arrows'], e => {
       if (!e.features?.length) return;
       const p = e.features[0].properties as any;
       const coords = (e.features[0].geometry as any).coordinates;
-      const color = p.type === 'military' ? '#FF1744' : p.type === 'tanker' ? '#FF9500' : '#00E5FF';
+      const color = shipColor(p.type);
       const icon = p.type === 'military' ? '⚔️' : p.type === 'tanker' ? '🛢️' : '🚢';
+      const typeLabel = SHIP_CLASSES.find(c => c.type === p.type)?.label ?? 'Vessel';
+      const num = (v: unknown, digits: number, unit: string) => (v == null || v === '' || !Number.isFinite(Number(v)) ? '—' : `${Number(v).toFixed(digits)}${unit}`);
       
       popup(coords, `<div style="${pStyle}border:1px solid ${color}60;box-shadow:inset 0 0 12px ${color}15;">
         <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${color}40;padding-bottom:6px;margin-bottom:8px;">
-          <div style="color:${color};font-size:12px;font-weight:700;letter-spacing:0.1em;">${icon} [ ${(p.type||'VESSEL').toUpperCase()} ]</div>
-          <div style="color:#5C5A54;font-size:9px;">FLAG: ${p.flag||'UNK'}</div>
+          <div style="color:${color};font-size:12px;font-weight:700;letter-spacing:0.1em;">${icon} [ ${htmlEsc(typeLabel.toUpperCase())} ]</div>
+          <div style="color:#5C5A54;font-size:9px;">MMSI ${htmlEsc(p.mmsi)}</div>
         </div>
-        <div style="color:#E8E6E0;font-size:11px;font-weight:bold;margin-bottom:10px;">${p.name || 'UNIDENTIFIED VESSEL'}</div>
+        <div style="color:#E8E6E0;font-size:11px;font-weight:bold;margin-bottom:10px;">${htmlEsc(p.name || 'UNIDENTIFIED VESSEL')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:9px;margin-bottom:8px;background:rgba(0,0,0,0.3);padding:6px;border-radius:4px;">
-          <div><span style="color:#5C5A54;">SPEED</span><br/><span style="color:${color};font-family:monospace;">${Number(p.speed).toFixed(1)} kn</span></div>
-          <div><span style="color:#5C5A54;">HEADING</span><br/><span style="color:${color};font-family:monospace;">${Number(p.heading).toFixed(0)}°</span></div>
+          <div><span style="color:#5C5A54;">SPEED</span><br/><span style="color:${color};font-family:monospace;">${num(p.speed, 1, ' kn')}</span></div>
+          <div><span style="color:#5C5A54;">HEADING</span><br/><span style="color:${color};font-family:monospace;">${num(p.heading, 0, '°')}</span></div>
           <div><span style="color:#5C5A54;">LATITUDE</span><br/><span style="color:#E8E6E0;font-family:monospace;">${coords[1].toFixed(4)}°</span></div>
           <div><span style="color:#5C5A54;">LONGITUDE</span><br/><span style="color:#E8E6E0;font-family:monospace;">${coords[0].toFixed(4)}°</span></div>
         </div>
-        <div><span style="color:#5C5A54;font-size:9px;">DESTINATION: </span><span style="color:#E8E6E0;font-size:9px;">${p.destination || 'UNKNOWN'}</span></div>
-        <a href="https://www.marinetraffic.com/en/ais/details/ships/mmsi:${p.mmsi}" target="_blank" style="${linkStyle}flex:1;text-align:center;color:${color};border:1px solid ${color}40;background:${color}15;display:inline-block;width:100%;box-sizing:border-box;margin-top:4px;">[ OPEN SOURCE ↗ ]</a>
+        <div><span style="color:#5C5A54;font-size:9px;">DESTINATION: </span><span style="color:#E8E6E0;font-size:9px;">${htmlEsc(p.destination || 'UNKNOWN')}</span></div>
+        <a href="https://www.marinetraffic.com/en/ais/details/ships/mmsi:${idSafe(p.mmsi)}" target="_blank" rel="noopener noreferrer" style="${linkStyle}flex:1;text-align:center;color:${color};border:1px solid ${color}40;background:${color}15;display:inline-block;width:100%;box-sizing:border-box;margin-top:4px;">[ OPEN SOURCE ↗ ]</a>
       </div>`);
     });
 
@@ -2276,7 +2365,7 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     if (!mapReady) return;
     setGeo('maritime', activeLayers.maritime && data.maritime_ports ? data.maritime_ports.map((p: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { name: p.name, country: p.country, type: p.type, volume: p.volume, fleet: p.fleet, rank: p.rank } })) : []);
     setGeo('maritime-choke', activeLayers.maritime && data.maritime_chokepoints ? data.maritime_chokepoints.map((c: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: { name: c.name, traffic: c.traffic, risk: c.risk } })) : []);
-    setGeo('maritime-ships', activeLayers.maritime && data.maritime_ships ? data.maritime_ships.map((s: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: { name: s.name || s.mmsi?.toString(), type: s.type || 'cargo', speed: s.speed, heading: s.heading, destination: s.destination, flag: s.flag } })) : []);
+    setGeo('maritime-ships', activeLayers.maritime && data.maritime_ships ? data.maritime_ships.map((s: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: { mmsi: s.mmsi, name: s.name || s.mmsi?.toString(), type: s.type || 'other', speed: s.speed, heading: s.heading, destination: s.destination, flag: s.flag } })) : []);
   }, [mapReady, data.maritime_ports, data.maritime_chokepoints, data.maritime_ships, activeLayers.maritime, setGeo]);
 
   useEffect(() => {
@@ -2288,6 +2377,15 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     if (!mapReady) return;
     setGeo('radiation', activeLayers.radiation && data.radiation ? data.radiation.map((r: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [r.lng, r.lat] }, properties: { name: r.name, city: r.city, country: r.country, reading: r.reading, status: r.status, network: r.network } })) : []);
   }, [mapReady, data.radiation, activeLayers.radiation, setGeo]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    const grid: WeatherGrid | null = data.weather_grid ?? null;
+    const hour = grid ? `${grid.time.slice(11, 16)} UTC` : '';
+    setGeo('wx-points', grid && (activeLayers.wx_temperature || activeLayers.wx_wind)
+      ? grid.points.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { ...p, hour } }))
+      : []);
+  }, [mapReady, data.weather_grid, activeLayers.wx_temperature, activeLayers.wx_wind, setGeo]);
 
   // ══ OSIRIS SDK — Lattice Sensor Mesh ══
   // Uses real submarine cable data for SEA domain, curated routes for AIR/INTEL
@@ -2492,10 +2590,16 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     setVis(['cctv-glow','cctv-dots','cctv-label'], activeLayers.cctv);
     setVis(['fires-heat'], activeLayers.fires);
     setVis(['weather-glow','weather-dots','weather-label'], activeLayers.weather);
+    setVis(['wx-temp-label'], !!activeLayers.wx_temperature);
+    setVis(['wx-wind'], !!activeLayers.wx_wind);
     setVis(['infra-glow','infra-dots','infra-label'], activeLayers.infrastructure);
     setVis(['maritime-glow','maritime-dots','maritime-label'], activeLayers.maritime);
     setVis(['choke-glow','choke-dots','choke-label'], activeLayers.maritime);
-    setVis(['ship-dots','ship-label'], activeLayers.maritime);
+    setVis(['ship-dots','ship-arrows','ship-label'], activeLayers.maritime);
+    const shipsShown = shipFilter(activeLayers);
+    for (const id of ['ship-dots','ship-arrows','ship-label']) {
+      if (mapRef.current?.getLayer(id)) mapRef.current.setFilter(id, shipsShown);
+    }
     setVis(['news-glow','news-dots','news-label'], activeLayers.live_news);
     setVis(['alert-pin-glow','alert-pin-dots','alert-pin-label','alert-pin-pulse','alert-pin-selected'], activeLayers.alert_pins);
     setVis(['conflict-icons'], activeLayers.conflict_zones !== false);
@@ -2776,13 +2880,68 @@ function OsirisMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCl
     // come from no source of its own, so an empty one carries NOAA's credit.
     if (!map.getSource(CLOUDS_CREDIT)) map.addSource(CLOUDS_CREDIT, { type: 'geojson', data: EMPTY_FC, attribution: CLOUDS_ATTRIBUTION });
     if (!map.getLayer(CLOUDS_CREDIT)) map.addLayer({ id: CLOUDS_CREDIT, type: 'circle', source: CLOUDS_CREDIT });
-    const satellite = map.getLayer('satellite-layer') && map.getLayoutProperty('satellite-layer', 'visibility') !== 'none';
-    const firstLabel = map.getStyle().layers.find(layer => layer.type === 'symbol')?.id;
-    map.moveLayer(CLOUDS_LAYER, satellite || !firstLabel ? 'day-night-fill' : firstLabel);
+    stackWeather(map);
     // A new frame lands every hour; move to it once it is up.
     const refresh = setInterval(() => clouds.setFrame(frameTime()), 5 * 60_000);
     return () => clearInterval(refresh);
   }, [mapReady, activeLayers.live_clouds, mapStyle]);
+
+  // Temperature field — painted client-side from the Open-Meteo grid (lib/weather-field).
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const grid: WeatherGrid | null = data.weather_grid ?? null;
+    setWeatherGrid(grid);
+    if (!activeLayers.wx_temperature) {
+      if (map.getLayer('wx-field')) map.removeLayer('wx-field');
+      return;
+    }
+    installWeatherProtocol(maplibregl.addProtocol);
+    const url = fieldTileUrl(grid);
+    const source = map.getSource('wx-field') as maplibregl.RasterTileSource | undefined;
+    if (!source) {
+      map.addSource('wx-field', { type: 'raster', tiles: [url], tileSize: 256, maxzoom: FIELD_MAX_ZOOM, attribution: WX_ATTRIBUTION });
+    } else if (source.tiles?.[0] !== url) {
+      source.setTiles([url]);
+    }
+    if (!map.getLayer('wx-field')) {
+      map.addLayer({ id: 'wx-field', type: 'raster', source: 'wx-field', paint: { 'raster-opacity': 0.5, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } }, 'day-night-fill');
+    }
+    stackWeather(map);
+  }, [mapReady, activeLayers.wx_temperature, data.weather_grid, mapStyle]);
+
+  // Precipitation radar — RainViewer's latest frame, where ground radar exists.
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    if (!activeLayers.wx_radar) {
+      if (map.getLayer('wx-radar')) map.removeLayer('wx-radar');
+      return;
+    }
+    const ctrl = new AbortController();
+    const load = async () => {
+      try {
+        const tiles = await latestRadarTiles(ctrl.signal);
+        if (!tiles || ctrl.signal.aborted) return;
+        const source = map.getSource('wx-radar') as maplibregl.RasterTileSource | undefined;
+        if (!source) {
+          map.addSource('wx-radar', { type: 'raster', tiles: [tiles], tileSize: 256, maxzoom: RADAR_MAX_ZOOM, attribution: RADAR_ATTRIBUTION });
+        } else if (source.tiles?.[0] !== tiles) {
+          source.setTiles([tiles]);
+        }
+        if (!map.getLayer('wx-radar')) {
+          map.addLayer({ id: 'wx-radar', type: 'raster', source: 'wx-radar', paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 0 } }, 'day-night-fill');
+        }
+        stackWeather(map);
+      } catch (e) {
+        if (!ctrl.signal.aborted) console.warn('[OSIRIS] Radar frame lookup failed:', e instanceof Error ? e.message : e);
+      }
+    };
+    load();
+    // RainViewer publishes a frame every 10 minutes.
+    const refresh = setInterval(load, 5 * 60_000);
+    return () => { ctrl.abort(); clearInterval(refresh); };
+  }, [mapReady, activeLayers.wx_radar, mapStyle]);
 
   // OSIRIS OI — a prediction drawn as it happens: actors, the events of the
   // simulated worlds and arcs through the sky (see lib/oi/globe). The page feeds it
