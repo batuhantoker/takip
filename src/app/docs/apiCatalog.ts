@@ -383,7 +383,7 @@ export const API_GROUPS: ApiGroup[] = [
     id: 'osint',
     title: 'OSINT Toolkit',
     blurb:
-      'The lookup tools behind the RECON panel. Every route takes a single subject and returns a normalised result, so they compose well in scripts. Each needs an account: call it signed in, or with an API key, whose calls count against its daily quota; without one it answers 401 `sign_in_required`. Limits are per account: 20 breach lookups (leaks, Hudson Rock) an hour, 30 people searches (phone, GitHub, username) an hour, 30 sweeps an hour shared with the scanner, 30 CVE and sanctions lookups a minute, and 20 of the other lookups a minute.',
+      'The lookup tools behind the RECON panel. Every route takes a single subject and returns a normalised result, so they compose well in scripts. Each needs an account: call it signed in, or with an API key, whose calls count against its daily quota; without one it answers 401 `sign_in_required`. Limits are per account: 20 breach lookups (leaks, Hudson Rock) an hour, 30 people searches (phone, GitHub, username) an hour, 30 sweeps an hour shared with the scanner, 30 CVE lookups a minute, and 15 of the other lookups a minute.',
     endpoints: [
       {
         path: '/api/osint/dns',

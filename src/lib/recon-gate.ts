@@ -9,7 +9,7 @@ export const RECON_LIMITS = {
   breach: { limit: 20, windowMs: HOUR },
   people: { limit: 30, windowMs: HOUR },
   scan: { limit: 30, windowMs: HOUR },
-  network: { limit: 20, windowMs: MINUTE },
+  network: { limit: 15, windowMs: MINUTE },
   reference: { limit: 30, windowMs: MINUTE },
 };
 export type ReconFamily = keyof typeof RECON_LIMITS;

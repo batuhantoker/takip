@@ -15,7 +15,7 @@ const ALLOWED_SCHEMAS: Schema[] = [
 ];
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'reference');
+  const denied = await reconGate(req, 'network');
   if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const query = (searchParams.get('query') || '').trim();

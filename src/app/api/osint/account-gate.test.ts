@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { GET as cve } from './cve/route';
 import { GET as dns } from './dns/route';
 import { GET as leaks } from './leaks/route';
 import { GET as phone } from './phone/route';
-import { GET as sanctions } from './sanctions/route';
 import { GET as sweep } from './sweep/route';
 import { GET as scanner } from '../scanner/route';
 
@@ -32,7 +32,7 @@ const families = [
   { family: 'people', route: phone, path: '/api/osint/phone' },
   { family: 'scan', route: sweep, path: '/api/osint/sweep' },
   { family: 'network', route: dns, path: '/api/osint/dns' },
-  { family: 'reference', route: sanctions, path: '/api/osint/sanctions' },
+  { family: 'reference', route: cve, path: '/api/osint/cve' },
 ];
 
 describe.each(families)('$family ($path)', ({ route, path }) => {
