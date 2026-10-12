@@ -43,7 +43,7 @@ export interface AircraftDetail {
   destination?: Airport | null;
 }
 
-/** Schedule lookup result from /api/flight-route. */
+/** Schedule lookup result from /api/v1/flight-route. */
 export interface ScheduledRoute {
   found?: boolean;
   origin?: Airport | null;
