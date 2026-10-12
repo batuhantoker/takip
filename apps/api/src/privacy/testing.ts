@@ -24,8 +24,8 @@ export async function startPrivacyApp() {
 
   /**
    * Signs `person` up with a row of every kind app.db keeps about a user: two sessions, a Google account, 2FA,
-   * an admin unlock, an API key and its usage, a granted and a paid plan, an override, a pending reset link,
-   * and audit rows, one carrying an IP address, a user agent and the email.
+   * an admin unlock, an API key and its usage, a shared workspace, a granted and a paid plan, an override, a pending
+   * reset link, and audit rows, one carrying an IP address, a user agent and the email.
    */
   async function withEverything(person = USER, { google = true } = {}) {
     const jar = await t.signUpVerified(new Jar(), person);
@@ -50,6 +50,11 @@ export async function startPrivacyApp() {
     const { key } = (await created.json()) as { key: string };
     expect((await t.app.request('/api/v1/me/access', { headers: { authorization: `Bearer ${key}` } })).status).toBe(200);
 
+    const workspace = await call(jar, 'POST', '/api/v1/workspaces', { name: 'Black Sea', state: { v: 1, layers: { ships: true }, recentPlaces: [{ label: 'Home', lat: 41, lng: 29, at: 1 }] } });
+    expect(workspace.status).toBe(201);
+    const workspaceId = ((await workspace.json()) as { id: string }).id;
+    expect((await call(jar, 'POST', `/api/v1/workspaces/${workspaceId}/share`)).status).toBe(200);
+
     grantPlan(t.db, { userId, planId: 'pro', actor: OPERATOR, reason: `asked by ${person.email}` });
     setOverride(t.db, { userId, key: 'api.keys.max', value: '3', actor: OPERATOR, reason: 'partner' });
     t.access.invalidate();
@@ -69,7 +74,7 @@ export async function startPrivacyApp() {
     ).run(Date.now(), userId, userId, JSON.stringify({ ip: '203.0.113.7', userAgent: 'Firefox', from: '198.51.100.9', note: `signed in as ${person.email.toUpperCase()}` }));
     t.usage.flush();
 
-    return { jar, elsewhere, userId, key, totpSecret, backupCodes: enabled.backupCodes };
+    return { jar, elsewhere, userId, key, workspaceId, totpSecret, backupCodes: enabled.backupCodes };
   }
 
   /** The self-service flow: ask for the emailed link, then open it in the signed-in browser. */

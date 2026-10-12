@@ -182,6 +182,24 @@ const MIGRATIONS: string[] = [
   INSERT OR IGNORE INTO bill_plan_entitlement (plan_id, key, value) VALUES
     ('anon', 'ads.off', 'false'), ('free', 'ads.off', 'false'), ('pro', 'ads.off', 'true');
   `,
+  // Saved workspaces (workspaces/). state is WorkspaceStateV<state_version> JSON; rev backs If-Match.
+  `
+  CREATE TABLE IF NOT EXISTS ws_workspace (
+    workspace_id   TEXT PRIMARY KEY,
+    owner_id       TEXT NOT NULL,
+    org_id         TEXT,
+    name           TEXT NOT NULL,
+    state          TEXT NOT NULL,
+    state_version  INTEGER NOT NULL,
+    rev            INTEGER NOT NULL DEFAULT 1,
+    visibility     TEXT NOT NULL DEFAULT 'private' CHECK (visibility IN ('private','link','public')),
+    share_slug     TEXT UNIQUE,
+    created_at     INTEGER NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    deleted_at     INTEGER
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS ws_workspace_owner ON ws_workspace (owner_id, updated_at DESC) WHERE deleted_at IS NULL;
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {
