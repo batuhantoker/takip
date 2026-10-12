@@ -362,6 +362,20 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
 - **Burst** (`a04ad38`): web callers get 3 s of token-bucket burst, so a Flight Watch panel or a tile fetch fits; keys keep 1 s.
 - **Consolidation** (`5953407`, another session, at the user's request): everything uncommitted, including the OSIRIS → TAKIP rename, the replay data platform, osiris-92's replay routes and Sources admin page, and their wiring in `app.ts`, `env.ts` and `index.ts`. Pushed to `origin/ui/shell-reorg`. `4d0577a` then dropped the `OSIRIS_UA` alias.
 
+- **B** (`6b91384`): API keys in our own `api_key` table (migration 4):
+  - `tk_` + 32 random bytes; SHA-256 at rest; the lookup cached for 30 s; `last_used_at` written at most once a minute.
+  - Session-only `GET/POST/DELETE /api/v1/keys`, plus admin list and revoke on the user page. Account settings → API keys.
+  - A banned owner gets 403 `account_banned`; at the plan's cap, 403 `limit_reached`.
+- **F** (`a5dc965`, `7dded85`): a provider-neutral billing skeleton (migration 5: `bill_customer`, `bill_event`, `job`).
+  - `BILLING_PROVIDER` is unset, so checkout and portal answer 501 `billing_unavailable`. The fake provider exists only under `NODE_ENV=test`.
+  - Webhooks: idempotent via `bill_event`; the subscription upsert, cache invalidation and audit row happen in one transaction.
+  - A job runner with leases and backoff, and a daily `billing.reconcile`. A real adapter's checklist is in F's report and §7.3.
+- **C, part 3** (`45e1ff4`, `6bbe904`): `/api/v1/{arcgis, satellites/orbit, markets/history, entity/expand}`.
+  - The old `/api/arcgis` would fetch any URL a caller named. The v1 route pins https and the ArcGIS REST shape, and `safeFetch` refuses private and reserved addresses on every hop.
+  - `ssrf-guard`, `orbit` and `market-tickers` moved to `@takip/connectors`.
+  - `/api/satellites/orbit` is still called from `bind-satellite-pick.ts`, through a rewrite.
+- The dev DB is at `user_version` 6.
+
 ### Landing branches here
 Several sessions share one working copy, so `git merge` refuses whenever a merged file has someone's uncommitted edits. Use `python3 tools/land-branch.py <branch> "<message>"`:
 - The dry run lists every file as clean, 3-way merged or conflicting, and writes conflict files with markers to a temp folder.
@@ -379,5 +393,9 @@ Several sessions share one working copy, so `git merge` refuses whenever a merge
 - **Errors print twice** (Hono's default `onError` and pino); set `app.onError`.
 - **Region-dossier port** was blocked on another session's FCDO/UNHCR changes; they're committed now (`5953407`), so it can be ported.
 - **`stealthFetch`** sends adsbdb, hexdb and airplanes.live random browser user agents and made-up `X-Forwarded-For`/`X-Real-IP` headers (moved as-is for parity). Dropping them is recommended and awaits the user's answer.
-- **Next ports**, clean apart from the rename: `arcgis`, `satellites/orbit`, `markets/history` and `entity/expand`.
+- **Coupling:** `/api/v1/satellites/orbit` reads the TLE cache the web app writes (`.next/cache/satellites-tle-cache.json`). It breaks if the api runs apart from Next; ingest's TLE should replace it.
+- **Production default:** `INTEL_URL` falls back to `http://takip-intel:4000` in production.
+- **Key scopes** exist (`requiresScope`), but no route needs one yet.
+- **Billing open items:** reconciliation can't discover a subscription whose first webhook was lost (adapters should list subscriptions by customer); checkout and portal have no rate limit; the Next rewrite's handling of raw webhook bytes is unverified.
+- **API keys:** a revocation made directly in the DB takes up to 30 s to apply (the API and admin paths are immediate).
 - **CI test gate** fails on two tests outside the backend: `src/app/api/cctv/route.test.ts`, whose `writeSnapshot()` ignores the `…_CCTV_SNAPSHOT=off` env and writes `./off`, and `src/lib/oi/context.test.ts`.

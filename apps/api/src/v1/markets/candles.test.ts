@@ -1,27 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { GET, parseCandles, RANGES } from './route';
-
-afterEach(() => vi.unstubAllGlobals());
-
-describe('GET', () => {
-  /* The chart only ever asks for a listed instrument. Anything else is refused
-     before Yahoo is contacted, so the route cannot be used as a relay. */
-  it('refuses a symbol the panel does not list, without going upstream', async () => {
-    const upstream = vi.fn();
-    vi.stubGlobal('fetch', upstream);
-    for (const symbol of ['NOTLISTED', '..', '../../v1/test']) {
-      const res = await GET(new Request(`http://x/api/markets/history?symbol=${encodeURIComponent(symbol)}&range=1M`));
-      expect(res.status).toBe(400);
-    }
-    expect(upstream).not.toHaveBeenCalled();
-  });
-
-  it('serves a listed one', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ chart: { result: [] } }) }));
-    const res = await GET(new Request('http://x/api/markets/history?symbol=LMT&range=1M'));
-    expect(res.status).toBe(200);
-  });
-});
+import { describe, expect, it } from 'vitest';
+import { parseCandles, RANGES, rangeSpec } from './candles';
 
 describe('RANGES', () => {
   /* The whole reason the route stopped upper-casing its query parameter:
@@ -94,5 +72,17 @@ describe('parseCandles', () => {
   it('ignores a bar with a non-finite timestamp', () => {
     const out = parseCandles(result({ timestamp: [100, null, 300] }));
     expect(out.map(c => c.time)).toEqual([100, 300]);
+  });
+});
+
+describe('rangeSpec', () => {
+  it('finds each range by its exact key', () => {
+    expect(rangeSpec('1M')).toEqual({ interval: '1d', range: '1mo' });
+    expect(rangeSpec('1m')).toEqual({ interval: '1m', range: '1d' });
+  });
+
+  // RANGES[key] on a plain object answered "constructor" with Object itself.
+  it('does not mistake prototype names for ranges', () => {
+    for (const key of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) expect(rangeSpec(key)).toBeUndefined();
   });
 });
