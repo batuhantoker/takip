@@ -11,8 +11,9 @@
  * member's centroid rather than stacked as fake pins.
  *
  * Only Severe and Extreme (`s` ≥ 3) are kept: the ~1k Moderate/Minor rows are
- * mostly routine yellow notices. US and Canadian alerts come direct from NWS
- * and ECCC instead.
+ * mostly routine yellow notices. Only Extreme grades high: ~50 issuers send
+ * ~200 Severe alerts a day, which would swamp the SEVERE count. US and
+ * Canadian alerts come direct from NWS and ECCC instead.
  */
 
 import { createPool } from '@/lib/fetch-pool';
@@ -51,7 +52,7 @@ export interface SwicEvent {
   category: 'weatherAlerts';
   type: string;
   icon: 'weather';
-  severity: 'high';
+  severity: 'high' | 'medium';
   lat: number;
   lng: number;
   date?: string;
@@ -121,6 +122,8 @@ export function capPoint(xml: string): LatLng | null {
   return null;
 }
 
+const swicSeverity = (s: number | undefined): SwicEvent['severity'] => ((s ?? 0) >= 4 ? 'high' : 'medium');
+
 export function mapSwicAlert(item: SwicItem, at: LatLng, member?: SwicMember): SwicEvent {
   const area = [item.areaDesc?.trim(), member?.name].filter(Boolean).join(' — ');
   return {
@@ -129,7 +132,7 @@ export function mapSwicAlert(item: SwicItem, at: LatLng, member?: SwicMember): S
     category: 'weatherAlerts',
     type: item.event?.trim() || 'Weather Warning',
     icon: 'weather',
-    severity: 'high',
+    severity: swicSeverity(item.s),
     lat: at.lat,
     lng: at.lng,
     date: parseSwicTime(item.effective) ?? parseSwicTime(item.sent),
@@ -161,7 +164,7 @@ export function countryLevelEvents(items: SwicItem[], members: Map<string, SwicM
       category: 'weatherAlerts',
       type: group.length === 1 && kinds[0] ? kinds[0] : 'Severe weather warnings',
       icon: 'weather',
-      severity: 'high',
+      severity: swicSeverity(Math.max(...group.map(i => i.s ?? 0))),
       lat: m.lat,
       lng: m.lng,
       date: sent.at(-1),

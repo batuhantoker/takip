@@ -2,7 +2,9 @@ import { createHmac, randomBytes } from 'node:crypto';
 import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { matchedRoutes } from 'hono/route';
+import type { Logger } from 'pino';
 import type { AppDb } from '../db/app-db';
+import { silentLogger } from '../obs/logger';
 import { addressBlock } from './client-ip';
 import type { AccessEnv } from './middleware';
 import type { Principal } from './principal';
@@ -27,7 +29,7 @@ type Row = Counts & { day: number; subjectType: 'anon' | 'user'; subjectId: stri
  * Request counters per UTC day, subject, key and route group (backend.md §5.5), held in memory and added
  * to usage_counter by `flush`. Also keeps each user's API-key requests today for the daily quota.
  */
-export function createUsage(db: AppDb, { now = () => Date.now(), salt = randomBytes(16) } = {}) {
+export function createUsage(db: AppDb, { now = () => Date.now(), salt = randomBytes(16), logger = silentLogger }: { now?: () => number; salt?: Buffer; logger?: Logger } = {}) {
   const upsert = db.prepare(`
     INSERT INTO usage_counter (day, subject_type, subject_id, key_id, route_group, requests, bytes, denied)
     VALUES (@day, @subjectType, @subjectId, @keyId, @group, @requests, @bytes, @denied)
@@ -115,7 +117,7 @@ export function createUsage(db: AppDb, { now = () => Date.now(), salt = randomBy
         try {
           flush();
         } catch (err) {
-          console.error('[usage] flush failed; retrying next tick', err);
+          logger.error({ err }, 'usage flush failed; retrying next tick');
         }
       }, everyMs);
       timer.unref();
@@ -129,12 +131,12 @@ export function createUsage(db: AppDb, { now = () => Date.now(), salt = randomBy
 
 export type Usage = ReturnType<typeof createUsage>;
 
-/** Books the response size after the handler; the rate limiter books requests and refusals. */
-export function meter(usage: Usage) {
+/** Books the response size after the handler, under `group` or else routeGroup's; the rate limiter books requests and refusals. */
+export function meter(usage: Usage, group?: string) {
   return createMiddleware<AccessEnv>(async (c, next) => {
     await next();
     // Only a declared length: measuring a streamed body would cost a copy of it.
     const bytes = Number(c.res.headers.get('content-length'));
-    if (bytes > 0) usage.addBytes(c.var.principal, routeGroup(c), bytes);
+    if (bytes > 0) usage.addBytes(c.var.principal, group ?? routeGroup(c), bytes);
   });
 }

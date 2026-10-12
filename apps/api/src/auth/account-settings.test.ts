@@ -4,6 +4,7 @@ import { GOOGLE, Jar, RESET, USER, googleApproves, landing, linkIn, startApp, vi
 // The web app's landing URLs (src/lib/account-links.ts).
 const SETTINGS = '/?account=settings';
 const DELETED = '/?account=deleted';
+const DELETE_FAILED = '/?account=delete-failed';
 const NEW_PASSWORD = 'a different horse entirely';
 const CREDENTIALS = { email: USER.email, password: USER.password };
 
@@ -155,7 +156,9 @@ describe('account deletion', () => {
     expect(rows('auth_user', 'id')).toBe(1);
     const link = linkIn(await t.inbox.next());
 
-    expect((await t.app.request(link)).status).toBe(404);
+    const elsewhere = await t.app.request(link);
+    expect(elsewhere.status).toBe(302);
+    expect(`${landing(elsewhere).pathname}${landing(elsewhere).search}`).toBe(`${DELETE_FAILED}&error=FAILED_TO_GET_USER_INFO`);
     expect(rows('auth_user', 'id')).toBe(1);
 
     const confirmed = here.take(await t.app.request(link, { headers: { cookie: here.get() } }));
@@ -165,5 +168,22 @@ describe('account deletion', () => {
     expect(await t.session(here.get('takip.session_token'))).toBeNull();
     // Every cookie, including the 5-minute session cache: the browser must not still look signed in.
     expect(await t.session(here.get())).toBeNull();
+  });
+
+  it('lands a spent link, or one opened in another account, on the map instead of a JSON 404', async () => {
+    const here = await t.signUpVerified();
+    const other = await t.signUpVerified(new Jar(), { name: 'Bo', email: 'bo@example.com', password: 'another horse battery' });
+    const userId = (await t.session(here.get()))!.user.id;
+
+    expect((await t.post('/api/auth/delete-user', { callbackURL: DELETED }, { cookie: here.get() })).status).toBe(200);
+    const link = linkIn(await t.inbox.next());
+    // Better Auth spends the token before it compares accounts, so the owner needs a new link afterwards.
+    for (const jar of [other, here]) {
+      const res = await t.app.request(link, { headers: { cookie: jar.get() } });
+      expect(res.status).toBe(302);
+      expect(`${landing(res).pathname}${landing(res).search}`).toBe(`${DELETE_FAILED}&error=INVALID_TOKEN`);
+    }
+    expect(t.db.prepare('SELECT count(*) FROM auth_user WHERE id = ?').pluck().get(userId)).toBe(1);
+    expect(await t.session(other.get())).not.toBeNull();
   });
 });

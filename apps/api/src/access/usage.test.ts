@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createLogger } from '../obs/logger';
 import { startApp, type Jar, type TestApp } from '../testing/helpers';
 import type { Principal } from './principal';
 import { DAY_MS, createUsage, routeGroup, utcDay } from './usage';
@@ -48,6 +49,27 @@ describe('the meter', () => {
     expect(rows()[0]).toMatchObject({ key_id: '', requests: 3 });
     vi.advanceTimersByTime(60_000);
     expect(rows()[0]).toMatchObject({ requests: 3 });
+  });
+
+  it('logs a failed flush through pino and keeps the counts for the next one', () => {
+    vi.useFakeTimers({ now: NOW });
+    const lines: string[] = [];
+    const usage = createUsage(t.db, { logger: createLogger({ LOG_LEVEL: 'info', NODE_ENV: 'production' }, { write: line => lines.push(line) }) });
+    const consoleError = vi.spyOn(console, 'error');
+    const stop = usage.start();
+    usage.admit(ada, 'geo');
+    t.db.exec('ALTER TABLE usage_counter RENAME TO usage_counter_away');
+    vi.advanceTimersByTime(10_000);
+    expect(lines.map(line => JSON.parse(line))).toMatchObject([
+      { level: 50, msg: 'usage flush failed; retrying next tick', err: { message: expect.stringContaining('usage_counter') } },
+    ]);
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+
+    t.db.exec('ALTER TABLE usage_counter_away RENAME TO usage_counter');
+    vi.advanceTimersByTime(10_000);
+    expect(rows()).toMatchObject([{ route_group: 'geo', requests: 1 }]);
+    stop();
   });
 
   it('adds to what is stored rather than overwriting it', () => {

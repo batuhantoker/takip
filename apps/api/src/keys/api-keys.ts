@@ -1,4 +1,5 @@
 import type { AppDb } from '../db/app-db';
+import { createFailedLookups } from './failed-lookups';
 import type { Scope } from './scopes';
 import { keyStore, type KeyActor, type StoredKey } from './store';
 import { hashKey, isWellFormed, sameHash } from './token';
@@ -9,24 +10,28 @@ const TOUCH_EVERY_MS = 60_000;
 export type Verified =
   | { ok: true; key: StoredKey }
   | { ok: false; status: 401; error: 'invalid_api_key' }
-  | { ok: false; status: 403; error: 'account_banned' };
+  | { ok: false; status: 403; error: 'account_banned' }
+  | { ok: false; status: 429; error: 'rate_limited'; retryAfterS: number };
 
 const INVALID = { ok: false, status: 401, error: 'invalid_api_key' } as const;
 
 /**
  * API keys (backend.md §8). Lookups are cached for `ttlMs`, unknown keys included, so a revocation made
  * elsewhere applies within that time; revocations made here apply at once. last_used_at is written at
- * most once a minute per key.
+ * most once a minute per key. Database lookups that find no live key are throttled per client address.
  */
-export function createApiKeys(db: AppDb, { ttlMs = 30_000, now = () => Date.now() } = {}) {
+export function createApiKeys(db: AppDb, { ttlMs = 30_000, now = () => Date.now(), failedLookupsPerMinute = 10 } = {}) {
   const store = keyStore(db);
   const cache = new Map<string, { at: number; key: StoredKey | null }>();
   const touched = new Map<string, number>();
+  const failures = createFailedLookups({ perMinute: failedLookupsPerMinute, now });
 
-  function lookup(hash: Buffer) {
-    const id = hash.toString('base64url');
+  function cached(id: string) {
     const hit = cache.get(id);
-    if (hit && now() - hit.at < ttlMs) return hit.key;
+    return hit && now() - hit.at < ttlMs ? hit : undefined;
+  }
+
+  function load(id: string, hash: Buffer) {
     if (cache.size >= MAX_CACHED) cache.clear();
     const key = store.find(hash);
     cache.set(id, { at: now(), key });
@@ -50,12 +55,20 @@ export function createApiKeys(db: AppDb, { ttlMs = 30_000, now = () => Date.now(
   }
 
   return {
-    verify(token: string): Verified {
+    /** `ip` is the caller's resolved address, for the failed-lookup throttle. */
+    verify(token: string, ip: string): Verified {
       if (!isWellFormed(token)) return INVALID;
       const hash = hashKey(token);
-      const key = lookup(hash);
+      const id = hash.toString('base64url');
+      const hit = cached(id);
+      const waitS = hit ? 0 : failures.waitS(ip);
+      if (waitS) return { ok: false, status: 429, error: 'rate_limited', retryAfterS: waitS };
+      const key = hit ? hit.key : load(id, hash);
       const at = now();
-      if (!key || !sameHash(key.hash, hash) || key.revokedAt !== null || (key.expiresAt !== null && key.expiresAt <= at)) return INVALID;
+      if (!key || !sameHash(key.hash, hash) || key.revokedAt !== null || (key.expiresAt !== null && key.expiresAt <= at)) {
+        if (!hit) failures.record(ip);
+        return INVALID;
+      }
       // Better Auth lifts an expired ban only at sign-in, so the end date is checked here.
       if (key.banned && (key.banExpires === null || key.banExpires > at)) return { ok: false, status: 403, error: 'account_banned' };
       touch(key, at);

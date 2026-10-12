@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { loadEnv } from '../env';
+import { parseCidr } from '../net/cidr';
 import { startApp, type TestApp } from '../testing/helpers';
 import { createMetrics, type Metrics } from './metrics';
-import { parseCidr, peerAllowList } from './peer-allow';
+import { peerAllowList } from './peer-allow';
 import { routeGroup } from './route-group';
 
 let t: TestApp;

@@ -41,7 +41,7 @@ export default function AlertControls({
   filtersActive, list, clearFilters,
 }: AlertControlsProps) {
   const tabs: { id: Tab; label: string; count: number }[] = [
-    { id: 'all', label: 'ALL', count: news.length + quakes.length + warnings.length },
+    { id: 'all', label: 'ALL', count: news.length + quakes.length + rightNow.severe },
     { id: 'news', label: 'NEWS', count: news.length },
     { id: 'warnings', label: 'WARN', count: warnings.length },
     { id: 'quakes', label: 'QUAKE', count: quakes.length },
@@ -49,7 +49,7 @@ export default function AlertControls({
   ];
 
   const nowStats: { key: string; label: string; value: string; color: string; title: string; onClick: () => void }[] = [
-    { key: 'severe', label: 'SEVERE', value: String(rightNow.severe), color: SEVERITY_COLORS.high, title: 'Warnings in force that their issuer graded severe or extreme', onClick: () => { selectTab('warnings'); setQuery(''); } },
+    { key: 'severe', label: 'SEVERE', value: String(rightNow.severe), color: SEVERITY_COLORS.high, title: 'Warnings in force graded severe or extreme (WMO: Extreme only)', onClick: () => { selectTab('warnings'); setQuery(''); } },
     { key: 'rocket', label: 'ROCKET', value: String(rightNow.rockets), color: ALERT_KINDS.rocket.color, title: 'Reports of rockets or missiles in the last six hours', onClick: () => { selectTab('news'); setNewsKind(newsKind === 'rocket' ? null : 'rocket'); } },
     { key: 'breaking', label: 'BREAKING', value: String(rightNow.breaking), color: ACCENT, title: 'Reports a channel flagged as breaking in the last six hours', onClick: () => { selectTab('news'); setNewsKind(newsKind === 'breaking' ? null : 'breaking'); } },
     ...(rightNow.biggest ? [{

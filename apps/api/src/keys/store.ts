@@ -38,11 +38,6 @@ const COLUMNS = `k.key_id AS id, k.name, k.prefix, k.scopes, k.created_at AS cre
 
 const view = ({ scopes, ...row }: Row): ApiKeyView => ({ ...row, scopes: JSON.parse(scopes) as Scope[] });
 
-/** For account deletion (auth.ts). */
-export function deleteUserKeys(db: AppDb, userId: string) {
-  db.prepare('DELETE FROM api_key WHERE user_id = ?').run(userId);
-}
-
 /** The api_key table. Creation and revocation write their audit_event in the same transaction. */
 export function keyStore(db: AppDb) {
   const insert = db.prepare(`

@@ -38,9 +38,10 @@ export function useAlertList({ tab, bloc, newsKind, q, activeThread, news, quake
     if (tab === 'feeds') return [];
     /* Thread and perspective filters are about reports; warnings and quakes
        step aside while they apply. In the mixed list a severe warning leads
-       its hour, since that is the one a reader has to act on. */
+       its hour, since that is the one a reader has to act on. Lesser grades
+       stay on the warnings tab: a few hundred of them would bury the news. */
     if (newsFiltersActive) return visibleNews;
-    return [...visibleNews, ...visibleQuakes, ...visibleWarnings]
+    return [...visibleNews, ...visibleQuakes, ...visibleWarnings.filter(w => w.severity === 'high')]
       .sort((a, b) => b.ts - a.ts || urgency(b) - urgency(a));
   }, [tab, visibleNews, visibleQuakes, visibleWarnings, newsFiltersActive]);
 

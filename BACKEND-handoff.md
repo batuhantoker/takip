@@ -374,6 +374,17 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
   - The old `/api/arcgis` would fetch any URL a caller named. The v1 route pins https and the ArcGIS REST shape, and `safeFetch` refuses private and reserved addresses on every hop.
   - `ssrf-guard`, `orbit` and `market-tickers` moved to `@takip/connectors`.
   - `/api/satellites/orbit` is still called from `bind-satellite-pick.ts`, through a rewrite.
+- **H** (`d69bf74`): privacy.
+  - `GET /api/v1/account/export`: session only, recent sign-in, no secrets.
+  - Deletion goes through `privacy/erase.ts`: one list of owned tables (a new user-data table adds a line). `audit_event` rows keep their ids but lose emails, IPs and user agents; a `user.delete` row records who deleted the account.
+  - The "Your data" section in Account settings. Deletion links opened elsewhere land on the map.
+  - `docs/privacy-draft.md` is for the user to rewrite (19 `TODO(user)`).
+  - Verified live with a throwaway account, removed afterwards.
+- **A2** (`1deb308`): hardening.
+  - `/api/replay/*`: its own buckets (burst 200, refill 2 × the plan rate), metered as `replay`. API keys are accepted, and `read:tracks` is needed when a key has scopes.
+  - Bad API keys are throttled per address block (10 a minute).
+  - The daily `usage.prune` job keeps usage for 400 days (accounts and keys) and 35 days (anonymous); set by `USAGE_RETENTION_DAYS` and `USAGE_ANON_RETENTION_DAYS`.
+  - `app.onError` returns `{error:'internal_error', request_id}`. There's one CIDR parser, `net/cidr.ts`.
 - The dev DB is at `user_version` 6.
 
 ### Landing branches here
@@ -381,6 +392,12 @@ Several sessions share one working copy, so `git merge` refuses whenever a merge
 - The dry run lists every file as clean, 3-way merged or conflicting, and writes conflict files with markers to a temp folder.
 - Resolve them into a folder and pass `--resolved=<dir>`, then `--apply`. The commit gets the branch's content; other sessions' edits stay unstaged in the working copy.
 - `--delete-dirty` lets a branch delete files that others have edited. Check those edits first.
+
+### Waiting on the user
+1. **`stealthFetch`:** drop the fake browser user agents and the made-up `X-Forwarded-For` sent to adsbdb, hexdb and airplanes.live? The lead recommends yes.
+2. **Account deletion with an active paid subscription:** refuse it until the subscription is cancelled (recommended), cancel at the provider, or document it.
+3. **OAuth tokens** are stored in plain text by Better Auth, and nothing of ours uses them: turn on `encryptOAuthTokens` (recommended).
+4. **Audit log retention period:** needed for the privacy text.
 
 ### Follow-ups
 - **Spoofable api IP without nginx.** Next's external rewrites pass the client's `X-Forwarded-For` through unchanged (httpxy without `xfwd`). In dev, or the Docker image without nginx, a client can choose its api IP. Fix: nginx in front, as planned, or a `src/proxy.ts` that strips forwarding headers on `/api/(auth|v1|admin|replay)`.

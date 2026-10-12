@@ -81,6 +81,10 @@ describe('capPoint', () => {
 });
 
 describe('mapSwicAlert', () => {
+  it('grades only Extreme as high', () => {
+    expect(mapSwicAlert({ ...SB, s: 4 }, { lat: -9, lng: 160 }).severity).toBe('high');
+  });
+
   it('maps a placed alert', () => {
     expect(mapSwicAlert(SB, { lat: -9, lng: 160 }, MEMBERS.get('079'))).toEqual({
       id: `swic-${SB.id}`,
@@ -88,7 +92,7 @@ describe('mapSwicAlert', () => {
       category: 'weatherAlerts',
       type: 'Strong Wind',
       icon: 'weather',
-      severity: 'high',
+      severity: 'medium',
       lat: -9,
       lng: 160,
       date: '2026-10-12T19:42:24.000Z',
@@ -112,6 +116,11 @@ describe('countryLevelEvents', () => {
       date: '2026-10-12T19:41:15.000Z',
       area: 'Country-level, areas not mapped: Renqiu; Zhenfeng',
     });
+  });
+
+  it('grades high only when one of its alerts is Extreme', () => {
+    expect(countryLevelEvents([CN, { ...CN, id: 'cn-2', s: 3 }], MEMBERS)[0].severity).toBe('high');
+    expect(countryLevelEvents([{ ...CN, s: 3 }], MEMBERS)[0].severity).toBe('medium');
   });
 
   it('drops alerts from a member it cannot place at all', () => {
