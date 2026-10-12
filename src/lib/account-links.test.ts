@@ -30,6 +30,14 @@ describe('readAccountLink', () => {
     expect(at('/?account=sign-in')).toEqual({ link: { kind: 'sign-in' }, cleanUrl: '/' });
   });
 
+  it('reads a deletion link that did not work, with its error code', () => {
+    expect(at('/?account=delete-failed&error=FAILED_TO_GET_USER_INFO')).toEqual({
+      link: { kind: 'delete-failed', error: 'FAILED_TO_GET_USER_INFO' },
+      cleanUrl: '/',
+    });
+    expect(at('/?account=delete-failed')).toEqual({ link: { kind: 'delete-failed', error: '' }, cleanUrl: '/' });
+  });
+
   it('reads a failed social sign-in with its error code', () => {
     expect(at('/?account=sign-in-failed&error=account_not_linked&error_description=x')).toEqual({
       link: { kind: 'sign-in-failed', error: 'account_not_linked' },
