@@ -5,6 +5,17 @@ import type { Resolver } from './resolver';
 
 const BATCH = 5000;
 
+/**
+ * Which source wins when several describe one event (same_as). resolveCanonical recomputes every group
+ * at once from the list it is given, so every importer passes this one.
+ */
+export const CANONICAL_ORDER = ['wac1914', 'cow-interstate', 'cow-extra', 'usgs', 'noaa-hazards', 'ww1-wiki', 'wikidata-battles'];
+
+export function resolveCanonical(ctx: Ctx) {
+  const id = ctx.catalog.prepare(`SELECT source_id FROM meta_source WHERE code = ?`).pluck();
+  return ctx.events.resolveCanonical(CANONICAL_ORDER.map(code => id.get(code) as number | undefined).filter((s): s is number => s !== undefined));
+}
+
 export const validLonLat = (lon: number | null, lat: number | null) =>
   lon !== null && lat !== null && Math.abs(lon) <= 180 && Math.abs(lat) <= 90 && !(lon === 0 && lat === 0);
 

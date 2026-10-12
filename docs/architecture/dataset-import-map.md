@@ -167,6 +167,7 @@ From `Global Trade War 2018 - Present /tariff_timeline.csv` (141 rows):
 | `share-…-drinking-water….csv` | `owid-water` | `owid:water_safely_managed` | resolved by **name** (the file has no code column) | Null values are not stored. "(WHO)" and "(SDG)" aggregates → region groups. |
 | Mental health CSV | `owid-mental` | Block 1: 7 prevalence metrics. Block 2: `prev_male`, `prev_female`, `population`. Block 3: `suicide_rate`, `depressive_rate`. Block 4: `depressive_count`. | polity / region group | **Split at the repeated header rows** (6470, 54278, 102086). BCE years (e.g. `10000 BCE`) become negative years with year prec. Population is taken from block 2 only. "Saint Barthlemy" is fixed by an alias. |
 | `International_IQ.csv` | `iq-2023` | `iq:average`, `iq:participants` | resolved by name | Undated. `t` = the dataset `as_of` with prec 0. The one row with no country is rejected. Licence and methodology unverified; flagged `internal` in `meta.access_policy` until reviewed. |
+| OWID grapher `weekly-covid-deaths-per-million-people`, `weekly-covid-cases-per-million-people`, `share-people-vaccinated-covid` (`fetch.ts covid`) | `owid-covid` | `owid:covid_weekly_deaths_pm`, `covid_weekly_cases_pm`, `covid_vaccinated` | polity(iso3/owid); OWID aggregates → region groups | Granularity `day`, day prec. The files repeat a rolling weekly sum every day, so each week keeps its last row, dated to the week's Sunday (WHO weeks end Sunday). WHO COVID-19 Dashboard and OWID vaccinations, CC BY 4.0. |
 
 ## 4. Features and places
 
@@ -219,6 +220,14 @@ Where `tools/import/` departs from the map above, and why:
 - **OWID:** rows without a code become region groups, including England, Scotland, Wales and Northern Ireland, which aren't separate polities.
 - **IQ:** visible to every tier while its terms are pending, like every other source, rather than `internal`.
 
+- **Second batch (`tools/import/fetch.ts` downloads into `docs/data/raw-2026-10-12-more/`, then `npm run import -- seed <dataset>`):**
+  - `wikidata-battles`: battles, naval battles, skirmishes, engagements (`battle`) and sieges (`battle.siege`) with a date and coordinates. Own coordinates are exact; the location item's are area. The start is the finer of point in time and start time. Battles under WWI or WWII (through any front or campaign) get `part_of` the WAC war; ones whose enwiki article matches a `ww1-wiki` row are `same_as` it, and `ww1-wiki` stays canonical.
+  - `wikidata-politics`: treaties (`politics.treaty`) at their own, signing or location coordinates, dated by point in time, then inception, then start time; coups (`politics.coup`) at their own coordinates, else the country's capital (city), else the location (approximate).
+  - Items without an English label use the first of mul, fr, de, es, it, pt, pl, ru.
+  - `noaa-hazards`: NCEI significant earthquakes, tsunami events (validity 2–4, with confidence 0.5/0.8/1) and volcanic eruptions. Pre-1900 epicentres are area precision. Linked events are `related`; an instrumental quake within 120 s and 150 km of a `usgs` quake is `same_as` it, and USGS wins. After `ingest backfill usgs`, re-run `import noaa-hazards --force` to link the new rows.
+  - `sipri-nuclear`: kind `nuclear.test`, or `nuclear.combat` for Hiroshima and Nagasaki; magnitude is the upper yield in kt. The key is `id_no:date`, because one `id_no` repeats.
+  - `owid-longrun`: 8 grapher CSVs (`OWID_CHARTS` in `fetch.ts`) as `owid:gdp_pc_maddison`, `electdem_vdem`, `civlibs_vdem`, `child_mortality`, `literacy`, `schooling_years`, `co2_pc` and `fertility_hist`.
+  - `resolveCanonical` recomputes every `same_as` group from one list, so importers pass `CANONICAL_ORDER` (events.ts).
 - **Serving, until the MVT event tiles of replay-database.md §8.4:**
   - `GET /api/replay/history/events?bbox=w,s,e,n&from=&to=&z=&families=` returns GeoJSON in epoch seconds. When a family has more than 2,000 events in the view, it comes back as counted cells: a 12-per-tile grid × 10 time bins, from `EventStore.cells`. GTD is usually the family that gets merged.
   - `GET /api/replay/history/events/:id` returns one event with its source's attribution.

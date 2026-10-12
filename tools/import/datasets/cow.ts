@@ -5,7 +5,7 @@ import { GeoPrec, type EventEntityRow } from '@takip/db';
 import { type Ctx, type Dataset, importDataset, mergePublish, type Reporter, RAW, sourceId } from '../context';
 import { num, readCsv, text } from '../csv';
 import { type Stated, ymd } from '../dates';
-import { anchor, EventBatch } from '../events';
+import { anchor, EventBatch, resolveCanonical } from '../events';
 import { Resolver } from '../resolver';
 
 const DIR = join(RAW, 'wars');
@@ -304,7 +304,7 @@ function linkWac(ctx: Ctx, ds: Dataset, extraSrc: number) {
       n[rel]++;
     }
   })();
-  const canonical = ctx.events.resolveCanonical([wac, ds.sourceId, extraSrc]);
+  const canonical = resolveCanonical(ctx);
   // Canonical ids changed after the batches rebuilt the bins; only canonical events are counted.
   ctx.events.rebuildTimeline([ctx.events.family('war.interstate')]);
   ds.report.extra.links = { ...n, canonical_updated: canonical };

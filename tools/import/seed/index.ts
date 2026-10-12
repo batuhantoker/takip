@@ -32,6 +32,7 @@ const LICENCES = [
   { code: 'glwd-terms', name: 'GLWD: free for non-commercial use', url: 'https://www.worldwildlife.org/pages/global-lakes-and-wetlands-database', commercial: 0, redistribution: 'attribution' },
   // "Reuse and adaptation encouraged for scholarly work; commercial use strictly prohibited; inform the authors of changes."
   { code: 'stanford-shl-nc', name: 'Stanford Spatial History Lab: scholarly reuse, no commercial use', url: 'https://web.stanford.edu/group/spatialhistory/static/publications/pub51.html', commercial: 0, redistribution: 'attribution' },
+  { code: 'cc0-1.0', name: 'Creative Commons CC0 1.0 (public domain dedication)', url: 'https://creativecommons.org/publicdomain/zero/1.0/', commercial: 1, redistribution: 'public_domain' },
   { code: 'unknown', name: 'No licence stated', url: null, commercial: null, redistribution: 'unknown' },
 ] as const;
 
@@ -60,6 +61,13 @@ export const SOURCES: SourceSeed[] = [
   { code: 'unesco-whc', name: 'UNESCO World Heritage List 2021', owner: 'UNESCO World Heritage Centre', url: 'https://whc.unesco.org/en/syndication', licence: 'cc-by-sa-3.0-igo' },
   { code: 'glwd', name: 'Global Lakes and Wetlands Database, level 1', owner: 'WWF / University of Kassel', url: 'https://www.worldwildlife.org/pages/global-lakes-and-wetlands-database', licence: 'glwd-terms' },
   { code: 'ww2-borders', name: 'European Borders, World War II (1938–1945)', owner: 'Stanford Spatial History Lab (M. De Groot)', url: 'https://web.stanford.edu/group/spatialhistory/static/publications/pub51.html', licence: 'stanford-shl-nc', events: true },
+  { code: 'owid-covid', name: 'OWID: COVID-19 cases, deaths and vaccinations (weekly)', owner: 'World Health Organization via Our World in Data', url: 'https://ourworldindata.org/coronavirus', licence: 'cc-by-4.0' },
+  { code: 'noaa-hazards', name: 'NCEI significant earthquakes, tsunamis and volcanic eruptions', owner: 'NOAA National Centers for Environmental Information', url: 'https://www.ngdc.noaa.gov/hazel/', licence: 'public-domain', events: true },
+  { code: 'wikidata-battles', name: 'Wikidata: battles and sieges', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q178561', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-politics', name: 'Wikidata: treaties and coups', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q131569', licence: 'cc0-1.0', events: true },
+  // SIPRI report (Bergkvist and Ferm, 2000) via TidyTuesday; no licence stated, shown while terms are pending.
+  { code: 'sipri-nuclear', name: 'Nuclear explosions 1945–1998', owner: 'SIPRI / FOA, via TidyTuesday', url: 'https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-08-20', licence: 'unknown', events: true },
+  { code: 'owid-longrun', name: 'OWID: long-run country indicators (Maddison, V-Dem, Gapminder, UNESCO, GCB)', owner: 'Our World in Data', url: 'https://ourworldindata.org/', licence: 'cc-by-4.0' },
 ];
 
 const TIERS = ['anon', 'free', 'paid', 'internal'] as const;
@@ -85,6 +93,13 @@ export const KINDS: EventKindInput[] = [
   { code: 'cyber.c2', family: 'cyber' },
   { code: 'news.report', family: 'news' },
   { code: 'gdelt.event', family: 'news' },
+  { code: 'battle.siege', family: 'conflict', parent: 'battle' },
+  { code: 'hazard.tsunami', family: 'hazard' },
+  { code: 'hazard.volcano', family: 'hazard' },
+  { code: 'politics.treaty', family: 'politics' },
+  { code: 'politics.coup', family: 'politics' },
+  { code: 'nuclear.test', family: 'nuclear' },
+  { code: 'nuclear.combat', family: 'nuclear' },
 ];
 
 export const ROLES = [

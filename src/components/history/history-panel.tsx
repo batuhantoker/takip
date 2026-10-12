@@ -12,12 +12,14 @@ import { useHistoryTick } from './use-history';
 
 /** What each event family holds, and the years its sources cover. */
 const FAMILY_NOTES: Record<string, string> = {
-  conflict: 'Wars, battles and armed conflicts · 1816–2025',
+  conflict: 'Wars, battles, sieges and armed conflicts · 3000 BCE–2025',
   terror: 'Terrorist attacks (GTD, non-commercial use) · 1970–2017',
   territorial: 'Territorial claims and changes · 1816–2018',
   econ: 'Tariffs of the trade war · 2018–2025',
   heritage: 'World Heritage sites in danger',
-  hazard: 'Earthquakes recorded from USGS',
+  hazard: 'Significant earthquakes, tsunamis and eruptions (NOAA) from 2150 BCE, plus recent USGS quakes',
+  politics: 'Treaties, where they were signed, and coups (Wikidata)',
+  nuclear: 'Nuclear explosions (SIPRI) · 1945–1998',
 };
 
 /** `view` also colours countries by that metric, at `speed` (simulated seconds per second). */

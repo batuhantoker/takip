@@ -9,6 +9,7 @@ import {
   importOwidEducation,
   importOwidLifeExpectancy,
   importOwidLifeExpectancyHmd,
+  importOwidLongRun,
   importOwidMental,
   importOwidWater,
 } from './owid';
@@ -17,7 +18,11 @@ import { importUcdp } from './ucdp';
 import { importWac1914 } from './wac1914';
 import { importWdi } from './wdi';
 import { importWw1 } from './ww1';
+import { importNoaa } from './noaa';
+import { importNuclear } from './nuclear';
+import { importWikidataBattles, importWikidataPolitics } from './wikidata';
 import { importWw2Borders } from './ww2';
+import { importOwidCovid } from './owid-covid';
 
 /** Run order matters: later importers link to events earlier ones loaded (COW → WAC same_as, WW1 → WAC part_of). */
 export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
@@ -41,4 +46,10 @@ export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
   'unesco-whc': importUnesco,
   glwd: importGlwd,
   'ww2-borders': importWw2Borders,
+  'owid-covid': importOwidCovid,
+  'wikidata-battles': importWikidataBattles,
+  'wikidata-politics': importWikidataPolitics,
+  'noaa-hazards': importNoaa,
+  'sipri-nuclear': importNuclear,
+  'owid-longrun': importOwidLongRun,
 };

@@ -154,6 +154,11 @@ Open data rarely includes true network topology, such as which substation feeds 
 | ACLED | Conflict events | Paid |
 | Global Terrorism Database | Terrorist attacks | NC |
 | Stanford Spatial History Lab, European Borders WWII (already in) | Every European polity's borders and war status at each month's end, Feb 1938 – May 1945, plus 81 dated annexations; the History tab's wartime borders. Commercial use prohibited; inform the authors of changes | NC |
+| Wikidata battles and sieges (already in) | 17k dated battles and sieges with coordinates, 3000 BCE to today; WWI and WWII battles link to their war. CC0 | OK |
+| Wikidata treaties and coups (already in) | 1.7k treaties at their signing place and 460 coups at the capital. CC0 | OK |
+| NOAA NCEI Natural Hazards (already in) | Significant earthquakes (2150 BCE on), tsunamis and volcanic eruptions, with deaths and damage. US government, public domain | OK |
+| SIPRI nuclear explosions 1945–1998, via TidyTuesday (already in) | 2,051 nuclear tests and the two wartime uses, with site and yield. No licence stated | Verify |
+| Our World in Data long-run series (already in) | Maddison GDP per person from 1 CE, V-Dem democracy and human rights from 1789, child mortality, literacy, schooling, CO₂ and fertility. CC BY 4.0 | OK |
 | ReliefWeb | Humanitarian reports | OK\* |
 | HDX | Humanitarian datasets | Varies |
 | US State Dept, UK FCDO | Travel advisories | OK |

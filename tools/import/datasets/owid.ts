@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { Prec } from '@takip/core/time';
 import type { MetricInput } from '@takip/db';
-import { type Ctx, type DatasetSpec, importDataset, RAW } from '../context';
+import { type Ctx, type DatasetSpec, importDataset, RAW, RAW_MORE } from '../context';
 import { csvRecords, csvRows, num, text } from '../csv';
 import { utc } from '../dates';
 import { normName } from '../names';
@@ -31,7 +31,7 @@ export function owidSubject(r: Resolver, sourceId: number, name: string, code: s
 
 type Column = Omit<MetricInput, 'granularity'> & { column: string };
 
-async function owidLong(ctx: Ctx, spec: DatasetSpec, files: { path: string; columns: Column[]; codeColumn?: string; nameColumn?: string }[]) {
+async function owidLong(ctx: Ctx, spec: DatasetSpec, files: { path: string; columns: Column[]; codeColumn?: string; nameColumn?: string; yearColumn?: string }[]) {
   await importDataset(ctx, spec, async ds => {
     const r = new Resolver(ctx);
     const batch = new SeriesBatch(ctx, ds);
@@ -41,7 +41,7 @@ async function owidLong(ctx: Ctx, spec: DatasetSpec, files: { path: string; colu
         if (row.__header__) continue;
         ds.report.rows++;
         const name = text(row[file.nameColumn ?? 'Entity']);
-        const year = owidYear(row.Year);
+        const year = owidYear(row[file.yearColumn ?? 'Year']);
         if (!name || year === null) {
           ds.report.reject('no entity or year', JSON.stringify(row).slice(0, 120));
           continue;
@@ -254,3 +254,24 @@ export async function importIq(ctx: Ctx) {
     return batch.finish();
   });
 }
+
+const LONG = (slug: string) => join(RAW_MORE, 'owid', `${slug}.csv`);
+
+/** Grapher CSVs (fetch.ts owid) that colour countries well before WDI's 1960, from 1 CE for Maddison GDP. */
+const LONG_RUN: { slug: string; column: Column }[] = [
+  { slug: 'gdp-per-capita-maddison-project-database', column: { column: 'gdp_per_capita', code: 'owid:gdp_pc_maddison', name: 'GDP per person, long run (Maddison)', unit: 'international-$ in 2011 prices', agg: 'mean', topic: 'economy' } },
+  { slug: 'electoral-democracy-index', column: { column: 'electdem_vdem__estimate_best', code: 'owid:electdem_vdem', name: 'Electoral democracy index (V-Dem)', unit: 'index 0–1', agg: 'mean', topic: 'politics' } },
+  { slug: 'human-rights-index-vdem', column: { column: 'civ_libs_vdem__estimate_best', code: 'owid:civlibs_vdem', name: 'Human rights index (V-Dem)', unit: 'index 0–1', agg: 'mean', topic: 'politics' } },
+  { slug: 'child-mortality', column: { column: 'child_mortality_rate', code: 'owid:child_mortality', name: 'Child mortality (deaths before age 5)', unit: 'deaths per 100 live births', agg: 'mean', topic: 'health' } },
+  { slug: 'cross-country-literacy-rates', column: { column: 'literacy_rate', code: 'owid:literacy', name: 'Literacy rate, long run', unit: '%', agg: 'mean', topic: 'education' } },
+  { slug: 'mean-years-of-schooling-long-run', column: { column: 'mf_youth_and_adults__15_64_years__average_years_of_education', code: 'owid:schooling_years', name: 'Average years of schooling (ages 15–64)', unit: 'years', agg: 'mean', topic: 'education' } },
+  { slug: 'co-emissions-per-capita', column: { column: 'emissions_total_per_capita', code: 'owid:co2_pc', name: 'CO₂ emissions per person', unit: 'tonnes per person', agg: 'mean', topic: 'environment' } },
+  { slug: 'children-born-per-woman', column: { column: 'fertility_rate_hist', code: 'owid:fertility_hist', name: 'Fertility rate, long run', unit: 'live births per woman', agg: 'mean', topic: 'people' } },
+];
+
+export const importOwidLongRun = (ctx: Ctx) =>
+  owidLong(
+    ctx,
+    { source: 'owid-longrun', version: VERSION, asOf: VERSION, files: LONG_RUN.map(l => LONG(l.slug)), importerVersion: '1' },
+    LONG_RUN.map(l => ({ path: LONG(l.slug), nameColumn: 'entity', codeColumn: 'code', yearColumn: 'year', columns: [l.column] })),
+  );

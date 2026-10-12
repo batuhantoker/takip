@@ -9,6 +9,7 @@ import { type CatalogueMetric, msAt, type Reading, type Scale, type SeriesPayloa
 export const VIEW_GROUPS: { label: string; views: { code: string; label: string }[] }[] = [
   { label: 'Health', views: [
     { code: 'owid:le_0', label: 'Life expectancy' },
+    { code: 'owid:child_mortality', label: 'Child mortality, since 1751' },
     { code: 'wdi:SP.DYN.IMRT.IN', label: 'Infant mortality' },
     { code: 'owid:water_safely_managed', label: 'Safe drinking water' },
     { code: 'owid:prev_depression', label: 'Depression' },
@@ -28,8 +29,13 @@ export const VIEW_GROUPS: { label: string; views: { code: string; label: string 
     { code: 'owid:conflict_deaths_all', label: 'Deaths in conflicts' },
     { code: 'wdi:MS.MIL.XPND.GD.ZS', label: 'Military spending' },
   ] },
+  { label: 'Politics', views: [
+    { code: 'owid:electdem_vdem', label: 'Electoral democracy, since 1789' },
+    { code: 'owid:civlibs_vdem', label: 'Human rights, since 1789' },
+  ] },
   { label: 'Economy', views: [
     { code: 'wdi:NY.GDP.PCAP.KD', label: 'GDP per person' },
+    { code: 'owid:gdp_pc_maddison', label: 'GDP per person, since 1 CE' },
     { code: 'wdi:FP.CPI.TOTL.ZG', label: 'Inflation' },
   ] },
   { label: 'Education', views: [

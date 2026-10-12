@@ -13,6 +13,8 @@ import {
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 export const RAW = join(REPO, 'docs/data/raw-2026-10-12-new');
+/** Keyless downloads written by fetch.ts. */
+export const RAW_MORE = join(REPO, 'docs/data/raw-2026-10-12-more');
 
 /** catalog.db is shared with the ingest worker: keep each transaction to about this many rows (§4.2). */
 export const CATALOG_BATCH = 2000;

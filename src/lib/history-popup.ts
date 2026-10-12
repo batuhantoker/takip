@@ -9,7 +9,9 @@ export const HISTORY_FAMILIES: Record<string, { color: string; label: string; ma
   territorial: { color: '#B388FF', label: 'Territory' },
   econ: { color: '#00E5A0', label: 'Trade', magnitude: 'TRADE ($BN)' },
   heritage: { color: '#40C4FF', label: 'Heritage' },
-  hazard: { color: '#F9A825', label: 'Earthquakes', magnitude: 'M' },
+  hazard: { color: '#F9A825', label: 'Natural hazards', magnitude: 'M' },
+  politics: { color: '#FF80AB', label: 'Treaties and coups' },
+  nuclear: { color: '#C6FF00', label: 'Nuclear explosions', magnitude: 'YIELD (KT)' },
 };
 export const HISTORY_FALLBACK_COLOR = '#B0BEC5';
 
@@ -27,6 +29,13 @@ const KINDS: Record<string, string> = {
   'econ.tariff': 'Tariff',
   'status.in_danger': 'World Heritage in danger',
   'hazard.quake': 'Earthquake',
+  'battle.siege': 'Siege',
+  'hazard.tsunami': 'Tsunami',
+  'hazard.volcano': 'Volcanic eruption',
+  'politics.treaty': 'Treaty',
+  'politics.coup': 'Coup',
+  'nuclear.test': 'Nuclear test',
+  'nuclear.combat': 'Nuclear attack',
 };
 
 const PLACEMENT: Record<number, string> = {
