@@ -340,3 +340,36 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
 - Run: `npm run dev`, then http://localhost:3000. The admin console is at `/admin` (role + 2FA + code).
 - Test: `npx vitest run apps/api` · `npm run typecheck -w @takip/api` · `npx tsc --noEmit` (filter out other sessions' files) · `npx eslint <paths>`.
 - Provider setup notes and redirect URIs: `.env.example` (Accounts section). Configured locally: Google, Facebook, GitHub.
+
+## 8. Progress log (lead, 2026-10-12)
+
+### Landed on `ui/shell-reorg`
+- **G-lite** (`84d206d`): request ids, pino request logs (dev: one short line each), internal `/metrics` (loopback or `METRICS_ALLOW` only, 404 to forwarded requests), `.github/workflows/ci.yml` gating `docker-publish.yml`. Lint is scoped to `apps packages tools` until the web app's 428 existing errors are cleared.
+- **C, part 1** (`d290a03`, `395e5a1`):
+  - `/api/v1` on `OpenAPIHono`; spec at `/api/v1/openapi.json`, Scalar docs at `/api/v1/docs` (script pinned to 1.72.1).
+  - `@takip/connectors` holds `http-json`, `source-cache` and `nominatim`; `src/lib/{httpJson,sourceCache,nominatim}.ts` are shims. `OSIRIS_UA` stays aliased in the shim until the OSIRIS → TAKIP rename is committed.
+  - Ported, with parity tests, then deleted from `web`: `geo/search`, `geo/reverse` and `directions`. `/api/geo/reverse` is still called from `page.tsx` and reaches v1 through a `next.config.ts` rewrite.
+- **A** (`87ceaa6`):
+  - `Principal` carries `ip`. Client IP comes from the socket peer, and `X-Forwarded-For` is trusted only from `TRUSTED_PROXIES` (default loopback); `CLOUDFLARE_EDGE` is off.
+  - Token buckets per principal on `/api/v1/*` (one second of burst). Daily quotas for keys, and a usage meter flushed to `usage_counter` every 10 s. `GET /api/v1/usage`.
+  - Migrations 2 (`usage_counter`) and 3 (§6 seeds: free gets a small API, pro gets `ai.hosted`). Tested on a copy of the dev DB, which is now at `user_version` 4.
+  - Web `getClientIp` trusts one hop by default (`TRUSTED_PROXY_HOPS`, `CLIENT_IP_HEADER`).
+- osiris-92's replay routes (`/api/replay/*`) and the Sources admin page are mounted, but uncommitted along with the rest of the data-platform work.
+
+### Landing branches here
+Several sessions share one working copy, so `git merge` refuses whenever a merged file has someone's uncommitted edits. Use `python3 tools/land-branch.py <branch> "<message>"`:
+- The dry run lists every file as clean, 3-way merged or conflicting, and writes conflict files with markers to a temp folder.
+- Resolve them into a folder and pass `--resolved=<dir>`, then `--apply`. The commit gets the branch's content; other sessions' edits stay unstaged in the working copy.
+- `--delete-dirty` lets a branch delete files that others have edited. Check those edits first.
+
+### Follow-ups
+- **Spoofable api IP without nginx.** Next's external rewrites pass the client's `X-Forwarded-For` through unchanged (httpxy without `xfwd`). In dev, or the Docker image without nginx, a client can choose its api IP. Fix: nginx in front, as planned, or a `src/proxy.ts` that strips forwarding headers on `/api/(auth|v1|admin|replay)`.
+- **Replay rate limits.** `/api/replay/*` is unlimited. Before the replay UI ships it needs its own bucket with a burst allowance: a viewport change fetches 9–27 chunks, and anon `web.rps` is 10 with one second of burst. nginx should also cache sealed chunks.
+- **Usage meter:**
+  - nothing prunes `usage_counter`;
+  - bytes are counted only when `Content-Length` is set;
+  - the flush logs through `console.error`, not pino;
+  - the CIDR parsing is duplicated in `access/client-ip.ts` and `obs/peer-allow.ts`.
+- **Errors print twice** (Hono's default `onError` and pino); set `app.onError`.
+- **Region-dossier port** is blocked on another session's uncommitted FCDO/UNHCR changes to that route.
+- **CI test gate** fails on two tests outside the backend: `src/app/api/cctv/route.test.ts`, whose `writeSnapshot()` ignores the `…_CCTV_SNAPSHOT=off` env and writes `./off`, and `src/lib/oi/context.test.ts`.
