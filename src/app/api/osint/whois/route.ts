@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { safeFetch, isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { matchExact, type SanctionEntry } from '@/lib/sanctions';
+import { reconGate } from '@/lib/recon-gate';
 
 // WHOIS + Domain Intelligence via RDAP (free, standardized).
 // Cross-checks any registrant / org names returned by RDAP against the
@@ -8,6 +9,8 @@ import { matchExact, type SanctionEntry } from '@/lib/sanctions';
 // metadata (still keyless — the SDN snapshot is sourced from the open
 // OpenSanctions mirror).
 export async function GET(req: Request) {
+  const denied = await reconGate(req, 'network');
+  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const domain = searchParams.get('domain');
   if (!domain) return NextResponse.json({ error: 'Missing domain parameter' }, { status: 400 });

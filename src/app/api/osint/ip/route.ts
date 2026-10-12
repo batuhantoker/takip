@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { matchExact, type SanctionEntry } from '@/lib/sanctions';
+import { reconGate } from '@/lib/recon-gate';
 
 // IP Geolocation + Reputation — combines multiple free sources.
 // Cross-checks the ASN owner / ISP / org strings against the OFAC SDN
 // list so an IP routed via a sanctioned operator surfaces a hit.
 export async function GET(req: Request) {
+  const denied = await reconGate(req, 'network');
+  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const ip = searchParams.get('ip');
   if (!ip) return NextResponse.json({ error: 'Missing ip parameter' }, { status: 400 });

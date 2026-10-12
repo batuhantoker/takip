@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PhoneNumberUtil, PhoneNumberFormat } from 'google-libphonenumber';
+import { reconGate } from '@/lib/recon-gate';
 
 const phoneUtil = PhoneNumberUtil.getInstance();
 
@@ -97,6 +98,8 @@ const NANP_COORDS: Record<string, { lat: number, lng: number }> = {
 };
 
 export async function GET(req: Request) {
+  const denied = await reconGate(req, 'people');
+  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const number = searchParams.get('number');
 

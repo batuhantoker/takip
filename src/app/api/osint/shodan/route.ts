@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
+import { reconGate } from '@/lib/recon-gate';
 
 export async function GET(req: Request) {
+  const denied = await reconGate(req, 'network');
+  if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const ip = searchParams.get('ip');
 
