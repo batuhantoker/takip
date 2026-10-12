@@ -244,11 +244,17 @@ export function createWorkspaceSession({ api = workspacesApi(), parts = workspac
 
     /** The first-sign-in offer: imports once per device, and becomes the current workspace. */
     async acceptImport() {
-      update({ offerImport: false });
       const pending = importOnce?.();
-      if (!pending) return null;
+      if (!pending) {
+        update({ offerImport: false });
+        return null;
+      }
       const { data, failure } = await pending;
-      if (!data) return failure;
+      if (!data) {
+        importOnce = createImporter(storage, (name, state) => api.create(name, state));
+        return failure;
+      }
+      update({ offerImport: false });
       becomeCurrent(data, data.state);
       void refreshList();
       return null;
