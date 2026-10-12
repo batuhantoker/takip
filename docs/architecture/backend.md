@@ -138,7 +138,9 @@ requestId → pino logger → principal → rate limit → entitlement guard →
   - ~~`apiKey`~~ *Not used.* In 1.7 it is a separate package (`@better-auth/api-key`) whose verification writes to the database on every request. Keys live in our own `api_key` table instead (`apps/api/src/keys/`): `tk_` and 32 random bytes, stored as a SHA-256 hash with a display prefix, verified through a 30-second cached lookup, with `last_used_at` written at most once a minute.
   - `organization`: off for now. It becomes team workspaces and team plans later.
 - **Rate limits** on `/api/auth/*` use Better Auth's built-in limiter, stored in the database, with strict limits on sign-in, sign-up and reset.
-- **Email** for verification and reset is sent by the `EmailSender`, queued through the `job` table, and retried. *Built so far:* sent directly in the background after the response (no queue or retry yet).
+- **Email** for verification and reset is sent by the `EmailSender`, queued through the `job` table, and retried (`apps/api/src/mail/mail-queue.ts`).
+  - Better Auth's callbacks only enqueue an `email.send` job, after the response. The queue runs straight away; a failed send retries after 2, 4, 8, 16 and 32 minutes, then fails.
+  - Account deletion removes the user's `email.send` rows.
 - **Emailed links land on the map,** not on separate pages: `/?account=verified` and `/?account=reset-password&token=…` open the account dialog in the right state (`src/lib/account-links.ts`). Sign-in passes no `callbackURL`, because the client follows it after every successful sign-in; when an unverified user signs in, the client asks for a fresh link itself.
 
 **In `web`:**
@@ -321,7 +323,9 @@ It follows the same portability rules as the data platform (`replay-database.md`
 
 - **Litestream** replicates `app.db`'s WAL continuously to an S3-compatible bucket (Backblaze B2 or Cloudflare R2, a few cents a month at this size). It runs as a small sidecar container.
 - **A nightly `VACUUM INTO` snapshot** goes to `data/backups/` as a second copy on the box.
-- **A restore drill** is in the runbook and is tested once before launch.
+  - *Built:* the `db.backup` job, 02:00 UTC; `APP_BACKUP_DIR`, `APP_BACKUP_KEEP` (14). Each copy is integrity-checked before it gets its name.
+  - `npm run backup -w @takip/api` takes one on demand. Litestream is not set up yet.
+- **A restore drill** is in the runbook ([`docs/runbooks/app-db-restore.md`](../runbooks/app-db-restore.md)) and is tested once before launch.
 - The rest of `data/` stays under the earlier "no backups for now" decision.
 
 ### 12.3 Privacy
