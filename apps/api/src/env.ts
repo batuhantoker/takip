@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+import { LOOPBACK, parseProxies } from './access/client-ip';
 import { SOCIAL_PROVIDERS, type SocialPrefix } from './auth/social-providers';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
@@ -11,6 +12,15 @@ const socialShape = Object.fromEntries(
     [`${prefix}_CLIENT_SECRET`, z.string().optional()],
   ]),
 ) as Record<`${SocialPrefix}_CLIENT_${'ID' | 'SECRET'}`, z.ZodOptional<z.ZodString>>;
+
+function isProxyList(list: string) {
+  try {
+    parseProxies(list);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const schema = z
   .object({
@@ -24,6 +34,10 @@ const schema = z
     // smtp(s)://user:pass@host:port from any provider. Unset in development: mail prints to the console.
     SMTP_URL: z.string().optional(),
     MAIL_FROM: z.string().optional(),
+    // Peers whose X-Forwarded-For is believed (IPs or CIDR ranges). Loopback covers the Next rewrite in development.
+    TRUSTED_PROXIES: z.string().default(LOOPBACK).refine(isProxyList, 'comma-separated IPs or CIDR ranges'),
+    // Cloudflare is the edge: believe cf-connecting-ip from a trusted peer.
+    CLOUDFLARE_EDGE: z.stringbool().default(false),
     ...socialShape,
   })
   .superRefine((e, ctx) => {
