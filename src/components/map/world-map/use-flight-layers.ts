@@ -88,7 +88,7 @@ export function useWatchedAirports({ mapRef, mapReady, aircraftAirports }: Watch
         layout: {
           'text-field': ['get', 'label'],
           'text-size': 11,
-          'text-font': ['Open Sans Bold'],
+          'text-font': ['Noto Sans Bold'],
           'text-offset': [0, 1.6],
           'text-allow-overlap': true,
         },

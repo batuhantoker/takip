@@ -21,7 +21,7 @@ function layerSpecs(d: ReferenceDataset, source: string): maplibregl.LayerSpecif
         'circle-stroke-width': 0.8, 'circle-stroke-color': '#0C0E1A', 'circle-opacity': 0.9,
       } },
       { ...base, id: `${source}-label`, type: 'symbol', minzoom: Math.max(d.minZoom + 4, 9), layout: {
-        'text-field': ['get', d.titleProp], 'text-size': 9, 'text-font': ['Open Sans Regular'],
+        'text-field': ['get', d.titleProp], 'text-size': 9, 'text-font': ['Noto Sans Regular'],
         'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-optional': true,
       }, paint: { 'text-color': d.color, 'text-halo-color': '#0C0E1A', 'text-halo-width': 1.2 } },
     ];

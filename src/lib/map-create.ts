@@ -1,8 +1,10 @@
 import * as maplibregl from 'maplibre-gl';
 
+const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY;
+
 export function createMap(container: HTMLDivElement): maplibregl.Map | undefined {
-  // Select basemap style
-  const styleUrl = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+  // CARTO's Dark Matter look over OpenFreeMap tiles; CARTO's own tiles are the alternative (lib/basemap).
+  const styleUrl = '/dark-matter-style.json';
 
   maplibregl.setWorkerUrl(`/vendor/maplibre/${maplibregl.getVersion()}/maplibre-gl-worker.mjs`);
   /* Open on the whole globe, turned to the viewer's side of it. The UTC
@@ -14,23 +16,23 @@ export function createMap(container: HTMLDivElement): maplibregl.Map | undefined
     container,
     style: styleUrl,
     center: [facingLng, 20] as [number, number], zoom: 1.8, minZoom: 1.5, maxZoom: 18,
-    /* The basemap is CARTO's, drawn from OpenStreetMap, and the places on it
-       are searched and named through OpenStreetMap too. Both have to be
-       credited on the map itself; this was switched off, which is half of
-       what Nominatim's operators asked us to put right (issue #16). It is
-       collapsed by default so it costs a corner icon, not the view. */
+    /* The basemap is drawn from OpenStreetMap, and the places on it are searched
+       and named through OpenStreetMap too. Both have to be credited on the map
+       itself; this was switched off, which is half of what Nominatim's operators
+       asked us to put right (issue #16). It is collapsed by default so it costs
+       a corner icon, not the view. */
     attributionControl: {
       compact: true,
-      // The style credits CARTO and OSM for the map; this credits OSM for the
-      // search results, place names and pins that come from Nominatim.
-      customAttribution: 'Geocoding © OpenStreetMap contributors',
-    } as const,
+      // The tile source credits its provider and OSM. CARTO's style licence (CC BY 4.0)
+      // wants its own credit even over other tiles, and Nominatim needs OSM credited for search.
+      customAttribution: ['Style © <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>', 'Geocoding © OpenStreetMap contributors'],
+    },
     maxPitch: 85,
+    // CARTO forbids proxying or caching its tiles server-side and wants each customer's own key (basemap terms §3.b, §9).
+    // The `key` parameter is what its key page documents; unverified for vector tiles.
     transformRequest: (url: string) => {
-      // Route all CARTO CDN requests through the internal Next.js proxy API
-      if (url.includes('cartocdn.com')) {
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        return { url: `${baseUrl}/api/proxy-tiles?url=${encodeURIComponent(url)}` };
+      if (CARTO_KEY && new URL(url, 'https://x').hostname.endsWith('cartocdn.com')) {
+        return { url: `${url}${url.includes('?') ? '&' : '?'}key=${encodeURIComponent(CARTO_KEY)}` };
       }
       return { url };
     },

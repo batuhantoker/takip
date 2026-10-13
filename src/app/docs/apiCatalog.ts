@@ -333,13 +333,6 @@ export const API_GROUPS: ApiGroup[] = [
         notes: 'Service reads are limited to 30 a minute per caller. IP literals, non-https URLs and hosts that resolve to private addresses are refused.',
       },
       {
-        path: '/api/proxy-tiles',
-        method: 'GET',
-        summary: 'Same-origin raster tile proxy for basemaps that block cross-origin reads.',
-        params: [{ name: 'url', required: true, desc: 'Upstream tile URL.' }],
-        returns: ['…binary tile'],
-      },
-      {
         path: '/api/geo',
         method: 'GET',
         summary: 'Geolocates the calling client by IP.',

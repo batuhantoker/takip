@@ -47,7 +47,7 @@ function addLayers(map: maplibregl.Map, code: string) {
   } }, before);
   if (!map.getLayer(id.labels)) map.addLayer({ id: id.labels, type: 'symbol', source: id.source, minzoom: 3, filter: ['has', 'label'] as never, layout: {
     'text-field': ['get', 'name'],
-    'text-font': ['Open Sans Regular'],
+    'text-font': ['Noto Sans Regular'],
     'text-size': ['interpolate', ['linear'], ['zoom'], 3, 9, 6, 12] as never,
     'text-max-width': 8,
     'text-allow-overlap': false,

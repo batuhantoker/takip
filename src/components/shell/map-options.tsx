@@ -7,6 +7,7 @@ import { LAYER_GROUPS } from '@/components/layers/layer-groups';
 import { LayerRow } from '@/components/layers/layer-row';
 import TerrainStatusNote from '@/components/map/terrain-status-note';
 import { useDismiss } from '@/components/ui/use-dismiss';
+import { BASEMAP_PROVIDERS, hasCartoKey, setBasemapProvider, useBasemapProvider } from '@/lib/basemap/provider';
 import type { TerrainStatus } from '@/lib/map-terrain';
 import StyleStudio from './style-studio';
 import type { ThemeId } from './use-theme';
@@ -27,6 +28,7 @@ export default function MapOptions({ activeLayers, setActiveLayers, theme, setTh
 }) {
   const [open, setOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
+  const basemap = useBasemapProvider();
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   useDismiss(open, () => setOpen(false), rootRef, buttonRef);
@@ -71,6 +73,18 @@ export default function MapOptions({ activeLayers, setActiveLayers, theme, setTh
                 </button>
               ))}
             </div>
+            <p className="mt-3 mb-1.5 text-[11px] font-medium text-[var(--text-secondary)]">Base map tiles</p>
+            <div className="flex gap-1 p-[3px] rounded-lg bg-white/[0.04]">
+              {BASEMAP_PROVIDERS.map(p => (
+                <button key={p.id} type="button" onClick={() => setBasemapProvider(p.id)} aria-pressed={basemap === p.id}
+                  className={`flex-1 h-7 rounded-md text-[11px] transition-colors ${basemap === p.id ? 'bg-white/10 text-[var(--text-heading)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            {basemap === 'carto' && !hasCartoKey && (
+              <p className="mt-1.5 text-[10.5px] leading-snug text-[var(--text-muted)]">CARTO asks for an API key: set NEXT_PUBLIC_CARTO_API_KEY.</p>
+            )}
             <button type="button" onClick={() => { setOpen(false); setStudioOpen(true); }}
               className="mt-2 w-full h-8 flex items-center gap-2 px-2 rounded-md text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/[0.05]">
               <Palette className="w-3.5 h-3.5 text-[var(--gold-primary)]" />

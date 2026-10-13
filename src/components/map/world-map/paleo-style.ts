@@ -68,7 +68,7 @@ export function addLayers(map: maplibregl.Map, dark: boolean, attribution: strin
   if (!map.getSource(TRAILS)) map.addSource(TRAILS, { type: 'geojson', data: EMPTY, lineMetrics: true });
   if (!map.getSource(GRID)) map.addSource(GRID, { type: 'geojson', data: graticule() });
   if (!map.hasImage(ARROW)) map.addImage(ARROW, arrowImage(c.speed), { pixelRatio: 2 });
-  const text = { 'text-font': ['Open Sans Regular'], 'text-allow-overlap': false };
+  const text = { 'text-font': ['Noto Sans Regular'], 'text-allow-overlap': false };
   const halo = { 'text-halo-color': c.halo, 'text-halo-width': 1.2 } as const;
   const layers: maplibregl.LayerSpecification[] = [
     { id: OCEAN, type: 'background', paint: { 'background-color': c.ocean } },

@@ -120,7 +120,7 @@ try {
   await command('Page.navigate', { url });
   if (process.env.PROBE_MAP_NETWORK) {
     const probe = await command('Runtime.evaluate', {
-      expression: `Promise.all(['https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json','https://tiles.basemaps.cartocdn.com/vector/carto.streets/v1/tiles.json','https://tiles-a.basemaps.cartocdn.com/vectortiles/carto.streets/v1/2/2/1.mvt','https://s3.amazonaws.com/elevation-tiles-prod/terrarium/10/531/363.png'].map(async url => { try { const r = await fetch(url, {signal: AbortSignal.timeout(12000)}); return {url, status:r.status, bytes:(await r.arrayBuffer()).byteLength}; } catch(e) { return {url, error:String(e)}; } }))`,
+      expression: `Promise.all(['https://tiles.openfreemap.org/planet','https://tiles.openfreemap.org/sprites/ofm_f384/ofm.json','https://tiles.openfreemap.org/fonts/Noto%20Sans%20Regular/0-255.pbf','https://s3.amazonaws.com/elevation-tiles-prod/terrarium/10/531/363.png'].map(async url => { try { const r = await fetch(url, {signal: AbortSignal.timeout(12000)}); return {url, status:r.status, bytes:(await r.arrayBuffer()).byteLength}; } catch(e) { return {url, error:String(e)}; } }))`,
       awaitPromise: true, returnByValue: true,
     });
     console.log('Network probe:', JSON.stringify(probe.result));
@@ -254,7 +254,7 @@ try {
     }
   }
   const result = await command('Runtime.evaluate', {
-    expression: `JSON.stringify({title: document.title, text: document.body.innerText.slice(0, 6000), canvases: [...document.querySelectorAll('canvas')].map(c => ({width: c.width, height: c.height})), resources: performance.getEntriesByType('resource').filter(r => /maplibre|\\.js|\\.mjs|proxy-tiles/.test(r.name)).map(r => ({url: r.name, bytes: r.transferSize, duration: Math.round(r.duration)}))})`,
+    expression: `JSON.stringify({title: document.title, text: document.body.innerText.slice(0, 6000), canvases: [...document.querySelectorAll('canvas')].map(c => ({width: c.width, height: c.height})), resources: performance.getEntriesByType('resource').filter(r => /maplibre|\\.js|\\.mjs|openfreemap/.test(r.name)).map(r => ({url: r.name, bytes: r.transferSize, duration: Math.round(r.duration)}))})`,
     returnByValue: true,
   });
   if (process.env.PROFILE_TERRAIN) {
@@ -269,7 +269,7 @@ try {
   const screenshot = await command('Page.captureScreenshot', { format: 'png' });
   await writeFile(join(profile, 'preview.png'), Buffer.from(screenshot.data, 'base64'));
   checks.push({ name: 'No camera or renderer failures', passed: !warnings.some(w => /Projection switch failed|TypeError|Satellite picking unavailable|Map initialization failed/.test(JSON.stringify(w))) });
-  measurements.mapNetwork = [...network.values()].filter(r => /cartocdn|maplibre|dark-matter-style/.test(r.url));
+  measurements.mapNetwork = [...network.values()].filter(r => /openfreemap|cartocdn|maplibre|dark-matter-style/.test(r.url));
   measurements.visibility = await evaluate(`({hidden: document.hidden, state: document.visibilityState})`);
   const report = { scenario, checks, measurements, page: JSON.parse(result.result.value), errors, warnings, failedRequests: requests, screenshot: join(profile, 'preview.png') };
   await writeFile(join(profile, 'report.json'), JSON.stringify(report, null, 2));

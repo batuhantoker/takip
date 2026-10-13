@@ -172,8 +172,10 @@ export default function PrivacyPage() {
               </>}
               services={[
                 { name: 'ipapi.co, then freeipapi.com, then ip-api.com', what: 'your connection’s IP address, asked from our server, to place the map' },
-                { name: 'CARTO (basemaps.cartocdn.com)', what: 'the map tiles for the part of the world in view' },
+                { name: 'OpenFreeMap (tiles.openfreemap.org)', what: 'the map tiles, map symbols and label typefaces for the part of the world in view' },
+                { name: 'CARTO (basemaps.cartocdn.com)', what: 'the map tiles instead, only if you pick CARTO as the base map' },
                 { name: 'Esri (server.arcgisonline.com)', what: 'satellite imagery, only when you switch to the satellite view' },
+                { name: 'Wikipedia', what: 'the name and position of a place you click on the map, asked from our server, so Wikipedia never sees you' },
                 { name: 'Google Fonts', what: 'the typefaces the site uses' },
               ]} />
 

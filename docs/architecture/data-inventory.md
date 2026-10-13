@@ -135,7 +135,9 @@ Limits are as written in our code comments or `DATA-SOURCES.md`; they haven't be
 | Statuspage vendors | Service status | `/api/service-status` | — | n.d. | short | cache |
 | abuse.ch, ip-api, Shadowserver, CISA KEV, NVD, DefiLlama | Cyber threats, malware, chain stats | `/api/cyber-*`, `/api/malware`, `/api/chain/daily` | — | ip-api 15 batches/min × 100 | 5–30 min | cache |
 | Yahoo Finance, Frankfurter, CoinGecko | Markets, FX, crypto | `/api/markets`, `/api/crypto` | — | n.d. | 60 s | cache |
-| Earth Search, Copernicus STAC, CARTO | Imagery, basemap tiles | `/api/sentinel`, `/api/proxy-tiles` | — | n.d. | 5 min / 1 yr | no |
+| Earth Search, Copernicus STAC | Imagery | `/api/sentinel` | — | n.d. | 5 min | no |
+| OpenFreeMap (default), CARTO (option) | Basemap vector tiles, fonts, symbols | loaded by the browser, no route | CARTO: `NEXT_PUBLIC_CARTO_API_KEY` | OpenFreeMap: none stated ([site](https://openfreemap.org/)); CARTO: commercial free up to 1M tiles a month ([terms](https://carto.com/legal/basemap-terms)) | browser only (CARTO forbids server caching) | no |
+| Wikipedia | Article lead for a clicked place | `/api/map/wiki` | — | Wikimedia asks for a User-Agent and a gentle rate; we cap callers at 30/min | 24 h | cache |
 | geoBoundaries, Waymarked Trails | Fine boundaries, hiking routes | `/api/boundaries/fine`, `/api/hiking/routes/[id]` | — | WMT "moderate rates" | 30 d / 6 h | cache |
 | Photon, Wikipedia, Wikidata, Nominatim, police.uk, UNHCR | Region dossier | `/api/region-dossier` | — | Nominatim 1 req/s; Wikidata rate-limited | 24 h; Nominatim disk `.cache/nominatim.json` | cache |
 | ipapi.co, freeipapi, ip-api | Visitor location | `/api/geo` | — | ipapi.co 1,000/day | none | no |

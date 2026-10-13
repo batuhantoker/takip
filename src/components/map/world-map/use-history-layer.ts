@@ -59,7 +59,7 @@ function addLayers(map: maplibregl.Map) {
   } });
   add({ id: 'history-labels', type: 'symbol', source: SOURCE, minzoom: 3, filter: ['all', ['!', ['has', 'cell']], ['==', ['get', 'family'], 'conflict']], layout: {
     'text-field': ['get', 'title'],
-    'text-font': ['Open Sans Regular'],
+    'text-font': ['Noto Sans Regular'],
     'text-size': 10,
     'text-anchor': 'top',
     'text-offset': [0, 0.9],
@@ -68,7 +68,7 @@ function addLayers(map: maplibregl.Map) {
   }, paint: { 'text-color': familyColor as never, 'text-halo-color': '#000', 'text-halo-width': 1 } });
   add({ id: 'history-cell-counts', type: 'symbol', source: SOURCE, filter: ['all', ['has', 'cell'], ['>=', ['get', 'n'], 10]], layout: {
     'text-field': ['to-string', ['get', 'n']],
-    'text-font': ['Open Sans Regular'],
+    'text-font': ['Noto Sans Regular'],
     'text-size': 9,
     'text-allow-overlap': false,
   }, paint: { 'text-color': '#E8E6E0', 'text-halo-color': '#000', 'text-halo-width': 1 } });

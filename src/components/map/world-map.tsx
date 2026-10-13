@@ -23,12 +23,15 @@ import { bindSatellitePick } from './world-map/bind-satellite-pick';
 import { bindViewEvents } from './world-map/bind-view-events';
 import type { SatelliteRow, WorldMapProps } from './world-map/types';
 import { useBasemapStyle, useDayNight } from './world-map/use-basemap';
+import { useBasemapDetail } from './world-map/use-basemap-detail';
+import { useBasemapProviderSource } from './world-map/use-basemap-provider';
 import { useDemoSpin, useFlyTo, useMapCenter } from './world-map/use-camera';
 import { useZoomPastGlobe } from './world-map/use-zoom-past-globe';
 import { useDrawing } from './world-map/use-drawing';
 import { useConflictZones, useEarthquakeLayer, useIncidentLayers } from './world-map/use-event-layers';
 import { useFlightLayers, useWatchedAirports } from './world-map/use-flight-layers';
 import { useHikingLayer, useHikingPick } from './world-map/use-hiking-layer';
+import { usePlacePick } from './world-map/use-place-pick';
 import { useAuroraLayer } from './world-map/use-aurora-layer';
 import { useServiceStatusLayer } from './world-map/use-service-status-layer';
 import { useGnssInterferenceLayer } from './world-map/use-gnss-interference-layer';
@@ -310,9 +313,12 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
 
   useFlyTo({ mapRef, mapReady, flyToLocation, openAlertPinRef });
   useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle });
+  useBasemapProviderSource({ mapRef, mapReady });
+  useBasemapDetail({ mapRef, mapReady });
   useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapStyle, cloudLayerRef });
   useHikingLayer({ mapRef, mapReady, activeLayers, mapStyle });
   useHikingPick({ mapRef, mapReady, activeLayers, popupRef, drawModeRef, oiGlobeRef, satPickedRef });
+  usePlacePick({ mapRef, mapReady, popupRef, drawModeRef, oiGlobeRef, satPickedRef });
 
   // TAKIP OI — a prediction drawn as it happens: actors, the events of the
   // simulated worlds and arcs through the sky (see lib/oi/globe). The page feeds it

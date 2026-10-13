@@ -37,14 +37,14 @@ export function useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle }: Ba
 
     try {
       if (enabled) {
-        // CARTO's already-loaded vector tiles include the building footprints
-        // and render heights. No second worldwide vector source is needed.
+        // The basemap's vector tiles already carry building footprints and
+        // render heights. No second worldwide vector source is needed.
 
         // ── 3D BUILDING EXTRUSION LAYER ──
         if (!map.getLayer('takip-3d-buildings')) {
           map.addLayer({
             id: 'takip-3d-buildings',
-            source: 'carto',
+            source: 'basemap',
             'source-layer': 'building',
             type: 'fill-extrusion',
             minzoom: 14.5,
