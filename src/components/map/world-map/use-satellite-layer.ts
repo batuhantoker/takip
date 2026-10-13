@@ -3,6 +3,7 @@
 import { useCallback, useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { SatelliteDetail } from '@/components/map/satellite-card';
 import { satColorFor, type MapPalette } from '@/lib/map-palette';
+import { shownSatellites } from '@/lib/satellite-filter';
 import { parseColor, SAT_MAX_ZOOM, type SatPoint } from '@/lib/satellite-layer';
 import type { LayerHookArgs, MapRef, SatelliteLayer, SatelliteRow } from './types';
 
@@ -60,36 +61,18 @@ export function useSatelliteLayer({
     const at = Date.parse(data.satellites_at ?? '');
     satEpochRef.current = Number.isFinite(at) ? at : null;
     
-    // If 'All Satellites' is on, show everything
-    if (al.satellites) {
-      setGeo('satellites', sats.map((s: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: { name: s.name, color: satColorFor(s.category, s.color, palette), mission: s.mission, alt: s.alt, noradId: s.noradId, category: s.category } })));
-      satRowsRef.current = sats;
-      satLayerRef.current?.setPoints(toSatPoints(sats));
-      resyncSatSelection(sats);
-      return;
-    }
-    
-    // Otherwise filter by enabled sub-layers
-    const enabledCategories: string[] = [];
-    if (al.sat_comms) enabledCategories.push('comms');
-    if (al.sat_military) enabledCategories.push('military');
-    if (al.sat_navigation) enabledCategories.push('navigation');
-    if (al.sat_earth) enabledCategories.push('earth_obs');
-    if (al.sat_science) enabledCategories.push('science');
-    
-    if (enabledCategories.length === 0) {
+    const shown: SatelliteRow[] = shownSatellites(sats, al);
+    if (!shown.length) {
       setGeo('satellites', []);
       satRowsRef.current = [];
       satLayerRef.current?.setPoints([]);
       clearSat();
       return;
     }
-    
-    const filtered = sats.filter((s: any) => enabledCategories.includes(s.category));
-    setGeo('satellites', filtered.map((s: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: { name: s.name, color: satColorFor(s.category, s.color, palette), mission: s.mission, alt: s.alt, noradId: s.noradId, category: s.category } })));
-    satRowsRef.current = filtered;
-    satLayerRef.current?.setPoints(toSatPoints(filtered));
-    resyncSatSelection(filtered);
+    setGeo('satellites', shown.map((s: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: { name: s.name, color: satColorFor(s.category, s.color, palette), mission: s.mission, alt: s.alt, noradId: s.noradId, category: s.category } })));
+    satRowsRef.current = shown;
+    satLayerRef.current?.setPoints(toSatPoints(shown));
+    resyncSatSelection(shown);
   }, [mapReady, data.satellites, activeLayers.satellites, (activeLayers as any).sat_comms, (activeLayers as any).sat_military, (activeLayers as any).sat_navigation, (activeLayers as any).sat_earth, (activeLayers as any).sat_science, data.satellites_at, setGeo, toSatPoints, resyncSatSelection, clearSat]);
 }
 

@@ -1,5 +1,5 @@
 import type { ReplayClock } from '@/lib/replay/clock';
-import { atMa } from './deep-time';
+import { atMa, maAt } from './deep-time';
 
 /*
  * Deep time's documentary: chapters along the deep clock, each pinned to a place that rides its plate.
@@ -100,8 +100,24 @@ export const PLACES: [string, number, number][] = [
   ['Antarctica', 100, -78],
 ];
 
-/** The clock's run from one chapter to the next. */
-export const TRAVEL_MS = 7000;
+/** A run from one chapter to the next takes longer the further it goes, within these bounds. */
+const LEG_MIN_MS = 4000;
+const LEG_MAX_MS = 12_000;
+const LEG_MA_PER_S = 60;
+
+export function legMs(fromMa: number, toMa: number) {
+  return Math.min(LEG_MAX_MS, Math.max(LEG_MIN_MS, (Math.abs(fromMa - toMa) / LEG_MA_PER_S) * 1000));
+}
+
+/** Speed through a run, by how far along it is: easing out of one chapter and into the next, never quite stopping. */
+const EASE_FLOOR = 0.15;
+const ease = (p: number) => Math.max(EASE_FLOOR, Math.sin(Math.PI * Math.min(1, Math.max(0, p))));
+/** ∫ dp / ease(p) over the run: how much longer than flat out an eased run takes. */
+const EASE_STRETCH = (() => {
+  let sum = 0;
+  for (let i = 0; i < 1000; i++) sum += 1 / ease((i + 0.5) / 1000);
+  return sum / 1000;
+})();
 const READ_MS_PER_WORD = 300;
 const MIN_READ_MS = 9000;
 
@@ -112,6 +128,8 @@ export type Story = {
   auto(): boolean;
   /** The clock has reached the open chapter. */
   arrived(): boolean;
+  /** How long the run to the open chapter takes, in ms; 0 once there. */
+  legMs(): number;
   go(i: number): void;
   next(): void;
   prev(): void;
@@ -132,6 +150,7 @@ export function createStory(clock: ReplayClock, { chapters = CHAPTERS, onOpen = 
   let auto = false;
   let arrived = false;
   let target = 0;
+  let leg = 0;
   let wait: unknown;
   let travelling: (() => void) | null = null;
   let speedBefore: number | null = null;
@@ -161,6 +180,7 @@ export function createStory(clock: ReplayClock, { chapters = CHAPTERS, onOpen = 
     clock.pause();
     clock.seek(target);
     arrived = true;
+    leg = 0;
     if (auto) readThenNext();
     emit();
   };
@@ -169,6 +189,7 @@ export function createStory(clock: ReplayClock, { chapters = CHAPTERS, onOpen = 
     index: () => index,
     auto: () => auto,
     arrived: () => arrived,
+    legMs: () => leg,
     go(i) {
       const next = Math.max(0, Math.min(chapters.length - 1, i));
       timers.clear(wait);
@@ -181,9 +202,20 @@ export function createStory(clock: ReplayClock, { chapters = CHAPTERS, onOpen = 
       arrived = false;
       target = atMa(chapters[next].ma);
       // Only forward runs: the clock doesn't play backwards, so an earlier chapter is a cut.
-      if (target > clock.time()) {
-        clock.setSpeed((target - clock.time()) / TRAVEL_MS);
-        travelling = clock.subscribe(() => { if (clock.time() >= target || !clock.playing()) arrive(); });
+      const from = clock.time();
+      if (target > from) {
+        leg = legMs(maAt(from), chapters[next].ma);
+        const peak = (EASE_STRETCH * (target - from)) / leg;
+        let steering = false;
+        const steer = () => {
+          if (steering) return;
+          if (clock.time() >= target || !clock.playing()) return arrive();
+          steering = true;
+          clock.setSpeed(peak * ease((clock.time() - from) / (target - from)));
+          steering = false;
+        };
+        clock.setSpeed(peak * EASE_FLOOR);
+        travelling = clock.subscribe(steer);
         clock.play();
         if (!clock.playing()) arrive();
       } else arrive();

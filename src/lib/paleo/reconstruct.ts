@@ -5,7 +5,15 @@ import { createRotations, matrix, toVec, type PlatesFile, type Rotations, type V
  * unit vectors, so moving to a new age is one 3×3 rotation per plate and a pass over the points.
  */
 
-type Shape = { plate: number; from: number; to: number; rings: Float64Array[]; cap: { c: Vec; min: number } };
+type Shape = {
+  plate: number;
+  from: number;
+  to: number;
+  rings: Float64Array[];
+  /** The rings thinned for drawing in motion; empty when the shape is too small to keep. */
+  coarse: Float64Array[];
+  cap: { c: Vec; min: number };
+};
 export type PaleoKind = 'crust' | 'land';
 /** A place on today's map, fixed to the plate under it. */
 export type Pin = { plate: number; from: number; v: Vec };
@@ -13,8 +21,8 @@ export type Pin = { plate: number; from: number; v: Vec };
 export type PlateModel = {
   meta: PlatesFile['model'];
   rotations: Rotations;
-  /** Crust and land `ma` million years ago, one collection told apart by `k`. */
-  at(ma: number): GeoJSON.FeatureCollection;
+  /** Crust and land `ma` million years ago, one collection told apart by `k`; `coarse` thins it for motion. */
+  at(ma: number, coarse?: boolean): GeoJSON.FeatureCollection;
   /** The plate under a place today, by the oldest coastline (else crust) there; null at sea. */
   pin(lon: number, lat: number): Pin | null;
   /** Where the pinned place was; null before its ground existed. */
@@ -23,6 +31,10 @@ export type PlateModel = {
 
 const RAD = Math.PI / 180;
 const wrap = (d: number) => d - 360 * Math.round(d / 360);
+/** How far a thinned ring may stray from the full one: about 25 km, finer than a pixel on the whole globe. */
+const COARSE_RAD = 0.22 * RAD;
+/** Shapes smaller across than this (about 70 km) sit out the motion. */
+const COARSE_MIN_RADIUS = 0.6 * RAD;
 
 function shapes(rows: PlatesFile['coast']): Shape[] {
   return rows.map(([plate, from, to, ...flats]) => {
@@ -31,8 +43,49 @@ function shapes(rows: PlatesFile['coast']): Shape[] {
       for (let i = 0; i < flat.length / 2; i++) xyz.set(toVec(flat[2 * i], flat[2 * i + 1]), 3 * i);
       return xyz;
     });
-    return { plate: plate as number, from: from as number, to: to as number, rings, cap: capOf(rings[0]) };
+    const cap = capOf(rings[0]);
+    const thin = Math.acos(Math.min(1, cap.min)) < COARSE_MIN_RADIUS ? [] : rings.map(r => thinRing(r, COARSE_RAD));
+    const coarse = thin[0] ? thin.filter((r): r is Float64Array => r !== null) : [];
+    return { plate: plate as number, from: from as number, to: to as number, rings, coarse, cap };
   });
+}
+
+/**
+ * Douglas–Peucker on the sphere: a point stays when it lies further than `tol` radians off the great circle
+ * through the two it would be dropped between. Null once fewer than three points are left.
+ */
+export function thinRing(xyz: Float64Array, tol: number): Float64Array | null {
+  const n = xyz.length / 3;
+  if (n <= 4) return xyz;
+  const keep = new Uint8Array(n);
+  keep[0] = keep[n - 1] = 1;
+  const limit = Math.sin(tol);
+  const stack: [number, number][] = [[0, n - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop()!;
+    const ax = xyz[3 * a], ay = xyz[3 * a + 1], az = xyz[3 * a + 2];
+    const bx = xyz[3 * b], by = xyz[3 * b + 1], bz = xyz[3 * b + 2];
+    const nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+    const len = Math.hypot(nx, ny, nz);
+    let worst = -1;
+    let at = -1;
+    for (let i = a + 1; i < b; i++) {
+      const x = xyz[3 * i], y = xyz[3 * i + 1], z = xyz[3 * i + 2];
+      // Off the great circle; for a degenerate segment, off its end.
+      const d = len > 1e-12 ? Math.abs((x * nx + y * ny + z * nz) / len) : Math.hypot(x - ax, y - ay, z - az);
+      if (d > worst) { worst = d; at = i; }
+    }
+    if (worst > limit) {
+      keep[at] = 1;
+      stack.push([a, at], [at, b]);
+    }
+  }
+  let count = 0;
+  for (let i = 0; i < n; i++) count += keep[i];
+  if (count < 3) return null;
+  const out = new Float64Array(count * 3);
+  for (let i = 0, j = 0; i < n; i++) if (keep[i]) out.set(xyz.subarray(3 * i, 3 * i + 3), 3 * j++);
+  return out;
 }
 
 /** A cap round the ring's points, so most rings are ruled out of a point test with one dot product. */
@@ -154,15 +207,17 @@ export function createPlateModel(file: PlatesFile): PlateModel {
   return {
     meta: file.model,
     rotations,
-    at(ma) {
+    at(ma, coarse = false) {
       const features: GeoJSON.Feature[] = [];
       for (const [k, list] of layers) {
         for (const s of list) {
           if (ma > s.from || ma < s.to) continue;
+          const source = coarse ? s.coarse : s.rings;
+          if (!source.length) continue;
           const q = rotations.at(s.plate, ma);
           if (!q) continue;
           const m = matrix(q);
-          const rings = s.rings.map(r => placeRing(r, m)).filter(r => r.length >= 4);
+          const rings = source.map(r => placeRing(r, m)).filter(r => r.length >= 4);
           if (!rings.length) continue;
           shiftIntoWorld(rings);
           // Holes wind against their ring, or the fill reads them as more land.

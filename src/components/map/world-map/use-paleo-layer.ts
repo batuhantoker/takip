@@ -3,31 +3,26 @@
 import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
 import { maAt } from '@/lib/paleo/deep-time';
+import { motionAt, trailTo } from '@/lib/paleo/motion';
 import { loadPlateModel, type Pin, type PlateModel } from '@/lib/paleo/reconstruct';
-import { CHAPTERS, PLACES, TRAVEL_MS } from '@/lib/paleo/story';
+import { CHAPTERS, PLACES } from '@/lib/paleo/story';
 import type { HistorySession } from '@/lib/history/session';
+import { addLayers, MARKS, PIN_DOT, removeLayers, SHAPES, TRAILS } from './paleo-style';
 import type { MapRef } from './types';
 
 /*
  * History's deep time on the map: an opaque ocean over the whole basemap, today's coastlines and crust
- * carried back on their plates, a graticule to read their drift against, today's place names riding along,
- * and a pin for each documentary chapter. Everything sits on top; only the basemap's labels need hiding.
+ * carried back on their plates, a graticule to read their drift against, today's places riding along with
+ * the path they came by, their heading and speed, and a pin for each documentary chapter. Everything sits
+ * on top; only the basemap's labels need hiding. In motion the shapes are thinned and redrawn every frame,
+ * and drawn in full once the clock settles.
  */
 
-const SHAPES = 'paleo-shapes';
-const MARKS = 'paleo-marks';
-const GRID = 'paleo-grid';
-const OCEAN = 'paleo-ocean';
-const GRID_LINE = 'paleo-grid-line';
-const CRUST = 'paleo-crust';
-const LAND = 'paleo-land';
-const PLACE_LABELS = 'paleo-place-labels';
-const PIN_HALO = 'paleo-pin-halo';
-const PIN_DOT = 'paleo-pin-dot';
-const PIN_LABEL = 'paleo-pin-label';
-const LAYERS = [PIN_LABEL, PIN_DOT, PIN_HALO, PLACE_LABELS, LAND, CRUST, GRID_LINE, OCEAN];
-const FRAME_MS = 100;
-const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
+/** Full detail once the clock has been still this long. */
+const SETTLE_MS = 220;
+/** Each place trails the path of its last this many million years. */
+const TRAIL_MA = 30;
+const TRAIL_STEP_MA = 1.5;
 const RAD = Math.PI / 180;
 /** The camera stays within this latitude; past it the globe's Mercator zoom swells and a pole fills the screen. */
 const MAX_CAMERA_LAT = 40;
@@ -35,72 +30,8 @@ const MAX_CAMERA_LAT = 40;
 /** The globe draws zoom at Mercator scale for the centre's latitude; this keeps it the same size anywhere. */
 const globeZoom = (map: maplibregl.Map, zoom: number, lat: number) => Math.max(map.getMinZoom(), zoom + Math.log2(Math.cos(lat * RAD)));
 
-const PALETTE = {
-  dark: { ocean: '#0a1621', grid: 'rgba(232,230,224,0.08)', equator: 'rgba(232,195,106,0.4)', crust: '#163041', land: '#4d4632', label: 'rgba(232,230,224,0.72)', halo: 'rgba(8,8,13,0.9)' },
-  light: { ocean: '#c6d8e2', grid: 'rgba(20,20,28,0.1)', equator: 'rgba(150,110,30,0.55)', crust: '#a7c0ca', land: '#e2d5b1', label: 'rgba(20,20,28,0.75)', halo: 'rgba(255,255,255,0.85)' },
-};
-
 /** A pin shows from its chapter's age for a while after: longer in the deep past, where the clock runs faster. */
 const linger = (ma: number) => Math.min(120, Math.max(12, ma * 0.15));
-
-function graticule(): GeoJSON.FeatureCollection {
-  const features: GeoJSON.Feature[] = [];
-  for (let lat = -60; lat <= 60; lat += 30) {
-    const line = Array.from({ length: 73 }, (_, i) => [-180 + i * 5, lat]);
-    features.push({ type: 'Feature', properties: { equator: lat === 0 }, geometry: { type: 'LineString', coordinates: line } });
-  }
-  for (let lon = -180; lon < 180; lon += 30) {
-    const line = Array.from({ length: 35 }, (_, i) => [lon, -85 + i * 5]);
-    features.push({ type: 'Feature', properties: { equator: false }, geometry: { type: 'LineString', coordinates: line } });
-  }
-  return { type: 'FeatureCollection', features };
-}
-
-function addLayers(map: maplibregl.Map, dark: boolean, attribution: string) {
-  const c = dark ? PALETTE.dark : PALETTE.light;
-  if (!map.getSource(SHAPES)) map.addSource(SHAPES, { type: 'geojson', data: EMPTY, attribution });
-  if (!map.getSource(MARKS)) map.addSource(MARKS, { type: 'geojson', data: EMPTY });
-  if (!map.getSource(GRID)) map.addSource(GRID, { type: 'geojson', data: graticule() });
-  const text = { 'text-font': ['Open Sans Regular'], 'text-allow-overlap': false };
-  const halo = { 'text-halo-color': c.halo, 'text-halo-width': 1.2 } as const;
-  const layers: maplibregl.LayerSpecification[] = [
-    { id: OCEAN, type: 'background', paint: { 'background-color': c.ocean } },
-    { id: GRID_LINE, type: 'line', source: GRID, paint: {
-      'line-color': ['case', ['get', 'equator'], c.equator, c.grid] as never,
-      'line-width': ['case', ['get', 'equator'], 1, 0.6] as never,
-      'line-dasharray': [3, 3],
-    } },
-    // The outline in the fill's own colour hides the seams between neighbouring pieces of one plate.
-    { id: CRUST, type: 'fill', source: SHAPES, filter: ['==', ['get', 'k'], 'crust'], paint: { 'fill-color': c.crust, 'fill-outline-color': c.crust } },
-    { id: LAND, type: 'fill', source: SHAPES, filter: ['==', ['get', 'k'], 'land'], paint: { 'fill-color': c.land, 'fill-outline-color': c.land } },
-    { id: PLACE_LABELS, type: 'symbol', source: MARKS, filter: ['==', ['get', 'k'], 'place'], layout: {
-      ...text, 'text-field': ['get', 'name'], 'text-size': 10.5, 'text-letter-spacing': 0.12, 'text-transform': 'uppercase',
-    }, paint: { 'text-color': c.label, ...halo } },
-    { id: PIN_HALO, type: 'circle', source: MARKS, filter: ['==', ['get', 'k'], 'pin'], paint: {
-      'circle-radius': ['case', ['get', 'current'], 16, 11] as never,
-      'circle-color': '#E8C36A',
-      'circle-opacity': ['*', ['get', 'o'], 0.18] as never,
-      'circle-blur': 0.4,
-    } },
-    { id: PIN_DOT, type: 'circle', source: MARKS, filter: ['==', ['get', 'k'], 'pin'], paint: {
-      'circle-radius': ['case', ['get', 'current'], 6, 4.5] as never,
-      'circle-color': '#E8C36A',
-      'circle-opacity': ['get', 'o'] as never,
-      'circle-stroke-color': '#08080d',
-      'circle-stroke-width': 1.5,
-      'circle-stroke-opacity': ['get', 'o'] as never,
-    } },
-    { id: PIN_LABEL, type: 'symbol', source: MARKS, filter: ['==', ['get', 'k'], 'pin'], layout: {
-      ...text, 'text-field': ['get', 'title'], 'text-size': 12, 'text-offset': [0, 1.3], 'text-anchor': 'top',
-    }, paint: { 'text-color': dark ? '#F0D68C' : '#7a5a14', 'text-opacity': ['get', 'o'] as never, ...halo } },
-  ];
-  for (const layer of layers) if (!map.getLayer(layer.id)) map.addLayer(layer);
-}
-
-function removeLayers(map: maplibregl.Map) {
-  for (const id of LAYERS) if (map.getLayer(id)) map.removeLayer(id);
-  for (const id of [SHAPES, MARKS, GRID]) if (map.getSource(id)) map.removeSource(id);
-}
 
 export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
   mapRef: MapRef;
@@ -119,16 +50,23 @@ export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
     let shown = false;
     let mutedLabels: string[] = [];
     let appliedMa = NaN;
+    let appliedCoarse = false;
     let appliedChapter: number | null = null;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let frame: number | undefined;
+    let settle: ReturnType<typeof setTimeout> | undefined;
     let loading = false;
     let gone = false;
 
-    const marks = (ma: number): GeoJSON.FeatureCollection => {
+    const marks = (ma: number): { marks: GeoJSON.FeatureCollection; trails: GeoJSON.FeatureCollection } => {
       const features: GeoJSON.Feature[] = [];
+      const trails: GeoJSON.Feature[] = [];
       for (const p of places) {
-        const at = model!.where(p.pin, ma);
-        if (at) features.push({ type: 'Feature', properties: { k: 'place', name: p.name }, geometry: { type: 'Point', coordinates: at } });
+        const m = motionAt(model!, p.pin, ma);
+        if (!m) continue;
+        const speed = m.cmPerYear >= 0.05 ? `${m.cmPerYear.toFixed(m.cmPerYear < 10 ? 1 : 0)} cm/yr` : 'still';
+        features.push({ type: 'Feature', properties: { k: 'place', name: p.name, speed, cm: m.cmPerYear, bearing: m.bearing }, geometry: { type: 'Point', coordinates: m.at } });
+        const path = trailTo(model!, p.pin, ma, TRAIL_MA, TRAIL_STEP_MA);
+        if (path.length > 1) trails.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: path } });
       }
       const current = history.story.index();
       CHAPTERS.forEach((ch, i) => {
@@ -142,16 +80,24 @@ export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
         const o = isCurrent ? 1 : 1 - 0.6 * (age / linger(ch.ma));
         features.push({ type: 'Feature', properties: { k: 'pin', i, title: ch.title, o, current: isCurrent }, geometry: { type: 'Point', coordinates: at } });
       });
-      return { type: 'FeatureCollection', features };
+      return { marks: { type: 'FeatureCollection', features }, trails: { type: 'FeatureCollection', features: trails } };
     };
 
-    const paint = (force = false) => {
+    const setData = (id: string, data: GeoJSON.FeatureCollection) => (map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(data);
+
+    /** Thinned while the clock moves; MapLibre drops any update the worker hasn't reached, so every frame is fine. */
+    const paint = (coarse: boolean, force = false) => {
       if (!model || !shown) return;
       const ma = maAt(history.deepClock.time());
-      if (!force && Math.abs(ma - appliedMa) < 0.01) return;
+      if (!force && ma === appliedMa && coarse === appliedCoarse) return;
+      const moved = ma !== appliedMa || force;
       appliedMa = ma;
-      (map.getSource(SHAPES) as maplibregl.GeoJSONSource | undefined)?.setData(model.at(ma));
-      (map.getSource(MARKS) as maplibregl.GeoJSONSource | undefined)?.setData(marks(ma));
+      appliedCoarse = coarse;
+      setData(SHAPES, model.at(ma, coarse));
+      if (!moved) return;
+      const { marks: m, trails } = marks(ma);
+      setData(MARKS, m);
+      setData(TRAILS, trails);
     };
 
     const flyToChapter = () => {
@@ -174,7 +120,7 @@ export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
         zoom: globeZoom(map, ch.zoom, lat),
         bearing: south ? 180 : 0,
         offset: [0, -raise],
-        duration: history.story.arrived() ? 1800 : TRAVEL_MS,
+        duration: history.story.arrived() ? 1800 : history.story.legMs(),
         essential: true,
       });
     };
@@ -207,7 +153,7 @@ export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
       // A camera flight already under way would cancel the ease; wait for it to land.
       if (map.isMoving()) map.once('moveend', zoomOut);
       else zoomOut();
-      paint(true);
+      paint(false, true);
       flyToChapter();
     };
     const hide = () => {
@@ -240,15 +186,20 @@ export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
       show();
     };
 
-    const tick = () => {
-      timer = undefined;
-      paint();
+    // Every change paints thinned on the next frame; full detail follows once changes stop.
+    const onClock = () => {
+      if (!shown) return;
+      frame ??= requestAnimationFrame(() => {
+        frame = undefined;
+        paint(true);
+      });
+      clearTimeout(settle);
+      settle = setTimeout(() => { if (!history.deepClock.playing()) paint(false); }, SETTLE_MS);
     };
-    const schedule = () => { timer ??= setTimeout(tick, FRAME_MS); };
     const onStory = () => {
       if (!shown) return;
       flyToChapter();
-      paint(true);
+      paint(history.deepClock.playing(), true);
     };
 
     const onPinClick = (e: maplibregl.MapLayerMouseEvent) => {
@@ -261,12 +212,13 @@ export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
     map.on('mouseenter', PIN_DOT, pointer);
     map.on('mouseleave', PIN_DOT, unpointer);
 
-    const offs = [history.subscribe(sync), history.deepClock.subscribe(schedule), history.story.subscribe(onStory)];
+    const offs = [history.subscribe(sync), history.deepClock.subscribe(onClock), history.story.subscribe(onStory)];
     sync();
 
     return () => {
       gone = true;
-      clearTimeout(timer);
+      if (frame !== undefined) cancelAnimationFrame(frame);
+      clearTimeout(settle);
       offs.forEach(off => off());
       try {
         map.off('click', PIN_DOT, onPinClick);
