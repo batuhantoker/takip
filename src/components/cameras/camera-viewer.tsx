@@ -13,11 +13,9 @@ interface CameraViewerProps {
   camera: any | null;
   onClose: () => void;
   onLocate?: (lat: number, lng: number) => void;
-  /** A tool is open in the right-hand dock: sit beside it, so OI Assist's conversation stays readable while it looks. */
-  besideDock?: boolean;
 }
 
-export default function CameraViewer({ camera, onClose, onLocate, besideDock = false }: CameraViewerProps) {
+export default function CameraViewer({ camera, onClose, onLocate }: CameraViewerProps) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -192,7 +190,7 @@ export default function CameraViewer({ camera, onClose, onLocate, besideDock = f
           className={`fixed z-[500] ${
             fullscreen 
               ? 'inset-2 md:inset-4' 
-              : `bottom-[70px] left-2 right-2 md:bottom-6 ${besideDock ? 'md:right-[500px]' : 'md:right-6'} md:left-auto md:w-[480px]`
+              : 'bottom-[70px] left-2 right-2 md:bottom-[96px] md:right-3 md:left-auto md:w-[480px]'
           }`}
         >
           <div className="overflow-hidden h-full flex flex-col bg-black/85 backdrop-blur-xl border border-[var(--border-primary)]" style={{ boxShadow: '0 20px 50px rgba(0,0,0,0.9), inset 0 0 30px rgba(0,0,0,0.8)' }}>

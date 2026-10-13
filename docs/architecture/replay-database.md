@@ -460,6 +460,7 @@ The client loads buckets that overlap the visible timeline window and prefetches
 ### 8.6 Series and choropleths
 
 - **The client fetches a metric's whole series once.** For WDI that is about 15k values, roughly 120 KB.
+- **Yearly and `day` metrics are mapped.** A `day` payload (the weekly COVID-19 series) carries `step: 'day'` and its points' x are fractional years, the point's date; a payload without `step` is yearly. COVID deaths are about 86k points, 1.3 MB of uncompressed JSON.
 - **The server resolves render polities as it writes the response:** a USSR value for 1985 is sent once for each of the 15 successor shapes, tagged `via`.
 - **The `admin0` tiles use `promoteId = entity_id`.** Scrubbing calls `setFeatureState` on about 250 features.
 

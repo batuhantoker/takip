@@ -17,7 +17,6 @@ const FAMILY_NOTES: Record<string, string> = {
   conflict: 'Wars, battles, sieges and armed conflicts · 3000 BCE–2025',
   terror: 'Terrorist attacks (GTD, non-commercial use) · 1970–2017',
   territorial: 'Territorial claims and changes · 1816–2018',
-  econ: 'Tariffs of the trade war · 2018–2025',
   heritage: 'World Heritage sites in danger',
   hazard: 'Significant earthquakes, tsunamis and eruptions (NOAA) from 2150 BCE, plus recent USGS quakes',
   politics: 'Treaties, where they were signed, and coups (Wikidata)',

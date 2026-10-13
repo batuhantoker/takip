@@ -72,7 +72,7 @@ export function airportDelayPopupHtml(p: Props): string {
           <div style="color:#E8E6E0;font-size:9px;">${htmlEsc([delayText(r), r.trend].filter(Boolean).join(' · ') || '—')}</div>
           <div style="color:#aaa;font-size:9px;">${htmlEsc(r.reason)}</div>
         </div>`).join('');
-  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;border:1px solid ${color}40;max-width:300px;">
+  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:var(--font-hud);border:1px solid ${color}40;max-width:300px;">
         <div style="color:${color};font-size:12px;font-weight:700;">✈ ${htmlEsc(p.code)}${p.name ? ` · ${htmlEsc(p.name)}` : ''}</div>
         <div style="font-size:9px;color:#5C5A54;">FAA NAS status</div>
         ${lines}

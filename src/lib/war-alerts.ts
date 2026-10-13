@@ -61,7 +61,7 @@ export function warAlertPopupHtml(p: Props): string {
   const note = oblast
     ? 'An alert covers the whole oblast; the pin is its administrative centre. A warning, not a confirmed strike.'
     : 'Home Front Command siren for this locality.';
-  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;border:1px solid ${color}40;max-width:280px;">
+  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:var(--font-hud);border:1px solid ${color}40;max-width:280px;">
         <div style="color:${color};font-size:12px;font-weight:700;margin-bottom:4px;">${htmlEsc(p.label)}</div>
         <div style="font-size:9px;color:#aaa;margin-bottom:8px;">${htmlEsc(p.place)} · ${p.country === 'UA' ? 'Ukraine' : 'Israel'}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;">

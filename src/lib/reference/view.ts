@@ -34,7 +34,7 @@ export function popupHtml(dataset: ReferenceDataset, props: Record<string, unkno
       return `<tr><td style="color:#5C5A54;padding:2px 10px 2px 0;vertical-align:top;">${esc(k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toUpperCase())}</td><td style="color:#E8E6E0;">${value}</td></tr>`;
     })
     .join('');
-  return `<div style="background:rgba(12,14,26,0.95);border:1px solid ${dataset.color}4D;border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;">
+  return `<div style="background:rgba(12,14,26,0.95);border:1px solid ${dataset.color}4D;border-radius:10px;padding:14px;font-family:var(--font-hud);">
     <div style="color:${dataset.color};font-size:13px;font-weight:700;margin-bottom:2px;">${esc(title)}</div>
     <div style="color:#5C5A54;font-size:9px;letter-spacing:0.1em;margin-bottom:8px;">${esc(dataset.label.toUpperCase())}</div>
     <table style="font-size:9px;border-collapse:collapse;">${rows}</table>

@@ -7,7 +7,7 @@ import type { ReplayClock } from '@/lib/replay/clock';
 import type { MapRef } from './types';
 
 /*
- * Curated history at the timeline's time: wars, battles, claims, attacks, tariffs, heritage in danger in History,
+ * Curated history at the timeline's time: wars, battles, claims, attacks, heritage in danger in History,
  * recorded quakes in Replay.
  * One fetch per view and time bucket from /api/replay/history; the clock only moves the layer filter.
  */

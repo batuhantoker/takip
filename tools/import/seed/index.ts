@@ -13,7 +13,6 @@ const here = (f: string) => join(REPO, 'tools/import/seed', f);
 const SCHEMES: [number, string][] = [
   [1000, KEY_SCHEME],
   [1001, 'native:gtd'],
-  [1002, 'native:tradewar'],
   [1003, 'unesco'],
   [1004, 'glwd'],
 ];
@@ -49,7 +48,6 @@ export const SOURCES: SourceSeed[] = [
   { code: 'ucdp-brd', name: 'UCDP Battle-Related Deaths', owner: 'Uppsala Conflict Data Program', url: 'https://ucdp.uu.se/downloads/', licence: 'cc-by-4.0', events: true },
   { code: 'gtd', name: 'Global Terrorism Database', owner: 'START, University of Maryland', url: 'https://www.start.umd.edu/gtd/', licence: 'gtd-terms', events: true },
   { code: 'ww1-wiki', name: 'World War I battles (Wikipedia)', owner: 'Wikipedia contributors', url: 'https://en.wikipedia.org/', licence: 'cc-by-sa-4.0', events: true },
-  { code: 'tradewar', name: 'Global Trade War 2018–present', owner: 'Kaggle compilation', licence: 'unknown', events: true },
   { code: 'wdi', name: 'World Development Indicators', owner: 'World Bank', url: 'https://datacatalog.worldbank.org/', licence: 'cc-by-4.0' },
   { code: 'owid-conflict', name: 'OWID: deaths in ongoing conflicts', owner: 'Our World in Data', url: 'https://ourworldindata.org/war-and-peace', licence: 'cc-by-4.0' },
   { code: 'owid-le', name: 'OWID: life expectancy at different ages', owner: 'Our World in Data', url: 'https://ourworldindata.org/life-expectancy', licence: 'cc-by-4.0' },
@@ -233,7 +231,7 @@ export async function seed(ctx: Ctx) {
   const eu27 = r.region('eu27', 'European Union (27)', seedSrc);
   const international = r.region('international', 'International', seedSrc);
   const cis = r.region('cis', 'Commonwealth of Independent States', seedSrc);
-  // Anchors for events whose only party is a group (tariffs on "EU" or "ALL").
+  // Anchors for events whose only party is a group ("EU" or "ALL").
   db.prepare(`UPDATE core_entity SET lon = ?, lat = ? WHERE entity_id = ? AND lon IS NULL`).run(4.35, 50.85, eu27);
   db.transaction(() => {
     for (const n of ['Global', 'ALL', 'World (WB)']) addName(world, n, 'alias', FOREVER_LO, null, seedSrc);

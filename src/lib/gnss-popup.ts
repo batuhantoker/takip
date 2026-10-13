@@ -1,6 +1,6 @@
 type Props = NonNullable<GeoJSON.GeoJsonProperties>;
 
-const STYLE = `background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;`;
+const STYLE = `background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:var(--font-hud);`;
 
 export function gnssPopupHtml(p: Props): string {
   const pct = Math.round(Number(p.ratio) * 100);

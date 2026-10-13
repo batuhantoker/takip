@@ -40,7 +40,7 @@ export function fireIncidentPopupHtml(p: Props): string {
   const color = fireStageColor(p.stage);
   const updated = Date.parse(String(p.updated ?? ''));
   const ofNote = p.ofNote === true || p.ofNote === 'true';
-  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;border:1px solid ${color}40;max-width:280px;">
+  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:var(--font-hud);border:1px solid ${color}40;max-width:280px;">
         <div style="color:${color};font-size:12px;font-weight:700;margin-bottom:4px;">🔥 ${htmlEsc(p.name)}${ofNote ? ' · FIRE OF NOTE' : ''}</div>
         <div style="font-size:9px;color:#aaa;margin-bottom:8px;">${htmlEsc(p.agency)} · agency-reported wildfire</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;">

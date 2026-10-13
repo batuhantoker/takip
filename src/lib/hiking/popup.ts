@@ -65,7 +65,7 @@ export function hikingPopupHtml(routes: RouteSummary[], selected: number, detail
   const others = routes.filter(x => x.id !== r.id);
   const more = others.length > MAX_OTHERS ? `<div style="padding:2px 6px;">${label(`+${others.length - MAX_OTHERS} MORE`)}</div>` : '';
 
-  return `<div style="background:rgba(12,14,26,0.95);border:1px solid ${g.color}4D;border-radius:10px;padding:14px;font-family:'JetBrains Mono',monospace;min-width:260px;">
+  return `<div style="background:rgba(12,14,26,0.95);border:1px solid ${g.color}4D;border-radius:10px;padding:14px;font-family:var(--font-hud);min-width:260px;">
     <div style="display:flex;align-items:center;gap:10px;">
       ${symbol(r.symbol_id ?? d?.symbol_id, 26)}
       <div style="min-width:0;">

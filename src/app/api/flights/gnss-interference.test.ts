@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { interferenceCells, type NavSample } from './gnss-interference';
+import { interferenceCells, navSamplesFrom, type NavSample } from './gnss-interference';
 
 const at = (lat: number, lng: number, nac_p: number, n: number): NavSample[] => Array.from({ length: n }, () => ({ lat, lng, nac_p }));
 
@@ -23,5 +23,16 @@ describe('interferenceCells', () => {
 
   it('skips samples without a position or accuracy', () => {
     expect(interferenceCells([{ lat: NaN, lng: 1, nac_p: 0 }, { lat: 1, lng: 1, nac_p: NaN }])).toEqual([]);
+  });
+});
+
+describe('navSamplesFrom', () => {
+  it('takes airborne tar1090 rows once per aircraft, and skips rows without accuracy', () => {
+    expect(navSamplesFrom([
+      { hex: 'ABC123', lat: 55.1, lon: 15.2, nac_p: 0, alt_baro: 35000 },
+      { hex: 'abc123', lat: 55.2, lon: 15.3, nac_p: 9, alt_baro: 35000 },
+      { hex: 'def456', lat: 55.1, lon: 15.2, nac_p: 9, alt_baro: 'ground' },
+      { hex: 'aaa111', lat: 55.1, lon: 15.2, alt_baro: 30000 },
+    ])).toEqual([{ lat: 55.1, lng: 15.2, nac_p: 0 }]);
   });
 });

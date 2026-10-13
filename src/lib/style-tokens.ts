@@ -61,17 +61,17 @@ export interface StyleSettings {
 }
 
 export const FONT_UI = [
-  { label: 'INTER', value: "'Inter', -apple-system, sans-serif" },
-  { label: 'MONO', value: "'JetBrains Mono', monospace" },
+  { label: 'GEIST', value: "'Geist', -apple-system, sans-serif" },
+  { label: 'MONO', value: "'Geist Mono', ui-monospace, monospace" },
   { label: 'SYSTEM', value: 'system-ui, -apple-system, sans-serif' },
   { label: 'SERIF', value: "'Iowan Old Style', Georgia, serif" },
 ];
 
 export const FONT_MONO = [
-  { label: 'JETBRAINS', value: "'JetBrains Mono', 'Courier New', monospace" },
+  { label: 'GEIST MONO', value: "'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace" },
   { label: 'COURIER', value: "'Courier New', Courier, monospace" },
   { label: 'CONSOLAS', value: "Consolas, 'SF Mono', Menlo, monospace" },
-  { label: 'INTER', value: "'Inter', sans-serif" },
+  { label: 'GEIST', value: "'Geist', sans-serif" },
 ];
 
 /** Neutral baseline: also the shape used to enumerate every var we own. */

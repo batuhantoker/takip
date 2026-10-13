@@ -16,7 +16,7 @@ async function main() {
   const args = process.argv.slice(2);
   const flag = (name: string) => args.includes(name);
   const dirAt = args.indexOf('--data-dir');
-  const names = args.filter((a, i) => !a.startsWith('--') && i !== dirAt + 1);
+  const names = args.filter((a, i) => !a.startsWith('--') && (dirAt < 0 || i !== dirAt + 1));
   if (!names.length) {
     console.log(`usage: import <seed|all|check|${Object.keys(DATASETS).join('|')}>… [--force] [--dry-run] [--data-dir dir]`);
     process.exit(1);

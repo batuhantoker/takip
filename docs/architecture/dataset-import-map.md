@@ -139,14 +139,9 @@ From `World War 1 Battles/WW1_Data.csv` (309 rows):
 - **Relations:** `part_of` → WAC `CNF-0001` (canonical WWI).
 - **Wikipedia URL** → `doc.document(kind=citation)` + link `source_of`.
 
-### 2.8 Tariff timeline → source `tradewar`
+### 2.8 Tariff timeline → source `tradewar` (removed)
 
-From `Global Trade War 2018 - Present /tariff_timeline.csv` (141 rows):
-
-- **Kind `econ.tariff`,** day prec, key `sha1(date, imposing, target, sector, rate)`.
-- **`event_entity`:** `imposing_country` → `imposing`, `target_country` → `targeted`. `EU`, `EU27`, `Global` and `ALL` resolve to region groups.
-- **The 99 rows with `type = 'NewsAPI'`** get `confidence 0.3` and `attrs.unverified = true`. The default layer filter hides them.
-- **Geometry:** none. Renders at the imposing polity's anchor.
+Removed on 2026-10-13 with its series (§3) as not useful. The raw files are still in `docs/data/raw-2026-10-12-new/`, and the importer is in git history (`tools/import/datasets/tradewar.ts`).
 
 ## 3. Series
 
@@ -156,10 +151,6 @@ From `Global Trade War 2018 - Present /tariff_timeline.csv` (141 rows):
 | WDI `Country.csv` | `wdi` | — | polity(wb); 33 aggregates → region groups | Region, income group and lending category → `core.region_member`; the rest → `core.entity.attrs.wdi` |
 | WDI `Indicators.csv` (5.66M) | `wdi` | `wdi:*` | polity(wb) / region group | Year prec. Stream and `COPY`, roughly 10 minutes on the NUC. Aggregates are kept, as series of region groups. |
 | WDI `Footnotes.csv`, `CountryNotes.csv`, `SeriesNotes.csv` | `wdi` | — | — | Codes upper-cased (`mdg` → `MDG`, `yr2012` → 2012). Descriptions deduplicated into `ts.note` (the top 5 cover 31% of rows) and linked by `ts.point_note`. |
-| Trade war `trade_volume_annual.csv` | `tradewar` | the **same** `wdi:<code>` metrics | polity(iso2) | Separate series, because the source differs. The chart overlays WDI to 2015 with this to 2025. |
-| Trade war `stock_market_reaction.csv`, `sector_impact.csv` | `tradewar` | `px:open`, `px:high`, `px:low`, `px:close`, `px:volume` | `core.entity(type=instrument)`, scheme `ticker` | Day prec. Derived columns (returns, MAs, volatility, `indexed_to_100`) are **not stored**; the API computes them. VN-Index's `VNM` ticker is aliased to `native:tradewar:VNINDEX`. |
-| Trade war `currency_impact.csv` | `tradewar` | `fx:rate_vs_usd` | instrument, scheme `iso4217` | Derived columns not stored |
-| Trade war `inflation_response.csv` | `tradewar` | `fred:<series>` | polity USA | Monthly prec. `era`/`post_tariff_era` are not stored, because they are derived from the date. |
 | `countries-in-conflict-data.csv` | `owid-conflict` | `owid:conflict_deaths_all` | polity(iso3 / owid) | Year prec. A complete panel: zeros are real zeros. |
 | `life-expectancy/3-…csv` | `owid-le` | `owid:le_0`, `le_10`, `le_25`, `le_45`, `le_65`, `le_80` | polity(iso3/owid); continents → region groups | Year prec; 1543–2021 |
 | `life-expectancy/2-…csv` | `owid-le-hmd` | `owid:le_0` | same | A separate source: HMD + UN WPP methodology |

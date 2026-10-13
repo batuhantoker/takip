@@ -13,7 +13,6 @@ import {
   importOwidMental,
   importOwidWater,
 } from './owid';
-import { importTradewar } from './tradewar';
 import { importUcdp } from './ucdp';
 import { importWac1914 } from './wac1914';
 import { importWdi } from './wdi';
@@ -33,7 +32,6 @@ export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
   'ucdp-brd': importUcdp,
   gtd: importGtd,
   'ww1-wiki': importWw1,
-  tradewar: importTradewar,
   wdi: importWdi,
   'owid-conflict': importOwidConflict,
   'owid-le': importOwidLifeExpectancy,

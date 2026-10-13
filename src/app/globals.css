@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@300..700&display=swap');
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════
@@ -83,8 +83,8 @@
   --hover-accent: rgba(var(--gold-rgb), 0.08);
 
   /* ── Fonts ── */
-  --font-hud: 'JetBrains Mono', 'Courier New', monospace;
-  --font-body: 'Inter', -apple-system, sans-serif;
+  --font-hud: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-body: 'Geist', -apple-system, sans-serif;
 
   /* ── Spacing (responsive) ── */
   --panel-gap: 12px;

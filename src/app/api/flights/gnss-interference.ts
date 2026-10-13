@@ -22,6 +22,23 @@ export interface InterferenceCell {
 }
 
 // A single poll sees far fewer aircraft than gpsjam's daily files, so one or two faulty transponders are not enough.
+type RawRow = { hex?: unknown; lat?: unknown; lon?: unknown; nac_p?: unknown; alt_baro?: unknown };
+
+/** Airborne tar1090 rows that carry their own accuracy, once per aircraft. OpenSky rows carry no NACp. */
+export function navSamplesFrom(rows: unknown[]): NavSample[] {
+  const seen = new Set<string>();
+  const out: NavSample[] = [];
+  for (const r of rows as RawRow[]) {
+    if (typeof r?.nac_p !== 'number' || typeof r.lat !== 'number' || typeof r.lon !== 'number') continue;
+    if (r.alt_baro === 'ground' || (typeof r.alt_baro === 'number' && r.alt_baro < 100)) continue;
+    const hex = String(r.hex ?? '').toLowerCase().trim();
+    if (!hex || seen.has(hex)) continue;
+    seen.add(hex);
+    out.push({ lat: r.lat, lng: r.lon, nac_p: r.nac_p });
+  }
+  return out;
+}
+
 export const INTERFERENCE_RULE = { gridDeg: 2, badNacp: 4, minAircraft: 10, minRatio: 0.1, minBad: 3 };
 
 export function interferenceCells(samples: NavSample[], rule = INTERFERENCE_RULE): InterferenceCell[] {

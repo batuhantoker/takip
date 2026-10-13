@@ -79,7 +79,7 @@ export function chokepointFlowPopupHtml(p: Props): string {
     ? 'Too little history or traffic to rate.'
     : `${Math.round(ratio * 100)}% of its previous ~90 days (${p.basis === 'capacity' ? 'tanker tonnage' : 'vessel count'})${p.status === 'disrupted' ? ', below 85% for three days running' : ''}.`;
   const events = disruptions.map(d => `<div style="font-size:9px;color:${d.alertLevel?.toUpperCase() === 'RED' ? '#FF6D00' : '#FFB300'};margin-top:4px;">⚠ ${htmlEsc(d.name)}${d.fromDate ? ` · since ${htmlEsc(d.fromDate.slice(0, 10))}` : ''}</div>`).join('');
-  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;border:1px solid ${color}40;max-width:300px;">
+  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:var(--font-hud);border:1px solid ${color}40;max-width:300px;">
         <div style="color:${color};font-size:12px;font-weight:700;">⚓ ${htmlEsc(p.name)}</div>
         <div style="font-size:9px;color:#5C5A54;">IMF PortWatch · daily transits</div>
         <div style="font-size:10px;color:#E8E6E0;margin-top:8px;">${htmlEsc(String(p.status).toUpperCase())}</div>

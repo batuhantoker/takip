@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 import { record } from '@takip/archive/recorder';
 import { AIRLINE_CODE_RE, aircraftCategory, isHelicopter } from '@takip/core/aircraft';
 import { TAKIP_USER_AGENT } from '@/lib/user-agent';
-import { interferenceCells, type NavSample } from './gnss-interference';
+import { interferenceCells, navSamplesFrom } from './gnss-interference';
 import {
-  adsbLolLastAttempt, adsbLolTypeSnapshot, awaitAdsbLolTypeSnapshot, fetchAdsbLolMil, type TypeSnapshot,
+  adsbLolLastAttempt, adsbLolTypeSnapshot, awaitAdsbLolTypeSnapshot, fetchAdsbLolMil, withAircraftType, type TypeSnapshot,
 } from './adsb-lol';
 
 export const maxDuration = 60;
@@ -352,16 +352,28 @@ export async function GET() {
       record('opensky', { url: OPENSKY_STATES, status: 0, err: String(osRes.reason) }, null);
     }
 
-    // Typed rows go in before OpenSky's, so the dedupe keeps the ones that carry an aircraft type.
+    // OpenSky's positions are fresher than the adsb.lol snapshot (up to 10 min old); adsb.lol adds the
+    // aircraft type OpenSky never carries, plus the aircraft OpenSky does not have.
     let typed: TypeSnapshot | null = adsbLolTypeSnapshot();
     if (!typed && osSnapshot.length === 0) typed = await awaitAdsbLolTypeSnapshot();
+    type TypedRow = { hex?: unknown; t?: unknown; r?: unknown; dbFlags?: unknown };
+    const typedByHex = new Map<string, TypedRow>();
+    for (const ac of (typed?.ac ?? []) as TypedRow[]) {
+      const hex = String(ac?.hex ?? '').toLowerCase().trim();
+      if (hex) typedByHex.set(hex, ac);
+    }
+    let typedMatched = 0;
+    ingestAc(osSnapshot.map(row => {
+      const t = typedByHex.get(String(row.hex ?? '').toLowerCase().trim());
+      if (t) typedMatched++;
+      return withAircraftType(row, t);
+    }), allRaw, seenHex);
     const typedBefore = allRaw.length;
     if (typed) ingestAc(typed.ac, allRaw, seenHex);
-    const typedCount = allRaw.length - typedBefore;
+    const typedAdded = allRaw.length - typedBefore;
 
-    ingestAc(osSnapshot, allRaw, seenHex);
     const openSkyWorked = osSnapshot.length > 0;
-    const typedWorked = typedCount > 1000;
+    const typedWorked = (typed?.ac.length ?? 0) > 1000;
 
     // ── Phase 3: Regional sweep — last resort only ────────────────────────────
     // Runs only when there is no OpenSky snapshot at all, never as the steady
@@ -397,15 +409,10 @@ export async function GET() {
     const privateFl: any[] = [];
     const jets: any[] = [];
     const military: any[] = [];
-    const navSamples: NavSample[] = [];
 
     for (const raw of allRaw) {
       const flight = classifyFlight(raw);
       if (!flight) continue;
-
-      if (typeof flight.nac_p === 'number' && !flight.grounded) {
-        navSamples.push({ lat: flight.lat, lng: flight.lng, nac_p: flight.nac_p });
-      }
 
       switch (flight.category) {
         case 'military': military.push(flight); break;
@@ -420,7 +427,8 @@ export async function GET() {
       private_flights:    privateFl,
       private_jets:       jets,
       military_flights:   military,
-      gps_jamming:        interferenceCells(navSamples),
+      // adsb.* rows only: their position and accuracy are from the same moment, unlike a typed OpenSky row.
+      gps_jamming:        interferenceCells(navSamplesFrom([...allRaw, ...(typed?.ac ?? [])])),
       total:              allRaw.length,
       source,
       // Per-feed counts so a provider that starts answering 200 with no aircraft
@@ -428,12 +436,14 @@ export async function GET() {
       providers: {
         adsblol_mil:     lolMil ? milCount : 0,
         adsbfi_mil:      lolMil ? 0 : milCount,
-        adsblol_typed:   typedCount,
+        adsblol_typed:   typed?.ac.length ?? 0,
+        adsblol_typed_matched: typedMatched,
+        adsblol_typed_added:   typedAdded,
         adsblol_age_s:   typed ? Math.round((Date.now() - typed.at) / 1000) : null,
         // Batches never asked because an earlier one was refused are reported apart from the refusals.
         adsblol_batches: typed ? { answered: typed.answered, failed: typed.failed, refused: typed.refused, skipped: typed.skipped } : null,
         adsblol_last_attempt: adsbLolLastAttempt(),
-        adsbfi_regional: openSkyWorked || typedWorked ? 0 : allRaw.length - milCount - typedCount,
+        adsbfi_regional: openSkyWorked || typedWorked ? 0 : allRaw.length - milCount - typedAdded,
         opensky:         osSnapshot.length,
         opensky_auth:    hasOpenSkyCreds(),
         opensky_age_s:   osSnapshotTime ? Math.round((Date.now() - osSnapshotTime) / 1000) : null,

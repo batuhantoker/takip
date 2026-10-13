@@ -2,8 +2,8 @@ import { htmlEsc, urlSafe } from './map-popups';
 
 type Props = NonNullable<GeoJSON.GeoJsonProperties>;
 
-const STYLE = `background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;`;
-const LINK = `display:inline-block;margin-top:8px;padding:5px 12px;font-size:10px;letter-spacing:0.12em;text-decoration:none;border-radius:5px;font-family:'JetBrains Mono',monospace;`;
+const STYLE = `background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:var(--font-hud);`;
+const LINK = `display:inline-block;margin-top:8px;padding:5px 12px;font-size:10px;letter-spacing:0.12em;text-decoration:none;border-radius:5px;font-family:var(--font-hud);`;
 
 /** "Go" is confirmed; everything else (TBD, TBC, Hold) is a plan that may move. */
 export const launchColor = (status: unknown) => (status === 'Go' ? '#00E676' : status === 'Hold' ? '#FF9500' : '#4FC3F7');

@@ -2,7 +2,7 @@ import { htmlEsc, urlSafe } from './map-popups';
 
 type Props = NonNullable<GeoJSON.GeoJsonProperties>;
 
-const STYLE = `background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;`;
+const STYLE = `background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:var(--font-hud);`;
 
 export const indicatorColor = (indicator: unknown) =>
   indicator === 'critical' || indicator === 'major' ? '#FF1744' : indicator === 'minor' ? '#FF9500' : indicator === 'maintenance' ? '#4FC3F7' : '#9E9E9E';

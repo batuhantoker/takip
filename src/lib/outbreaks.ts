@@ -55,7 +55,7 @@ export function outbreakPopupHtml(p: Props): string {
           <div style="color:${outbreakColor(r.level)};font-size:10px;font-weight:700;">${htmlEsc(r.disease)}${r.level ? ` · CDC level ${r.level}` : ''}</div>
           <a href="${urlSafe(r.url)}" target="_blank" rel="noopener noreferrer" style="color:#B0BEC5;font-size:9px;text-decoration:none;">${htmlEsc(r.source)} · ${htmlEsc(r.published.slice(0, 10))} · ${htmlEsc(r.title)}</a>
         </div>`).join('');
-  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:'JetBrains Mono',monospace;border:1px solid ${color}40;max-width:320px;">
+  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:16px;font-family:var(--font-hud);border:1px solid ${color}40;max-width:320px;">
         <div style="color:${color};font-size:12px;font-weight:700;">🦠 ${htmlEsc(p.country)}</div>
         <div style="font-size:9px;color:#5C5A54;">Outbreak notices · country-level, not a location</div>
         ${items}
