@@ -1,0 +1,594 @@
+claim_id,name,lon,lat
+2,Passamaquoddy Bay,-67.00,45.05
+4,St. Croix-St. John Rivers,-68.60,46.60
+5,Machias Seal Island,-67.10,44.50
+6,49th Parallel,-97.20,49.00
+8,Oregon Country,-122.00,46.50
+8,San Juan Islands,-123.00,48.55
+10,Alaska,-134.40,58.30
+11,Wrangel Island,-179.50,71.20
+12,Labrador,-63.00,53.50
+14,Florida,-82.00,28.50
+16,Texas,-99.00,31.00
+18,Mesilla Valley,-106.80,32.30
+20,Morteritos & Sabinitos,-99.00,26.40
+22,Rio Grande Bancos,-97.80,25.90
+22,El Chamizal,-106.45,31.76
+26,California & New Mexico,-112.00,35.50
+28,Fort Ross,-123.24,38.51
+30,Baja California & Sonora,-112.00,29.00
+32,Ellesmere Island,-80.00,79.50
+34,Sverdrup Islands,-96.00,79.00
+36,Hans Island,-66.45,80.83
+38,Eastern Greenland,-24.00,73.00
+40,Cuba,-79.50,21.80
+42,Isla de Pinos (Isle of Pines),-82.85,21.70
+44,Guantanamo Bay,-75.13,19.93
+46,Navassa Island,-75.03,18.40
+48,Mole St. Nicholas,-73.38,19.80
+50,Samana Bay,-69.40,19.15
+52,Virgin Islands,-64.85,18.10
+54,Rio Massacre,-71.70,19.50
+56,Quita Sueno-Roncador-Serrana,-80.50,14.10
+57,Serranilla Bank & Bajo Nuevo,-79.30,15.85
+58,San Andres y Providencia,-81.55,12.90
+60,Clipperton Island,-109.22,10.30
+62,Rio Hondo,-88.60,18.20
+64,Chiapas,-92.50,16.30
+66,Belize,-88.70,17.20
+68,Ranguana & Sapodilla (Zapotillo),-88.20,16.20
+70,Mosquito Coast,-83.60,13.50
+72,Rio Motagua,-88.40,15.60
+74,Cordillera Monte Cristo,-89.35,14.42
+76,Bolsones,-88.00,13.90
+78,Gulf of Fonseca Islands,-87.70,13.25
+78,Conejo Island,-87.73,13.30
+80,Teotecacinte,-86.06,14.04
+81,Cayo Sur - Media Luna,-82.60,15.10
+82,Swan Islands,-83.93,17.40
+84,Mangles (Corn) Islands,-83.04,12.17
+85,Nicaragua Canal,-84.50,11.30
+86,Rio Sixaola y Rio Coto,-82.80,9.10
+88,Jurado,-77.80,7.20
+90,Canal Zone,-79.75,9.10
+100,Goajira-Guainia,-69.50,6.50
+102,Los Monjes,-70.92,12.37
+104,Oriente-Aguarico,-76.50,0.20
+106,Loreto,-73.50,-2.50
+106,Leticia,-69.94,-4.21
+108,Apaporis,-70.00,-0.80
+110,Aves (Bird) Island,-63.62,15.67
+112,Essequibo,-59.50,5.50
+114,Patos Island,-61.87,10.63
+116,Amazonas,-65.00,1.50
+118,Los Roques,-66.70,11.85
+120,Corentyn/New River Triangle,-57.36,2.45
+122,Pirara,-59.70,3.60
+124,Maroni,-54.20,3.00
+126,Tumuc-Humac,-55.00,2.20
+128,Amapa,-51.50,2.50
+130,Oriente-Mainas,-76.00,-2.50
+130,Cordillera del Condor,-78.40,-3.70
+131,Galapagos Islands,-90.50,-0.60
+132,Amazonas-Caqueta,-69.90,-2.00
+132,Amazonas-Ica,-69.20,-2.90
+134,Chincha Islands,-76.40,-13.64
+136,Acre,-70.00,-9.50
+144,Apa,-57.50,-22.00
+144,Rio Paraguay Border,-57.90,-20.50
+146,Misiones,-53.00,-26.50
+148,Yaguaron,-53.40,-32.60
+150,Trindade Island,-29.32,-20.51
+152,Chaco Boreal,-60.50,-21.50
+154,Antofagasta,-69.50,-23.50
+154,Tacna-Arica,-70.00,-18.00
+156,Puna de Atacama,-67.50,-24.50
+156,Los Andes,-67.50,-24.50
+158,Chaco Central,-60.00,-24.00
+160,Patagonia,-69.00,-45.00
+164,Beagle Channel,-67.30,-55.00
+166,Palena/Continental Glaciers,-72.90,-49.00
+168,Rio de La Plata,-57.50,-35.00
+170,Falkland (Malvinas) Is. & Dependencies,-59.50,-51.75
+200,Northern Ireland,-6.70,54.60
+202,Treaty Ports,-8.30,51.83
+204,Ecrehos & Minquiers,-2.03,49.13
+206,Gibraltar,-5.35,36.14
+208,Limburg,5.80,51.10
+208,Limburg & Zeeland Flanders,5.80,51.10
+210,Baarle Enclaves,4.93,51.44
+212,Elten & Tudderen,6.17,51.87
+214,Belgium,4.60,50.60
+216,Neutral Moresnet (Altenberg),6.03,50.72
+218,Eupen & Malmedy,6.10,50.50
+220,Luxembourg,6.13,49.75
+222,Vallee des Dappes,6.08,46.48
+224,Alsace-Lorraine,7.00,48.50
+226,Prussian Rheinprovinz,7.00,50.30
+226,Bavarian Palatinate (Pfalz),7.90,49.35
+226,Rheinhessen,8.10,49.85
+226,Saar (Sarre),6.95,49.35
+228,Jussy,6.27,46.24
+230,Savoy & Nice,6.80,44.60
+230,Upper Savoy (Haute Savoie),6.40,46.00
+232,Corsica,9.05,42.15
+234,Val d'Aosta-Briga-Tenda,7.35,45.70
+236,Neuchatel,6.93,46.99
+238,Kulmbach-Gersfeld-Orb,10.00,50.30
+240,Badenese Corridor,8.80,49.50
+240,Germersheim Frontage,8.36,49.22
+242,Salzburg,13.05,47.80
+244,Leipzig-Bautzen,13.40,51.25
+246,Hohenzollern,9.10,48.25
+248,Homburg-Upper Hesse,8.70,50.40
+250,Heligoland (Helgoland),7.88,54.18
+252,Schleswig-Holstein,9.80,54.40
+252,North Schleswig (Nord Slesvig),9.30,55.10
+254,German Reunification,12.40,52.00
+256,West Berlin,13.30,52.50
+258,Lombardy-Venetia,10.90,45.50
+260,Papal States,12.50,42.40
+262,Modena,10.93,44.65
+264,Parma,10.33,44.80
+266,Trentino-Alto Adige (South Tyrol),11.30,46.40
+268,Graham Island (Ferdinandea),12.72,37.17
+270,Finnmark/Varangerfjord,29.50,69.80
+272,Spitsbergen (Svalbard),16.00,78.50
+274,Aland (Aaland) Islands,20.00,60.20
+276,Finland,26.00,63.00
+278,Karelia & Petsamo,30.80,61.70
+280,Upper Silesia (Oberschlesien),18.60,50.30
+282,Allenstein & Marienwerder,19.70,53.75
+284,Danzig (Gdansk),18.65,54.35
+284,Western Poland (Danzig-Corridor-Upper Silesia),17.90,53.30
+284,Western Poland (Danzig-Pomerania-Upper Silesia),16.00,52.60
+286,Teschen,18.60,49.75
+286,Czech Teschen,18.55,49.75
+287,Orawa (Orava),19.55,49.40
+288,Spisz (Spis),20.15,49.30
+290,Eastern Galicia,24.50,49.50
+291,Belz/Sokal/Bug River Exchange,24.10,50.40
+292,Eastern Poland (Belarus-Ukraine),26.00,52.50
+294,Konigsberg/East Prussia,20.50,54.70
+294,Kaliningrad (Konigsberg)/East Prussia,20.50,54.70
+296,Vilna (Vilnius),25.28,54.69
+298,Memel (Klaipeda),21.13,55.71
+300,Estonia,25.50,58.70
+300,Petseri & Narva,27.80,57.90
+302,Latvia,24.50,56.90
+302,Abrene (Abrena) & Pytalovo (Pitalovo),27.55,57.07
+304,Valga-Hainasi-Ruhnu,24.40,57.86
+306,Daugavpils & Palanga,24.00,56.25
+308,Lithuania,23.90,55.20
+308,Adutiskis - Druskininkai - Ignalina,26.00,54.90
+310,Austria,14.50,47.60
+312,Glatz & Ratibor,17.40,50.30
+314,Sudetenland,13.50,50.40
+314,Bohemia & Moravia,15.50,49.80
+316,Burgenland,16.45,47.50
+316,Sopron,16.59,47.68
+318,Carinthia,14.00,46.70
+318,Klagenfurt,14.31,46.62
+320,Southern Slovakia,19.00,48.10
+320,Southern Slovakia (limited),19.00,48.10
+320,Jarovce-Rusovce-Cunovco,17.20,48.05
+322,Banat,21.00,45.50
+322,Banat-Backa-Baranja,19.80,45.60
+322,Serbian Banat-Backa-Baranja,19.80,45.60
+322,Serbian Banat,20.70,45.20
+322,Serbian Banat & Timoc Valley,20.70,45.20
+324,Prekmurje & Medjumurje,16.30,46.50
+326,Transylvania,24.00,46.50
+328,Ruthenia (Transcarpathia),23.00,48.40
+330,Sidonia & U Sabotu,17.60,48.95
+332,Venezia Giulia (Julian March),13.80,45.80
+332,Fiume (Rijeka),14.44,45.33
+332,Trieste & Eastern Istria,13.90,45.50
+332,Istria & Trieste,13.85,45.40
+334,Dalmatia,16.40,43.50
+334,Dalmatia & Croatia,16.00,44.50
+334,Zadar (Zara),15.23,44.12
+336,Saseno (Sazan) & Vlore (Valona),19.45,40.45
+336,Scutari (Shkoder)-Durres-St Naum,19.60,41.80
+336,Albania,20.00,41.00
+338,Epirus,20.60,39.80
+338,Northern Epirus,20.20,40.10
+338,Southern Epirus,20.80,39.50
+340,Kosovo,20.90,42.60
+342,Macedonia,21.70,41.60
+342,Serbian Macedonia,21.60,41.70
+342,Serbian Macedonia (Gevgelijia & Monastir),21.90,41.10
+342,Greek Macedonia,22.50,40.70
+342,Greek Macedonia (Salonica/Thessaloniki),22.94,40.64
+342,Strumica Valley,22.65,41.44
+342,Pirin Macedonia,23.30,41.70
+344,Prohor Pcinski Monastery-Sar Mountain-Kumanovo,21.80,42.25
+346,Prevlaka Peninsula,18.53,42.40
+348,Bihac & Martinbrod,16.00,44.65
+350,Danube coast,19.00,45.40
+352,Dragonja River-Secovlje-Sneznik,13.70,45.47
+354,Bosnia-Hercegovina & Novi Pazar,18.20,43.80
+354,Bosnia-Hercegovina,17.80,44.00
+356,Novi Pazar,20.20,43.15
+357,Alpha-Beta-Gamma Islands,26.25,41.75
+358,Southern Dobrudja,27.50,43.80
+360,Thrace,26.00,41.30
+360,Eastern Thrace,27.00,41.30
+360,Western Thrace,25.40,41.10
+360,Burgos & Rhodope Mountains,24.90,41.60
+362,Thessaly,22.20,39.50
+364,Samos,26.80,37.73
+364,Eastern Sporades,26.30,38.70
+364,Imbros & Tenedos,25.90,40.10
+364,Castellorizzo,29.59,36.15
+364,Aegean Sea Islands,26.00,38.50
+366,Crete,24.90,35.25
+368,Cyprus,33.20,35.10
+368,Northern Cyprus,33.50,35.30
+370,Dodecanese Islands,27.20,36.40
+372,Ionian Islands,20.30,38.80
+374,Southern Bessarabia & Serpent's Island,29.50,45.70
+374,Southern Bessarabia,29.30,45.90
+374,Bessarabia,28.80,46.90
+376,Bukovina,25.60,47.90
+376,Northern Bukovina,25.90,48.30
+376,Southern Bukovina,25.80,47.60
+378,Western Soviet Union,30.50,52.00
+380,Reni-Odessa Highway near Palanca,30.10,46.40
+380,Dzhurdzhulest Strip & Kopanka Road,28.20,45.50
+382,Serpent's/Snake/Zmeinyy Island,30.20,45.25
+384,Constantinople,28.98,41.01
+400,Casamance,-15.50,12.80
+402,Bulama Island,-15.70,11.58
+404,Gambia,-15.40,13.45
+404,Yarbutenda,-13.80,13.33
+404,Foni Brefet Border,-16.00,13.20
+406,Eastern Hodh & Savannah,-7.50,15.50
+408,Agacher Strip,0.00,14.80
+410,Senegal River Floodplain,-14.00,16.00
+412,Lete Island,3.20,12.10
+416,Ketenou,2.60,6.40
+416,Cotonou,2.42,6.37
+416,Agege Channel,3.32,6.62
+416,San Joao de Ajuda,2.09,6.36
+418,Burkina Faso/Niger border,1.00,13.50
+420,Borgu-Boussa-Badjibo-Forcados,4.50,9.90
+420,Badjibo & Forcados,4.90,9.60
+420,Boussa-Illo-Sokoto Border,4.30,12.00
+422,Western Sipilou,-8.20,7.85
+424,Cavally & Cess River Land,-7.90,5.60
+426,Danish Gold Coast,-0.20,5.60
+426,East Dutch Gold Coast,-0.70,5.30
+426,West British Gold Coast,-1.90,4.85
+426,Dutch Gold Coast,-1.60,5.10
+426,Ivory Coast,-5.50,7.50
+426,Assinie Border Territory,-3.30,5.20
+426,Sanwi State,-3.10,5.40
+428,Zigida,-9.40,8.00
+428,Mount Nimba,-8.50,7.60
+430,Iles de Los,-13.80,9.50
+430,Matacong Island,-13.40,9.30
+430,Mellacourie,-13.10,9.30
+436,Komtenga Strip,-0.25,11.00
+438,Western German Togo,0.60,7.50
+438,Eastern German Togo,1.20,8.00
+438,Togo,1.00,8.50
+438,British Togoland,0.50,8.00
+500,Fernando Po & Annobon Islands,8.75,3.50
+500,Equatorial Guinea,10.30,1.60
+502,Corisco Bay Islands,9.35,0.90
+504,British Cameroon,10.00,6.50
+504,French Cameroon,12.50,4.50
+504,Northern Cameroons,12.00,10.00
+504,Bakassi Peninsula,8.50,4.60
+504,Darak & Lake Chad Islands,14.40,13.00
+508,French Congo,14.50,-0.50
+508,Neu Kamerun,15.50,2.00
+510,Garoua-Boulai,14.55,5.90
+512,Logone River Triangle,15.00,10.50
+514,Kainasara & Tetwa Islands,14.00,13.30
+518,Southwest Sudan & Fashoda,32.10,9.90
+518,Southeast Sudan,34.00,7.50
+518,CAR Border Strip,24.50,8.50
+520,Aozou Strip,18.00,22.00
+526,Mufumbiro,29.60,-1.40
+528,Lake Kivu Area,29.20,-2.00
+528,Ruanda-Urundi,29.90,-2.50
+530,Kilwa Island,28.85,-9.15
+530,Kilwa Island & Peake-Gendarme Border,28.85,-9.15
+530,Katanga Pedicle,28.80,-12.00
+530,Kaputa District,29.70,-8.50
+534,Migingo Island,33.95,-0.88
+536,Kagera Salient,31.20,-1.00
+536,Kamwema,31.00,-1.00
+542,Vanga,39.20,-4.65
+542,German East Africa,35.00,-6.50
+544,Jubaland,41.50,0.00
+544,Northern Frontier District,40.00,2.00
+548,Boran Galla,38.50,4.00
+548,Gadaduma Wells & Minor Territory,38.90,3.80
+548,El Mole Tiko-Lake Stefanie-River Daua,38.50,4.20
+550,Baro Salient,34.30,8.20
+550,Ilemi Triangle,35.30,4.90
+556,Kissaka,30.50,-2.10
+560,Djibouti,42.60,11.60
+562,Eastern Ogaden,44.50,7.50
+562,Walwal-Wardair-Ethiopia,45.40,7.00
+562,Haud & Reserved Area,46.00,8.50
+562,Italian Somaliland,45.50,4.00
+562,Ogaden,44.00,7.00
+564,Afambo,41.80,11.40
+564,Djibouti,42.60,11.60
+564,Jibuti,42.60,11.60
+564,Western Jibuti & Doumeirah Island,42.80,12.30
+564,Sultanate of Raheita,43.08,12.73
+568,Eritrea,38.90,15.30
+568,Badme-Zalambessa-Altena-Bure,38.60,14.60
+570,Lake Rudolf Border,36.00,4.60
+570,Umbrega Triangle & El Fashaqa Triangle,36.40,14.00
+570,al-Fashqa Farmland,36.40,14.00
+572,Kassala Region,36.40,15.45
+574,Chagos Archipelago,72.40,-6.30
+602,Duizi Valley Strip,22.30,-10.70
+602,Dilolo Boot,22.30,-10.70
+602,Congo River Islands,13.20,-5.90
+608,Kionga Triangle,40.40,-10.50
+608,Kionga Triangle & Southern German East Africa,39.00,-10.50
+610,Lundu-Papia-Ngkuyo Islands,34.50,-10.50
+610,Songwe-Njombe-Tunduma-Mbeya,33.80,-9.50
+612,West Barotseland,22.50,-15.50
+614,Kavale Rapids Border,14.50,-17.40
+616,Manicaland,32.70,-19.00
+616,Eastern Manicaland,33.50,-19.00
+618,Southwestern Mozambique,34.00,-15.50
+620,Delagoa Bay,32.80,-25.90
+622,Krogh-Mpundweni Border,32.00,-26.90
+624,Singabezi Island,25.90,-17.90
+626,Eastern Province,32.79,-13.75
+626,Mwami,32.79,-13.75
+636,Rooibank & Ururas Areas,14.65,-23.20
+636,German South West Africa,17.50,-22.00
+636,Walvis Bay,14.50,-22.95
+636,Orange River Islands,17.50,-28.70
+638,Conquered Territories,27.20,-28.80
+640,KaNgwane-Ngwavuma-Nsikazi,31.70,-26.60
+642,Kasikili Island,25.13,-17.81
+644,Iles Eparses,42.70,-17.05
+646,Mayotte,45.15,-12.82
+648,Tromelin Island,54.52,-15.89
+670,Melilla Valley,-2.95,35.29
+670,Ceuta Border Areas,-5.32,35.89
+670,Santa Cruz de Mar Pequena,-10.17,29.38
+670,Ceuta-Melilla-Chafarinas Islands,-3.90,35.20
+670,Ifni,-10.00,29.30
+672,Mauritania,-10.50,20.00
+674,Western Sahara,-13.00,24.50
+676,Central Morocco,-6.50,32.50
+676,Northern & Southern Morocco,-6.00,33.00
+676,French Morocco,-6.50,32.00
+676,Tarfaya,-12.90,27.90
+678,Gourara-Touat-Tidikelt,0.50,27.80
+678,Oran,-0.64,35.70
+678,Tindouf,-8.15,27.67
+680,Garet el Hamel & Edjele,9.30,29.00
+682,Libyan Sahara,13.00,24.00
+684,Tunisia,9.50,34.50
+685,Bizerte,9.87,37.27
+686,Wad al-Mukta & Biban,11.30,33.20
+688,Sarra Triangle,22.50,21.50
+690,Libya,17.00,27.00
+692,Al Jaghbub & Sollum,24.80,30.60
+692,Bardiyah & Al Jaghbub,24.80,30.75
+694,Egypt,30.50,26.80
+696,Sudan,30.00,15.50
+696,Halaib Triangle,35.50,22.30
+700,Khotur & Bajirge,44.40,38.40
+704,Shatt al Arab,48.30,30.30
+705,Khuzestan (Arabistan),49.00,31.30
+706,Cilicia,35.00,37.00
+708,Antalya & Konya,31.50,37.40
+710,Smyrna (Izmir),27.14,38.42
+712,Greater Syria,37.00,34.50
+714,Mosul,43.13,36.34
+716,Hatay (Alexandretta),36.20,36.30
+720,Basra & Baghdad,45.50,32.00
+724,Iraq-Saudi Neutral Zone,45.00,29.00
+726,Kuwait,47.70,29.30
+730,Suez Canal,32.35,30.60
+732,Negev-Gaza-Neutral Zone,34.60,31.00
+732,Negev Desert,34.90,30.60
+732,Southern Negev & Demilitarized Zone,34.90,30.00
+734,Gaza Strip & Demilitarized Zones,34.40,31.42
+736,Sinai Peninsula,33.80,29.50
+736,Sharm el Sheikh,34.33,27.91
+736,Taba,34.89,29.49
+740,Shebaa Farms,35.75,33.28
+741,Syria,38.50,35.00
+741,Iraq,43.70,33.20
+741,Lebanon,35.80,33.90
+741,Israel (Palestine),35.00,31.50
+742,Tabariyat & Daraa,36.00,32.60
+743,Israel (Palestine),35.00,31.50
+743,Jordan,36.50,31.30
+743,Lebanon,35.80,33.90
+744,Eastern Galilee/Syria-Israel Demilitarized Zones,35.62,33.00
+744,Syria-Israel Demilitarized Zones,35.62,32.90
+744,Golan Heights & Syria-Israel DMZ,35.75,33.00
+748,West Bank-Jerusalem-Demilitarized Zones,35.25,31.90
+748,West Bank & East Jerusalem,35.25,31.90
+750,Palestine and Transjordan,35.50,31.50
+752,Aqaba & At Tubayq Hills,35.80,29.50
+752,Aqaba Hinterland,35.30,29.70
+754,Farsi & al Arabiyah Islands,50.17,27.90
+756,Najran-Asir-Jizan,43.00,17.60
+756,Duwaimah-Huraym-Ashiq Islands,42.10,16.40
+758,Al Wadiah-Beihan,46.50,16.20
+760,Southern Saudi-Kuwait Neutral Zone,48.00,28.55
+760,Northern Saudi-Kuwait Neutral Zone,47.90,28.80
+762,Qaruh & Umm al-Maradim Islands,48.72,28.75
+764,Lubainah al-Saghirah & Lubainah al-Kabirah Islands,49.95,27.35
+766,Al Khafous (Khafus),51.00,24.60
+768,Abu Musa & Tunb Islands,55.15,26.05
+770,Buraimi & Emirates Border Regions,55.80,24.25
+770,Western Buraimi,55.50,24.20
+770,Eastern Buraimi,55.90,24.25
+770,Sila,51.75,24.05
+770,Saudi/UAE Border,52.50,23.00
+774,South Yemen,47.00,14.80
+776,Kamaran Island,42.60,15.35
+778,Perim Island,43.42,12.65
+780,Hanish Islands,42.73,13.72
+782,Dhofar,53.50,17.50
+784,Kuria Muria Islands,56.10,17.50
+786,Bahrain,50.55,26.05
+790,Hawar Islands & Zubarah,50.90,25.80
+792,Ras al-Khaimah,56.10,25.90
+800,Maritime Territories,134.00,45.00
+800,Amur & Ussuri River Islands,134.50,47.80
+800,Argun River Islands,119.30,49.80
+802,Inner Mongolia,113.00,43.00
+802,Liaotung Peninsula,122.00,39.50
+802,Manchurian Railway Corridor,125.00,43.00
+802,Kinchow,121.10,41.10
+802,Manchuria,126.00,45.00
+802,North China,116.00,38.00
+803,Shantung,118.50,36.40
+804,Outer Mongolia,103.00,47.00
+804,Dalai & Buyr Lakes-Halhin River,118.00,47.70
+804,Baytik Mountains & Hongshanzui,90.80,45.20
+804,Tannu Tuva,94.50,51.50
+806,Weihaiwei,122.10,37.50
+807,Kwangchou-wan,110.40,21.20
+808,Sanmen Bay,121.60,29.10
+809,Taiwan,121.00,23.70
+809,China,104.00,35.50
+811,Pescadores Islands,119.60,23.57
+814,Kowloon Peninsula,114.18,22.32
+814,Hong Kong,114.17,22.30
+816,Macao,113.55,22.17
+816,Lappa-Dom Joao-Wongkam Islands,113.50,22.13
+818,Ryukyu Islands,127.80,26.30
+820,Diaoyu/Senkaku Islands,123.50,25.75
+824,Changbai Mountain,128.08,42.00
+826,Korea,127.50,38.00
+826,Masampo (Masan),128.57,35.20
+826,South Korea,127.80,36.30
+826,North Korea,127.00,40.00
+828,Sakhalin Island,142.80,50.50
+828,Kuril Islands & South Sakhalin,146.80,44.60
+830,Dokdo (Takeshima) Islands,131.87,37.24
+840,Georgia-Russia Border,43.80,42.70
+840,Russian Military Bases,43.50,42.00
+844,Russia/Kazakhstan Border,63.00,52.00
+848,Nagorno-Karabakh,46.75,39.85
+850,Karki,45.05,39.86
+858,Western Georgia,42.00,42.00
+858,Kars,43.10,40.60
+858,Eastern Anatolia,41.50,39.50
+858,Alashkert & Bayazit,43.40,39.65
+858,Kars-Ardahan-Batum,42.50,41.10
+858,Batum,41.64,41.64
+858,Kars & Ardahan,42.90,40.85
+862,Krasnovodsk,53.00,40.00
+862,Turkomen Tribal Areas,58.00,38.50
+862,Firuze,58.10,37.90
+862,Sarakhs,61.17,36.53
+862,Firuze-Achuradeh-Astrabad,54.50,37.00
+866,Badakshan,71.00,37.00
+866,Urta-Turgai,68.50,37.20
+874,Batken-Isfara,70.70,40.00
+877,Western Xinjiang,79.00,42.00
+877,Ili Valley & Lake Zaysan,81.30,43.90
+877,Sarykol Range,74.50,38.00
+877,Uzengi-Kuush,79.00,41.70
+877,Chogan-Obo Valley & Bay-Murza Passes,82.00,45.40
+880,Sokh Enclave Corridor,71.10,39.95
+882,Kyrgyzstan/Kazakhstan Border,74.50,42.90
+886,Bagys & Turkestan,69.30,41.50
+900,Hashtadan,60.90,34.60
+900,Musa Abad,60.90,34.40
+904,Kuhak & Mashkil Valley,62.90,27.60
+904,Mirjaveh,61.45,29.02
+908,Pashtunistan (Durand Line),70.50,33.00
+909,Gwadar,62.33,25.12
+911,Sikkim,88.50,27.50
+912,Arunachal Pradesh,94.00,28.00
+914,Doklam-Sinchulumpa-Gieu,89.00,27.30
+918,Mt Everest & Border Regions,86.92,27.99
+922,Jammu & Kashmir,75.00,34.00
+922,Azad Kashmir & Northern Areas,74.50,35.50
+922,Trans-Karakoram Tract,76.60,35.90
+922,Aksai Chin & Eastern Ladakh,79.00,35.00
+922,Trans-Karakoram Tract & Aksai Chin,78.00,35.40
+923,Junagadh,70.46,21.52
+924,Rann of Kutch,69.80,24.00
+926,Goa-Daman-Diu-Dadra-Nagar Haveli,74.00,15.35
+928,Pondicherry-Chandernagore-Karukal-Yanam-Mahe,79.83,11.93
+930,Berubari Union & Bengali Enclaves,88.80,26.40
+930,Cooch Behar & Bengali Enclaves,89.00,26.30
+930,Muhurir Char & Bengali Enclaves,91.50,23.00
+930,Tin Bigha Corridor & Bengali Enclaves,88.93,26.33
+932,New Moore (South Talpatty) Island,89.15,21.60
+934,Kalapani,80.95,30.20
+936,Kachchativu,79.53,9.38
+940,Nam-Wan Tract,97.70,24.00
+940,Hpimaw-Gawlam-Kangfang Villages,98.40,26.00
+940,Wa State Border Regions,99.30,22.60
+942,Sino District Tract,101.50,21.60
+944,Pe-Lung-Wei,108.20,21.50
+944,Man Mei-Muong Neua-Neua Tay,103.00,22.40
+944,White Dragon Tail Island,107.73,20.13
+944,China-Vietnam Border Regions,106.50,22.60
+945,South Vietnam,106.50,12.00
+946,Paracel Islands,112.00,16.50
+952,Lan Kwai & See Sok,98.50,17.00
+952,Shan States & Kentung,99.60,21.30
+952,Three Pagodas Pass,98.40,15.30
+952,Mae Sot Islet,98.55,16.70
+953,Andaman Sea Islands,98.50,10.00
+954,Muong Sing,101.06,21.27
+955,Burma,96.00,21.00
+956,Battambang & Siemreap,103.50,13.30
+956,Preah Vihear,104.68,14.39
+956,Ko Kut Island,102.55,11.65
+958,Luang-Prabang,102.14,19.88
+958,Sayaboury & Bassac,101.70,19.20
+958,Cardamoms Peninsula-Ko Chang-Ko Kut-West Luang Prabang,102.50,12.00
+958,Dan Sai-Cardamoms Peninsula-Ko Chang-Ko Kut,102.50,12.00
+958,Battambang-Siemreap-West Bank Mekong,103.50,13.30
+958,Ban Rom Klao,101.00,17.60
+960,Singapore-Benkulen-Fort Marlborough-Belitung,103.85,1.29
+961,Dutch Malaya,102.25,2.20
+961,North Borneo and Sarawak,114.00,3.00
+962,North Malay States,100.80,5.80
+964,Prek Binh Gi-Bassac-Loc Ninh-Quan Phu Quoc,105.10,10.70
+964,Mondol Kiri Province & Minor Border Areas,107.20,12.50
+965,French Indochina,105.00,16.00
+968,Limbang (North Sarawak),115.00,4.75
+969,British Southeast Asia (Malaysia / Singapore / Borneo),102.50,3.50
+970,Philippines,122.00,12.50
+970,Palmas Island,126.58,5.56
+971,North Borneo,117.00,5.50
+971,Sabah (North Borneo),117.00,5.30
+972,Sipadan & Ligitan,118.75,4.17
+974,Laurantuca-Woure-Pamangkaju,124.90,-9.20
+974,Tahakay & Tamiru Ailala,125.00,-9.30
+974,Oecussi Enclave Border,124.30,-9.30
+974,East Timor,125.90,-8.80
+976,German New Guinea,146.00,-5.50
+976,Papua New Guinea,145.00,-6.50
+976,West Irian,138.00,-4.00
+976,Torres Straits Islands,142.50,-10.00
+978,Matthew & Hunter Islands,171.70,-22.37
+980,Pulau Batu Puteh (Pedra Branca),104.41,1.33
+981,Guam,144.79,13.44
+981,Caroline-Pelew-Marianas Islands,145.00,9.00
+981,Caroline-Marshall-Pelew-Marianas Islands,150.00,9.00
+981,US Pacific Islands,144.79,13.44
+982,German Samoa (Upola and Savaii),-172.10,-13.75
+982,American Samoa (Tutuila and Manu'a),-170.70,-14.30
+983,German Solomon Islands,156.50,-6.80
+984,Spratly Islands,114.50,10.00
+984,Kalayaan (Eastern Spratly Islands),115.50,10.50
+984,Southern Spratly Islands,114.00,8.50
+990,Minerva Reefs,-178.90,-23.70

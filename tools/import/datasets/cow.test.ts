@@ -2,7 +2,7 @@ import { Prec } from '@takip/core/time';
 import { describe, expect, it } from 'vitest';
 import { Reporter } from '../context';
 import { cowDate, WAC_MATCHES } from './cow';
-import { yyyymm } from './icow';
+import { readPlaces, yyyymm } from './icow';
 
 describe('cow dates', () => {
   it('lowers the precision for -9 and NA parts and keeps the raw value', () => {
@@ -27,6 +27,16 @@ describe('icow dates', () => {
     expect(yyyymm(rep, '197108')).toEqual({ t: Date.UTC(1971, 7, 1), prec: Prec.month });
     expect(yyyymm(rep, '185000')).toEqual({ t: Date.UTC(1850, 0, 1), prec: Prec.year, raw: '185000' });
     expect(yyyymm(rep, '200199')).toBeNull();
+  });
+});
+
+describe('icow places', () => {
+  it('puts each claimed territory on the territory, not between its claimants', async () => {
+    const places = await readPlaces();
+    expect(places.size).toBe(593);
+    expect(places.get('206\x1fGibraltar')).toEqual({ lon: -5.35, lat: 36.14 });
+    expect(places.get('170\x1fFalkland (Malvinas) Is. & Dependencies')).toEqual({ lon: -59.5, lat: -51.75 });
+    expect(places.get('716\x1fHatay (Alexandretta)')).toEqual({ lon: 36.2, lat: 36.3 });
   });
 });
 

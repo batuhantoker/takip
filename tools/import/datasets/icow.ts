@@ -1,15 +1,20 @@
 import { join } from 'node:path';
 import { expand, Prec } from '@takip/core/time';
 import { GeoPrec, type EventEntityRow, type EventInput } from '@takip/db';
-import { type Ctx, importDataset, mergePublish, type Reporter, RAW } from '../context';
+import { type Ctx, importDataset, mergePublish, type Reporter, RAW, REPO } from '../context';
 import { num, readCsv, text } from '../csv';
 import { type Stated, utc, ymd } from '../dates';
-import { EventBatch } from '../events';
+import { EventBatch, validLonLat } from '../events';
 import { Resolver } from '../resolver';
 import { SeriesBatch } from '../series';
 
 const DIR = join(RAW, 'Disputed Territories and Wars, 1816-2001');
 const f = (name: string) => join(DIR, name);
+/**
+ * Where each claimed territory lies, by claim_id and dyad name: ICOW has no coordinates, and the midpoint
+ * of two claimants rarely lands on the territory (Gibraltar fell in the Bay of Biscay, the Kurils in Kazakhstan).
+ */
+export const PLACES = join(REPO, 'tools/import/datasets/icow-places.csv');
 const VERSION = '2019-09-20';
 /** Coverage ends here: claims still open are censored, not ended. */
 const AS_OF = '2001-12-31';
@@ -37,6 +42,21 @@ function code(rep: Reporter, field: string, v: string) {
 
 type Dyad = { row: Record<string, string>; start: Ym; end: Ym | null; ongoing: boolean; entities: EventEntityRow[] };
 
+const placeKey = (claimId: string, name: string) => `${claimId}\x1f${name}`;
+
+export async function readPlaces(path = PLACES) {
+  const places = new Map<string, { lon: number; lat: number }>();
+  for (const p of await readCsv(path)) {
+    const key = placeKey(p.claim_id, p.name);
+    const lon = Number(p.lon);
+    const lat = Number(p.lat);
+    if (places.has(key)) throw new Error(`icow-places.csv: ${p.claim_id} ${p.name} twice`);
+    if (!validLonLat(lon, lat)) throw new Error(`icow-places.csv: ${p.claim_id} ${p.name} has no valid lon/lat`);
+    places.set(key, { lon, lat });
+  }
+  return places;
+}
+
 export async function importIcow(ctx: Ctx) {
   await importDataset(
     ctx,
@@ -44,8 +64,8 @@ export async function importIcow(ctx: Ctx) {
       source: 'icow',
       version: VERSION,
       asOf: AS_OF,
-      files: ['territories.csv', 'years.csv', 'states.csv'].map(f),
-      importerVersion: '1',
+      files: [...['territories.csv', 'years.csv', 'states.csv'].map(f), PLACES],
+      importerVersion: '2',
     },
     async ds => {
       const r = new Resolver(ctx);
@@ -94,9 +114,13 @@ export async function importIcow(ctx: Ctx) {
         claims.set(row.claim_id, list);
       }
 
-      const point = (entities: EventEntityRow[]) => {
-        const p = r.midpoint(entities.map(e => e.entityId));
-        return p ? { lon: p.lon, lat: p.lat, geoPrec: GeoPrec.approximate } : { lon: null, lat: null, geoPrec: GeoPrec.none };
+      const places = await readPlaces();
+      // A claim without a place stays off the map rather than drawn between its claimants.
+      const point = (claimId: string, name: string) => {
+        const p = places.get(placeKey(claimId, name));
+        if (p) return { ...p, geoPrec: GeoPrec.area };
+        rep.miss(`icow-places:${claimId} ${name}`);
+        return { lon: null, lat: null, geoPrec: GeoPrec.none };
       };
       const ongoingAttrs = (start: Ym, end: Ym | null, ongoing: boolean) => {
         const raw = { ...(start.raw ? { start: start.raw } : {}), ...(ongoing ? { end: CENSORED } : end?.raw ? { end: end.raw } : {}) };
@@ -128,7 +152,7 @@ export async function importIcow(ctx: Ctx) {
           tEnd: end?.t ?? null,
           tEndPrec: end?.prec ?? null,
           ongoing,
-          ...point([...claimants.values()]),
+          ...point(claimId, title),
           attrs: { names: [...names.keys()], dyads: dyads.length, region: num(dyads[0].row.region), ...ongoingAttrs(start, end, ongoing) },
           entities: [...claimants.values()],
         });
@@ -144,7 +168,7 @@ export async function importIcow(ctx: Ctx) {
             tEnd: end?.t ?? null,
             tEndPrec: end?.prec ?? null,
             ongoing: open,
-            ...point(entities),
+            ...point(claimId, row.name),
             attrs: {
               region: num(row.region),
               claim_resolution: code(rep, 'claim_resolution', row.claim_resolution),
