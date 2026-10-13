@@ -1,103 +1,90 @@
 'use client';
 
-import type { Dispatch, SetStateAction } from 'react';
+import { useRef, type Dispatch, type SetStateAction } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { APP_VERSION } from '@/lib/app-version';
 import { TakipMark } from '@/components/brand/takip-mark';
 import { TakipWordmark } from '@/components/brand/takip-wordmark';
+import { GlobeCanvas } from './splash/globe-canvas';
+import { SplashStatus } from './splash/splash-status';
+import { FeedCounters, type SplashFeed } from './splash/feed-counters';
+import { useGlobeHandoff } from './splash/use-globe-handoff';
+import { usePrefersReducedMotion } from './splash/use-prefers-reduced-motion';
 
-/* The splash reports what has actually happened. The last stage waits for
-   the map's first finished frame instead of a fixed timer. */
-const SPLASH_STAGES = ['ESTABLISHING SECURE CONNECTION...', 'INITIALIZING FEEDS...', 'CALIBRATING SENSORS...', 'SYSTEM READY'];
-const SPLASH_PROGRESS = ['25%', '50%', '78%', '100%'];
+export type { SplashFeed };
 
-export default function SplashScreen({ showSplash, splashStage, setSplashGone }: {
+const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+const EASE_IN_OUT = [0.65, 0, 0.35, 1] as const;
+
+export default function SplashScreen({ showSplash, splashStage, setSplashGone, feeds }: {
   showSplash: boolean;
   splashStage: number;
   setSplashGone: Dispatch<SetStateAction<boolean>>;
+  /** Live feed totals, ticked up as they arrive. */
+  feeds?: SplashFeed[];
 }) {
+  const still = usePrefersReducedMotion();
+  const globeRef = useRef<HTMLDivElement>(null);
+  const handoff = useGlobeHandoff(globeRef);
+  const quickFade = { opacity: 0, transition: { duration: 0.25 } };
+
   return (
     <AnimatePresence onExitComplete={() => setSplashGone(true)}>
       {showSplash && (
         <motion.div
           initial={{ opacity: 1 }}
-          // A slight push-through as it fades: the splash gives way to the globe
-          // behind it instead of just dissolving.
-          exit={{ opacity: 0, scale: 1.04 }}
-          transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+          exit={{ opacity: 0, pointerEvents: 'none' }}
+          transition={{ duration: still ? 0.4 : 0.6, delay: still ? 0 : 0.25, ease: [0.4, 0, 0.2, 1] }}
           className="absolute inset-0 z-[999] flex flex-col items-center justify-center overflow-hidden"
-          style={{ background: 'radial-gradient(ellipse at center, #0c1220 0%, var(--bg-void) 70%)' }}
+          style={{ background: 'radial-gradient(ellipse at 50% 40%, #0b1426 0%, var(--bg-void) 62%)' }}
         >
-          {/* ── Version badge — top-left ── */}
           <motion.div
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
+            animate={{ opacity: 0.5 }}
+            exit={quickFade}
             transition={{ delay: 0.8, duration: 0.5 }}
-            className="absolute top-6 left-6 z-[2] font-mono text-[11px] tracking-[0.3em] text-[var(--text-muted)]"
+            className="absolute top-6 left-6 z-[2] font-mono text-[11px] tracking-[0.2em] text-[var(--brand-ink)]"
           >
             {APP_VERSION}
           </motion.div>
 
-          <TakipMark intro className="relative w-52 md:w-60 h-auto mb-8 z-[2] text-[var(--brand-ink)]" />
-
+          {/* On exit the globe glides onto the map's opening globe, which faces the same way, and fades into it. */}
           <motion.div
-            initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            transition={{ delay: 0.5, duration: 0.6, ease: 'easeOut' }}
-            className="mb-4 z-[2] text-[var(--brand-ink)]"
+            ref={globeRef}
+            className="relative aspect-[1.15] w-full max-w-[560px] md:aspect-[1.45] md:w-[min(92vw,calc(62vh*1.45))] md:max-w-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={still ? undefined : { ...handoff, transition: { duration: 0.65, ease: EASE_IN_OUT } }}
+            transition={{ duration: 0.9, ease: EASE_OUT }}
           >
-            <TakipWordmark className="h-9 md:h-11 w-auto" />
+            <GlobeCanvas stage={splashStage} still={still} className="absolute inset-0 h-full w-full" />
           </motion.div>
 
-          {/* ── Subtitle — typewriter reveal ── */}
-          <div className="overflow-hidden mb-10 z-[2]">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: '100%' }}
-              transition={{ delay: 1.2, duration: 0.8, ease: 'easeInOut' }}
-              className="overflow-hidden whitespace-nowrap"
-            >
-              <p className="text-[11px] md:text-[12px] font-semibold tracking-[0.42em] text-[var(--brand-accent)]">
-                SPATIOTEMPORAL INTELLIGENCE
-              </p>
-            </motion.div>
-          </div>
-
-          {/* ── Multi-stage progress bar ── */}
-          <div className="w-64 md:w-80 z-[2]">
-            <div className="relative w-full h-[2px] rounded-full overflow-hidden" style={{ background: 'rgba(47,128,255,0.12)' }}>
-              <motion.div
-                initial={{ width: '0%' }}
-                animate={{ width: SPLASH_PROGRESS[splashStage] }}
-                transition={{ duration: 0.55, delay: splashStage === 0 ? 0.5 : 0, ease: 'easeInOut' }}
-                className="absolute inset-y-0 left-0 rounded-full"
-                style={{ background: 'var(--brand-accent)', boxShadow: '0 0 12px rgba(47,128,255,0.45)' }}
-              />
+          <motion.div
+            initial={{ opacity: 0, y: still ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={quickFade}
+            transition={{ delay: 0.3, duration: 0.6, ease: EASE_OUT }}
+            className="z-[2] -mt-1 flex flex-col items-center"
+          >
+            <div className="flex items-center gap-3 text-[var(--brand-ink)]">
+              {/* Keyed: the preference can resolve after hydration, and an intro cut short would leave the mark hidden. */}
+              <TakipMark key={still ? 'still' : 'intro'} intro={!still} className="h-9 w-auto md:h-10" />
+              <TakipWordmark className="h-[22px] w-auto md:h-[26px]" />
             </div>
+            <p className="mt-2.5 text-[13px] tracking-wide text-[var(--brand-ink)]/45">Spatiotemporal intelligence</p>
+          </motion.div>
 
-            {/* Status message — one line, swapped as each stage is reached */}
-            <div className="mt-3 h-4 flex items-center justify-center">
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={splashStage}
-                  initial={{ opacity: 0, y: 3 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -3 }}
-                  transition={{ duration: 0.18, delay: splashStage === 0 ? 0.5 : 0 }}
-                  className="text-[10px] font-mono tracking-[0.25em]"
-                  style={{ color: splashStage === 3 ? 'var(--brand-accent)' : 'var(--text-muted)' }}
-                >
-                  {SPLASH_STAGES[splashStage]}
-                </motion.span>
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* ── Faint graticule ── */}
-          <div className="absolute inset-0 pointer-events-none z-[0]" style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }} />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={quickFade}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="z-[2] mt-8 flex flex-col items-center gap-4"
+          >
+            <SplashStatus stage={splashStage} still={still} />
+            {feeds && feeds.length > 0 && <FeedCounters feeds={feeds} still={still} />}
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

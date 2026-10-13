@@ -2,6 +2,8 @@ import { LANDING_CITIES } from '@/lib/landing-cities';
 import { DEG, landPoints, makeView, subsolar, sunDot } from './globe-geometry';
 import { drawOrbit, satelliteAngle } from './draw-orbit';
 import { drawCities, type CityPing } from './draw-cities';
+import { drawGraticule } from './draw-graticule';
+import { facingLongitude, mapGlobe, splashGlobeRadius } from './map-handoff';
 
 export interface Disc {
   cx: number;
@@ -10,9 +12,9 @@ export interface Disc {
 }
 
 const SAMPLES = 15000;
-const TILT = 18 * DEG;
-const LON_START = 22 * DEG;
-const SPIN = 6 * DEG;
+/* Spins in from the east and settles on the longitude the map opens on, ready for the handoff. */
+const SPIN_IN = 55 * DEG;
+const SETTLE = 0.9;
 const BUCKETS = 6;
 
 const smooth = (a: number, b: number, x: number) => {
@@ -23,8 +25,8 @@ const smooth = (a: number, b: number, x: number) => {
 /* Dim dots lean brand blue, bright ones brand ink, so the limb reads as depth. */
 const LAND_FILLS = Array.from({ length: BUCKETS }, (_, b) => {
   const f = (b + 0.5) / BUCKETS;
-  const mix = (from: number, to: number) => Math.round(from + (to - from) * f ** 1.3);
-  return `rgba(${mix(47, 242)},${mix(128, 245)},${mix(255, 250)},${(0.16 + 0.8 * f).toFixed(3)})`;
+  const mix = (from: number, to: number) => Math.round(from + (to - from) * f ** 0.9);
+  return `rgba(${mix(47, 242)},${mix(128, 245)},${mix(255, 250)},${(0.22 + 0.78 * f).toFixed(3)})`;
 });
 
 function paintSphere(w: number, h: number, dpr: number, { cx, cy, r }: Disc): HTMLCanvasElement {
@@ -65,6 +67,8 @@ function paintSphere(w: number, h: number, dpr: number, { cx, cy, r }: Disc): HT
 
 /** The splash globe: dotted land lit by today's sun, an orbit and pings at the landing cities. */
 export function createGlobeScene() {
+  const facing = facingLongitude();
+  const tilt = mapGlobe(window.innerWidth, window.innerHeight).lat;
   const pts = landPoints(SAMPLES);
   const sun = subsolar(new Date());
   const light = new Float32Array(pts.count);
@@ -91,15 +95,15 @@ export function createGlobeScene() {
   function resize(width: number, height: number, dpr: number) {
     w = width;
     h = height;
-    disc = { cx: w / 2, cy: h / 2, r: Math.min(h * 0.4, w / 2.9) };
+    disc = { cx: w / 2, cy: h / 2, r: splashGlobeRadius(w, h) };
     sphere = paintSphere(w, h, dpr, disc);
   }
 
   function drawLand(ctx: CanvasRenderingContext2D, lon0: number, t: number) {
     const { cx, cy, r } = disc;
-    const sinT = Math.sin(TILT);
-    const cosT = Math.cos(TILT);
-    const dot = r * 0.0105;
+    const sinT = Math.sin(tilt);
+    const cosT = Math.cos(tilt);
+    const dot = r * 0.013;
     let m = 0;
     for (let i = 0; i < pts.count; i++) {
       const d = pts.lon[i] - lon0;
@@ -107,13 +111,14 @@ export function createGlobeScene() {
       const sl = pts.sinLat[i];
       const z0 = cl * Math.cos(d);
       const z = sl * sinT + z0 * cosT;
-      if (z <= 0.01) continue;
+      // Projected density grows as 1/z; thinning the limb keeps it from banding.
+      if (z <= 0.01 || pts.seed[i] > z * 3.5) continue;
       const grow = Math.min(1, (t - 0.1 - pts.seed[i] * 0.9) / 0.35);
       if (grow <= 0) continue;
       xs[m] = cx + cl * Math.sin(d) * r;
       ys[m] = cy - (sl * cosT - z0 * sinT) * r;
-      ss[m] = dot * (0.55 + 0.45 * z) * grow;
-      bk[m] = Math.min(BUCKETS - 1, ((0.3 + 0.7 * z) * light[i] * BUCKETS) | 0);
+      ss[m] = dot * (0.4 + 0.6 * z) * grow;
+      bk[m] = Math.min(BUCKETS - 1, ((0.06 + 0.94 * z ** 0.75) * light[i] * BUCKETS) | 0);
       m++;
     }
     for (let b = 0; b < BUCKETS; b++) {
@@ -129,13 +134,15 @@ export function createGlobeScene() {
   /** `t` is seconds since the splash appeared; `readyAt` when the map reported ready. */
   function draw(ctx: CanvasRenderingContext2D, t: number, readyAt: number | null, still: boolean) {
     if (!sphere) return;
-    const lon0 = still ? LON_START : LON_START - SPIN * t;
+    const lon0 = still ? facing : facing + SPIN_IN * Math.exp(-t / SETTLE);
     const sat = satelliteAngle(t, still);
     ctx.clearRect(0, 0, w, h);
     drawOrbit(ctx, disc, sat, 'back');
     ctx.drawImage(sphere, 0, 0, w, h);
+    const view = makeView(lon0, tilt);
+    drawGraticule(ctx, disc, view, 0.07 * Math.min(1, still ? 1 : t / 0.8));
     drawLand(ctx, lon0, still ? 99 : t);
-    drawCities(ctx, disc, makeView(lon0, TILT), cities, t, still);
+    drawCities(ctx, disc, view, cities, t, still);
     drawOrbit(ctx, disc, sat, 'front');
 
     if (readyAt !== null && !still && t - readyAt < 1) {

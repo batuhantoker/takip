@@ -9,13 +9,12 @@ import TerrainStatusNote from '@/components/map/terrain-status-note';
 import { useDismiss } from '@/components/ui/use-dismiss';
 import type { TerrainStatus } from '@/lib/map-terrain';
 import StyleStudio from './style-studio';
-
-export type ThemeId = 'core' | 'ghost';
+import type { ThemeId } from './use-theme';
 
 const THEMES: { id: ThemeId; label: string }[] = [{ id: 'core', label: 'Core' }, { id: 'ghost', label: 'Ghost' }];
 
 /** How the map looks rather than what is on it: the display toggles kept out of Layers, the theme and the Style Studio. */
-export default function MapOptions({ activeLayers, setActiveLayers, theme, setTheme, terrainStatus, on3DModeSelected, onTerrainFocus, onTerrainRetry }: {
+export default function MapOptions({ activeLayers, setActiveLayers, theme, setTheme, terrainStatus, on3DModeSelected, onTerrainFocus, onTerrainRetry, compact = false }: {
   activeLayers: Record<string, boolean>;
   setActiveLayers: Dispatch<SetStateAction<any>>;
   theme: ThemeId;
@@ -24,6 +23,7 @@ export default function MapOptions({ activeLayers, setActiveLayers, theme, setTh
   on3DModeSelected: () => void;
   onTerrainFocus: () => void;
   onTerrainRetry: () => void;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
@@ -43,7 +43,7 @@ export default function MapOptions({ activeLayers, setActiveLayers, theme, setTh
         title="Map options: day and night, 3D, theme, colours"
         className={`h-8 flex items-center gap-1.5 px-2.5 rounded-md text-[11px] transition-colors ${open ? 'bg-white/10 text-[var(--text-heading)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/[0.05]'}`}>
         <Settings2 className="w-3.5 h-3.5" />
-        <span>Options</span>
+        <span className={compact ? 'hidden 2xl:inline' : ''}>Options</span>
       </button>
       <AnimatePresence>
         {open && (

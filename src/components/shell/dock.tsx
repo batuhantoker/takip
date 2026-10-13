@@ -5,7 +5,7 @@ import AdSlot from '@/components/ads/ad-slot';
 import { AD_SLOTS } from '@/lib/ads';
 
 /** What the sidebar can open beside it, one at a time. */
-export type ToolId = 'layers' | 'oi' | 'draw' | 'alerts' | 'recon' | 'directions' | 'space' | 'arcgis' | 'markets';
+export type ToolId = 'layers' | 'oi' | 'draw' | 'alerts' | 'history' | 'recon' | 'directions' | 'space' | 'arcgis' | 'markets';
 
 /** Sidebar width, and the panel column that opens beside it. Search and the map cluster keep clear of both. */
 export const NAV_WIDTH = 72;

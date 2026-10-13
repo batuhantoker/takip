@@ -429,15 +429,9 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
 ### Wrap-up state (2026-10-12, evening)
 The user asked everyone to wrap up. Every backend workstream above has landed; no backend branches or worktrees remain.
 
-**Not done: the shell commit and the workspaces chip.**
-- `src/app/page.tsx` can't be committed yet. Its uncommitted import closure includes osiris-5f's orphaned shell redesign (5f has exited; the user approved committing it) and space files osiris-82 is still building (at the user's direct request).
-- Whoever commits `page.tsx` next (most naturally with the space work) must include:
-  - **5f's shell files:** `src/components/shell/{dock-tools,mobile-shell,nav-items,use-cursor-readout,use-splash,use-startup,use-theme}`, `shell/splash/*`, and the edits to `dock`, `map-options`, `view-controls` and `splash-screen`.
-  - **The hooks it imports:** `cameras/use-live-feed`, `directions/{route-planner,use-directions}`, `draw/use-areas`, `layers/use-arcgis-layers`, `map/use-region-dossier`, `oi/use-oi-share-link`, `recon/use-recon-overlays`.
-  - **The orphaned `src/components/replay/use-replay-satellites.ts`** (2 eslint `any`s at line 17).
-  - **osiris-92's replay lines and osiris-a5's History lines** in `page.tsx`, `dock.tsx`, `nav-items.ts` and `dock-tools.tsx`.
-  - **osiris-82's space files and hunks.**
-- **Then mount the workspaces chip** (E's lines):
+**The shell commit has landed; the workspaces chip is not done.**
+- `src/app/page.tsx` landed with its whole import closure, as listed here: osiris-5f's shell redesign, the hooks it imports, `replay/use-replay-satellites`, osiris-92's replay lines, osiris-a5's History lines and osiris-82's space mount (`feat(shell): mount the space view…`, after `61870f2`, the space work). Lint errors in it were committed as found.
+- **Next, mount the workspaces chip** (E's lines):
   - `page.tsx`: `import WorkspaceHost from '@/components/workspaces/workspace-host';` and `<WorkspaceHost />` right after `<AccountDialog />`.
   - Desktop, `search-spotlight.tsx`: wrap the trigger as `<div data-hud className="absolute top-3 z-[450] flex items-center gap-2 transition-[left] duration-200" style={{ left: AT_LEFT, width: 'min(560px, calc(100vw - var(--shell-left, 0px) - 120px))' }}><div className="flex-1 min-w-0"><SearchTrigger onOpen={() => setShowDesktopSearch(true)} /></div><WorkspaceChip /></div>`.
   - Phone, `mobile-shell.tsx`, after `<AppHeader … isMobile />`: `<div data-hud className="absolute top-4 right-4 z-[210]"><WorkspaceChip align="right" /></div>`.
