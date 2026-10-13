@@ -30,7 +30,8 @@ export interface ArdotFeature {
 
 export function mapArdotCamera(f: ArdotFeature | null | undefined): CctvCamera | null {
   const p = f?.properties;
-  if (!p || p.status !== 'online') return null;
+  // Dropped-rows test: offline/maintenance cameras are kept, not filtered on status. Dedup (relayed neighbours) stays.
+  if (!p) return null;
   if (RELAYED_NUMBER.test(String(p.ahtd_camera_number ?? '')) || RELAYED_CAMERA.test(p.camera ?? '')) return null;
 
   const id = p.id;

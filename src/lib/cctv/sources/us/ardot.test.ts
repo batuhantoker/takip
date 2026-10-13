@@ -92,9 +92,9 @@ describe('mapArdotCamera', () => {
     expect(mapArdotCamera(withProps(redRiver, { ahtd_camera_number: 6050 }))?.id).toBe('ardot-457');
   });
 
-  it('drops a camera that is not online or has no usable id', () => {
-    expect(mapArdotCamera(withProps(redRiver, { status: 'offline' }))).toBeNull();
-    expect(mapArdotCamera(withProps(redRiver, { status: null }))).toBeNull();
+  it('keeps a camera whatever its status, but drops one with no usable id', () => {
+    expect(mapArdotCamera(withProps(redRiver, { status: 'offline' }))?.id).toBe('ardot-457');
+    expect(mapArdotCamera(withProps(redRiver, { status: null }))?.id).toBe('ardot-457');
     expect(mapArdotCamera(withProps(redRiver, { id: null }))).toBeNull();
     expect(mapArdotCamera(withProps(redRiver, { id: 4.5 }))).toBeNull();
     expect(mapArdotCamera({ ...redRiver, properties: null })).toBeNull();

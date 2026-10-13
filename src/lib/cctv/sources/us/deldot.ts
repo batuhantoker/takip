@@ -23,7 +23,8 @@ export interface DeldotCamera {
 }
 
 export function mapDeldotCamera(r: DeldotCamera | null | undefined): CctvCamera | null {
-  if (r?.status !== 'Active' || r.enabled === false) return null;
+  // Dropped-rows test: Unavailable/disabled cameras are kept; a valid https stream is still required below.
+  if (!r) return null;
   const id = r.id?.trim();
   if (!id || !/^[A-Z]+\d+$/i.test(id)) return null;
 

@@ -41,9 +41,9 @@ describe('mapDeldotCamera', () => {
     });
   });
 
-  it('drops unavailable or disabled cameras', () => {
-    expect(mapDeldotCamera(unavailable)).toBeNull();
-    expect(mapDeldotCamera({ ...camera, enabled: false })).toBeNull();
+  it('keeps unavailable or disabled cameras, as long as the stream is https', () => {
+    expect(mapDeldotCamera(unavailable)?.id).toBe('deldot-KCAM102');
+    expect(mapDeldotCamera({ ...camera, enabled: false })?.id).toBe('deldot-KCAM001');
   });
 
   it('drops coordinates outside Delaware', () => {
