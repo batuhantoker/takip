@@ -48,3 +48,18 @@ describe('plate model', () => {
     expect(model.pin(50, 50)).toBeNull();
   });
 });
+
+describe('holes', () => {
+  it('keep to their ring when unwrapping puts them a turn away', () => {
+    const model = createPlateModel({
+      model: { name: 't', attribution: 't', doi: 't', maxMa: 0 },
+      rotations: { 5: [[0, 0, 90, 0, 0]] },
+      // A ring across the antimeridian from the west, with a hole that starts just east of it.
+      coast: [[5, 0, 0, [170, -10, -170, -10, -170, 10, 170, 10], [-179, -2, -179, 2, 179, 2, 179, -2]]],
+      crust: [],
+    });
+    const [outer, hole] = (model.at(0).features[0].geometry as GeoJSON.Polygon).coordinates;
+    expect(Math.min(...hole.map(p => p[0]))).toBeGreaterThanOrEqual(Math.min(...outer.map(p => p[0])));
+    expect(Math.max(...hole.map(p => p[0]))).toBeLessThanOrEqual(Math.max(...outer.map(p => p[0])));
+  });
+});

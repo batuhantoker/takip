@@ -15,6 +15,8 @@ export type Chapter = {
   zoom: number;
   body: string;
   facts?: [string, string][];
+  /** Whether the place gets a pin on the map; false for a chapter that is only a view. */
+  pin?: boolean;
 };
 
 export const CHAPTERS: Chapter[] = [
@@ -45,7 +47,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     ma: 375, title: 'Fish come ashore', place: [-83, 77], zoom: 2,
-    body: 'Tiktaalik, a fish with sturdy fins and a neck, hunts in the shallows of a river delta. Its bones were found on Ellesmere Island in the Canadian Arctic, which then lay in the tropics.',
+    body: 'Tiktaalik, a fish with sturdy fins and a neck, hunts in the shallows of a river delta. Its bones were found on Ellesmere Island in the Canadian Arctic, which then lay on the equator.',
     facts: [['Life', 'Forests, insects, the first four-legged animals']],
   },
   {
@@ -77,7 +79,7 @@ export const CHAPTERS: Chapter[] = [
     body: 'Australia has pulled away and seaways open round Antarctica. As carbon dioxide falls, the first lasting ice sheets spread over the continent, and they have stayed ever since.',
   },
   {
-    ma: 0, title: 'Today', place: [20, 10], zoom: 1.6,
+    ma: 0, title: 'Today', place: [20, 10], zoom: 1.6, pin: false,
     body: 'The plates still move, about as fast as fingernails grow: a few centimetres a year. In a few hundred million years the continents may gather into a new supercontinent.',
   },
 ];

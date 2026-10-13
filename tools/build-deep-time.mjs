@@ -4,9 +4,10 @@
  *
  *   node tools/build-deep-time.mjs [download-dir]
  *
- * plates.json, from Müller et al. 2025, a mantle-reference plate model after Cao et al. (2024), 1.8 Ga to now,
- * CC BY 4.0 (doi:10.5281/zenodo.17142287), read from the GPlates plate-model repository or from a directory
- * holding its Rotations.zip, Coastlines.zip and ContinentalPolygons.zip:
+ * plates.json, from Cao et al. (2024), 1.8 Ga to now, CC BY 4.0 (doi:10.5281/zenodo.13628813), read from the
+ * GPlates plate-model repository or from a directory holding its Rotations.zip, Coastlines.zip and
+ * ContinentalPolygons.zip. Its paleomagnetic frame keeps latitudes true to the rocks (ice at the poles, coal
+ * at the equator), which the documentary leans on; Müller et al. 2025's mantle frame drifts from them before ~400 Ma.
  *   rotations  per moving plate, its runs of total poles against one fixed plate: [fixed, Ma, lat, lon, angle, …]
  *   coast      today's coastlines cut by plate: [plate, appears Ma, disappears Ma, ring, hole…], rings flat lon,lat
  *   crust      the continental crust around them, shelves included, in the same form
@@ -19,7 +20,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gunzipSync, inflateRawSync } from 'node:zlib';
 
-const MODEL = 'muller2025';
+const MODEL = 'cao2024';
 const REPO = `https://repo.gplates.org/webdav/pmm/${MODEL}`;
 const OUT_DIR = path.join(process.cwd(), 'public', 'data', 'paleo');
 const PHANDA = 'https://raw.githubusercontent.com/EJJudd/PhanDA/main/5_Outputs/PhanDA_GMSTandCO2_percentiles.csv';
@@ -282,9 +283,9 @@ const rotations = parseRotations(rotTexts);
 
 const plates = {
   model: {
-    name: 'Müller et al. 2025, after Cao et al. 2024',
-    attribution: 'Plates: Müller et al. 2025 after Cao et al. 2024 (CC BY 4.0)',
-    doi: '10.5281/zenodo.17142287',
+    name: 'Cao et al. 2024',
+    attribution: 'Plates: Cao et al. 2024 (CC BY 4.0)',
+    doi: '10.5281/zenodo.13628813',
     maxMa: MAX_MA,
   },
   rotations,

@@ -29,7 +29,8 @@ export function useHistory() {
     if (current.current) return;
     const s = createHistorySession(resumeAt.current);
     current.current = s;
-    unsubscribe.current = s.subscribe(() => setFamilies(s.families()));
+    // Deep time has no calendar events to draw.
+    unsubscribe.current = s.subscribe(() => setFamilies(s.deep() ? [] : s.families()));
     s.clock.play();
     setSession(s);
     setFamilies(s.families());
@@ -42,13 +43,19 @@ export function useHistory() {
   return { session, families, open, close };
 }
 
-/** Re-renders a few times a second while the clock moves, and on every family or country-view change. */
+/** Re-renders a few times a second while either clock moves, and on every family, country-view or story change. */
 export function useHistoryTick(session: HistorySession, everyMs = 250) {
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const kick = () => { timer ??= setTimeout(() => { timer = undefined; rerender(); }, everyMs); };
-    const offs = [session.clock.subscribe(kick), session.subscribe(rerender), session.countries.subscribe(rerender)];
+    const offs = [
+      session.clock.subscribe(kick),
+      session.deepClock.subscribe(kick),
+      session.subscribe(rerender),
+      session.countries.subscribe(rerender),
+      session.story.subscribe(rerender),
+    ];
     return () => {
       offs.forEach(off => off());
       clearTimeout(timer);

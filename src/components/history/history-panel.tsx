@@ -7,6 +7,8 @@ import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES } from '@/lib/history-popup';
 import { VIEW_GROUPS } from '@/lib/history/country-view';
 import type { HistorySession } from '@/lib/history/session';
 import { WAR_LAYERS, type WarLayer } from '@/lib/history/war-layers';
+import { longMa } from '@/lib/paleo/deep-time';
+import { CHAPTERS } from '@/lib/paleo/story';
 import IndicatorSearch from './indicator-search';
 import { useHistoryTick } from './use-history';
 
@@ -39,6 +41,44 @@ const MORE = '__more';
 
 type FlyTo = (view: WarLayer['view']) => void;
 
+const BUTTON = 'h-7 px-2.5 rounded-md border text-[11.5px]';
+const GOLD_BUTTON = `${BUTTON} border-[var(--gold-primary)]/40 text-[var(--gold-light)] hover:bg-[var(--gold-primary)]/10`;
+const PLAIN_BUTTON = `${BUTTON} border-white/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--gold-primary)]/40`;
+
+/** The plates' story and free play, 1.8 billion years to today. */
+function DeepTime({ session }: { session: HistorySession }) {
+  const { story } = session;
+  const deep = session.deep();
+  const open = story.index();
+  return (
+    <section>
+      <h3 className={SECTION}>Deep time</h3>
+      <p className="mb-2 text-[11.5px] leading-snug text-[var(--text-muted)]">
+        How the continents moved over 1.8 billion years, with Earth&apos;s temperature and CO₂ for the last 485 million.
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        <button type="button" onClick={() => { story.setAuto(true); story.go(0); }} className={GOLD_BUTTON}>Play the story</button>
+        {deep ? (
+          <button type="button" onClick={() => session.setDeep(false)} className={PLAIN_BUTTON}>Back to the calendar</button>
+        ) : (
+          <button type="button" onClick={() => { session.setDeep(true); session.deepClock.play(); }} className={PLAIN_BUTTON}>Watch the plates move</button>
+        )}
+      </div>
+      <ol className="mt-2 flex flex-col gap-0.5">
+        {CHAPTERS.map((c, i) => (
+          <li key={c.title}>
+            <button type="button" onClick={() => story.go(i)}
+              className={`w-full flex items-baseline gap-2 px-2 py-1 rounded-md text-left hover:bg-[var(--hover-accent)] ${i === open ? 'bg-[var(--gold-primary)]/10' : ''}`}>
+              <span className={`text-[12px] ${i === open ? 'text-[var(--gold-light)]' : 'text-[var(--text-primary)]'}`}>{c.title}</span>
+              <span className="ml-auto shrink-0 text-[10.5px] tabular-nums text-[var(--text-muted)]">{longMa(c.ma)}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function Controls({ session, onFlyTo }: { session: HistorySession; onFlyTo?: FlyTo }) {
   useHistoryTick(session, 1000);
   const [searching, setSearching] = useState(false);
@@ -57,6 +97,17 @@ function Controls({ session, onFlyTo }: { session: HistorySession; onFlyTo?: Fly
     session.clock.play();
     onFlyTo?.(war.view);
   };
+
+  if (session.deep()) {
+    return (
+      <div className="p-4 flex flex-col gap-5">
+        <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+          The map shows the plates. Events, borders and country colours come back with the calendar.
+        </p>
+        <DeepTime session={session} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 flex flex-col gap-5">
@@ -144,6 +195,8 @@ function Controls({ session, onFlyTo }: { session: HistorySession; onFlyTo?: Fly
           ))}
         </div>
       </section>
+
+      <DeepTime session={session} />
     </div>
   );
 }
@@ -154,7 +207,7 @@ export default function HistoryPanel({ session, onOpen, onClose, onFlyTo }: { se
     <PanelCard title="History" icon={Hourglass} onClose={onClose}>
       {session ? <Controls session={session} onFlyTo={onFlyTo} /> : (
         <div className="p-4">
-          <p className="text-[12px] text-[var(--text-secondary)] mb-3">Wars, attacks and country statistics on a timeline back to 1500 and beyond.</p>
+          <p className="text-[12px] text-[var(--text-secondary)] mb-3">Wars, attacks and country statistics on a timeline back to 1500 and beyond, and the moving continents back 1.8 billion years.</p>
           <button type="button" onClick={onOpen}
             className="h-8 px-3 rounded-md border border-[var(--gold-primary)]/40 text-[12px] text-[var(--gold-light)] hover:bg-[var(--gold-primary)]/10">
             Show history on the map

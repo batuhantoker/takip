@@ -167,7 +167,7 @@ Open data rarely includes true network topology, such as which substation feeds 
 
 | Source | Adds | Use |
 |---|---|---|
-| Müller et al. 2025 plate model, after Cao et al. 2024 (doi:10.5281/zenodo.17142287) | Plate rotations, 1.8 Ga to now, with today's coastlines and continental crust cut by plate; History's deep time turns the continents with them. Built into `public/data/paleo/plates.json` by `tools/build-deep-time.mjs` from the GPlates plate-model repository. CC BY 4.0 | OK |
+| Cao et al. 2024 plate model, *Geoscience Frontiers* (doi:10.5281/zenodo.13628813) | Plate rotations in a paleomagnetic frame, 1.8 Ga to now, with today's coastlines and continental crust cut by plate; History's deep time turns the continents with them. Built into `public/data/paleo/plates.json` by `tools/build-deep-time.mjs` from the GPlates plate-model repository. CC BY 4.0 | OK |
 | PhanDA, Judd et al. 2024, *Science* (doi:10.1126/science.adk3705) | Global mean surface temperature and CO₂ percentiles per stage, 485 Ma to now, into `public/data/paleo/climate.json`. The EJJudd/PhanDA repository states no licence; published as the paper's data | Verify |
 
 ### Health

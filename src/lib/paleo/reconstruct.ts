@@ -127,12 +127,22 @@ export function placeRing(xyz: Float64Array, m: number[]): number[][] {
   return out;
 }
 
-/** Shifted a whole turn so it starts within the first world: the map copies one world either side, no further. */
+const meanLon = (ring: number[][]) => ring.reduce((sum, p) => sum + p[0], 0) / ring.length;
+
+/**
+ * Shifted whole turns so the outer ring starts within the first world, since the map copies one world either
+ * side and no further, and each hole sits on its ring: unwrapped on its own, a hole can land a turn away.
+ */
 function shiftIntoWorld(rings: number[][][]) {
   let min = Infinity;
   for (const p of rings[0]) min = Math.min(min, p[0]);
   const shift = -360 * Math.floor((min + 180) / 360);
-  if (shift) for (const ring of rings) for (const p of ring) p[0] += shift;
+  if (shift) for (const p of rings[0]) p[0] += shift;
+  const centre = meanLon(rings[0]);
+  for (const hole of rings.slice(1)) {
+    const turn = 360 * Math.round((centre - meanLon(hole)) / 360);
+    if (turn) for (const p of hole) p[0] += turn;
+  }
 }
 
 export function createPlateModel(file: PlatesFile): PlateModel {
