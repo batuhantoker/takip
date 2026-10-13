@@ -13,7 +13,7 @@ describe('STATE_FEEDS', () => {
       ...STATE_FEEDS.map(f => f.idPrefix), 'fdot', 'gdot', 'ncdot', 'adot', 'udot', 'ndot', 'ladotd', 'indot', 'nycdot',
       'mdsha', 'modot', 'nddot', 'ridot', 'nmdot', 'wvdot', 'okdot', 'vegvesen', 'msdot', 'ardot', 'wydot',
       'hdot', 'aldot', 'calgary', 'yorkregion', 'faa', 'hivis', 'ashcam', 'nysm', 'mlit-river', 'mlit-road',
-      'tw-wra', 'kr-busan', 'kr-ulsan', 'kr-daegu', 'bayerninfo', 'itraffic', 'trafiroutes', 'osm', 'kr-topis', 'idot', 'tii', 'camstreamer', 'siata', 'myairportcams', 'qld', 'fotowebcam', 'panomax', 'webcamerapl', 'bellingen', 'actpr', 'transtar', 'trafficscot', 'bihamk', 'mup',
+      'tw-wra', 'kr-busan', 'kr-ulsan', 'kr-daegu', 'bayerninfo', 'itraffic', 'trafiroutes', 'osm', 'kr-topis', 'idot', 'tii', 'camstreamer', 'siata', 'myairportcams', 'qld', 'fotowebcam', 'panomax', 'webcamerapl', 'bellingen', 'actpr', 'transtar', 'trafficscot', 'bihamk', 'mup', 'njta',
     ];
     expect(new Set(prefixes).size).toBe(prefixes.length);
   });

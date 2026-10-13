@@ -7,6 +7,7 @@ import { AUSTIN_BOUNDS, fetchAustinCameras } from '@/lib/cctv/sources/us/austin'
 import { LEXINGTON_BOUNDS, fetchLexingtonCameras } from '@/lib/cctv/sources/us/lexington';
 import { OHGO_BOUNDS, fetchOhgoCameras } from '@/lib/cctv/sources/us/ohgo';
 import { DELDOT_BOUNDS, fetchDeldotCameras } from '@/lib/cctv/sources/us/deldot';
+import { NJTA_BOUNDS, fetchNjtaCameras } from '@/lib/cctv/sources/us/njta';
 import { ODH_BOUNDS, fetchOpenDataHubCameras } from '@/lib/cctv/sources/europe/opendatahub';
 import { ESTONIA_BOUNDS, fetchEstoniaCameras } from '@/lib/cctv/sources/europe/estonia';
 import { MADRID_BOUNDS, fetchMadridCameras } from '@/lib/cctv/sources/europe/madrid';
@@ -87,6 +88,8 @@ export const FEEDS: StateFeed[] = [
   // The keyless list ohgo.com's own map reads; the documented publicapi.ohgo.com needs a key.
   { region: 'ohio', idPrefix: 'ohgo', bounds: OHGO_BOUNDS, fetch: fetchOhgoCameras },
   { region: 'delaware', idPrefix: 'deldot', bounds: DELDOT_BOUNDS, fetch: fetchDeldotCameras },
+  // njta.gov's disclaimer sets no reuse terms ("© New Jersey Turnpike Authority" only): permission not yet asked.
+  { region: 'njta', idPrefix: 'njta', bounds: NJTA_BOUNDS, fetch: fetchNjtaCameras },
   // feratel stills are CC0 per ODH, but feratel's own terms are not yet cleared; idm rows carry no licence.
   { region: 'opendatahub', idPrefix: 'odh', bounds: ODH_BOUNDS, fetch: fetchOpenDataHubCameras },
   { region: 'estonia', idPrefix: 'tarktee', bounds: ESTONIA_BOUNDS, fetch: fetchEstoniaCameras },

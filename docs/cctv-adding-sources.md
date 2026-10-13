@@ -384,6 +384,16 @@ Added 2026-10-12 from `docs/inspiration-sources/provenance.md` (all terms pendin
 - **BIHAMK and MUP have no coordinates.** Crossings are placed from OSM `barrier=border_control` nodes, taken from Overpass, Nominatim and Photon on 2026-10-12. Four BIHAMK city/pass cameras use OSM place points a few hundred metres off. Unplaceable cameras are left out, never guessed.
 - **MUP liveness.** About half the playlists answer 404 at any one time, so the fetcher reads each playlist (6 at a time) and keeps only `#EXTM3U` answers.
 
+Added 2026-10-12 (terms pending: njta.gov's disclaimer has a copyright line and no reuse terms):
+
+| Region | Module | Source | Cameras | Media |
+|---|---|---|---|---|
+| `njta` | `njta.ts` | NJ Turnpike Authority, `www.njta.gov/travel-resources/camera-list/` (one HTML page) | 136: 71 Turnpike, 65 Garden State Parkway (3 playlists 404 on 2026-10-12) | HLS only (`wink.njta.com/<200–204>/public/hls/<device>_nj.m3u8`; the playlist reflects the request's Origin rather than `*`, and segments send `*`) |
+
+- There is no camera API: `/wp-json/njta/v1` has only partials, alerts, entrances and tolls. The page's map block carries every camera, with coordinates, in an entity-encoded `data-block-config` attribute (`initialData.cameras.{turnpike,parkway}`).
+- Labels are landmarks relative to the camera (`relative_direction` `north` + `NJ 73 (Mount Laurel Twp)` is NJTA's "north of NJ 73"). The trailing town becomes `city`.
+- The region is `njta`, not `newjersey`, which stays free for 511NJ (NJDOT), not added yet.
+
 ### Leads, with tested endpoints
 
 | Lead | Cameras | Notes |
