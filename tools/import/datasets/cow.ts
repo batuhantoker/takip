@@ -2,10 +2,10 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { expand, Prec } from '@takip/core/time';
 import { GeoPrec, type EventEntityRow } from '@takip/db';
-import { type Ctx, type Dataset, importDataset, mergePublish, type Reporter, RAW, sourceId } from '../context';
+import { type Ctx, type Dataset, importDataset, mergePublish, type Reporter, RAW, REPO, sourceId } from '../context';
 import { num, readCsv, text } from '../csv';
 import { type Stated, ymd } from '../dates';
-import { anchor, EventBatch, resolveCanonical } from '../events';
+import { anchor, EventBatch, resolveCanonical, validLonLat } from '../events';
 import { Resolver } from '../resolver';
 
 const DIR = join(RAW, 'wars');
@@ -15,6 +15,13 @@ const AS_OF = '2023-10-26';
 
 const WAR_LIST = f('war_list_1816_2010.csv');
 const TERRITORIAL = f('territorial_changes_since_1816.csv');
+/**
+ * The territory each change moved, which the Kaggle file drops: number, entity and portion from COW Territorial
+ * Change v6 (tc2018.csv, correlatesofwar.org) in the same row order, plus `fix` where COW's code is missing or wrong.
+ */
+export const TERRITORIAL_ROWS = join(REPO, 'tools/import/datasets/cow-territorial-rows.csv');
+/** Where each territory lies: COW entity codes, and x: keys for territories COW has no code for. */
+export const TERRITORIAL_PLACES = join(REPO, 'tools/import/datasets/cow-territorial-places.csv');
 
 /** The compiler's rows: not COW data. */
 const EXTRA_WARS = new Set(['99999', '999999', '99999900']);
@@ -333,6 +340,18 @@ function stateOfTheDay(ctx: Ctx, r: Resolver) {
   };
 }
 
+export async function readTerritorialPlaces(path = TERRITORIAL_PLACES) {
+  const places = new Map<string, { name: string; lon: number; lat: number }>();
+  for (const p of await readCsv(path)) {
+    const lon = Number(p.lon);
+    const lat = Number(p.lat);
+    if (places.has(p.key)) throw new Error(`cow-territorial-places.csv: ${p.key} twice`);
+    if (!validLonLat(lon, lat)) throw new Error(`cow-territorial-places.csv: ${p.key} has no valid lon/lat`);
+    places.set(p.key, { name: p.name, lon, lat });
+  }
+  return places;
+}
+
 export async function importCowTerritorial(ctx: Ctx) {
   await importDataset(
     ctx,
@@ -340,9 +359,9 @@ export async function importCowTerritorial(ctx: Ctx) {
       source: 'cow-territorial',
       version: AS_OF,
       asOf: AS_OF,
-      files: [TERRITORIAL],
+      files: [TERRITORIAL, TERRITORIAL_ROWS, TERRITORIAL_PLACES],
       skipped: ['territorial_changes_since_1945.csv', 'conquests_since_1816.csv', 'conquests_since_1945.csv'].map(s => ({ file: f(s), duplicateOf: TERRITORIAL })),
-      importerVersion: '1',
+      importerVersion: '2',
     },
     async ds => {
       const r = new Resolver(ctx);
@@ -370,10 +389,20 @@ export async function importCowTerritorial(ctx: Ctx) {
         return id;
       };
 
+      const rows = await readCsv(TERRITORIAL);
+      const territories = await readCsv(TERRITORIAL_ROWS);
+      const places = await readTerritorialPlaces();
+      if (territories.length !== rows.length) throw new Error(`cow-territorial-rows.csv has ${territories.length} rows, the raw file ${rows.length}`);
+
       const batch = new EventBatch(ctx, ds);
       const seen = new Map<string, Set<string>>();
-      for (const row of await readCsv(TERRITORIAL)) {
+      for (const [i, row] of rows.entries()) {
         rep.rows++;
+        const tc = territories[i];
+        // Joined by position, so a reordered or edited raw file must fail rather than take another row's territory.
+        if (tc.year !== row.year || tc.area !== row.area.trim()) {
+          throw new Error(`cow-territorial-rows.csv row ${i + 1} (#${tc.number} ${tc.year} ${tc.area}) doesn't match ${row.year} ${row.area}`);
+        }
         const year = num(row.year);
         const t = year === null ? null : ymd(year);
         if (!t) {
@@ -410,13 +439,24 @@ export async function importCowTerritorial(ctx: Ctx) {
         const word = type.split(' ')[0].toLowerCase();
         const process = word === 'mandated' ? 'mandate' : word;
 
+        const key = tc.fix || tc.entity;
+        const place = places.get(key);
+        if (!place) rep.miss(`territory:#${tc.number} ${key}`);
+        // Part of a unit (portion 0) is only located to that unit, so it stays country precision.
+        const at = place
+          ? { lon: place.lon, lat: place.lat, geoPrec: tc.portion === '1' || tc.fix ? GeoPrec.area : GeoPrec.country }
+          : anchor(r, null, null, GeoPrec.country, [losing ?? gaining]);
+        // Non-state sides (Kashmir, Transvaal) are the territory but show as "Non-state territory", so they keep the name.
+        const shown = (key === tc.gainer && gainName) || (key === tc.loser && loseName);
+        const named = place && !shown ? `${place.name}: ` : '';
+
         batch.add({
           kind: 'change.territorial',
           sourceRecordId: `${hash}:${ordinal}`,
-          title: `${loseName ?? 'Non-state territory'} → ${gainName ?? 'non-state entity'} (${process})`,
+          title: `${named}${loseName ?? 'Non-state territory'} → ${gainName ?? 'non-state entity'} (${process})`,
           tStart: t.t,
           tStartPrec: Prec.year,
-          ...anchor(r, null, null, GeoPrec.country, [losing ?? gaining]),
+          ...at,
           attrs: {
             process,
             type,
@@ -424,6 +464,10 @@ export async function importCowTerritorial(ctx: Ctx) {
             area_km2: num(row.area),
             gaining: gainName,
             losing: loseName,
+            territory: place?.name ?? null,
+            cow_number: num(tc.number),
+            cow_entity: place ? key : null,
+            portion: num(tc.portion),
           },
           entities,
         });

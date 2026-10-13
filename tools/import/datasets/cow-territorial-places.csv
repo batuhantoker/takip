@@ -1,0 +1,334 @@
+key,name,lon,lat
+2,United States,-97.48,39.54
+3,Alaska,-150.0,64.0
+4,Hawaii,-157.0,20.6
+5,Danish West Indies,-64.85,18.1
+6,Puerto Rico,-66.5,18.2
+7,Texas,-99.0,31.0
+20,Canada,-101.91,60.32
+21,Newfoundland,-61.0,53.0
+31,The Bahamas,-77.15,26.4
+40,Cuba,-77.98,21.33
+42,Dominican Republic,-70.65,19.1
+51,Jamaica,-77.32,18.14
+52,Trinidad and Tobago,-60.92,11.0
+53,Barbados,-59.57,13.16
+54,Dominica,-61.34,15.46
+55,Grenada,-61.68,12.11
+56,Saint Lucia,-60.98,13.89
+57,Saint Vincent and the Grenadines,-61.34,13.09
+58,Antigua and Barbuda,-61.79,17.35
+60,Saint Kitts and Nevis,-62.76,17.34
+70,Mexico,-102.29,23.92
+80,Belize,-88.71,17.2
+91,Honduras,-86.89,14.79
+93,Nicaragua,-85.07,12.67
+95,Panama,-80.35,8.72
+96,Panama Canal Zone,-79.75,9.1
+100,Colombia,-73.17,3.37
+101,Venezuela,-64.6,7.18
+110,British Guiana,-58.94,5.12
+115,Suriname,-55.91,4.14
+130,Ecuador,-78.19,-1.26
+135,Peru,-72.9,-12.98
+140,Brazil,-49.56,-12.1
+145,Bolivia,-64.59,-16.67
+150,Paraguay,-60.15,-21.67
+155,Chile,-72.32,-38.15
+160,Argentina,-64.17,-33.5
+165,Uruguay,-55.97,-32.96
+205,Ireland,-7.8,53.08
+210,Netherlands,5.61,52.42
+211,Belgium,4.8,50.79
+212,Luxembourg,6.08,49.73
+220,France,2.55,46.7
+221,Monaco,7.4,43.74
+235,Portugal,-8.27,39.61
+240,Hanover,9.73,52.37
+241,Anhalt,12.25,51.83
+244,Brunswick,10.52,52.27
+245,Bavaria,11.58,48.14
+246,Bremen,8.8,53.08
+247,Frankfurt,8.68,50.11
+248,Hamburg,10.0,53.55
+250,Hohenzollern,8.96,48.35
+252,Lippe,8.9,51.95
+253,Mecklenburg-Strelitz,13.1,53.4
+254,Nassau,8.0,50.3
+255,Germany,13.4,52.52
+256,Saar,6.95,49.35
+257,Oldenburg,8.2,53.1
+260,West Germany,7.1,50.73
+261,Saxe-Weimar,11.3,50.98
+265,East Germany,13.4,52.52
+267,Baden,8.4,49.0
+268,Schwarzburg-Sondershausen,10.87,51.37
+269,Saxony,13.74,51.05
+270,Schwarzburg-Rudolstadt,11.33,50.72
+271,Württemberg,9.18,48.78
+273,Hesse-Kassel,9.48,51.31
+275,Hesse-Darmstadt,8.65,49.87
+280,Mecklenburg-Schwerin,11.41,53.63
+290,Poland,19.49,51.99
+291,Danzig,18.65,54.35
+300,Austria-Hungary,16.37,47.5
+305,Austria,14.13,47.52
+310,Hungary,19.45,47.09
+315,Czechoslovakia,14.42,50.09
+316,Czech Republic,15.38,49.88
+317,Slovakia,19.05,48.73
+325,Italy,7.69,45.07
+326,Trieste,13.78,45.65
+327,Papal States,12.48,41.9
+328,Vatican City,12.45,41.9
+329,Two Sicilies,14.25,40.85
+332,Modena,10.93,44.65
+335,Parma,10.33,44.8
+336,Lucca,10.5,43.84
+337,Tuscany,11.25,43.77
+338,Malta,14.43,35.89
+339,Albania,20.11,40.65
+341,Montenegro,19.14,42.8
+343,North Macedonia,21.56,41.56
+344,Croatia,16.37,45.81
+345,Serbia,20.79,44.19
+346,Bosnia-Herzegovina,18.07,44.09
+347,Kosovo,20.86,42.59
+349,Slovenia,14.92,46.06
+350,Greece,21.73,39.49
+351,Crete,24.9,35.25
+352,Cyprus,33.08,34.91
+355,Bulgaria,25.16,42.51
+359,Moldova,28.49,47.43
+360,Romania,24.97,45.73
+365,Russia,37.62,55.75
+366,Estonia,25.87,58.72
+367,Latvia,25.46,57.07
+368,Lithuania,24.09,55.1
+369,Ukraine,32.14,49.72
+370,Belarus,28.42,53.82
+371,Armenia,44.8,40.46
+372,Georgia,43.74,41.87
+373,Azerbaijan,47.21,40.4
+375,Finland,27.28,63.25
+380,Sweden,19.02,65.86
+385,Norway,9.68,61.36
+390,Denmark,9.02,55.97
+395,Iceland,-18.67,64.78
+402,Cape Verde,-23.64,15.07
+403,São Tomé and Príncipe,7.02,0.97
+404,Guinea-Bissau,-14.52,12.16
+411,Equatorial Guinea,8.99,2.33
+412,Rio Muni,10.3,1.6
+413,Fernando Po,8.75,3.5
+420,Gambia,-15.0,13.64
+430,French West Africa,-2.0,15.0
+432,Mali,-2.04,18.69
+433,Senegal,-14.78,15.14
+434,Dahomey,2.35,10.32
+435,Mauritania,-9.74,19.59
+436,Niger,9.5,17.45
+437,Ivory Coast,-5.57,7.49
+438,French Guinea,-10.02,10.62
+439,Burkina Faso,-1.36,12.67
+450,Liberia,-9.46,6.45
+451,Sierra Leone,-11.76,8.62
+452,Gold Coast,-1.04,7.72
+460,German Togoland,0.9,8.0
+461,French Togoland,1.06,8.81
+462,British Togoland,0.5,7.8
+470,Kamerun,12.5,5.5
+471,French Cameroons,12.47,4.59
+472,British Cameroons,11.0,7.5
+475,Nigeria,7.5,9.44
+480,French Equatorial Africa,18.0,5.0
+481,Gabon,11.84,-0.44
+482,Ubangi-Shari,20.91,6.99
+483,Chad,18.65,15.14
+484,French Congo,15.9,0.14
+490,Congo,23.46,-1.86
+500,Uganda,32.95,1.97
+501,Kenya,37.91,0.55
+510,German East Africa,34.96,-6.05
+511,Zanzibar,39.2,-6.16
+515,Ruanda-Urundi,29.9,-2.6
+516,Burundi,29.92,-3.33
+517,Rwanda,30.1,-1.9
+520,Somalia,45.19,3.57
+521,British Somaliland,46.0,9.8
+522,French Somaliland,42.5,11.98
+530,Ethiopia,39.09,8.03
+531,Eritrea,38.29,15.79
+540,Angola,17.98,-12.18
+541,Mozambique,37.84,-13.94
+551,Northern Rhodesia,26.4,-14.66
+552,Southern Rhodesia,31.05,-17.83
+553,Nyasaland,33.61,-13.39
+560,South Africa,23.67,-29.71
+561,Cape Colony,22.0,-32.0
+562,Natal,30.5,-29.0
+563,Transvaal,29.0,-25.0
+564,Orange Free State,26.5,-28.7
+565,South West Africa,17.11,-20.58
+570,Basutoland,28.25,-29.48
+571,Bechuanaland,24.18,-22.1
+572,Swaziland,31.47,-26.53
+580,Madagascar,46.7,-18.63
+581,Comoros,43.32,-11.73
+590,Mauritius,57.57,-20.3
+591,Seychelles,55.48,-4.68
+600,Morocco,-7.19,31.65
+601,Tangier,-5.8,35.77
+602,Spanish Morocco,-5.0,35.2
+605,Ifni,-10.0,29.3
+609,Spanish Sahara,-13.0,24.5
+615,Algeria,2.81,27.4
+616,Tunisia,9.01,33.69
+620,Libya,18.01,26.64
+625,Sudan,29.26,16.33
+626,South Sudan,30.39,7.23
+630,Iran,54.93,32.17
+640,Ottoman Empire,32.85,39.93
+645,Iraq,43.26,33.09
+651,Egypt,29.45,26.19
+652,Syria,38.28,35.01
+660,Lebanon,35.99,34.13
+663,Transjordan,36.38,30.81
+666,Palestine,34.85,30.91
+670,Saudi Arabia,44.7,23.81
+671,Hejaz,39.5,23.0
+672,Asir,42.5,18.5
+673,Al Hasa,49.5,25.4
+678,North Yemen,44.21,15.35
+679,Yemen,45.87,15.33
+680,South Yemen,45.03,12.79
+681,Aden,45.03,12.8
+690,Kuwait,47.31,29.41
+692,Bahrain,50.55,26.06
+694,Qatar,51.14,25.24
+696,United Arab Emirates,54.55,23.47
+698,Oman,57.34,22.12
+700,Afghanistan,66.5,34.16
+701,Turkmenistan,58.68,39.86
+702,Tajikistan,72.59,38.2
+703,Kyrgyzstan,74.53,41.67
+704,Uzbekistan,64.01,41.69
+705,Kazakhstan,68.69,49.05
+710,China,106.34,32.5
+711,Manchuria,126.0,45.0
+712,Mongolia,104.15,46.0
+713,Taiwan,120.87,23.65
+720,Hong Kong,114.17,22.32
+721,Macao,113.55,22.17
+730,Korea,126.98,37.57
+731,North Korea,126.44,39.89
+732,South Korea,128.13,36.38
+740,Japan,138.44,36.14
+741,Ryukyu Islands,127.8,26.3
+750,India,79.36,22.69
+751,French India,79.83,11.93
+752,Portuguese India,74.0,15.35
+760,Bhutan,90.04,27.54
+761,Sikkim,88.5,27.5
+770,Pakistan,68.55,29.33
+771,Bangladesh,89.68,24.21
+775,Burma,95.8,21.57
+780,Sri Lanka,80.7,7.58
+781,Maldives,73.51,4.17
+790,Nepal,83.64,28.3
+800,Thailand,101.07,15.46
+810,French Indochina,105.0,16.0
+811,Cambodia,104.5,12.65
+812,Laos,102.53,19.43
+815,Vietnam,106.0,17.0
+816,Vietnam,105.39,21.72
+817,South Vietnam,106.66,10.76
+820,Malaya,113.84,2.53
+821,Federated Malay States,101.7,4.0
+822,Unfederated Malay States,101.5,5.8
+823,North Borneo,117.0,5.5
+824,Sarawak,113.0,2.5
+827,Malacca,102.25,2.2
+830,Singapore,103.82,1.37
+835,Brunei,114.55,4.45
+840,Philippines,122.47,11.2
+850,Dutch East Indies,101.89,-0.95
+851,Dutch New Guinea,138.0,-4.0
+860,Portuguese Timor,125.85,-8.8
+900,Australia,134.05,-24.13
+910,Papua New Guinea,143.91,-5.7
+911,Papua,146.0,-8.5
+912,German New Guinea,145.5,-5.5
+920,New Zealand,172.79,-39.76
+925,Cook Islands,-159.78,-21.23
+930,New Caledonia,165.6,-21.3
+935,New Hebrides,166.91,-15.37
+940,Solomon Islands,159.17,-8.03
+945,Gilbert and Ellice Islands,173.0,1.4
+946,Kiribati,-157.38,1.82
+947,Tuvalu,179.21,-8.51
+950,Fiji,177.98,-17.83
+955,Tonga,-175.16,-21.21
+960,French Polynesia,-149.5,-17.6
+970,Nauru,166.93,-0.52
+980,"Caroline, Marshall and Mariana Islands",151.0,8.0
+983,Marshall Islands,171.19,7.08
+985,Guam,144.79,13.44
+987,Federated States of Micronesia,158.23,6.89
+990,Western Samoa,-172.44,-13.64
+991,American Samoa,-170.7,-14.3
+1008,Florida,-82.0,28.5
+1016,Oregon Country,-120.0,47.0
+1020,San Juan Islands,-123.0,48.55
+1101,"Quita Sueno, Roncador and Serrana",-80.5,14.1
+1151,Easter Island,-109.35,-27.12
+1163,Falkland Islands,-59.5,-51.75
+2249,Heligoland,7.88,54.18
+2292,Cracow,19.94,50.06
+3349,Ionian Islands,20.3,38.8
+3353,Dodecanese Islands,27.2,36.4
+3462,Herzegovina,17.8,43.3
+4781,Lagos,3.4,6.45
+4784,Northern Nigeria,8.0,11.0
+5651,Walvis Bay,14.5,-22.95
+5812,Mayotte,45.15,-12.82
+5920,"Aldabra, Farquhar and Desroches",50.0,-9.0
+6451,Iraq-Saudi Arabia Neutral Zone,45.0,29.0
+7004,Badakhshan,71.0,36.8
+7104,Kwantung Leased Territory,121.6,39.0
+7220,Kiautschou,120.3,36.1
+7351,Southern Sakhalin,142.7,47.5
+7411,Bonin Islands,142.2,27.1
+7507,Kashmir,75.0,34.0
+7691,Punjab (Sikh Empire),73.5,31.0
+7693,Sind,68.8,26.0
+7712,Tin Bigha,88.93,26.33
+8151,Cochin China,106.0,10.5
+8231,Labuan,115.23,5.3
+8555,Bencoolen,102.26,-3.8
+9001,Christmas Island,105.63,-10.49
+9002,Cocos (Keeling) Islands,96.83,-12.17
+9005,Heard and McDonald Islands,73.5,-53.1
+9201,Tokelau,-171.85,-9.2
+9321,Wallis and Futuna,-177.0,-13.8
+9452,Kiritimati,-157.4,1.87
+9610,Clipperton Island,-109.22,10.3
+9720,Wake Island,166.63,19.3
+9730,Midway Islands,-177.37,28.21
+9750,Johnston Island,-169.53,16.73
+9760,Kingman Reef,-162.4,6.4
+9970,Kerguelen Islands,69.5,-49.3
+9993,Bouvet Island,3.4,-54.42
+x:beagle,Beagle Channel islands,-67.0,-55.1
+x:bolsones,Bolsones (El Salvador-Honduras border),-88.0,13.9
+x:caprivi,Caprivi Strip,23.5,-17.8
+x:chamizal,El Chamizal,-106.45,31.76
+x:dilolo,Dilolo Boot,22.3,-10.7
+x:gadsden,Gadsden Purchase,-110.5,32.0
+x:halaib,Halaib Triangle,35.5,22.3
+x:lado,Lado Enclave,31.0,4.5
+x:maine-nb,Maine-New Brunswick border,-68.6,46.6
+x:mexican-cession,Mexican Cession,-113.0,37.0
+x:north-of-49,Louisiana Purchase north of the 49th parallel,-108.5,49.5
+x:palmas,Island of Palmas (Miangas),126.58,5.56
+x:red-river,Red River basin,-97.0,47.5

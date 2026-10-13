@@ -1,7 +1,8 @@
 import { Prec } from '@takip/core/time';
 import { describe, expect, it } from 'vitest';
 import { Reporter } from '../context';
-import { cowDate, WAC_MATCHES } from './cow';
+import { readCsv } from '../csv';
+import { cowDate, readTerritorialPlaces, TERRITORIAL_ROWS, WAC_MATCHES } from './cow';
 import { readPlaces, yyyymm } from './icow';
 
 describe('cow dates', () => {
@@ -37,6 +38,18 @@ describe('icow places', () => {
     expect(places.get('206\x1fGibraltar')).toEqual({ lon: -5.35, lat: 36.14 });
     expect(places.get('170\x1fFalkland (Malvinas) Is. & Dependencies')).toEqual({ lon: -59.5, lat: -51.75 });
     expect(places.get('716\x1fHatay (Alexandretta)')).toEqual({ lon: 36.2, lat: 36.3 });
+  });
+});
+
+describe('cow territorial places', () => {
+  it('names a place for every territory a row points at', async () => {
+    const places = await readTerritorialPlaces();
+    const rows = await readCsv(TERRITORIAL_ROWS);
+    expect(rows).toHaveLength(842);
+    const unplaced = rows.filter(r => !places.has(r.fix || r.entity)).map(r => r.number);
+    expect(unplaced).toEqual(['879']);
+    expect(places.get(rows.find(r => r.number === '5')!.entity)?.name).toBe('Gambia');
+    expect(places.get(rows.find(r => r.number === '360')!.fix)).toEqual({ name: 'Clipperton Island', lon: -109.22, lat: 10.3 });
   });
 });
 

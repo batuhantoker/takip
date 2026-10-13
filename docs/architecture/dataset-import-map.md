@@ -82,7 +82,7 @@ From `wars/territorial_changes_since_1816.csv` (842 rows):
   - `pop`/`area` of `.` → null.
 - **`event_entity`:** roles `gaining` and `losing`.
   - Resolved by `iso3c_*` where present. `NA` (historical states) is resolved by name through aliases.
-- **Geometry:** none. It renders at the losing polity's anchor, geo country.
+- **Geometry:** none. The Kaggle file drops COW's `entity` (the territory that moved), so `tools/import/datasets/cow-territorial-rows.csv` carries it from COW v6 `tc2018.csv` in the same row order (checked by year and area), with a `fix` column for missing or miscoded entities. Each row renders at its territory from `cow-territorial-places.csv`: geo area when the whole unit moved or a fix names the place, geo country when only part of the unit did. The title is prefixed with the territory's name unless it is one of the named sides. A row with no place falls back to the losing polity's anchor.
 
 ### 2.4 ICOW Territorial Claims 1816–2001 → source `icow`
 
