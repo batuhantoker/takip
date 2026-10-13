@@ -77,7 +77,7 @@ tooling/          tsconfig, eslint, vitest presets
 | Need | Choice | Why | Alternatives considered |
 |---|---|---|---|
 | HTTP server | **Hono** + `@hono/node-server` | Web-standard handlers (same types as Next routes), fast, small, first-class TS | Fastify (heavier plugin model), NestJS (heavy DI, decorators), AdonisJS (good, but brings its own ORM and conventions) |
-| OpenAPI | `@hono/zod-openapi` + `@scalar/hono-api-reference` | The spec is generated from the same zod schemas that validate requests. Docs at `/api/v1/docs` replace the hand-written `apiCatalog.ts`. | tRPC (not suitable for a public API) |
+| OpenAPI | `@hono/zod-openapi` + `@scalar/hono-api-reference` | The spec is generated from the same zod schemas that validate requests. Docs at `/api/v1/docs` replace the hand-written `api-catalog.ts`. | tRPC (not suitable for a public API) |
 | WebSocket | `@hono/node-ws` (on top of `ws`, already a dependency) | Binary live frames | Socket.IO (unnecessary) |
 | Auth | **Better Auth** | Self-hosted. SQLite and Postgres through Kysely, including a `better-sqlite3` handle directly. Email+password, OAuth, `admin`, `apiKey`, `organization`, `twoFactor` and `passkey` plugins, built-in rate limiting. Auth.js is now maintained by the same team. | Auth.js (in maintenance mode), Lucia (deprecated), Clerk (hosted, not self-hosted), Keycloak/Authentik/Zitadel (an extra server for a single app) |
 | Validation | zod | Shared by API, OpenAPI and workspace state | — |
@@ -141,7 +141,7 @@ requestId → pino logger → principal → rate limit → entitlement guard →
 - **Email** for verification and reset is sent by the `EmailSender`, queued through the `job` table, and retried (`apps/api/src/mail/mail-queue.ts`).
   - Better Auth's callbacks only enqueue an `email.send` job, after the response. The queue runs straight away; a failed send retries after 2, 4, 8, 16 and 32 minutes, then fails.
   - Account deletion removes the user's `email.send` rows.
-- **Emailed links land on the map,** not on separate pages: `/?account=verified` and `/?account=reset-password&token=…` open the account dialog in the right state (`src/lib/account-links.ts`). Sign-in passes no `callbackURL`, because the client follows it after every successful sign-in; when an unverified user signs in, the client asks for a fresh link itself.
+- **Emailed links land on the map,** not on separate pages: `/?account=verified` and `/?account=reset-password&token=…` open the account dialog in the right state (`src/lib/account/links.ts`). Sign-in passes no `callbackURL`, because the client follows it after every successful sign-in; when an unverified user signs in, the client asks for a fresh link itself.
 
 **In `web`:**
 - `better-auth/react` is used for sign-in and sign-up forms and for session hooks against the same origin.
@@ -352,7 +352,7 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 | On-demand lookups: aircraft, flight-route, geosearch, geo/reverse, region-dossier, directions, arcgis, satellites/orbit, markets/history, entity/expand | `web` | `api` `/api/v1/*`, with per-key upstream limits | Early; mostly mechanical ports |
 | Media proxies: cctv/proxy, frame, resolve, stream-status, texas/snapshot, proxy-tiles | `web` | `api`, as a **closed proxy** that takes ids, never URLs (`INSPIRATION.md` L169) | With the camera move to `catalog.db` |
 | AI and OI: ai/*, oi/*, mcp | `web` | `api`; BYO key free; hosted AI gated by `ai.hosted` | After auth. *Gated in `web` since 2026-10-12:* the server-key fallback of `ai/analyze` and `ai/briefing` returns 403 without `ai.hosted`; `ai/overview` falls back to its keyless heuristic read-out |
-| OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Kept** (`TODO.md` §7). | Any time. *Gated in `web` since 2026-10-12:* every route needs an account, with per-account limits by family (`src/lib/recon-gate.ts`); the tabs that probe providers from the browser ask visitors to sign in first |
+| OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Kept** (`TODO.md` §7). | Any time. *Gated in `web` since 2026-10-12:* every route needs an account, with per-account limits by family (`src/lib/recon/gate.ts`); the tabs that probe providers from the browser ask visitors to sign in first |
 | Platform: sdk/ingest, sdk/stream, github-webhook, health, stats, reference | `web` | `api`. `sdk/ingest` uses API keys with a `write:entities` scope instead of the shared `SDK_INGEST_KEY`. | Alongside the routes that depend on them |
 
 ## 14. Security baseline

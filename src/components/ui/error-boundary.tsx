@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { TriangleAlert } from 'lucide-react';
+import { Button } from './button';
 
 interface Props {
   children: React.ReactNode;
@@ -29,21 +31,15 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center w-full h-full bg-[var(--bg-secondary)] rounded-lg border border-red-900/30 p-4">
-          <div className="text-center">
-            <div className="text-xs font-mono text-red-400 tracking-widest mb-2">
-              ⚠ {this.props.name?.toUpperCase() || 'COMPONENT'} ERROR
-            </div>
-            <div className="text-[11px] font-mono text-[var(--text-muted)] max-w-[300px] truncate">
-              {this.state.error?.message}
-            </div>
-            <button
-              onClick={() => this.setState({ hasError: false })}
-              className="mt-3 px-3 py-1 text-[10px] font-mono tracking-widest text-[var(--gold-primary)] border border-[var(--border-primary)] rounded hover:bg-[var(--hover-accent)] transition-colors"
-            >
-              RETRY
-            </button>
-          </div>
+        <div role="alert" className="flex h-full w-full flex-col items-center justify-center rounded-card border border-line bg-surface-1 p-4 text-center">
+          <span className="mb-3 flex size-8 items-center justify-center rounded-full bg-surface-2 text-red">
+            <TriangleAlert aria-hidden className="size-4" strokeWidth={1.75} />
+          </span>
+          <p className="text-body font-medium text-ink-1">{this.props.name ? `${this.props.name} stopped working` : 'Something stopped working'}</p>
+          {this.state.error?.message && (
+            <p className="mt-1 max-w-[300px] truncate text-small text-ink-3">{this.state.error.message}</p>
+          )}
+          <Button size="sm" className="mt-4" onClick={() => this.setState({ hasError: false })}>Try again</Button>
         </div>
       );
     }

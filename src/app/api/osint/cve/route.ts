@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { reconGate } from '@/lib/recon-gate';
+import { reconGate } from '@/lib/recon/gate';
 
 // CVE Intelligence — fetches vulnerability details from CIRCL CVE API (free, no key)
 export async function GET(req: Request) {

@@ -2,71 +2,83 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import { installTerrainTileProtocol } from '@/lib/terrain-tiles';
-import { createCloudLayer } from '@/lib/live-clouds-layer';
+import { installTerrainTileProtocol } from '@/lib/map/terrain/tiles';
+import { createCloudLayer } from '@/lib/weather/live-clouds-layer';
 import { attachOi, type OiGlobe } from '@/lib/oi/globe';
-import { createSatelliteLayer } from '@/lib/satellite-layer';
-import { MAP_DEFAULTS, type MapPalette } from '@/lib/map-palette';
-import SatelliteCard, { type SatelliteDetail } from './satellite-card';
-import CctvPreviews, { type PreviewCamera } from '@/components/cameras/cctv-previews';
-import MapControls from './map-controls';
-import LiveNewsPreviews, { type PreviewFeed } from '@/components/cameras/live-news-previews';
-import { attachTerrain } from '@/lib/map-terrain';
-import { applyMapProjection } from '@/lib/map-projection';
-import type { AlertPinFeature } from '@/lib/map-alert-pins';
-import { addBaseLayers } from '@/lib/map-base-layers';
-import { createMap } from '@/lib/map-create';
-import { bindAlertPins } from './world-map/bind-alert-pins';
-import { bindCctvAndQuakeClicks, bindFeaturePopups } from './world-map/bind-feature-popups';
-import { bindFlightClicks } from './world-map/bind-flight-clicks';
-import { bindSatellitePick } from './world-map/bind-satellite-pick';
-import { bindViewEvents } from './world-map/bind-view-events';
-import type { SatelliteRow, WorldMapProps } from './world-map/types';
-import { useBasemapStyle, useDayNight } from './world-map/use-basemap';
-import { useBasemapDetail } from './world-map/use-basemap-detail';
-import { useBasemapProviderSource } from './world-map/use-basemap-provider';
-import { useDemoSpin, useFlyTo, useMapCenter } from './world-map/use-camera';
-import { useZoomPastGlobe } from './world-map/use-zoom-past-globe';
-import { useDrawing } from './world-map/use-drawing';
-import { useConflictZones, useEarthquakeLayer, useIncidentLayers } from './world-map/use-event-layers';
-import { useFlightLayers, useWatchedAirports } from './world-map/use-flight-layers';
-import { useHikingLayer, useHikingPick } from './world-map/use-hiking-layer';
-import { usePlacePick } from './world-map/use-place-pick';
-import { useAuroraLayer } from './world-map/use-aurora-layer';
-import { useServiceStatusLayer } from './world-map/use-service-status-layer';
-import { useGnssInterferenceLayer } from './world-map/use-gnss-interference-layer';
-import { useLaunchLayer } from './world-map/use-launch-layer';
-import { useEarthSky } from './world-map/use-earth-sky';
-import { useWarAlertsLayer } from './world-map/use-war-alerts-layer';
-import { useFireIncidentsLayer } from './world-map/use-fire-incidents-layer';
-import { useAirportDelaysLayer } from './world-map/use-airport-delays-layer';
-import { useChokepointFlowLayer } from './world-map/use-chokepoint-flow-layer';
-import { useOutbreaksLayer } from './world-map/use-outbreaks-layer';
-import { useLayerVisibility } from './world-map/use-layer-visibility';
-import { useReplayLayer } from './world-map/use-replay-layer';
-import { useChoroplethLayer } from './world-map/use-choropleth-layer';
-import { useHistoryLayer } from './world-map/use-history-layer';
-import { useWarLayers } from './world-map/use-war-layers';
-import { usePaleoLayer } from './world-map/use-paleo-layer';
-import { useMapPalette } from './world-map/use-map-palette';
-import { useDirections, useUserLocation } from './world-map/use-navigation';
-import { useCyberLayers, useSdkLinks } from './world-map/use-network-layers';
-import { useAlertPins, useLiveNewsLayer } from './world-map/use-news-layers';
-import { useOiHighlights } from './world-map/use-oi-highlights';
-import { useArcgisLayers, useDrawnPolygons } from './world-map/use-overlay-layers';
-import { useBalloonLayer, useCctvLayer, useInfrastructureLayer, useMaritimeLayers, useNaturalEventLayers, useRadiationLayer } from './world-map/use-point-layers';
-import { useReconLayers } from './world-map/use-recon-layers';
-import { useReferenceLayers } from './world-map/use-reference-layers';
-import { useRegionPick } from './world-map/use-region-pick';
-import { useSatelliteDismiss, useSatelliteLayer } from './world-map/use-satellite-layer';
-import { useWeatherGridLayer, useWeatherRasters } from './world-map/use-weather-layers';
+import { createSatelliteLayer } from '@/lib/satellites/layer';
+import { MAP_DEFAULTS, type MapPalette } from '@/lib/map/palette';
+import { InspectHost } from '@/components/map/inspect/inspect-host';
+import { SelectionRings } from '@/components/map/inspect/selection-rings';
+import { findFlight } from '@/components/map/inspect/live';
+import type { SatelliteDetail } from '@/components/map/inspect/cards/satellite-inspect';
+import type { InspectSink } from '@/components/map/inspect/types';
+import { inspectId, useInspect } from '@/components/map/inspect/use-inspect';
+import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { WindowLayer, windowStore } from '@/components/map/windows';
+import type { WatchedFlight } from '@/lib/flights/watch';
+import { CameraLeaders } from '@/components/map/cameras/camera-leaders';
+import CctvPreviews, { type PreviewCamera } from '@/components/map/cameras/cctv-previews';
+import MapControls from '@/components/map/controls/map-controls';
+import LiveNewsPreviews, { type PreviewFeed } from '@/components/map/cameras/live-news-previews';
+import { attachTerrain } from '@/lib/map/terrain/terrain';
+import { applyMapProjection } from '@/lib/map/projection';
+import type { AlertPinFeature } from '@/lib/alerts/map-pins';
+import { addBaseLayers } from '@/lib/basemap/base-layers';
+import { createMap } from '@/lib/map/create';
+import { bindAlertPins } from '@/components/map/interaction/bind-alert-pins';
+import { bindCctvAndQuakeClicks, bindFeaturePopups } from '@/components/map/interaction/bind-feature-popups';
+import { bindFlightClicks, type FlightSelector } from '@/components/map/interaction/bind-flight-clicks';
+import { bindHoverTip } from '@/components/map/interaction/bind-hover-tip';
+import { bindTouchTargets } from '@/lib/map/touch-targets';
+import { bindSatellitePick } from '@/components/map/interaction/bind-satellite-pick';
+import { bindViewEvents } from '@/components/map/interaction/bind-view-events';
+import type { SatelliteRow, WorldMapProps } from './types';
+import { useBasemapStyle, useDayNight } from '@/components/map/basemap/use-basemap';
+import { useBasemapDetail } from '@/components/map/basemap/use-basemap-detail';
+import { useBasemapProviderSource } from '@/components/map/basemap/use-basemap-provider';
+import { useDemoSpin, useFlyTo, useMapCenter } from '@/components/map/interaction/hooks/use-camera';
+import { useZoomPastGlobe } from '@/components/map/interaction/hooks/use-zoom-past-globe';
+import { useDrawing } from '@/components/map/interaction/hooks/use-drawing';
+import { useConflictZones, useEarthquakeLayer, useIncidentLayers } from '@/components/map/layers/hazards/use-event-layers';
+import { useFlightLayers } from '@/components/map/layers/live/use-flight-layers';
+import { useHikingLayer, useHikingPick } from '@/components/map/layers/reference/use-hiking-layer';
+import { usePlacePick } from '@/components/map/interaction/hooks/use-place-pick';
+import { useAuroraLayer } from '@/components/map/layers/hazards/use-aurora-layer';
+import { useServiceStatusLayer } from '@/components/map/layers/hazards/use-service-status-layer';
+import { useGnssInterferenceLayer } from '@/components/map/layers/hazards/use-gnss-interference-layer';
+import { useLaunchLayer } from '@/components/map/layers/live/use-launch-layer';
+import { useEarthSky } from '@/components/map/basemap/use-earth-sky';
+import { useWarAlertsLayer } from '@/components/map/layers/hazards/use-war-alerts-layer';
+import { useFireIncidentsLayer } from '@/components/map/layers/hazards/use-fire-incidents-layer';
+import { useAirportDelaysLayer } from '@/components/map/layers/hazards/use-airport-delays-layer';
+import { useChokepointFlowLayer } from '@/components/map/layers/hazards/use-chokepoint-flow-layer';
+import { useOutbreaksLayer } from '@/components/map/layers/hazards/use-outbreaks-layer';
+import { useLayerVisibility } from '@/components/map/layers/use-layer-visibility';
+import { useReplayLayer } from '@/components/map/layers/history/use-replay-layer';
+import { useChoroplethLayer } from '@/components/map/layers/history/use-choropleth-layer';
+import { useHistoryLayer } from '@/components/map/layers/history/use-history-layer';
+import { useWarLayers } from '@/components/map/layers/history/use-war-layers';
+import { usePaleoLayer } from '@/components/map/layers/history/use-paleo-layer';
+import { useMapPalette } from '@/components/map/basemap/use-map-palette';
+import { useDirections, useUserLocation } from '@/components/map/layers/overlays/use-navigation';
+import { useCyberLayers, useSdkLinks } from '@/components/map/layers/live/use-network-layers';
+import { useAlertPins, useLiveNewsLayer } from '@/components/map/layers/live/use-news-layers';
+import { useOiHighlights } from '@/components/map/layers/overlays/use-ti-highlights';
+import { useArcgisLayers, useDrawnPolygons } from '@/components/map/layers/overlays/use-overlay-layers';
+import { useBalloonLayer, useCctvLayer, useInfrastructureLayer, useMaritimeLayers, useNaturalEventLayers, useRadiationLayer } from '@/components/map/layers/live/use-point-layers';
+import { useReconLayers } from '@/components/map/layers/overlays/use-recon-layers';
+import { useReferenceLayers } from '@/components/map/layers/reference/use-reference-layers';
+import { useRegionPick } from '@/components/map/interaction/hooks/use-region-pick';
+import { useSatelliteDismiss, useSatelliteLayer } from '@/components/map/layers/live/use-satellite-layer';
+import { useWeatherGridLayer, useWeatherRasters } from '@/components/map/layers/hazards/use-weather-layers';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import './map-popup.css';
 
 /** Replay draws recorded quakes from the history events; History draws the families its panel picks. */
 const NO_FAMILIES: readonly string[] = [];
 const QUAKES: readonly string[] = ['hazard'];
 
-function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -130,6 +142,40 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
     satLayerRef.current?.setOrbit(null);
     setSelectedSat(null);
   }, []);
+
+  /* Each aircraft and ship gets a window; the satellite's sits beside them. */
+  const onInspectOpenRef = useRef(onInspectOpen);
+  useEffect(() => { onInspectOpenRef.current = onInspectOpen; }, [onInspectOpen]);
+  const openedForInspect = useCallback(() => { onInspectOpenRef.current?.(); }, []);
+  const isMobile = useIsMobile();
+  const isMobileRef = useRef(isMobile);
+  useEffect(() => { isMobileRef.current = isMobile; }, [isMobile]);
+  const inspect = useInspect(openedForInspect);
+  const inspectRef = useRef(inspect);
+  useEffect(() => { inspectRef.current = inspect; }, [inspect]);
+  const flightSelectRef = useRef<FlightSelector | null>(null);
+  const satKey = selectedSat ? selectedSat.noradId ?? selectedSat.name : null;
+  const closeInspect = inspect.closeAll;
+  useEffect(() => { if (satKey) onInspectOpenRef.current?.(); }, [satKey]);
+  // One sheet at a time on a phone: a panel opening closes the card.
+  useEffect(() => { if (mobileSheetOpen) { closeInspect(); clearSat(); } }, [mobileSheetOpen, closeInspect, clearSat]);
+  // History and Replay show the past; a live selection has nothing to say there.
+  const timeTravel = !!history || !!replay;
+  useEffect(() => { if (timeTravel) { closeInspect(); clearSat(); } }, [timeTravel, closeInspect, clearSat]);
+  // The drawn route goes when its aircraft's card closes.
+  const aircraftOpen = inspect.targets.filter(t => t.kind === 'aircraft').map(t => t.id).join(' ');
+  useEffect(() => {
+    const drawn = flightSelectRef.current?.drawn();
+    if (drawn && !aircraftOpen.split(' ').includes(drawn)) flightSelectRef.current?.clear();
+  }, [aircraftOpen]);
+  /** A row in the watch list: select that aircraft as if it had been clicked, and go to it. */
+  const selectWatched = useCallback((flight: WatchedFlight) => {
+    const found = findFlight(data, flight.icao24);
+    if (!found) return;
+    const { flight: f, layer } = found;
+    flightSelectRef.current?.select(f, [f.lng, f.lat], layer);
+    mapRef.current?.flyTo({ center: [f.lng, f.lat], zoom: Math.max(mapRef.current.getZoom(), 7), duration: 1200, essential: true });
+  }, [data]);
   const drawingCoordsRef = useRef<number[][]>([]);
   const drawModeRef = useRef(drawMode);
   useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
@@ -174,10 +220,27 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
       popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '420px', offset: 14 }).setLngLat(coords).setHTML(html).addTo(map);
     };
 
-    bindFlightClicks(map, popup, popupRef, drawing);
-    bindCctvAndQuakeClicks(map, popup, entityClick);
-    const cancelSatHover = bindSatellitePick(map, { satLayerRef, oiGlobeRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, popupRef, paletteRef, setSelectedSat, clearSat });
-    bindFeaturePopups(map, popup, entityClick);
+    // Overlapping markers each get the click; the first handler (aircraft, then camera, then ship) wins.
+    let openedAt = -1;
+    const sink: InspectSink = {
+      open: t => {
+        const now = performance.now();
+        if (drawing() || now - openedAt < 40) return false;
+        openedAt = now;
+        return inspectRef.current.sink.open(t);
+      },
+      patch: ((kind, id, p) => inspectRef.current.sink.patch(kind, id, p)) as InspectSink['patch'],
+    };
+    const unbindTouch = bindTouchTargets(map);
+    flightSelectRef.current = bindFlightClicks(map, sink, drawing);
+    bindCctvAndQuakeClicks(map, popup, entityClick, sink);
+    // Windows stay until closed; a phone's single sheet goes on a tap on the map.
+    const onEmpty = () => { if (!drawing() && isMobileRef.current) { inspectRef.current.closeAll(); clearSat(); } };
+    // What already has a window gets no tooltip.
+    const hoverTip = bindHoverTip(map, key => !!windowStore.find(key)
+      || inspectRef.current.targets.some(t => inspectId(t) === key) || (!!satSelectedIdRef.current && key === `satellite:${satSelectedIdRef.current}`), drawing);
+    const cancelSatHover = bindSatellitePick(map, { satLayerRef, oiGlobeRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, popupRef, paletteRef, setSelectedSat, onEmpty, onHover: row => hoverTip.setSatellite(row) });
+    bindFeaturePopups(map, popup, entityClick, sink);
     bindAlertPins(map, popup, popupRef, alertPinsRef, openAlertPinRef);
 
     /*
@@ -197,6 +260,8 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
     return () => {
       sizeToContainer.disconnect();
       cancelSatHover();
+      hoverTip.dispose();
+      unbindTouch();
       map.remove();
       mapRef.current = null;
     };
@@ -356,7 +421,6 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
     map.easeTo({ pitch, bearing: 0, duration: 600 });
   }, [mapReady, navigating, projection, terrainEnabled, activeLayers.terrain_3d]);
 
-  useWatchedAirports({ mapRef, mapReady, aircraftAirports });
   useArcgisLayers({ mapRef, mapReady, arcgisLayers, prevArcgisLayersRef });
   useDrawing({ mapRef, mapReady, drawMode, drawCommand, onDrawComplete, onDrawProgress, onDrawCancel, drawingCoordsRef });
   useRegionPick({ mapRef, mapReady, active: drawMode === 'region', onDrawComplete, onDrawProgress, onDrawCancel });
@@ -390,7 +454,13 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
           })}
         />
       )}
-      {selectedSat && <SatelliteCard sat={selectedSat} onClose={clearSat} />}
+      {mapReady && (
+        <InspectHost mapRef={mapRef} data={data} targets={inspect.targets} sat={selectedSat}
+          onClose={inspect.close} onCloseAll={inspect.closeAll} onCloseSat={clearSat} onSelectFlight={selectWatched} />
+      )}
+      {mapReady && <SelectionRings mapRef={mapRef} />}
+      {mapReady && <CameraLeaders mapRef={mapRef} />}
+      <WindowLayer />
       {mapReady && <MapControls mapRef={mapRef} onInteract={onFollowInterrupt} replayActive={!!replay} onReplayToggle={onReplayToggle} />}
     </>
   );

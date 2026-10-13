@@ -17,7 +17,7 @@ import type { SocialEnv } from '../auth/social-providers';
 export { totp } from './totp';
 
 export const ORIGIN = 'http://localhost:3000';
-// The web app's landing URLs (src/lib/account-links.ts).
+// The web app's landing URLs (src/lib/account/links.ts).
 export const VERIFIED = '/?account=verified';
 export const RESET = '/?account=reset-password';
 export const SIGN_IN_FAILED = '/?account=sign-in-failed';

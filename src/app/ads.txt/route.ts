@@ -1,4 +1,4 @@
-import { AD_CLIENT, adsTxt } from '@/lib/ads';
+import { AD_CLIENT, adsTxt } from '@/lib/ads/ads';
 
 export const dynamic = 'force-static';
 

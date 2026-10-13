@@ -11,8 +11,8 @@ describe('hikingPopupHtml', () => {
   it('describes the selected route and lists the others as buttons', () => {
     const html = hikingPopupHtml(routes, 19687570, 'loading');
     expect(html).toContain('Arvengarten – Männlichen');
-    expect(html).toContain('MOUNTAIN TRAIL');
-    expect(html).toContain('LOADING DETAILS');
+    expect(html).toMatch(/mountain trail/i);
+    expect(html).toContain('Loading details');
     expect(html).toContain('data-hiking-route="19582477"');
     expect(html).toContain('https://www.openstreetmap.org/relation/19687570');
     expect(html).not.toContain('data-hiking-fit');
@@ -33,7 +33,7 @@ describe('hikingPopupHtml', () => {
     expect(html).toContain('3.4 km');
     expect(html).toContain('3.5 km');
     expect(html).toContain('data-hiking-fit');
-    expect(html).toContain('WIKIPEDIA');
+    expect(html).toContain('Wikipedia');
     expect(html).not.toContain('javascript:');
   });
 });

@@ -185,7 +185,7 @@ Removed on 2026-10-13 with its series (§3) as not useful. The raw files are sti
 | Feodo C2, URLhaus, Cloudflare Radar, IODA | event (interval) | `ev.event` `cyber.c2`, `outage.internet` | ip:port / URLhaus id / Radar id | first_seen to last_seen |
 | Yahoo, CoinGecko, SWPC Kp | series hf | `ts.point_hf` | symbol / index | quote time |
 | Open-Meteo grid | grid | `ts.grid_frame` (`kind = forecast`, nowcast hour) | grid + valid time + issued | valid time |
-| AOI watch (`lib/watch.ts`) | derived event | `ev.event` with `attrs.algorithm_version` and supporting observation ids | deterministic hash | sweep time |
+| AOI watch (`lib/areas/watch.ts`) | derived event | `ev.event` with `attrs.algorithm_version` and supporting observation ids | deterministic hash | sweep time |
 | `/api/conflicts` static zones, static ports and chokepoints | — | **Not recorded.** They are static data presented as live (`TODO.md` L42). | — | — |
 
 ## 6. As built

@@ -1,4 +1,4 @@
-import type { TemperatureField } from '@/lib/weather-field';
+import type { TemperatureField } from '@/lib/weather/weather-field';
 
 /**
  * NOAA GFS 2 m temperature on its 0.25° grid, read over OPeNDAP from Unidata's

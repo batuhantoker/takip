@@ -8,13 +8,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientIp } from '@/lib/ssrf-guard';
-import { requireEntitlement } from '@/lib/access-server';
+import { requireEntitlement } from '@/lib/account/access-server';
 import {
   createGeminiClient,
   rotateApiKey,
   generateBriefing,
   type IntelligenceContext,
-} from '@/lib/ai-engine';
+} from '@/lib/ai/gemini';
 
 export const dynamic = 'force-dynamic';
 

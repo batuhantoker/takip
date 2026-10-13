@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Auth } from './auth';
 
-/** Where the web app explains a deletion link that didn't work (src/lib/account-links.ts). */
+/** Where the web app explains a deletion link that didn't work (src/lib/account/links.ts). */
 export const DELETE_FAILED = '/?account=delete-failed';
 
 /** Mounted at /api. */

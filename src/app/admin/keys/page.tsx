@@ -1,4 +1,4 @@
-import KeysPage from '@/components/admin/keys-page';
+import KeysPage from '@/components/site/admin/pages/keys-page';
 
 export default function Page() {
   return <KeysPage />;

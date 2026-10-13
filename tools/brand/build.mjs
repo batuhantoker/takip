@@ -156,7 +156,7 @@ const squareTile = tile(FULL, { scale: 0.8, radius: 0 });
 const maskableTile = tile(FULL, { scale: 0.66, radius: 0 });
 write(pub('favicon.svg'), faviconTile);
 write(pub('brand/takip-icon.svg'), iconTile);
-write(path.join(ROOT, 'src/components/brand/geometry.generated.ts'), generatedTs());
+write(path.join(ROOT, 'src/components/shell/brand/geometry.generated.ts'), generatedTs());
 
 console.log('Rasters');
 const rasters = [

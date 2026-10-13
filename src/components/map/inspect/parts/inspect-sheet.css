@@ -1,0 +1,27 @@
+/* The inspect card as a phone sheet (inspect-sheet.tsx). Unlayered, so it outranks the card's utilities. */
+.tk-sheet { box-shadow: var(--shadow-float); }
+/* Eases back after a pull and in on open; never while the finger is on it. */
+.tk-sheet-settle { transition: opacity 160ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+@starting-style { .tk-sheet-settle { transform: translateY(12px); opacity: 0; } }
+
+/* The card's own frame goes flat: the sheet is the frame. */
+.tk-sheet .tk-sheet-body > section {
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Drags belong to the sheet, not the browser's pan; a full body still scrolls. */
+.tk-sheet header, .tk-sheet[data-state='peek'] { touch-action: none; }
+
+/* Peek: the header, the tags and the key numbers, nothing that scrolls. */
+.tk-sheet[data-state='peek'] .tk-sheet-body { height: 168px; overflow: hidden; }
+.tk-sheet[data-state='peek'] .tk-sheet-body > section > :nth-child(2) { overflow: hidden; }
+.tk-sheet[data-state='peek'] .tk-sheet-body > section > :nth-child(3) { display: none; }
+
+/* Full: as tall as the screen allows above the bar and below the search. */
+.tk-sheet[data-state='full'] .tk-sheet-body { height: min(72dvh, calc(100dvh - 150px)); }
+
+@media (prefers-reduced-motion: reduce) { .tk-sheet, .tk-sheet-settle { transition: none; } }

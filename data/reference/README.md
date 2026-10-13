@@ -190,7 +190,7 @@ The largest response measured over New York, the densest area, is about 5 MB bef
 
 **Storage:** `src/lib/reference/file-store.ts` indexes each file once, keeping a bounding box and byte offset per feature. A query reads only the matching lines from disk, so even the highway network costs about 35 MB of memory. `ReferenceStore` is the seam for moving to PostGIS: implement `stat` and `query` (bbox → `ST_Intersects`, tiers → `WHERE`, simplification → `ST_Simplify`, clipping → `ST_ClipByBox2D`) and the routes and UI stay as they are.
 
-**Map:** `src/lib/reference/map-layers.ts` draws the switched-on datasets and refetches them when the map settles. It requests the view snapped outward to whole tiles, so small pans hit the cache. The layer panel groups are in `src/components/layers/reference-groups.ts`.
+**Map:** `src/lib/reference/map-layers.ts` draws the switched-on datasets and refetches them when the map settles. It requests the view snapped outward to whole tiles, so small pans hit the cache. The layer panel groups are in `src/components/panels/layers/lib/reference-groups.ts`.
 
 **Deploying:** the files are gitignored, and `docker-compose.yml` mounts `./data/reference` read-only into the container. Copy them to the server once and again after each refresh, e.g. `rsync -av data/reference/ root@<server>:/root/takip/data/reference/`. Deployments without the files (including Vercel) report nothing installed, and the layer panel hides these layers.
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { matchExact, type SanctionEntry } from '@/lib/sanctions';
-import { reconGate } from '@/lib/recon-gate';
+import { matchExact, type SanctionEntry } from '@/lib/recon/sanctions';
+import { reconGate } from '@/lib/recon/gate';
 
 // IP Geolocation + Reputation — combines multiple free sources.
 // Cross-checks the ASN owner / ISP / org strings against the OFAC SDN

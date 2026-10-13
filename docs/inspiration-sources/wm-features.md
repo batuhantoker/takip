@@ -678,7 +678,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Forecast resolution, a related pipeline:** resolves at 24 h, 7 d, 14 d and 30 d; "hard" resolution against a feed, "judged" against the news archive; Brier and log scores; a 180-day ledger.
 - **Free inputs:** TAKIP's own alerts and news history.
 - **Backfillable?** From stored data only.
-- **TAKIP today:** OI scores its statistical price baseline on the instrument's own past (`components/oi/record.tsx`). Nothing scores alerts.
+- **TAKIP today:** OI scores its statistical price baseline on the instrument's own past (`components/panels/ti-agent/run/record.tsx`). Nothing scores alerts.
 - **Effort / value:** M / H. A defensible "our alerts lead by X h, against a base rate of Y" claim for the history product. The control-window design also tests map alerts, e.g. whether a convergence cell precedes a GDACS or GDELT event there.
 
 ---

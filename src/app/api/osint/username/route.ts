@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { scanUsername, isValidUsername } from '@/lib/sherlock';
-import { reconGate } from '@/lib/recon-gate';
+import { scanUsername, isValidUsername } from '@/lib/recon/sherlock';
+import { reconGate } from '@/lib/recon/gate';
 
 /**
  * TAKIP — Username enumeration across social platforms.

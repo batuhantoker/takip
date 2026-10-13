@@ -29,7 +29,7 @@ Output: one report with P0–P3 findings, a keep/rewrite/delete verdict per modu
   - [ ] Check for SSRF in every route that fetches a URL: `cctv/proxy`, `proxy-tiles`, `arcgis`, `cctv/resolve`, `cctv/stream-status`, `cctv/frame`, `entity/expand`, `osint/*`.
   - [ ] Check auth on `sdk/ingest`, `github-webhook`, `mcp`, `oi/*` and `ai/*`.
   - [ ] Check whether anonymous users can burn the server's Gemini keys, and whether rate limits exist.
-  - [ ] Check `innerHTML` interpolation in the map popups (`src/lib/map-popups.ts`) for XSS.
+  - [ ] Check `innerHTML` interpolation in the map popups (`src/lib/map/popups/layer-popups.ts`) for XSS.
   - [ ] Check how bring-your-own API keys are handled, and the CSP and CORS settings.
   - [ ] Review `nginx/nginx.conf` and `intel/server.js`.
 - [ ] **Architecture and maintainability**
@@ -81,7 +81,7 @@ Output: one report with P0–P3 findings, a keep/rewrite/delete verdict per modu
 - [ ] The README says 17,000+ cameras; the catalogue has 46.5k.
 - [ ] `docker-publish.yml` runs on every push to `master`, which uses Actions minutes and publishes to GHCR.
 - [ ] Quick fixes from `CCTV-handoff.md` §8: opentopia cameras, HK duplicates, reused ids, `us-central`, the Kansas box, MassDOT, Caltrans HLS.
-- [ ] Key docs are out of date (`.env.example`, README, DOCKER.md, `apiCatalog.ts`, `DocsClient.tsx`):
+- [ ] Key docs are out of date (`.env.example`, README, DOCKER.md, `api-catalog.ts`, `docs-client.tsx`):
   - [ ] They say the AIS and OpenSky keys are unused; both are read.
   - [ ] FIRMS and N2YO keys are listed but never read.
   - [ ] Etherscan and Helius keys are read but change nothing.
@@ -208,7 +208,7 @@ Idea, existing pieces and constraints: `docs/brain-storming.md` §6. A small mod
 
 ## 7. Scope cuts and risk
 
-- [x] People-search, breach and recon tools (username, phone and fingerprint search, `leaks` and Hudson Rock, Shodan, the port scanner): **kept, behind an account** (decided 2026-10-12). Every `osint/*` route and `scanner` needs an account, with per-account limits by family (`src/lib/recon-gate.ts`): breach 20 an hour, people 30 an hour, scan 30 an hour, network 15 a minute, reference 30 a minute.
+- [x] People-search, breach and recon tools (username, phone and fingerprint search, `leaks` and Hudson Rock, Shodan, the port scanner): **kept, behind an account** (decided 2026-10-12). Every `osint/*` route and `scanner` needs an account, with per-account limits by family (`src/lib/recon/gate.ts`): breach 20 an hour, people 30 an hour, scan 30 an hour, network 15 a minute, reference 30 a minute.
 - [ ] Never import other people's camera snapshots. Keep the privacy blocklist from `CCTV-handoff.md` §5.
 
 ## 8. Build in public

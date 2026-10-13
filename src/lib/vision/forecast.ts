@@ -8,7 +8,7 @@
  * dated source the actors and the report can quote and cite, like any article.
  * Two cameras a place, four at most: a glimpse of the ground, not a survey.
  */
-import { nominatim } from '@/lib/nominatim';
+import { nominatim } from '@/lib/places/nominatim';
 import type { ContextItem } from '@/lib/oi/types';
 import { describeFrame, type FrameAnalysis } from './analysis';
 import { frameOf, stillsNear, type CatalogueCamera, type Frame } from './frames';

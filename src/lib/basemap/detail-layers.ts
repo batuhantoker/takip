@@ -23,9 +23,9 @@ export const DETAIL_GROUND: LayerSpecification[] = [
   { id: 'detail-military', type: 'fill', ...src, 'source-layer': 'landuse', minzoom: 7, filter: ['==', ['get', 'class'], 'military'],
     paint: { 'fill-pattern': MILITARY_HATCH, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.5, 11, 1] } },
   { id: 'detail-military-edge', type: 'line', ...src, 'source-layer': 'landuse', minzoom: 9, filter: ['==', ['get', 'class'], 'military'],
-    paint: { 'line-color': 'rgba(255, 82, 82, 0.45)', 'line-width': 0.8, 'line-dasharray': [3, 2] } },
+    paint: { 'line-color': 'rgba(155, 138, 251, 0.35)', 'line-width': 0.8, 'line-dasharray': [3, 2] } },
   { id: 'detail-ferry', type: 'line', ...src, 'source-layer': 'transportation', minzoom: 4, filter: ['==', ['get', 'class'], 'ferry'],
-    paint: { 'line-color': 'rgba(77, 182, 172, 0.55)', 'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 12, 1.4], 'line-dasharray': [2, 3] } },
+    paint: { 'line-color': 'rgba(95, 179, 196, 0.4)', 'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 12, 1.4], 'line-dasharray': [2, 3] } },
   { id: 'detail-rail', type: 'line', ...src, 'source-layer': 'transportation', minzoom: 7,
     filter: ['all', ['==', ['get', 'class'], 'rail'], ['!', ['has', 'service']]],
     paint: {
@@ -38,7 +38,8 @@ export const DETAIL_GROUND: LayerSpecification[] = [
 ];
 
 const AIRPORT_CODE: ExpressionSpecification = ['concat', '◆ ', ['coalesce', ['get', 'iata'], ['get', 'icao'], '']];
-const AIRPORT_COLOR: ExpressionSpecification = ['case', ['==', ['get', 'class'], 'military'], '#FF6E6E', '#90CAF9'];
+// Military in the categorical violet, not red: red is kept for severity.
+const AIRPORT_COLOR: ExpressionSpecification = ['case', ['==', ['get', 'class'], 'military'], '#9B8AFB', '#A4AAB2'];
 
 const POI_COLOR: ExpressionSpecification = ['match', ['get', 'class'],
   ['railway', 'harbor', 'ferry_terminal'], '#81D4FA',

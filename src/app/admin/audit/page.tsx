@@ -1,4 +1,4 @@
-import AuditPage from '@/components/admin/audit-page';
+import AuditPage from '@/components/site/admin/pages/audit-page';
 
 export default function Page() {
   return <AuditPage />;

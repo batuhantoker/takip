@@ -125,7 +125,8 @@ export function scaleFor(values: Record<string, readonly ShapePoint[]>): Scale |
 }
 
 /** Sequential blue, light → dark (dataviz palette steps 100–700). */
-const BLUES = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#104281'];
+// Light → dark steel blue, even steps in OKLCH lightness with quiet ends; see rampFor.
+const BLUES = ['#bbd6e4', '#90bad3', '#6a9dbf', '#4e80a6', '#3b6387', '#2e4864', '#222f3f'];
 
 /** Low → high. On a dark map the low end recedes into the surface, so the ramp runs dark → light there. */
 export const rampFor = (dark: boolean) => (dark ? [...BLUES].reverse() : BLUES);

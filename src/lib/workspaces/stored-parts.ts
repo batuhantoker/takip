@@ -1,12 +1,12 @@
-import { deserializeShapes, serializeShapes, STORAGE_KEY as AREAS_KEY } from '@/lib/aoi-export';
-import { DEFAULT_LAYERS } from '@/lib/default-layers';
-import { parseWatchlist, WATCHLIST_KEY } from '@/lib/markets';
-import { parseRecent } from '@/lib/recent-places';
-import { parseLayers } from '@/lib/saved-layers';
+import { deserializeShapes, serializeShapes, STORAGE_KEY as AREAS_KEY } from '@/lib/areas/aoi-export';
+import { DEFAULT_LAYERS } from '@/lib/layers/defaults';
+import { parseWatchlist, WATCHLIST_KEY } from '@/lib/markets/markets';
+import { parseRecent } from '@/lib/places/recent-places';
+import { parseLayers } from '@/lib/layers/saved';
 import type { PartRegistry } from './parts';
 import { STATE_VERSION, type PartName, type StoredArea, type StoredPlace, type WorkspaceStateV1 } from './state';
 
-// The keys src/lib/saved-layers.ts and src/lib/recent-places.ts keep to themselves.
+// The keys src/lib/layers/saved.ts and src/lib/places/recent-places.ts keep to themselves.
 const LAYERS_KEY = 'takip.layers';
 const RECENT_KEY = 'takip.recent-places';
 

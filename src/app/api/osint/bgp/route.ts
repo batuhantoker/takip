@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { reconGate } from '@/lib/recon-gate';
+import { reconGate } from '@/lib/recon/gate';
 
 // BGP/ASN Lookup — remplacé après shutdown de bgpview.io
 // Sources: ip-api.com + RIPE Stat

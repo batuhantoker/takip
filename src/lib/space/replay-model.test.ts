@@ -77,11 +77,13 @@ describe('stays', () => {
     ...HISTORY, start: t0, end: t0 + (n - 1) * step, coarse: line(t0, step, n, () => [0, 0, 0]), encounters: [], phases: [p],
   });
 
-  it('keeps a lander on its spot as Mars turns between samples', () => {
+  it('keeps a lander on its spot as Mars turns, for a sol, then ends', () => {
     const m = new ReplayModel(history(stay(true, landedRel, Array(n * 3).fill(0))));
-    const t = t0 + 7.3;
+    const t = t0 + 0.7;
     const want = add(m.bodyAt('mars', t), mul(iauOrientation('mars', t), fixedSpot));
     expect(norm(sub(m.craftAt(t), want))).toBeLessThan(1);
+    expect(m.landed(t)).toBe(true);
+    expect(m.end).toBeCloseTo(t0 + 1.03, 6);
   });
 
   it('carries an orbiter round its orbit instead of joining samples', () => {

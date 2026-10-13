@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { safeFetch } from '@/lib/ssrf-guard';
-import { isSkylineUrl, parseSkylinePage } from '@/lib/skyline';
+import { isSkylineUrl, parseSkylinePage } from '@/lib/cameras/skyline';
 import { extractYouTubeId, isYouTubeUrl, parseYouTubeUrl, youtubeEmbedUrl } from '@/lib/youtube';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,7 @@ export const maxDuration = 15;
  * Two providers need a lookup:
  *
  *   SkylineWebcams pages — mostly a wrapper around a public YouTube livestream
- *     from the camera's actual operator. See src/lib/skyline.ts for the
+ *     from the camera's actual operator. See src/lib/cameras/skyline.ts for the
  *     breakdown, and for why the HLS-backed ones are left alone.
  *
  *   YouTube channel "/live" links — these name a channel, not a broadcast, so

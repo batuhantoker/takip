@@ -69,3 +69,22 @@ export const LANDING_SITES: Record<GlobeWorldId, LandingSite[]> = {
     { id: 'zhurong', name: 'Tianwen-1 · Zhurong', year: 2021, agency: 'CNSA', kind: 'rover', lat: 25.066, lng: 109.925, note: 'Utopia Planitia.' },
   ],
 };
+
+/** The fleet's landers by Horizons ID: where each came down, and the rover key NASA publishes its position under. */
+export const LANDER_SITES: Record<number, { world: GlobeWorldId; site: string; rover?: string }> = {
+  [-76]: { world: 'mars', site: 'curiosity-landing', rover: 'curiosity' },
+  [-168]: { world: 'mars', site: 'perseverance-landing', rover: 'perseverance' },
+  [-189]: { world: 'mars', site: 'insight' },
+  [-253]: { world: 'mars', site: 'opportunity' },
+  [-254]: { world: 'mars', site: 'spirit' },
+};
+
+/** The landing site nearest a spot, within `maxDeg`. */
+export function siteNear(world: GlobeWorldId, lat: number, lng: number, maxDeg = 1): LandingSite | null {
+  let best: LandingSite | null = null, bestDeg = maxDeg;
+  for (const s of LANDING_SITES[world]) {
+    const d = Math.hypot(s.lat - lat, ((s.lng - lng + 540) % 360 - 180) * Math.cos(lat * Math.PI / 180));
+    if (d < bestDeg) { best = s; bestDeg = d; }
+  }
+  return best;
+}

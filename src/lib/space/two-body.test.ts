@@ -20,6 +20,18 @@ describe('propagate', () => {
     expect(norm(sub(propagate(back.r, back.v, T / 3, GM_EARTH).r, r0))).toBeLessThan(1e-3);
   });
 
+  it('stays on an eccentric orbit at every moment, either way in time', () => {
+    const GM_MARS = 42_828;
+    // MRO in its first orbit at Mars, as Horizons gave it; plain Newton flew off at a few dozen of these moments.
+    const r0: [number, number, number] = [16_171, 586, 23_190], v0: [number, number, number] = [0.25047, -0.44448, 1.06136];
+    const energy = (r: number[], v: number[]) => (v[0] ** 2 + v[1] ** 2 + v[2] ** 2) / 2 - GM_MARS / Math.hypot(r[0], r[1], r[2]);
+    const e0 = energy(r0, v0);
+    for (let dt = -112_000; dt <= 112_000; dt += 2) {
+      const s = propagate(r0, v0, dt, GM_MARS);
+      expect(Math.abs(energy(s.r, s.v) / e0 - 1)).toBeLessThan(1e-6);
+    }
+  });
+
   it('keeps a hyperbolic flyby\'s energy', () => {
     const energy = (r: number[], v: number[]) => (v[0] ** 2 + v[1] ** 2 + v[2] ** 2) / 2 - GM_EARTH / Math.hypot(r[0], r[1], r[2]);
     const s = propagate([7000, 0, 0], [0, 12, 0], 3600, GM_EARTH);

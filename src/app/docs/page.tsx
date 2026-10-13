@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import DocsClient from './DocsClient';
-import { ENDPOINT_COUNT } from './apiCatalog';
+import DocsClient from '@/components/site/docs/docs-client';
+import { ENDPOINT_COUNT } from '@/components/site/docs/api-catalog';
 
 export const metadata: Metadata = {
   title: 'Documentation & API Reference',

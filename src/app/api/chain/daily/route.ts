@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { buildDailyBrief } from '@/lib/chainFeeds';
+import { buildDailyBrief } from '@/lib/recon/chain-feeds';
 
 /**
  * TAKIP — Daily chain-threat brief.

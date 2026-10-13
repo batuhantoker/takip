@@ -5,7 +5,7 @@ import { cachedSource } from '@takip/connectors/source-cache';
  * Which place a coordinate falls in, from Photon — komoot's geocoder over
  * OpenStreetMap, which the search box already uses.
  *
- * This used to go through lib/nominatim.ts, whose one queue the whole app
+ * This used to go through lib/places/nominatim.ts, whose one queue the whole app
  * shares and which may send one request every two seconds, as Nominatim's
  * policy requires. The hover label, the alert pins and search all wait in the
  * same line; in production it sat full at 40, so a right-click was refused in

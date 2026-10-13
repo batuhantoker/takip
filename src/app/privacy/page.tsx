@@ -18,12 +18,12 @@ export const metadata: Metadata = {
  *
  * Reviewed 2026-10-04 against: src/app/api/geo, src/app/api/osint/*,
  * src/app/api/ai/*, src/app/api/oi/*, src/lib/oi/* (client, service, web,
- * newsroom, markets), src/lib/sanctions.ts, src/lib/sherlock.ts,
- * src/lib/chainIntel.ts, src/app/page.tsx (IP location, storage),
+ * newsroom, markets), src/lib/recon/sanctions.ts, src/lib/recon/sherlock.ts,
+ * src/lib/recon/chain-intel.ts, src/app/page.tsx (IP location, storage),
  * src/components/map/world-map.tsx (base map, satellite), src/app/globals.css
- * (fonts), src/components/alerts/live-alerts.tsx, src/lib/live-clouds.ts,
- * src/lib/donbot.ts, src/components/oi/assist/voice.ts, the CCTV sources, and
- * src/components/ads/* and src/lib/ads.ts, and every localStorage and
+ * (fonts), src/components/panels/alerts/alerts-panel.tsx, src/lib/weather/live-clouds.ts,
+ * src/lib/markets/donbot.ts, src/components/panels/ti-agent/assist/voice.ts, the CCTV sources, and
+ * src/components/shell/ads/* and src/lib/ads/ads.ts, and every localStorage and
  * sessionStorage key in src/.
  */
 
@@ -33,12 +33,12 @@ const REVIEWED = '12 October 2026';
 
 function Pledge({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-[var(--border-primary)] bg-white/[0.02] p-4">
+    <div className="rounded-card border border-line bg-surface-1 p-4">
       <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--gold-primary)]/10 text-[var(--gold-light)]">{icon}</span>
-        <h3 className="text-[13px] font-semibold text-[var(--text-heading,var(--text-primary))]">{title}</h3>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-ink-2">{icon}</span>
+        <h3 className="text-[13px] font-semibold text-ink-1">{title}</h3>
       </div>
-      <p className="mt-2.5 text-[13px] leading-relaxed text-[var(--text-muted)]">{children}</p>
+      <p className="mt-2.5 text-[13px] leading-relaxed text-ink-2">{children}</p>
     </div>
   );
 }
@@ -46,8 +46,8 @@ function Pledge({ icon, title, children }: { icon: ReactNode; title: string; chi
 function Section({ id, title, intro, children }: { id: string; title: string; intro?: ReactNode; children: ReactNode }) {
   return (
     <section id={id} className="mt-14 scroll-mt-8">
-      <h2 className="text-lg font-semibold tracking-wide">{title}</h2>
-      {intro && <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{intro}</p>}
+      <h2 className="text-[20px] font-semibold text-ink-1">{title}</h2>
+      {intro && <p className="mt-2 text-sm leading-relaxed text-ink-2">{intro}</p>}
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -58,24 +58,24 @@ function Flow({ icon, title, summary, services, children }: {
   icon: ReactNode; title: string; summary: ReactNode; services?: { name: string; what: string }[]; children?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border-primary)] bg-white/[0.02] p-5">
+    <div className="rounded-card border border-line bg-surface-1 p-5">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--cyan-primary)]/10 text-[var(--cyan-primary)]">{icon}</span>
+        <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-surface-2 text-ink-2">{icon}</span>
         <div className="min-w-0 flex-1">
           <h3 className="text-[14px] font-semibold">{title}</h3>
-          <div className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-muted)]">{summary}</div>
+          <div className="mt-1.5 text-[13px] leading-relaxed text-ink-2">{summary}</div>
           {children}
           {services && services.length > 0 && (
             <details className="group mt-3">
-              <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 text-[12px] text-[var(--cyan-primary)] hover:underline [&::-webkit-details-marker]:hidden">
+              <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 text-[12px] text-accent hover:underline [&::-webkit-details-marker]:hidden">
                 <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
                 Which services, exactly
               </summary>
-              <ul className="mt-3 flex flex-col gap-2 border-l border-[var(--border-primary)] pl-4">
+              <ul className="mt-3 flex flex-col gap-2 border-l border-line pl-4">
                 {services.map(s => (
                   <li key={s.name} className="text-[12.5px] leading-relaxed">
-                    <span className="font-mono text-[11.5px] text-[var(--text-primary)]">{s.name}</span>
-                    <span className="text-[var(--text-muted)]"> · {s.what}</span>
+                    <span className="font-mono text-[11.5px] text-ink-1">{s.name}</span>
+                    <span className="text-ink-2"> · {s.what}</span>
                   </li>
                 ))}
               </ul>
@@ -109,16 +109,16 @@ const PROMISES: { icon: ReactNode; title: string; body: string }[] = [
 export default function PrivacyPage() {
   return (
     // docs-root releases the full-screen map's scroll lock (see globals.css), so the page scrolls.
-    <main className="docs-root min-h-screen bg-[var(--bg-primary)] px-5 py-14 text-[var(--text-primary)] sm:px-6">
-      <div className="mx-auto max-w-3xl">
-        <Link href="/" className="font-mono text-[11px] tracking-widest text-[var(--text-muted)] hover:text-[var(--cyan-primary)]">
-          ← TAKIP
+    <main className="docs-root min-h-screen bg-surface-0 px-5 py-14 text-ink-1 sm:px-6">
+      <div className="mx-auto max-w-[44rem]">
+        <Link href="/" className="text-[13px] text-ink-3 hover:text-ink-1">
+          ← Back to TAKIP
         </Link>
 
         <header className="mt-8">
-          <p className="font-mono text-[11px] tracking-[0.25em] text-[var(--gold-primary)]">PRIVACY</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-wide sm:text-4xl">Privacy, in plain words</h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-[var(--text-muted)]">
+          <p className="text-[13px] font-medium text-ink-3">Privacy</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.01em] sm:text-4xl">Privacy, in plain words</h1>
+          <p className="mt-4 text-[15px] leading-relaxed text-ink-2">
             TAKIP is a window onto public information: flights, ships, cameras, news, markets and more, gathered onto
             one map. We built it so you can use it without telling us who you are. This page says what that means in
             practice, and, where a feature needs to ask another service for something, exactly which one.
@@ -130,7 +130,7 @@ export default function PrivacyPage() {
         </div>
 
         <Section id="short" title="The short version">
-          <ul className="flex flex-col gap-3 text-sm leading-relaxed text-[var(--text-muted)]">
+          <ul className="flex flex-col gap-3 text-sm leading-relaxed text-ink-2">
             {[
               'Most of what you see comes from public sources. To show it, our server asks those sources, much as your browser would.',
               'When you look something up, the question goes to the service that holds the answer, and only for that lookup.',
@@ -141,7 +141,7 @@ export default function PrivacyPage() {
               'The free plans show a few ads from Google, never on the map. Google may use cookies to choose and measure them. Pro shows none.',
             ].map(t => (
               <li key={t} className="flex gap-3">
-                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--gold-light)]" />
+                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-green" />
                 <span>{t}</span>
               </li>
             ))}
@@ -150,11 +150,11 @@ export default function PrivacyPage() {
 
         <Section id="device" title="What stays on your device"
           intro="These are kept in your browser’s own storage on this device. We never receive them unless a feature you use needs one, like your AI key for a TI request. Clearing this site’s data in your browser settings removes them all.">
-          <div className="divide-y divide-[var(--border-primary)]/60 rounded-xl border border-[var(--border-primary)]">
+          <div className="divide-y divide-line rounded-card border border-line bg-surface-1">
             {STORED.map(s => (
               <div key={s.what} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
                 <span className="text-[13px] font-medium sm:w-56 sm:flex-shrink-0">{s.what}</span>
-                <span className="text-[13px] leading-relaxed text-[var(--text-muted)]">{s.detail}</span>
+                <span className="text-[13px] leading-relaxed text-ink-2">{s.detail}</span>
               </div>
             ))}
           </div>
@@ -183,8 +183,8 @@ export default function PrivacyPage() {
               summary={<>
                 The RECON tools answer by asking the public service that holds the answer, from our server. That service
                 sees the email, domain, address or name you looked up, but not who you are. Two checks never leave our
-                server at all: <span className="text-[var(--text-primary)]">phone numbers</span> are read with a library
-                that runs here, and <span className="text-[var(--text-primary)]">sanctions searches</span> run against a
+                server at all: <span className="text-ink-1">phone numbers</span> are read with a library
+                that runs here, and <span className="text-ink-1">sanctions searches</span> run against a
                 copy of the published list we keep.
               </>}
               services={[
@@ -221,7 +221,7 @@ export default function PrivacyPage() {
                 { name: 'Polymarket and Manifold', what: 'a few keywords from your question, to find what prediction markets price it at; and, for the suggestions on the ask form, nothing about you at all' },
                 { name: 'Photon and Nominatim (OpenStreetMap)', what: 'a place name, when you search for one or TI looks one up' },
               ]}>
-              <p className="mt-3 text-[13px] leading-relaxed text-[var(--text-muted)]">
+              <p className="mt-3 text-[13px] leading-relaxed text-ink-2">
                 A prediction has its own link so it can be shared: anyone you give the link to can open it, and it is kept
                 on our server for three hours after it finishes. The microphone in TI Assist uses your browser’s own
                 speech recognition (in Chrome and Edge, a Google or Microsoft service); we only ever receive the words.
@@ -241,10 +241,10 @@ export default function PrivacyPage() {
               services={[
                 { name: 'Google AdSense (googlesyndication.com, doubleclick.net)', what: 'your IP address, the page, and its own cookies, to choose, show and count ads' },
               ]}>
-              <p className="mt-3 text-[13px] leading-relaxed text-[var(--text-muted)]">
+              <p className="mt-3 text-[13px] leading-relaxed text-ink-2">
                 How Google uses what it learns here:{' '}
                 <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer"
-                  className="text-[var(--cyan-primary)] hover:underline">policies.google.com/technologies/partner-sites</a>.
+                  className="text-accent hover:underline">policies.google.com/technologies/partner-sites</a>.
               </p>
             </Flow>
 
@@ -265,43 +265,43 @@ export default function PrivacyPage() {
               { t: 'AI is a starting point', b: 'Briefings and predictions are written by language models. TI shows its sources so you can check them, and you should.' },
               { t: 'Scan only what you may', b: 'Scans are rate limited and kept away from private networks, but whether you may scan a system is between you and its owner.' },
             ].map(x => (
-              <div key={x.t} className="rounded-xl border border-[var(--border-primary)] bg-white/[0.02] p-4">
+              <div key={x.t} className="rounded-card border border-line bg-surface-1 p-4">
                 <h3 className="text-[13px] font-semibold">{x.t}</h3>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--text-muted)]">{x.b}</p>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-ink-2">{x.b}</p>
               </div>
             ))}
           </div>
         </Section>
 
         <Section id="choices" title="Your choices">
-          <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-[var(--text-muted)]">
-            <li><span className="text-[var(--text-primary)]">Clear everything</span> by clearing this site’s data in your browser settings.</li>
-            <li><span className="text-[var(--text-primary)]">Turn off personalised ads</span> in{' '}
-              <a href="https://myadcenter.google.com" target="_blank" rel="noopener noreferrer" className="text-[var(--cyan-primary)] hover:underline">Google&apos;s My Ad Center</a>,
+          <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-ink-2">
+            <li><span className="text-ink-1">Clear everything</span> by clearing this site’s data in your browser settings.</li>
+            <li><span className="text-ink-1">Turn off personalised ads</span> in{' '}
+              <a href="https://myadcenter.google.com" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Google&apos;s My Ad Center</a>,
               or decline in the consent message; you then see ads that do not depend on your history.</li>
-            <li><span className="text-[var(--text-primary)]">Keep your AI key to one session</span> by leaving “Remember on this device” unticked; it is then forgotten when the tab closes.</li>
-            <li><span className="text-[var(--text-primary)]">Use only what you need</span>: map layers, cameras and AI features reach out only when you switch them on or use them.</li>
-            <li><span className="text-[var(--text-primary)]">Run your own copy</span>: TAKIP is open source, so you can host it yourself and decide who operates it.</li>
+            <li><span className="text-ink-1">Keep your AI key to one session</span> by leaving “Remember on this device” unticked; it is then forgotten when the tab closes.</li>
+            <li><span className="text-ink-1">Use only what you need</span>: map layers, cameras and AI features reach out only when you switch them on or use them.</li>
+            <li><span className="text-ink-1">Run your own copy</span>: TAKIP is open source, so you can host it yourself and decide who operates it.</li>
           </ul>
         </Section>
 
         <Section id="contact" title="Questions?">
-          <p className="text-sm leading-relaxed text-[var(--text-muted)]">
+          <p className="text-sm leading-relaxed text-ink-2">
             If something here is unclear, or you think we have missed something, tell us and we will put it right.
           </p>
           <div className="mt-4 flex flex-wrap gap-2.5">
             <a href="https://github.com/batuhantoker/takip/issues" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-primary)] px-3.5 py-2 text-[13px] hover:border-[var(--cyan-primary)] hover:text-[var(--cyan-primary)]">
+              className="inline-flex items-center gap-2 rounded-md border border-line-strong bg-surface-2 px-3.5 h-9 text-[13px] font-medium text-ink-1 hover:bg-surface-3">
               <ExternalLink className="h-4 w-4" /> Open an issue on GitHub
             </a>
             <a href="https://discord.gg/umBykEpb98" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-primary)] px-3.5 py-2 text-[13px] hover:border-[var(--cyan-primary)] hover:text-[var(--cyan-primary)]">
+              className="inline-flex items-center gap-2 rounded-md border border-line-strong bg-surface-2 px-3.5 h-9 text-[13px] font-medium text-ink-1 hover:bg-surface-3">
               <MessageCircle className="h-4 w-4" /> Ask on Discord
             </a>
           </div>
         </Section>
 
-        <p className="mt-14 border-t border-[var(--border-primary)]/60 pt-5 text-[12px] text-[var(--text-muted)]">
+        <p className="mt-14 border-t border-line pt-5 text-[12px] text-ink-3">
           Last checked against the code on {REVIEWED}. When a feature changes what it shares, this page changes with it.
         </p>
       </div>

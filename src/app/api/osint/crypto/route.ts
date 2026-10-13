@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { analyseAddress, capabilities, detectChain, type Chain } from '@/lib/chainIntel';
-import { reconGate } from '@/lib/recon-gate';
+import { analyseAddress, capabilities, detectChain, type Chain } from '@/lib/recon/chain-intel';
+import { reconGate } from '@/lib/recon/gate';
 
 /**
  * TAKIP — On-chain wallet intelligence.

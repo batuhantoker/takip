@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { search, type Schema } from '@/lib/sanctions';
-import { reconGate } from '@/lib/recon-gate';
+import { search, type Schema } from '@/lib/recon/sanctions';
+import { reconGate } from '@/lib/recon/gate';
 
 // Standalone OFAC SDN search (free, no key) backed by the OpenSanctions
 // `us_ofac_sdn` mirror. Substring + alias-aware match, schema-filterable.

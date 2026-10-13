@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { gzipSync } from 'node:zlib';
-import { encodeField } from '@/lib/weather-field';
+import { encodeField } from '@/lib/weather/weather-field';
 import { fetchGfsTemperature } from './gfs';
 
 /**
  * TAKIP — the temperature layer's field: GFS 2 m temperature at 0.25° (see
- * ./gfs), in lib/weather-field's wire format, gzipped to ~550 KB. Read again
+ * ./gfs), in lib/weather/weather-field's wire format, gzipped to ~550 KB. Read again
  * once the next 3-hour step is nearer than the one held.
  */
 

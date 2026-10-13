@@ -39,7 +39,7 @@ const Time = z.discriminatedUnion('mode', [
   }),
 ]).openapi('WorkspaceTime');
 
-// The shape src/lib/aoi-export.ts stores; its derived fields are recomputed by the web app.
+// The shape src/lib/areas/aoi-export.ts stores; its derived fields are recomputed by the web app.
 const Area = z.looseObject({
   id: z.string().min(1).max(128),
   name: z.string().max(200),

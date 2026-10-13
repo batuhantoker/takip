@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { parseIPv4, isPrivateOrReserved } from '@/lib/osint-utils';
-import { reconGate } from '@/lib/recon-gate';
+import { parseIPv4, isPrivateOrReserved } from '@/lib/recon/osint-utils';
+import { reconGate } from '@/lib/recon/gate';
 
 export const dynamic = 'force-dynamic';
 

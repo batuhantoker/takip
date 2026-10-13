@@ -324,7 +324,7 @@ Each item gives the method in prose, then TAKIP's gap.
     - Country-level figures shade the country outline (`countryIso3`) or draw a dashed ring, never a pin. A name is never read as a point.
     - Gap: TAKIP declares no precision class per layer, and `world-map.tsx` has no ISO-3 country-fill path.
 
-14. **Mandatory provenance card per layer.** Each layer carries what a pin is, method, confidence (measured / official / reported / modelled / derived), coverage and at least one limitation. A test fails the build when a layer has no card. Gap: partial at most. TAKIP `app/docs/apiCatalog.ts` describes routes (params and response keys) by hand, with no per-layer confidence or limitations and no enforcement.
+14. **Mandatory provenance card per layer.** Each layer carries what a pin is, method, confidence (measured / official / reported / modelled / derived), coverage and at least one limitation. A test fails the build when a layer has no card. Gap: partial at most. TAKIP `components/site/docs/api-catalog.ts` describes routes (params and response keys) by hand, with no per-layer confidence or limitations and no enforcement.
 
 15. **Camera-network discovery pipeline (`lib/discovery`).**
     - Searches government catalogues rather than crawling: CKAN `package_search` (data.gov.uk, catalog.data.gov, open.canada.ca, data.gov.ie, opendata.nhs.scot…), Socrata and ArcGIS Hub.

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { validateHost, isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { reconGate } from '@/lib/recon-gate';
+import { reconGate } from '@/lib/recon/gate';
 
 /**
  * OSIRIS — Scanner Proxy (Hardened)

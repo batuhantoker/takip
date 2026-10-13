@@ -14,7 +14,7 @@
  */
 
 import { httpText } from '@/lib/httpJson';
-import { AIRPORTS_BY_IATA, AIRPORTS_BY_ICAO, type Airport } from '@/lib/airports';
+import { AIRPORTS_BY_IATA, AIRPORTS_BY_ICAO, type Airport } from '@/lib/flights/airports';
 
 export const NAS_STATUS_URL = 'https://nasstatus.faa.gov/api/airport-status-information';
 export const NAS_STATUS_SITE = 'https://nasstatus.faa.gov/';

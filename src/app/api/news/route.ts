@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { cachedSource } from '@/lib/sourceCache';
 import { fingerprint, htmlToText, parseChannelPage, splitHeadline, type TelegramPost } from '@/lib/telegram';
-import type { Bloc } from '@/lib/alert-digest';
-import { alertKind, budgetedLookup, locateReport, type AlertKind, type AlertPlace } from '@/lib/alert-places';
+import type { Bloc } from '@/lib/alerts/digest';
+import { alertKind, budgetedLookup, locateReport, type AlertKind, type AlertPlace } from '@/lib/alerts/alert-places';
 
 /**
  * TAKIP — Live Alerts news feed.
@@ -341,7 +341,7 @@ async function placeItems(items: NewsItem[]): Promise<void> {
      reports first; everything else is placed from names already known. Without
      it a feed of a hundred reports asks Nominatim several hundred questions
      every few minutes, which is how this app came to be running at ten times
-     the rate its operators allow — see lib/nominatim.ts. What goes unasked now
+     the rate its operators allow — see lib/places/nominatim.ts. What goes unasked now
      is asked on a later refresh, and an answer is kept for a month. */
   const newestFirst = [...items].sort((a, b) => Date.parse(b.published) - Date.parse(a.published));
   const lookup = budgetedLookup(LOOKUPS_PER_REFRESH);

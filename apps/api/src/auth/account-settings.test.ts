@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GOOGLE, Jar, RESET, USER, googleApproves, landing, linkIn, startApp, viaGoogle, type TestApp } from '../testing/helpers';
 
-// The web app's landing URLs (src/lib/account-links.ts).
+// The web app's landing URLs (src/lib/account/links.ts).
 const SETTINGS = '/?account=settings';
 const DELETED = '/?account=deleted';
 const DELETE_FAILED = '/?account=delete-failed';

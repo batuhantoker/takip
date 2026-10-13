@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { centroidFor } from '@/lib/countryCentroids';
+import { centroidFor } from '@/lib/places/country-centroids';
 
 export const dynamic = 'force-dynamic';
 

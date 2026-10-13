@@ -1,6 +1,6 @@
-import { deserializeShapes, serializeShapes } from '@/lib/aoi-export';
-import type { DrawnShape } from '@/lib/draw';
-import { parseLayers } from '@/lib/saved-layers';
+import { deserializeShapes, serializeShapes } from '@/lib/areas/aoi-export';
+import type { DrawnShape } from '@/lib/areas/draw';
+import { parseLayers } from '@/lib/layers/saved';
 import type { StoredArea } from './state';
 
 /** Converters for the page's registration lines: saved values are checked before the page takes them. */

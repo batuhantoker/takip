@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { FUZZY_WITHIN_M, GEO_RADIUS_M, PLACE_KINDS, rankCandidates, SEARCH_MAX_KM, distanceKm, type PlaceKind } from '@/lib/map-wiki';
+import { FUZZY_WITHIN_M, GEO_RADIUS_M, PLACE_KINDS, rankCandidates, SEARCH_MAX_KM, distanceKm, type PlaceKind } from '@/lib/places/wiki';
 import type { WikiSummary } from '@/lib/space/wiki-topic';
 import { getClientIp, isRateLimited } from '@/lib/ssrf-guard';
 import { cachedSource } from '@/lib/sourceCache';
-import { wikiGeosearch, wikiSearch, wikiSummary } from '@/lib/wikipedia';
+import { wikiGeosearch, wikiSearch, wikiSummary } from '@/lib/places/wikipedia';
 
 /**
  * TAKIP — the Wikipedia article for a labelled place on the base map:

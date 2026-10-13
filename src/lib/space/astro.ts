@@ -25,6 +25,16 @@ export const cross = (a: Vec3, b: Vec3): Vec3 => [a[1] * b[2] - a[2] * b[1], a[2
 export const norm = (a: Vec3) => Math.hypot(a[0], a[1], a[2]);
 export const lerp = (a: Vec3, b: Vec3, t: number): Vec3 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
+/** Between two points about a centre: the angle turned and the distance eased, so a blend round an orbit never cuts across it. */
+export function slerp(a: Vec3, b: Vec3, t: number): Vec3 {
+  const na = norm(a), nb = norm(b);
+  if (!na || !nb) return lerp(a, b, t);
+  const c = Math.max(-1, Math.min(1, dot(a, b) / (na * nb))), th = Math.acos(c);
+  if (th < 1e-9 || Math.PI - th < 1e-6) return lerp(a, b, t);
+  const s = Math.sin(th), ka = Math.sin((1 - t) * th) / (s * na), kb = Math.sin(t * th) / (s * nb), r = na + (nb - na) * t;
+  return [(a[0] * ka + b[0] * kb) * r, (a[1] * ka + b[1] * kb) * r, (a[2] * ka + b[2] * kb) * r];
+}
+
 export function wrap180(deg: number): number {
   return ((((deg + 180) % 360) + 360) % 360) - 180;
 }

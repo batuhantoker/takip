@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { safeFetch, isRateLimited, getClientIp } from '@/lib/ssrf-guard';
-import { matchExact, type SanctionEntry } from '@/lib/sanctions';
-import { reconGate } from '@/lib/recon-gate';
+import { matchExact, type SanctionEntry } from '@/lib/recon/sanctions';
+import { reconGate } from '@/lib/recon/gate';
 
 // WHOIS + Domain Intelligence via RDAP (free, standardized).
 // Cross-checks any registrant / org names returned by RDAP against the

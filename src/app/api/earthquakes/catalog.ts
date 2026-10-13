@@ -1,4 +1,4 @@
-import { matchQuakeTwins } from '@/lib/quake-twin';
+import { matchQuakeTwins } from '@/lib/hazards/quake-twin';
 
 /**
  * TAKIP — the two earthquake catalogues behind /api/earthquakes, merged.

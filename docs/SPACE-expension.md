@@ -45,11 +45,11 @@ The brief: 3D views of Mars, the Moon, the stars and more, and NASA APIs to trac
 
 | Path | What it holds |
 |---|---|
-| `src/components/space/scene/` | The three.js scene: `space-scene.ts` runs it; `rig.ts` and `zoom-anchor.ts` drive the camera and the wheel; `tiers.ts` fades each scale in and out by distance; `flight-replay.ts` and `craft-model.ts` draw a replay |
-| `src/components/space/replay/` | The replay bar and its data hook |
+| `src/lib/space/scene/` | The three.js scene: `space-scene.ts` runs it; `rig.ts` and `zoom-anchor.ts` drive the camera and the wheel; `tiers.ts` fades each scale in and out by distance; `flight-replay.ts` and `craft-model.ts` draw a replay |
+| `src/components/panels/space/replay/` | The replay bar and its data hook |
 | `src/lib/space/` | Pure maths and tables: `frames`, `two-body`, `planets-approx`, `flight-history`, `replay-model`, `launches`, `craft-models`, `wiki-topic` |
 | `src/app/api/space/` | The routes; `history/collect.ts` builds a replay |
-| `src/components/map/world-map/use-zoom-past-globe.ts`, `src/lib/space/globe-match.ts` | The hand-over from map to space |
+| `src/components/map/interaction/hooks/use-zoom-past-globe.ts`, `src/lib/space/globe-match.ts` | The hand-over from map to space |
 | `tools/build-*.mjs` | The static sky and cosmos files |
 
 ## Data (all keyless)

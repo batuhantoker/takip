@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import AdsProvider from '@/components/ads/ads-provider';
+import AdsProvider from '@/components/shell/ads/ads-provider';
 import ErrorBoundary from '@/components/ui/error-boundary';
 import "./globals.css";
 
@@ -13,7 +13,7 @@ const SITE_TITLE = "TAKIP — Open Source Intelligence Platform | Live Flight Tr
 const SITE_DESCRIPTION = "The open-source Palantir alternative. Track live aircraft, satellites, and worldwide CCTV cameras on a 3D globe. Run Nmap scans, DNS lookups, WHOIS queries, SSL cert analysis & threat intelligence — all from your browser. 20+ data sources including live earthquake, wildfire, cyber threat and conflict feeds, plus mapped reference data such as nuclear facilities. Free & open source.";
 
 export const viewport: Viewport = {
-  themeColor: "#070A11",
+  themeColor: "#0A0C0F",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -127,7 +127,7 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "apple-mobile-web-app-title": "TAKIP",
     "mobile-web-app-capable": "yes",
-    "msapplication-TileColor": "#06060C",
+    "msapplication-TileColor": "#0A0C0F",
     "msapplication-config": "none",
   },
 };

@@ -1,5 +1,5 @@
 // TAKIP brand geometry: the globe-and-orbit mark and the TAKIP logotype.
-// Source of truth for public/brand/*, the favicons and src/components/brand/geometry.generated.ts.
+// Source of truth for public/brand/*, the favicons and src/components/shell/brand/geometry.generated.ts.
 
 const f = (n) => +n.toFixed(2);
 const rad = (d) => (d * Math.PI) / 180;

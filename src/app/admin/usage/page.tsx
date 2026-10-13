@@ -1,4 +1,4 @@
-import UsagePage from '@/components/admin/usage-page';
+import UsagePage from '@/components/site/admin/pages/usage-page';
 
 export default function Page() {
   return <UsagePage />;

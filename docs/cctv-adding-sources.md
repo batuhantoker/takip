@@ -63,7 +63,7 @@ Browser ── GET /api/cctv?region=all ──▶ src/app/api/cctv/route.ts
                                           4 regions at a time, 12 s per region, 5-min backoff
                                           prebuilt gzip payload + .cache/cctv-catalog.json snapshot
         ◀── merged JSON (every camera, ~1.5 MB gzipped) ──
-src/lib/camera-catalog.ts   merges by id; retries pending regions only
+src/lib/cameras/camera-catalog.ts   merges by id; retries pending regions only
 use-point-layers.ts         one 'cctv' GeoJSON source → cctv-dots / cctv-label layers
 CameraViewer.tsx            plays hls / mp4 / mjpeg / iframe, or a jpg refreshed every 5 s (?_t=)
 CctvPreviews.tsx            preview tiles from zoom 13 (jpg refreshed every 15 s)
@@ -93,7 +93,7 @@ interface CctvCamera {
 ```
 
 - **Setting both `feed_url` and `stream_url` + `'hls'` is ideal.** The viewer plays the stream, and preview tiles and vision use the still.
-- The map forwards only these fields (`world-map/use-point-layers.ts`, in the `setGeo('cctv', …)` call). A new field needs that line changed too.
+- The map forwards only these fields (`map/layers/live/use-point-layers.ts`, in the `setGeo('cctv', …)` call). A new field needs that line changed too.
 - **`road`** is set only from a pairing the operator itself declares, never from the nearest station we can find.
   - `admitRoadCondition()` requires the station within 10 km, the reading under 2 h old, and no operator fault flag. The camera viewer re-checks it, because the catalogue can be 30 minutes behind.
   - Surface words pass through as the operator writes them.

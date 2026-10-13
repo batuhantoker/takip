@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { propagateTLE } from '@/lib/orbit';
+import { propagateTLE } from '@/lib/satellites/orbit';
 import { record } from '@takip/archive/recorder';
 import { downloadDue, dueGroups, emptySchedule, type Schedule, type Tle, UPDATE_MS, USER_AGENT } from './celestrak';
 
@@ -62,7 +62,7 @@ function classifySatellite(name: string): { mission: string; color: string } {
  * reported geocentric latitude and altitude above a 6371 km sphere. Good
  * enough for a dot on a flat map, but the globe now draws satellites at their
  * altitude, and an orbit placed by that solve sits visibly off the satellite
- * it belongs to. src/lib/orbit.ts wraps satellite.js (already a dependency,
+ * it belongs to. src/lib/satellites/orbit.ts wraps satellite.js (already a dependency,
  * previously unused) for real SGP4/SDP4 and geodetic coordinates.
  */
 function propagateSGP4Simple(line1: string, line2: string, when?: Date): { lat: number; lng: number; alt: number } | null {

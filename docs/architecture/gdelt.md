@@ -6,12 +6,12 @@ Parked 2026-10-13. The live layer works; history and the ingest connector are no
 
 `/api/gdelt-events` reads the last two hours of GDELT 2.0 files and shows one marker per story. It reads both the English and the translated feed, and both the Events export and the Mentions file for each 15-minute window. The GDELT Events layer is off by default (`gdelt_events`).
 
-- Fetching: `src/lib/gdeltEvents.ts`. Published windows are cached in memory, since they never change.
+- Fetching: `src/lib/alerts/gdelt-events.ts`. Published windows are cached in memory, since they never change.
 - Parsing and reduction: `packages/connectors/src/gdelt/` (`parse.ts`, `reduce.ts`, `slug.ts`, `cameo.ts`), tested against real rows in `fixtures/export.tsv`.
-- Map: the paint is in `src/lib/map-base-layers.ts`, the popup in `src/lib/map-popups.ts`, colours in `src/lib/gdelt-display.ts`.
+- Map: the paint is in `src/lib/basemap/base-layers.ts`, the popup in `src/lib/map/popups/layer-popups.ts`, colours in `src/lib/alerts/gdelt-display.ts`.
 - Query: `hours` (1–6, default 2), `min_reports` (default 2; 1 brings back single reports), `family` (violence, protest, tension, cooperation or all; cooperation is off by default), `limit`.
 
-`/api/gdelt` is not GDELT: it serves GDACS disaster alerts, and `src/app/docs/apiCatalog.ts` describes it wrongly. `/api/conflicts` says GDELT in its header but reads BBC, Al Jazeera and NYT RSS. Neither is renamed yet.
+`/api/gdelt` is not GDELT: it serves GDACS disaster alerts, and `src/components/site/docs/api-catalog.ts` describes it wrongly. `/api/conflicts` says GDELT in its header but reads BBC, Al Jazeera and NYT RSS. Neither is renamed yet.
 
 ## How a story is built
 
@@ -41,4 +41,4 @@ Result on the live data: about 40 stories in two hours, from about 14,800 rows, 
    - Story markers per day, replayed on the timeline. This is the same parser over past days. GDELT 2.0 files go back to February 2015: about 96 windows a day, a few hundred KB each. Run it per requested day or keep the top stories per day; a full backfill would be tens of GB.
    - Country-level intensity over years. This uses GDELT 1.0 daily files (no mentions, so counts only) or GDELT's public BigQuery tables.
 3. **Headlines.** Take `<PAGE_TITLE>` from the GKG file's `V2EXTRASXML` for the kept articles only. The file is about 5 MB per window; read it as it streams and don't store it.
-4. Rename `/api/gdelt` (GDACS) and fix the wrong labels in `/api/conflicts` and `apiCatalog.ts`.
+4. Rename `/api/gdelt` (GDACS) and fix the wrong labels in `/api/conflicts` and `api-catalog.ts`.

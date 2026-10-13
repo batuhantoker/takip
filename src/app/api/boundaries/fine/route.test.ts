@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 let upstream: () => Promise<unknown> = async () => null;
 const calls: unknown[][] = [];
-vi.mock('@/lib/geoboundaries', async (orig) => ({
-  ...(await orig<typeof import('@/lib/geoboundaries')>()),
+vi.mock('@/lib/areas/geoboundaries', async (orig) => ({
+  ...(await orig<typeof import('@/lib/areas/geoboundaries')>()),
   loadFineSet: (...args: unknown[]) => { calls.push(args); return upstream(); },
 }));
 
 import { GET } from './route';
-import { slimFeatures } from '@/lib/geoboundaries';
+import { slimFeatures } from '@/lib/areas/geoboundaries';
 
 const get = (query: string) => GET(new Request(`http://localhost/api/boundaries/fine?${query}`));
 

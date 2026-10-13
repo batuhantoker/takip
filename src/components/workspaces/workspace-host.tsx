@@ -2,17 +2,17 @@
 
 import { useEffect, useLayoutEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { authClient } from '@/lib/auth-client';
+import { authClient } from '@/lib/account/auth-client';
 import { restoreDevice } from '@/lib/workspaces/device';
 import { workspaceParts } from '@/lib/workspaces/parts';
 import { workspaceSession } from '@/lib/workspaces/session';
 import { registerStoredParts } from '@/lib/workspaces/stored-parts';
-import ConflictDialog from './conflict-dialog';
-import DialogFrame, { Hint } from './dialog-frame';
-import ImportOffer from './import-offer';
-import NameDialog from './name-dialog';
-import OpenDialog from './open-dialog';
-import ShareDialog from './share-dialog';
+import ConflictDialog from '@/components/workspaces/parts/conflict-dialog';
+import DialogFrame, { Hint } from '@/components/workspaces/parts/dialog-frame';
+import ImportOffer from '@/components/workspaces/parts/import-offer';
+import NameDialog from '@/components/workspaces/parts/name-dialog';
+import OpenDialog from '@/components/workspaces/parts/open-dialog';
+import ShareDialog from '@/components/workspaces/parts/share-dialog';
 import { useSharedLink } from './use-shared-link';
 import { useWorkspace } from './use-workspace';
 import { showWorkspaceDialog, useWorkspaceDialog } from './workspace-dialog-state';

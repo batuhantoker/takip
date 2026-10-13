@@ -1,17 +1,17 @@
-import { htmlEsc } from '@/lib/map-popups';
+import { pop } from '@/lib/map/popups/kit';
 
 /* Wartime border layers for History: who held what, month by month, coloured by alignment. */
 
 export type Alignment = 'axis' | 'occupied' | 'belligerent' | 'allied' | 'neutral' | 'none';
 
-/** Diverging blue ↔ red (dataviz palette) with grey for neither side; occupation also gets a hatch. */
+/** Diverging blue ↔ red, desaturated to sit under labels; occupation also gets a hatch. The History legend reads these. */
 export const ALIGNMENTS: { key: Alignment; label: string; color: string }[] = [
-  { key: 'axis', label: 'Axis and aligned', color: '#e66767' },
-  { key: 'occupied', label: 'Occupied by the Axis', color: '#b98b8b' },
-  { key: 'belligerent', label: 'At war, in neither bloc', color: '#a58bd6' },
-  { key: 'neutral', label: 'Neutral', color: '#8a877f' },
-  { key: 'allied', label: 'Allies', color: '#5598e7' },
-  { key: 'none', label: 'Not at war', color: '#4f4e4a' },
+  { key: 'axis', label: 'Axis and aligned', color: '#C9625C' },
+  { key: 'occupied', label: 'Occupied by the Axis', color: '#9E7A77' },
+  { key: 'belligerent', label: 'At war, in neither bloc', color: '#8C80C2' },
+  { key: 'neutral', label: 'Neutral', color: '#76808A' },
+  { key: 'allied', label: 'Allies', color: '#5A8CCB' },
+  { key: 'none', label: 'Not at war', color: '#343B44' },
 ];
 
 export type WarLayer = { code: string; label: string; years: string; note: string; start: number; view: { lat: number; lng: number; zoom: number } };
@@ -36,14 +36,16 @@ const month = (s: number) => {
 
 export function warPopupHtml(p: WarFeature, attribution: string | null): string {
   const a = ALIGNMENTS.find(x => x.key === p.alignment) ?? ALIGNMENTS[ALIGNMENTS.length - 1];
-  const row = (label: string, value: string | null) => (value
-    ? `<div><span style="color:#5C5A54;">${htmlEsc(label)}</span><br/><span style="color:#E8E6E0;">${htmlEsc(value)}</span></div>` : '');
-  const span = p.t1 === null ? `from ${month(p.t0)}` : `${month(p.t0)} – ${month(p.t1)}`;
-  return `<div style="background:rgba(12,14,26,0.95);backdrop-filter:blur(16px);border-radius:10px;padding:14px;font-family:var(--font-hud);max-width:300px;border:1px solid ${a.color}55;">
-      <div style="color:${a.color};font-size:12px;font-weight:700;margin-bottom:8px;">${htmlEsc(p.name)}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:9px;">
-        ${row('STATUS', p.status ?? a.label)}${row('THESE BORDERS', span)}${row('HEAD OF STATE', p.head)}${row('GOVERNMENT IN EXILE', p.exile)}
-      </div>
-      ${attribution ? `<div style="font-size:8px;color:#5C5A54;margin-top:8px;">${htmlEsc(attribution)}</div>` : ''}
-    </div>`;
+  return pop({
+    kicker: a.label,
+    dot: a.color,
+    title: p.name,
+    rows: [
+      { label: 'Status', value: p.status && p.status !== a.label ? p.status : null },
+      { label: 'These borders', value: p.t1 === null ? `from ${month(p.t0)}` : `${month(p.t0)} – ${month(p.t1)}` },
+      { label: 'Head of state', value: p.head },
+      { label: 'Government in exile', value: p.exile },
+    ],
+    note: attribution ?? undefined,
+  });
 }

@@ -14,13 +14,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getClientIp, isRateLimited } from '@/lib/ssrf-guard';
-import { createGeminiClient, rotateApiKey } from '@/lib/ai-engine';
-import { getAccess } from '@/lib/access-server';
-import type { HostedAiBlock } from '@/lib/hosted-ai';
+import { createGeminiClient, rotateApiKey } from '@/lib/ai/gemini';
+import { getAccess } from '@/lib/account/access-server';
+import type { HostedAiBlock } from '@/lib/ai/hosted';
 import {
   BLOCS, buildAlertBrief, timeAgo,
   type AlertBrief, type Bloc, type DigestQuake, type DigestReport,
-} from '@/lib/alert-digest';
+} from '@/lib/alerts/digest';
 
 export const dynamic = 'force-dynamic';
 

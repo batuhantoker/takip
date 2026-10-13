@@ -21,7 +21,7 @@ type AuthEnv = Pick<Env, 'BETTER_AUTH_URL' | 'BETTER_AUTH_SECRET'> & SocialEnv;
 /** `billingPortal`: a billing provider is configured, so the client can offer its portal. */
 type AuthOptions = { billingPortal?: boolean; logger?: Logger };
 
-/** Where the web app shows a failed social sign-in (src/lib/account-links.ts). */
+/** Where the web app shows a failed social sign-in (src/lib/account/links.ts). */
 const SIGN_IN_FAILED = '/?account=sign-in-failed';
 
 function authOptions(db: AppDb, env: AuthEnv, email: EmailSender, { billingPortal = false }: AuthOptions) {

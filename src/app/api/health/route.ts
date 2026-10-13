@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { nominatimStats } from '@/lib/nominatim';
+import { nominatimStats } from '@/lib/places/nominatim';
 
 /**
  * TAKIP — process liveness.
@@ -32,7 +32,7 @@ export async function GET() {
      * times the app wanted an answer, and the gap between them is the cache
      * doing its job. Reported so the rate can be watched against the one
      * request a second the service allows, rather than discovered by its
-     * sysadmin — see lib/nominatim.ts and issue #16.
+     * sysadmin — see lib/places/nominatim.ts and issue #16.
      */
     nominatim: nominatimStats(),
     timestamp: new Date().toISOString(),

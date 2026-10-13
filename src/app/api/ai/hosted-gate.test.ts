@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // Every way these routes reach Gemini goes through createGeminiClient, so it is what must not be called.
-vi.mock('@/lib/ai-engine', () => ({
+vi.mock('@/lib/ai/gemini', () => ({
   createGeminiClient: vi.fn(() => ({
     getGenerativeModel: () => ({ generateContent: async () => ({ response: { text: () => 'Model read-out.' } }) }),
   })),
@@ -11,7 +11,7 @@ vi.mock('@/lib/ai-engine', () => ({
   generateBriefing: vi.fn(async () => 'Briefing.'),
 }));
 
-import { createGeminiClient } from '@/lib/ai-engine';
+import { createGeminiClient } from '@/lib/ai/gemini';
 import { POST as analyze } from './analyze/route';
 import { POST as briefing } from './briefing/route';
 import { POST as overview } from './overview/route';

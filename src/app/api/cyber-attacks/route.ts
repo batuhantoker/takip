@@ -4,7 +4,7 @@ import {
   FEODO_SOURCE,
   FEODO_SOURCE_URL,
   type C2Indicator,
-} from '@/lib/c2-indicators';
+} from '@/lib/cyber/c2-indicators';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  *
  * One indicator per listed command-and-control server, carrying only what the
  * blocklist reports. This route does not synthesise attacker origins, attack
- * actions or duplicate events; see `@/lib/c2-indicators` for what it used to
+ * actions or duplicate events; see `@/lib/cyber/c2-indicators` for what it used to
  * do and why that was wrong.
  *
  * `fetched_at` is when TAKIP polled the provider. It is not an observation

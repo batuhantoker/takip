@@ -1,4 +1,4 @@
-import { centroidFor } from '@/lib/countryCentroids';
+import { centroidFor } from '@/lib/places/country-centroids';
 
 /**
  * TAKIP — [lng, lat] for countries that COUNTRY_CENTROIDS lacks. Mostly Natural Earth label points

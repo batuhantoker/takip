@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchGdeltEvents } from '@/lib/gdeltEvents';
+import { fetchGdeltEvents } from '@/lib/alerts/gdelt-events';
 import { GDELT_FAMILIES, type GdeltFamily } from '@takip/connectors/gdelt/cameo';
 
 export const maxDuration = 60;

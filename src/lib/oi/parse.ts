@@ -6,7 +6,7 @@
  * and nothing the model writes reaches the page as markup (it is rendered as
  * text) or grows beyond a fixed length.
  */
-import { centroidFor } from '@/lib/countryCentroids';
+import { centroidFor } from '@/lib/places/country-centroids';
 import { amount, answerText, normalizeShares, orderEstimate, uniform } from './forecast';
 import { dateIn } from './clock';
 import { parseCites, pushOf, sourceIds } from './sources';

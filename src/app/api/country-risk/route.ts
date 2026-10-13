@@ -4,13 +4,13 @@ import {
   quakeMagnitudeByCountry,
   RISK_FACTORS,
   BASELINE_REVIEWED,
-} from '@/lib/country-risk';
+} from '@/lib/alerts/country-risk';
 
 /**
  * TAKIP — country risk index.
  *
  * The per-country baseline is an editorial ordering, not a calibrated model;
- * see `@/lib/country-risk`. The response labels it as such and reports the
+ * see `@/lib/alerts/country-risk`. The response labels it as such and reports the
  * observed earthquake component separately so neither is mistaken for the
  * other.
  */

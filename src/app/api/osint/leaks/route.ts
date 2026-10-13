@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { reconGate } from '@/lib/recon-gate';
+import { reconGate } from '@/lib/recon/gate';
 
 export async function GET(req: Request) {
   const denied = await reconGate(req, 'breach');

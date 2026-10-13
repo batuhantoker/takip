@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PhoneNumberUtil, PhoneNumberFormat } from 'google-libphonenumber';
-import { reconGate } from '@/lib/recon-gate';
+import { reconGate } from '@/lib/recon/gate';
 
 const phoneUtil = PhoneNumberUtil.getInstance();
 
