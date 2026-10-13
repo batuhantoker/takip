@@ -184,6 +184,7 @@ Measured locally on 11 Oct 2026 (one dev server, one tab):
 
 - [ ] An append-only observation store following the rules in `ARCHITECTURE.md`.
 - [ ] Retention per data type.
+- [ ] GDELT stories: ingest connector, then history (per-day stories or country intensity, undecided). Parked in `docs/architecture/gdelt.md`.
 
 ### Phase 3: Analysis
 

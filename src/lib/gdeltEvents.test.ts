@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fetchGdeltEvents, QUAD_LABELS } from './gdeltEvents';
+import { fetchGdeltEvents } from './gdeltEvents';
 
 /**
  * Live integration test — opt in with RUN_LIVE_TESTS=1 (hits the real GDELT
@@ -16,10 +16,12 @@ const liveIt = process.env.RUN_LIVE_TESTS === '1' ? it : it.skip;
 
 describe('fetchGdeltEvents', () => {
   liveIt('follows the http -> https redirect and returns geocoded events', async () => {
-    const { events, window, scanned } = await fetchGdeltEvents({ limit: 50 });
+    const { events, windows, stats } = await fetchGdeltEvents({ limit: 50 });
 
-    expect(window).toMatch(/^\d{14}\.export\.CSV\.zip$/);
-    expect(scanned).toBeGreaterThan(0);
+    expect(windows[0]).toMatch(/^\d{14}$/);
+    // The translated feed is optional: the reader carries on without it.
+    for (const w of windows.slice(1)) expect(w).toMatch(/^\d{14}(\.translation)?$/);
+    expect(stats.rows).toBeGreaterThan(0);
     expect(events.length).toBeGreaterThan(0);
     expect(events.length).toBeLessThanOrEqual(50);
 
@@ -32,12 +34,10 @@ describe('fetchGdeltEvents', () => {
     }
   }, 60_000);
 
-  liveIt('honours the quad filter', async () => {
-    const { events } = await fetchGdeltEvents({ quads: [4], limit: 25 });
+  liveIt('honours the family filter', async () => {
+    const { events } = await fetchGdeltEvents({ families: ['violence'], minReports: 1, limit: 25 });
 
-    for (const e of events) {
-      expect(e.quad).toBe(4);
-      expect(e.quad_label).toBe(QUAD_LABELS[4]);
-    }
+    expect(events.length).toBeGreaterThan(0);
+    for (const e of events) expect(e.family).toBe('violence');
   }, 60_000);
 });

@@ -27,8 +27,10 @@ export function useIncidentLayers({ mapReady, data, activeLayers, setGeo }: Laye
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [e.lng, e.lat] },
       properties: {
-        name: e.name, country: e.country, quad: e.quad, quad_label: e.quad_label,
-        tone: e.tone, goldstein: e.goldstein, articles: e.articles, url: e.url, date: e.date,
+        name: e.name, country: e.country, family: e.family, precision: e.precision, action: e.action,
+        actor1: e.actor1, actor2: e.actor2, tone: e.tone, goldstein: e.goldstein,
+        reports: e.reports, outlets: e.outlets, articles: e.articles, links: e.links, others: e.others,
+        first_seen: e.first_seen, last_seen: e.last_seen,
       },
     })) : []);
   }, [mapReady, data.gdelt_events, (activeLayers as any).gdelt_events, setGeo]);

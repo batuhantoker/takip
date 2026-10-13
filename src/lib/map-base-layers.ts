@@ -1,5 +1,6 @@
 import type * as maplibregl from 'maplibre-gl';
 import { ALERT_KINDS } from './alert-digest';
+import { GDELT_FAMILY_COLOR } from './gdelt-display';
 import { readMapPalette } from './map-palette';
 import { createSatelliteLayer } from './satellite-layer';
 import { SHIP_FALLBACK_COLOR, shipColorArms } from './ship-filter';
@@ -246,21 +247,25 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
     'circle-radius': 4, 'circle-color': '#D32F2F', 'circle-opacity': 0.5, 'circle-stroke-width': 1, 'circle-stroke-color': '#D32F2F', 'circle-stroke-opacity': 0.25,
   }});
 
-  /* ── GDELT 2.0 Events — coloured by CAMEO QuadClass so cooperation and
-     conflict are separable at a glance, sized by article volume. ── */
-  map.addLayer({ id: 'gdelt-events-dots', type: 'circle', source: 'gdelt-events', paint: {
-    'circle-radius': ['interpolate',['linear'],['get','articles'], 1,3, 10,5, 50,8, 200,12],
-    'circle-color': ['match',['get','quad'],
-      1,'#00E676',   // verbal cooperation
-      2,'#00E5FF',   // material cooperation
-      3,'#FF9500',   // verbal conflict
-      4,'#FF3D3D',   // material conflict
-      '#9B978E'],
-    'circle-opacity': 0.75,
-    'circle-stroke-width': 1,
-    'circle-stroke-color': '#000000',
-    'circle-stroke-opacity': 0.6,
-  }});
+  /* ── GDELT 2.0 Events — one marker per story, sized by how many distinct
+     reports carry it. State and province centroids draw as faint rings. ── */
+  const gdeltColor: LayerColor = ['match', ['get', 'family'],
+    'violence', GDELT_FAMILY_COLOR.violence,
+    'protest', GDELT_FAMILY_COLOR.protest,
+    'tension', GDELT_FAMILY_COLOR.tension,
+    'cooperation', GDELT_FAMILY_COLOR.cooperation,
+    '#9B978E'];
+  map.addLayer({ id: 'gdelt-events-dots', type: 'circle', source: 'gdelt-events',
+    layout: { 'circle-sort-key': ['get', 'reports'] },
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['get', 'reports'], 1, 4, 2, 6, 4, 8, 8, 11, 16, 14],
+      'circle-color': gdeltColor,
+      'circle-opacity': ['match', ['get', 'precision'], 'region', 0.25, 0.8],
+      'circle-stroke-width': ['match', ['get', 'precision'], 'region', 1.5, 1],
+      'circle-stroke-color': ['match', ['get', 'precision'], 'region', gdeltColor, '#000000'],
+      'circle-stroke-opacity': 0.7,
+    },
+  });
 
   /* ── Cloudflare Radar — internet outages (country-scoped) ── */
   map.addLayer({ id: 'cf-outage-halo', type: 'circle', source: 'cf-outages', paint: {

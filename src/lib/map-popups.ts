@@ -1,6 +1,7 @@
 import { ALERT_KINDS, timeAgo, type AlertKind } from './alert-digest';
 import type { FlightRoute } from './flight-path';
 import type { ScheduledRoute } from './flight-watch';
+import { GDELT_FAMILY_COLOR } from './gdelt-display';
 import type { AlertPinProps } from './map-alert-pins';
 import { SHIP_CLASSES, shipColor } from './ship-filter';
 import { weatherLabel } from './weather-field';
@@ -145,27 +146,57 @@ export function malwarePopupHtml(p: FeatureProps): string {
       </div>`;
 }
 
-const QUAD_COLOR: Record<string, string> = { '1': '#00E676', '2': '#00E5FF', '3': '#FF9500', '4': '#FF3D3D' };
+const GDELT_FAMILY_LABEL: Record<string, string> = { violence: 'VIOLENCE', protest: 'PROTEST', tension: 'TENSION', cooperation: 'COOPERATION' };
+
+interface GdeltLinkProps { url?: unknown; outlet?: unknown; title?: unknown; reports?: unknown }
+
+/** MapLibre hands array properties back as JSON strings. */
+const listProp = (v: unknown): GdeltLinkProps[] => {
+  if (Array.isArray(v)) return v;
+  try {
+    const a = JSON.parse(String(v ?? '[]'));
+    return Array.isArray(a) ? a : [];
+  } catch {
+    return [];
+  }
+};
+
+const gdeltLinkHtml = (l: GdeltLinkProps, accent: string, note = '') => `
+          <a href="${urlSafe(l.url)}" target="_blank" rel="noopener noreferrer" style="display:block;padding:5px 0;border-top:1px solid rgba(255,255,255,0.06);text-decoration:none;">
+            ${l.title ? `<div style="color:#E8E6E0;font-size:10px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${htmlEsc(l.title)}</div>` : ''}
+            <div style="color:${accent};font-size:9px;margin-top:2px;">${htmlEsc(l.outlet)} ↗${note}</div>
+          </a>`;
+
+const hhmm = (v: unknown) => htmlEsc(String(v ?? '').slice(11, 16));
 
 export function gdeltEventPopupHtml(p: FeatureProps): string {
-  const accent = QUAD_COLOR[String(p.quad)] ?? '#9B978E';
-  const src = urlSafe(p.url);
+  const family = String(p.family ?? '');
+  const accent = GDELT_FAMILY_COLOR[family as keyof typeof GDELT_FAMILY_COLOR] ?? '#9B978E';
   const tone = Number(p.tone);
+  const reports = Number(p.reports) || 1;
+  const outlets = Number(p.outlets) || 1;
+  const who = [p.actor1, p.actor2].filter(Boolean).map(htmlEsc).join(' → ');
+  const links = listProp(p.links).map(l => gdeltLinkHtml(l, accent)).join('');
+  const others = listProp(p.others).map(l => gdeltLinkHtml(l, '#9B978E', ` · ${htmlEsc(l.reports)} reports`)).join('');
   return `
-      <div style="${pStyle}border:1px solid ${accent}66;min-width:250px;">
+      <div style="${pStyle}border:1px solid ${accent}66;min-width:250px;max-width:300px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span style="width:7px;height:7px;border-radius:50%;background:${accent};box-shadow:0 0 8px ${accent};"></span>
-          <span style="color:${accent};font-size:10px;font-weight:700;letter-spacing:0.15em;">${htmlEsc(p.quad_label)}</span>
+          <span style="color:${accent};font-size:10px;font-weight:700;letter-spacing:0.15em;">${htmlEsc(GDELT_FAMILY_LABEL[family] ?? 'EVENT')}</span>
+          <span style="margin-left:auto;color:#9B978E;font-size:9px;">${reports} ${reports === 1 ? 'REPORT' : 'REPORTS'} · ${outlets} ${outlets === 1 ? 'OUTLET' : 'OUTLETS'}</span>
         </div>
-        <div style="color:#E8E6E0;font-size:12px;font-weight:700;margin-bottom:8px;">${htmlEsc(p.name)}</div>
+        <div style="color:#E8E6E0;font-size:12px;font-weight:700;margin-bottom:${p.precision === 'region' ? 2 : 8}px;">${htmlEsc(p.name)}</div>
+        ${p.precision === 'region' ? '<div style="color:#5C5A54;font-size:9px;margin-bottom:8px;">Placed at the state or province centre</div>' : ''}
+        ${who || p.action ? `<div style="color:#E8E6E0;font-size:10px;margin-bottom:8px;">${who}${who && p.action ? ' · ' : ''}<span style="color:${accent};">${htmlEsc(p.action)}</span></div>` : ''}
         <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:10px;color:#9B978E;">
           <span style="opacity:0.6;">Goldstein</span><span style="color:${Number(p.goldstein) < 0 ? '#FF3D3D' : '#00E676'};">${htmlEsc(p.goldstein)}</span>
           <span style="opacity:0.6;">Avg tone</span><span style="color:${tone < 0 ? '#FF9500' : '#00E676'};">${htmlEsc(p.tone)}</span>
           <span style="opacity:0.6;">Articles</span><span style="color:#E8E6E0;">${htmlEsc(p.articles)}</span>
-          <span style="opacity:0.6;">Country</span><span style="color:#E8E6E0;">${htmlEsc(p.country || '—')}</span>
         </div>
-        <div style="margin-top:8px;font-size:9px;color:#5C5A54;">GDELT 2.0 · ${htmlEsc(String(p.date).slice(0, 16).replace('T', ' '))}Z</div>
-        ${src !== '#' ? `<a href="${src}" target="_blank" rel="noopener noreferrer" style="${linkStyle}color:${accent};border:1px solid ${accent}66;background:${accent}1a;">SOURCE ARTICLE</a>` : ''}
+        <div style="margin-top:8px;max-height:40vh;overflow-y:auto;">${links}
+        ${others ? `<div style="margin-top:10px;color:#5C5A54;font-size:9px;letter-spacing:0.12em;">OTHER STORIES HERE</div>${others}` : ''}
+        </div>
+        <div style="margin-top:6px;font-size:9px;color:#5C5A54;">GDELT 2.0 · reported ${hhmm(p.first_seen)}–${hhmm(p.last_seen)}Z</div>
       </div>`;
 }
 

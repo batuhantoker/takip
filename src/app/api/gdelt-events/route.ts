@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchGdeltEvents } from '@/lib/gdeltEvents';
+import { GDELT_FAMILIES, type GdeltFamily } from '@takip/connectors/gdelt/cameo';
 
 export const maxDuration = 60;
 
@@ -9,35 +10,40 @@ export const maxDuration = 60;
  * https://www.gdeltproject.org/
  *
  * Distinct from /api/gdelt, which despite its name reads GDACS disaster alerts.
- * This route serves actual GDELT event records with ActionGeo coordinates.
+ * This route serves the stories of the last `hours` (1–6, default 2), each
+ * reported by at least `min_reports` distinct headlines (default 2; 1 keeps
+ * single reports), see @takip/connectors/gdelt/reduce. `family` takes
+ * violence, protest, tension, cooperation or all.
  */
 
 const MAX_LIMIT = 2000;
 
-function parseQuads(raw: string | null): number[] {
-  if (!raw) return [];
-  return raw
-    .split(',')
-    .map(v => Number(v.trim()))
-    .filter(v => v >= 1 && v <= 4);
+// Statements and consultations are most of the feed; a threat map leaves them out unless asked.
+const DEFAULT_FAMILIES: GdeltFamily[] = ['violence', 'protest', 'tension'];
+
+function parseFamilies(raw: string | null): GdeltFamily[] {
+  if (raw === 'all') return [...GDELT_FAMILIES];
+  const picked = (raw ?? '').split(',').map(v => v.trim()).filter((v): v is GdeltFamily => GDELT_FAMILIES.includes(v as GdeltFamily));
+  return picked.length ? picked : DEFAULT_FAMILIES;
 }
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
 
-  const quads = parseQuads(searchParams.get('quad'));
-  const minArticles = Math.max(1, Number(searchParams.get('min_articles')) || 1);
+  const families = parseFamilies(searchParams.get('family'));
+  const minReports = Math.max(1, Number(searchParams.get('min_reports')) || 2);
+  const hours = Math.min(6, Math.max(1, Number(searchParams.get('hours')) || 2));
   const limit = Math.min(MAX_LIMIT, Math.max(1, Number(searchParams.get('limit')) || 600));
 
   try {
-    const { events, window, scanned } = await fetchGdeltEvents({ quads, minArticles, limit });
+    const { events, windows, stats } = await fetchGdeltEvents({ families, minReports, limit, hours });
 
     return NextResponse.json(
       {
         events,
         total: events.length,
-        scanned,
-        window,
+        stats,
+        windows,
         source: 'GDELT 2.0 Events',
         timestamp: new Date().toISOString(),
       },
