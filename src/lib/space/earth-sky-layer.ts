@@ -213,8 +213,8 @@ export function createEarthSkyLayer(id: string) {
     const data: number[] = [];
     catalog.stars.forEach(([ra, dec, mag, bv], i) => {
       const [r, g, b] = starColor(bv);
-      const size = Math.max(1.1, Math.min(4.6, 3.6 - 0.62 * mag)) + (named.has(i) ? 0.4 : 0);
-      data.push(...raDecVector(ra, dec), size, r, g, b, Math.max(0.18, Math.min(0.95, 0.95 - 0.13 * mag)));
+      const size = Math.max(1.4, Math.min(5, 4 - 0.62 * mag)) + (named.has(i) ? 0.5 : 0);
+      data.push(...raDecVector(ra, dec), size, r, g, b, Math.max(0.25, Math.min(1, 1.05 - 0.13 * mag)));
     });
     starCount = catalog.stars.length;
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.star);

@@ -27,8 +27,13 @@ export const REGION_COLOR: Record<Region, string> = {
 
 export const SHOWN_IN_SPACE = (c: FleetCraft) => c.region !== 'earth-orbit';
 
+const TRAIL_WEEKS = 26;
+const TRAIL_OPACITY = 0.2;
+
 export function createCraftLayer() {
   const geometry = new THREE.BufferGeometry();
+  // Parked craft are NaN, which three would turn into a NaN bounding sphere when it sorts.
+  geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), Infinity);
   const points = new THREE.Points(geometry, new THREE.PointsMaterial({
     size: 7, sizeAttenuation: false, vertexColors: true, map: dotTexture(32, 0.5), transparent: true, depthWrite: false, alphaTest: 0.05,
   }));
@@ -36,7 +41,8 @@ export function createCraftLayer() {
   points.renderOrder = 3;
 
   const trailGeometry = new THREE.BufferGeometry();
-  const trails = new THREE.LineSegments(trailGeometry, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.35, depthWrite: false }));
+  const trailMaterial = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: TRAIL_OPACITY, depthWrite: false });
+  const trails = new THREE.LineSegments(trailGeometry, trailMaterial);
   trails.frustumCulled = false;
 
   let shown: FleetCraft[] = [];
@@ -53,7 +59,8 @@ export function createCraftLayer() {
     const segCol: number[] = [];
     for (const k of shown) {
       const rgb = c.set(REGION_COLOR[k.region]).toArray();
-      const path = [...k.trail, k.helio];
+      // Half a year: a full year around 1 AU just redraws Earth's orbit once per craft trailing it.
+      const path = [...k.trail.slice(-TRAIL_WEEKS), k.helio];
       for (let i = 1; i < path.length; i++) {
         seg.push(...path[i - 1], ...path[i]);
         segCol.push(...rgb, ...rgb);
@@ -75,5 +82,5 @@ export function createCraftLayer() {
     attr.needsUpdate = true;
   }
 
-  return { points, trails, setFleet, update, shown: () => shown };
+  return { points, trails, setFleet, update, shown: () => shown, fade: (k: number) => { trailMaterial.opacity = TRAIL_OPACITY * k; } };
 }

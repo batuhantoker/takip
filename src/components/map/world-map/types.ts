@@ -6,6 +6,7 @@ import type { Highlight } from '@/lib/oi/assist/tools';
 import type { OiGlobe, OiHover } from '@/lib/oi/globe';
 import type { HistorySession } from '@/lib/history/session';
 import type { ReplaySession } from '@/lib/replay/session';
+import type { GlobeView } from '@/lib/space/globe-match';
 import type { createSatelliteLayer } from '@/lib/satellite-layer';
 
 /** The catalogue fields the satellite layer and its popup actually read. */
@@ -66,6 +67,10 @@ export interface WorldMapProps {
   drawCommand?: { action: DrawAction["type"]; seq: number } | null;
   onDrawComplete?: (result: DrawResult) => void;
   onMapCenter?: (coords: { lat: number; lng: number; bounds?: { west: number; south: number; east: number; north: number } }) => void;
+  /** Zooming out past the whole globe: the page leaves the map for space, from this exact view. */
+  onZoomPastGlobe?: (view: GlobeView) => void;
+  /** The globe is nearly whole: a hint to fetch the space view ahead. */
+  onNearGlobe?: () => void;
   /** Active turn-by-turn route drawn as a line with origin/destination pins. */
   route?: {
     geometry: { type: 'LineString'; coordinates: [number, number][] };

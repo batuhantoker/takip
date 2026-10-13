@@ -192,8 +192,24 @@ Open data rarely includes true network topology, such as which substation feeds 
 | Source | Adds | Use |
 |---|---|---|
 | CelesTrak (already in) | Satellite orbits | OK\* |
-| Launch Library 2 | Rocket launches | Verify |
+| Launch Library 2 (already in) | Rocket launches | Verify |
 | Space-Track | Satellite catalogue | Redistribution needs approval |
+| JPL Horizons API (already in) | Sun, Moon, planets and every spacecraft with a live ephemeris (`/api/space/sky`, `/api/space/fleet`); orbiter ground tracks and sub-solar points over the Moon and Mars (`/api/space/surface`). Keyless; JPL asks only that it not be flooded, so calls share two slots | OK |
+| NASA Trek WMTS (already in) | LRO WAC Moon mosaic, Viking Mars mosaic, stitched into globe textures (`/api/space/texture`) | OK |
+| NASA GIBS (already in) | Blue Marble and Black Marble Earth textures for the space view | OK |
+| Helioviewer API (already in) | Latest SDO/AIA, SDO/HMI and SOHO/LASCO frames (`/api/space/sun`); SDO's own "latest" JPEGs stopped updating on 2026-09-21 | OK |
+| NASA MMGIS rover maps (already in) | Perseverance and Curiosity positions and drive paths; public JSON behind NASA's "Where is the rover?" pages, but undocumented | Verify |
+| Yale Bright Star Catalogue, CDS V/50 (already in) | 2,887 stars to magnitude 5.5, built into `public/data/sky/bright-stars.json` by `tools/build-bright-stars.mjs` | OK |
+| ESA Gaia archive TAP (already in) | Gaia DR3 stars within 100 ly and Hipparcos-2 (`public.hipparcos_newreduction`) distances for the bright stars, built into `public/data/sky/nearby-stars.json` by `tools/build-nearby-stars.mjs`. Gaia data: ESA/Gaia/DPAC, credit required | OK |
+| NASA Exoplanet Archive TAP (already in) | Every confirmed planet with a distance, by host star (`/api/space/exoplanets`, table `pscomppars`). Keyless; acknowledgement requested | OK |
+| Minor Planet Center `Distant.txt` (already in) | Orbits of ~8,300 centaurs and trans-Neptunian objects, placed today (`/api/space/outer`) | OK |
+| NASA SVS Deep Star Maps 2020 (already in) | Starless Milky Way sky, `public/data/sky/milky-way-sky.jpg` via `tools/build-milky-way-sky.mjs`; public domain | OK |
+| Wikipedia REST API (already in) | Lead paragraph and picture for whatever the space view's card shows (`/api/space/wiki`); pictures are Wikimedia Commons files under their own licences, linked to their articles | OK |
+| 2MASS Redshift Survey, CDS J/ApJS/199/26 (already in) | 43,463 galaxies with redshifts, all-sky, in 3D (`public/data/cosmos/local-galaxies.bin`, `tools/build-cosmos.mjs`); cite Huchra et al. 2012 and 2MASS | OK |
+| SDSS DR17 SkyServer SQL (already in) | A thinned sample of 179k galaxies and 120k quasars with redshifts (`public/data/cosmos/deep-galaxies.bin`); keyless; SDSS asks for its acknowledgement text | OK |
+| NASA WMAP via LAMBDA (already in) | 9-year ILC microwave-background map, reprojected to `public/data/cosmos/cmb.jpg` by `tools/build-cmb.mjs`; public domain, credit NASA/WMAP Science Team | OK |
+| NASA/JPL-Caltech/R. Hurt face-on Milky Way (already in) | `ssc2008-10a1` / PIA10748, the Galaxy stop's disc, labelled illustration; Spitzer image policy: any use with credit, no implied endorsement | OK |
+| JPL SBDB close-approach API | Asteroids passing Earth | OK |
 
 ### Cyber
 

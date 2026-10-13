@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { apparentRaDec, eclipticToEquatorial, norm, scale, sub, subPoint } from './astro';
-import { angleBetween, bodyDirection, drift, earthOrientation, EQUATORIAL_TO_ECLIPTIC, GM_EARTH, mul, orientationFromLighting, stateAt, triad } from './frames';
+import { apparentRaDec, eclipticToEquatorial, norm, raDec, scale, sub, subPoint } from './astro';
+import { angleBetween, bodyDirection, drift, earthOrientation, EQUATORIAL_TO_ECLIPTIC, EQUATORIAL_TO_GALACTIC, galacticDirection, GALACTIC_TO_ECLIPTIC, GM_EARTH, iauOrientation, mul, orientationFromLighting, parallaxLy, stateAt, transpose, triad } from './frames';
 import type { StateRow, Vec3 } from './horizons';
 
 // Horizons, 2026-10-12 00:00: heliocentric ecliptic-J2000 vectors, and the Moon's
@@ -16,6 +16,43 @@ describe('EQUATORIAL_TO_ECLIPTIC', () => {
     const v: Vec3 = [0.3, -0.5, 0.8];
     const back = mul(EQUATORIAL_TO_ECLIPTIC, eclipticToEquatorial(v));
     back.forEach((x, i) => expect(x).toBeCloseTo(v[i], 12));
+  });
+});
+
+describe('iauOrientation', () => {
+  it("puts Mars's north pole at RA 317.68°, Dec 52.89°", () => {
+    const pole = mul(iauOrientation('mars', 2451545), [0, 0, 1]);
+    expect(angleBetween(pole, mul(EQUATORIAL_TO_ECLIPTIC, bodyDirection(52.8865, 317.68143)))).toBeLessThan(1e-6);
+  });
+
+  it('turns Mars once a sol about that pole', () => {
+    const at = (jd: number) => mul(iauOrientation('mars', jd), [1, 0, 0]);
+    const sol = 360 / 350.89198226;
+    expect(angleBetween(at(2451545), at(2451545 + sol))).toBeLessThan(1e-4);
+    expect(angleBetween(at(2451545), at(2451545 + sol / 4))).toBeCloseTo(90, 3);
+  });
+});
+
+describe('galactic frame', () => {
+  it('puts Sgr A* at the galactic centre', () => {
+    const g = mul(EQUATORIAL_TO_GALACTIC, bodyDirection(-29.00781, 266.41683));
+    const { ra: l, dec: b } = raDec(g);
+    expect(Math.abs(((l + 180) % 360) - 180)).toBeLessThan(0.1);
+    expect(Math.abs(b)).toBeLessThan(0.1);
+  });
+
+  it('matches the Hipparcos rotation matrix', () => {
+    const hip = [-0.0548755604, -0.8734370902, -0.4838350155, 0.4941094279, -0.44482963, 0.7469822445, -0.867666149, -0.1980763734, 0.4559837762];
+    EQUATORIAL_TO_GALACTIC.forEach((x, i) => expect(x).toBeCloseTo(hip[i], 6));
+  });
+
+  it('takes the north galactic pole to the scene via equatorial', () => {
+    const viaEq = mul(EQUATORIAL_TO_ECLIPTIC, mul(transpose(EQUATORIAL_TO_GALACTIC), galacticDirection(0, 90)));
+    expect(angleBetween(mul(GALACTIC_TO_ECLIPTIC, [0, 0, 1]), viaEq)).toBeLessThan(1e-9);
+  });
+
+  it('turns a 768 mas parallax into Proxima Centauri at 4.25 ly', () => {
+    expect(parallaxLy(768.07)).toBeCloseTo(4.246, 3);
   });
 });
 

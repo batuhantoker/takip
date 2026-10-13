@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { ExoplanetPayload } from '@/lib/space/exoplanets';
 import type { FleetPayload } from '@/lib/space/fleet';
+import type { OuterPayload } from '@/lib/space/outer';
 import type { SkyPayload } from '@/lib/space/sky';
 import type { SunFrame } from '@/lib/space/sun';
 import type { SurfacePayload } from '@/lib/space/surface';
@@ -33,7 +35,10 @@ function sharedResource<T>(url: string, refreshMs: (data: T | null) => number) {
     return inflight;
   }
 
-  return function useResource(enabled: boolean): T | null {
+  /** Loads ahead of any subscriber, so a view that opens later has the data at once. */
+  const prefetch = () => { if (!data && !inflight) void load(); };
+
+  return Object.assign(function useResource(enabled: boolean): T | null {
     const [value, setValue] = useState<T | null>(data);
     useEffect(() => {
       if (!enabled) return;
@@ -47,7 +52,7 @@ function sharedResource<T>(url: string, refreshMs: (data: T | null) => number) {
       };
     }, [enabled]);
     return enabled ? value : null;
-  };
+  }, { prefetch });
 }
 
 const MIN = 60_000;
@@ -58,6 +63,11 @@ export const useSky = sharedResource<SkyPayload>('/api/space/sky', () => 30 * MI
 export const useFleet = sharedResource<FleetPayload>('/api/space/fleet', d => (d && d.pending > 0 ? 12_000 : 15 * MIN));
 
 export const useSunFrames = sharedResource<{ frames: SunFrame[] }>('/api/space/sun', () => 5 * MIN);
+
+/** Past Neptune; asked for only once the camera heads out that far. */
+export const useOuter = sharedResource<OuterPayload>('/api/space/outer', () => 6 * 60 * MIN);
+
+export const useExoplanets = sharedResource<ExoplanetPayload>('/api/space/exoplanets', () => 12 * 60 * MIN);
 
 const surfaces = {
   moon: sharedResource<SurfacePayload>('/api/space/surface/moon', () => 20 * MIN),

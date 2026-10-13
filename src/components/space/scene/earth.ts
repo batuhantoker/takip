@@ -81,7 +81,8 @@ export function createEarth() {
   const uniforms = { dayMap: { value: placeholder as THREE.Texture }, nightMap: { value: placeholder as THREE.Texture }, sunDir };
   const surface = new THREE.Mesh(bodyGeometry(EARTH_RADIUS_KM, 128), new THREE.ShaderMaterial({ vertexShader: VERT, fragmentShader: FRAG, uniforms }));
   spin.add(surface);
-  loadTexture('/api/space/texture/earth', t => { uniforms.dayMap.value = t; });
+  let textured = false;
+  loadTexture('/api/space/texture/earth', t => { uniforms.dayMap.value = t; textured = true; });
   loadTexture('/api/space/texture/earth-night', t => { uniforms.nightMap.value = t; });
 
   // The atmosphere does not turn with the ground, but nothing here would show it.
@@ -92,9 +93,10 @@ export function createEarth() {
   spin.add(atmosphere);
 
   const satGeometry = new THREE.BufferGeometry();
-  const satellites = new THREE.Points(satGeometry, new THREE.PointsMaterial({
-    size: 3, sizeAttenuation: false, vertexColors: true, map: dotTexture(32), transparent: true, depthWrite: false, alphaTest: 0.05,
-  }));
+  const satMaterial = new THREE.PointsMaterial({
+    size: 3, sizeAttenuation: false, vertexColors: true, map: dotTexture(32), transparent: true, opacity: 0.75, depthWrite: false, alphaTest: 0.05,
+  });
+  const satellites = new THREE.Points(satGeometry, satMaterial);
   satellites.frustumCulled = false;
   spin.add(satellites);
 
@@ -113,5 +115,11 @@ export function createEarth() {
     satGeometry.computeBoundingSphere();
   }
 
-  return { spin, surface, satellites, sunDir: sunDir.value, setSatellites };
+  /** Shrinks the dots as the camera pulls back, so the swarm stops hiding the planet under it. */
+  function scaleForDistance(distanceKm: number) {
+    satMaterial.size = Math.max(1.4, Math.min(3, (3 * 30_000) / distanceKm));
+    satMaterial.opacity = Math.max(0.55, Math.min(0.85, (0.85 * 80_000) / distanceKm));
+  }
+
+  return { spin, surface, satellites, sunDir: sunDir.value, setSatellites, scaleForDistance, textured: () => textured };
 }

@@ -33,9 +33,17 @@ export function createOrbits() {
         continue;
       }
       const path = orbitPath(b.helio, b.vel, undefined, 720);
-      if (path) planets.add(loop(path, b.color, b.key === 'earth' ? 0.35 : 0.22));
+      if (path) planets.add(loop(path, b.color, b.key === 'earth' ? 0.6 : 0.42));
     }
   }
 
-  return { planets, moonFrame, setBodies };
+  /** Planet orbits are sun-sized; up close to a body they are only stray lines across the view. */
+  function fade(k: number) {
+    planets.children.forEach(c => {
+      const m = (c as THREE.LineLoop).material as THREE.LineBasicMaterial;
+      m.opacity = (m.userData.base ?? (m.userData.base = m.opacity)) * k;
+    });
+  }
+
+  return { planets, moonFrame, setBodies, fade };
 }

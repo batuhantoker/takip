@@ -2,8 +2,12 @@
  * TAKIP — what the space view can centre on, and the NASA imagery its bodies wear.
  */
 
-/** The body the space camera orbits; 'solar' is the Sun, pulled back to show the planets. */
-export type SpaceFocus = 'earth' | 'moon' | 'mars' | 'sun' | 'solar';
+/**
+ * Where the space camera settles: a body, or a distance from the Sun — 'solar'
+ * shows the planets, 'stars' the nearest stars, 'galaxy' the Milky Way,
+ * 'universe' everything out to the cosmic microwave background.
+ */
+export type SpaceFocus = 'earth' | 'moon' | 'mars' | 'sun' | 'solar' | 'stars' | 'galaxy' | 'universe';
 
 /** Bodies with surface data (landing sites, orbiter ground tracks). */
 export type GlobeWorldId = 'moon' | 'mars';
@@ -13,7 +17,7 @@ export function isGlobeWorld(id: string): id is GlobeWorldId {
 }
 
 export function isSpaceFocus(id: string): id is SpaceFocus {
-  return id === 'earth' || id === 'moon' || id === 'mars' || id === 'sun' || id === 'solar';
+  return id === 'earth' || id === 'moon' || id === 'mars' || id === 'sun' || id === 'solar' || id === 'stars' || id === 'galaxy' || id === 'universe';
 }
 
 export type TextureId = 'earth' | 'earth-night' | 'moon' | 'mars';

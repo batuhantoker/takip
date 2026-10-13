@@ -36,6 +36,7 @@ export function useEarthSky({ mapRef, mapReady, activeLayers }: { mapRef: MapRef
     };
   }, [mapReady, mapRef, on]);
 
+  // Re-run on mapReady too: the sky often lands before the map, when there is no layer to hand it to.
   useEffect(() => {
     if (!sky || !layerRef.current) return;
     const update = () => {
@@ -59,5 +60,5 @@ export function useEarthSky({ mapRef, mapReady, activeLayers }: { mapRef: MapRef
     update();
     const id = setInterval(update, 60_000);
     return () => clearInterval(id);
-  }, [sky, on]);
+  }, [sky, on, mapReady]);
 }

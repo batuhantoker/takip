@@ -37,6 +37,32 @@ export const EQUATORIAL_TO_ECLIPTIC: Mat3 = (() => {
   return [1, 0, 0, 0, c, s, 0, -s, c];
 })();
 
+/**
+ * Equatorial J2000 to galactic (IAU 1958, Hipparcos ICRS realisation): rows are
+ * the galactic axes toward the centre, toward l = 90° and the north galactic pole.
+ */
+export const EQUATORIAL_TO_GALACTIC: Mat3 = (() => {
+  const ngpRa = 192.85948 * DEG, ngpDec = 27.12825 * DEG, ncpLon = 122.93192 * DEG;
+  const z: Vec3 = [Math.cos(ngpDec) * Math.cos(ngpRa), Math.cos(ngpDec) * Math.sin(ngpRa), Math.sin(ngpDec)];
+  const p = unit(sub([0, 0, 1], scale(z, z[2])));
+  const q = cross(z, p);
+  const x = sub(scale(p, Math.cos(ncpLon)), scale(q, Math.sin(ncpLon)));
+  const y = cross(z, x);
+  return [...x, ...y, ...z] as Mat3;
+})();
+
+export const GALACTIC_TO_ECLIPTIC: Mat3 = matMul(EQUATORIAL_TO_ECLIPTIC, transpose(EQUATORIAL_TO_GALACTIC));
+
+/** Unit vector toward galactic longitude `l` and latitude `b`, galactic frame. */
+export function galacticDirection(l: number, b: number): Vec3 {
+  return bodyDirection(b, l);
+}
+
+/** Light-years from a parallax in milliarcseconds. */
+export function parallaxLy(mas: number): number {
+  return 3261.5638 / mas;
+}
+
 /** IAU 1976 precession, mean equator of J2000 to mean equator of date. */
 export function precessionMatrix(jd: number): Mat3 {
   const t = (jd - 2451545) / 36525;
@@ -57,6 +83,21 @@ export function earthOrientation(jd: number): Mat3 {
   const g = gmstDeg(jd) * DEG;
   const spin: Mat3 = [Math.cos(g), -Math.sin(g), 0, Math.sin(g), Math.cos(g), 0, 0, 0, 1];
   return matMul(EQUATORIAL_TO_ECLIPTIC, matMul(transpose(precessionMatrix(jd)), spin));
+}
+
+/**
+ * IAU WGCCRE (2015) rotation of Mars and the Moon: body-fixed to scene at any
+ * date, for replays far from today's lighting tables. The Moon's libration
+ * terms are left out (a few degrees at most).
+ */
+export function iauOrientation(body: 'mars' | 'moon', jd: number): Mat3 {
+  const d = jd - 2451545, T = d / 36525;
+  const [ra, dec, w] = body === 'mars'
+    ? [317.68143 - 0.1061 * T, 52.8865 - 0.0609 * T, 176.63 + 350.89198226 * d]
+    : [269.9949 + 0.0031 * T, 66.5392 + 0.013 * T, 38.3213 + 13.17635815 * d];
+  const rz = (a: number): Mat3 => [Math.cos(a), -Math.sin(a), 0, Math.sin(a), Math.cos(a), 0, 0, 0, 1];
+  const rx = (a: number): Mat3 => [1, 0, 0, 0, Math.cos(a), -Math.sin(a), 0, Math.sin(a), Math.cos(a)];
+  return matMul(EQUATORIAL_TO_ECLIPTIC, matMul(rz((ra + 90) * DEG), matMul(rx((90 - dec) * DEG), rz((w % 360) * DEG))));
 }
 
 /** Unit vector, body-fixed, toward east longitude `lng` and latitude `lat`. */

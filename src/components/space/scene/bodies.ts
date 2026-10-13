@@ -6,12 +6,14 @@ import { bodyGeometry, dotTexture, loadTexture, v3 } from './shared';
 /** The Sun and the planets: a sphere each, plus a marker that keeps them visible as dots from afar. */
 
 export const SUN_RADIUS_KM = 695_700;
-// AIA and HMI frames are 1024 px at 2.4"/px; the disc's radius is ~400 px of that.
-const SDO_FRAME_PER_RADIUS = 1024 / 400;
+// AIA and HMI frames are 1024 px at 2.4"/px; the disc's radius is ~400 px of that,
+// so the frame spans 1024/400 solar radii edge to edge.
+const SDO_FRAME_RADII = 1024 / 400;
 
 export function createSun() {
   const group = new THREE.Group();
-  const core = new THREE.Mesh(bodyGeometry(SUN_RADIUS_KM * 0.995, 64), new THREE.MeshBasicMaterial({ color: 0xffe2a0 }));
+  const coreMaterial = new THREE.MeshBasicMaterial({ color: 0xffe2a0 });
+  const core = new THREE.Mesh(bodyGeometry(SUN_RADIUS_KM * 0.995, 64), coreMaterial);
   group.add(core);
 
   const glowTexture = (() => {
@@ -32,10 +34,18 @@ export function createSun() {
   group.add(glow);
 
   // The latest SDO frame, turned to face the camera: it is the disc as Earth sees it.
-  const sdoMaterial = new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 });
+  // Drawn over the core rather than depth-tested against it: the plane runs through
+  // the Sun's centre, so the core's near half would otherwise hide the disc.
+  const sdoMaterial = new THREE.MeshBasicMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, opacity: 0, alphaMap: edgeFade() });
   const sdo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), sdoMaterial);
-  sdo.scale.setScalar(2 * SUN_RADIUS_KM * SDO_FRAME_PER_RADIUS);
+  sdo.renderOrder = 10;
   group.add(sdo);
+
+  /** Sizes the frame so its disc matches the sphere's outline from `distanceKm` away. */
+  function fit(distanceKm: number) {
+    const k = SUN_RADIUS_KM / Math.max(distanceKm, SUN_RADIUS_KM * 1.01);
+    sdo.scale.setScalar((SUN_RADIUS_KM * SDO_FRAME_RADII) / Math.sqrt(1 - k * k));
+  }
 
   let frameUrl = '';
   function setFrame(url: string | null) {
@@ -46,10 +56,32 @@ export function createSun() {
       sdoMaterial.map = t;
       sdoMaterial.opacity = 1;
       sdoMaterial.needsUpdate = true;
+      // The frame is the disc now; the core stays only to hide what is behind the Sun.
+      coreMaterial.colorWrite = false;
     });
   }
 
-  return { group, core, glow, sdo, setFrame };
+  /** Today's SDO frame is wrong for any other date: a replay shows the plain disc. */
+  function showFrame(on: boolean) {
+    const shown = on && sdoMaterial.opacity > 0;
+    sdo.visible = shown;
+    coreMaterial.colorWrite = !shown;
+  }
+
+  return { group, core, glow, sdo, setFrame, fit, showFrame };
+}
+
+/** Fades the frame out toward its square edge, where loops past 1.28 radii are cut off. */
+function edgeFade(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grad.addColorStop(0.8, '#fff');
+  grad.addColorStop(1, '#000');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 256, 256);
+  return new THREE.CanvasTexture(c);
 }
 
 export interface Planet {

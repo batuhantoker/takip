@@ -10,6 +10,14 @@ describe('distance', () => {
     expect(distance(25_000_000_000)).toBe('167.1 AU');
     expect(distance(NaN)).toBe('—');
   });
+
+  it('goes on to light-years past the inner Oort cloud', () => {
+    expect(distance(3.3e11)).toBe('2,206 AU');
+    expect(distance(4.0175e13)).toBe('4.25 ly');
+    expect(distance(2.526e17)).toBe('26,700 ly');
+    expect(distance(2.4e19)).toBe('2.54 million ly');
+    expect(distance(4.283e23)).toBe('45.3 billion ly');
+  });
 });
 
 describe('lightTime', () => {
@@ -17,6 +25,8 @@ describe('lightTime', () => {
     expect(lightTime(1.28)).toBe('1.3 s');
     expect(lightTime(499)).toBe('8 min 19 s');
     expect(lightTime(83_640)).toBe('23 h 14 min');
+    expect(lightTime(86_400 * 5.8)).toBe('5.8 days');
+    expect(lightTime(86_400 * 365.25 * 4.246)).toBe('4.25 years');
   });
 });
 

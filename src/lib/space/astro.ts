@@ -9,6 +9,9 @@
 import type { Vec3 } from './horizons';
 
 export const AU_KM = 149_597_870.7;
+/** Julian light-year. */
+export const LY_KM = 9_460_730_472_580.8;
+export const LY_AU = LY_KM / AU_KM;
 export const C_KM_S = 299_792.458;
 export const GM_SUN = 1.32712440018e11;
 const DEG = Math.PI / 180;

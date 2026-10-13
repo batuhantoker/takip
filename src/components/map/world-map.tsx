@@ -24,6 +24,7 @@ import { bindViewEvents } from './world-map/bind-view-events';
 import type { SatelliteRow, WorldMapProps } from './world-map/types';
 import { useBasemapStyle, useDayNight } from './world-map/use-basemap';
 import { useDemoSpin, useFlyTo, useMapCenter } from './world-map/use-camera';
+import { useZoomPastGlobe } from './world-map/use-zoom-past-globe';
 import { useDrawing } from './world-map/use-drawing';
 import { useConflictZones, useEarthquakeLayer, useIncidentLayers } from './world-map/use-event-layers';
 import { useFlightLayers, useWatchedAirports } from './world-map/use-flight-layers';
@@ -62,7 +63,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 const NO_FAMILIES: readonly string[] = [];
 const QUAKES: readonly string[] = ['hazard'];
 
-function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, aircraftAirports = {}, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -354,6 +355,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useDrawing({ mapRef, mapReady, drawMode, drawCommand, onDrawComplete, onDrawProgress, onDrawCancel, drawingCoordsRef });
   useRegionPick({ mapRef, mapReady, active: drawMode === 'region', onDrawComplete, onDrawProgress, onDrawCancel });
   useMapCenter({ mapRef, mapReady, onMapCenter });
+  useZoomPastGlobe({ mapRef, mapReady, onZoomPastGlobe, onNearGlobe });
   useSatelliteDismiss({ mapRef, mapReady, selectedSat, clearSat });
 
   return (

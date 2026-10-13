@@ -12,6 +12,8 @@ export interface WorldRequest {
   focus: SpaceFocus;
   /** Something to select on arrival. */
   select?: SpaceSelection;
+  /** A spacecraft (Horizons ID) whose flight to play back. */
+  replay?: number;
 }
 
 export function requestWorld(req: WorldRequest) {

@@ -5,13 +5,15 @@ import { raDecVector, starColor } from '@/lib/space/sky-projection';
 import { dotTexture } from './shared';
 
 /**
- * The bright-star catalogue on a sphere far beyond Voyager, so it never shows
- * parallax and never clips. Stars are J2000 equatorial; the scene is ecliptic.
+ * The bright-star catalogue as a sky at infinity: a sphere that travels with
+ * the camera, so it never shows parallax and can never be flown out of. Past
+ * the Oort cloud the 3D star catalogue takes over. Stars are J2000
+ * equatorial; the scene is ecliptic.
  */
 
 const SKY_RADIUS_KM = 5e11;
 
-export function createStars(catalog: StarCatalog): THREE.Points {
+export function createStars(catalog: StarCatalog) {
   const pos = new Float32Array(catalog.stars.length * 3);
   const col = new Float32Array(catalog.stars.length * 3);
   catalog.stars.forEach(([ra, dec, mag, bv], i) => {
@@ -24,10 +26,19 @@ export function createStars(catalog: StarCatalog): THREE.Points {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geometry.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  const points = new THREE.Points(geometry, new THREE.PointsMaterial({
+  const material = new THREE.PointsMaterial({
     size: 2.4, sizeAttenuation: false, vertexColors: true, map: dotTexture(32, 0.3), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-  }));
+  });
+  const points = new THREE.Points(geometry, material);
   points.frustumCulled = false;
   points.renderOrder = -1;
-  return points;
+
+  /** Re-centres on the camera; `opacity` hands the sky over to the 3D stars. */
+  function update(camera: THREE.Camera, opacity: number) {
+    points.position.copy(camera.position);
+    material.opacity = opacity;
+    points.visible = opacity > 0.01;
+  }
+
+  return { points, update };
 }

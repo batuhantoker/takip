@@ -1,0 +1,131 @@
+{
+  "generated": "2026-10-12",
+  "cosmology": "flat ΛCDM, H0 67.66, Ωm 0.3111, Ωr 9.1e-5 (Planck 2018); comoving distances of heliocentric redshifts",
+  "local": {
+    "file": "local-galaxies.bin",
+    "count": 43463,
+    "format": "Float32LE x, y, z (Mly, J2000 equatorial), absolute Ks mag",
+    "source": "2MASS Redshift Survey (Huchra et al. 2012, ApJS 199, 26; CDS J/ApJS/199/26): every galaxy with Ks ≤ 11.75 and heliocentric cz ≥ 300 km/s; absolute magnitude from the total Ks (Ktmag)",
+    "credit": "2MASS Redshift Survey, Huchra et al. 2012, ApJS 199, 26. 2MASS is a joint project of the University of Massachusetts and IPAC/Caltech, funded by NASA and the NSF."
+  },
+  "deep": {
+    "file": "deep-galaxies.bin",
+    "count": 299001,
+    "galaxies": 178813,
+    "quasars": 120188,
+    "format": "Float32LE x, y, z (Mly, J2000 equatorial), redshift (negative for quasars); galaxies first, then quasars",
+    "source": "SDSS DR17 SpecObj via SkyServer SQL search: galaxies with zWarning = 0 and 0.01 < z < 0.7 (1 in 13 by specObjID), quasars with zWarning = 0 and z < 6 (4 in 25 by specObjID)",
+    "credit": "Sloan Digital Sky Survey DR17 (Abdurro'uf et al. 2022, ApJS 259, 35). Funding for the SDSS has been provided by the Alfred P. Sloan Foundation, the U.S. Department of Energy Office of Science, the National Science Foundation, and the Participating Institutions. www.sdss.org"
+  },
+  "structures": [
+    {
+      "name": "Virgo Cluster",
+      "ra": 187.6991,
+      "dec": 12.3852,
+      "z": 0.0038,
+      "mly": 55
+    },
+    {
+      "name": "Fornax Cluster",
+      "ra": 54.6208,
+      "dec": -35.4503,
+      "z": 0.004753,
+      "mly": 69
+    },
+    {
+      "name": "Centaurus Cluster",
+      "ra": 192.2039,
+      "dec": -41.3117,
+      "z": 0.01041,
+      "mly": 150
+    },
+    {
+      "name": "Norma Cluster (Great Attractor)",
+      "ra": 243.6032,
+      "dec": -60.8669,
+      "z": 0.016248,
+      "mly": 234
+    },
+    {
+      "name": "Hydra Cluster",
+      "ra": 159.178,
+      "dec": -27.5286,
+      "z": 0.012389,
+      "mly": 179
+    },
+    {
+      "name": "Perseus Cluster",
+      "ra": 49.9532,
+      "dec": 41.5115,
+      "z": 0.017195,
+      "mly": 247
+    },
+    {
+      "name": "Coma Cluster",
+      "ra": 194.953,
+      "dec": 27.981,
+      "z": 0.023997,
+      "mly": 345
+    },
+    {
+      "name": "Leo Cluster (Abell 1367)",
+      "ra": 176.1561,
+      "dec": 19.7625,
+      "z": 0.021888,
+      "mly": 315
+    },
+    {
+      "name": "Hercules Cluster",
+      "ra": 241.3121,
+      "dec": 17.7429,
+      "z": 0.036482,
+      "mly": 523
+    },
+    {
+      "name": "Shapley Supercluster",
+      "ra": 201.9896,
+      "dec": -31.5025,
+      "z": 0.048367,
+      "mly": 691
+    },
+    {
+      "name": "Pisces–Perseus Supercluster",
+      "ra": 28.1938,
+      "dec": 36.1519,
+      "z": 0.016211,
+      "mly": 233
+    },
+    {
+      "name": "CfA2 Great Wall",
+      "ra": 194.953,
+      "dec": 27.981,
+      "z": 0.023997,
+      "mly": 345
+    },
+    {
+      "name": "Sloan Great Wall",
+      "ra": 184,
+      "dec": 3,
+      "z": 0.078,
+      "mly": 1106
+    },
+    {
+      "name": "Boötes Void",
+      "ra": 222.9458,
+      "dec": 45.7955,
+      "z": 0.0517,
+      "mly": 738
+    },
+    {
+      "name": "Local Void",
+      "ra": 279.5,
+      "dec": 18,
+      "z": 0.0052,
+      "mly": 75
+    }
+  ],
+  "horizon": {
+    "cmbMly": 45272,
+    "particleMly": 46188
+  }
+}

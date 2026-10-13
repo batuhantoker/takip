@@ -3,7 +3,8 @@ import type { RouteResult } from '@/components/directions/directions-bar';
 export type LiveData = any;
 export type BackendStatus = 'connecting' | 'connected' | 'error';
 export type MapView = { zoom: number; latitude: number };
-export type FlyToTarget = { lat: number; lng: number; zoom?: number; alertId?: string; duration?: number; ts: number };
+/** `quiet`: moves the map without bringing it back over the space view (the start-up fly-in to the viewer's area). */
+export type FlyToTarget = { lat: number; lng: number; zoom?: number; alertId?: string; duration?: number; quiet?: boolean; ts: number };
 export type MapCenter = { lat: number; lng: number; bounds?: { west: number; south: number; east: number; north: number } };
 export type MobilePanel = 'layers'|'markets'|'intel'|'search'|'recon'|'oi';
 export type MapProjection = 'globe'|'mercator';

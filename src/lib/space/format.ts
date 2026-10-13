@@ -2,25 +2,37 @@
  * TAKIP — numbers for the space views, at the precision they deserve.
  */
 
-import { AU_KM } from './astro';
+import { AU_KM, LY_KM } from './astro';
 
-/** Kilometres up to a few million, astronomical units beyond. */
+/** Kilometres up to a few million, astronomical units to the Oort cloud, light-years beyond. */
 export function distance(km: number): string {
   if (!Number.isFinite(km)) return '—';
   if (km < 10_000) return `${Math.round(km).toLocaleString('en-US')} km`;
   if (km < 5_000_000) return `${(Math.round(km / 100) * 100).toLocaleString('en-US')} km`;
   const au = km / AU_KM;
-  return `${au < 10 ? au.toFixed(3) : au.toFixed(1)} AU`;
+  if (au < 10_000) return `${au < 10 ? au.toFixed(3) : au < 1000 ? au.toFixed(1) : Math.round(au).toLocaleString('en-US')} AU`;
+  return `${lightYears(km / LY_KM)} ly`;
 }
 
-/** One-way light time: "1.3 s", "8 min 19 s", "23 h 14 min". */
+function lightYears(ly: number): string {
+  if (ly < 10) return ly.toFixed(2);
+  if (ly < 100) return ly.toFixed(1);
+  if (ly < 1e6) return Math.round(ly).toLocaleString('en-US');
+  if (ly < 1e9) return `${+(ly / 1e6).toFixed(ly < 1e7 ? 2 : ly < 1e8 ? 1 : 0)} million`;
+  return `${(ly / 1e9).toFixed(ly < 1e10 ? 2 : 1)} billion`;
+}
+
+/** One-way light time: "1.3 s", "8 min 19 s", "23 h 14 min", "5.8 days", "4.24 years". */
 export function lightTime(seconds: number): string {
   if (!Number.isFinite(seconds)) return '—';
   if (seconds < 60) return `${seconds.toFixed(1)} s`;
   const m = Math.floor(seconds / 60);
   if (m < 60) return `${m} min ${Math.round(seconds - m * 60)} s`;
   const h = Math.floor(m / 60);
-  return `${h} h ${m - h * 60} min`;
+  if (h < 48) return `${h} h ${m - h * 60} min`;
+  const days = seconds / 86_400;
+  if (days < 365.25) return `${days < 10 ? days.toFixed(1) : Math.round(days)} days`;
+  return `${lightYears(days / 365.25)} years`;
 }
 
 export function speed(kmS: number): string {
