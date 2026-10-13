@@ -42,6 +42,7 @@ import { TRAFIROUTES_BOUNDS, fetchTrafiroutesCameras } from '@/lib/cctv/sources/
 import { OSM_WEBCAMS_BOUNDS, fetchOsmWebcams } from '@/lib/cctv/sources/global/osm-webcams';
 import { KAHRAMANMARAS_BOUNDS, fetchKahramanmarasCameras } from '@/lib/cctv/sources/turkey/kahramanmaras';
 import { ISTANBUL_IBB_BOUNDS, fetchIstanbulIbbCameras } from '@/lib/cctv/sources/turkey/istanbul-ibb';
+import { ISTANBUL_SEYRET_BOUNDS, fetchIstanbulSeyretCameras } from '@/lib/cctv/sources/turkey/istanbul-seyret';
 import { CAMBASI_BOUNDS, fetchCambasiCameras } from '@/lib/cctv/sources/turkey/cambasi';
 import { ULUDAG_BOUNDS, fetchUludagCameras } from '@/lib/cctv/sources/turkey/uludag';
 import { MDCHART_BOUNDS, fetchMdChartCameras } from '@/lib/cctv/sources/us/mdchart';
@@ -153,6 +154,8 @@ export const FEEDS: StateFeed[] = [
   { region: 'kahramanmaras', idPrefix: 'tr-kahramanmaras', bounds: KAHRAMANMARAS_BOUNDS, fetch: fetchKahramanmarasCameras },
   // No published terms for the UYM camera API ("all rights İBB Trafik Müdürlüğü"); permission pending.
   { region: 'istanbul-ibb', idPrefix: 'tr-ibb', bounds: ISTANBUL_IBB_BOUNDS, fetch: fetchIstanbulIbbCameras },
+  // No published terms ("all rights İBB"); permission pending. Cameras İBB took off air under KVKK stay out.
+  { region: 'istanbul-seyret', idPrefix: 'tr-seyret', bounds: ISTANBUL_SEYRET_BOUNDS, fetch: fetchIstanbulSeyretCameras },
   // CC BY 4.0 per Restreamer channel, except channel 1: CC BY-NC 4.0. Attribute ORBEL A.Ş.
   { region: 'cambasi', idPrefix: 'tr-cambasi', bounds: CAMBASI_BOUNDS, fetch: fetchCambasiCameras },
   // No webcam terms published (only ticket-sale terms); permission pending.

@@ -63,7 +63,7 @@ const COVERED_ELSEWHERE = [
   // Busan by stream host: busan.go.kr would also drop the city cameras we don't carry.
   'its-stream2.busan.go.kr', 'its-stream3.busan.go.kr', 'its-stream4.busan.go.kr',
   'its-stream5.busan.go.kr', 'its-stream6.busan.go.kr', 'its-stream9.busan.go.kr',
-  'camstream.kahramanmaras.bel.tr', 'hls.ibb.gov.tr', 'broadcast.orbel.com.tr', 'live.dgn.net.tr',
+  'camstream.kahramanmaras.bel.tr', 'hls.ibb.gov.tr', 'kamerayayin.ibb.istanbul', 'broadcast.orbel.com.tr', 'live.dgn.net.tr',
 ];
 
 /** Sub-sources another module carries in full, where the media host (YouTube) can't tell them apart. */

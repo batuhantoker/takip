@@ -32,7 +32,7 @@ const COVERED = [
   'road-info-prvs.mlit.go.jp', 'faa.gov', 'usgs-nims-images.s3.amazonaws.com', 'volcview.wr.usgs.gov', 'nysmesonet.org',
   'goakamai.org', 'algotraffic.com', 'trafficcam.calgary.ca', 'yorkmaps.ca', 'wra.gov.tw', 'wtvthmb.feratel.com',
   'modot.mo.gov', 'dot.nd.gov', 'nmroads.com', 'wv511.org', 'oktraffic.org', 'sha.maryland.gov',
-  'kahramanmaras.bel.tr', 'ibb.gov.tr', 'lakecountypassage.com', 'irecam.carsprogram.org',
+  'kahramanmaras.bel.tr', 'ibb.gov.tr', 'ibb.istanbul', 'lakecountypassage.com', 'irecam.carsprogram.org',
   'camstreamer.com', 'siata.gov.co', 'myairportcams.com', 'onlyweathercams.com', 'qldtraffic.qld.gov.au',
   'panomax.com', 'webcamera.pl', 'foto-webcam.eu',
 ];
