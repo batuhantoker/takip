@@ -11,9 +11,9 @@ import { SignInNotice } from '@/components/panels/recon/parts/sign-in-notice';
 import { ErrorNote } from '@/components/panels/recon/parts/error-note';
 
 const MODES: { id: SearchType; label: string; icon: typeof AtSign; placeholder: string; covers: string }[] = [
-  { id: 'username', label: 'Username', icon: AtSign, placeholder: 'Enter a username', covers: 'every public site in the Sherlock list at once' },
-  { id: 'email', label: 'Email', icon: Mail, placeholder: 'Enter an email address', covers: 'known breach corpora and the address’s mail domain' },
-  { id: 'phone', label: 'Phone', icon: Phone, placeholder: 'Enter a phone number, like +1…', covers: 'the numbering plan for validity, region, format and line type' },
+  { id: 'username', label: 'Username', icon: AtSign, placeholder: 'Enter a username', covers: 'every public site in the Sherlock list, then reads the profiles it finds to tell which are the same person' },
+  { id: 'email', label: 'Email', icon: Mail, placeholder: 'Enter an email address', covers: 'its mail provider, Gravatar, GitHub, PGP keys, known breaches and infostealer logs' },
+  { id: 'phone', label: 'Phone', icon: Phone, placeholder: 'Enter a phone number, like +1…', covers: 'the numbering plan for validity, region and line type, and infostealer logs' },
 ];
 
 export function FingerprintSearchBar({ fp, running, autoFocus }: { fp: FingerprintState; running: boolean; autoFocus?: boolean }) {

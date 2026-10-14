@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { CATEGORIES, type Category } from '@/lib/recon/fingerprint';
 import type { FingerprintState } from './use-fingerprint-search';
-import { STATUS_META } from '@/lib/recon/fingerprint-rows';
+import { STATUS_META, TIER_RANK, type Row } from '@/lib/recon/fingerprint-rows';
 import { FingerprintSearchBar } from './fingerprint-search-bar';
 import { FingerprintHistory } from './fingerprint-history';
 import { FingerprintUsernameResults } from './fingerprint-username-results';
@@ -12,6 +12,8 @@ import { FingerprintSourceResults } from './fingerprint-source-results';
 
 export { useFingerprintSearch } from './use-fingerprint-search';
 export type { FingerprintState } from './use-fingerprint-search';
+
+const tied = (r: Row) => (r.status === 'verified' || r.status === 'verifying') && !!r.match && ['confirmed', 'linked', 'likely'].includes(r.match.tier);
 
 /**
  * Recon → Profile search. One box, three lookups (username / email / phone),
@@ -23,20 +25,22 @@ export default function FingerprintSearch({ fp, isFullScreen, autoFocus }: { fp:
 
   const all = useMemo(() => Object.values(fp.rows), [fp.rows]);
   const counts = useMemo(() => {
-    const c = { hits: 0, unsure: 0, blocked: 0 };
+    const c = { hits: 0, unsure: 0, blocked: 0, tied: 0 };
     for (const r of all) {
       if (r.status === 'verified' || r.status === 'verifying') c.hits++;
       else if (r.status === 'unverifiable') c.unsure++;
       else c.blocked++;
+      if (tied(r)) c.tied++;
     }
     return c;
   }, [all]);
 
   const statusFiltered = useMemo(() => all.filter(r =>
+    fp.tiedOnly ? tied(r) :
     r.status === 'verified' || r.status === 'verifying' ||
     (fp.showUnsure && r.status === 'unverifiable') ||
-    (fp.showBlocked && (r.status === 'blocked' || r.status === 'error'))
-  ), [all, fp.showUnsure, fp.showBlocked]);
+    (fp.showBlocked && (r.status === 'blocked' || r.status === 'error' || r.status === 'unreliable'))
+  ), [all, fp.showUnsure, fp.showBlocked, fp.tiedOnly]);
 
   const categoryCounts = useMemo(() => {
     const m = new Map<Category, number>();
@@ -46,7 +50,8 @@ export default function FingerprintSearch({ fp, isFullScreen, autoFocus }: { fp:
 
   const visible = useMemo(() => statusFiltered
     .filter(r => fp.categories.length === 0 || fp.categories.includes(r.category))
-    .sort((a, b) => STATUS_META[a.status].rank - STATUS_META[b.status].rank),
+    .sort((a, b) => STATUS_META[a.status].rank - STATUS_META[b.status].rank
+      || (a.match ? TIER_RANK[a.match.tier] : 9) - (b.match ? TIER_RANK[b.match.tier] : 9)),
   [statusFiltered, fp.categories]);
 
   const historyLog = fp.history.length > 0 && !running && <FingerprintHistory fp={fp} isFullScreen={isFullScreen} />;

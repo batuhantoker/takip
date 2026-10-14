@@ -7,6 +7,10 @@ import {
 } from '@/lib/recon/fingerprint';
 import { toRow, type Row, type Source, type Phase } from '@/lib/recon/fingerprint-rows';
 import { lookupError, SIGN_IN_REQUIRED } from '@/lib/recon/lookup';
+import type { Identity } from '@/lib/recon/people/correlate';
+
+/** Where a username search is: sweeping sites, re-testing hits, or reading the profiles found. */
+export type Stage = 'sweep' | 'verifying' | 'profiles';
 
 /**
  * Held by OsintPanel rather than the view: the expanded mode renders through
@@ -29,6 +33,10 @@ export function useFingerprintSearch() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [showUnsure, setShowUnsure] = useState(false);
   const [showBlocked, setShowBlocked] = useState(false);
+  const [tiedOnly, setTiedOnly] = useState(false);
+  const [stage, setStage] = useState<Stage>('sweep');
+  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [networkTrouble, setNetworkTrouble] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -89,6 +97,10 @@ export function useFingerprintSearch() {
     setSearched({ type, query: q });
     setRows({});
     setSources([]);
+    setStage('sweep');
+    setIdentity(null);
+    setNetworkTrouble(false);
+    setTiedOnly(false);
     setCategories([]);
     setProgress({ checked: 0, total: 0, ruledOut: 0 });
     setStartedAt(t0);
@@ -160,14 +172,22 @@ export function useFingerprintSearch() {
               else if (ev.status === 'found') { added[ev.site] = toRow(ev, 'verifying'); hits++; }
               else if (ev.status === 'blocked') added[ev.site] = toRow(ev, 'blocked');
               else if (ev.status === 'error') added[ev.site] = toRow(ev, 'error');
+            } else if (ev.type === 'stage') {
+              setStage(ev.stage);
+            } else if (ev.type === 'profile') {
+              const { site, profile } = ev;
+              setRows(p => (p[site] ? { ...p, [site]: { ...p[site], profile } } : p));
             } else if (ev.type === 'done') {
-              // Calibrated verdicts replace the provisional ones.
+              // Calibrated verdicts replace the provisional ones; `found` carries each hit's details and tie to the person.
               const next: Record<string, Row> = {};
-              for (const r of ev.found || []) next[r.site] = toRow(r, 'verified');
+              for (const r of ev.found || []) next[r.site] = toRow(r, r.unverified ? 'verifying' : 'verified');
               for (const r of ev.inconclusive || []) next[r.site] = toRow(r, 'unverifiable');
               for (const r of ev.blocked || []) next[r.site] = toRow(r, 'blocked');
+              for (const r of ev.unreliable || []) next[r.site] = toRow(r, 'unreliable');
               for (const r of ev.errors || []) next[r.site] = toRow(r, 'error');
               setRows(next);
+              setIdentity(ev.identity ?? null);
+              setNetworkTrouble(!!ev.network_trouble);
               setProgress({ checked: ev.checked, total: ev.checked, ruledOut: ev.not_found_count ?? 0 });
               completed = true;
               finish('done', (ev.found || []).length);
@@ -194,53 +214,40 @@ export function useFingerprintSearch() {
       return;
     }
 
-    /* ── email: breach corpus + mail domain, in parallel ── */
-    if (type === 'email') {
-      const domain = q.split('@').pop() || '';
-      setSources([
-        { id: 'breach', label: 'Breaches', via: 'XposedOrNot', state: 'pending' },
-        { id: 'mail', label: 'Mail domain', via: `DNS · ${domain}`, state: 'pending' },
-      ]);
-      const outcomes = await Promise.allSettled([
-        getJson(`/api/osint/leaks?email=${encodeURIComponent(q)}`).then(
-          d => { settle('breach', { state: 'done', data: d }); return (d.breaches || []).length as number; },
-          e => { settle('breach', { state: 'error', error: message(e) }); throw e; },
-        ),
-        getJson(`/api/osint/dns?domain=${encodeURIComponent(domain)}`).then(
-          d => { settle('mail', { state: 'done', data: d }); return 0; },
-          e => { settle('mail', { state: 'error', error: message(e) }); throw e; },
-        ),
-      ]);
-      if (ctrl.signal.aborted) return finish('stopped', 0);
-      if (outcomes.some(o => o.status === 'rejected' && signInRefused(o.reason))) return refuse();
-      const breaches = outcomes[0].status === 'fulfilled' ? outcomes[0].value : 0;
-      if (outcomes.every(o => o.status === 'rejected')) {
-        setError('Every source failed to answer.');
-        return finish('fail', 0);
-      }
-      return finish('done', breaches);
-    }
+    /* ── email and phone: a few sources in parallel, each answering on its own ── */
+    const plan: { id: string; label: string; via: string; url: string }[] = type === 'email'
+      ? [
+          { id: 'profile', label: 'Accounts and mail', via: 'Gravatar, GitHub, keys.openpgp.org, DNS', url: `/api/osint/email?email=${encodeURIComponent(q)}` },
+          { id: 'breach', label: 'Breaches', via: 'XposedOrNot', url: `/api/osint/leaks?email=${encodeURIComponent(q)}` },
+          { id: 'stealer', label: 'Infostealer logs', via: 'Hudson Rock', url: `/api/osint/hudsonrock?type=email&query=${encodeURIComponent(q)}` },
+        ]
+      : [
+          { id: 'number', label: 'Phone number', via: 'libphonenumber', url: `/api/osint/phone?number=${encodeURIComponent(q)}` },
+          // Hudson Rock matches the login string exactly, so send one spelling: digits and a leading +.
+          { id: 'stealer', label: 'Infostealer logs', via: 'Hudson Rock', url: `/api/osint/hudsonrock?type=phone&query=${encodeURIComponent(q.replace(/[^\d+]/g, ''))}` },
+        ];
+    setSources(plan.map(({ id, label, via }) => ({ id, label, via, state: 'pending' })));
 
-    /* ── phone: numbering-plan intelligence ── */
-    setSources([{ id: 'number', label: 'Phone number', via: 'libphonenumber', state: 'pending' }]);
-    try {
-      const d = await getJson(`/api/osint/phone?number=${encodeURIComponent(q)}`);
-      settle('number', { state: 'done', data: d });
-      finish('done', d.valid ? 1 : 0);
-    } catch (e) {
-      if (ctrl.signal.aborted) return finish('stopped', 0);
-      if (signInRefused(e)) return refuse();
-      settle('number', { state: 'error', error: message(e) });
-      setError(message(e));
-      finish('fail', 0);
+    const outcomes = await Promise.allSettled(plan.map(p => getJson(p.url).then(
+      d => { settle(p.id, { state: 'done', data: d }); return d; },
+      e => { settle(p.id, { state: 'error', error: message(e) }); throw e; },
+    )));
+    if (ctrl.signal.aborted) return finish('stopped', 0);
+    if (outcomes.some(o => o.status === 'rejected' && signInRefused(o.reason))) return refuse();
+    if (outcomes.every(o => o.status === 'rejected')) {
+      setError('Every source failed to answer.');
+      return finish('fail', 0);
     }
+    const first = outcomes[type === 'email' ? 1 : 0];
+    const data = first.status === 'fulfilled' ? first.value : null;
+    finish('done', type === 'email' ? (data?.breaches || []).length : data?.valid ? 1 : 0);
   }, [record]);
 
   return {
     mode, setMode, query, setQuery, phase, error, setError, searched, rows, progress,
     elapsedMs: startedAt ? (phase === 'running' ? now : finishedAt) - startedAt : 0,
     sources, view, setView, categories, setCategories, showUnsure, setShowUnsure,
-    showBlocked, setShowBlocked, history, clearHistory, run, stop,
+    showBlocked, setShowBlocked, tiedOnly, setTiedOnly, stage, identity, networkTrouble, history, clearHistory, run, stop,
   };
 }
 

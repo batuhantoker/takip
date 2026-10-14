@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { scanUsername, isValidUsername } from '@/lib/recon/sherlock';
 import { reconGate } from '@/lib/recon/gate';
+import { enrichProfiles } from '@/lib/recon/people/enrich';
+import { correlate } from '@/lib/recon/people/correlate';
 
 /**
  * TAKIP — FINGERPRINT username search, streamed.
@@ -14,10 +16,14 @@ import { reconGate } from '@/lib/recon/gate';
  *   ?username=  target handle (required)
  *
  * Response is NDJSON, one event per line:
- *   { type: 'result', total, site, url, status, http_status?, reason?, ms }
- *   { type: 'done', ...UsernameScan }   calibrated — positives a random
- *                                       control handle also triggered are
- *                                       moved to `inconclusive` here
+ *   { type: 'result', total, site, url, status, http_status?, reason?, ms, profile? }
+ *   { type: 'stage', stage: 'verifying' | 'profiles' }
+ *   { type: 'profile', site, profile }   a platform's API added to a hit's details
+ *   { type: 'done', ...UsernameScan, identity }   calibrated — positives a
+ *                                       random control handle also triggered
+ *                                       are moved to `inconclusive`; each
+ *                                       `found` entry carries its `profile`
+ *                                       and `match` (same person or not)
  *   { type: 'error', error }
  */
 
@@ -57,15 +63,31 @@ export async function GET(req: Request) {
         }
       };
 
+      const started = Date.now();
       try {
         const scan = await scanUsername(username, {
           all: true,
           concurrency: 18,
           timeoutMs: 6000,
           signal: req.signal,
+          readPages: true,
           onResult: (r, total) => send({ type: 'result', total, ...r }),
+          onVerifying: () => send({ type: 'stage', stage: 'verifying' }),
         });
-        send({ type: 'done', ...scan, timestamp: new Date().toISOString() });
+
+        send({ type: 'stage', stage: 'profiles' });
+        const details = await enrichProfiles(username, scan.found, {
+          signal: req.signal,
+          // Whatever the sweep left of maxDuration, keeping a margin to close the stream.
+          budgetMs: Math.max(4000, Math.min(20_000, 110_000 - (Date.now() - started))),
+          onProfile: (site, profile) => send({ type: 'profile', site, profile }),
+        });
+        const { matches, identity } = correlate(
+          username,
+          scan.found.map(r => ({ site: r.site, url: r.url, facts: details.get(r.site)?.facts, photo: details.get(r.site)?.photo })),
+        );
+        const found = scan.found.map(r => ({ ...r, profile: details.get(r.site)?.facts, match: matches[r.site] }));
+        send({ type: 'done', ...scan, found, identity, timestamp: new Date().toISOString() });
       } catch (e) {
         console.error('[TAKIP] fingerprint scan failed:', e);
         send({ type: 'error', error: e instanceof Error ? e.message : 'Username scan failed' });

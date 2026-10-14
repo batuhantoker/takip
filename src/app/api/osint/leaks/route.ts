@@ -42,11 +42,29 @@ export async function GET(req: Request) {
        });
     }
 
+    // Per-breach year, size and what leaked, newest first, for the people search.
+    type Detail = { breach?: string; xposed_date?: string | number; xposed_records?: number; domain?: string; industry?: string; password_risk?: string; xposed_data?: string };
+    const details = (Array.isArray(data.ExposedBreaches?.breaches_details) ? data.ExposedBreaches.breaches_details as Detail[] : [])
+      .map(b => ({
+        name: String(b.breach ?? ''),
+        year: b.xposed_date ? String(b.xposed_date) : null,
+        records: typeof b.xposed_records === 'number' ? b.xposed_records : null,
+        domain: b.domain || null,
+        industry: b.industry || null,
+        password_risk: b.password_risk || null,
+        data: typeof b.xposed_data === 'string' ? b.xposed_data.split(';').filter(Boolean) : [],
+      }))
+      .filter(b => b.name)
+      .sort((a, b) => (b.year ?? '').localeCompare(a.year ?? ''));
+    const risk = data.BreachMetrics?.risk?.[0];
+
     return NextResponse.json({
       email,
       breached: breachList.length > 0,
       breaches: breachList,
-      data_exposed: Array.from(dataExposed).sort()
+      data_exposed: Array.from(dataExposed).sort(),
+      details,
+      risk: risk ? { label: risk.risk_label ?? null, score: risk.risk_score ?? null } : null,
     });
   } catch (error: any) {
     return NextResponse.json({ error: 'Leak lookup failed', detail: error.message }, { status: 500 });

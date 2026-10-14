@@ -7,10 +7,14 @@ import { Segmented } from '@/components/ui/segmented';
 import { Stat } from '@/components/ui/stat';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import type { ReactNode } from 'react';
-import { toCsv, type Category } from '@/lib/recon/fingerprint';
-import { STATUS_META, download, bareUrl, type Row } from '@/lib/recon/fingerprint-rows';
-import { StatusPill, PlatformTile } from './fingerprint-parts';
+import type { Category } from '@/lib/recon/fingerprint';
+import { download, exportRows, bareUrl, type Row } from '@/lib/recon/fingerprint-rows';
+import { StatusPill } from './fingerprint-parts';
+import { MatchTag, ProfileAvatar, ProfileCard } from './fingerprint-profile-card';
 import type { FingerprintState } from './use-fingerprint-search';
+import { FingerprintIdentity } from './fingerprint-identity';
+
+const STAGE_LABEL = { sweep: 'Checking platforms', verifying: 'Verifying hits…', profiles: 'Reading profiles…' } as const;
 
 function CategoryChip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
   return (
@@ -27,30 +31,24 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
   isFullScreen: boolean;
   running: boolean;
   all: Row[];
-  counts: { hits: number; unsure: number; blocked: number };
+  counts: { hits: number; unsure: number; blocked: number; tied: number };
   categoryCounts: { category: Category; count: number }[];
   visible: Row[];
 }) {
   const toggleCategory = (c: Category) =>
     fp.setCategories(fp.categories.includes(c) ? fp.categories.filter(x => x !== c) : [...fp.categories, c]);
 
-  const exportRows = (format: 'csv' | 'json') => {
+  const save = (format: 'csv' | 'json') => {
     if (!fp.searched) return;
-    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    const base = `fingerprint-${fp.searched.query.replace(/[^A-Za-z0-9._-]/g, '_')}-${stamp}`;
-    const rows = Object.values(fp.rows);
-    if (format === 'json') {
-      download(`${base}.json`, JSON.stringify({
-        query: fp.searched.query, type: fp.searched.type, exported_at: new Date().toISOString(), platforms_checked: fp.progress.checked,
-        results: rows.map(r => ({ platform: r.site, category: r.category, status: STATUS_META[r.status].label.toLowerCase(), url: r.url, http_status: r.http_status ?? null, response_ms: r.ms, note: r.reason ?? null })),
-      }, null, 2), 'application/json');
-    } else {
-      download(`${base}.csv`, toCsv(
-        ['platform', 'category', 'status', 'url', 'http_status', 'response_ms'],
-        rows.map(r => [r.site, r.category, STATUS_META[r.status].label.toLowerCase(), r.url, r.http_status ?? '', r.ms]),
-      ), 'text/csv');
-    }
+    const file = exportRows(Object.values(fp.rows), { ...fp.searched, checked: fp.progress.checked }, format);
+    download(file.filename, file.body, file.type);
   };
+
+  const trouble = fp.networkTrouble && !running && (
+    <p className="mt-3 text-small text-amber">
+      Most sites couldn’t be reached at all, so the connection dropped rather than the sites answering. Results are incomplete; try again in a minute.
+    </p>
+  );
 
   const pct = fp.progress.total ? Math.round((fp.progress.checked / fp.progress.total) * 100) : 0;
   const seconds = (fp.elapsedMs / 1000).toFixed(1);
@@ -61,7 +59,7 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
         <span className="flex items-center gap-2 text-ink-1">
           {running ? <Loader2 aria-hidden className="size-3.5 animate-spin text-accent motion-reduce:animate-none" />
             : fp.phase === 'done' ? <CheckCircle aria-hidden className="size-3.5 text-green" /> : <XCircle aria-hidden className="size-3.5 text-amber" />}
-          {running ? (fp.progress.total && fp.progress.checked >= fp.progress.total ? 'Verifying hits…' : 'Checking platforms')
+          {running ? STAGE_LABEL[fp.progress.total && fp.progress.checked >= fp.progress.total && fp.stage === 'sweep' ? 'verifying' : fp.stage]
             : fp.phase === 'done' ? 'Search complete' : fp.phase === 'stopped' ? 'Stopped' : 'Search failed'}
         </span>
         <span className="font-mono text-ink-2 tabular-nums">{fp.progress.checked}{fp.progress.total ? ` / ${fp.progress.total}` : ''}</span>
@@ -75,6 +73,7 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
         <Stat size="sm" label="Blocked" value={counts.blocked} />
         <Stat size="sm" label="Elapsed" value={seconds} unit="s" />
       </div>
+      {trouble}
     </div>
   );
 
@@ -89,6 +88,9 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
         ))}
       </div>
       <div className="flex flex-col gap-2">
+        {fp.identity?.tied && (
+          <Checkbox checked={fp.tiedOnly} onChange={e => fp.setTiedOnly(e.target.checked)} label={`Only profiles tied to this person (${counts.tied})`} />
+        )}
         <Checkbox checked={fp.showUnsure} onChange={e => fp.setShowUnsure(e.target.checked)} label={`Show unsure (${counts.unsure})`} />
         <Checkbox checked={fp.showBlocked} onChange={e => fp.setShowBlocked(e.target.checked)} label={`Show blocked or no answer (${counts.blocked})`} />
       </div>
@@ -97,32 +99,13 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
 
   const empty = (
     <div className="py-8 text-center text-small text-ink-3">
-      {running ? 'Hits appear here the moment a platform confirms them.' : 'No profiles match these filters.'}
+      {running ? 'Hits appear here the moment a platform answers.' : 'No profiles match these filters.'}
     </div>
   );
 
   const cards = (
     <div className={`grid gap-2 ${isFullScreen ? 'grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'}`}>
-      {visible.map(r => (
-        <a key={r.site} href={r.url} target="_blank" rel="noopener noreferrer"
-          className={cx('group flex flex-col gap-1.5 rounded-card border border-line bg-surface-2 p-2.5 hover:border-line-strong', FOCUS_RING, TRANSITION)}>
-          <div className="flex min-w-0 items-center gap-2">
-            <PlatformTile row={r} />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-body font-medium text-ink-1">{r.site}</div>
-              <div className="truncate text-meta text-ink-3">@{fp.searched!.query}</div>
-            </div>
-            <StatusPill status={r.status} live={running} />
-          </div>
-          <div className="flex items-center justify-between gap-2 text-meta text-ink-3">
-            <span className="truncate group-hover:text-ink-2">{bareUrl(r.url)}</span>
-            <ExternalLink aria-hidden className="size-3 shrink-0" />
-          </div>
-          {(r.status === 'blocked' || r.status === 'error' || r.status === 'unverifiable') && r.reason && (
-            <p className="text-meta text-ink-3">{r.reason}</p>
-          )}
-        </a>
-      ))}
+      {visible.map(r => <ProfileCard key={r.site} row={r} query={fp.searched!.query} live={running} />)}
     </div>
   );
 
@@ -133,7 +116,7 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
           <tr className="text-meta text-ink-3">
             <th className="px-2.5 py-2 text-left font-medium">Platform</th>
             <th className="px-2 py-2 text-left font-medium">Profile</th>
-            {isFullScreen && <th className="px-2 py-2 text-left font-medium">Category</th>}
+            {isFullScreen && <th className="px-2 py-2 text-left font-medium">Name</th>}
             <th className="px-2 py-2 text-left font-medium">Status</th>
             {isFullScreen && <th className="px-2.5 py-2 text-right font-medium">Response</th>}
           </tr>
@@ -143,7 +126,7 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
             <tr key={r.site} className="border-t border-line hover:bg-surface-2">
               <td className="px-2.5 py-1.5">
                 <span className="flex items-center gap-2">
-                  <PlatformTile row={r} small />
+                  <ProfileAvatar row={r} small />
                   <span className="whitespace-nowrap font-medium text-ink-1">{r.site}</span>
                 </span>
               </td>
@@ -153,8 +136,13 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
                   <ExternalLink aria-hidden className="size-3 shrink-0" />
                 </a>
               </td>
-              {isFullScreen && <td className="px-2 py-1.5 text-ink-2">{r.category}</td>}
-              <td className="px-2 py-1.5">{r.status === 'verified' ? <span className="text-ink-2">Found</span> : <StatusPill status={r.status} live={running} />}</td>
+              {isFullScreen && <td className="max-w-[180px] truncate px-2 py-1.5 text-ink-2">{r.profile?.name ?? ''}</td>}
+              <td className="px-2 py-1.5" title={r.match?.reasons.join('\n') ?? r.reason}>
+                <span className="flex items-center gap-1">
+                  {r.status === 'verified' && !r.match ? <span className="text-ink-2">Found</span> : <StatusPill status={r.status} live={running} />}
+                  <MatchTag row={r} />
+                </span>
+              </td>
               {isFullScreen && <td className="px-2.5 py-1.5 text-right font-mono text-ink-3 tabular-nums">{r.ms} ms</td>}
             </tr>
           ))}
@@ -168,14 +156,15 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
   return (
     <div className="flex flex-col gap-4">
       {progress}
+      {fp.identity && !running && fp.searched && <div><FingerprintIdentity fp={fp} identity={fp.identity} query={fp.searched.query} /></div>}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-small text-ink-2"><span className="font-medium text-ink-1 tabular-nums">{visible.length}</span> {visible.length === 1 ? 'result' : 'results'}</span>
         <div className="flex items-center gap-1.5">
           <Segmented size="sm" label="Result view" value={fp.view} onChange={fp.setView}
             options={[{ value: 'cards', label: 'Cards', icon: LayoutGrid }, { value: 'table', label: 'Table', icon: Table2 }]} />
-          <Button variant="secondary" size="sm" icon={Download} disabled={all.length === 0} onClick={() => exportRows('csv')}>CSV</Button>
-          <Button variant="secondary" size="sm" icon={Download} disabled={all.length === 0} onClick={() => exportRows('json')}>JSON</Button>
+          <Button variant="secondary" size="sm" icon={Download} disabled={all.length === 0} onClick={() => save('csv')}>CSV</Button>
+          <Button variant="secondary" size="sm" icon={Download} disabled={all.length === 0} onClick={() => save('json')}>JSON</Button>
         </div>
       </div>
 
@@ -192,8 +181,10 @@ export function FingerprintUsernameResults({ fp, isFullScreen, running, all, cou
       )}
 
       <p className="text-meta leading-relaxed text-ink-3">
-        Hits show as checking while the search runs. Each is then tried against two made-up handles, and sites that also
-        “find” those move to unsure. Blocked sites refused the request. Site list from the Sherlock project.
+        Hits show as checking while the search runs. Each is then tried against made-up handles: sites that also “find” those,
+        or won’t answer for them, move to unsure. A miss only counts where the site can find its own known account. Profiles
+        are then read for names, links and photos, and tied together where they verify, link to or resemble each other.
+        Site list from the Sherlock project.
       </p>
     </div>
   );
