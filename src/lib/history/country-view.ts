@@ -44,9 +44,9 @@ export const VIEW_GROUPS: { label: string; views: { code: string; label: string 
     { code: 'wdi:SE.ADT.LITR.ZS', label: 'Adult literacy' },
   ] },
   { label: 'Technology and environment', views: [
-    { code: 'wdi:IT.NET.USER.P2', label: 'Internet users' },
+    { code: 'wdi:IT.NET.USER.ZS', label: 'Internet users' },
     { code: 'wdi:EG.ELC.ACCS.ZS', label: 'Access to electricity' },
-    { code: 'wdi:EN.ATM.CO2E.PC', label: 'CO₂ per person' },
+    { code: 'wdi:EN.GHG.CO2.PC.CE.AR5', label: 'CO₂ per person' },
     { code: 'wdi:AG.LND.FRST.ZS', label: 'Forest area' },
   ] },
 ];

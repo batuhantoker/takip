@@ -8,12 +8,14 @@ import { PanelSection } from '@/components/ui/panel';
 import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES } from '@/lib/history/popup';
 import type { HistorySession } from '@/lib/history/session';
 import { WAR_LAYERS, type WarLayer } from '@/lib/history/war-layers';
+import { WORLD_BORDERS } from '@/lib/history/world-borders';
 import { yearLabel } from '@/lib/replay/timeline-ticks';
 import { FAMILY_TEXT, type Moment, MOMENTS, type Place } from '@/components/panels/history/lib/history-content';
 import { HistoryCard } from './history-card';
 import { ToggleRow } from './toggle-row';
 
-export type FlyTo = (place: Place) => void;
+/** `onArrive` runs once the camera gets there. */
+export type FlyTo = (place: Place, onArrive?: () => void) => void;
 
 /** Which event families the map draws. */
 export function EventsSection({ session }: { session: HistorySession }) {
@@ -33,22 +35,39 @@ export function EventsSection({ session }: { session: HistorySession }) {
   );
 }
 
-/** Wartime borders, month by month, and a way to watch the war unfold. */
+/** World borders through the ages, wartime borders month by month, and a way to watch either unfold. */
 export function BordersSection({ session, onFlyTo }: { session: HistorySession; onFlyTo?: FlyTo }) {
   const layers = session.layers();
   const colouring = session.countries.state().status !== 'off';
-  // The war from its first month, a month a second, with its battles on; the borders already show the annexations.
+  // The war from its first month to its last, a month a second, with its battles on; the borders already show the annexations.
   const play = (war: WarLayer) => {
     session.setLayer(war.code, true);
     session.setFamily('conflict', true);
+    session.clock.pause();
     session.clock.seek(war.start);
     session.clock.setSpeed(30 * 86_400);
-    session.clock.play();
-    onFlyTo?.(war.view);
+    const start = () => session.clock.play(war.end);
+    // The clock waits for the camera, so the first months don't pass mid-flight.
+    if (onFlyTo) onFlyTo(war.view, start);
+    else start();
+  };
+  const playWorld = () => {
+    const w = WORLD_BORDERS;
+    session.setLayer(w.code, true);
+    session.clock.pause();
+    session.clock.seek(w.start);
+    session.clock.setSpeed(w.speed);
+    const start = () => session.clock.play(w.end);
+    if (onFlyTo) onFlyTo(w.view, start);
+    else start();
   };
   return (
     <PanelSection title="Borders">
       <div className="flex flex-col gap-2">
+        <HistoryCard title={WORLD_BORDERS.label} body="Countries and empires year by year, from 3400 BCE to 2024."
+          control={<Switch label="Show world borders on the map" hideLabel checked={layers.includes(WORLD_BORDERS.code)} onChange={on => session.setLayer(WORLD_BORDERS.code, on)} />}>
+          <Button size="sm" icon={Play} onClick={playWorld}>Play {WORLD_BORDERS.playYears}</Button>
+        </HistoryCard>
         {WAR_LAYERS.map(war => (
           <HistoryCard key={war.code} title={war.label} body="Borders and occupation, month by month."
             control={<Switch label="Show these borders on the map" hideLabel checked={layers.includes(war.code)} onChange={on => session.setLayer(war.code, on)} />}>

@@ -21,6 +21,8 @@ import {
 import { Swatch } from '@/components/panels/history/parts/swatch';
 import { useHistoryTick } from './use-history';
 import WarLegend from '@/components/panels/history/legends/war-legend';
+import WorldBordersLegend from '@/components/panels/history/legends/world-borders-legend';
+import { WORLD_BORDERS } from '@/lib/history/world-borders';
 
 /** The geological periods inside the deep range, oldest first, for the strip under the track. */
 function periodBands(lo: number, hi: number): Band[] {
@@ -107,6 +109,7 @@ export default function HistoryTimelineBar({ session, onExit }: { session: Histo
 
   let above = null;
   if (deep) above = <DeepTimeCard session={session} />;
+  else if (session.layers().includes(WORLD_BORDERS.code)) above = <WorldBordersLegend session={session} />;
   else if (session.layers().length > 0) above = <WarLegend session={session} />;
   else if (session.countries.state().status !== 'off') above = <CountryLegend session={session} />;
 

@@ -68,7 +68,7 @@ export function CountriesSection({ session }: { session: HistorySession }) {
       {searching && <div className="mt-3"><IndicatorSearch view={view} onDone={() => setSearching(false)} /></div>}
       {detail ? <div className="mt-3">{detail}</div> : (
         <p className="mt-2 text-meta text-ink-3">
-          {session.layers().length ? 'Picking one hides the wartime borders.' : 'From the World Bank and Our World in Data, drawn on today’s borders.'}
+          {session.layers().length ? 'Picking one hides the borders.' : 'From the World Bank and Our World in Data, drawn on today’s borders.'}
         </p>
       )}
     </PanelSection>

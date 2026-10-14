@@ -62,6 +62,24 @@ describe('createReplayClock', () => {
     clock.seek(now + 99_999);
     expect(clock.time()).toBe(now);
   });
+
+  it('stops at an end it was given, and a pause forgets it', () => {
+    const frames: ((ms: number) => void)[] = [];
+    const clock = createReplayClock(0, { now: () => 1_000_000, frame: cb => frames.push(cb), cancelFrame: () => {} });
+    clock.setSpeed(10);
+    clock.play(30_000);
+    frames.shift()!(0);
+    frames.shift()!(5000);
+    expect(clock.time()).toBe(30_000);
+    expect(clock.playing()).toBe(false);
+    clock.play(40_000);
+    clock.pause();
+    clock.play();
+    frames.shift()!(0);
+    frames.shift()!(2000);
+    expect(clock.time()).toBe(50_000);
+    expect(clock.playing()).toBe(true);
+  });
 });
 
 describe('chunk selection', () => {

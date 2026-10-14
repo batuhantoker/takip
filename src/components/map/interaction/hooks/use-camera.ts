@@ -65,12 +65,16 @@ export function useFlyTo({ mapRef, mapReady, flyToLocation, openAlertPinRef }: F
   useEffect(() => {
     if (!mapReady || !mapRef.current || !flyToLocation) return;
     const map = mapRef.current;
-    map.flyTo({ center: [flyToLocation.lng, flyToLocation.lat], zoom: flyToLocation.zoom ?? 8, duration: flyToLocation.duration ?? 2000 });
-    const alertId = flyToLocation.alertId;
-    if (!alertId) return;
-    const open = () => openAlertPinRef.current?.(alertId);
-    map.once('moveend', open);
-    return () => { map.off('moveend', open); };
+    const { alertId, onArrive } = flyToLocation;
+    const arrive = () => {
+      if (alertId) openAlertPinRef.current?.(alertId);
+      onArrive?.();
+    };
+    // A running flight's moveend isn't this one's arrival, and a reduced-motion flyTo jumps (and arrives) synchronously.
+    map.stop();
+    map.once('moveend', arrive);
+    map.flyTo({ center: [flyToLocation.lng, flyToLocation.lat], zoom: flyToLocation.zoom ?? 8, duration: flyToLocation.duration ?? 2000, offset: flyToLocation.offset ?? [0, 0] });
+    return () => { map.off('moveend', arrive); };
   }, [mapReady, flyToLocation, mapRef, openAlertPinRef]);
 }
 

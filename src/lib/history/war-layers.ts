@@ -14,15 +14,17 @@ export const ALIGNMENTS: { key: Alignment; label: string; color: string }[] = [
   { key: 'none', label: 'Not at war', color: '#343B44' },
 ];
 
-export type WarLayer = { code: string; label: string; years: string; note: string; start: number; view: { lat: number; lng: number; zoom: number } };
+/** `start` and `end` bound the borders' months; Play runs between them. */
+export type WarLayer = { code: string; label: string; years: string; note: string; start: number; end: number; view: { lat: number; lng: number; zoom: number } };
 
 export const WAR_LAYERS: WarLayer[] = [{
   code: 'ww2-europe',
   label: 'World War II in Europe',
   years: '1938–1945',
-  note: 'Borders at each month’s end, from annexations; occupation shows as a status, not a border.',
-  start: Date.UTC(1938, 1, 28),
-  view: { lat: 50, lng: 17, zoom: 3.2 },
+  note: 'Each month shows the borders as they stood at its end, from annexations; occupation shows as a status, not a border.',
+  start: Date.UTC(1938, 1, 1),
+  end: Date.UTC(1945, 4, 31),
+  view: { lat: 47, lng: 17, zoom: 3.05 },
 }];
 
 /** Feature properties as /api/replay/history/features sends them; times are epoch seconds. */
@@ -36,13 +38,15 @@ const month = (s: number) => {
 
 export function warPopupHtml(p: WarFeature, attribution: string | null): string {
   const a = ALIGNMENTS.find(x => x.key === p.alignment) ?? ALIGNMENTS[ALIGNMENTS.length - 1];
+  // t1 is the first of the month after the last one shown.
+  const last = p.t1 === null ? null : month(p.t1 - 1);
   return pop({
     kicker: a.label,
     dot: a.color,
     title: p.name,
     rows: [
       { label: 'Status', value: p.status && p.status !== a.label ? p.status : null },
-      { label: 'These borders', value: p.t1 === null ? `from ${month(p.t0)}` : `${month(p.t0)} – ${month(p.t1)}` },
+      { label: 'These borders', value: last === null ? `from ${month(p.t0)}` : last === month(p.t0) ? last : `${month(p.t0)} – ${last}` },
       { label: 'Head of state', value: p.head },
       { label: 'Government in exile', value: p.exile },
     ],

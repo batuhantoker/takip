@@ -28,9 +28,9 @@ export interface WorldMapProps {
   onMouseCoords?: (coords: { lat: number; lng: number }) => void;
   onRightClick?: (coords: { lat: number; lng: number }) => void;
   onViewStateChange?: (vs: { zoom: number; latitude: number }) => void;
-  /** `alertId` also opens that Live Alert's pin once the camera arrives.
-   *  `duration` overrides the default 2 s flight. */
-  flyToLocation?: { lat: number; lng: number; zoom?: number; alertId?: string; duration?: number; ts: number } | null;
+  /** `alertId` also opens that Live Alert's pin once the camera arrives, and `onArrive` runs then.
+   *  `duration` overrides the default 2 s flight; `offset` lands the target that many pixels from the centre. */
+  flyToLocation?: { lat: number; lng: number; zoom?: number; alertId?: string; duration?: number; offset?: [number, number]; onArrive?: () => void; ts: number } | null;
   /** Fires once, when the map has drawn its first complete frame. */
   onReady?: () => void;
   /** Replay mode: ships and aircraft drawn at this session's clock instead of live. */

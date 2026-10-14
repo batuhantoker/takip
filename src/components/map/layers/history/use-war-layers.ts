@@ -3,10 +3,11 @@
 import { type RefObject, useEffect } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { HistorySession } from '@/lib/history/session';
-import { ALIGNMENTS, type WarFeature, warPopupHtml } from '@/lib/history/war-layers';
+import { ALIGNMENTS, WAR_LAYERS, type WarFeature, warPopupHtml } from '@/lib/history/war-layers';
 import { MAP_INK, labelPaint } from '@/lib/map/tokens';
 import { hatchImage } from '@/lib/map/hatch';
 import type { MapRef } from '@/components/map/types';
+import { hideModernBorders } from './modern-borders';
 
 /*
  * Wartime borders in History: each polity's shape for the month at the clock, coloured by alignment.
@@ -27,8 +28,6 @@ const ids = (code: string) => ({ source: `war-${code}`, fill: `war-${code}-fill`
 const color = ['match', ['get', 'alignment'], ...ALIGNMENTS.flatMap(a => [a.key, a.color]), ALIGNMENTS[ALIGNMENTS.length - 1].color];
 const isShape = ['!', ['has', 'label']];
 const at = (t: number) => ['all', ['<=', ['get', 't0'], t], ['>', ['coalesce', ['get', 't1'], FOREVER_S], t]];
-/** Today's country names and borders would contradict the period's; they step aside while borders show. */
-const MODERN = ['place_country_1', 'place_country_2', 'boundary_country_outline', 'boundary_country_inner'];
 
 function addLayers(map: maplibregl.Map, code: string) {
   const id = ids(code);
@@ -76,15 +75,12 @@ export function useWarLayers({ mapRef, mapReady, history, popupRef }: {
     if (!mapReady || !map || !history) return;
     const shown = new Map<string, { loaded: Loaded | null; generation: number }>();
     let timer: ReturnType<typeof setTimeout> | undefined;
-    // Only the ones this hook hid, so it never unhides what something else (paleo, a style) turned off.
-    let muted: string[] = [];
+    let unhide: (() => void) | null = null;
     const muteModern = (on: boolean) => {
-      if (on && !muted.length) {
-        muted = MODERN.filter(id => map.getLayer(id) && map.getLayoutProperty(id, 'visibility') !== 'none');
-        for (const id of muted) map.setLayoutProperty(id, 'visibility', 'none');
-      } else if (!on && muted.length) {
-        for (const id of muted) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'visible');
-        muted = [];
+      if (on) unhide ??= hideModernBorders(map);
+      else {
+        unhide?.();
+        unhide = null;
       }
     };
     let appliedT = NaN;
@@ -143,7 +139,7 @@ export function useWarLayers({ mapRef, mapReady, history, popupRef }: {
     const unpointer = () => { map.getCanvas().style.cursor = ''; };
 
     const sync = () => {
-      const want = new Set(history.layers());
+      const want = new Set(history.layers().filter(code => WAR_LAYERS.some(w => w.code === code)));
       for (const code of [...shown.keys()]) {
         if (want.has(code)) continue;
         const id = ids(code);

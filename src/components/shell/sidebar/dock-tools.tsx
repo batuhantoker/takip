@@ -10,7 +10,7 @@ import type { Areas } from '@/components/panels/areas/use-areas';
 import type { ArcgisLayers } from '@/components/panels/arcgis/use-arcgis-layers';
 import type { HistorySession } from '@/lib/history/session';
 import type { ActiveLayers } from '@/lib/layers/defaults';
-import type { ToolId } from './dock';
+import { DOCK_WIDTH, NAV_WIDTH, type ToolId } from './dock';
 import type { FlyToTarget, LiveData, MapCenter } from '@/components/shell/state/types';
 
 const LayersPane = dynamic(() => import('@/components/panels/layers/layers-panel'));
@@ -81,7 +81,7 @@ export default function DockTools({ tool, onClose, data, activeLayers, setActive
       <OsintPanel onClose={onClose} onSweepVisualize={onSweep} onScanGeolocate={(target, scan) => { onScanGeolocate(target, scan); flyTo(scan.lat, scan.lng); }} />
     );
     case 'space': return <SpaceDock onClose={onClose} />;
-    case 'history': return <HistoryPanel session={history.session} onOpen={history.open} onClose={onClose} onExit={history.exit} onFlyTo={v => flyTo(v.lat, v.lng, v.zoom)} />;
+    case 'history': return <HistoryPanel session={history.session} onOpen={history.open} onClose={onClose} onExit={history.exit} onFlyTo={(v, onArrive) => setFlyToLocation({ ...v, offset: [(NAV_WIDTH + DOCK_WIDTH) / 2, 0], onArrive, ts: Date.now() })} />;
     case 'arcgis': return (
       <ArcGISPanel onImportLayer={arcgis.importLayer} onRemoveLayer={arcgis.removeLayer} onUpdateLayer={arcgis.updateLayer}
         importedLayers={arcgis.arcgisLayers} mapBounds={mapBounds ?? null} onClose={onClose} />

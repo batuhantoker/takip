@@ -25,6 +25,8 @@ export interface PopSpec {
   subtitle?: string;
   body?: string;
   rows?: Array<PopRow | false | null | undefined>;
+  /** Trusted HTML after the rows, like `body`. */
+  foot?: string;
   note?: string;
   links?: Array<{ href: unknown; label: string } | false | null | undefined>;
   wide?: boolean;
@@ -51,6 +53,7 @@ export function pop(spec: PopSpec): string {
   ${spec.subtitle ? `<div class="tk-pop-sub">${htmlEsc(spec.subtitle)}</div>` : ''}
   ${spec.body ? `<div class="tk-pop-body">${spec.body}</div>` : ''}
   ${rows.length ? `<dl class="tk-pop-rows">${rows.map(r => `<dt>${htmlEsc(r.label)}</dt><dd class="${[r.mono ? 'tk-mono' : '', r.tone && r.tone !== 'neutral' ? `tk-fg-${r.tone}` : ''].join(' ').trim()}">${htmlEsc(r.value)}</dd>`).join('')}</dl>` : ''}
+  ${spec.foot ?? ''}
   ${spec.note ? `<div class="tk-pop-note">${htmlEsc(spec.note)}</div>` : ''}
   ${links.length ? `<div class="tk-pop-links">${links.map(l => `<a href="${urlSafe(l.href)}" target="_blank" rel="noopener noreferrer">${htmlEsc(l.label)}</a>`).join('')}</div>` : ''}
 </div>`;

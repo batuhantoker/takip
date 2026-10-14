@@ -24,6 +24,16 @@ describe('history session deep time', () => {
     s.dispose();
   });
 
+  it('shows one set of borders at a time', () => {
+    const s = createHistorySession(Date.UTC(1940, 0, 1), never);
+    s.setLayer('ww2-europe', true);
+    s.setLayer('world-borders', true);
+    expect(s.layers()).toEqual(['world-borders']);
+    s.setLayer('ww2-europe', false);
+    expect(s.layers()).toEqual(['world-borders']);
+    s.dispose();
+  });
+
   it('opens deep time with the story and closes the story on leaving', () => {
     const s = createHistorySession(Date.UTC(1940, 0, 1), never);
     s.story.go(0);

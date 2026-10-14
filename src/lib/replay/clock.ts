@@ -8,7 +8,8 @@ export type ReplayClock = {
   playing(): boolean;
   speed(): number;
   seek(t: number): void;
-  play(): void;
+  /** With `until`, stops there; a pause or a seek forgets it. */
+  play(until?: number): void;
   pause(): void;
   setSpeed(x: number): void;
   /** Called on every change, including each frame while playing. */
@@ -26,6 +27,7 @@ export function createReplayClock(start: number, { now = Date.now, frame = reque
   let t = Math.min(start, now());
   let playing = false;
   let speed = 60;
+  let stop: number | undefined;
   let handle: number | undefined;
   let last: number | undefined;
   const listeners = new Set<() => void>();
@@ -33,8 +35,12 @@ export function createReplayClock(start: number, { now = Date.now, frame = reque
 
   const step = (ms: number) => {
     if (last !== undefined) {
-      t = Math.min(now(), t + (ms - last) * speed);
-      if (t >= now()) playing = false;
+      const end = Math.min(now(), stop ?? Infinity);
+      t = Math.min(end, t + (ms - last) * speed);
+      if (t >= end) {
+        playing = false;
+        stop = undefined;
+      }
       emit();
     }
     last = ms;
@@ -47,11 +53,13 @@ export function createReplayClock(start: number, { now = Date.now, frame = reque
     speed: () => speed,
     seek(next) {
       t = Math.min(next, now());
+      stop = undefined;
       emit();
     },
-    play() {
+    play(until) {
       if (playing) return;
       if (t >= now() - 1000) return;
+      stop = until !== undefined && until > t ? until : undefined;
       playing = true;
       last = undefined;
       handle = frame(step);
@@ -59,6 +67,7 @@ export function createReplayClock(start: number, { now = Date.now, frame = reque
     },
     pause() {
       playing = false;
+      stop = undefined;
       if (handle !== undefined) cancelFrame(handle);
       handle = undefined;
       emit();

@@ -1,5 +1,5 @@
 /**
- * English Wikipedia lookups for server routes. Keyless; Wikimedia asks for a
+ * Wikipedia lookups for server routes, English unless a wiki code is given. Keyless; Wikimedia asks for a
  * descriptive User-Agent and a gentle request rate.
  */
 import { trimExtract, type WikiSummary } from '@/lib/space/wiki-topic';
@@ -34,9 +34,16 @@ export async function wikiSearch(q: string, limit = 3): Promise<{ title: string;
     .map(p => ({ title: p.title, coord: p.coordinates?.[0] ? { lat: p.coordinates[0].lat, lon: p.coordinates[0].lon } : null }));
 }
 
-/** An article's lead and picture; null when it is missing or a disambiguation page. */
-export async function wikiSummary(title: string): Promise<WikiSummary | null> {
-  const res = await fetch(`${API}/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
+/** A wiki code goes into the host name, so nothing but a code passes. */
+const wikiHost = (lang: string) => {
+  if (!/^[a-z][a-z0-9-]{1,15}$/.test(lang)) throw new Error(`bad wiki code ${lang}`);
+  return `https://${lang}.wikipedia.org`;
+};
+
+/** An article's lead and picture; null when it is missing or a disambiguation page. `lang` is a wiki code ("fr"). */
+export async function wikiSummary(title: string, lang = 'en'): Promise<WikiSummary | null> {
+  const api = wikiHost(lang);
+  const res = await fetch(`${api}/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Wikipedia summary HTTP ${res.status}`);
   const s = await res.json() as { type?: string; title: string; description?: string; extract?: string; thumbnail?: { source: string; width: number; height: number }; content_urls?: { desktop?: { page?: string } } };
@@ -46,6 +53,13 @@ export async function wikiSummary(title: string): Promise<WikiSummary | null> {
     description: s.description ?? null,
     extract: trimExtract(s.extract ?? ''),
     image: s.thumbnail ? { src: s.thumbnail.source, width: s.thumbnail.width, height: s.thumbnail.height } : null,
-    url: s.content_urls?.desktop?.page ?? `${API}/wiki/${encodeURIComponent(s.title)}`,
+    url: s.content_urls?.desktop?.page ?? `${api}/wiki/${encodeURIComponent(s.title)}`,
   };
+}
+
+/** The same article in the other Wikipedias, as [{ lang, title }]. */
+export async function wikiLanguages(title: string, lang = 'en'): Promise<{ lang: string; title: string }[]> {
+  const params = { action: 'query', format: 'json', formatversion: '2', prop: 'langlinks', lllimit: 'max', redirects: '1', titles: title };
+  const body = await getJson<{ query?: { pages?: { langlinks?: { lang: string; title: string }[] }[] } }>(`${wikiHost(lang)}/w/api.php?${new URLSearchParams(params)}`);
+  return body.query?.pages?.[0]?.langlinks ?? [];
 }

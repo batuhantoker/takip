@@ -8,13 +8,14 @@ const THIS_YEAR = new Date().getUTCFullYear();
 /** How the History panel names each event family, the years its sources cover, and what it holds. */
 export const FAMILY_TEXT: Record<string, { name: string; span: string; note: string }> = {
   conflict: { name: 'Wars and battles', span: '3000 BCE–2025', note: 'Battles, sieges, wars and their death tolls' },
-  terror: { name: 'Attacks', span: '1970–2017', note: 'From the Global Terrorism Database' },
+  terror: { name: 'Attacks', span: `44 BCE–${THIS_YEAR}`, note: 'GTD for 1970–2017, Wikidata before and since' },
   territorial: { name: 'Territorial claims', span: '1816–2018', note: 'Claims and transfers of land between states' },
   // The danger list is as of 2021, so earlier years show only sites taken off it.
   heritage: { name: 'Heritage in danger', span: '1988–2022', note: 'Sites UNESCO lists in danger, as of 2021' },
   hazard: { name: 'Natural hazards', span: `2150 BCE–${THIS_YEAR}`, note: 'Significant quakes, tsunamis and eruptions' },
   politics: { name: 'Treaties and coups', span: `1300 BCE–${THIS_YEAR}`, note: 'Treaty signings and coups, from Wikidata' },
   nuclear: { name: 'Nuclear explosions', span: '1945–1998', note: 'Tests, and Hiroshima and Nagasaki' },
+  disaster: { name: 'Disasters', span: '1960–2018', note: 'Where floods, storms and droughts struck' },
 };
 
 export type Moment = {

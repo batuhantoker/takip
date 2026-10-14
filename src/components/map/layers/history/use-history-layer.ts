@@ -2,10 +2,11 @@
 
 import { type RefObject, useEffect, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryDetail, type HistoryFeature, historyPopupHtml } from '@/lib/history/popup';
+import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryFeature } from '@/lib/history/popup';
 import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/tokens';
 import type { ReplayClock } from '@/lib/replay/clock';
 import type { MapRef } from '@/components/map/types';
+import { openHistoryPopup } from './history-popup';
 
 /*
  * Curated history at the timeline's time: wars, battles, claims, attacks, heritage in danger in History,
@@ -194,15 +195,7 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, popupRef
     const onEventClick = (e: maplibregl.MapLayerMouseEvent) => {
       const f = e.features?.[0];
       if (!f) return;
-      const p = f.properties as HistoryFeature;
-      const at = (f.geometry as GeoJSON.Point).coordinates as [number, number];
-      popupRef.current?.remove();
-      const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '340px', offset: 12 }).setLngLat(at).setHTML(historyPopupHtml(p)).addTo(map);
-      popupRef.current = popup;
-      fetch(`/api/replay/history/events/${p.id}`)
-        .then(res => (res.ok ? (res.json() as Promise<HistoryDetail>) : null))
-        .catch(() => null)
-        .then(d => { if (popupRef.current === popup) popup.setHTML(historyPopupHtml(p, d)); });
+      openHistoryPopup(map, popupRef, f.properties as HistoryFeature, (f.geometry as GeoJSON.Point).coordinates as [number, number]);
     };
     const onCellClick = (e: maplibregl.MapLayerMouseEvent) => {
       const f = e.features?.[0];

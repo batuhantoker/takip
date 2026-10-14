@@ -28,7 +28,7 @@ export type HistorySession = {
   countries: CountryView;
   families(): string[];
   setFamily(family: string, on: boolean): void;
-  /** Wartime border layers shown (war-layers.ts); either these or a country metric fill the map, not both. */
+  /** Border layers shown (war-layers.ts, world-borders.ts), one at a time; either these or a country metric fill the map, not both. */
   layers(): string[];
   setLayer(code: string, on: boolean): void;
   /** Called when the families, layers or deep time change. */
@@ -89,7 +89,8 @@ export function createHistorySession(start: number, get: typeof fetch = fetch): 
     layers: () => (deep ? [] : layers),
     setLayer(code, on) {
       if (layers.includes(code) === on) return;
-      layers = on ? [...layers, code] : layers.filter(l => l !== code);
+      // Two sets of borders would paint over each other.
+      layers = on ? [code] : layers.filter(l => l !== code);
       if (on) countries.select(null);
       emit();
     },
