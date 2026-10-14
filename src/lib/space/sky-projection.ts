@@ -19,16 +19,35 @@ export const EARTH_RADIUS_KM = 6371.0088;
 /** Earth-fixed (x through 0°/0°, y through 0°/90°E, z north) to MapLibre's globe axes. */
 const ECEF_TO_GLOBE: Mat3 = [0, 1, 0, 0, 0, 1, 1, 0, 0];
 
-/** Equatorial of date to MapLibre's globe axes at `jd`: undo Earth's spin. */
-export function equatorialOfDateToGlobe(jd: number): Mat3 {
+/** Equatorial of date to Earth-fixed at `jd`: undo Earth's spin. */
+function ofDateToEcef(jd: number): Mat3 {
   const g = gmstDeg(jd) * DEG;
-  const unspin: Mat3 = [Math.cos(g), Math.sin(g), 0, -Math.sin(g), Math.cos(g), 0, 0, 0, 1];
-  return matMul(ECEF_TO_GLOBE, unspin);
+  return [Math.cos(g), Math.sin(g), 0, -Math.sin(g), Math.cos(g), 0, 0, 0, 1];
+}
+
+/** Equatorial of date to MapLibre's globe axes at `jd`. */
+export function equatorialOfDateToGlobe(jd: number): Mat3 {
+  return matMul(ECEF_TO_GLOBE, ofDateToEcef(jd));
 }
 
 /** J2000 equatorial (star catalogue) to MapLibre's globe axes at `jd`. */
 export function j2000ToGlobe(jd: number): Mat3 {
   return matMul(equatorialOfDateToGlobe(jd), precessionMatrix(jd));
+}
+
+/**
+ * J2000 equatorial to the sky over a map point, on MapLibre's mercator axes:
+ * x east, y south, z up. Its mercator matrix takes x and y in world pixels but
+ * z in metres, so z comes scaled by `upScale` (1 / pixels per metre).
+ */
+export function j2000ToLocalSky(jd: number, lat: number, lng: number, upScale = 1): Mat3 {
+  const la = lat * DEG, lo = lng * DEG;
+  const ecefToLocal: Mat3 = [
+    -Math.sin(lo), Math.cos(lo), 0,
+    Math.sin(la) * Math.cos(lo), Math.sin(la) * Math.sin(lo), -Math.cos(la),
+    Math.cos(la) * Math.cos(lo) * upScale, Math.cos(la) * Math.sin(lo) * upScale, Math.sin(la) * upScale,
+  ];
+  return matMul(ecefToLocal, matMul(ofDateToEcef(jd), precessionMatrix(jd)));
 }
 
 export function raDecVector(raDeg: number, decDeg: number): Vec3 {

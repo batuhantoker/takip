@@ -1,8 +1,8 @@
 import { AU_KM, LY_KM } from '@/lib/space/astro';
 import { jdFromMs } from '@/lib/space/horizons';
 import type { SpaceSelection } from '@/lib/space/selection';
-import { globeCentreDropPx } from '@/lib/space/globe-match';
-import { DEFAULT_MAP_LINK, mapReturn, mapReturnKm, subCamera, type MapLink } from './focus-camera';
+import type { MapPose } from '@/lib/space/globe-match';
+import { DEFAULT_MAP_LINK, mapReturn, mapReturnDropPx, mapReturnKm, type MapLink } from './focus-camera';
 import { pickAt } from './scene-hud';
 import type { Anchor, SpaceScene } from './space-scene';
 import { ramp } from './tiers';
@@ -25,7 +25,7 @@ const RETARGET_MS = 700;
 const CENTRE_ZONE = 0.12;
 const HANDOFF_MS = 1400;
 
-export type MapTarget = { lat: number; lng: number; zoom: number };
+export type MapTarget = Required<MapPose>;
 
 function anchorFor(sel: SpaceSelection): Anchor | null {
   if (sel.kind === 'body') return sel.key === 'sun' ? { kind: 'system' } : { kind: 'body', key: sel.key };
@@ -60,6 +60,8 @@ export function createZoomAnchoring(scene: SpaceScene, root: HTMLElement, onSurf
   const onWheel = (e: WheelEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // On the way back to the map the camera is the hand-over's.
+    if (scene.leaving()) return;
     if (e.deltaY < 0 && !scene.rig.flying() && !scene.rig.swinging()) zoomingIn(e);
     scene.rig.wheel(e);
   };
@@ -99,10 +101,9 @@ export function createZoomAnchoring(scene: SpaceScene, root: HTMLElement, onSurf
       const jd = jdFromMs(Date.now());
       const fromEarth = cam.clone().sub(a.position);
       const view = { fov: scene.camera.fov, height: dom.clientHeight || link.height };
-      const lat = subCamera(jd, fromEarth).lat;
-      const returnKm = mapReturnKm(lat, link, view);
+      const returnKm = mapReturnKm(link, view);
       // Near the map's own zoom, Earth sits as low as the tilted map draws its globe; it centres as the camera pulls away.
-      const drop = globeCentreDropPx({ lat, zoom: link.minZoom, pitch: link.pitch, height: link.height, fov: link.fov }) * (view.height / link.height);
+      const drop = mapReturnDropPx(link) * (view.height / link.height);
       scene.setScreenDrop(drop * (1 - ramp(d, returnKm * 1.1, returnKm * 2.2)));
       if (d > returnKm * 1.04) armed = true;
       else if (armed && d < returnKm) {

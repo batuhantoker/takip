@@ -6,7 +6,7 @@ import type { Highlight } from '@/lib/oi/assist/tools';
 import type { OiGlobe, OiHover } from '@/lib/oi/globe';
 import type { HistorySession } from '@/lib/history/session';
 import type { ReplaySession } from '@/lib/replay/session';
-import type { GlobeView } from '@/lib/space/globe-match';
+import type { GlobeLink, GlobeView } from '@/lib/space/globe-match';
 import type { createSatelliteLayer } from '@/lib/satellites/layer';
 
 /** The catalogue fields the satellite layer and its popup actually read. */
@@ -71,6 +71,8 @@ export interface WorldMapProps {
   onZoomPastGlobe?: (view: GlobeView) => void;
   /** The globe is nearly whole: a hint to fetch the space view ahead. */
   onNearGlobe?: () => void;
+  /** The live map for the space view to read and move on its way back down. */
+  onGlobeLink?: (link: GlobeLink | null) => void;
   /** Active turn-by-turn route drawn as a line with origin/destination pins. */
   route?: {
     geometry: { type: 'LineString'; coordinates: [number, number][] };

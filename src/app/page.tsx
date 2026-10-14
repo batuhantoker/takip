@@ -57,6 +57,7 @@ import type { BackendStatus, FlyToTarget, LiveData, MapCenter, MapProjection, Ma
 import SpaceSwitcherBar from '@/components/panels/space/view/space-switcher-bar';
 import { useSpaceMode } from '@/components/panels/space/view/use-space-mode';
 import { warmSpace } from '@/components/panels/space/view/warm-space';
+import type { GlobeLink } from '@/lib/space/globe-match';
 import { DEFAULT_LAYERS } from '@/lib/layers/defaults';
 import type { TerrainStatus } from '@/lib/map/terrain/terrain';
 import { newsTransform } from '@/lib/alerts/news-transform';
@@ -81,6 +82,8 @@ export default function Dashboard() {
   const [mapProjection, setMapProjection] = useState<MapProjection>('globe');
   const [mapStyle, setMapStyle] = useState<MapStyle>('dark');
   const [flyToLocation, setFlyToLocation] = useState<FlyToTarget | null>(null);
+  /* The live map, for the space view to meet on its way back down. */
+  const [globeLink, setGlobeLink] = useState<GlobeLink | null>(null);
   const [terrainFocus, setTerrainFocus] = useState(0);
   const [terrainStatus, setTerrainStatus] = useState<TerrainStatus>('idle');
   const [terrainRetry, setTerrainRetry] = useState(0);
@@ -254,6 +257,7 @@ export default function Dashboard() {
           // History's globe is another age; space is today's.
           onZoomPastGlobe={history.session ? undefined : space.zoomOut}
           onNearGlobe={warmSpace}
+          onGlobeLink={setGlobeLink}
           route={directions.activeRoute}
           userLocation={directions.userLocation}
           followUser={directions.followUser}
@@ -279,7 +283,7 @@ export default function Dashboard() {
       <AnimatePresence>
         {space.inSpace && (
           <ErrorBoundary key="space" name="Space">
-            <SpaceShell request={space.request} satellites={spaceSatellites} onFocus={space.setFocus} onExit={leaveSpace} />
+            <SpaceShell request={space.request} satellites={spaceSatellites} map={mapProjection === 'mercator' ? null : globeLink} onFocus={space.setFocus} onExit={leaveSpace} />
           </ErrorBoundary>
         )}
       </AnimatePresence>

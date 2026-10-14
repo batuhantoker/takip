@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { apparentRaDec, scale, subPoint } from './astro';
 import { mul } from './frames';
 import type { Vec3 } from './horizons';
-import { cameraPosition, equatorialOfDateToGlobe, hiddenByGlobe, invert4, raDecVector, toScreen } from './sky-projection';
+import { cameraPosition, equatorialOfDateToGlobe, hiddenByGlobe, invert4, j2000ToLocalSky, raDecVector, toScreen } from './sky-projection';
 
 const EARTH: Vec3 = [1.417680100817214e8, 4.692595488201512e7, -3.327865611620247e3];
 const JD = 2461325.5;
@@ -18,6 +18,26 @@ describe('equatorialOfDateToGlobe', () => {
     const sun = mul(equatorialOfDateToGlobe(JD), raDecVector(ra, dec));
     const want = globePoint(p.lat, p.lng);
     sun.forEach((v, i) => expect(v).toBeCloseTo(want[i], 9));
+  });
+});
+
+describe('j2000ToLocalSky', () => {
+  // Polaris, J2000.
+  const polaris = raDecVector(37.95, 89.264);
+
+  it('stands Polaris due north at the observer’s latitude', () => {
+    const [x, y, z] = mul(j2000ToLocalSky(JD, 41, 29), polaris);
+    // Within its 0.7° circle round the pole.
+    expect(Math.abs(Math.atan2(z, Math.hypot(x, y)) / DEG - 41)).toBeLessThan(0.8);
+    // y points south on the mercator axes.
+    expect(Math.abs(Math.atan2(x, -y) / DEG)).toBeLessThan(1.2);
+  });
+
+  it('scales only the up axis', () => {
+    const a = mul(j2000ToLocalSky(JD, 41, 29), polaris), b = mul(j2000ToLocalSky(JD, 41, 29, 0.25), polaris);
+    expect(b[0]).toBeCloseTo(a[0], 12);
+    expect(b[1]).toBeCloseTo(a[1], 12);
+    expect(b[2]).toBeCloseTo(a[2] * 0.25, 12);
   });
 });
 

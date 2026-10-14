@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { flyPath, type FlyPath } from '@/lib/space/fly-path';
 
 /**
  * The space camera: orbits whatever it is anchored to and moves with it, since
@@ -27,7 +28,7 @@ export function createRig(camera: THREE.PerspectiveCamera, dom: HTMLElement) {
   let anchor: () => AnchorState | null = () => null;
   const last = new THREE.Vector3();
   let hasLast = false;
-  let flight: { t0: number; ms: number; fromTarget: THREE.Vector3; fromDir: THREE.Vector3; fromDist: number; toDir: THREE.Vector3; toDist: number; follow?: () => THREE.Vector3 | undefined } | null = null;
+  let flight: { t0: number; ms: number; fromTarget: THREE.Vector3; fromDir: THREE.Vector3; fromDist: number; toDir: THREE.Vector3; toDist: number; follow?: () => THREE.Vector3 | undefined; path?: FlyPath; span?: number } | null = null;
   let swing: { t0: number; ms: number; from: THREE.Vector3 } | null = null;
   let push: { t0: number; ms: number; factor: number; done: number } | null = null;
 
@@ -58,6 +59,37 @@ export function createRig(camera: THREE.PerspectiveCamera, dom: HTMLElement) {
     }
     last.copy(a.position);
     hasLast = true;
+  }
+
+  /**
+   * Flies to an anchor along a zoom-and-pan arc, so a far destination stays in
+   * view the whole way (see fly-path). Returns the flight's length, ms.
+   */
+  function flyArc(next: () => AnchorState | null, distance: number, direction: THREE.Vector3): number {
+    const a = next();
+    if (!a) return 0;
+    anchor = next;
+    swing = null;
+    push = null;
+    pendingLog = 0;
+    const offset = camera.position.clone().sub(controls.target);
+    const fromDist = Math.max(offset.length(), 1);
+    // The view's width at the anchor, so distances and the gap are in the same units.
+    const span = 2 * Math.tan((camera.fov * Math.PI) / 360);
+    const path = flyPath(fromDist * span, distance * span, controls.target.distanceTo(a.position));
+    const ms = Math.min(3000, Math.max(900, 300 + 260 * path.length));
+    flight = { t0: performance.now(), ms, fromTarget: controls.target.clone(), fromDir: offset.normalize(), fromDist, toDir: direction.clone().normalize(), toDist: distance, path, span };
+    last.copy(a.position);
+    hasLast = true;
+    return ms;
+  }
+
+  /** Stops every motion: flights, swings, pushes and the wheel's pending zoom. */
+  function halt() {
+    flight = null;
+    swing = null;
+    push = null;
+    pendingLog = 0;
   }
 
   /**
@@ -135,10 +167,14 @@ export function createRig(camera: THREE.PerspectiveCamera, dom: HTMLElement) {
     } else if (flight) {
       const t = Math.min(1, (performance.now() - flight.t0) / flight.ms);
       const e = ease(t);
-      const dist = Math.exp(Math.log(flight.fromDist) + (Math.log(flight.toDist) - Math.log(flight.fromDist)) * e);
+      const along = flight.path?.at(e);
+      const dist = along ? along.w / flight.span! : Math.exp(Math.log(flight.fromDist) + (Math.log(flight.toDist) - Math.log(flight.fromDist)) * e);
       const toDir = flight.follow?.() ?? flight.toDir;
-      const dir = flight.fromDir.clone().lerp(toDir, e).normalize();
-      controls.target.copy(flight.fromTarget).lerp(a.position, e);
+      const dir = flight.fromDir.clone().lerp(toDir, e);
+      // Facing the other way, the straight blend passes through nothing; go round instead.
+      if (dir.lengthSq() < 1e-6) dir.copy(flight.fromDir).cross(camera.up).lerp(toDir, e);
+      dir.normalize();
+      controls.target.copy(flight.fromTarget).lerp(a.position, along ? along.u : e);
       camera.position.copy(controls.target).addScaledVector(dir, dist);
       if (t >= 1) flight = null;
     } else {
@@ -171,5 +207,8 @@ export function createRig(camera: THREE.PerspectiveCamera, dom: HTMLElement) {
     return true;
   }
 
-  return { controls, setAnchor, retarget, nudge, wheel, scaleDistance, update, setUp, flying: () => flight !== null, swinging: () => swing !== null, dispose: () => controls.dispose() };
+  /** How far the current flight has come, eased (1 when there is none). */
+  const progress = () => (flight ? ease(Math.min(1, (performance.now() - flight.t0) / flight.ms)) : 1);
+
+  return { controls, setAnchor, flyArc, halt, retarget, nudge, wheel, scaleDistance, update, setUp, progress, flying: () => flight !== null, swinging: () => swing !== null, dispose: () => controls.dispose() };
 }

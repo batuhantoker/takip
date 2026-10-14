@@ -24,8 +24,25 @@ export interface GlobeView {
   minZoom?: number;
 }
 
+/** A map camera to place: where the map is, or where it should go. */
+export interface MapPose { lat: number; lng: number; zoom: number; pitch?: number; bearing?: number }
+
+/** The live Earth map, as the space view meets it on the way back down. */
+export interface GlobeLink {
+  view(): GlobeView;
+  moving(): boolean;
+  /** At once, out of sight under the space view. */
+  jump(to: MapPose): void;
+  fly(to: MapPose, ms: number): void;
+}
+
 const DEG = Math.PI / 180;
 const TILE = 512;
+
+/** MapLibre's globe keeps its zoom floor at the same globe size everywhere, so the reported floor sinks with latitude. */
+export function floorZoom(minZoom: number, lat: number): number {
+  return minZoom + Math.log2(Math.cos(Math.min(85, Math.abs(lat)) * DEG));
+}
 
 function geometry(v: Pick<GlobeView, 'lat' | 'zoom' | 'pitch' | 'height' | 'fov'>) {
   const radius = (TILE * 2 ** v.zoom) / (2 * Math.PI) / Math.cos(v.lat * DEG);

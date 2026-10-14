@@ -4,7 +4,7 @@ import { DEEP_FEATURES } from '@/lib/space/deep-features';
 import type { FleetCraft, Region } from '@/lib/space/fleet';
 import { bodyDirection, earthOrientation, mul, transpose } from '@/lib/space/frames';
 import { GALACTIC_CENTRE_KM, GALACTIC_NORTH } from '@/lib/space/galaxy';
-import { distanceForRadius, globeCameraDirection, globeCentreOffsetDeg, globeRadiusPx, zoomForRadius, type GlobeView } from '@/lib/space/globe-match';
+import { distanceForRadius, floorZoom, globeCameraDirection, globeCentreDropPx, globeCentreOffsetDeg, globeRadiusPx, zoomForRadius, type GlobeView, type MapPose } from '@/lib/space/globe-match';
 import type { Vec3 } from '@/lib/space/horizons';
 import type { SpaceSelection } from '@/lib/space/selection';
 import type { SpaceFocus } from '@/lib/space/worlds';
@@ -118,14 +118,30 @@ export function globeEntry(jd: number, view: GlobeView, camera: { fov: number; h
   return { direction: v3(mul(earthOrientation(jd), globeCameraDirection(view))), distance: distanceForRadius(r, camera.height, camera.fov, EARTH_KM) };
 }
 
+/** As globeEntry, plus how far down the tilted map draws the globe and which way is up on its screen. */
+export function globePose(jd: number, view: GlobeView, camera: { fov: number; height: number }): { direction: THREE.Vector3; distance: number; drop: number; up: THREE.Vector3 } {
+  const la = view.lat * Math.PI / 180, lo = view.lng * Math.PI / 180, b = view.bearing * Math.PI / 180;
+  const north: Vec3 = [-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la)];
+  const east: Vec3 = [-Math.sin(lo), Math.cos(lo), 0];
+  const up: Vec3 = [0, 1, 2].map(i => north[i] * Math.cos(b) + east[i] * Math.sin(b)) as Vec3;
+  return { ...globeEntry(jd, view, camera), drop: globeCentreDropPx(view) * (camera.height / view.height), up: v3(mul(earthOrientation(jd), up)) };
+}
+
+/** The globe just inside the map's zoom floor, as the map draws it at the equator (and so, by the floor's design, everywhere). */
+const returnGlobe = (link: MapLink) => ({ lat: 0, zoom: link.minZoom + RETURN_ZOOM_ABOVE_FLOOR, pitch: link.pitch, height: link.height, fov: link.fov });
+
 /** Nearer than this to Earth, zooming in lands back on the map, just inside its zoom floor. */
-export function mapReturnKm(lat: number, link: MapLink, camera: { fov: number; height: number }): number {
-  const r = globeRadiusPx({ lat, zoom: link.minZoom + RETURN_ZOOM_ABOVE_FLOOR, pitch: link.pitch, height: link.height, fov: link.fov });
-  return distanceForRadius(r, camera.height, camera.fov, EARTH_KM);
+export function mapReturnKm(link: MapLink, camera: { fov: number; height: number }): number {
+  return distanceForRadius(globeRadiusPx(returnGlobe(link)), camera.height, camera.fov, EARTH_KM);
+}
+
+/** How far below centre the map draws its globe on landing, in the map's pixels. */
+export function mapReturnDropPx(link: MapLink): number {
+  return globeCentreDropPx(returnGlobe(link));
 }
 
 /** The map view under the camera, at the zoom that draws Earth the size it is now. */
-export function mapReturn(jd: number, fromEarth: THREE.Vector3, link: MapLink, camera: { fov: number; height: number }): { lat: number; lng: number; zoom: number } {
+export function mapReturn(jd: number, fromEarth: THREE.Vector3, link: MapLink, camera: { fov: number; height: number }): Required<MapPose> {
   const under = subCamera(jd, fromEarth);
   const f = camera.height / 2 / Math.tan((camera.fov * Math.PI) / 360);
   const rPx = Math.tan(Math.asin(Math.min(1, EARTH_KM / fromEarth.length()))) * f;
@@ -135,7 +151,8 @@ export function mapReturn(jd: number, fromEarth: THREE.Vector3, link: MapLink, c
     zoom = zoomForRadius(rPx, { lat, pitch: link.pitch, height: link.height, fov: link.fov });
     lat = Math.min(85, under.lat + globeCentreOffsetDeg({ lat, zoom, pitch: link.pitch, height: link.height, fov: link.fov }));
   }
-  return { lat, lng: under.lng, zoom: Math.max(link.minZoom + 0.02, zoom) };
+  // Space keeps north up near Earth, so the map comes back unrotated.
+  return { lat, lng: under.lng, zoom: Math.max(floorZoom(link.minZoom, lat) + 0.02, zoom), pitch: link.pitch, bearing: 0 };
 }
 
 /** Latitude and longitude straight below the camera. */

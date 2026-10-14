@@ -14,6 +14,7 @@ import type { SpaceSelection } from '@/lib/space/selection';
 import { SKY_BODIES, type SkyKey, type SkyPayload } from '@/lib/space/sky';
 import type { SurfacePayload } from '@/lib/space/surface';
 import type { GlobeWorldId } from '@/lib/space/worlds';
+import type { GlobeView } from '@/lib/space/globe-match';
 import { createPlanet, createSun, SUN_RADIUS_KM, type Planet } from './bodies';
 import { createCosmos } from './cosmos';
 import { CRAFT_MODELS } from '@/lib/space/craft-models';
@@ -38,7 +39,7 @@ import { labelItems, pickAt } from './scene-hud';
 import { createStars } from './stars';
 import { createSurfaceMarks } from './surface-marks';
 import { ramp, tierFades, type TierFades } from './tiers';
-import type { MapLink } from './focus-camera';
+import { globePose, type MapLink } from './focus-camera';
 import { createZoomAnchoring, type MapTarget } from './zoom-anchor';
 
 /**
@@ -129,6 +130,9 @@ export class SpaceScene {
   /** The view scale a following replay camera last matched; the wheel's own zoom rides on top of it. */
   private followScale = 0;
   private dropped = false;
+  /** On the way back to the map: flying home to its globe, then held on its camera while the view fades. */
+  private homing: { view: () => GlobeView; from: number; drop: number; done: () => void } | null = null;
+  private held: (() => GlobeView) | null = null;
 
   constructor(private container: HTMLElement, private events: SpaceSceneEvents) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
@@ -307,6 +311,49 @@ export class SpaceScene {
     this.rig.retarget(() => this.anchorState(anchor), ms);
   }
 
+  /**
+   * Flies back to Earth onto the map's own view of its globe, then holds there
+   * (see holdOnMap) and calls `done`. Returns the flight's length, ms.
+   */
+  flyHome(view: () => GlobeView, done: () => void): number {
+    this.stopReplay();
+    this.anchor = { kind: 'body', key: 'earth' };
+    const pose = globePose(jdFromMs(Date.now()), view(), this.viewSize());
+    const ms = this.rig.flyArc(() => this.anchorState(this.anchor), pose.distance, pose.direction);
+    this.homing = { view, from: this.drop, drop: pose.drop, done };
+    this.rig.controls.enabled = false;
+    return ms;
+  }
+
+  /** Puts the camera on the map's camera every frame, so the two Earths stay one while the view fades over the map. */
+  holdOnMap(view: () => GlobeView) {
+    this.rig.halt();
+    this.homing = null;
+    this.held = view;
+    this.rig.controls.enabled = false;
+  }
+
+  /** Back to the operator's own camera: the way out was called off. */
+  release() {
+    this.homing = null;
+    this.held = null;
+    this.rig.controls.enabled = true;
+  }
+
+  leaving(): boolean { return this.homing !== null || this.held !== null; }
+
+  private viewSize() { return { fov: this.camera.fov, height: this.container.clientHeight || 800 }; }
+
+  private placeOnMap(jd: number) {
+    const earth = this.planets.get('earth')!.group.position;
+    const pose = globePose(jd, this.held!(), this.viewSize());
+    this.rig.controls.target.copy(earth);
+    this.camera.position.copy(earth).addScaledVector(pose.direction, pose.distance);
+    this.rig.setUp(pose.up);
+    this.camera.lookAt(earth);
+    this.drop = pose.drop;
+  }
+
   setSelection(sel: SpaceSelection | null) { this.selection = sel; }
 
   /** A click on a label or a mark: the owner decides what selecting means. */
@@ -355,7 +402,7 @@ export class SpaceScene {
   private onDown = (e: PointerEvent) => { this.downAt = [e.clientX, e.clientY]; };
 
   private onUp = (e: PointerEvent) => {
-    if (!this.downAt || Math.hypot(e.clientX - this.downAt[0], e.clientY - this.downAt[1]) > 4) return;
+    if (this.leaving() || !this.downAt || Math.hypot(e.clientX - this.downAt[0], e.clientY - this.downAt[1]) > 4) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.events.onSelect(pickAt(this, e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height));
   };
@@ -398,14 +445,26 @@ export class SpaceScene {
       this.followScale = scale;
     }
     // Everything has moved to this moment; only now does the camera follow, so nothing below sees last frame's camera.
-    this.rig.update();
-    // Near Earth, Earth's north is up, as on the map; out among the planets, the ecliptic's.
-    const toEarth = earthPos ? this.camera.position.distanceTo(v3(earthPos, this.scratch)) : Infinity;
-    const north = this.scratch.set(...mul(earthOrientation(jd), [0, 0, 1])).lerp(ECLIPTIC_NORTH, ramp(toEarth, 2e6, 6e7)).normalize();
-    if (this.rig.setUp(north)) this.camera.lookAt(this.rig.controls.target);
-    this.groundCamera.update(jd, wall);
+    if (this.held) this.placeOnMap(jd);
+    else {
+      this.rig.update();
+      // Near Earth, Earth's north is up, as on the map; out among the planets, the ecliptic's.
+      const toEarth = earthPos ? this.camera.position.distanceTo(v3(earthPos, this.scratch)) : Infinity;
+      const north = this.scratch.set(...mul(earthOrientation(jd), [0, 0, 1])).lerp(ECLIPTIC_NORTH, ramp(toEarth, 2e6, 6e7)).normalize();
+      if (this.rig.setUp(north)) this.camera.lookAt(this.rig.controls.target);
+      this.groundCamera.update(jd, wall);
+    }
+    if (this.homing) {
+      // Earth eases down to where the tilted map draws its globe as the camera arrives.
+      this.drop = this.homing.from + (this.homing.drop - this.homing.from) * this.rig.progress();
+      if (!this.rig.flying()) {
+        const { view, done } = this.homing;
+        this.holdOnMap(view);
+        done();
+      }
+    }
     this.applyDrop();
-    this.zoom.update();
+    if (!this.leaving()) this.zoom.update();
     this.placeCraft(jd, ms, earthPos);
     const cam = this.camera.position;
     const sunDist = cam.length();

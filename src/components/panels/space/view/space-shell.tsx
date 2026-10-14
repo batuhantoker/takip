@@ -1,10 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, usePresence } from 'framer-motion';
 import { Vector3 } from 'three';
 import { bodyDirection } from '@/lib/space/frames';
-import type { GlobeView } from '@/lib/space/globe-match';
+import { floorZoom, type GlobeLink, type GlobeView, type MapPose } from '@/lib/space/globe-match';
 import { jdFromMs } from '@/lib/space/horizons';
 import type { SpaceSelection } from '@/lib/space/selection';
 import { LANDING_SITES } from '@/lib/space/landing-sites';
@@ -46,16 +46,33 @@ export interface SpaceRequest {
 
 /** Longest the view waits, hidden, for Earth's texture before showing anyway. */
 const READY_WAIT_MS = 1500;
+/** The space view fading over the map, held on its camera; a plain fade when the map is off somewhere else. */
+const FADE_MS = 600;
+const CUT_MS = 350;
+/** Flying home, a map nearer than this above its floor is first put back on the whole globe, then flown down again. */
+const HOME_ABOVE_FLOOR = 0.6;
+const BACK_DOWN_MS = 1800;
+
+/**
+ * The way back to the map: 'home' flies to the map's globe, 'fade' fades out
+ * held on the map's camera, 'cut' just fades (the map is flying elsewhere).
+ */
+type Leaving = 'home' | 'fade' | 'cut';
 
 const DEFAULT_LAYERS: SpaceLayers = { satellites: true, fleet: true, orbits: true, surface: true, labels: true, illustrations: true, constellations: true, exoplanets: true };
 
-export default function SpaceShell({ request, satellites, onFocus, onExit }: {
+export default function SpaceShell({ request, satellites, map, onFocus, onExit }: {
   request: SpaceRequest;
   satellites?: SatellitePoint[];
+  /** The live Earth map underneath, met exactly on the way back. */
+  map?: GlobeLink | null;
   onFocus: (f: SpaceFocus) => void;
-  /** `to` is the map view to land on, when the operator zoomed back down into Earth. */
+  /** `to` is the map view to land on, when the operator zoomed back down into Earth and there is no `map` to move. */
   onExit: (to?: MapTarget) => void;
 }) {
+  const [isPresent, safeToRemove] = usePresence();
+  const [leaving, setLeaving] = useState<Leaving | null>(null);
+  const root = useRef<HTMLDivElement>(null);
   const [layers, setLayers] = useState<SpaceLayers>(DEFAULT_LAYERS);
   const [selection, setSelection] = useState<SpaceSelection | null>(request.select ?? null);
   // A new request with something to select replaces the selection as it arrives.
@@ -70,7 +87,21 @@ export default function SpaceShell({ request, satellites, onFocus, onExit }: {
     outer: request.select?.kind === 'outer',
     stars: request.select?.kind === 'star' || request.select?.kind === 'exohost' || request.focus === 'stars' || request.focus === 'galaxy',
   }), [request]);
-  const { mount, scene, camera, replay, sky, fleet, moon, mars, outer, exoplanets, catalog } = useSpaceScene({ satellites, layers, selection, onSelect: setSelection, onSurface: onExit, wants });
+  const pick = useCallback((sel: SpaceSelection | null) => { if (!leaving) setSelection(sel); }, [leaving]);
+  // Zoomed back down into Earth: the map takes the same view at once, and the space view fades out over it held there.
+  const sceneRef = useRef<SpaceScene | null>(null);
+  const land = useCallback((to: MapTarget) => {
+    const s = sceneRef.current;
+    if (!s || !map) return onExit(to);
+    map.jump(to);
+    s.holdOnMap(() => map.view());
+    setLeaving('fade');
+    // Now, not on the next render: the wheel still turning goes straight on to the map.
+    root.current?.setAttribute('inert', '');
+    onExit();
+  }, [map, onExit]);
+  const { mount, scene, camera, replay, sky, fleet, moon, mars, outer, exoplanets, catalog } = useSpaceScene({ satellites, layers, selection, onSelect: pick, onSurface: land, wants });
+  useEffect(() => { sceneRef.current = scene; }, [scene]);
   const flight = useFlightHistory(replayId);
   // The flight starts playing back as soon as its history is in.
   useEffect(() => {
@@ -102,6 +133,8 @@ export default function SpaceShell({ request, satellites, onFocus, onExit }: {
     reveal.current = setInterval(() => {
       if (!s.earth.textured() && Date.now() - t0 < READY_WAIT_MS) return;
       clearInterval(reveal.current!);
+      // Free for the next request: zooming out again after the way back was called off carries on outward too.
+      reveal.current = null;
       setShown(true);
       // Only now, as it fades in, does the hand-over carry on outward.
       if (carryOn.current) {
@@ -111,6 +144,19 @@ export default function SpaceShell({ request, satellites, onFocus, onExit }: {
     }, 40);
   }, []);
   useEffect(() => () => { if (reveal.current) clearInterval(reveal.current); }, []);
+
+  // The page has left space, or called it back on the way out: choose the way back to the map here, run it below.
+  const [wasPresent, setWasPresent] = useState(isPresent);
+  if (wasPresent !== isPresent) {
+    setWasPresent(isPresent);
+    if (isPresent) setLeaving(null);
+    // A search or an alert is already flying the map somewhere else, or the map is flat: there is no globe to meet.
+    else if (!leaving && scene && map && shown && !map.moving() && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setLeaving('home');
+      // Flying home ends the replay; called back, the view is live.
+      setReplayId(null);
+    } else if (!leaving) setLeaving('cut');
+  }
 
   const fly = useCallback((sel: SpaceSelection) => {
     const s = scene;
@@ -159,7 +205,9 @@ export default function SpaceShell({ request, satellites, onFocus, onExit }: {
     revealWhenReady(s);
     const jd = jdFromMs(Date.now());
     const g = request.globe;
-    if (g) s.setMapLink({ pitch: g.pitch, fov: g.fov, height: g.height || s.renderer.domElement.clientHeight || DEFAULT_MAP_LINK.height, minZoom: g.minZoom ?? DEFAULT_MAP_LINK.minZoom });
+    const drawn = g ?? map?.view();
+    // The map comes back at its resting tilt unless it was left from the globe at another.
+    if (drawn) s.setMapLink({ pitch: g?.pitch ?? DEFAULT_MAP_LINK.pitch, fov: drawn.fov, height: drawn.height || s.renderer.domElement.clientHeight || DEFAULT_MAP_LINK.height, minZoom: drawn.minZoom ?? DEFAULT_MAP_LINK.minZoom });
     const e = g && request.via === 'zoom' ? globeEntry(jd, g, { fov: s.camera.fov, height: s.renderer.domElement.clientHeight || g.height }) : null;
     if (g && e && Number.isFinite(e.distance) && e.distance > 6371) {
       // Earth exactly as the globe drew it, then on outward a little: one motion, not a cut.
@@ -180,7 +228,45 @@ export default function SpaceShell({ request, satellites, onFocus, onExit }: {
       return;
     }
     s.setAnchor(focusAnchor(request.focus), { distance: FOCUS_DISTANCE_KM[request.focus], direction: focusDirection(s, request.focus, jd) });
-  }, [sky, fleet, catalog, exoplanets, outer, request, scene, fly, revealWhenReady]);
+  }, [sky, fleet, catalog, exoplanets, outer, request, scene, fly, revealWhenReady, map]);
+
+  // Fly home onto the map's own globe; arrived, the view fades out held on the map's camera.
+  const back = useRef<MapPose | null>(null);
+  useEffect(() => {
+    if (leaving !== 'home' || !scene || !map) return;
+    const v = map.view();
+    const floor = floorZoom(v.minZoom ?? DEFAULT_MAP_LINK.minZoom, v.lat);
+    const deep = v.zoom > floor + HOME_ABOVE_FLOOR;
+    if (deep || v.bearing) {
+      back.current = deep ? { lat: v.lat, lng: v.lng, zoom: v.zoom, pitch: v.pitch, bearing: v.bearing } : null;
+      map.jump({ lat: v.lat, lng: v.lng, zoom: deep ? floor + HOME_ABOVE_FLOOR : v.zoom, pitch: deep ? DEFAULT_MAP_LINK.pitch : v.pitch, bearing: 0 });
+    }
+    const ms = scene.flyHome(() => map.view(), () => setLeaving('fade'));
+    // rAF stops in a hidden tab; the way out must not.
+    const late = setTimeout(() => {
+      scene.holdOnMap(() => map.view());
+      setLeaving('fade');
+    }, ms + 1500);
+    return () => clearTimeout(late);
+  }, [leaving, scene, map]);
+
+  // Called back into space on the way out: the camera is the operator's again.
+  useEffect(() => {
+    if (leaving) return;
+    scene?.release();
+    root.current?.removeAttribute('inert');
+    back.current = null;
+  }, [leaving, scene]);
+
+  useEffect(() => {
+    if (leaving !== 'fade' && leaving !== 'cut') return;
+    root.current?.setAttribute('inert', '');
+    // Held on the map's camera, the space view goes along with the map flying back down.
+    if (leaving === 'fade' && back.current && map) map.fly(back.current, BACK_DOWN_MS);
+    back.current = null;
+    const done = setTimeout(() => safeToRemove?.(), leaving === 'fade' ? FADE_MS : CUT_MS);
+    return () => clearTimeout(done);
+  }, [leaving, map, safeToRemove]);
 
   // The switcher follows the wheel: zooming out past the planets lights up Stars, then Galaxy.
   const followed = useRef<SpaceFocus | null>(null);
@@ -198,27 +284,27 @@ export default function SpaceShell({ request, satellites, onFocus, onExit }: {
     if (selection) setSelection(null);
     else if (replayId !== null) closeReplay();
     else onExit();
-  });
+  }, isPresent && !leaving);
 
   const surfaces = useMemo(() => ({ moon, mars }), [moon, mars]);
 
   return (
-    <motion.div data-space-view initial={{ opacity: 0 }} animate={{ opacity: shown ? 1 : 0 }} exit={{ opacity: 0, transition: { duration: 0.35 } }}
-      transition={{ duration: request.via === 'zoom' ? 0.5 : 0.25 }}
+    <motion.div ref={root} data-space-view initial={{ opacity: 0 }} animate={{ opacity: shown && leaving !== 'fade' && leaving !== 'cut' ? 1 : 0 }}
+      transition={leaving === 'fade' || leaving === 'cut' ? { duration: (leaving === 'fade' ? FADE_MS : CUT_MS) / 1000, ease: 'easeInOut' } : { duration: request.via === 'zoom' ? 0.5 : 0.25 }}
       className={`absolute inset-0 z-[150] bg-black ${shown ? '' : 'pointer-events-none'}`}>
       <div ref={mount} className="absolute inset-0" />
-      <div data-hud className="pointer-events-none absolute top-16 bottom-[96px] z-[205] hidden flex-col md:flex" style={{ left: 'calc(var(--shell-left, 72px) + 12px)' }}>
+      <div data-hud inert={!!leaving} className={`pointer-events-none absolute top-16 bottom-[96px] z-[205] hidden flex-col transition-opacity duration-150 ease-out md:flex ${leaving ? 'opacity-0' : ''}`} style={{ left: 'calc(var(--shell-left, 72px) + 12px)' }}>
         <SpacePanelLeft camera={camera} layers={layers} setLayers={setLayers} fleet={fleet} satelliteCount={satellites?.length ?? 0} deep={{ outer, exoplanets, catalog }} />
       </div>
       {/* Where the map's inspect card opens, so a picked thing reads the same in space. */}
-      {selection && (
+      {selection && !leaving && (
         <div data-hud className="pointer-events-none absolute top-3 right-3 bottom-[96px] z-[205] hidden flex-col items-end md:flex">
           <SpaceCard selection={selection} now={now} sky={sky} fleet={fleet} surfaces={surfaces} scene={scene}
             onClose={() => setSelection(null)} onFly={() => fly(selection)}
             onReplay={selection.kind === 'craft' && fleet?.craft.find(c => c.id === selection.id)?.region !== 'earth-orbit' ? () => setReplayId(selection.id) : undefined} />
         </div>
       )}
-      {replayId !== null && (
+      {replayId !== null && !leaving && (
         <div className="pointer-events-none absolute bottom-[88px] z-[206] flex justify-center" style={{ left: 'var(--shell-left, 72px)', right: 0 }}>
           <FlightReplayBar name={fleet?.craft.find(c => c.id === replayId)?.name ?? 'Spacecraft'}
             model={scene?.replay?.state.craftId === replayId ? scene.replay.model : null} state={replay} error={flight.error} controls={controls} />

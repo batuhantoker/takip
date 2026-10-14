@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { angleBetween, bodyDirection } from './frames';
-import { distanceForRadius, globeCameraDirection, globeCentreDropPx, globeCentreOffsetDeg, globeRadiusPx, zoomForRadius } from './globe-match';
+import { distanceForRadius, floorZoom, globeCameraDirection, globeCentreDropPx, globeCentreOffsetDeg, globeRadiusPx, zoomForRadius } from './globe-match';
 
 const VIEW = { lat: 0, lng: 0, zoom: 1.5, pitch: 0, bearing: 0, height: 800, fov: 36.87 };
 
@@ -37,6 +37,11 @@ describe('globe matching', () => {
     const drop = globeCentreDropPx({ ...VIEW, pitch: 20 });
     expect(drop).toBeGreaterThan(30);
     expect(drop).toBeLessThan(globeRadiusPx({ ...VIEW, pitch: 20 }));
+  });
+
+  it('sinks the zoom floor with latitude, keeping the globe one size', () => {
+    expect(floorZoom(1.5, 30)).toBeCloseTo(1.2925, 4);
+    expect(globeRadiusPx({ ...VIEW, lat: 60, zoom: floorZoom(1.5, 60) })).toBeCloseTo(globeRadiusPx(VIEW), 9);
   });
 
   it('inverts the radius to a zoom', () => {

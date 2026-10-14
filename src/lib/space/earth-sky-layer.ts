@@ -1,7 +1,7 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as MlMap } from 'maplibre-gl';
 import { mul, type Mat3 } from './frames';
 import { jdFromMs } from './horizons';
-import { cameraPosition, equatorialOfDateToGlobe, hiddenByGlobe, j2000ToGlobe, raDecVector, starColor, toScreen } from './sky-projection';
+import { cameraPosition, EARTH_RADIUS_KM, equatorialOfDateToGlobe, hiddenByGlobe, j2000ToGlobe, j2000ToLocalSky, raDecVector, starColor, toScreen } from './sky-projection';
 
 /**
  * TAKIP — a little of the real sky behind the Earth globe: the bright stars,
@@ -10,7 +10,9 @@ import { cameraPosition, equatorialOfDateToGlobe, hiddenByGlobe, j2000ToGlobe, r
  *
  * Drawn first, under the globe, through MapLibre's own globe matrix (see
  * sky-projection), so the globe hides whatever is behind it and everything
- * turns with the sky as Earth rotates. It stands aside as the map zooms in.
+ * turns with the sky as Earth rotates. It stands aside as the map zooms in,
+ * all but the brightest stars, which stay in the sky above a tilted map; once
+ * MapLibre has gone flat they are drawn over the map's centre instead.
  */
 
 export interface StarCatalog {
@@ -35,6 +37,14 @@ export interface SkyMark {
 const LABEL_MAG = 1.7;
 const FADE_FROM_ZOOM = 3;
 const FADE_TO_ZOOM = 4.6;
+/** Stars this bright stay at every zoom, easing out to about what a city sky shows. */
+const KEEP_MAG = 2.2;
+const KEEP_TO_MAG = 3.8;
+const KEEP_ALPHA = 0.85;
+/** The few brightest keep their names too, a little dimmer, so they read as stars among the satellites. */
+const KEEP_LABEL_MAG = 1.0;
+const KEEP_LABEL_ALPHA = 0.7;
+const TILE_PX = 512;
 
 // Custom layers draw after the opaque globe, so what is behind Earth is dropped
 // by a ray test against the unit sphere rather than left to the depth buffer.
@@ -54,18 +64,24 @@ uniform mat4 u_matrix;
 uniform mat3 u_sky;
 uniform float u_ratio;
 uniform float u_alpha;
+uniform float u_keep;
+uniform float u_flat;
 ${BEHIND_GLOBE}
 in vec3 a_dir;
 in vec4 a_style; // size, r, g, b
 in float a_bright;
+in float a_keep;
 out vec4 v_color;
 void main() {
   vec3 d = u_sky * a_dir;
   vec4 c = u_matrix * vec4(d, 0.0);
-  if (c.w <= 0.0 || behindGlobe(d, 1e9)) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
+  float alpha = a_bright * max(u_alpha, a_keep * u_keep);
+  // Flat, the local sky's z is up: below the horizon is under the map.
+  bool hidden = u_flat > 0.5 ? d.z < 0.0 : behindGlobe(d, 1e9);
+  if (c.w <= 0.0 || hidden || alpha <= 0.0) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
   gl_Position = vec4(c.xy, c.w * 0.99999, c.w);
   gl_PointSize = a_style.x * u_ratio;
-  v_color = vec4(a_style.yzw, a_bright * u_alpha);
+  v_color = vec4(a_style.yzw, alpha);
 }`;
 
 const STAR_FRAG = `#version 300 es
@@ -214,7 +230,7 @@ export function createEarthSkyLayer(id: string) {
     catalog.stars.forEach(([ra, dec, mag, bv], i) => {
       const [r, g, b] = starColor(bv);
       const size = Math.max(1.4, Math.min(5, 4 - 0.62 * mag)) + (named.has(i) ? 0.5 : 0);
-      data.push(...raDecVector(ra, dec), size, r, g, b, Math.max(0.25, Math.min(1, 1.05 - 0.13 * mag)));
+      data.push(...raDecVector(ra, dec), size, r, g, b, Math.max(0.25, Math.min(1, 1.05 - 0.13 * mag)), smooth(KEEP_TO_MAG, KEEP_MAG, mag));
     });
     starCount = catalog.stars.length;
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.star);
@@ -241,9 +257,10 @@ export function createEarthSkyLayer(id: string) {
     vaos.star = g.createVertexArray();
     g.bindVertexArray(vaos.star);
     g.bindBuffer(g.ARRAY_BUFFER, buffers.star);
-    attrib(programs.star, 'a_dir', 3, 8, 0);
-    attrib(programs.star, 'a_style', 4, 8, 3);
-    attrib(programs.star, 'a_bright', 1, 8, 7);
+    attrib(programs.star, 'a_dir', 3, 9, 0);
+    attrib(programs.star, 'a_style', 4, 9, 3);
+    attrib(programs.star, 'a_bright', 1, 9, 7);
+    attrib(programs.star, 'a_keep', 1, 9, 8);
     vaos.line = g.createVertexArray();
     g.bindVertexArray(vaos.line);
     g.bindBuffer(g.ARRAY_BUFFER, buffers.line);
@@ -256,6 +273,50 @@ export function createEarthSkyLayer(id: string) {
     attrib(programs.mark, 'a_kind', 4, 12, 8);
     g.bindVertexArray(null);
     maxPoint = (g.getParameter(g.ALIASED_POINT_SIZE_RANGE) as Float32Array)[1] || 64;
+  }
+
+  type Placed = { key: string; text: string; color: string; size: number; at: [number, number]; opacity: number };
+
+  /** Names for the bright stars in view; `hidden` says whether Earth stands in front of a direction. */
+  function starLabels(matrix: ArrayLike<number>, sky: Mat3, w: number, h: number, alpha: number, hidden: (dir: [number, number, number]) => boolean): Placed[] {
+    if (!catalog) return [];
+    const out: Placed[] = [];
+    for (const [i, name] of Object.entries(catalog.names)) {
+      const [ra, dec, mag] = catalog.stars[Number(i)];
+      const opacity = Math.max(mag <= LABEL_MAG ? alpha : 0, mag <= KEEP_LABEL_MAG ? KEEP_LABEL_ALPHA : 0);
+      if (opacity <= 0.01) continue;
+      const dir = mul(sky, raDecVector(ra, dec));
+      const at = toScreen(matrix, [...dir, 0], w, h);
+      if (at && !hidden(dir)) out.push({ key: `s:${name}`, text: name, color: 'rgba(205,215,255,0.5)', size: 9, at: [at[0] + 5, at[1] - 4], opacity });
+    }
+    return out;
+  }
+
+  function showLabels(placed: Placed[], w: number, h: number) {
+    hideLabels();
+    for (const p of placed) {
+      if (p.at[0] < -40 || p.at[1] < -20 || p.at[0] > w + 40 || p.at[1] > h + 20) continue;
+      const el = label(p.key, p.text, p.color, p.size);
+      el.style.display = 'block';
+      el.style.opacity = String(p.opacity);
+      el.style.transform = `translate(${p.at[0].toFixed(1)}px, ${p.at[1].toFixed(1)}px)`;
+    }
+  }
+
+  /** `cam` null: flat, on the local sky. */
+  function drawStars(matrix: ArrayLike<number>, sky: Mat3, ratio: number, alpha: number, cam: [number, number, number] | null) {
+    if (!gl || !programs || !starCount) return;
+    const u = (name: string) => gl!.getUniformLocation(programs!.star, name);
+    gl.useProgram(programs.star);
+    gl.uniformMatrix4fv(u('u_matrix'), false, matrix instanceof Float32Array ? matrix : new Float32Array(matrix));
+    gl.uniformMatrix3fv(u('u_sky'), false, mat3Columns(sky));
+    gl.uniform1f(u('u_ratio'), ratio);
+    gl.uniform1f(u('u_alpha'), alpha);
+    gl.uniform1f(u('u_keep'), KEEP_ALPHA);
+    gl.uniform1f(u('u_flat'), cam ? 0 : 1);
+    if (cam) gl.uniform3f(u('u_cam'), cam[0], cam[1], cam[2]);
+    gl.bindVertexArray(vaos.star);
+    gl.drawArrays(gl.POINTS, 0, starCount);
   }
 
   const layer: CustomLayerInterface = {
@@ -283,25 +344,47 @@ export function createEarthSkyLayer(id: string) {
     },
     render(_gl: WebGL2RenderingContext | WebGLRenderingContext, args: CustomRenderMethodInput) {
       const proj = args.defaultProjectionData;
-      const alpha = visible && map && proj && proj.projectionTransition > 0.98 ? 1 - smooth(FADE_FROM_ZOOM, FADE_TO_ZOOM, map.getZoom()) : 0;
-      if (!gl || !map || !proj || alpha <= 0.01) { hideLabels(); return; }
+      if (!gl || !map || !proj || !visible) { hideLabels(); return; }
+      // MapLibre's globe goes flat as it zooms in (fully by zoom 12); flat, there is no globe matrix to draw the sky through.
+      const flat = proj.projectionTransition <= 0;
+      const alpha = proj.projectionTransition > 0.98 ? 1 - smooth(FADE_FROM_ZOOM, FADE_TO_ZOOM, map.getZoom()) : 0;
       if (!programs) init(gl);
       if (!programs) return;
       if (starsDirty) uploadStars();
-      const matrix = proj.mainMatrix;
       const now = Date.now();
       const jd = jdFromMs(now);
-      const sky = j2000ToGlobe(jd);
-      const ofDate = equatorialOfDateToGlobe(jd);
       const ratio = map.getPixelRatio();
-      const cam = cameraPosition(matrix);
-      if (!cam) { hideLabels(); return; }
+      const canvas = map.getCanvas();
+      const w = canvas.clientWidth, h = canvas.clientHeight;
 
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.STENCIL_TEST);
       gl.depthMask(false);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      if (flat) {
+        const c = map.getCenter();
+        // The mercator matrix takes x and y in world pixels and z in metres.
+        const pxPerMetre = TILE_PX * 2 ** map.getZoom() / (2 * Math.PI * EARTH_RADIUS_KM * 1000 * Math.cos(c.lat * Math.PI / 180));
+        const local = j2000ToLocalSky(jd, c.lat, c.lng, 1 / pxPerMetre);
+        drawStars(args.modelViewProjectionMatrix, local, ratio, 0, null);
+        gl.bindVertexArray(null);
+        showLabels(starLabels(args.modelViewProjectionMatrix, local, w, h, 0, dir => dir[2] < 0), w, h);
+        return;
+      }
+
+      const matrix = proj.mainMatrix;
+      const sky = j2000ToGlobe(jd);
+      const ofDate = equatorialOfDateToGlobe(jd);
+      const cam = cameraPosition(matrix);
+      if (!cam) { hideLabels(); return; }
+      if (alpha <= 0.01) {
+        drawStars(matrix, sky, ratio, 0, cam);
+        gl.bindVertexArray(null);
+        showLabels(starLabels(matrix, sky, w, h, 0, dir => hiddenByGlobe(cam, dir)), w, h);
+        return;
+      }
 
       if (lineCount) {
         gl.useProgram(programs.line);
@@ -312,20 +395,9 @@ export function createEarthSkyLayer(id: string) {
         gl.bindVertexArray(vaos.line);
         gl.drawArrays(gl.LINES, 0, lineCount);
       }
-      if (starCount) {
-        gl.useProgram(programs.star);
-        gl.uniformMatrix4fv(gl.getUniformLocation(programs.star, 'u_matrix'), false, matrix);
-        gl.uniformMatrix3fv(gl.getUniformLocation(programs.star, 'u_sky'), false, mat3Columns(sky));
-        gl.uniform1f(gl.getUniformLocation(programs.star, 'u_ratio'), ratio);
-        gl.uniform1f(gl.getUniformLocation(programs.star, 'u_alpha'), alpha);
-        gl.uniform3f(gl.getUniformLocation(programs.star, 'u_cam'), cam[0], cam[1], cam[2]);
-        gl.bindVertexArray(vaos.star);
-        gl.drawArrays(gl.POINTS, 0, starCount);
-      }
+      drawStars(matrix, sky, ratio, alpha, cam);
 
-      const canvas = map.getCanvas();
-      const w = canvas.clientWidth, h = canvas.clientHeight;
-      const placed: { key: string; text: string; color: string; size: number; at: [number, number] }[] = [];
+      const placed = starLabels(matrix, sky, w, h, alpha, dir => hiddenByGlobe(cam, dir));
 
       // Marks are built per frame: there are a dozen, and the Moon's lighting depends on the view.
       const sun = marks.find(m => m.kind === 'sun');
@@ -350,7 +422,7 @@ export function createEarthSkyLayer(id: string) {
         data.push(...pos, size, r, g, bl, kind, ...light);
         const at = toScreen(matrix, pos, w, h);
         const behind = hiddenByGlobe(cam, Number.isFinite(mk.dist) ? [pos[0] - cam[0], pos[1] - cam[1], pos[2] - cam[2]] : dir, Number.isFinite(mk.dist) ? Math.hypot(pos[0] - cam[0], pos[1] - cam[1], pos[2] - cam[2]) : Infinity);
-        if (at && !behind) placed.push({ key: `b:${mk.name}`, text: mk.name, color: mk.color, size: 10, at: [at[0] + size / 2 + 3, at[1] - 5] });
+        if (at && !behind) placed.push({ key: `b:${mk.name}`, text: mk.name, color: mk.color, size: 10, at: [at[0] + size / 2 + 3, at[1] - 5], opacity: alpha });
       }
       if (data.length) {
         gl.useProgram(programs.mark);
@@ -364,24 +436,7 @@ export function createEarthSkyLayer(id: string) {
         gl.drawArrays(gl.POINTS, 0, data.length / 12);
       }
       gl.bindVertexArray(null);
-
-      if (catalog) {
-        for (const [i, name] of Object.entries(catalog.names)) {
-          const [ra, dec, mag] = catalog.stars[Number(i)];
-          if (mag > LABEL_MAG) continue;
-          const dir = mul(sky, raDecVector(ra, dec));
-          const at = toScreen(matrix, [...dir, 0], w, h);
-          if (at && !hiddenByGlobe(cam, dir)) placed.push({ key: `s:${name}`, text: name, color: 'rgba(205,215,255,0.5)', size: 9, at: [at[0] + 5, at[1] - 4] });
-        }
-      }
-      hideLabels();
-      for (const p of placed) {
-        if (p.at[0] < -40 || p.at[1] < -20 || p.at[0] > w + 40 || p.at[1] > h + 20) continue;
-        const el = label(p.key, p.text, p.color, p.size);
-        el.style.display = 'block';
-        el.style.opacity = String(alpha);
-        el.style.transform = `translate(${p.at[0].toFixed(1)}px, ${p.at[1].toFixed(1)}px)`;
-      }
+      showLabels(placed, w, h);
     },
   };
 
