@@ -8,6 +8,8 @@ class ByteQueue {
   private head = 0;
   private size = 0;
   private done = false;
+  /** Bytes read so far. */
+  pos = 0;
 
   constructor(private readonly source: AsyncIterator<Uint8Array>) {}
 
@@ -40,6 +42,7 @@ class ByteQueue {
       }
     }
     this.size -= n;
+    this.pos += n;
     return out ?? new Uint8Array(0);
   }
 }
@@ -57,7 +60,8 @@ function size(field: Uint8Array) {
   return parseInt(cstring(field).trim() || '0', 8);
 }
 
-export async function* tarEntries(chunks: AsyncIterable<Uint8Array>): AsyncGenerator<{ name: string; data: Uint8Array }> {
+/** `offset` is where the entry's data starts in the stream, so a range request can fetch it alone later. */
+export async function* tarEntries(chunks: AsyncIterable<Uint8Array>): AsyncGenerator<{ name: string; data: Uint8Array; offset: number }> {
   const q = new ByteQueue(chunks[Symbol.asyncIterator]());
   let nextName: string | undefined;
   for (;;) {
@@ -70,6 +74,7 @@ export async function* tarEntries(chunks: AsyncIterable<Uint8Array>): AsyncGener
     const ustar = cstring(header.subarray(257, 263)) === 'ustar';
     const prefix = ustar ? cstring(header.subarray(345, 500)) : '';
     const name = nextName ?? (prefix ? `${prefix}/` : '') + cstring(header.subarray(0, 100));
+    const offset = q.pos;
     const data = await q.read(length);
     if (!data) throw new Error(`tar stream ended inside ${name}`);
     if (length % 512 && !(await q.read(512 - (length % 512), false))) throw new Error(`tar stream ended inside ${name}`);
@@ -81,7 +86,7 @@ export async function* tarEntries(chunks: AsyncIterable<Uint8Array>): AsyncGener
       const path = /(?:^|\n)\d+ path=([^\n]*)\n/.exec(decoder.decode(data))?.[1];
       if (path) nextName = path;
     } else if (type === '0' || type === '7') {
-      yield { name, data };
+      yield { name, data, offset };
     }
   }
 }

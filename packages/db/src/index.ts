@@ -4,6 +4,7 @@ export { openReader, openWriter, type Db } from './open';
 export type { FileKind } from './schema';
 export { SqliteCatalogStore } from './sqlite/catalog-store';
 export { SqliteTrackStore } from './sqlite/track-store';
+export { SqliteTraceIndex } from './sqlite/trace-index';
 export type * from './stores';
 export { GeoPrec, PointFlag } from './history-stores';
 export type * from './history-stores';

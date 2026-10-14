@@ -109,6 +109,21 @@ export type SegmentRow = {
 
 export type TrackChunkQuery = { cls: TrackClass; lod: Lod; bucket: number; bbox: Bbox; allowedMask: number };
 
+/** A day's adsb.lol release as indexed; `day` is 00:00 UTC in epoch ms, and the parts in order make up the tar. */
+export type TraceRelease = { day: number; tag: string; page: string; parts: { name: string; size: number; url: string }[]; entries: number; indexedAt: number };
+
+/** One aircraft's trace in a day's release, at `offset` in the parts read as one stream. */
+export type TraceEntry = { icao: string; offset: number; size: number };
+
+export interface TraceIndex {
+  /** Replaces a day's index in one transaction, so a day is indexed whole or not at all. */
+  putDay(release: Omit<TraceRelease, 'entries' | 'indexedAt'>, entries: TraceEntry[]): void;
+  release(day: number): TraceRelease | undefined;
+  /** Undefined when the day isn't indexed or the aircraft isn't in it. */
+  entry(day: number, icao: string): (TraceEntry & { release: TraceRelease }) | undefined;
+  close(): void;
+}
+
 export type TleRow = { noradId: number; epoch: number; line1: string; line2: string; name: string | null; sourceId: number; fetchedAt: number };
 
 export interface TrackStore {

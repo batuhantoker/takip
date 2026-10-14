@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./adsblol-trace": "./src/adsblol-trace.ts",
     "./advisories/country-codes": "./src/advisories/country-codes.ts",
     "./advisories/fcdo": "./src/advisories/fcdo.ts",
     "./advisories/lookup": "./src/advisories/lookup.ts",

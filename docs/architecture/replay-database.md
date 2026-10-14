@@ -91,6 +91,7 @@ data/
     tracks/l1/YYYY-MM.db        segments for 1 month at L1
     tracks/l2/YYYY.db           segments for 1 year at L2
     tracks/tle.db               full TLE history
+    tracks/adsblol-history/YYYY.db  where each aircraft's full trace sits in adsb.lol's day releases (§7.8)
     cache.db                    disposable: geocoder answers, HTTP caches
     stage/{dataset}.db          disposable: importer staging
   cold/tracks/l0/...            L0 shards older than 14 days: kept, not served
@@ -257,7 +258,7 @@ All jobs run inside the worker, with a lock file guaranteeing a single instance.
 | `seal-tracks` | Every hour, for the hour that ended about 1 h ago (H is sealed at H+2:05) | Reads archive hours H and H+1, keeps the fixes whose observed time falls in H, and runs the same `map()`. Builds the L0 segments and writes them to the day's shard, in one transaction that replaces the bucket. Every 6 h it also builds L1, and once a day L2, both from L0. Updates `agg_track_bin` and bumps `meta_layer_version`. |
 | `rebuild` | When asked | Re-seals any hour that is still in the archive. This covers parser fixes and late data (`trk_dirty_bucket`). |
 | `finalise-shard` | Daily, for the previous day | Runs `ANALYZE` and `VACUUM INTO` a compact copy, swaps it in, records its checksum in `meta_shard`, and marks it `sealed` (read-only from then on) |
-| `cool-shards` | Daily | Moves L0 shards older than 14 days to `cold/` (kept, not served). Deletes L1 shards older than 90 days. |
+| `cool-shards` | Daily | Moves L0 shards older than 14 days to `cold/` (kept, not served). Deletes cold L0 shards older than 3 months (§7.8) and L1 shards older than 90 days. |
 | `aggregate-events` | Every hour | `agg_event_cell` and `agg_timeline_bin` for the sealed hours of the stream |
 | `coverage` | Every 5 min | Extends or closes `meta_coverage` intervals from runs and heartbeats |
 | `prune-raw` | Daily | Deletes archive hours older than 90 days, but only if their L0 shard and stream shard are sealed |
@@ -280,7 +281,7 @@ All jobs run inside the worker, with a lock file guaranteeing a single instance.
 - **The CLI** covers the rest: `seal` and `rebuild` take a range and ignore the delay, so an open hour can be sealed during development. It also has `lod`, `tle`, `status`, `sources` and `source <code> <record|build> <on|off>`.
 - **Not built:** `finalise-shard`, `cool-shards`, `aggregate-events`, `prune-raw`, `optimize`, `agg_track_bin`, `trk_state`, the 5-minute `coverage` job (coverage is written per hour at sealing), and the open hour served from memory.
 - **Measured** on one live OpenSky poll plus adsb.fi `/mil` (2026-10-12): 12,039 aircraft sealed in well under a second, and 2.3 MB for the hour's shard. A z7 chunk over Frankfurt took about 7 ms, cold.
-- **L0 shards in `cold/` are a lossless, normalised position archive kept forever,** at about 55 GB a year. They replace the Parquet tier of the first design, so no DuckDB or Parquet is needed now.
+- **L0 shards in `cold/` are a lossless, normalised position archive,** about 55 GB a year if kept forever. They replace the Parquet tier of the first design, so no DuckDB or Parquet is needed now. Since 2026-10-13 they are kept for 3 months, not forever (§7.8).
 
 ### 7.4 Coverage
 
@@ -343,6 +344,7 @@ npm run ingest -- backfill usgs <from> [to] [min magnitude]   earthquakes since 
     - Traces are thinned to one point per 30 s, keeping leg starts and points after silences, and written as one line per aircraft per hour.
     - **The archive holds a thinned extract, not the bytes as received.** That's the one exception to §3 rule 1: the immutable GitHub release is the raw, and each line's `url` names the release and the entry.
     - Checked on the first 4 MB of 2026-10-11: 96 aircraft, 162,209 points thinned to 30,404. The whole day, run on 2026-10-12, streamed 3.16 GiB into 55,469 aircraft and 18.95 M points over 25 hours: 383 MB of archive, 256 MB of L0, and about 125 MB of L1 and 45 MB of L2.
+    - **Index:** each trace's offset and size in the release go to `tracks/adsblol-history/YYYY.db` as the day streams, so one aircraft's full trace can be fetched again on its own (§7.8). `--index-only` indexes a day that is already backfilled, without archiving it a second time.
   - **USGS earthquakes** (`backfill/usgs.ts`, `connectors/usgs.ts`, source `usgs`, public domain): the first event pipeline.
     - **Live:** the worker fetches the source itself; it isn't a Next tap. It reads the CDN summary feed (`2.5_day.geojson`) every 10 minutes, and once a day runs an FDSN `updatedafter` query over the last 30 days to pick up reviews and magnitude changes. On start, it fills the gap since the last archived hour from the FDSN query; on a first run, that's 30 days.
     - **Backfill:** FDSN queries in 30-day windows at M2.5+ (1-day windows below). A window over the 20,000-event limit is refused with 400 and asked again in halves. There's a 1 s pause between requests.
@@ -362,6 +364,38 @@ npm run ingest -- backfill usgs <from> [to] [min magnitude]   earthquakes since 
   | GDELT events | GDELT 2.0 raw files | Every 15 minutes since 2015 |
   | Weather | Open-Meteo historical API (ERA5) | Hourly grids; free for non-commercial use |
   | Fires | NASA FIRMS archive | Needs a `MAP_KEY` |
+
+### 7.8 History on demand
+
+Decided 2026-10-13: granular history is not kept forever. Where the upstream keeps its own history and it can be addressed by time and place or entity, it is fetched when someone replays that time, cached, and evicted. Where it doesn't, recording is the only history there is, kept for a retention period.
+
+| Source | Upstream history | On demand |
+|---|---|---|
+| Aircraft | adsb.lol day releases: the whole world, ~2 s per point. OpenSky `/tracks/all`: one aircraft, at most 30 days back, a point per 15 min plus turns, experimental, needs an account. OpenSky `/flights/*`: legs, in windows of at most 2 days, updated nightly. | Yes: the release index below |
+| Earthquakes | USGS FDSN, by window | Yes; `backfill usgs` already does the fetch |
+| GDELT | One file per 15 minutes since 2015 | Yes |
+| Weather, fires | Open-Meteo ERA5; FIRMS with a `MAP_KEY` | Yes |
+| Satellites | Propagated from TLEs (§7.7); Space-Track `gp_history` | Already |
+| Ships | None from aisstream; DMA and MarineCadastre daily files cover only their own waters | Only those waters |
+| Cameras, news and Telegram, adsb.fi, markets | None | No: recorded or lost |
+
+- **Retention:** L2 forever, L1 90 days, cold L0 3 months, then deleted. Older aircraft detail comes back from the adsb.lol releases; ships, and aircraft adsb.lol didn't see, keep only L2 after 3 months.
+- **The adsb.lol release index.** A release is a plain GNU tar split into parts of 2,000,000,000 bytes, and GitHub serves byte ranges of release assets (206, through its redirect). One pass over a day is therefore enough to find any aircraft's trace again later.
+  - *Built:*
+    - `tarEntries` yields each entry's data offset in the joined stream.
+    - `backfill adsblol-history` writes every `trace_full_<hex>.json` offset and size to `tracks/adsblol-history/YYYY.db` (`trace_release`, `trace_entry`, through `SqliteTraceIndex`). A day is written in one transaction, so it is indexed whole or not at all.
+    - `fetchTrace` (`@takip/connectors/adsblol-trace`) maps an entry onto the parts it spans and asks each with a `Range`. A server that answers 200 is refused, not read: a part is 2 GB.
+    - `npm run ingest -- trace <icao24> <day>` fetches one and prints it.
+  - *Measured 2026-10-13:* a day's index is about 55k rows and 1.5 MB, written in 65 ms. Against the real 2026-10-11 release, three traces found by streaming its first 9 MB came back identical by range request, 8–136 KB each, in 70–280 ms.
+  - The trace fetched this way is readsb's full trace, about 2 s per point, finer than the 30 s the backfill archives.
+  - 2026-10-11 was backfilled before the index existed: `backfill adsblol-history 2026-10-11 --index-only` indexes it (it streams the 3.2 GB again).
+- *Not built* (`docs/roadmap.md` §8):
+  - A replay route for one aircraft's full trace on a day (`apps/api`), and clicking a replayed aircraft to draw it.
+  - A client fallback to the next coarser level when a finer bucket is missing. `lodForZoom` picks one level, so an evicted L0 hour draws nothing from zoom 8; eviction needs this first.
+  - `cool-shards` and `prune-raw` with the retention above, and dropping a backfilled day's archive and L0 once it is indexed and its L1 and L2 are built.
+  - Building a day on demand: a chunk for a day not fetched yet answers `202 building` with `Retry-After` while the worker streams the release (3.2 GB, minutes). One build per day however many ask, and gated per plan, since it spends upstream bandwidth. The timeline shows such days as fetchable rather than not recorded.
+  - On-demand fetchers for GDELT, FIRMS and ERA5, and OpenSky `/tracks/all` for the last 30 days.
+- **Risk:** the upstream's retention isn't ours. If adsb.lol's releases disappear, older aircraft detail goes with them; the 3-month cold L0 window is the hedge.
 
 ## 8. Replay serving
 
@@ -397,7 +431,7 @@ The client loads buckets that overlap the visible timeline window and prefetches
 
 | LOD | Map zoom | Fetched as tiles at | Bucket | Shard file | Simplification | Longest gap inside a segment | Served for |
 |---|---|---|---|---|---|---|---|
-| L0 | ≥ 8 | z7 | 1 h | one per day | None (dedup only) | ships 15 min, aircraft 4 min | 14 days (then `cold/`, kept) |
+| L0 | ≥ 8 | z7 | 1 h | one per day | None (dedup only) | ships 15 min, aircraft 4 min | 14 days (then `cold/` until 3 months, §7.8) |
 | L1 | 5–7 | z4 | 6 h | one per month | SED ≤ 100 m, at most one point per 30 s | 30 min | 90 days |
 | L2 | ≤ 4 | z1 | 1 day | one per year | SED ≤ 2 km, at least one point per 10 min while moving | 60 min | forever |
 
@@ -482,17 +516,18 @@ The client loads buckets that overlap the visible timeline window and prefetches
 |---|---|---|---|
 | Raw `ndjson.zst` (AIS 0.4, OpenSky + adsb.fi 0.35, others 0.1 GB/day) | ~0.85 GB | 90 days | ~77 GB |
 | `tracks/l0` served | ~0.15 GB | 14 days | ~2 GB |
-| `cold/tracks/l0` | | forever, deletable | ~55 GB/yr |
+| `cold/tracks/l0` | | 3 months (§7.8) | ~14 GB |
 | `tracks/l1` / `l2` | 0.03 / 0.015 GB | 90 days / forever | ~3 GB / ~6 GB per yr |
 | `tracks/tle.db` | ~5 MB | forever | ~2 GB/yr |
+| `tracks/adsblol-history/*.db` (trace index) | 1.5 MB per indexed day | forever | ≤ 0.6 GB/yr |
 | `stream/*.db` (~300k events/day, uncompressed, with index) | ~45 MB | forever | ~16 GB/yr |
 | `history.db` (imports, revisable live events, documents) | small | forever | ~2 GB + ~1 GB/yr |
 | `catalog.db` (entities, identifiers, camera history) | small | forever | ~1 GB |
 | `geo/*.db` (US infrastructure, GLWD, admin0, with generalised pieces) | once | | ~5–7 GB |
 | `tiles/`, nginx cache | | capped | ≤ 20 GB |
-| **Total** | | | **~190 GB after year 1, then ~80 GB/yr** |
+| **Total** | | | **~150 GB after year 1, then ~26 GB/yr** |
 
-That fits in 1 TB for about 5 years. The cold L0 shards and the raw archive are the two settings to turn down if disk gets tight.
+That fits in 1 TB for decades; kept forever, the cold L0 shards alone would add 55 GB a year (§7.8). The cold L0 shards and the raw archive are the two settings to turn down if disk gets tight.
 
 *Measured 2026-10-12:* one backfilled adsb.lol day added about 125 MB to L1 and 45 MB to L2, 3–4× the daily figures above. A backfilled day is denser than live polling, so check L1 and L2 against a week of live data before relying on them.
 
@@ -569,6 +604,7 @@ interface DocStore      { upsert(rows: DocRow[]): void; link(rows: DocLink[]): v
 *Built:* `packages/db` (`@takip/db`):
 - **`CatalogStore`:** sources and switches, `resolve` and `ensureIdentities` with the in-memory id cache, sealed buckets and shards, coverage, ingest runs, and the per-tier `policy`.
 - **`TrackStore`:** `sealBucket`, `chunk`, `segmentsByEntity`, `insertTles` and `tleAt`, with an LRU of up to 64 read handles.
+- **`TraceIndex`:** `putDay`, `release` and `entry` over the adsb.lol release index, one file per year (§7.8).
 - **Shared code:** `openWriter` and `openReader` (the §10.1 pragmas), the data layout, and a migration list per file kind in `src/schema/`, tracked with `PRAGMA user_version`. These are TypeScript strings rather than `.sql` files, as `apps/api` does it, and are append-only.
 
 The other interfaces go into `src/history-stores.ts` with the importers (§7.5).
@@ -633,7 +669,7 @@ Move when **any** of these is true:
 - **2, partly built:** `/api/replay/manifest`, `/tracks/…` and `/tle` in `apps/api`, plus the admin Sources page, and the client.
   - **Client:** a clock button under the zoom controls; a timeline bar in place of the status bar while replaying, with play, speeds from 1× to 1 year/s, a jump box ("1916", "2003-03-20", "500 BCE"), ranges from 24 h to all of history, and "not recorded" shading; and the WebGL track layer.
   - *Not built:* event and feature tiles (the importer session is building the history route and layer), histogram, series, docs, entity-at-time, picking a replayed track, and the nginx rules.
-- **Recording is on (2026-10-12 20:58 UTC)** in development: `TAKIP_ARCHIVE_DIR` and `TAKIP_WEB_URL` are in `.env.local`, and the worker runs beside `npm run dev`. Backfill is built for adsb.lol history, OpenSky and USGS (§7.7).
+- **Recording is on (2026-10-12 20:58 UTC)** in development: `TAKIP_ARCHIVE_DIR` and `TAKIP_WEB_URL` are in `.env.local`, and the worker runs beside `npm run dev`. Backfill is built for adsb.lol history, OpenSky and USGS (§7.7). adsb.lol days are indexed, so one aircraft's full trace can be fetched again by range request (§7.8).
 - **Earthquakes recorded since 2026-10-12** (USGS, M2.5+, with the 30 days before filled on first start). They replay through the importer session's history layer, which follows the `earthquakes` toggle; ships and aircraft follow their own toggles.
 - **Next:** historical events on the same timeline (importer session), clicking a replayed ship or aircraft, and the replay rate-limit bucket (backend session).
 

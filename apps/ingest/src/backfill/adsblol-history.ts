@@ -1,28 +1,24 @@
-import { gunzipSync } from 'node:zlib';
 import { GB, Recorder } from '@takip/archive/recorder';
+import { ADSBLOL_UA as UA, parseTrace, type Trace } from '@takip/connectors/adsblol-trace';
 import { HOUR_MS } from '@takip/core/time';
+import type { TraceEntry, TraceIndex } from '@takip/db';
 import { tarEntries } from './tar';
 
 /*
  * adsb.lol publishes each day of its readsb history as a GitHub release (globe_history_<year>,
  * ODbL 1.0): one tar split into parts, about 3 GB a day, holding a gzip JSON trace per aircraft.
  * The trace format is readsb's (wiedehopf/readsb README-json.md). The archive keeps a thinned
- * extract filed by hour; the release itself stays the as-received raw, named in each line's url.
+ * extract filed by hour; the release itself stays the as-received raw, named in each line's url,
+ * and the trace index records where each full trace sits in it.
  */
 
 export const HISTORY_SOURCE = 'adsblol-history';
-const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
 
 /** Seconds between kept points: L1 keeps one per 30 s anyway, and readsb's ~2 s would be 15× the bytes. */
 export const THIN_S = 30;
 
 const FLAG_STALE = 1;
 const FLAG_NEW_LEG = 2;
-
-/** [seconds after timestamp, lat, lon, altitude ft | 'ground' | null, ground speed kn, track °, flags, vertical rate, aircraft details, …] */
-type TracePoint = [number, number, number, number | 'ground' | null, number | null, number | null, number, number | null, { flight?: string } | null, ...unknown[]];
-
-export type Trace = { icao: string; r?: string; t?: string; dbFlags?: number; timestamp: number; trace: TracePoint[] };
 
 /** One aircraft's hour, as archived: points are [epoch s, lat, lon, alt ft | 'ground' | null, gs, track, flight]. */
 export type HourBody = {
@@ -88,24 +84,36 @@ async function* download(assets: Asset[], get: typeof fetch): AsyncGenerator<Uin
 
 const TRACE_RE = /trace_full_([0-9a-f]{6})\.json$/;
 
-/** Streams a day's release into the archive, one line per aircraft per hour, filed under that hour. */
+/**
+ * Streams a day's release into the archive, one line per aircraft per hour, filed under that hour;
+ * `index` learns where each trace sits. `indexOnly` skips the archive, for a day backfilled already:
+ * the recorder appends, so streaming it again would archive every line twice.
+ */
 export async function backfillDay(
   archiveDir: string,
   day: string,
-  { get = fetch, now = Date.now, log = console.log }: { get?: typeof fetch; now?: () => number; log?: (m: string) => void } = {},
+  { get = fetch, now = Date.now, log = console.log, index, indexOnly = false }:
+    { get?: typeof fetch; now?: () => number; log?: (m: string) => void; index?: TraceIndex; indexOnly?: boolean } = {},
 ) {
+  if (indexOnly && !index) throw new Error('indexOnly needs an index to write');
   const release = await dayRelease(day, get);
   const total = release.assets.reduce((n, a) => n + a.size, 0);
   log(`${release.tag}: ${release.assets.map(a => a.name).join(' + ')}, ${(total / GB).toFixed(2)} GiB to stream`);
-  const rec = new Recorder({ dir: archiveDir, maxQueuedBytes: 512 * 1024 * 1024, log });
+  const rec = indexOnly ? undefined : new Recorder({ dir: archiveDir, maxQueuedBytes: 512 * 1024 * 1024, log });
   const hours = new Set<number>();
+  const entries: TraceEntry[] = [];
   let aircraft = 0;
   let points = 0;
-  for await (const { name, data } of tarEntries(download(release.assets, get))) {
+  for await (const { name, data, offset } of tarEntries(download(release.assets, get))) {
     // '~' addresses are non-ICAO (TIS-B) and the pattern skips them, as the live mappers do.
-    if (!TRACE_RE.test(name)) continue;
-    const json = data[0] === 0x1f && data[1] === 0x8b ? gunzipSync(data) : data;
-    const trace = JSON.parse(new TextDecoder().decode(json)) as Trace;
+    const icao = TRACE_RE.exec(name)?.[1];
+    if (!icao) continue;
+    entries.push({ icao, offset, size: data.length });
+    if (!rec) {
+      if (entries.length % 5000 === 0) log(`  ${entries.length} traces indexed`);
+      continue;
+    }
+    const trace = parseTrace(data);
     for (const [hour, body] of traceHours(trace)) {
       rec.recordValue(HISTORY_SOURCE, { at: now(), for: hour, url: `${release.page}#${name.replace(/^\.\//, '')}` }, body);
       hours.add(hour);
@@ -115,6 +123,7 @@ export async function backfillDay(
     await rec.settle();
   }
   // flush, not close: close would write a heartbeat into today's hour, which says nothing about a backfill.
-  await rec.flush();
-  return { day, tag: release.tag, aircraft, points, hours: [...hours].sort((a, b) => a - b) };
+  await rec?.flush();
+  index?.putDay({ day: Date.parse(`${day}T00:00:00Z`), tag: release.tag, page: release.page, parts: release.assets }, entries);
+  return { day, tag: release.tag, aircraft: rec ? aircraft : entries.length, points, hours: [...hours].sort((a, b) => a - b) };
 }

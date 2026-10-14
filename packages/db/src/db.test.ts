@@ -26,7 +26,7 @@ describe('migrations', () => {
     const db = openWriter(path, kind);
     expect(db.pragma('user_version', { simple: true })).toBe(MIGRATIONS[kind].length);
     expect(db.pragma('journal_mode', { simple: true })).toBe('wal');
-    expect(db.pragma('page_size', { simple: true })).toBe(kind === 'catalog' || kind === 'history' || kind === 'cache' ? 4096 : 16384);
+    expect(db.pragma('page_size', { simple: true })).toBe(['catalog', 'history', 'cache', 'traces'].includes(kind) ? 4096 : 16384);
     db.close();
   });
 

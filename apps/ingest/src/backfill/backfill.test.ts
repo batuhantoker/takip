@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { isEnvelope } from '@takip/archive/envelope';
 import { readSourceHour } from '@takip/archive/reader';
+import { fetchTrace, type Trace } from '@takip/connectors/adsblol-trace';
 import { HOUR_MS } from '@takip/core/time';
 import { lonLatToTile, tileBbox } from '@takip/core/tiles';
 import { AIRCRAFT_CATEGORIES, TrackClass } from '@takip/core/tracks';
@@ -15,7 +16,7 @@ import { type IngestCtx, openIngest } from '../context';
 import { sealOrQueue } from '../jobs/seal-hours';
 import { lockPath } from '../lock';
 import { tick } from '../worker';
-import { backfillDay, dayRelease, type Trace, traceHours } from './adsblol-history';
+import { backfillDay, dayRelease, traceHours } from './adsblol-history';
 import { backfillOpenSky, RESERVE_CREDITS } from './opensky';
 import { tar } from './tar-fixture';
 
@@ -90,15 +91,16 @@ describe('backfilling', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('streams a split release into the archive by hour and seals it into tracks', async () => {
+  it('streams a split release into the archive by hour, indexes each trace, and seals it into tracks', async () => {
+    const cessnaGz = gzipSync(JSON.stringify(cessna));
     const bytes = tar([
-      { name: './traces/e9/trace_full_ad66e9.json', data: gzipSync(JSON.stringify(cessna)) },
+      { name: './traces/e9/trace_full_ad66e9.json', data: cessnaGz },
       { name: './traces/e9/trace_full_~290ee9.json', data: gzipSync(JSON.stringify({ ...cessna, icao: '~290ee9' })) },
       { name: './heatmap/26.bin.ttf', data: enc.encode('not a trace') },
     ]);
     // Split mid-header, as .aa/.ab are.
     const parts = { 'https://x/aa': bytes.subarray(0, 700), 'https://x/ab': bytes.subarray(700) };
-    const get = (async (url: string | URL | Request) => {
+    const get = (async (url: string | URL | Request, init?: RequestInit) => {
       const u = String(url);
       if (u.startsWith('https://api.github.com/')) {
         return Response.json({
@@ -109,11 +111,18 @@ describe('backfilling', () => {
           ],
         });
       }
-      return new Response(parts[u as keyof typeof parts]);
+      const body = parts[u as keyof typeof parts];
+      const range = /^bytes=(\d+)-(\d+)$/.exec(new Headers(init?.headers).get('range') ?? '');
+      return range ? new Response(body.subarray(Number(range[1]), Number(range[2]) + 1), { status: 206 }) : new Response(body);
     }) as typeof fetch;
 
-    const r = await backfillDay(ctx.archiveDir, '2026-10-11', { get, log: () => {} });
+    const r = await backfillDay(ctx.archiveDir, '2026-10-11', { get, log: () => {}, index: ctx.traces });
     expect(r).toMatchObject({ aircraft: 1, hours: [H, H + 2 * HOUR_MS] });
+    // The trace starts in .tar.aa and ends in .tar.ab; the index finds it again at full resolution.
+    const entry = ctx.traces.entry(DAY, 'ad66e9')!;
+    expect(entry).toMatchObject({ offset: 512, size: cessnaGz.length, release: { tag: 'v2026.10.11-planes-readsb-prod-0', entries: 1 } });
+    expect((await fetchTrace(entry.release.parts, entry.offset, entry.size, get)).trace).toHaveLength(cessna.trace.length);
+    expect(ctx.traces.entry(DAY, '290ee9')).toBeUndefined();
     const [line] = (await (async () => {
       const out = [];
       for await (const l of readSourceHour(ctx.archiveDir, 'adsblol-history', H)) out.push(l);
@@ -135,6 +144,20 @@ describe('backfilling', () => {
     // Its own source bit, so licence gating can treat it separately from the live feed.
     expect(decodeChunk(store.chunk({ cls: TrackClass.aircraft, lod: 0, bucket: H, bbox: tileBbox(7, x, y), allowedMask: 0b01111 })).records).toEqual([]);
     store.close();
+  });
+
+  it('indexes a day already backfilled without archiving it again', async () => {
+    const bytes = tar([{ name: './traces/e9/trace_full_ad66e9.json', data: gzipSync(JSON.stringify(cessna)) }]);
+    const get = (async (url: string | URL | Request) => String(url).startsWith('https://api.github.com/')
+      ? Response.json({ html_url: 'https://github.com/x', assets: [{ name: 'v.tar.aa', size: bytes.length, browser_download_url: 'https://x/aa' }] })
+      : new Response(bytes)) as typeof fetch;
+    await expect(backfillDay(ctx.archiveDir, '2026-10-11', { get, log: () => {}, indexOnly: true })).rejects.toThrow(/needs an index/);
+    const r = await backfillDay(ctx.archiveDir, '2026-10-11', { get, log: () => {}, index: ctx.traces, indexOnly: true });
+    expect(r).toMatchObject({ aircraft: 1, points: 0, hours: [] });
+    expect(ctx.traces.entry(DAY, 'ad66e9')).toMatchObject({ offset: 512 });
+    const lines = [];
+    for await (const l of readSourceHour(ctx.archiveDir, 'adsblol-history', H)) lines.push(l);
+    expect(lines).toEqual([]);
   });
 
   it('hands hours to a running worker instead of sealing them itself, and the worker drains them', async () => {

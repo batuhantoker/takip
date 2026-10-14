@@ -15,6 +15,10 @@ export function dataLayout(dataDir: string) {
     history: join(db, 'history.db'),
     cache: join(db, 'cache.db'),
     tle: join(db, 'tracks', 'tle.db'),
+    /** adsb.lol release index for the year of `t`: tracks/adsblol-history/YYYY.db. */
+    traceIndex(t: number) {
+      return join(db, 'tracks', 'adsblol-history', `${new Date(t).getUTCFullYear()}.db`);
+    },
     /** The shard holding bucket `t` at `lod`: l0/YYYY/MM/DD.db, l1/YYYY-MM.db, l2/YYYY.db. */
     trackShard(lod: Lod, t: number) {
       const d = new Date(t);

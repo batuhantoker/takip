@@ -746,6 +746,28 @@ CREATE INDEX trk_tle_epoch ON trk_tle (epoch);
 --   ) WHERE rn = 1;
 
 
+-- ═══════════════════════════════ tracks/adsblol-history/YYYY.db ═══════════════════════════════
+-- Where each aircraft's full trace sits in adsb.lol's day releases, written as a day streams (§7.8).
+
+CREATE TABLE trace_release (
+  day         INTEGER PRIMARY KEY,                     -- 00:00 UTC
+  tag         TEXT NOT NULL,
+  page        TEXT NOT NULL,
+  parts       TEXT NOT NULL,                           -- JSON [{name, size, url}] in tar order
+  entries     INTEGER NOT NULL,
+  indexed_at  INTEGER NOT NULL
+) STRICT;
+
+-- byte_offset: where the entry's data starts in the release's parts read as one stream.
+CREATE TABLE trace_entry (
+  day          INTEGER NOT NULL,
+  icao         INTEGER NOT NULL,                       -- 24-bit address
+  byte_offset  INTEGER NOT NULL,
+  byte_size    INTEGER NOT NULL,
+  PRIMARY KEY (day, icao)
+) STRICT, WITHOUT ROWID;
+
+
 -- ═══════════════════════════════ cache.db (disposable) ═══════════════════════════════
 
 CREATE TABLE kv (

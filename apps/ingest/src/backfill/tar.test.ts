@@ -44,6 +44,19 @@ describe('tarEntries', () => {
     }
   });
 
+  it('gives each entry the stream offset of its data, past any long-name header', async () => {
+    const seen: string[] = [];
+    for await (const { name, data, offset } of tarEntries(chunked(bytes, [100, 7]))) {
+      expect(bytes.subarray(offset, offset + data.length)).toEqual(data);
+      seen.push(`${name}@${offset}`);
+    }
+    expect(seen).toEqual([
+      './traces/e9/trace_full_ad66e9.json@1024',
+      `${longName}@3072`,
+      './traces/e9/empty.json@4096',
+    ]);
+  });
+
   it('reports a stream cut off inside an entry', async () => {
     await expect(collect(tarEntries(chunked(bytes.subarray(0, 1100), [1100])))).rejects.toThrow(/ended inside/);
     await expect(collect(tarEntries(chunked(bytes.subarray(0, 1536), [1536])))).rejects.toThrow(/without its end marker/);

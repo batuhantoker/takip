@@ -122,6 +122,29 @@ export const TLE: string[] = [
   `,
 ];
 
+/** Where each aircraft's trace sits in adsb.lol's history releases, recorded as a day streams (§7.7). One file per year. */
+export const TRACES: string[] = [
+  `
+  CREATE TABLE trace_release (
+    day         INTEGER PRIMARY KEY,
+    tag         TEXT NOT NULL,
+    page        TEXT NOT NULL,
+    parts       TEXT NOT NULL,
+    entries     INTEGER NOT NULL,
+    indexed_at  INTEGER NOT NULL
+  ) STRICT;
+
+  -- byte_offset: where the entry's data starts in the release's parts read as one stream.
+  CREATE TABLE trace_entry (
+    day          INTEGER NOT NULL,
+    icao         INTEGER NOT NULL,
+    byte_offset  INTEGER NOT NULL,
+    byte_size    INTEGER NOT NULL,
+    PRIMARY KEY (day, icao)
+  ) STRICT, WITHOUT ROWID;
+  `,
+];
+
 export const CACHE: string[] = [
   `
   CREATE TABLE kv (

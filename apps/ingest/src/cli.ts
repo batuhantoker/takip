@@ -1,5 +1,6 @@
 import { writeControl } from '@takip/archive/control';
 import { Recorder } from '@takip/archive/recorder';
+import { fetchTrace } from '@takip/connectors/adsblol-trace';
 import { DAY_MS, floorTo, HOUR_MS } from '@takip/core/time';
 import { LODS } from '@takip/core/tracks';
 import { openIngest } from './context';
@@ -20,8 +21,11 @@ const USAGE = `npm run ingest -- <command>
   seal <from> [to]               seal L0 hours in [from, to); ignores the 2 h delay, so it works on open hours
   rebuild <from> [to]            seal L0 hours again, then rebuild the L1/L2 buckets that contain them
                                  (both hand the hours to the worker when one is running)
-  backfill adsblol-history <day> [last day]
-                                 stream adsb.lol's published history for whole UTC days (~3 GB each, ODbL)
+  backfill adsblol-history <day> [last day] [--index-only]
+                                 stream adsb.lol's published history for whole UTC days (~3 GB each, ODbL),
+                                 indexing where each aircraft's full trace sits in the release;
+                                 --index-only for days already backfilled (no archive, no sealing)
+  trace <icao24> <day>           one aircraft's full trace for an indexed day, fetched by range request
   backfill opensky <from> [to]   past state vectors, up to 1 h back; needs an OpenSky account
   backfill usgs <from> [to] [min magnitude]
                                  USGS earthquakes since 1900 into history.db (default M2.5; to defaults to now)
@@ -79,14 +83,16 @@ async function main([command, ...args]: string[]) {
       case 'backfill': {
         const [source, ...rest] = args;
         if (source === HISTORY_SOURCE) {
-          const days = range(rest, DAY_MS, now);
-          if (!rest[0]) throw new Error('name the day(s) to backfill, e.g. backfill adsblol-history 2026-10-11');
+          const indexOnly = rest.includes('--index-only');
+          const dayArgs = rest.filter(a => a !== '--index-only');
+          if (!dayArgs[0]) throw new Error('name the day(s) to backfill, e.g. backfill adsblol-history 2026-10-11');
           const hours: number[] = [];
-          for (const day of days) {
-            const r = await backfillDay(ctx.archiveDir, new Date(day).toISOString().slice(0, 10), { log: m => console.log(m) });
-            console.log(`${r.tag}: ${r.aircraft} aircraft, ${r.points} points in ${r.hours.length} hours`);
+          for (const day of range(dayArgs, DAY_MS, now)) {
+            const r = await backfillDay(ctx.archiveDir, new Date(day).toISOString().slice(0, 10), { log: m => console.log(m), index: ctx.traces, indexOnly });
+            console.log(indexOnly ? `${r.tag}: indexed ${r.aircraft} traces` : `${r.tag}: ${r.aircraft} aircraft, ${r.points} points in ${r.hours.length} hours`);
             hours.push(...r.hours);
           }
+          if (indexOnly) return;
           return report(await sealOrQueue(ctx, [...new Set(hours)].sort((a, b) => a - b), `backfill ${HISTORY_SOURCE}`, { lods: true }));
         }
         if (source === 'opensky') {
@@ -109,6 +115,23 @@ async function main([command, ...args]: string[]) {
           return;
         }
         throw new Error(`no backfill for ${source ?? '(none)'}: adsblol-history, opensky and usgs have one (replay-database.md §7.7)`);
+      }
+      case 'trace': {
+        const [icao, dayArg] = args;
+        if (!icao || !dayArg) throw new Error('name the aircraft and day, e.g. trace 4ca7b5 2026-10-11');
+        const day = floorTo(parseTime(dayArg, now), DAY_MS);
+        const dayName = new Date(day).toISOString().slice(0, 10);
+        const entry = ctx.traces.entry(day, icao);
+        if (!entry) {
+          throw new Error(ctx.traces.release(day) ? `${icao} is not in ${dayName}'s release` : `${dayName} is not indexed: run backfill ${HISTORY_SOURCE} ${dayName}`);
+        }
+        const trace = await fetchTrace(entry.release.parts, entry.offset, entry.size);
+        const times = trace.trace.map(p => (trace.timestamp + p[0]) * 1000);
+        const callsigns = new Set(trace.trace.map(p => p[8]?.flight?.trim()).filter(Boolean));
+        console.log(`${trace.icao} ${trace.r ?? '-'} ${trace.t ?? '-'}: ${trace.trace.length} points` +
+          (times.length ? `, ${iso(times[0])} → ${iso(times.at(-1)!)}` : '') +
+          `, callsigns ${[...callsigns].join(' ') || '-'}; ${entry.size} bytes from ${entry.release.tag}`);
+        return;
       }
       case 'lod': {
         const lod = Number(args[0]);

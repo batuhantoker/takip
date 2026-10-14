@@ -14,6 +14,7 @@ const PAGE_SIZE: Record<FileKind, number> = {
   stream: 16384,
   tracks: 16384,
   tle: 16384,
+  traces: 4096,
   geo: 16384,
 };
 
