@@ -24,7 +24,7 @@ export const isArticleTitle = (s: string) => s.length > 0 && s.length <= 255 && 
  * and titles start uppercase, so the prefix can't be mistaken for part of an English title.
  */
 export function articleRef(stored: string): { lang: string; title: string } {
-  const m = stored.match(/^([a-z]{2,3}(?:-[a-z0-9]{2,8})*|simple):(.+)$/);
+  const m = stored.match(/^([a-z][a-z0-9-]{1,15}):(.+)$/);
   return m ? { lang: m[1], title: m[2] } : { lang: 'en', title: stored };
 }
 

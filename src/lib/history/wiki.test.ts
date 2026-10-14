@@ -34,6 +34,8 @@ describe('history wiki lookup', () => {
     expect(articleRef('Cenepa War')).toEqual({ lang: 'en', title: 'Cenepa War' });
     expect(articleRef('fr:Crise séparatiste des Comores')).toEqual({ lang: 'fr', title: 'Crise séparatiste des Comores' });
     expect(articleRef('zh-yue:二戰')).toEqual({ lang: 'zh-yue', title: '二戰' });
+    expect(articleRef('zh-classical:赤壁之戰')).toEqual({ lang: 'zh-classical', title: '赤壁之戰' });
+    expect(articleRef('be-x-old:Бітва')).toEqual({ lang: 'be-x-old', title: 'Бітва' });
     expect(articleRef('Star Wars: Episode IV')).toEqual({ lang: 'en', title: 'Star Wars: Episode IV' });
     expect(articleUrl('pl:Bitwa pod Grunwaldem')).toBe('https://pl.wikipedia.org/wiki/Bitwa_pod_Grunwaldem');
   });
