@@ -3,6 +3,7 @@ import type { ScheduledRoute } from '@/lib/flights/watch';
 import type { AlertPinProps } from '@/lib/alerts/map-pins';
 import { htmlEsc, pop, popCoords, sentence, urlSafe, type PopTone } from './kit';
 import { weatherLabel } from '@/lib/weather/weather-field';
+import { formatTemperature, getTemperatureUnit } from '@/lib/weather/temperature-unit';
 
 export { htmlEsc, urlSafe };
 
@@ -363,7 +364,7 @@ export function weatherPointPopupHtml(p: Record<string, unknown>, coords: GeoJSO
   return pop({
     kicker: 'Weather',
     meta: p.hour ? String(p.hour) : undefined,
-    title: num(p.temp, 1, ' °C') ?? '—',
+    title: formatTemperature(p.temp, getTemperatureUnit()) ?? '—',
     subtitle: weatherLabel(p.code == null ? null : Number(p.code)),
     rows: [
       { label: 'Wind', value: wind ? `${wind}${compass}` : null, mono: true },

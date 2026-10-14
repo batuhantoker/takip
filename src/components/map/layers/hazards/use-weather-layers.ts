@@ -10,18 +10,22 @@ import {
   decodeField, fieldFromGrid, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setTemperatureField,
   type TemperatureField, type WeatherGrid,
 } from '@/lib/weather/weather-field';
+import { toUnit, useTemperatureUnit } from '@/lib/weather/temperature-unit';
 import { stackGroundRasters } from '@/lib/basemap/ground-rasters';
 import type { LayerHookArgs, MapRef, WorldMapProps } from '@/components/map/types';
 
 export function useWeatherGridLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
+  const unit = useTemperatureUnit();
   useEffect(() => {
     if (!mapReady) return;
     const grid: WeatherGrid | null = data.weather_grid ?? null;
     const hour = grid ? `${grid.time.slice(11, 16)} UTC` : '';
     setGeo('wx-points', grid && (activeLayers.wx_temperature || activeLayers.wx_wind)
-      ? grid.points.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { ...p, hour } }))
+      ? grid.points.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: {
+        ...p, hour, shownTemp: p.temp == null ? null : Math.round(toUnit(p.temp, unit)),
+      } }))
       : []);
-  }, [mapReady, data.weather_grid, activeLayers.wx_temperature, activeLayers.wx_wind, setGeo]);
+  }, [mapReady, data.weather_grid, activeLayers.wx_temperature, activeLayers.wx_wind, unit, setGeo]);
 }
 
 /** The 0.25° GFS field while the temperature layer is on; null until it loads, or if the route never answers. */

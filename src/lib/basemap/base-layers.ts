@@ -597,8 +597,8 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
     'icon-color': ['interpolate',['linear'],['get','wind'], 0,'#E1F5FE', 15,'#81D4FA', 30,'#FFF176', 50,'#FFB74D', 75,'#E57373', 100,'#D81B60'],
     'icon-opacity': 0.9,
   }});
-  map.addLayer({ id: 'wx-temp-label', type: 'symbol', source: 'wx-points', filter: ['!=', ['get','temp'], null], layout: {
-    'text-field': ['concat', ['to-string', ['round', ['get','temp']]], '°'],
+  map.addLayer({ id: 'wx-temp-label', type: 'symbol', source: 'wx-points', filter: ['!=', ['get','shownTemp'], null], layout: {
+    'text-field': ['concat', ['to-string', ['get','shownTemp']], '°'],
     'text-size': ['interpolate',['linear'],['zoom'], 1,11, 5,12],
     'text-font': ['Noto Sans Bold'], 'text-offset': [0, 1.3], 'text-allow-overlap': false,
   }, paint: labelPaint(MAP_INK.ink1) });
