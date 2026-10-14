@@ -1,5 +1,6 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as MlMap } from 'maplibre-gl';
 import { MercatorCoordinate } from 'maplibre-gl';
+import { cameraPosition } from '@/lib/space/sky-projection';
 import { createSatelliteProgramCache } from './programs';
 
 /**
@@ -61,6 +62,15 @@ const KM_TO_M = 1000;
  */
 export const SAT_MAX_ZOOM = 7;
 
+/*
+ * Zoomed in and tilted, the satellites standing against the sky would bury the
+ * map's stars, so those fade to this as the zoom goes from SKY_FADE_FROM to
+ * SKY_FADE_TO. Over the whole globe they are its halo, and stay.
+ */
+const SKY_FADE_MIN = 0.15;
+const SKY_FADE_FROM = 3.5;
+const SKY_FADE_TO = 5.5;
+
 const FLOOR_KM = 620;      // clears the globe depth test
 const CEILING_KM = 2500;   // stays inside the frustum at world zoom
 const MIN_ALT_KM = 150;    // lowest catalogue altitude that still orbits
@@ -91,11 +101,22 @@ in vec3 a_color;
 in float a_size;
 uniform vec2 u_viewport;
 uniform int u_selected;
+uniform vec3 u_cam;
+uniform float u_sky_fade;
 out vec2 v_corner;
 out vec3 v_color;
 out float v_hot;
+out float v_fade;
 void main() {
   vec4 clip = projectTileFor3D(a_pos.xy, a_pos.z);
+  v_fade = 1.0;
+#ifdef GLOBE
+  // Against the sky when the line of sight through it misses the globe (unit sphere, camera in the same units).
+  vec3 at = projectToSphere(a_pos.xy, a_pos.xy) * (1.0 + a_pos.z / GLOBE_RADIUS);
+  vec3 ray = normalize(at - u_cam);
+  float b = dot(u_cam, ray);
+  if (b * b - (dot(u_cam, u_cam) - 1.0) <= 0.0 || b > 0.0) v_fade = u_sky_fade;
+#endif
   // Shrink with distance so a dense catalogue does not turn the globe into a
   // solid sheet of dots when zoomed out.
   float px = clamp(a_size * 260.0 / max(clip.w, 0.0001), 2.0, 14.0);
@@ -115,6 +136,7 @@ precision mediump float;
 in vec2 v_corner;
 in vec3 v_color;
 in float v_hot;
+in float v_fade;
 out vec4 fragColor;
 void main() {
   // Round the marker off inside the quad; square satellites read as dead
@@ -129,7 +151,7 @@ void main() {
     fragColor = vec4(c, max(ring, smoothstep(0.45, 0.0, r)) * 0.95);
     return;
   }
-  fragColor = vec4(v_color, smoothstep(1.0, 0.55, r) * 0.6);
+  fragColor = vec4(v_color, smoothstep(1.0, 0.55, r) * 0.6 * v_fade);
 }`;
 
 /**
@@ -603,6 +625,10 @@ export function createSatelliteLayer(id: string): CustomLayerInterface & {
       const cornerLoc = bindAttributes(program);
       gl.uniform2f(gl.getUniformLocation(program, 'u_viewport'), gl.drawingBufferWidth, gl.drawingBufferHeight);
       gl.uniform1i(gl.getUniformLocation(program, 'u_selected'), selected);
+      const cam = proj ? cameraPosition(proj.mainMatrix) : null;
+      if (cam) gl.uniform3f(gl.getUniformLocation(program, 'u_cam'), cam[0], cam[1], cam[2]);
+      const t = map ? Math.min(1, Math.max(0, (map.getZoom() - SKY_FADE_FROM) / (SKY_FADE_TO - SKY_FADE_FROM))) : 0;
+      gl.uniform1f(gl.getUniformLocation(program, 'u_sky_fade'), cam ? 1 - (1 - SKY_FADE_MIN) * t * t * (3 - 2 * t) : 1);
 
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

@@ -27,7 +27,8 @@ export function createMap(container: HTMLDivElement): maplibregl.Map | undefined
       // wants its own credit even over other tiles, and Nominatim needs OSM credited for search.
       customAttribution: ['Style © <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>', 'Geocoding © OpenStreetMap contributors'],
     },
-    maxPitch: 85,
+    // Past about 90° the camera sinks under the flat map's plane at city zooms; 88° still draws, with a little more sky.
+    maxPitch: 88,
     // CARTO forbids proxying or caching its tiles server-side and wants each customer's own key (basemap terms §3.b, §9).
     // The `key` parameter is what its key page documents; unverified for vector tiles.
     transformRequest: (url: string) => {
