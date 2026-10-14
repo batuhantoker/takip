@@ -65,10 +65,34 @@ export function compact(v: unknown): unknown {
   return v;
 }
 
+/** Rows whose `related` lists share a GTD eventid, as groups of keys; a list need not include its own row's id. */
+export function relatedGroups(lists: ReadonlyMap<string, readonly string[]>): string[][] {
+  const parent = new Map<string, string>();
+  const find = (x: string): string => {
+    let r = x;
+    while (parent.get(r) !== r) r = parent.get(r) ?? r;
+    parent.set(x, r);
+    return r;
+  };
+  for (const ids of lists.values()) {
+    for (const id of ids) if (!parent.has(id)) parent.set(id, id);
+    for (const id of ids.slice(1)) parent.set(find(id), find(ids[0]));
+  }
+  const groups = new Map<string, string[]>();
+  for (const [key, ids] of lists) {
+    if (!ids.length) continue;
+    const root = find(ids[0]);
+    groups.set(root, [...(groups.get(root) ?? []), key]);
+  }
+  return [...groups.values()].filter(g => g.length > 1);
+}
+
+const relatedIds = (s: string) => s.split(',').map(t => t.trim()).filter(t => /^\d{12}$/.test(t));
+
 export async function importGtd(ctx: Ctx) {
   await importDataset(
     ctx,
-    { source: 'gtd', version: '2018-07', asOf: AS_OF, files: [FILE], importerVersion: '1' },
+    { source: 'gtd', version: '2018-07', asOf: AS_OF, files: [FILE], importerVersion: '2' },
     async ds => {
       const r = new Resolver(ctx);
       const rep = ds.report;
@@ -92,6 +116,7 @@ export async function importGtd(ctx: Ctx) {
 
       const batch = new EventBatch(ctx, ds);
       const seen = new Map<string, number>();
+      const related = new Map<string, string[]>();
       for await (const rec of csvRecords(FILE)) {
         if (rec.__header__) continue;
         rep.rows++;
@@ -99,6 +124,7 @@ export async function importGtd(ctx: Ctx) {
         const ordinal = seen.get(hash) ?? 0;
         seen.set(hash, ordinal + 1);
         const key = `row:${hash}:${ordinal}`;
+        if (rec.related?.trim()) related.set(key, relatedIds(rec.related));
 
         const start = ymd(num(rec.iyear), num(rec.imonth), num(rec.iday));
         if (!start) {
@@ -242,8 +268,22 @@ export async function importGtd(ctx: Ctx) {
       rep.extra.manual_fix = manualFix;
       rep.extra.duplicate_rows = [...seen.values()].reduce((s, c) => s + c - 1, 0);
 
+      const publish = batch.finish();
+      ctx.events.clearRelations(ds.sourceId);
+      let links = 0;
+      ctx.history.transaction(() => {
+        for (const group of relatedGroups(related)) {
+          const ids = group.map(k => ctx.events.eventId(ds.sourceId, k)).filter((id): id is number => id !== undefined);
+          for (let i = 0; i < ids.length; i++) {
+            for (let j = i + 1; j < ids.length; j++) ctx.events.relate(ids[i], 'related', ids[j], 1, ds.sourceId);
+          }
+          links += (ids.length * (ids.length - 1)) / 2;
+        }
+      })();
+      rep.extra.links = { related: links };
+
       return {
-        ...batch.finish(),
+        ...publish,
         gaps: [{ tLo: utc(1993), tHi: utc(1994), kind: 'missing', note: 'GTD lost its 1993 records; this release has none' }],
       };
     },

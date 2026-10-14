@@ -6,6 +6,7 @@ import { type Stated, ymd } from '../dates';
 import { anchor, EventBatch, validLonLat } from '../events';
 import { normName } from '../names';
 import { Resolver } from '../resolver';
+import { enwikiTitle } from '../wiki';
 
 const DIR = join(RAW, 'World War 1 Battles');
 const FILE = join(DIR, 'WW1_Data.csv');
@@ -177,7 +178,7 @@ export async function importWw1(ctx: Ctx) {
       asOf: AS_OF,
       files: [FILE],
       skipped: [{ file: join(DIR, 'WW1_DataEncoded.csv'), duplicateOf: FILE }],
-      importerVersion: '1',
+      importerVersion: '3',
     },
     async ds => {
       const r = new Resolver(ctx);
@@ -280,6 +281,8 @@ export async function importWw1(ctx: Ctx) {
             strength_counts: { left: pyDict(b.strength_dict_left), right: pyDict(b.strength_dict_right) },
             ...(fix ? { fix: fix.note } : {}),
             ...(Object.keys(tRaw).length ? { t_raw: tRaw } : {}),
+            ...(at.geoPrec === GeoPrec.approximate ? { placed_at: 'midpoint of the belligerents’ countries: the source gives no place' } : {}),
+            wiki: enwikiTitle(url),
           },
           entities,
         });

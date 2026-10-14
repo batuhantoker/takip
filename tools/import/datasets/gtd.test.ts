@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compact, excelDamaged, parseResolution, rowHash, severity } from './gtd';
+import { compact, excelDamaged, parseResolution, relatedGroups, rowHash, severity } from './gtd';
 
 describe('gtd helpers', () => {
   it('hashes the identifying fields only', () => {
@@ -31,5 +31,18 @@ describe('gtd helpers', () => {
 
   it('keeps zeros but drops empties, preserving key order', () => {
     expect(compact({ a: 0, b: null, c: '', d: [null, 'x'], e: { f: null }, g: [] })).toEqual({ a: 0, d: ['x'] });
+  });
+
+  it('groups rows whose related lists share an id, whatever order the ids come in', () => {
+    const groups = relatedGroups(new Map([
+      ['a', ['197002080001', '197002080002', '197002090003']],
+      ['b', ['197002080001', '197002080002', '197002090003']],
+      ['c', ['197002090003', '197002090004']],
+      ['d', ['200109110006', '200109110004']],
+      ['e', ['200109110004', '200109110006']],
+      ['f', ['198612210001']],
+      ['g', []],
+    ]));
+    expect(groups.map(g => [...g].sort())).toEqual([['a', 'b', 'c'], ['d', 'e']]);
   });
 });

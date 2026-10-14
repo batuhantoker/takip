@@ -6,6 +6,7 @@ import { isoDate } from '../dates';
 import { anchor, EventBatch } from '../events';
 import { normName } from '../names';
 import { Resolver } from '../resolver';
+import { readWikiTable, wikiTablePath } from '../wiki';
 
 const DIR = join(RAW, 'Global Wars & Armed Conflicts, 1914–2026');
 const f = (name: string) => join(DIR, name);
@@ -34,12 +35,13 @@ export async function importWac1914(ctx: Ctx) {
       source: 'wac1914',
       version: AS_OF,
       asOf: AS_OF,
-      files: ['conflicts.csv', 'conflict_participants.csv', 'countries_reference.csv', 'sources.csv', 'data_dictionary.csv'].map(f),
-      importerVersion: '1',
+      files: [...['conflicts.csv', 'conflict_participants.csv', 'countries_reference.csv', 'sources.csv', 'data_dictionary.csv'].map(f), wikiTablePath('wac1914')],
+      importerVersion: '2',
     },
     async ds => {
       const r = new Resolver(ctx);
       const rep = ds.report;
+      const wiki = await readWikiTable('wac1914');
 
       const countries = await readCsv(f('countries_reference.csv'));
       ctx.catalog.transaction(() => {
@@ -144,6 +146,7 @@ export async function importWac1914(ctx: Ctx) {
             duration_provisional: c.duration_is_provisional === 'True',
             last_verified: text(c.last_verified_date),
             ...(ongoing ? { t_raw: { end: c.end_date } } : {}),
+            wiki: wiki.get(c.conflict_id) ?? null,
           },
           entities,
         });

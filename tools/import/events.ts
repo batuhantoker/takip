@@ -9,7 +9,18 @@ const BATCH = 5000;
  * Which source wins when several describe one event (same_as). resolveCanonical recomputes every group
  * at once from the list it is given, so every importer passes this one.
  */
-export const CANONICAL_ORDER = ['wac1914', 'cow-interstate', 'cow-extra', 'usgs', 'noaa-hazards', 'ww1-wiki', 'wikidata-battles'];
+export const CANONICAL_ORDER = [
+  'wac1914',
+  'cow-interstate',
+  'cow-extra',
+  'ucdp-brd',
+  'usgs',
+  'noaa-hazards',
+  'ww1-wiki',
+  'wikidata-battles',
+  'ww2-borders',
+  'cow-territorial',
+];
 
 export function resolveCanonical(ctx: Ctx) {
   const id = ctx.catalog.prepare(`SELECT source_id FROM meta_source WHERE code = ?`).pluck();

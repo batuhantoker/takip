@@ -2,7 +2,7 @@
 
 > **Snapshot:** 2026-10-12, about 20:00 EDT (2026-10-13 00:00 UTC). The counts were read from the files under `data/` and will drift. The live record is `catalog.meta_source` (sources), `catalog.meta_dataset` (imports), `catalog.meta_coverage` (recording) and `catalog.meta_shard` (files).
 > **2026-10-13:** the `tradewar` source (tariff timeline, stock, currency and trade series) was removed; the counts below are after the removal.
-> Related: [`replay-database.md`](./replay-database.md) (design, retention), [`dataset-import-map.md`](./dataset-import-map.md) (how each dataset maps to tables), [`backend.md`](./backend.md) (app data), [`data/reference/README.md`](../../data/reference/README.md) (reference files), [`DATA-SOURCES.md`](../../DATA-SOURCES.md) (candidates, not what we use).
+> Related: [`replay-database.md`](./replay-database.md) (design, retention), [`dataset-import-map.md`](./dataset-import-map.md) (how each dataset maps to tables), [`backend.md`](./backend.md) (app data), [`data/reference/README.md`](../../data/reference/README.md) (reference files), [`data-sources.md`](../data-sources.md) (candidates, not what we use).
 
 ## 1. Where data lives
 
@@ -10,7 +10,7 @@
 |---|---|---:|---|
 | `data/db/catalog.db` | Entities and identifiers, polities, plus the registry: sources, datasets, licences, coverage, shards | 15 MB | importers, ingest |
 | `data/db/history.db` | Events, time series and documents | 585 MB | importers, ingest (USGS) |
-| `data/db/geo/<layer>@<v>.db` | Map layers, generalised per zoom band: `admin0`, `unesco-whc`, `glwd-lakes`, `ww2-europe` | 83 MB | importers |
+| `data/db/geo/<layer>@<v>.db` | Map layers, generalised per zoom band: `admin0`, `unesco-whc`, `glwd-lakes`, `ww2-europe`, `world-borders` | 150 MB | importers |
 | `data/db/tracks/l0/YYYY/MM/DD.db` | Aircraft and ship tracks at full resolution, one file per day | 294 MB | ingest (`seal-tracks`) |
 | `data/db/tracks/l1/YYYY-MM.db`, `l2/YYYY.db` | The same tracks simplified, one file per month and per year | 156 MB + 122 MB | ingest |
 | `data/db/tracks/tle.db` | Satellite orbital elements (TLEs) | 4 MB | ingest |
@@ -74,9 +74,9 @@ The sky, cosmos and Milky Way files are not committed yet. Mission notes (71 cra
 | hazard.tsunami | 2,327 | | war.* (interstate, civil, independence, world) | 195 |
 | nuclear.test | 2,049 | | status.in_danger | 89 |
 | politics.treaty | 1,706 | | nuclear.combat | 2 |
-| claim.territorial | 1,209 | | | |
+| claim.territorial | 1,209 | | disaster.* (`gdis`, 2026-10-14) | 9,928 |
 
-**Time series (history):** 246,424 series, 6.38 M points, 1,396 metrics. World Bank WDI is 233,200 series and 5.66 M points; the rest is OWID, UCDP, ICOW and the IQ compilation.
+**Time series (history):** 307,672 series. World Bank WDI is 294,460 series, 9.05 M points and 1,498 metrics (the 2026-10-08 release, imported 2026-10-14); the rest is OWID, UCDP, ICOW and the IQ compilation.
 
 **Documents:** 354 (309 WW1 battle articles, 45 citations from the 1914–2026 wars compilation).
 
@@ -87,7 +87,8 @@ The sky, cosmos and Milky Way files are not committed yet. Mission notes (71 cra
 | `admin0` (Natural Earth) | 242 | polygon | static |
 | `unesco-whc` | 1,155 | point | valid from inscription |
 | `glwd-lakes` | 3,721 | polygon | static |
-| `ww2-europe` (v4) | 290 | polygon | 1938-03-13 → 1945-05-09 |
+| `ww2-europe` (v6) | 288 | polygon | Feb 1938 → May 1945, month by month |
+| `world-borders` (v2) | 11,079 | polygon | year by year, 3400 BCE → 2024 (Cliopatria) |
 
 **Tracks:**
 
@@ -104,7 +105,7 @@ The sky, cosmos and Milky Way files are not committed yet. Mission notes (71 cra
 
 101 routes under `src/app/api/` call about 40 provider groups. **Only seven are stored:** AISStream, OpenSky, adsb.fi, adsb.lol, CelesTrak and the camera catalogue go into the raw archive, and the ingest worker records USGS itself (§5.2). Everything else is held in a memory cache (`packages/connectors/src/source-cache.ts`, serves a stale copy on error) or passed straight through.
 
-Limits are as written in our code comments or `DATA-SOURCES.md`; they haven't been re-checked against the providers' docs. "n.d." means nothing is written down.
+Limits are as written in our code comments or `docs/data-sources.md`; they haven't been re-checked against the providers' docs. "n.d." means nothing is written down.
 
 | Provider | What | Routes | Key (env) | Upstream limit | Our cache or poll | Stored? |
 |---|---|---|---|---|---|---|
@@ -114,7 +115,7 @@ Limits are as written in our code comments or `DATA-SOURCES.md`; they haven't be
 | AISStream | Ships worldwide: 10 chokepoint boxes plus a whole-world box (WebSocket) | `/api/maritime` | `AIS_API_KEY` | 3 open connections per IP and per account ([docs](https://aisstream.io/documentation#limits)); terms n.d. | held in memory, 5 s snapshot; the live map is capped at 20,000 ships, the archive is not | **raw archive** |
 | CelesTrak | TLEs, 5 groups | `/api/satellites` | — | data updates every 2 h and a repeat download gets 403; 50 errors in 2 h or >100 MB/day gets us firewalled. **We fetch `FORMAT=tle`, which has no objects catalogued since 2026-07-11 (6-digit ids)** | one download per group per 2 h; disk copy in `.next/cache/` | **raw archive + `tle.db`** |
 | SatNOGS | TLE fallback | `/api/satellites` | — | n.d. | only when CelesTrak returns nothing | raw archive (empty so far) |
-| ~115 camera indexes (511 services, Digitraffic, MLIT, TOPIS, …) | Camera lists | `/api/cctv` | `ONTARIO_511_KEY`, `ALBERTA_511_KEY` | n.d. | 30 min; disk `.cache/cctv-catalog.json` | **raw archive** (lists, not frames) |
+| ~115 camera indexes (511 services, Digitraffic, MLIT, TOPIS, …) | Camera lists | `/api/cctv` | — | n.d. | 30 min; disk `.cache/cctv-catalog.json` | **raw archive** (lists, not frames) |
 | Camera frames and streams | Images, HLS | `/api/cctv/{proxy,frame,resolve,…}` | — | n.d. | 4–60 s | no |
 | USGS, EMSC | Earthquakes | `/api/earthquakes` | — | FDSN caps a request at 20k events | 60 s | no (the worker records USGS) |
 | FAA NAS | Airport delays | `/api/airport-status` | — | n.d. | 2 min | cache |
@@ -141,7 +142,7 @@ Limits are as written in our code comments or `DATA-SOURCES.md`; they haven't be
 | geoBoundaries, Waymarked Trails | Fine boundaries, hiking routes | `/api/boundaries/fine`, `/api/hiking/routes/[id]` | — | WMT "moderate rates" | 30 d / 6 h | cache |
 | Photon, Wikipedia, Wikidata, Nominatim, police.uk, UNHCR | Region dossier | `/api/region-dossier` | — | Nominatim 1 req/s; Wikidata rate-limited | 24 h; Nominatim disk `.cache/nominatim.json` | cache |
 | ipapi.co, freeipapi, ip-api | Visitor location | `/api/geo` | — | ipapi.co 1,000/day | none | no |
-| ~15 OSINT services (RIPEstat, crt.sh, RDAP, Shodan InternetDB, OTX, OpenSanctions, explorers, …) | Lookups | `/api/osint/*`, `/api/scanner` | `ETHERSCAN_API_KEY`, `HELIUS_API_KEY`, `SCANNER_URL/KEY` | n.d. (we cap callers at 3–30 req/min per IP) | mostly none | no |
+| ~15 OSINT services (RIPEstat, crt.sh, RDAP, Shodan InternetDB, OTX, OpenSanctions, explorers, …) | Lookups | `/api/osint/*` | `ETHERSCAN_API_KEY`, `HELIUS_API_KEY` (both optional) | n.d. (we cap callers at 3–30 req/min per IP) | mostly none | no |
 | Gemini, OpenAI, Anthropic, OpenRouter, Groq, DeepSeek, Mistral | AI | `/api/ai/*`, `/api/oi/*`, `/api/mcp` | `GEMINI_API_KEY_n` or the user's own key | n.d. | none | no |
 
 ## 5. Historical data
@@ -156,21 +157,24 @@ All imported on 2026-10-12, all `active`.
 | `noaa-hazards` | Significant earthquakes, tsunamis, eruptions (NCEI) | 4360 BCE → 2026 | 9,927 events |
 | `wikidata-politics` | Treaties and coups | 1300 BCE → 2026 | 2,166 events |
 | `gtd` | Global Terrorism Database | 1970 → 2017 | 181,691 events |
+| `wikidata-attacks` | Terrorist attacks outside GTD's years, imported 2026-10-14 | 44 BCE → 2026 | 592 events |
 | `sipri-nuclear` | Nuclear explosions | 1945 → 1998 | 2,051 events |
+| `gdis` | Where EM-DAT disasters struck (GDIS), imported 2026-10-14 | 1960 → 2018 | 9,928 events from 39,953 places |
 | `icow` | Territorial claims | 1816 → 2001 | 1,209 events, 2,511 series |
 | `cow-territorial` | Territorial changes | 1816 → 2016 | 840 events |
 | `cow-interstate`, `cow-extra` | Inter-state wars | 1823 → 2023 | 98 events |
 | `ww1-wiki` | WW1 battles | 1914 → 1918 | 309 events, 309 docs |
 | `wac1914` | Wars and armed conflicts | 1914 → 2026 | 106 events, 45 docs |
-| `ucdp-brd` | Battle-related deaths | 1989 → 2025 | 206 events, 618 series |
+| `ucdp-brd` | Battle-related deaths (BRD 26.1, placed by GED 26.1) | 1989 → 2025 | 202 events, 606 series |
 | `ww2-borders` | European borders in WW2 (Stanford) | 1938 → 1945 | 81 events, 290 polygons |
+| `cliopatria` | World polities year by year (Seshat) | 3400 BCE → 2024 | 11,079 polygons from 12,064 rows |
 | `unesco-whc` | World Heritage List 2021 | 1988 → 2022 | 1,155 sites, 89 "in danger" events |
-| `wdi` | World Development Indicators | 1960 → 2015 | 233,200 series |
+| `wdi` | World Development Indicators (2026-10-08 release, imported 2026-10-14) | 1960 → 2025 | 294,460 series |
 | `owid-*` (8 datasets) | Conflict deaths, life expectancy, education, water, mental health, COVID, long-run indicators | year 1 → 2026-08 | 9,847 series |
 | `iq-2023` | IQ compilation | 2023 | 248 series |
 | `naturalearth`, `glwd` | Modern borders, lakes and wetlands | static | 242 + 3,721 features |
 
-**Known gaps** (`meta_dataset_gap`): GTD has no 1993 records (lost by the publisher); UCDP's 2025 rows are the preliminary version 26.0.
+**Known gaps** (`meta_dataset_gap`): GTD has no 1993 records (lost by the publisher).
 
 ### 5.2 Recording (live)
 
@@ -213,7 +217,7 @@ From `meta_licence` and `meta_access_policy`. `commercial_use` is blank where it
 | cc0-1.0 | wikidata-battles, wikidata-politics | yes | public domain |
 | adsblol-odbl | adsblol, adsblol-history | yes | share-alike |
 | satnogs-cc-by-sa | satnogs | yes | share-alike |
-| cc-by-4.0 | wdi, ucdp-brd, owid-* | not set | attribution |
+| cc-by-4.0 | wdi, ucdp-brd, owid-*, gdis | not set | attribution |
 | cc-by-sa-4.0 | ww1-wiki | not set | share-alike |
 | cc-by-sa-3.0-igo | unesco-whc | not set | share-alike |
 | cow-terms | cow-interstate, cow-territorial, icow | not set (the COW page says **no**: "not to be used for any commercial activity", and no redistribution without written permission) | attribution |
@@ -224,4 +228,4 @@ From `meta_licence` and `meta_access_policy`. `commercial_use` is blank where it
 | aisstream-terms, adsbfi-terms, celestrak-terms, cctv-mixed | the matching source | not set | unknown |
 | unknown | wac1914, cow-extra, iq-2023, sipri-nuclear | not set (SIPRI requires authorisation for commercial use) | unknown |
 
-**Access:** every tier (`anon`, `free`, `paid`, `internal`) can view data under all 17 licences, and export is off for all of them.
+**Access:** every tier (`anon`, `free`, `paid`, `internal`) can view data under all 18 licences, and export is off for all of them.

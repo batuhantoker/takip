@@ -7,6 +7,7 @@ import { type Stated, utc, ymd } from '../dates';
 import { EventBatch, validLonLat } from '../events';
 import { Resolver } from '../resolver';
 import { SeriesBatch } from '../series';
+import { readWikiTable, wikiTablePath } from '../wiki';
 
 const DIR = join(RAW, 'Disputed Territories and Wars, 1816-2001');
 const f = (name: string) => join(DIR, name);
@@ -64,8 +65,8 @@ export async function importIcow(ctx: Ctx) {
       source: 'icow',
       version: VERSION,
       asOf: AS_OF,
-      files: [...['territories.csv', 'years.csv', 'states.csv'].map(f), PLACES],
-      importerVersion: '2',
+      files: [...['territories.csv', 'years.csv', 'states.csv'].map(f), PLACES, wikiTablePath('icow')],
+      importerVersion: '3',
     },
     async ds => {
       const r = new Resolver(ctx);
@@ -115,6 +116,7 @@ export async function importIcow(ctx: Ctx) {
       }
 
       const places = await readPlaces();
+      const wiki = await readWikiTable('icow');
       // A claim without a place stays off the map rather than drawn between its claimants.
       const point = (claimId: string, name: string) => {
         const p = places.get(placeKey(claimId, name));
@@ -153,7 +155,7 @@ export async function importIcow(ctx: Ctx) {
           tEndPrec: end?.prec ?? null,
           ongoing,
           ...point(claimId, title),
-          attrs: { names: [...names.keys()], dyads: dyads.length, region: num(dyads[0].row.region), ...ongoingAttrs(start, end, ongoing) },
+          attrs: { names: [...names.keys()], dyads: dyads.length, region: num(dyads[0].row.region), ...ongoingAttrs(start, end, ongoing), wiki: wiki.get(text(title) ?? '') ?? null },
           entities: [...claimants.values()],
         });
 
@@ -170,6 +172,7 @@ export async function importIcow(ctx: Ctx) {
             ongoing: open,
             ...point(claimId, row.name),
             attrs: {
+              wiki: wiki.get(text(row.name) ?? '') ?? null,
               region: num(row.region),
               claim_resolution: code(rep, 'claim_resolution', row.claim_resolution),
               claim_violence: code(rep, 'claim_violence', row.claim_violence),

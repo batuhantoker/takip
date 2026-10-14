@@ -2,6 +2,7 @@ import type { RawEnvelope } from '@takip/archive/envelope';
 import { Prec } from '@takip/core/time';
 import { GeoPrec } from '@takip/db';
 import type { Connector, EventObservation } from '../observation';
+import { USGS_ARTICLES } from './usgs-articles.generated';
 
 /*
  * USGS ComCat (US federal work, public domain). The summary feed is a CDN file refreshed every minute;
@@ -39,6 +40,8 @@ export function quakeEvent(f: Feature): EventObservation | undefined {
   const mag = num(p.mag);
   const place = str(p.place);
   const ids = str(p.ids);
+  // Wikidata may know the quake by any of the ids USGS merged into it.
+  const wiki = [f.id, ...(ids?.split(',') ?? [])].map(id => USGS_ARTICLES[id]).find(Boolean);
   return {
     shape: 'event',
     kind: 'hazard.quake',
@@ -63,6 +66,8 @@ export function quakeEvent(f: Feature): EventObservation | undefined {
       net: str(p.net),
       ids,
       url: str(p.url) ?? `https://earthquake.usgs.gov/earthquakes/eventpage/${f.id}`,
+      // Only when found: an attrs change bumps every stored quake's revision.
+      ...(wiki ? { wiki } : {}),
     },
   };
 }

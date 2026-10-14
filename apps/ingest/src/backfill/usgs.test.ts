@@ -39,6 +39,12 @@ describe('USGS connector', () => {
     });
   });
 
+  it('names the Wikipedia article Wikidata files under any of the quake’s ids', () => {
+    const mudurnu = quakeEvent(quake('us0000xyz', Date.parse('1967-07-22T16:56:58Z'), 7.4, { ids: ',iscgem833573,us0000xyz,' }));
+    expect(mudurnu?.attrs?.wiki).toBe('1967 Mudurnu earthquake');
+    expect(quakeEvent(quake('us7000abcd', NOW, 5.1))?.attrs).not.toHaveProperty('wiki');
+  });
+
   it('skips blasts, missing positions and failed answers', () => {
     const blast = quake('uu1', NOW, 2.6, { type: 'quarry blast' });
     const nowhere = { ...quake('uu2', NOW, 3), geometry: null };

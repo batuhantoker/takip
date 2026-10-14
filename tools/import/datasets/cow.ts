@@ -7,6 +7,7 @@ import { num, readCsv, text } from '../csv';
 import { type Stated, ymd } from '../dates';
 import { anchor, EventBatch, resolveCanonical, validLonLat } from '../events';
 import { Resolver } from '../resolver';
+import { readWikiTable, wikiTablePath } from '../wiki';
 
 const DIR = join(RAW, 'wars');
 const f = (name: string) => join(DIR, name);
@@ -35,6 +36,11 @@ const NAME_ONLY: Record<string, { parties: string[]; foughtIn?: string }> = {
 /** stage.manual_fix: coordinates dropped, the event falls back to its parties. */
 const DROP_POINT: Record<string, string> = {
   '999999': 'lat/lng 36.305,50.251 is in northern Iran',
+};
+
+/** stage.manual_fix: the row's point with a sign error, replaced. */
+const FIX_POINT: Record<string, { lon: number; lat: number; note: string }> = {
+  '217': { lon: -78.450167, lat: -4.545201, note: 'lat +4.545 is in Colombia; the Cenepa valley is in Peru' },
 };
 
 /**
@@ -81,6 +87,31 @@ export const WAC_MATCHES: [warNum: string, wac: string, rel: 'same_as' | 'part_o
   ['225', 'CNF-0078', 'part_of', 1], // Invasion of Afghanistan → War in Afghanistan (2001-2021)
   ['227', 'CNF-0079', 'part_of', 1], // Invasion of Iraq → Iraq War
   ['99999900', 'CNF-0013', 'part_of', 1], // World War II in Asia (approx) → World War II
+];
+
+/**
+ * COW territorial changes the WW2 borders dataset also dates, matched by hand on COW's change number. COW dates
+ * a change by the year it was recognised, so its 1945–47 treaty rows don't match WW2's earlier occupations.
+ * part_of: one WW2 row is a piece of a COW change.
+ */
+export const WW2_MATCHES: [cowNumber: string, ww2: string, rel: 'same_as' | 'part_of', confidence: number][] = [
+  ['573', 'Austria:19380313', 'same_as', 1],
+  ['574', 'Sudetenland:19380930', 'same_as', 1],
+  ['575', 'Teschen (German):19381001', 'same_as', 1], // Trans-Olza to Poland
+  ['576', 'Southern Slovakia:19381102', 'same_as', 1], // First Vienna Award
+  ['577', 'Protectorate of Bohemia and Moravia:19390316', 'same_as', 0.8], // COW's area is twice the Protectorate's
+  ['578', 'Memel:19390322', 'same_as', 1],
+  ['579', 'Sub-Carpathian Ruthenia:19390404', 'same_as', 1],
+  ['580', 'Slovakia:19390314', 'same_as', 1],
+  ['582', 'Western Vilnius:19391028', 'same_as', 1],
+  ['584', 'Southern Dobrudja:19400907', 'same_as', 1],
+  ['585', 'Estonia:19400615', 'same_as', 1],
+  ['586', 'Latvia:19400615', 'same_as', 1],
+  ['587', 'Lithuania:19400615', 'same_as', 1],
+  ['894', 'Karelia:19400312', 'part_of', 1], // Moscow Peace Treaty
+  ['894', 'Gulf of Finland Islands:19400312', 'part_of', 1],
+  ['894', 'Rybachi Peninsula:19400312', 'part_of', 1],
+  ['894', 'Salla:19400312', 'part_of', 1],
 ];
 
 /** COW Inter-State War v4.0 codebook. */
@@ -155,13 +186,14 @@ export async function importCowInterstate(ctx: Ctx) {
       source: 'cow-interstate',
       version: AS_OF,
       asOf: AS_OF,
-      files: [WAR_LIST],
+      files: [WAR_LIST, wikiTablePath('cow')],
       skipped: ['war_list_1816_2010_long_format.csv', 'wars_with_approximate_location.csv'].map(s => ({ file: f(s), duplicateOf: WAR_LIST })),
-      importerVersion: '1',
+      importerVersion: '3',
     },
     async ds => {
       const r = new Resolver(ctx);
       const rep = ds.report;
+      const wiki = await readWikiTable('cow');
 
       const wars = new Map<string, Record<string, string>[]>();
       for (const row of await readCsv(WAR_LIST)) {
@@ -256,6 +288,11 @@ export async function importCowInterstate(ctx: Ctx) {
           fixes.push({ record: `cow-extra:${warNum}`, fix: `${DROP_POINT[warNum]}; dropped, anchored at the parties` });
           lon = lat = null;
         }
+        const moved = FIX_POINT[warNum];
+        if (moved) {
+          fixes.push({ record: `cow-interstate:${warNum}`, fix: `${moved.note}; moved to ${moved.lat},${moved.lon}` });
+          ({ lon, lat } = moved);
+        }
         const fallback = named?.foughtIn ? [r.resolve('cow', named.foughtIn, start.t)] : parties.rows.map(e => e.entityId);
         const at = anchor(r, lon, lat, GeoPrec.approximate, fallback);
         const deaths = num(first.total_battle_deaths);
@@ -276,6 +313,7 @@ export async function importCowInterstate(ctx: Ctx) {
             total_battle_deaths: deaths,
             ...(isExtra ? { added_by_compiler: true } : {}),
             ...tRaw(start, end),
+            wiki: wiki.get(warNum) ?? null,
           },
           entities: parties.rows,
         });
@@ -359,9 +397,9 @@ export async function importCowTerritorial(ctx: Ctx) {
       source: 'cow-territorial',
       version: AS_OF,
       asOf: AS_OF,
-      files: [TERRITORIAL, TERRITORIAL_ROWS, TERRITORIAL_PLACES],
+      files: [TERRITORIAL, TERRITORIAL_ROWS, TERRITORIAL_PLACES, wikiTablePath('cow-territorial')],
       skipped: ['territorial_changes_since_1945.csv', 'conquests_since_1816.csv', 'conquests_since_1945.csv'].map(s => ({ file: f(s), duplicateOf: TERRITORIAL })),
-      importerVersion: '2',
+      importerVersion: '4',
     },
     async ds => {
       const r = new Resolver(ctx);
@@ -392,6 +430,7 @@ export async function importCowTerritorial(ctx: Ctx) {
       const rows = await readCsv(TERRITORIAL);
       const territories = await readCsv(TERRITORIAL_ROWS);
       const places = await readTerritorialPlaces();
+      const wiki = await readWikiTable('cow-territorial');
       if (territories.length !== rows.length) throw new Error(`cow-territorial-rows.csv has ${territories.length} rows, the raw file ${rows.length}`);
 
       const batch = new EventBatch(ctx, ds);
@@ -468,12 +507,45 @@ export async function importCowTerritorial(ctx: Ctx) {
             cow_number: num(tc.number),
             cow_entity: place ? key : null,
             portion: num(tc.portion),
+            wiki: (place && wiki.get(place.name)) ?? null,
           },
           entities,
         });
       }
       rep.extra.state_of_the_day = Object.fromEntries([...eras].sort((a, b) => b[1] - a[1]));
-      return batch.finish();
+      const publish = batch.finish();
+      linkWw2(ctx, ds);
+      return publish;
     },
   );
+}
+
+/** same_as / part_of to the WW2 borders' changes; WW2 is canonical (day and region, not year and country). */
+function linkWw2(ctx: Ctx, ds: Dataset) {
+  const ww2 = sourceId(ctx, 'ww2-borders');
+  if (ctx.events.eventId(ww2, WW2_MATCHES[0][1]) === undefined) {
+    ds.report.extra.links = 'skipped: ww2-borders is not loaded; re-run cow-territorial after it';
+    return;
+  }
+  const byNumber = ctx.history.prepare(`
+    SELECT event_id FROM ev_event WHERE source_id = ? AND retracted_at IS NULL AND json_extract(attrs, '$.cow_number') = ?
+  `).pluck();
+  const n = { same_as: 0, part_of: 0 };
+  ctx.history.transaction(() => {
+    ctx.events.clearRelations(ds.sourceId);
+    for (const [number, record, rel, confidence] of WW2_MATCHES) {
+      const cow = byNumber.all(ds.sourceId, Number(number)) as number[];
+      const other = ctx.events.eventId(ww2, record);
+      if (cow.length !== 1 || other === undefined) {
+        ds.report.miss(`link #${number} ↔ ${record}`);
+        continue;
+      }
+      if (rel === 'part_of') ctx.events.relate(other, rel, cow[0], confidence, ds.sourceId);
+      else ctx.events.relate(cow[0], rel, other, confidence, ds.sourceId);
+      n[rel]++;
+    }
+  })();
+  const canonical = resolveCanonical(ctx);
+  ctx.events.rebuildTimeline([ctx.events.family('change.territorial')]);
+  ds.report.extra.links = { ...n, canonical_updated: canonical };
 }

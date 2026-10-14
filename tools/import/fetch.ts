@@ -1,19 +1,25 @@
 /*
  * Downloads the keyless sources the second batch of importers reads into RAW_MORE (gitignored).
- *   npx tsx tools/import/fetch.ts <noaa|wikidata|owid|nuclear|covid|all>
+ *   npx tsx tools/import/fetch.ts <noaa|wikidata|attacks|war-battles|sitelinks|articles|test-series|usgs-articles|wdi|owid|nuclear|covid|cliopatria|gdis|all>
  * Files are replaced whole; importers hash them, so an unchanged download is skipped on import.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { RAW_MORE } from './context';
+import { RAW_MORE, REPO } from './context';
+import { readCsv } from './csv';
+import { WIKI_DIR } from './wiki';
 
 const UA = 'TAKIP-history-import/0.1 (https://takip.example; hello@takip.dev)';
 
 async function get(url: string, init: RequestInit = {}): Promise<Response> {
   for (let attempt = 1; ; attempt++) {
-    const res = await fetch(url, { ...init, headers: { 'User-Agent': UA, ...init.headers } });
-    if (res.ok) return res;
-    if (attempt >= 4 || (res.status !== 429 && res.status < 500)) throw new Error(`${res.status} ${url}`);
+    const res = await fetch(url, { ...init, headers: { 'User-Agent': UA, ...init.headers } }).catch(e => {
+      if (attempt >= 4) throw e;
+      return null;
+    });
+    if (res?.ok) return res;
+    if (res && (attempt >= 4 || (res.status !== 429 && res.status < 500))) throw new Error(`${res.status} ${url}`);
     await new Promise(r => setTimeout(r, 5000 * attempt));
   }
 }
@@ -23,10 +29,11 @@ const out = (dir: string, file: string) => {
   return join(RAW_MORE, dir, file);
 };
 
-/** NCEI Natural Hazards (public domain): significant earthquakes, tsunami events and volcanic eruptions. */
+/** NCEI Natural Hazards (public domain): significant earthquakes, tsunami events and runups, and volcanic eruptions. */
 async function noaa() {
   const base = 'https://www.ngdc.noaa.gov/hazel/hazard-service/api/v1';
-  for (const [path, file] of [['earthquakes', 'earthquakes.json'], ['tsunamis/events', 'tsunamis.json'], ['volcanoes', 'volcanoes.json']]) {
+  const sets = [['earthquakes', 'earthquakes.json'], ['tsunamis/events', 'tsunamis.json'], ['tsunamis/runups', 'runups.json'], ['volcanoes', 'volcanoes.json']];
+  for (const [path, file] of sets) {
     const items: unknown[] = [];
     for (let page = 1, pages = 1; page <= pages; page++) {
       const d = (await (await get(`${base}/${path}?itemsPerPage=200&page=${page}`)).json()) as { items: unknown[]; totalPages: number };
@@ -99,6 +106,7 @@ export const BATTLE_CLASSES = ['Q178561', 'Q1261499', 'Q997267', 'Q48767773', 'Q
 /** Treaty and the subclasses that carry a signing date and place; coups d'état. */
 export const TREATY_CLASSES = ['Q131569', 'Q625298', 'Q1143371', 'Q9557810', 'Q6934728', 'Q1691434', 'Q107706', 'Q217901', 'Q1412901', 'Q1498487', 'Q864737', 'Q252550', 'Q2300991'];
 export const COUP_CLASSES = ['Q45382'];
+export const ATTACK_CLASS = 'Q2223653';
 
 /** Wikidata (CC0): battles and sieges; treaties and coups with the place they were signed or the capital they hit. */
 async function wikidata() {
@@ -120,6 +128,151 @@ async function wikidata() {
     ${TIME('P571', 'inception')}
     OPTIONAL { ?item wdt:P17 ?country . ?country wdt:P36/wdt:P625 ?cap . BIND(CONCAT(STRAFTER(STR(?country), "entity/"), " ", STR(?cap)) AS ?capital_) }`;
   writeFileSync(out('wikidata', 'politics.json'), JSON.stringify(await details(politics, extra, ['signCoord', 'inception', 'capital'])));
+}
+
+/** Terrorist attacks and their subclasses (Wikidata, CC0), with deaths and injured. */
+async function attacks() {
+  const ids = (await sparql(`SELECT DISTINCT ?item WHERE { ?item wdt:P31/wdt:P279* wd:${ATTACK_CLASS} . }`)).map(b => b.item.value.split('/').pop()!);
+  console.log(`wikidata attacks: ${ids.length} items`);
+  const extra = `OPTIONAL { ?item wdt:P1120 ?deaths_ } OPTIONAL { ?item wdt:P1339 ?injured_ }`;
+  writeFileSync(out('wikidata', 'attacks.json'), JSON.stringify(await details(ids, extra, ['deaths', 'injured'])));
+}
+
+/**
+ * WAC and COW wars as their wiki tables' articles: each article's Wikidata item, then every battle Wikidata puts
+ * under it (P361 or P607, through campaigns and fronts). The import links them part_of.
+ */
+async function warBattles() {
+  const wars: { key: string; qid: string }[] = [];
+  for (const table of ['wac1914', 'cow']) {
+    const rows = await readCsv(join(WIKI_DIR, `${table}.csv`));
+    for (let i = 0; i < rows.length; i += 50) {
+      const chunk = rows.slice(i, i + 50);
+      const params = { action: 'query', format: 'json', formatversion: '2', redirects: '1', prop: 'pageprops', ppprop: 'wikibase_item', titles: chunk.map(r => r.title).join('|') };
+      const { query } = (await (await get(`https://en.wikipedia.org/w/api.php?${new URLSearchParams(params)}`)).json()) as {
+        query: { normalized?: { from: string; to: string }[]; redirects?: { from: string; to: string }[]; pages: { title: string; pageprops?: { wikibase_item?: string } }[] };
+      };
+      const moved = new Map([...(query.normalized ?? []), ...(query.redirects ?? [])].map(r => [r.from, r.to]));
+      const qid = new Map(query.pages.map(p => [p.title, p.pageprops?.wikibase_item]));
+      for (const r of chunk) {
+        const normal = moved.get(r.title) ?? r.title;
+        const q = qid.get(moved.get(normal) ?? normal);
+        if (q) wars.push({ key: `${table}:${r.record}`, qid: q });
+        else console.log(`  no Wikidata item for ${table} ${r.record} (${r.title})`);
+      }
+    }
+  }
+  const qids = [...new Set(wars.map(w => w.qid))];
+  const battles: { war: string; item: string }[] = [];
+  // 25 wars a query: the transitive path times out on all of them at once.
+  for (let i = 0; i < qids.length; i += 25) {
+    const rows = await sparql(`
+      SELECT DISTINCT ?item ?war WHERE {
+        VALUES ?war { ${qids.slice(i, i + 25).map(q => `wd:${q}`).join(' ')} }
+        VALUES ?cls { ${BATTLE_CLASSES.map(c => `wd:${c}`).join(' ')} }
+        ?item wdt:P31 ?cls . ?item (wdt:P361|wdt:P607)/wdt:P361* ?war .
+      }`);
+    for (const b of rows) battles.push({ war: b.war.value.split('/').pop()!, item: b.item.value.split('/').pop()! });
+  }
+  writeFileSync(out('wikidata', 'war-battles.json'), JSON.stringify({ wars, battles }));
+  console.log(`war battles: ${battles.length} links from ${new Set(battles.map(b => b.item)).size} battles to ${new Set(battles.map(b => b.war)).size} of ${qids.length} wars`);
+}
+
+/** Sitelinks that aren't Wikipedias: commonswiki, specieswiki and the like. */
+const NOT_WIKIPEDIA = new Set(['commons', 'species', 'meta', 'mediawiki', 'wikidata', 'sources', 'outreach', 'wikimania', 'incubator', 'foundation', 'wikifunctions', 'abstract']);
+
+/**
+ * Every Wikipedia's article for the battles, treaties, coups and attacks with no English one, from the entity API: SPARQL
+ * over sitelinks times out. Needs `wikidata` and `attacks` first. Writes { item: { wiki code: title } }.
+ */
+async function sitelinks() {
+  const rows = ['battles.json', 'politics.json', 'attacks.json'].flatMap(f => JSON.parse(readFileSync(join(RAW_MORE, 'wikidata', f), 'utf8')) as { item: string; article?: string }[]);
+  const ids = [...new Set(rows.filter(r => !r.article).map(r => r.item))];
+  const links: Record<string, Record<string, string>> = {};
+  for (let i = 0; i < ids.length; i += 50) {
+    const body = (await (await get(`https://www.wikidata.org/w/api.php?action=wbgetentities&format=json&props=sitelinks&ids=${ids.slice(i, i + 50).join('|')}`)).json()) as {
+      entities?: Record<string, { sitelinks?: Record<string, { title: string }> }>;
+    };
+    for (const [id, entity] of Object.entries(body.entities ?? {}))
+      for (const [site, link] of Object.entries(entity.sitelinks ?? {})) {
+        const code = site.match(/^([a-z_]+)wiki$/)?.[1];
+        if (code && !NOT_WIKIPEDIA.has(code)) (links[id] ??= {})[code.replace(/_/g, '-')] = link.title;
+      }
+    if (i % 1000 === 0) console.log(`  ${i}/${ids.length}`);
+    await new Promise(r => setTimeout(r, 1000));
+  }
+  writeFileSync(out('wikidata', 'sitelinks.json'), JSON.stringify(links));
+  console.log(`sitelinks: ${Object.keys(links).length} of ${ids.length} items have an article in another language`);
+}
+
+/** Event classes whose Wikidata items, with an English article, the hazard and nuclear importers match by day and place. */
+export const ARTICLE_CLASSES: [qid: string, cls: string][] = [
+  ['Q7944', 'earthquake'],
+  ['Q8070', 'tsunami'],
+  ['Q7692360', 'eruption'],
+  ['Q210112', 'nuclear test'],
+  ['Q98391050', 'nuclear test series'],
+];
+
+const ENWIKI = '?a schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title .';
+
+/** English Wikipedia articles for events, World Heritage sites and volcanoes (Wikidata, CC0), so importers store references. */
+async function articles() {
+  // One class at a time: all five in one query time out at the endpoint's 60 s.
+  const events: Binding[] = [];
+  for (const [qid, cls] of ARTICLE_CLASSES) {
+    events.push(...await sparql(`
+      SELECT ?item ?title ?cls (SAMPLE(?t_) AS ?t) (SAMPLE(?t0_) AS ?t0) (SAMPLE(?t1_) AS ?t1) (SAMPLE(?coord_) AS ?coord)
+        (SAMPLE(?locCoord_) AS ?locCoord) (SAMPLE(?volcano_) AS ?volcano)
+      WHERE {
+        BIND("${cls}" AS ?cls)
+        ?item wdt:P31/wdt:P279* wd:${qid} .
+        ${ENWIKI}
+        ${TIME('P585', 't')} ${TIME('P580', 't0')} ${TIME('P582', 't1')}
+        OPTIONAL { ?item wdt:P625 ?coord_ }
+        OPTIONAL { ?item wdt:P276/wdt:P625 ?locCoord_ }
+        OPTIONAL { ?item (wdt:P706|wdt:P276) ?v . ?v wdt:P1886 ?volcano_ }
+      } GROUP BY ?item ?title ?cls`));
+  }
+  const heritage = await sparql(`SELECT ?whs ?title (SAMPLE(?coord_) AS ?coord) WHERE { ?item wdt:P757 ?whs . ${ENWIKI} OPTIONAL { ?item wdt:P625 ?coord_ } } GROUP BY ?whs ?title`);
+  const volcanoes = await sparql(`SELECT ?gvp ?title WHERE { ?item wdt:P1886 ?gvp . ${ENWIKI} }`);
+  const flat = (bs: Binding[]) => bs.map(b => Object.fromEntries(Object.entries(b).map(([k, v]) => [k, v.value.replace('http://www.wikidata.org/entity/', '')])));
+  writeFileSync(out('wikidata', 'articles.json'), JSON.stringify({ events: flat(events), heritage: flat(heritage), volcanoes: flat(volcanoes) }));
+  console.log(`articles: ${events.length} events, ${heritage.length} heritage sites, ${volcanoes.length} volcanoes`);
+}
+
+/** Tests Wikidata lists under a nuclear test series with an English article (P527 one way, P361 the other), dated to the day. */
+async function testSeries() {
+  const rows = await sparql(`
+    SELECT DISTINCT ?title ?label ?t WHERE {
+      ?series wdt:P31/wdt:P279* wd:Q98391050 .
+      ?a schema:about ?series; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title .
+      { ?series wdt:P527 ?member } UNION { ?member wdt:P361 ?series }
+      ?member rdfs:label ?label FILTER(LANG(?label) = "en")
+      ?member p:P585/psv:P585 [ wikibase:timeValue ?t; wikibase:timePrecision 11 ] .
+    }`);
+  const tests = rows.map(b => ({ title: b.title.value, label: b.label.value, day: b.t.value.slice(0, 10) }));
+  writeFileSync(out('wikidata', 'test-series.json'), JSON.stringify(tests));
+  console.log(`test series: ${tests.length} tests in ${new Set(tests.map(t => t.title)).size} series`);
+}
+
+/** Ingest stores USGS quakes, so their English articles (Wikidata P3196, CC0) go into its source as a checked-in table. */
+export const USGS_ARTICLES = join(REPO, 'apps/ingest/src/connectors/usgs-articles.generated.ts');
+
+async function usgsArticles() {
+  const rows = await sparql(`SELECT ?id ?title WHERE { ?item wdt:P3196 ?id . ?a schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?title }`);
+  const pairs = rows.map(b => [b.id.value, b.title.value] as const).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  const body = pairs.map(([id, title]) => `  ${JSON.stringify(id)}: ${JSON.stringify(title)},`).join('\n');
+  writeFileSync(USGS_ARTICLES, `// Generated by \`npx tsx tools/import/fetch.ts usgs-articles\` from Wikidata (CC0); don't edit.\n/** USGS event id → its English Wikipedia article (Wikidata P3196). */\nexport const USGS_ARTICLES: Record<string, string> = {\n${body}\n};\n`);
+  console.log(`usgs articles: ${pairs.length}`);
+}
+
+/** World Development Indicators, the World Bank's bulk CSV (CC BY 4.0): about 283 MB zipped. */
+async function wdi() {
+  const zip = out('wdi', 'WDI_CSV.zip');
+  writeFileSync(zip, Buffer.from(await (await get('https://databank.worldbank.org/data/download/WDI_CSV.zip')).arrayBuffer()));
+  execFileSync('unzip', ['-o', '-q', zip, '-d', join(RAW_MORE, 'wdi')]);
+  console.log('wdi: done');
 }
 
 /** Our World in Data grapher CSVs with long country coverage before 1960 (CC BY 4.0). */
@@ -162,7 +315,30 @@ async function covid() {
   }
 }
 
-const FETCHERS: Record<string, () => Promise<void>> = { noaa, wikidata, owid, nuclear, covid };
+/** Seshat's Cliopatria (CC BY 4.0), pinned to v0.2.1: bump both and re-run, and the importer sees a new hash. */
+const CLIOPATRIA_COMMIT = '5f433377139a6eeaeacbdc894b70f8805b72c8b5';
+export const CLIOPATRIA_VERSION = '0.2.1';
+export const CLIOPATRIA_DIR = join(RAW_MORE, 'cliopatria');
+
+/** One GeoJSON of world polities, 3400 BCE to 2024: 46 MB zipped, 173 MB unzipped. */
+async function cliopatria() {
+  const zip = out('cliopatria', 'cliopatria.geojson.zip');
+  const url = `https://raw.githubusercontent.com/Seshat-Global-History-Databank/cliopatria/${CLIOPATRIA_COMMIT}/cliopatria.geojson.zip`;
+  writeFileSync(zip, Buffer.from(await (await get(url)).arrayBuffer()));
+  execFileSync('unzip', ['-o', '-q', zip, '-d', CLIOPATRIA_DIR]);
+  console.log('cliopatria: done');
+}
+
+/** GDIS 1960–2018 locations, from PRIO's copy: Earthdata's needs a login (401) and SEDAC's old host times out. */
+async function gdis() {
+  const zip = out('gdis', 'gdis-1960-2018-disasterlocations-csv.zip');
+  const url = 'https://cdn.cloud.prio.org/files/cffb60dc-5978-4eec-a1d2-14551067d84d/gdis-1960-2018-disasterlocations-csv.zip';
+  writeFileSync(zip, Buffer.from(await (await get(url)).arrayBuffer()));
+  execFileSync('unzip', ['-o', '-q', zip, '-d', join(RAW_MORE, 'gdis')]);
+  console.log('gdis: done');
+}
+
+const FETCHERS: Record<string, () => Promise<void>> = { noaa, wikidata, attacks, 'war-battles': warBattles, sitelinks, articles, 'test-series': testSeries, 'usgs-articles': usgsArticles, wdi, owid, nuclear, covid, cliopatria, gdis };
 
 async function main() {
   const names = process.argv.slice(2);

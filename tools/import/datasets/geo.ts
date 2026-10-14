@@ -7,6 +7,7 @@ import { csvRecords, num, text } from '../csv';
 import { utc } from '../dates';
 import { EventBatch } from '../events';
 import { Resolver } from '../resolver';
+import { articleFiles, Articles } from '../articles';
 
 const COUNTRIES = join(REPO, 'public/data/boundaries/countries.json');
 const UNESCO = join(RAW, 'UNESCO Heritage siteswhc-sites(tangibles)-2021.csv');
@@ -68,8 +69,9 @@ const stripHtml = (s: string | null) =>
  */
 export async function importUnesco(ctx: Ctx) {
   const AS_OF = 2021;
-  await importDataset(ctx, { source: 'unesco-whc', version: String(AS_OF), asOf: `${AS_OF}-07-31`, files: [UNESCO], importerVersion: '1' }, async ds => {
+  await importDataset(ctx, { source: 'unesco-whc', version: String(AS_OF), asOf: `${AS_OF}-07-31`, files: [UNESCO, ...articleFiles()], importerVersion: '3' }, async ds => {
     const r = new Resolver(ctx);
+    const articles = Articles.read();
     const link = linker(ctx, r, ds.sourceId);
     const events = new EventBatch(ctx, ds);
     const seen = new Map<string, number>();
@@ -128,7 +130,11 @@ export async function importUnesco(ctx: Ctx) {
             lon,
             lat,
             geoPrec: GeoPrec.exact,
-            attrs: { phase: danger ? 'listed' : 'removed', t_raw: { danger: s.danger, date_end: s.date_end || null } },
+            attrs: {
+              phase: danger ? 'listed' : 'removed',
+              t_raw: { danger: s.danger, date_end: s.date_end || null },
+              wiki: articles?.heritageAt({ lon, lat }, name) ?? null,
+            },
             entities: [{ entityId, role: 'subject' }, ...countries.map(c => ({ entityId: c, role: 'location' }))],
           });
         }

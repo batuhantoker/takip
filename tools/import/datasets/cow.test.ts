@@ -2,7 +2,7 @@ import { Prec } from '@takip/core/time';
 import { describe, expect, it } from 'vitest';
 import { Reporter } from '../context';
 import { readCsv } from '../csv';
-import { cowDate, readTerritorialPlaces, TERRITORIAL_ROWS, WAC_MATCHES } from './cow';
+import { cowDate, readTerritorialPlaces, TERRITORIAL_ROWS, WAC_MATCHES, WW2_MATCHES } from './cow';
 import { readPlaces, yyyymm } from './icow';
 
 describe('cow dates', () => {
@@ -58,5 +58,12 @@ describe('cow links', () => {
     const wars = WAC_MATCHES.map(m => m[0]);
     expect(new Set(wars).size).toBe(wars.length);
     expect(WAC_MATCHES.find(m => m[0] === '139')?.[1]).toBe('CNF-0013');
+  });
+
+  it('matches each WW2 change once, and same_as only one to one', () => {
+    const ww2 = WW2_MATCHES.map(m => m[1]);
+    expect(new Set(ww2).size).toBe(ww2.length);
+    const same = WW2_MATCHES.filter(m => m[2] === 'same_as').map(m => m[0]);
+    expect(new Set(same).size).toBe(same.length);
   });
 });

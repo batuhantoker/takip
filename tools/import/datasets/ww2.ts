@@ -6,6 +6,7 @@ import { type Ctx, importDataset, REPO } from '../context';
 import { utc } from '../dates';
 import { EventBatch } from '../events';
 import { readShapefile } from '../shp';
+import { readWikiTable, wikiTablePath } from '../wiki';
 
 /*
  * Stanford Spatial History Lab, "European Borders, World War II" (Michael De Groot, 2010): every polity in Europe at
@@ -16,8 +17,6 @@ import { readShapefile } from '../shp';
 export const DIR = join(REPO, 'docs/data/raw-2026-10-12-ww2/extracted/EuropeanBorders_WWII');
 const CHANGES = 'Territorial_Changes';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-/** The last snapshot (31 May 1945) is shown for one more month: the source stops there. */
-const TAIL_MS = 30 * 86_400_000;
 /** The survey detail (metres) is far finer than a continental history map needs. */
 const DETAIL = 0.01;
 /**
@@ -131,10 +130,20 @@ export function alignment(status: string | null, name = ''): Alignment {
 const FIXES: { name: string; from: string; to: string; status: string; note: string }[] = [
   { name: 'Italy', from: '1940-06-30', to: '1940-07-01', status: 'Belligerent', note: 'source: Neutral; Italy declared war on 10 Jun 1940' },
   { name: 'Italy', from: '1941-09-30', to: '1942-08-31', status: 'Axis', note: 'source: Allies; Italy changed sides only in Sep 1943' },
+  { name: 'Germany', from: '1938-02-28', to: '1939-09-30', status: 'Axis', note: 'source: blank before the war; the Rome–Berlin Axis dates from Oct 1936' },
+  { name: 'Italy', from: '1938-02-28', to: '1939-04-30', status: 'Axis', note: 'source: blank before the war; the Rome–Berlin Axis dates from Oct 1936' },
+  { name: 'Protectorate of Bohemia and Moravia', from: '1939-03-31', to: '1939-09-30', status: 'German Protectorate', note: 'source: blank until the war; occupied from 15 Mar 1939' },
+  { name: 'Slovakia', from: '1939-03-31', to: '1941-04-30', status: 'Axis-aligned', note: 'source: blank, then Neutral; judgment call: a German client from Mar 1939 that joined the invasion of Poland' },
 ];
 
 const utcIso = (d: string) => Date.parse(`${d}T00:00:00Z`);
 const clean = (s: string | undefined) => (s && s !== '<Null>' ? s : null);
+
+/** A month-end snapshot is what that month came to, so it shows from the month's first day to the next month's. */
+const monthOf = (at: number) => {
+  const d = new Date(at);
+  return { from: utc(d.getUTCFullYear(), d.getUTCMonth() + 1, 1), until: utc(d.getUTCFullYear(), d.getUTCMonth() + 2, 1) };
+};
 
 /** "June_30_1942" → epoch ms. */
 export function snapshotDate(base: string): number | undefined {
@@ -170,9 +179,9 @@ export async function importWw2Borders(ctx: Ctx) {
     .sort((x, y) => x.at - y.at);
   const prj = readFileSync(join(DIR, `${snapshots[0].base}.prj`), 'utf8');
   if (!/Albers/.test(prj) || !/"Central_Meridian",10\.0/.test(prj) || !/"Standard_Parallel_2",62\.0/.test(prj)) throw new Error('ww2: unexpected projection');
-  const files = [...snapshots.map(s => join(DIR, `${s.base}.shp`)), join(DIR, `${CHANGES}.shp`)];
+  const files = [...snapshots.map(s => join(DIR, `${s.base}.shp`)), join(DIR, `${CHANGES}.shp`), wikiTablePath('ww2-borders')];
 
-  await importDataset(ctx, { source: 'ww2-borders', version: '2010', asOf: '2010-08-01', files, importerVersion: '4' }, async ds => {
+  await importDataset(ctx, { source: 'ww2-borders', version: '2010', asOf: '2010-08-01', files, importerVersion: '7' }, async ds => {
     const w = GeoLayerWriter.open(ctx.layout, ctx.catalog, {
       code: 'ww2-europe', sourceId: ds.sourceId, geomKind: 'polygon', timeMode: 'valid', minzoom: 2,
       tileProps: ['name', 'status', 'alignment', 'head', 'exile'], keepSmall: true, maxzoom: 9,
@@ -213,7 +222,6 @@ export async function importWw2Borders(ctx: Ctx) {
         }
       }
       // Pass 2: runs of unchanged months become one feature each.
-      const next = new Map(snapshots.map((s, i) => [s.at, snapshots[i + 1]?.at ?? s.at + TAIL_MS]));
       for (const [name, list] of byName) {
         const filled = fillStatusGaps(list);
         if (filled) ds.report.sentinel(`status gap filled: ${name}`);
@@ -222,13 +230,14 @@ export async function importWw2Borders(ctx: Ctx) {
           const key = JSON.stringify(p);
           const a = area(snap.geom);
           const prev = open.get(name);
+          const month = monthOf(snap.at);
           // A polity missing from the month before starts again rather than bridging the gap.
-          if (prev && prev.key === key && prev.until === snap.at && Math.abs(a - prev.area) <= SAME_AREA * prev.area) {
-            prev.until = next.get(snap.at)!;
+          if (prev && prev.key === key && prev.until === month.from && Math.abs(a - prev.area) <= SAME_AREA * prev.area) {
+            prev.until = month.until;
             continue;
           }
           if (prev) close(name);
-          open.set(name, { from: snap.at, until: next.get(snap.at)!, key, area: a, props: p, geom: snap.geom, label: labelPoint(snap.geom) });
+          open.set(name, { ...month, key, area: a, props: p, geom: snap.geom, label: labelPoint(snap.geom) });
         }
         close(name);
       }
@@ -240,6 +249,7 @@ export async function importWw2Borders(ctx: Ctx) {
     }
 
     const events = new EventBatch(ctx, ds);
+    const wiki = await readWikiTable('ww2-borders');
     for (const { geometry, props } of readShapefile(join(DIR, CHANGES))) {
       const territory = clean(props.TERRITORY_);
       const date = clean(props.CHANGE_DAT);
@@ -265,6 +275,8 @@ export async function importWw2Borders(ctx: Ctx) {
           type: clean(props.TYPE),
           history: clean(props.HISTORICAL),
           source_map: [clean(props.Source_Nam), clean(props.Source_Dat), clean(props.Source_Sca), clean(props.Source_Pub)].filter(Boolean).join(' · ') || null,
+          // Some names repeat on extra lines ("Thásos\nThásos"); the table keys on the first.
+          wiki: wiki.get(`${territory.split(/\r?\n/)[0].trim()}:${date}`) ?? null,
         },
       });
     }

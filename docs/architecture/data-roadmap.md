@@ -55,11 +55,10 @@
 | # | What → target | Coverage | Size | Licence (commercial) | Auth | Effort |
 |---|---|---|---|---|---|---|
 | 1 | **USGS ComCat backfill** → `ev_event` (hazard.quake). The `backfill usgs` CLI exists. Fix the timeline rebuild first, which redoes the whole quake family on every load, then re-run `noaa-hazards --force` so NOAA quakes link to USGS. | 1900 → now. M4.5+ is 312k events; M2.5+ is 1.08 M | unknown | PD (yes) | none | S |
-| 2 | **World Bank WDI refresh** → `ts_series`. Ours ends in 2015. `wdi.ts` needs work: the file is wide, with a BOM, renamed files and new headers, and every series says `CC BY-4.0`, which the `!== 'Open'` check flags | 1960–2025, 1,498 indicators | 283 MB | CC BY 4.0 (yes), except 6 SIPRI military series | none | M |
-| 3 | **UCDP GED 26.1**, plus the 2026 Candidate files and BRD 26.1 → `ev_event`. Point events with date and location precision, linked to our BRD conflicts. One-sided violence is the closest commercial stand-in for GTD after 1989. | 1989 → 2025, Candidate to Aug 2026 | 39 MB | CC BY 4.0 (yes) | none | M |
-| 4 | **Cliopatria** world borders → `geo` layer, with Wikidata ids. Yearly frames, so it doesn't replace monthly `ww2-europe`. | 3400 BCE → 2024, ~14k polygons | 46 MB | CC BY 4.0 (yes) | none | M |
+| 2 | **World Bank WDI refresh** → `ts_series`: done 2026-10-14, the 2026-10-08 bulk CSV through 2025 (`dataset-import-map.md` §3) | 1960–2025, 1,498 indicators | 283 MB | CC BY 4.0 (yes), except 6 SIPRI military series | none | M |
+| 3 | **UCDP GED 26.1 and the 2026 Candidate files** as events: declined by the user on 2026-10-14. BRD 26.1 is loaded and GED only places its conflicts (`dataset-import-map.md` §2.5). One-sided violence would be the closest stand-in for GTD after 1989. | 1989 → 2025, Candidate to Aug 2026 | 39 MB | CC BY 4.0 (yes) | none | M |
 | 5 | **adsb.lol `globe_history` 2023–26** → track shards, after the CLI fix in §0 | 2023-03-10 → now (2026-05-06 missing) | 1.3–3.2 GiB a day raw. Everything: ~785 GB at ingest, ~292 GB kept. **One day a week: ~112 GB at ingest, ~42 GB kept.** | ODbL (yes) | none | S |
-| 6 | **Wikidata terrorist attacks**, and battle → war links (`P361`/`P607` are fetched but dropped today except for the World Wars) → `ev_event` | varies | 3,084 attacks, 1,427 with coordinates | CC0 (yes) | none | S |
+| 6 | **Wikidata terrorist attacks**, and battle → war links: loaded 2026-10-14. Attacks from outside GTD's 1970–2017 as `wikidata-attacks` (592); battles `part_of` 141 WAC and COW wars (`dataset-import-map.md` §6) | varies | 3,084 attacks, 1,427 with coordinates | CC0 (yes) | none | S |
 | 7 | **IBTrACS** cyclone tracks → `ev_event`, as a new `hazard.cyclone` kind with a line geometry | 1842 → now | 13,621 storms, 333 MB | WMO Resolution 40 (probably yes) | none | M |
 | 8 | **Space-Track SATCAT, and a subset of TLE history** → entities, launch and decay events, `trk_tle` | 1957 → now | >138 M element sets, ~31 GB if all loaded, so load a subset | redistribution with citation (yes) | free account | S (SATCAT) / M |
 | 9 | **NOAA MarineCadastre AIS**, as windows → track shards (ships). Our first historical ships. | 2009 → 2026-06, US waters | 80–86 GB a year raw, ~67 GB a year stored | PD (yes) | none | L (a new ship mapper) |
@@ -73,7 +72,7 @@
 **Not ranked:**
 - **Non-commercial or restricted:**
   - ACLED needs a corporate licence.
-  - EM-DAT is non-commercial; GDIS is its geocoded subset.
+  - EM-DAT is non-commercial. GDIS, its geocoded subset (places and type, none of EM-DAT's impact figures), is imported as `gdis`.
   - OpenSky history is research-only.
   - AMSA AIS and Berkeley Earth are CC BY-NC.
 - **Too big or unclear:**
@@ -106,18 +105,13 @@
 ## 4. Data-quality fixes
 
 - **Duplicates vanish under licence gating.** ✓ The event query keeps only rows where `event_id = canonical_id` (`packages/db/src/sqlite/event-store.ts`), and `CANONICAL_ORDER` (`tools/import/events.ts:12`) puts `wac1914` and the COW sources first. If a tier loses access to a canonical row's source, its `same_as` duplicates disappear with it. Fix: pick the canonical row per tier, or put commercially usable sources first.
-- **Duplicates that aren't linked:**
-  - UCDP vs WAC/COW wars: 47 conflicts, 0 links.
-  - COW territorial changes vs WW2 annexations: 34 vs 81 rows, 0 links.
-  - Wikidata battles: 64 groups with the same title and year.
-  - A checked-in match table like `WAC_MATCHES` would cover the first two.
+- **Duplicates are linked by checked-in tables:** `WAR_MATCHES` (`ucdp.ts`, UCDP ↔ WAC/COW), `WW2_MATCHES` (`cow.ts`, COW territorial ↔ WW2 borders) and `DUPLICATES` (`wikidata.ts`). Of the 64 groups of Wikidata battles with the same title and year, 23 were one battle; the rest are different battles (Cedar Creek in Florida and in Virginia, 1864). Left open: Battle of Aleppo 1400 (July vs November), Kota Batu 1578 (two enwiki articles), Siege of Janjira, Siege of Riga 1700.
 - **GTD `eventid` is Excel-mangled** (`1.97E+11`), so it can't join a fresh START copy or Wikidata P4089.
 - **Locations:**
-  - UCDP multi-country conflicts sit at the mean of the countries' centroids, and three land at sea ("Afghanistan, UK, USA" is at −11.0, 42.7). GED points fix this.
-  - COW "Cenepa Valley" (1995) has a sign error: latitude +4.55, which should be about −4.5.
-  - 317 events have no location (NOAA 293, SIPRI 24).
-  - ICOW claims were re-placed by another session (`icow-places.csv`) after this research, so re-check them.
-- **Still waiting on the user:** whether the lookback gate applies to history, and the five UCDP 2025 preliminary rows. UCDP 26.1, released 2026-06-08, now supersedes them.
+  - UCDP conflicts are placed at the middle of their GED events (2026-10-14); before, they sat at their countries' centroids, and three multi-country ones at sea.
+  - NOAA rows without a point borrow their linked quake or tsunami's, then the highest runup (`runups.json`), then their country's centre: 121 sit at country precision, and geocoding `locationName` would place them. One is left: the 1571 Terceira quake (no Azores polity). SIPRI tests without coordinates sit at their site's median, or at the place in `SITE_PLACES`.
+  - ICOW claims (`icow-places.csv`) were re-checked on 2026-10-14: none falls back to its claimants' midpoint, and a sample of 30 lands on the territory named.
+- **Still waiting on the user:** whether the lookback gate applies to history.
 
 ## 5. Suggested order
 
@@ -129,19 +123,14 @@
 5. `recordIfChanged`, then record the feeds that forget.
 6. `TYPE_BATCHES`.
 7. Licence rows.
-8. Cenepa fix, the COW ↔ WW2 links, merging duplicate battles.
-9. Fix the timeline rebuild, then backfill ComCat at M4.5+.
-10. Wikidata attacks and wars.
+8. Fix the timeline rebuild, then backfill ComCat at M4.5+.
 
 **Next 2–4 weeks:**
-1. WDI refresh.
-2. UCDP GED + Candidate.
-3. Digitraffic AIS.
-4. aviationweather.gov.
-5. Space-Track SATCAT and the CelesTrak fallback.
-6. Cliopatria.
-7. IBTrACS.
-8. The EMSC socket.
+1. Digitraffic AIS.
+2. aviationweather.gov.
+3. Space-Track SATCAT and the CelesTrak fallback.
+5. IBTrACS.
+6. The EMSC socket.
 
 **Later:**
 - MeteoAlarm, river levels, air quality and vehicle positions.

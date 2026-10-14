@@ -18,7 +18,7 @@ const SCHEMES: [number, string][] = [
 ];
 
 /*
- * Licence terms are mostly unverified (DATA-SOURCES.md). Per the standing rule, every source is visible to every
+ * Licence terms are mostly unverified (docs/data-sources.md). Per the standing rule, every source is visible to every
  * tier while terms are pending; can_export stays 0. GTD is non-commercial and forbids redistribution; GLWD v1 is
  * free for non-commercial use; the Kaggle compilations (WAC, trade war, IQ) state no licence.
  */
@@ -31,6 +31,7 @@ const LICENCES = [
   { code: 'glwd-terms', name: 'GLWD: free for non-commercial use', url: 'https://www.worldwildlife.org/pages/global-lakes-and-wetlands-database', commercial: 0, redistribution: 'attribution' },
   // "Reuse and adaptation encouraged for scholarly work; commercial use strictly prohibited; inform the authors of changes."
   { code: 'stanford-shl-nc', name: 'Stanford Spatial History Lab: scholarly reuse, no commercial use', url: 'https://web.stanford.edu/group/spatialhistory/static/publications/pub51.html', commercial: 0, redistribution: 'attribution' },
+  { code: 'gpl-3.0', name: 'GNU General Public License v3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html', commercial: 1, redistribution: 'share_alike' },
   { code: 'cc0-1.0', name: 'Creative Commons CC0 1.0 (public domain dedication)', url: 'https://creativecommons.org/publicdomain/zero/1.0/', commercial: 1, redistribution: 'public_domain' },
   { code: 'unknown', name: 'No licence stated', url: null, commercial: null, redistribution: 'unknown' },
 ] as const;
@@ -63,9 +64,13 @@ export const SOURCES: SourceSeed[] = [
   { code: 'noaa-hazards', name: 'NCEI significant earthquakes, tsunamis and volcanic eruptions', owner: 'NOAA National Centers for Environmental Information', url: 'https://www.ngdc.noaa.gov/hazel/', licence: 'public-domain', events: true },
   { code: 'wikidata-battles', name: 'Wikidata: battles and sieges', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q178561', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-politics', name: 'Wikidata: treaties and coups', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q131569', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-attacks', name: 'Wikidata: terrorist attacks outside GTD’s years', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q2223653', licence: 'cc0-1.0', events: true },
   // SIPRI report (Bergkvist and Ferm, 2000) via TidyTuesday; no licence stated, shown while terms are pending.
   { code: 'sipri-nuclear', name: 'Nuclear explosions 1945–1998', owner: 'SIPRI / FOA, via TidyTuesday', url: 'https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-08-20', licence: 'unknown', events: true },
   { code: 'owid-longrun', name: 'OWID: long-run country indicators (Maddison, V-Dem, Gapminder, UNESCO, GCB)', owner: 'Our World in Data', url: 'https://ourworldindata.org/', licence: 'cc-by-4.0' },
+  { code: 'cliopatria', name: 'Cliopatria: world polities 3400 BCE – 2024', owner: 'Seshat Global History Databank', url: 'https://github.com/Seshat-Global-History-Databank/cliopatria', licence: 'cc-by-4.0' },
+  // NASA's catalogue: "openly shared, without restriction"; the codebook asks for a citation of the data descriptor.
+  { code: 'gdis', name: 'Geocoded Disasters (GDIS) 1960–2018', owner: 'Rosvold & Buhaug (PRIO), NASA SEDAC; disasters from EM-DAT (CRED)', url: 'https://doi.org/10.7927/zz3b-8y61', licence: 'cc-by-4.0', events: true },
 ];
 
 const TIERS = ['anon', 'free', 'paid', 'internal'] as const;
@@ -98,6 +103,15 @@ export const KINDS: EventKindInput[] = [
   { code: 'politics.coup', family: 'politics' },
   { code: 'nuclear.test', family: 'nuclear' },
   { code: 'nuclear.combat', family: 'nuclear' },
+  // Where a disaster struck (EM-DAT's affected places), as opposed to hazard.*, the physical event.
+  { code: 'disaster.flood', family: 'disaster' },
+  { code: 'disaster.storm', family: 'disaster' },
+  { code: 'disaster.temperature', family: 'disaster' },
+  { code: 'disaster.drought', family: 'disaster' },
+  { code: 'disaster.quake', family: 'disaster' },
+  { code: 'disaster.landslide', family: 'disaster' },
+  { code: 'disaster.mass_movement', family: 'disaster' },
+  { code: 'disaster.volcano', family: 'disaster' },
 ];
 
 export const ROLES = [
