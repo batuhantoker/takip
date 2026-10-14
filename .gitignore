@@ -55,7 +55,6 @@ scratch/mlit-river-harvest.json
 scripts/
 
 # AI agent config files
-CLAUDE.md
 AGENTS.md
 
 # Internal dev notes
