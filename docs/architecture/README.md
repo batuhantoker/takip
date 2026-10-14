@@ -1,5 +1,7 @@
 # Architecture
 
+The data model and the rules every store follows. The other files in this folder build on it (listed at the end).
+
 TAKIP makes publicly available data available to everyone, from one place.
 
 ## Three modes
@@ -19,7 +21,7 @@ TAKIP makes publicly available data available to everyone, from one place.
 
 The entity and observation formats are fixed in phase 1. Storage then becomes one more consumer of the stream and needs no rework.
 
-**Open decision:** live feeds can't be backfilled, so a day that isn't recorded is lost for good. A cheap raw archive from day one avoids that: compressed newline-delimited JSON, one file per source per hour, with nothing that queries it yet. The alternative is to start capturing in phase 2. See `TODO.md` §1.
+**Decided:** live feeds can't be backfilled, so a day that isn't recorded is lost for good. The raw archive therefore started on day one: compressed newline-delimited JSON, one file per source per hour, in `data/archive/` ([`replay-database.md`](./replay-database.md) §7.1).
 
 ## Entities
 
@@ -94,3 +96,18 @@ For every source, record:
 - **Event correlation.** Combine an incident report with nearby tracks, camera-derived traffic counts and weather. Show overlap in time and space, the supporting evidence and a confidence; never assert causation.
 - **Anomaly detection.** Compare an entity with its own past behaviour or a relevant baseline: route deviations, unusually long stops, sharp changes in traffic volume. Account for sensor coverage and missing data before flagging anything.
 - **Impact analysis.** Reconstruct which roads, ports, airports and facilities fell inside a hazard area during a given period, using historical weather, infrastructure geometry and available operational records.
+
+## Files in this folder
+
+| File | What it covers |
+|---|---|
+| [`backend.md`](./backend.md) | Services, auth, plans and entitlements, public API, admin, and the move of the legacy routes |
+| [`backend-log.md`](./backend-log.md) | How the backend was built: the user's answers (§6), working rules, landing branches in the shared tree (§8) |
+| [`backend-schema.sqlite.sql`](./backend-schema.sqlite.sql) | The application database (`app.db`) |
+| [`replay-database.md`](./replay-database.md) | The history and replay data platform; schemas in `replay-schema.{sqlite,postgres}.sql` |
+| [`dataset-import-map.md`](./dataset-import-map.md) | How each raw dataset lands in the schema (`tools/import/`) |
+| [`data-inventory.md`](./data-inventory.md) | What data we hold today, where and how big |
+| [`data-roadmap.md`](./data-roadmap.md) | Live and historical sources to add, and what is broken now |
+| [`map-detail.md`](./map-detail.md) | More detail on the base map, and "who owns or runs this?" lookups |
+| [`gdelt.md`](./gdelt.md) | The GDELT story layer (parked) |
+| [`history-map-notes.md`](./history-map-notes.md) | Where History's map colours and popups come from |

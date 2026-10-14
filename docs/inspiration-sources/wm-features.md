@@ -18,12 +18,12 @@ Only the logic that belongs to a single source was built; the cross-source engin
 2. **Thermal escalation.** Cluster FIRMS detections, score each 0.5° cell against its own 7-day history, and flag explosion-like hot spots. The `/api/fires` CSVs are keyless, and the 7-day file bootstraps the baseline. S·H
 3. **Chokepoint transit anomalies.** Compare the last 7 days of IMF PortWatch transits with the preceding ~90 and flag 3 days in a row below 85 %. Keyless, and the 180-day history is available on request. S·H
 4. **Alert fusion and cooldowns.** Merge alerts within 2 h and 200 km, apply per-type TTLs, and emit only on band crossings. `lib/watch.ts` emits raw enter/leave events today. S·H
-5. **Provenance claims plus a licence gate.** Use known/unknown/not-applicable claims, four time roles and two confidences. Serve raw values only from sources whose licence has been cleared. Do it while the observation format in `ARCHITECTURE.md` is still open. S·H
+5. **Provenance claims plus a licence gate.** Use known/unknown/not-applicable claims, four time roles and two confidences. Serve raw values only from sources whose licence has been cleared. Do it while the observation format in `docs/architecture/README.md` is still open. S·H
 6. **Freshness and intelligence-gap tracker.** Give each source a staleness budget and keep transport freshness apart from content freshness, so a dead feed never reads as a quiet world. S·H
 7. **Military air surge and theater posture.** Per-theater baselines (2×/3×/4× bands) and tanker+AWACS+fighter "strike package" tests, on top of the military flag `/api/flights` already sets. S·H, but the licence of the military feed is open.
 8. **Sanctioned vessels and aircraft on the map.** Diff the OFAC lists (keyless, from the source) and match IMO, MMSI and registration against AIS and ADS-B. S·H
 9. **Event → nearby critical infrastructure.** Rank assets within 600 km of any event, up to 3 per type. `lib/aoi.ts` already does the sweep. S·H
-10. **Temporal baseline anomaly engine.** Welford statistics per region × kind, bucketed by weekday and month, with z bands at 1.5/2/3 and a 10-sample minimum. This is the core of `ARCHITECTURE.md` phase 3, and the reason to start the raw archive now. M·H
+10. **Temporal baseline anomaly engine.** Welford statistics per region × kind, bucketed by weekday and month, with z bands at 1.5/2/3 and a 10-sample minimum. This is the core of `docs/architecture/README.md` phase 3, and the reason to start the raw archive now. M·H
 
 Close behind (high value, medium effort): GDELT conflict-intensity percentiles (fully backfillable), orbital pass prediction and pass log (on World Monitor's roadmap, nearer for TAKIP), the GPS-interference grid, cable faults and chokepoint scores from NGA warnings, AIS behaviour (dark gaps, loitering, naval proximity), real population exposure, and an alert ledger scored against control windows.
 
@@ -32,16 +32,16 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
 - **Value**, for a geospatial-first product with observation history: H = 3, M = 2, L = 1. A point or polygon with a timestamp, kept as history, outranks a country-level scalar. The CII, resilience and strategic-risk scores therefore rank lower here than World Monitor gives them.
 - **Effort** for TAKIP as it stands: S = 1 (inputs already wired, or one small connector plus pure logic), M = 2 (a new connector, a stored baseline, or several pieces), L = 3 (a graph or model, many new sources, or ongoing curation).
 - **Order:** value ÷ effort, then value.
-- **Backfillable?** says whether the history a feature needs can be rebuilt later. If not, TAKIP must start recording now (the raw-archive decision in `ARCHITECTURE.md` and `TODO.md` §1). In general:
+- **Backfillable?** says whether the history a feature needs can be rebuilt later. If not, TAKIP must start recording now (the raw-archive decision in `docs/architecture/README.md` and `docs/roadmap.md`). In general:
   - can be backfilled: GDELT exports, PortWatch, EPA RadNet, Safecast, USGS, GDACS/EONET, historical TLEs;
   - FIRMS open CSVs reach back 7 days;
   - live ADS-B and AIS snapshots cannot be backfilled.
 - **Flag sources:**
   - "manifest" means rows of World Monitor's `shared/source-attribution-manifest.json`;
   - an env var named in a World Monitor script means the input is keyed;
-  - "DS.md" means TAKIP's `DATA-SOURCES.md`;
+  - "DS.md" means TAKIP's `docs/data-sources.md`;
   - "verify" means the point is unsettled.
-- **About the "TAKIP today" notes:** they come from reading `ARCHITECTURE.md`, `TODO.md` and the named routes and libs. Nothing was run.
+- **About the "TAKIP today" notes:** they come from reading `docs/architecture/README.md`, `docs/roadmap.md` and the named routes and libs. Nothing was run.
 
 ---
 
@@ -75,7 +75,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - World Monitor's protest input is ACLED (keyed and NC); GDELT substitutes.
 - **Backfillable?** Partly. GDELT, USGS and FIRMS (7 days) can be backfilled; flights and AIS only from TAKIP's own archive.
 - **TAKIP today:** the inputs are fetched (`/api/gdelt-events`, `/api/earthquakes`, `/api/fires`, `/api/flights`, `/api/radar`) but never binned together. `lib/aoi.ts` sweeps a drawn polygon, not a global grid.
-- **Effort / value:** S / H. A pure function over the current snapshots. It produces the kind of versioned, derived polygon event that `ARCHITECTURE.md` rule 5 describes. Require at least two source *families* per alert. World Monitor's card variant fires on any two military flights within 500 km, which is noise.
+- **Effort / value:** S / H. A pure function over the current snapshots. It produces the kind of versioned, derived polygon event that `docs/architecture/README.md` rule 5 describes. Require at least two source *families* per alert. World Monitor's card variant fires on any two military flights within 500 km, which is noise.
 
 ### 2. Thermal escalation (satellite fire clusters)
 - **Purpose:** find heat clusters that are unusual for their place: strikes, burning depots, sustained fighting.
@@ -156,7 +156,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
 - **Free inputs:** none. This is logic over TAKIP's own alerts.
 - **Backfillable?** Over stored alerts, yes.
 - **TAKIP today:** `lib/watch.ts` diffs consecutive AOI sweeps into entered and left events, keyed by stable ids, and correctly skips the first sweep. It has no cooldowns, no cross-watch or cross-module merging, and no priority. `lib/alert-digest.ts` threads Telegram reports by keyword and does not fuse them with map signals.
-- **Effort / value:** S / H. Paid alerts on watched areas (`TODO.md` §5) need this before anything goes out by email or webhook.
+- **Effort / value:** S / H. Paid alerts on watched areas (`docs/roadmap.md`) need this before anything goes out by email or webhook.
 
 ### 5. Provenance claims on every observation
 - **Purpose:** every observation or derived signal says explicitly what is known about where it came from, and what is not.
@@ -182,7 +182,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
     - "fetchedAt = the oldest contributing source time" for composites (defense base, resilience).
 - **Free inputs:** none.
 - **Backfillable?** Not applicable. It has to be in the format from the first record.
-- **TAKIP today:** the `ARCHITECTURE.md` observation already has `observed_at`, `ingested_at`, `quality` and `raw_record_ref`. Missing: publication and effective times, the unknown-versus-absent distinction, two separate confidences, and derivation. Rule 5 asks for the last of these. Routes already label editorial values (`country-risk` returns `basis: 'editorial'`).
+- **TAKIP today:** the `docs/architecture/README.md` observation already has `observed_at`, `ingested_at`, `quality` and `raw_record_ref`. Missing: publication and effective times, the unknown-versus-absent distinction, two separate confidences, and derivation. Rule 5 asks for the last of these. Routes already label editorial values (`country-risk` returns `basis: 'editorial'`).
 - **Effort / value:** S / H. Settle it in phase 1 ("fix the entity model and the observation format before writing any connector").
 
 ### 6. Licence gate on served values
@@ -200,8 +200,8 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Times:** the source year (when the value was measured) is kept apart from the retrieval time.
 - **Free inputs:** none.
 - **Backfillable?** Not applicable.
-- **TAKIP today:** `ARCHITECTURE.md` plans a source registry with licence and commercial-use fields. `TODO.md` §6 says non-commercial sources stay out of the paid product. Nothing enforces either yet.
-- **Effort / value:** S / H. It is what makes the free/paid split (`TODO.md` §5) legally safe with NC inputs (adsb.fi, OpenSky, Open-Meteo free tier, WHO) in the mix.
+- **TAKIP today:** `docs/architecture/README.md` plans a source registry with licence and commercial-use fields. `docs/roadmap.md` says non-commercial sources stay out of the paid product. Nothing enforces either yet.
+- **Effort / value:** S / H. It is what makes the free/paid split (`docs/roadmap.md`) legally safe with NC inputs (adsb.fi, OpenSky, Open-Meteo free tier, WHO) in the mix.
 
 ### 7. Source freshness and intelligence-gap tracker
 - **Purpose:** report what the system cannot see, so missing data never reads as calm.
@@ -229,7 +229,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Empty results:** "not covered yet" and `upstreamUnavailable` are kept distinct from zero.
 - **Free inputs:** none.
 - **Backfillable?** Not applicable.
-- **TAKIP today:** `/api/stats` counts the feeds that answered and simply omits the ones that failed. `/api/flights` now reports provider counts, because adsb.lol and airplanes.live failed silently. `/api/health` semantics are open (`TODO.md` §2). `ARCHITECTURE.md` rule 3 states the principle.
+- **TAKIP today:** `/api/stats` counts the feeds that answered and simply omits the ones that failed. `/api/flights` now reports provider counts, because adsb.lol and airplanes.live failed silently. `/api/health` semantics are open (`docs/roadmap.md`). `docs/architecture/README.md` rule 3 states the principle.
 - **Effort / value:** S / H. Replay ("missing data is shown, never interpolated"), anomaly detection and alerts all depend on it.
 
 ### 8. Military air activity: surge, foreign presence and theater posture
@@ -296,7 +296,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - cable routes: TeleGeography is proprietary per the manifest, so use OSM submarine cables instead.
 - **Backfillable?** Yes (static reference data).
 - **TAKIP today:** `lib/aoi.ts` sweeps every tracked layer inside a polygon, with a bounding-box pre-filter. `/api/infrastructure` holds nuclear sites. Nothing runs the sweep around an event automatically.
-- **Effort / value:** S / H. A circle sweep with a top-k per type. It is the first step of "impact analysis" in `ARCHITECTURE.md`, and it fills in thermal clusters' empty `nearbyAssets` field.
+- **Effort / value:** S / H. A circle sweep with a top-k per type. It is the first step of "impact analysis" in `docs/architecture/README.md`, and it fills in thermal clusters' empty `nearbyAssets` field.
 
 ---
 
@@ -499,7 +499,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **Types:** warm, cold, wet, dry, or mixed (hot and dry together).
   - **Cadence:** about every 2 h, with a 14-day content-age budget (ERA5 lags 5–7 days).
 - **Free inputs:**
-  - Open-Meteo archive: keyless, but the free tier is NC (manifest, DS.md, `TODO.md`).
+  - Open-Meteo archive: keyless, but the free tier is NC (manifest, DS.md, `docs/roadmap.md`).
   - Substitutes: ERA5 via Copernicus CDS (free key) or NOAA CPC/GHCN (keyless, public domain), both from memory; verify.
 - **Backfillable?** Yes.
 - **TAKIP today:** `/api/weather-grid` (Open-Meteo, 510 points) has current conditions only.
@@ -547,7 +547,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
     - Suited to heavy-tailed series.
 - **Free inputs:** any TAKIP feed. GDELT and FIRMS counts can seed baselines from their archives; flights and AIS need TAKIP's own history.
 - **Backfillable?** Only for archival inputs. A strong argument for the day-one raw archive.
-- **TAKIP today:** none. `ARCHITECTURE.md` phase 3 asks to "account for sensor coverage and missing data before flagging". World Monitor does not, so combine this engine with #7.
+- **TAKIP today:** none. `docs/architecture/README.md` phase 3 asks to "account for sensor coverage and missing data before flagging". World Monitor does not, so combine this engine with #7.
 - **Effort / value:** M / H. One engine for H3 cells, AOIs, airports, ports and chokepoints.
 
 ### 24. GDELT conflict intensity and dyad tension
@@ -630,7 +630,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
     - health requires crossings at 5 or more of the 13 straits.
   - **USNI merge:** the weekly USNI fleet report is matched to AIS by hull number and name. Unmatched ships get a synthetic position in their reported region.
 - **Free inputs:**
-  - aisstream: free key (`AISSTREAM_API_KEY`); redistribution is an open question in `TODO.md`.
+  - aisstream: free key (`AISSTREAM_API_KEY`); redistribution is an open question in `docs/roadmap.md`.
   - Keyless: Digitraffic (CC BY 4.0, MQTT), Kystverket, and NOAA MarineCadastre for US history.
   - USNI is a scrape (terms-review).
 - **Backfillable?** Live AIS no; MarineCadastre yes, for US waters.
@@ -697,7 +697,7 @@ Close behind (high value, medium effort): GDELT conflict-intensity percentiles (
   - **A related index:** a transit-union exposure 1 − Π(1 − share), with disrupted chokepoints ×1.35 (supply vulnerability).
 - **Free inputs:** GEM pipelines, the World Port Index, OSM power and telecom, cable landings (OSM in place of TeleGeography), and EIA chokepoint studies (published reports are keyless; `api.eia.gov` needs `EIA_API_KEY`).
 - **Backfillable?** Not applicable (static).
-- **TAKIP today:** none. `ARCHITECTURE.md` "Dependency map" plans exactly this, with inferred edges labelled "possible exposure" and a confidence. World Monitor's weights are editorial and carry no confidence.
+- **TAKIP today:** none. `docs/architecture/README.md` "Dependency map" plans exactly this, with inferred edges labelled "possible exposure" and a confidence. World Monitor's weights are editorial and carry no confidence.
 - **Effort / value:** L / H.
 
 ### 32. Forecast detectors, market blend and calibration

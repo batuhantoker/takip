@@ -25,7 +25,7 @@ TAKIP makes publicly available data available to everyone, from one place. It is
 2. **History:** what happened at a given place or time.
 3. **Analysis:** patterns, correlations and changes derived from the historical record.
 
-Built with Next.js 16 and MapLibre GL, every data point is rendered via WebGL, so the map stays smooth with thousands of entities on screen. The design is in [ARCHITECTURE.md](ARCHITECTURE.md) and candidate sources are in [DATA-SOURCES.md](DATA-SOURCES.md).
+Built with Next.js 16 and MapLibre GL, every data point is rendered via WebGL, so the map stays smooth with thousands of entities on screen. Everything else is in [docs/](docs/README.md): the [roadmap](docs/roadmap.md), the [design rules](docs/design/README.md), the [architecture](docs/architecture/README.md) and [candidate sources](docs/data-sources.md).
 
 ### Key Capabilities
 
@@ -64,7 +64,7 @@ Built with Next.js 16 and MapLibre GL, every data point is rendered via WebGL, s
 │  /api/cctv            /api/news                 │
 │  /api/fires           /api/maritime             │
 │  /api/gdelt           /api/satellites           │
-│  /api/weather         /api/scanner              │
+│  /api/weather         /api/space                │
 │  /api/sentinel        /api/telegram-feed        │
 │  /api/osint/*  (whois, dns, ip, cve, sanctions, │
 │                 crypto, sweep, threats, …)      │
@@ -164,7 +164,7 @@ cp .env.example .env                  # optional — configure keys / port
 docker compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Compose starts three services: the web app on `3000`, an nginx map-tile cache on `8080`, and the entity-resolution service from `intel/` on `4000`. The web image is a multi-stage `node:22-alpine` standalone build that runs as a non-root user. See **[DOCKER.md](DOCKER.md)** for the full Docker, CasaOS and API-key guide.
+Open [http://localhost:3000](http://localhost:3000). Compose starts three services: the web app on `3000`, an nginx map-tile cache on `8080`, and the entity-resolution service from `intel/` on `4000`. The web image is a multi-stage `node:22-alpine` standalone build that runs as a non-root user. See **[docs/self-hosting.md](docs/self-hosting.md)** for the full Docker, CasaOS and API-key guide.
 
 The container always listens on `3000`; the published host port is set in `.env` (see [`.env.example`](.env.example)), so it can be changed without editing the compose file.
 
@@ -174,7 +174,6 @@ TAKIP runs without any API keys: the core feeds use public, keyless sources. Cop
 
 | Variable | What it enables |
 |----------|-----------------|
-| `SCANNER_URL`, `SCANNER_KEY` | The RECON toolkit's scanner backend. Without them RECON returns `503`. |
 | `CLOUDFLARE_API_TOKEN` | The Internet Outages and Attack Origins layers (Cloudflare Radar). |
 | `AIS_API_KEY` | Live ship positions from aisstream.io. |
 | `OPENSKY_CLIENT_ID`, `OPENSKY_CLIENT_SECRET` | Authenticated OpenSky flight data (OAuth2), with higher limits. |

@@ -6,8 +6,8 @@ app, and configuring the optional API keys.
 
 > **TL;DR:** TAKIP runs fully **without any API keys**. All core feeds
 > (aviation, satellites, fires, earthquakes, weather, news, CVEs) use public
-> keyless sources. Keys only matter for the optional RECON scanner backend and
-> for raising rate limits on a few feeds.
+> keyless sources, including the whole RECON toolkit. Keys only matter for
+> raising rate limits on a few feeds.
 
 ---
 
@@ -17,8 +17,8 @@ app, and configuring the optional API keys.
 git clone https://github.com/batuhantoker/takip.git
 cd takip
 
-# optional: configure keys / scanner backend
-cp .env.template .env        # then edit .env
+# optional: configure keys to raise rate limits
+cp .env.example .env         # then edit .env
 
 docker compose up -d
 ```
@@ -113,17 +113,14 @@ metadata.
 
 ## 3. API keys & data sources
 
-Copy `.env.template` to `.env` and fill in only what you need.
+Copy `.env.example` to `.env` and fill in only what you need.
 
 ### What the code actually reads today
 
-| Variable | Purpose | Required for |
-|----------|---------|--------------|
-| `SCANNER_URL` | RECON scanner backend base URL (e.g. `http://scanner:7700`) | RECON toolkit (quick/ssl/headers/rdns/subdomains/tech/whois/geoloc/vuln) |
-| `SCANNER_KEY` | Shared secret; **must equal the backend's `OSIRIS_KEY`** | RECON toolkit |
-
-Without `SCANNER_URL`/`SCANNER_KEY` the RECON endpoints return `503` and the
-rest of TAKIP works normally. Generate a key with `openssl rand -hex 32`.
+The RECON toolkit (TLS, port scan, security headers, tech fingerprint,
+subdomains, vulnerabilities, reputation, WHOIS, DNS, …) is **fully keyless** and
+needs no scanner backend — the web tier runs the probes itself against public
+feeds and its own sockets. There is nothing to configure to turn it on.
 
 ### Optional keys (reserved / for higher rate limits)
 
@@ -139,7 +136,7 @@ them only if you extend the relevant route or hit rate limits.
 | `AIS_API_KEY` | aisstream.io maritime | Sign up at <https://aisstream.io/>, create a key on the **API Keys** page. Used over `wss://stream.aisstream.io/v0/stream`. |
 
 > Keep `.env` out of version control — it is already in `.gitignore`. Only
-> `.env.template` (no secrets) is committed.
+> `.env.example` (no secrets) is committed.
 
 ### Optional runtime overrides
 

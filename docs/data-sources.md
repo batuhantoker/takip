@@ -2,7 +2,7 @@
 
 Public data we could add. **The licence notes are from memory and have not been verified.** Check each one before it ships, especially in the paid product. Sources TAKIP already uses are marked "(already in)".
 
-The keyless sources and features found in World Monitor, Provenance and Argus (surveyed and probed 2026-10-12) are in [`docs/inspiration-sources/`](docs/inspiration-sources/README.md).
+The keyless sources and features found in World Monitor, Provenance and Argus (surveyed and probed 2026-10-12) are in [`docs/inspiration-sources/`](inspiration-sources/README.md).
 
 **Licence key:**
 - **OK:** public domain, CC0, CC BY or OGL.
@@ -23,7 +23,7 @@ A source is worth adding if most of these hold:
 
 ## Keyless starter set (streaming first)
 
-None of these needs an API key. Several stream natively, which suits the live-first plan in `ARCHITECTURE.md`.
+None of these needs an API key. Several stream natively, which suits the live-first plan in `docs/architecture/README.md`.
 
 | Source | What we ingest | Access | Notes |
 |---|---|---|---|
@@ -154,6 +154,7 @@ Open data rarely includes true network topology, such as which substation feeds 
 | ACLED | Conflict events | Paid |
 | Global Terrorism Database | Terrorist attacks | NC |
 | Stanford Spatial History Lab, European Borders WWII (already in) | Every European polity's borders and war status at each month's end, Feb 1938 – May 1945, plus 81 dated annexations; the History tab's wartime borders. Commercial use prohibited; inform the authors of changes | NC |
+| Seshat's Cliopatria (already in) | The world's polities year by year, 3400 BCE to 2024, with Wikipedia and Wikidata links and the empire each belongs to; the History tab's world borders. Replaced André Ourednik's historical-basemaps (54 maps), which drew the Treaty of Sèvres as enacted and cut 1930s Turkey at 39°E. World scale only. CC BY 4.0 | OK |
 | Wikidata battles and sieges (already in) | 17k dated battles and sieges with coordinates, 3000 BCE to today; WWI and WWII battles link to their war. CC0 | OK |
 | Wikidata treaties and coups (already in) | 1.7k treaties at their signing place and 460 coups at the capital. CC0 | OK |
 | NOAA NCEI Natural Hazards (already in) | Significant earthquakes (2150 BCE on), tsunamis and volcanic eruptions, with deaths and damage. US government, public domain | OK |
@@ -216,7 +217,27 @@ Open data rarely includes true network topology, such as which substation feeds 
 | Source | Adds | Use |
 |---|---|---|
 | CISA KEV | Vulnerabilities being actively exploited | OK |
-| abuse.ch (already in) | Malware and botnet feeds | Verify |
+| abuse.ch (already in) | Malware and botnet feeds; Recon reads the Feodo botnet C2 list | Verify |
+| Shodan InternetDB (already in) | Open ports, software and CVEs Shodan last saw on an IP; Recon's exposed services, vulnerabilities and subnet sweep | NC |
+| Shodan CVEDB (already in) | CVSS, EPSS and CISA KEV for one CVE, keyless; Recon's vulnerability scores | Verify |
+| GreyNoise Community API (already in) | Whether an IP scans the internet, and benign or malicious; rate-limited | Verify |
+| Spamhaus DROP (already in) | Hijacked and do-not-route netblocks | OK\* (free; spamhaus.org/drop/terms) |
+| Tor bulk exit list (already in) | Current Tor exit addresses | OK |
+| AlienVault OTX (already in) | Threat reports naming an IP or domain, plus allow-lists | Verify |
+| crt.sh, SSLMate Cert Spotter, HackerTarget (already in) | Subdomains from certificate logs and passive DNS; Cert Spotter and HackerTarget have small keyless quotas | OK / Verify / Verify |
+| RIPEstat (already in) | Prefixes, origin ASNs, peers and registry country | OK\* (attribution) |
+
+### People search
+
+Recon's profile search (`src/lib/recon/people/`). Keyless; behind an account and the `people` and `breach` limits.
+
+| Source | Adds | Use |
+|---|---|---|
+| Sherlock site list (already in) | Which of ~480 sites have a username, by each site's own rule; checked against made-up handles and each site's known account | OK (MIT) |
+| Platform APIs: GitHub, GitLab, Keybase, Gravatar v3, Lichess, Chess.com, DEV, Bluesky, Mastodon, Hacker News, Docker Hub | Name, bio, location, links and picture for a found profile; Keybase proofs, Mastodon verified fields and Gravatar verified accounts tie profiles together. GitHub allows 60 calls an hour without `GITHUB_TOKEN` | Verify (each platform's API terms) |
+| Gravatar, GitHub search, keys.openpgp.org | For an email: a Gravatar profile (by SHA-256 of the address), GitHub accounts and commits under it, a PGP key whose owner proved the address. GitHub search allows 10 calls a minute without a token | Verify |
+| XposedOrNot (already in) | Breaches an address is in, with year, size and what leaked | Verify |
+| Hudson Rock Cavalier (already in) | Whether an email or phone is in infostealer logs; credentials come back redacted | Verify |
 
 ### Reference data and population
 

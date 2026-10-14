@@ -322,7 +322,7 @@ export const CATALOG: string[] = [
   INSERT INTO core_link_rel (rel_id, code) VALUES
     (1,'part_of'),(2,'located_in'),(3,'operates'),(4,'successor_of'),(5,'same_as'),(6,'feeds'),(7,'connects'),(8,'serves');
 
-  -- commercial_use NULL = unverified. Every terms check is still open (TODO.md §1, replay-database.md §14).
+  -- commercial_use NULL = unverified. Every terms check is still open (docs/roadmap.md, replay-database.md §14).
   INSERT INTO meta_licence (licence_id, code, name, url, commercial_use, redistribution, attribution) VALUES
     (1, 'aisstream-terms', 'aisstream.io terms of use', 'https://aisstream.io', NULL, 'unknown', 'AIS data: aisstream.io'),
     -- Research and non-commercial use; redistribution restricted. Needs written permission for a paid tier.

@@ -18,7 +18,7 @@ The files are gitignored (~320 MB); only this README is tracked. The raw downloa
 
 **To refresh:** download the raw files into a folder, keeping either their download names or the names below, then run `python3 tools/slim-geodata.py <download-dir> data/reference`. It takes ~15 s on 4 workers at low priority. Don't raise the worker count: a one-worker-per-core run coincided with the laptop freezing.
 
-**Licence key** (same as `DATA-SOURCES.md`): **OK** public domain / CC0 / CC BY · **OK\*** allowed with conditions · **Verify** unknown, check first. US federal works and OurAirports are public domain; still check each source page before it ships.
+**Licence key** (same as `docs/data-sources.md`): **OK** public domain / CC0 / CC BY · **OK\*** allowed with conditions · **Verify** unknown, check first. US federal works and OurAirports are public domain; still check each source page before it ships.
 
 ## At a glance
 
@@ -93,7 +93,7 @@ The checks run on the output:
 | `balloonport` | 63 | <0.1 |
 
 - **Fields:** `ident` (join key to runways), `type`, `name`, `elevation_ft`, `iso_country`, `iso_region`, `municipality`, `scheduled_service`, `icao_code`, `iata_code`, `gps_code`, `wikipedia_link`, and `longest_runway_ft`. The last one is computed from all open runways, including those without coordinates; 37,210 airports have it.
-- `wikipedia_link` (15.4k airports) is a ready-made link to Wikidata for the entity backbone in `DATA-SOURCES.md`.
+- `wikipedia_link` (15.4k airports) is a ready-made link to Wikidata for the entity backbone in `docs/data-sources.md`.
 
 **`runways`**: one line per runway, from one threshold to the other.
 - **Fields:** `airport_ident`, `name` (e.g. `09/27`), `length_ft`, `width_ft`, `surface`, `lighted`.
@@ -103,13 +103,13 @@ The checks run on the output:
 
 ### Military
 
-**`military-bases`**: the public DoD MIRTA release (`isCui` was `no` on every row). This is the source `DATA-SOURCES.md` names for the military layer. **Fields:** `siteName`, `siteReportingComponent` (usaf, usn, armyNationalGuard…), `siteOperationalStatus` (act, care, clsd…), `isJointBase`, `isFirrmaSite`, `stateNameCode`.
+**`military-bases`**: the public DoD MIRTA release (`isCui` was `no` on every row). This is the source `docs/data-sources.md` names for the military layer. **Fields:** `siteName`, `siteReportingComponent` (usaf, usn, armyNationalGuard…), `siteOperationalStatus` (act, care, clsd…), `isJointBase`, `isFirrmaSite`, `stateNameCode`.
 
 **`military-bases-worldwide-community.kml`**: kept as-is by decision (2026-10-12).
 - ⚠️ **Verify before shipping.** It's a community-made Google Earth file (internal name `~GE3C8F.kmz`) with no stated source or licence.
 - 1,467 placemarks, about 75% outside the US. Only 62 names match NTAD.
 - Folders include *Secret bases*, SAM sites, Russian and North Korean forces, and ships. Many descriptions give troop and equipment counts.
-- Publishing it as a layer would conflict with `DATA-SOURCES.md`: *republish only what the sources already show*. It works best as a lead list to check against OSM or Wikidata.
+- Publishing it as a layer would conflict with `docs/data-sources.md`: *republish only what the sources already show*. It works best as a lead list to check against OSM or Wikidata.
 
 ### Rail
 
@@ -166,7 +166,7 @@ Licence: BTS publishes the atlas, but it is built from carriers' GTFS feeds. Che
 **`dams`**: 92,602 dams.
 - **Fields:** `nidId`, `name`, `ownerNames`, `primaryOwnerTypeId`, `primaryPurposeId`, `primaryDamTypeId`, `publicHazardId`, `conditionAssessId`, `eapId`, `nidHeight`, `nidStorage`, `maxDischarge`, `yearCompleted`, `riverName`, `state`, `county`.
 - The `*Id` fields are codes that need the NID data dictionary.
-- High-hazard dams × NWS flood polygons is a natural fit for the impact analysis in `ARCHITECTURE.md`.
+- High-hazard dams × NWS flood polygons is a natural fit for the impact analysis in `docs/architecture/README.md`.
 
 ### Boundaries
 

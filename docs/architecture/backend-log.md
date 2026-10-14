@@ -1,6 +1,6 @@
 # Backend: log and reference
 
-> The history of the backend build, kept for reference: the original hand-off (§0–7, written at 15:53 on 2026-10-12), the user's decisions (§6 Answers) and the lead's progress log (§8). Working rules and gotchas are in §2–3; the procedure for landing branches in the shared working copy is in §8. **Planned work is in [`BACKEND-handoff.md`](../../BACKEND-handoff.md)**; some follow-ups listed in §8 have since been done.
+> The history of the backend build, kept for reference: the original hand-off (§0–7, written at 15:53 on 2026-10-12), the user's decisions (§6 Answers) and the lead's progress log (§8). Working rules and gotchas are in §2–3; the procedure for landing branches in the shared working copy is in §8. **Planned work is in [`roadmap.md`](../roadmap.md)**; some follow-ups listed in §8 have since been done.
 
 _Written 2026-10-12 against `ui/shell-reorg` at `4794154`, plus a large amount of **uncommitted** work (§0). The plan this implements is [`docs/architecture/backend.md`](backend.md); read it first, then this._
 
@@ -35,8 +35,8 @@ Everything below exists only in the working tree of `ui/shell-reorg`, interleave
    - `src/components/ui/{menu-styles,use-dismiss}.ts`
    - `src/lib/{auth-client,access,access-server,account-links,device-label}*`
    - `tools/{dev,screenshot}.mjs`
-   - `BACKEND-handoff.md`, `docs/architecture/`
-   - the edits to `package.json`, `package-lock.json`, `next.config.ts`, `tsconfig.json`, `Dockerfile`, `docker-compose.yml`, `.env.example`, `.gitignore`, `README.md`, `TODO.md`, `src/app/globals.css`, `src/components/shell/{more-menu,status-cluster}.tsx`
+   - `docs/roadmap.md`, `docs/architecture/`
+   - the edits to `package.json`, `package-lock.json`, `next.config.ts`, `tsconfig.json`, `Dockerfile`, `docker-compose.yml`, `.env.example`, `.gitignore`, `README.md`, `docs/roadmap.md`, `src/app/globals.css`, `src/components/shell/{more-menu,status-cluster}.tsx`
    - already staged: the deletions of `deploy.sh` and `src/middleware.ts`, and the renames `src/middleware.test.ts` → `src/maplibre-vendor.test.ts` and `vitest.config.ts` → `vitest.config.mts`
 3. **`src/app/page.tsx` is shared.** Only two lines are ours: the `AccountDialog` import and the `<AccountDialog />` mount. The `queryArea`/`selectInArea` hunks are the drawing session's. Stage HEAD's file plus our two lines, whatever else is in the working copy:
 
@@ -57,9 +57,9 @@ Everything below exists only in the working tree of `ui/shell-reorg`, interleave
    The working file keeps everyone's edits. Dry-run on 2026-10-12: the diff showed exactly the two lines.
 4. **`docs/architecture/`** (the plan) was untracked before this work began. It is the user's; ask whether it goes in this commit.
 5. Leave alone; these belong to other sessions:
-   - CCTV: `src/app/api/cctv/*`, `src/lib/cctv/*`, `DATA-SOURCES.md`, `docs/cctv-adding-sources.md`, `scratch/*`, `off`
+   - CCTV: `src/app/api/cctv/*`, `src/lib/cctv/*`, `docs/data-sources.md`, `docs/cctv-adding-sources.md`, `scratch/*`, `off`
    - drawing and boundaries: `src/lib/{draw,aoi,aoi-export,boundaries,boundary-store,geoboundaries}*`, `src/components/draw/*`, `src/components/map/*`, `src/app/api/boundaries/*`, `public/data/boundaries/`, `tools/build-boundaries.mjs`
-   - other: `docs/SPACE-expension.md`
+   - other: `docs/space-view.md`
 6. Check `git diff --cached --stat` before committing. A file showing a whole-file rewrite means line endings flipped (§3.3).
 
 ## 1. Where we are
@@ -311,14 +311,14 @@ Ordered by dependency. Each lists what it owns, so parallel subagents don't coll
 My recommendation, where I have one:
 
 1. **What to gate first.** Recommend the server-key AI (`/api/ai/*`) behind `ai.hosted`. Every plan seeds `ai.hosted` false, Pro included, so either `npm run plan -- set pro ai.hosted true` first, or leave hosted AI ungated for now.
-2. **Free API access.** `TODO.md` §5 gives free users a rate-limited API and MCP; the seeds follow `backend.md` §7.2 (`api.enabled` false for free). Decide before workstream B.
+2. **Free API access.** `docs/roadmap.md` gives free users a rate-limited API and MCP; the seeds follow `backend.md` §7.2 (`api.enabled` false for free). Decide before workstream B.
 3. **Plan copy.** Hide the "Pro adds" list or edit the rows before anyone outside sees it.
 4. **Billing provider and legal entity** (`backend.md` §7.4).
 5. **Email provider** for `SMTP_URL`/`MAIL_FROM` (required in production).
 6. **Hosting and edge:** nginx/TLS or a Cloudflare tunnel. The old `osirisai.live` and `deploy.sh` were the upstream author's and are gone.
 7. **Product name:** it sets the cookie prefix `takip`, the key prefix `tk_`, the email sender and the 2FA issuer.
 8. **Session trade-offs:** `freshAge` (1 day) and the 5-minute cookie cache.
-9. **OSINT and recon tools:** keep behind an account, or remove (`TODO.md` §7).
+9. **OSINT and recon tools:** keep behind an account, or remove (`docs/roadmap.md`).
 10. **Impersonation:** yes or no.
 11. **Workspaces placement** in the UI.
 
@@ -412,13 +412,13 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
   - The `db.backup` job runs at 02:00 UTC (and on the first start each day): `VACUUM INTO` a temp file, fsync, `integrity_check`, rename. It keeps `APP_BACKUP_KEEP` (14) in `APP_BACKUP_DIR` (`data/backups`, gitignored: snapshots hold password hashes).
   - `npm run backup -w @takip/api` takes one on demand; `-- check <file>` verifies one. Runbook: `docs/runbooks/app-db-restore.md`, drilled by hand and as a test.
   - Mail goes through an `email.send` job with its own runner (2 min base delay, 6 attempts). Better Auth's callbacks only enqueue, so responses don't depend on SMTP.
-- **D3** (`fa8a201`): every `/api/osint/*` route and `/api/scanner` needs an account or an API key (`src/lib/recon-gate.ts`).
+- **D3** (`fa8a201`): every `/api/osint/*` route needs an account or an API key (`src/lib/recon-gate.ts`).
   - Per-account limits by family: breach 20/h, people 30/h, scan 30/h, network 15/min, reference 30/min.
   - `me/access` returns `subject`; `getAccess` forwards only `Bearer tk_…`. The plan copy lists only built features (`BUILT` in `plan-highlights.ts`).
 - **F2** (`67c0cd8`):
   - `jobs.prune` drops finished jobs after `JOB_RETENTION_DAYS` (7).
   - Signed-out users see the sign-in notice on the browser-side recon tabs (leaks, Shodan, sweep).
-  - The OSINT decision is recorded in `TODO.md` §7 and `backend.md` §13 and §17.
+  - The OSINT decision is recorded in `docs/roadmap.md` and `backend.md` §13 and §17.
   - The api-keys logger and the `bucketKey` reuse.
 - **History note:** `d4bd69d` (History, another session) was built from a tree that predates `fa8a201`, so taken alone it drops D3's files. `f493407` restores them, and the tip is correct. Bisecting across `d4bd69d` will see the OSINT gate missing.
 - **C, part 4** (`94d153f`): the advisories module (`lookup`, issuers, `source-memo`, `country-codes`, `rss`) moved to `@takip/connectors/advisories`, with shims, so `/api/advisories` and outbreaks are unchanged. `unhcr` and `police-uk` moved too.

@@ -7,7 +7,7 @@
 > - [`dataset-import-map.md`](./dataset-import-map.md): how each raw dataset lands.
 > - [`backend.md`](./backend.md): services, auth, plans and entitlements, public API, admin, and the migration of the legacy routes.
 >
-> Builds on `ARCHITECTURE.md` (entity and observation formats, the seven rules), `TODO.md` §1 and §6, and `CCTV-handoff.md` §3, which already chose SQLite for cameras.
+> Builds on `docs/architecture/README.md` (entity and observation formats, the seven rules), `docs/roadmap.md`, and `CCTV-handoff.md` §3, which already chose SQLite for cameras.
 
 ## 1. Decisions
 
@@ -148,7 +148,7 @@ Rules:
 
 ## 6. Identity model
 
-Follows `ARCHITECTURE.md` "Entities". The tables are in `catalog.db`.
+Follows `docs/architecture/README.md` "Entities". The tables are in `catalog.db`.
 
 - **`core_entity` holds every identifiable thing:** vessel, aircraft, satellite, camera, airport, port, facility, heritage site, waterbody, polity, region group, organisation, instrument, public person.
 - **`core_entity_identifier(scheme, value, valid_lo, valid_hi)`** has the primary key `(scheme_id, value, valid_lo)`.
@@ -655,7 +655,7 @@ Move when **any** of these is true:
 | **1b** | Importers → `history.db` and `geo/*.db`. `ReferenceStore` on SQLite. | The historical atlas, which needs no live data |
 | **1c** | `takip-ingest`: AIS, OpenSky and CCTV connectors moved out of Next, seal jobs, stream shards, coverage | Replay over recorded days |
 | **2** | `/api/replay/*` and `/api/tiles/*`, the timeline UI (one time controller with an adapter per shape), the GPU track layer, the nginx cache | The replay feature |
-| **3** | FIRMS, GDELT and news streams; documents; aggregates; density maps; correlation. Postgres once a §12 trigger is hit. | `ARCHITECTURE.md` phase 3 |
+| **3** | FIRMS, GDELT and news streams; documents; aggregates; density maps; correlation. Postgres once a §12 trigger is hit. | `docs/architecture/README.md` phase 3 |
 
 **Where it stands (2026-10-12):**
 - **Phase 0, built:**

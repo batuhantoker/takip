@@ -70,7 +70,7 @@ tooling/          tsconfig, eslint, vitest presets
 - **Tooling:** npm workspaces (keeps `package-lock.json`) plus **Turborepo** for task caching and `turbo prune` Docker builds.
 - **TypeScript** uses project references. Vitest is configured per package.
 - **`api`, `ingest` and `cli`** run with `tsx` in development and are bundled with `tsup` for production. `web` keeps the Next standalone build.
-- **CI** gates on lint, typecheck and tests (`TODO.md` §8) before the image publish step.
+- **CI** gates on lint, typecheck and tests (`docs/roadmap.md`) before the image publish step.
 
 ## 4. Libraries
 
@@ -84,7 +84,7 @@ tooling/          tsconfig, eslint, vitest presets
 | Database | `better-sqlite3` via the `packages/db` stores; Kysely for app data | Kysely is what Better Auth uses, and it runs on both SQLite and Postgres | Drizzle (fine; one query builder is enough), Prisma (weak on SQLite→PG parity, and its own engine) |
 | Email | `nodemailer` (SMTP) + `react-email` templates behind an `EmailSender` interface | Any provider: Resend, Postmark, SES or self-hosted SMTP | Provider SDKs (lock-in) |
 | Jobs | Small SQLite job table (`job`) in `app.db`, polled by `api` | Emails, webhook retries, billing reconciliation. No Redis needed. | BullMQ (needs Redis), pg-boss (needs Postgres; the natural swap later) |
-| Logging | `pino` (JSON) | Replaces `[TAKIP] console.*` (`TODO.md` §2) | — |
+| Logging | `pino` (JSON) | Replaces `[TAKIP] console.*` (`docs/roadmap.md`) | — |
 | Metrics | `prom-client` at `/metrics` (internal only) | Ingest lag, quota burn, request rates for the admin console | — |
 | Admin UI | Next route group `/admin` with shadcn/ui and TanStack Table | Tailwind is already in the app; no second admin framework | refine.dev (a good accelerator if CRUD screens multiply), AdminJS, Payload (would take over the Next config) |
 
@@ -115,7 +115,7 @@ requestId → pino logger → principal → rate limit → entitlement guard →
    ```
 
    The UI turns this into an upgrade prompt.
-5. **Usage meter.** Counts requests and bytes per subject, key, day and route group. This drives quotas, the admin console and the cost-per-user analysis in `TODO.md` §6.
+5. **Usage meter.** Counts requests and bytes per subject, key, day and route group. This drives quotas, the admin console and the cost-per-user analysis in `docs/roadmap.md`.
 
 ## 6. Authentication
 
@@ -258,7 +258,7 @@ It depends on where the business is registered. Stripe doesn't onboard every cou
   - **`/api/live/ws` (WebSocket, binary)** for moving entities. The client sends `subscribe {layers, bbox, zoom, filters}` and updates it as the map moves. The server pushes only the changes inside the subscription. This replaces the full 2.9 MB maritime and 3.1 MB flights snapshots polled every 10 s.
   - **`/api/live/events` (SSE)** for low-rate pushes such as new events, alert pins and source status.
 - **Replay and tiles:** the `/api/replay/*` and `/api/tiles/*` routes in `replay-database.md` §8 live in `api`. They use read-only SQLite handles and a `piscina` worker pool. The principal's `data.licence_tier` and replay limits are applied to every query.
-- **Health:** `ingest` exposes `/internal/health` and `/metrics`. The admin console shows connector status, lag, coverage gaps and upstream quota burn (`TODO.md` §6).
+- **Health:** `ingest` exposes `/internal/health` and `/metrics`. The admin console shows connector status, lag, coverage gaps and upstream quota burn (`docs/roadmap.md`).
 
 ## 10. Saved workspaces
 
@@ -352,7 +352,7 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 | On-demand lookups: aircraft, flight-route, geosearch, geo/reverse, region-dossier, directions, arcgis, satellites/orbit, markets/history, entity/expand | `web` | `api` `/api/v1/*`, with per-key upstream limits | Early; mostly mechanical ports |
 | Media proxies: cctv/proxy, frame, resolve, stream-status, texas/snapshot, proxy-tiles | `web` | `api`, as a **closed proxy** that takes ids, never URLs (`INSPIRATION.md` L169) | With the camera move to `catalog.db` |
 | AI and OI: ai/*, oi/*, mcp | `web` | `api`; BYO key free; hosted AI gated by `ai.hosted` | After auth. *Gated in `web` since 2026-10-12:* the server-key fallback of `ai/analyze` and `ai/briefing` returns 403 without `ai.hosted`; `ai/overview` falls back to its keyless heuristic read-out |
-| OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Kept** (`TODO.md` §7). | Any time. *Gated in `web` since 2026-10-12:* every route needs an account, with per-account limits by family (`src/lib/recon/gate.ts`); the tabs that probe providers from the browser ask visitors to sign in first |
+| OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Kept** (`docs/roadmap.md`). | Any time. *Gated in `web` since 2026-10-12:* every route needs an account, with per-account limits by family (`src/lib/recon/gate.ts`); the tabs that probe providers from the browser ask visitors to sign in first |
 | Platform: sdk/ingest, sdk/stream, github-webhook, health, stats, reference | `web` | `api`. `sdk/ingest` uses API keys with a `write:entities` scope instead of the shared `SDK_INGEST_KEY`. | Alongside the routes that depend on them |
 
 ## 14. Security baseline
@@ -363,7 +363,7 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 - **Admin accounts** require 2FA. Impersonation and all admin mutations are audited.
 - **Secrets** come only from the environment. `packages/config` validates them at boot and refuses to start if one is missing.
 - **Internal ports** (ingest 4200, intel 4000, `/metrics`) are not published by Docker, only exposed on the internal network.
-- **Still open from `TODO.md` §2:** SSRF review of every URL-fetching route, popup XSS, CSP and CORS. The closed media proxy (§13) removes the largest SSRF surface.
+- **Still open from `docs/roadmap.md`:** SSRF review of every URL-fetching route, popup XSS, CSP and CORS. The closed media proxy (§13) removes the largest SSRF surface.
 
 ## 15. Deployment
 
@@ -407,5 +407,5 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 3. **Plan contents and prices.** The entitlement rows (§7.2) are placeholders.
 4. **Anonymous limits** (`replay.lookback_days`, `web.rps`).
 5. **Teams now or later.** The `organization` plugin and `org` subjects are ready but off.
-6. **OSINT and recon tools:** *decided 2026-10-12:* kept, behind an account, with per-account limits (§13, `TODO.md` §7).
-7. **Product name.** It affects the cookie name, the key prefix (`tk_`) and email sender domains (`TODO.md` §1). Settle it before B1 ships.
+6. **OSINT and recon tools:** *decided 2026-10-12:* kept, behind an account, with per-account limits (§13, `docs/roadmap.md`).
+7. **Product name.** It affects the cookie name, the key prefix (`tk_`) and email sender domains (`docs/roadmap.md`). Settle it before B1 ships.
