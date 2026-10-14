@@ -98,6 +98,9 @@ describe('mapFaaCamera', () => {
     expect(mapFaaCamera(lakeClark, cam(lakeClark), NOW)).toBeNull();
     expect(mapFaaCamera({ ...izg, siteActive: false }, cam(izg), NOW)).toBeNull();
     expect(mapFaaCamera(stoneyRidge, cam(stoneyRidge), NOW)).toBeNull();
+    for (const operatedBy of ['UNR', 'UO', 'ALERTWest']) {
+      expect(mapFaaCamera({ ...izg, operatedBy }, cam(izg), NOW), operatedBy).toBeNull();
+    }
   });
 
   it('drops missing ids and unusable coordinates', () => {

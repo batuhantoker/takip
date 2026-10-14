@@ -73,6 +73,14 @@ describe('GET /api/cctv/proxy', () => {
     expect(res.headers.get('x-content-type-options')).toBe('nosniff');
   });
 
+  it('holds a frame for the interval its operator asks for', async () => {
+    const travelMidwest = () => proxy(`http://cctv.travelmidwest.com:${port}/frame.jpg`);
+    const before = hits.length;
+    expect((await travelMidwest()).status).toBe(200);
+    expect((await travelMidwest()).status).toBe(200);
+    expect(hits.length - before).toBe(1);
+  });
+
   it('refuses a page or an SVG from a camera host', async () => {
     expect((await camera('/page')).status).toBe(502);
     expect((await camera('/vector')).status).toBe(502);

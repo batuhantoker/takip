@@ -21,7 +21,7 @@ const join = (parts: (string | null | false | undefined)[]) => parts.filter(Bool
 const DESCRIBE: Record<string, (p: Props, layer: string) => Tip | null> = {
   'fl-military': flight, 'fl-jets': flight, 'fl-private': flight, 'fl-commercial': flight,
   'cctv-clusters': p => ({ key: `cluster:${p.cluster_id}`, name: `${Number(p.point_count).toLocaleString()} cameras`, meta: 'Click to zoom in' }),
-  'cctv-dots': p => ({ key: `camera:${p.id}`, name: String(p.name || 'Camera'), meta: htmlEsc(join(['Camera', [p.city, p.country].filter(Boolean).join(', ')])) }),
+  'cctv-dots': p => ({ key: `camera:${p.id}`, name: String(p.name || 'Camera'), meta: htmlEsc(join(['Camera', [p.city, p.country].filter(Boolean).join(', '), p.offline === true && 'Off air'])) }),
   'alert-pin-dots': p => ({ key: `alert:${p.id}`, name: String(p.title || 'Report'), meta: htmlEsc(join([p.kind === 'rocket' ? 'Rocket alert' : p.kind === 'event' ? 'Event' : 'News', String(p.place_name || '')])) }),
   'eq-circles': p => {
     const m = n(p.magnitude);

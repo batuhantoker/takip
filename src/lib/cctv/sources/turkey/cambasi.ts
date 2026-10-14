@@ -1,5 +1,6 @@
 import type { CctvCamera } from '@/lib/cctv/types';
 import type { Bounds } from '@/lib/cctv/sources/platforms/cars';
+import { markMissingMedia } from '@/lib/cctv/liveness';
 
 /**
  * TAKIP — Çambaşı Kayak Merkezi (Kabadüz, Ordu) cameras: the grid of ORBEL A.Ş. (Ordu Büyükşehir) Restreamer channels
@@ -72,7 +73,8 @@ export async function fetchCambasiCameras(): Promise<CctvCamera[]> {
 
   // Titles only; a channel whose oEmbed fails still plays under a numbered name.
   const meta = await Promise.all(ids.map(id => fetchOembed(id).catch(() => null)));
-  const cams = ids.flatMap((id, i) => mapCambasiChannel(id, i, meta[i]) ?? []);
+  // The grid keeps listing channels that aren't running.
+  const cams = await markMissingMedia(ids.flatMap((id, i) => mapCambasiChannel(id, i, meta[i]) ?? []));
   console.log(`[TAKIP] Çambaşı cameras — ORBEL: ${cams.length}`);
   return cams;
 }

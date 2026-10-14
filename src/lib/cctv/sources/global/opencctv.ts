@@ -1,6 +1,7 @@
 import { stealthFetch } from '@/lib/stealthFetch';
 import { cachedSource } from '@/lib/sourceCache';
 import { proxiedImageUrl, type CctvCamera, type CctvStreamType } from '@/lib/cctv/types';
+import { markOfflineEmbeds } from '@/lib/cctv/liveness';
 
 /**
  * TAKIP — Asian cameras via the OpenCCTV directory.
@@ -64,6 +65,8 @@ const COVERED_ELSEWHERE = [
   'its-stream2.busan.go.kr', 'its-stream3.busan.go.kr', 'its-stream4.busan.go.kr',
   'its-stream5.busan.go.kr', 'its-stream6.busan.go.kr', 'its-stream9.busan.go.kr',
   'camstream.kahramanmaras.bel.tr', 'hls.ibb.gov.tr', 'kamerayayin.ibb.istanbul', 'broadcast.orbel.com.tr', 'live.dgn.net.tr',
+  // Kahramanmaraş's streams again, by bare address and over plain http.
+  '95.0.155.24',
 ];
 
 /** Sub-sources another module carries in full, where the media host (YouTube) can't tell them apart. */
@@ -207,7 +210,7 @@ async function fetchBatch(ids: string[]): Promise<OpenCctvRecord[]> {
 /**
  * Once a day at most. OpenCCTV's terms forbid bulk download and its robots.txt disallows /api/, so a
  * server polling around the clock (the replay recorder's keep-alive) must not take 7.3 MB every 30 min.
- * Whether to keep this source at all is an open licensing question (TODO.md §1).
+ * Whether to keep this source at all is an open licensing question (docs/roadmap.md).
  */
 const OPENCCTV_TTL_MS = 24 * 60 * 60_000;
 
@@ -261,7 +264,7 @@ function loader(region: string, bounds: Bounds, cap: number) {
       }
     }
 
-    const cams = [...seen.values()];
+    const cams = await markOfflineEmbeds([...seen.values()]);
     console.log(`[TAKIP] ${region} cameras — OpenCCTV: ${cams.length} of ${inRegion.length} in region`);
     return cams;
   };

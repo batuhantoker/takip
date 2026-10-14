@@ -18,6 +18,8 @@ export interface CctvCamera {
   source: string;
   /** Measured road surface from the operator's paired station (./road-condition). */
   road?: RoadCondition;
+  /** The operator lists this camera but isn't streaming it (./liveness). */
+  offline?: boolean;
 }
 
 /*
@@ -27,7 +29,11 @@ export interface CctvCamera {
  * there in development and gone in production. The proxy re-serves it over
  * https. A host added here must also be in the proxy's own allowlist.
  */
-const PROXY_IMAGE_HOSTS = ['infobanjirjps.selangor.gov.my'];
+const PROXY_IMAGE_HOSTS = [
+  'infobanjirjps.selangor.gov.my',
+  // Travel Midwest (Illinois) answers 403 to a foreign Referer.
+  'cctv.travelmidwest.com',
+];
 
 /** The URL a browser can actually load this still from. */
 export function proxiedImageUrl(url: string): string {

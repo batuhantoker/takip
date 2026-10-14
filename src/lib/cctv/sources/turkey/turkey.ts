@@ -1,4 +1,5 @@
 import type { CctvCamera } from '@/lib/cctv/types';
+import { KAYSERI_LAST_KNOWN } from './kayseri-last-known';
 
 /**
  * Kayseri Metropolitan Municipality cameras (izle.kayseri.bel.tr), read from the inline list on its /harita map page.
@@ -51,13 +52,31 @@ export function parseKayseriMap(html: string): CctvCamera[] {
   return cams;
 }
 
+/** The last published list, off air: their stills and pages 404, so each links to the site's own "no cameras" page. */
+export function kayseriOffAir(): CctvCamera[] {
+  return KAYSERI_LAST_KNOWN.map(([id, , title, lat, lng]) => ({
+    id: `tr-kayseri-${id}`,
+    lat,
+    lng,
+    name: title,
+    city: 'Kayseri',
+    country: 'Turkey',
+    external_url: `${SITE}/`,
+    source: 'Kayseri Büyükşehir Belediyesi',
+    offline: true,
+  }));
+}
+
 export async function fetchTurkeyCameras(): Promise<CctvCamera[]> {
   const res = await fetch(`${SITE}/harita`, {
     headers: { 'User-Agent': UA, Accept: 'text/html' },
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`kayseri /harita HTTP ${res.status}`);
-  const cams = parseKayseriMap(await res.text());
-  if (!cams.length) throw new Error('kayseri /harita: no cameras found in the page');
-  return cams;
+  const html = await res.text();
+  const cams = parseKayseriMap(html);
+  if (cams.length) return cams;
+  // An emptied list, as opposed to a page this no longer parses.
+  if (/const cameras\s*=\s*\[\s*\]/.test(html)) return kayseriOffAir();
+  throw new Error('kayseri /harita: no cameras found in the page');
 }

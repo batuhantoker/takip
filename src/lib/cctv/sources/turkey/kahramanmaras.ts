@@ -1,5 +1,6 @@
 import type { CctvCamera } from '@/lib/cctv/types';
 import type { Bounds } from '@/lib/cctv/sources/platforms/cars';
+import { markMissingMedia } from '@/lib/cctv/liveness';
 
 /**
  * Kahramanmaraş Metropolitan Municipality city cameras (~27 HLS), read from the card grid on kamera.kahramanmaras.bel.tr.
@@ -103,8 +104,9 @@ export async function fetchKahramanmarasCameras(): Promise<CctvCamera[]> {
     signal: AbortSignal.timeout(12_000),
   });
   if (!res.ok) throw new Error(`Kahramanmaraş cameras HTTP ${res.status}`);
-  const cams = parseKahramanmarasPortal(await res.text());
-  if (!cams.length) throw new Error('Kahramanmaraş cameras: no cameras found in the portal');
+  const listed = parseKahramanmarasPortal(await res.text());
+  if (!listed.length) throw new Error('Kahramanmaraş cameras: no cameras found in the portal');
+  const cams = await markMissingMedia(listed);
   console.log(`[TAKIP] Kahramanmaraş cameras — Kahramanmaraş Büyükşehir Belediyesi: ${cams.length}`);
   return cams;
 }

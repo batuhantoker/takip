@@ -26,6 +26,8 @@ const ALLOWED_HOSTS = [
   'eismoinfo.lt',
   // Serves over plain http, which an https page blocks as mixed content.
   'infobanjirjps.selangor.gov.my',
+  // Illinois stills; 403 to a foreign Referer.
+  'cctv.travelmidwest.com',
 ];
 
 // Taiwan Highway Bureau cameras are DigiEver encoders, and they emit a
@@ -49,6 +51,14 @@ function isAllowed(hostname: string): boolean {
 function sendsReferer(hostname: string): boolean {
   return !NO_REFERER_HOSTS.some(h => hostname === h || hostname.endsWith('.' + h));
 }
+
+/**
+ * Hosts whose operator asks for a minimum interval between fetches of one image: IDOT's Gateway terms ask 5 minutes
+ * of Travel Midwest. The viewer polls every 5 s, so those frames are held here and served again until it passes.
+ */
+const MIN_REFETCH_MS: Record<string, number> = { 'cctv.travelmidwest.com': 5 * 60_000 };
+const MAX_HELD_FRAMES = 500;
+const heldFrames = new Map<string, { at: number; type: string; data: Buffer }>();
 
 const RASTER_TYPE = /^image\/(jpeg|pjpeg|png|gif|webp|avif|bmp)\s*(;|$)/i;
 
@@ -183,8 +193,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden domain: ' + target.hostname }, { status: 403 });
   }
 
+  const host = target.hostname.toLowerCase();
+  const holdMs = MIN_REFETCH_MS[host];
+  const key = target.toString();
+  const held = holdMs ? heldFrames.get(key) : undefined;
+  if (held && Date.now() - held.at < holdMs) return frameResponse(held.data, held.type);
+
   try {
-    const host = target.hostname.toLowerCase();
     const result = await fetchFrame(
       target.toString(),
       sendsReferer(host) ? `https://${target.hostname}/` : null
@@ -199,18 +214,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Upstream did not send an image' }, { status: 502 });
     }
 
-    return new NextResponse(new Uint8Array(result.data), {
-      status: 200,
-      headers: {
-        'Content-Type': type,
-        'Cache-Control': 'public, max-age=5, stale-while-revalidate=10',
-        'Access-Control-Allow-Origin': '*',
-        // A declared raster type is trusted above; nosniff holds the browser to it.
-        'X-Content-Type-Options': 'nosniff',
-      },
-    });
+    if (holdMs) {
+      heldFrames.delete(key);
+      heldFrames.set(key, { at: Date.now(), type, data: result.data });
+      if (heldFrames.size > MAX_HELD_FRAMES) heldFrames.delete(heldFrames.keys().next().value!);
+    }
+    return frameResponse(result.data, type);
   } catch (error: any) {
     console.error('Camera proxy error:', error?.message || error);
     return NextResponse.json({ error: 'Proxy failed: ' + (error?.message || 'unknown') }, { status: 502 });
   }
+}
+
+function frameResponse(data: Buffer, type: string): NextResponse {
+  return new NextResponse(new Uint8Array(data), {
+    status: 200,
+    headers: {
+      'Content-Type': type,
+      'Cache-Control': 'public, max-age=5, stale-while-revalidate=10',
+      'Access-Control-Allow-Origin': '*',
+      // A declared raster type is trusted above; nosniff holds the browser to it.
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }

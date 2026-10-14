@@ -56,6 +56,15 @@ export const STATE_FEEDS: StateFeed[] = [
     base: 'https://511.novascotia.ca', idPrefix: 'ns511', source: 'Nova Scotia 511', state: 'Nova Scotia', country: 'Canada',
     bounds: { minLat: 43.3, maxLat: 47.1, minLng: -66.5, maxLng: -59.6 },
   }),
+  // MTO. `/api/v2/get/cameras` answers "Invalid Key" without a developer key; this list is the same cameras, keyless.
+  ibi('ontario', {
+    base: 'https://511on.ca', idPrefix: 'on', source: '511 Ontario', state: 'Ontario', country: 'Canada',
+    // Its `county` column holds cities and regions ("Toronto", "Durham").
+    countySuffix: '',
+    bounds: { minLat: 41.6, maxLat: 57.0, minLng: -95.3, maxLng: -74.2 },
+    // Same frames as the City of Toronto and ./york-region feeds.
+    excludeOwners: ['City of Toronto', 'York Region'],
+  }),
   ibi('newbrunswick', {
     base: 'https://511.gnb.ca', idPrefix: 'nb511', source: 'New Brunswick 511', state: 'New Brunswick', country: 'Canada',
     bounds: { minLat: 44.5, maxLat: 48.1, minLng: -69.1, maxLng: -63.7 },
@@ -91,15 +100,18 @@ export const STATE_FEEDS: StateFeed[] = [
   cars('minnesota', {
     host: '511mn.org', idPrefix: 'mndot', source: 'MnDOT', state: 'Minnesota',
     bounds: { minLat: 43.4, maxLat: 49.4, minLng: -97.3, maxLng: -89.4 },
+    videoHosts: ['video.dot.state.mn.us'],
   }),
   cars('iowa', {
     host: '511ia.org', idPrefix: 'iowadot', source: 'Iowa DOT', state: 'Iowa',
     bounds: { minLat: 40.3, maxLat: 43.6, minLng: -96.7, maxLng: -90.1 },
+    videoHosts: ['video2.iowadot.gov', 'video3.iowadot.gov', 'video4.iowadot.gov'],
   }),
   cars('kansas', {
     host: 'kandrive.gov', idPrefix: 'kdot', source: 'KDOT', state: 'Kansas',
-    // KC Scout's Missouri-side cameras fall outside, and would be captioned Kansas.
     bounds: { minLat: 36.9, maxLat: 40.1, minLng: -102.1, maxLng: -94.5 },
+    // KC Scout's Missouri-side (`M…`) stills, which ../us/kcscout carries captioned Missouri rather than Kansas.
+    excludeFeeds: /^https:\/\/www\.kcscout\.net\/TransSuite\.VCS\.CameraSnapshots\/M/,
   }),
   cars('massachusetts', {
     host: 'mass511.com', idPrefix: 'massdot', source: 'MassDOT', state: 'Massachusetts',
@@ -108,6 +120,15 @@ export const STATE_FEEDS: StateFeed[] = [
   cars('nebraska', {
     host: '511.nebraska.gov', idPrefix: 'nedot', source: 'NDOT Nebraska', state: 'Nebraska',
     bounds: { minLat: 39.9, maxLat: 43.1, minLng: -104.1, maxLng: -95.3 },
+  }),
+  // Spokane Regional Transportation Management Center. About 50 of these are the cameras WSDOT republishes as
+  // stills under images.wsdot.wa.gov/spokane; they stay doubled because these copies add live video. Terms not reviewed.
+  cars('spokane', {
+    host: 'www.srtmc.org', idPrefix: 'srtmc', source: 'SRTMC Spokane', state: 'Spokane',
+    bounds: { minLat: 47.3, maxLat: 48.2, minLng: -118.0, maxLng: -116.9 },
+    // WSDOT's own stills, which ../us/wsdot carries.
+    excludeFeeds: /^https:\/\/public\.carsprogram\.org\//,
+    videoHosts: ['66ec3d11858f4.streamlock.net', '6719f5be90b00.streamlock.net'],
   }),
 
   // CARS 511x — Castle Rock's newer stack.

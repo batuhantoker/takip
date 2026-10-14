@@ -36,6 +36,7 @@ export function bindCctvAndQuakeClicks(map: maplibregl.Map, popup: ShowPopup, on
       stream_type: p.stream_type,
       external_url: p.external_url,
       road: p.road,
+      offline: p.offline === true,
       lat: coords[1],
       lng: coords[0],
     };

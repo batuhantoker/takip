@@ -1,7 +1,11 @@
 import type { StateFeed } from '@/lib/cctv/sources/platforms/us-511';
 import { SDDOT, MDT, SCDOT, fetchSddotCameras, fetchMdtCameras, fetchScdotCameras } from '@/lib/cctv/sources/platforms/iteris';
 import { fetchSeattleCameras } from '@/lib/cctv/sources/us/seattle';
-import { fetchAlertCaCameras } from '@/lib/cctv/sources/us/alertcalifornia';
+import { BELLEVUE_BOUNDS, fetchBellevueCameras } from '@/lib/cctv/sources/us/bellevue';
+import { REDMOND_BOUNDS, fetchRedmondCameras } from '@/lib/cctv/sources/us/redmond';
+import { KIRKLAND_BOUNDS, fetchKirklandCameras } from '@/lib/cctv/sources/us/kirkland';
+import { KING_COUNTY_BOUNDS, fetchKingCountyCameras } from '@/lib/cctv/sources/us/kingcounty';
+import { ALERTCA_BOUNDS, fetchAlertCaCameras } from '@/lib/cctv/sources/us/alertcalifornia';
 import { VDOT_BOUNDS, fetchVdotCameras } from '@/lib/cctv/sources/us/vdot';
 import { AUSTIN_BOUNDS, fetchAustinCameras } from '@/lib/cctv/sources/us/austin';
 import { LEXINGTON_BOUNDS, fetchLexingtonCameras } from '@/lib/cctv/sources/us/lexington';
@@ -22,6 +26,8 @@ import { GOAKAMAI_BOUNDS, fetchGoAkamaiCameras } from '@/lib/cctv/sources/us/goa
 import { ALGO_BOUNDS, fetchAlgoCameras } from '@/lib/cctv/sources/us/algotraffic';
 import { CALGARY_BOUNDS, fetchCalgaryCameras } from '@/lib/cctv/sources/canada/calgary';
 import { YORK_REGION_BOUNDS, fetchYorkRegionCameras } from '@/lib/cctv/sources/canada/york-region';
+import { AB511, fetchAlbertaCameras } from '@/lib/cctv/sources/canada/alberta';
+import { SURREY_BOUNDS, fetchSurreyCameras } from '@/lib/cctv/sources/canada/surrey';
 import { TAIWAN_WRA_BOUNDS, fetchTaiwanWraCameras } from '@/lib/cctv/sources/asia/taiwan-wra';
 import { BUSAN_BOUNDS, fetchBusanCameras } from '@/lib/cctv/sources/asia/busan';
 import { ULSAN_BOUNDS, fetchUlsanCameras } from '@/lib/cctv/sources/asia/ulsan';
@@ -47,6 +53,7 @@ import { CAMBASI_BOUNDS, fetchCambasiCameras } from '@/lib/cctv/sources/turkey/c
 import { ULUDAG_BOUNDS, fetchUludagCameras } from '@/lib/cctv/sources/turkey/uludag';
 import { MDCHART_BOUNDS, fetchMdChartCameras } from '@/lib/cctv/sources/us/mdchart';
 import { MODOT_BOUNDS, fetchModotCameras } from '@/lib/cctv/sources/us/modot';
+import { KC_SCOUT_BOUNDS, fetchKcScoutCameras } from '@/lib/cctv/sources/us/kcscout';
 import { NDDOT_BOUNDS, fetchNddotCameras } from '@/lib/cctv/sources/us/nddot';
 import { RIDOT_BOUNDS, fetchRidotCameras } from '@/lib/cctv/sources/us/ridot';
 import { NMDOT_BOUNDS, fetchNmdotCameras } from '@/lib/cctv/sources/us/nmdot';
@@ -64,6 +71,7 @@ import { MUP_SERBIA_BOUNDS, fetchMupSerbiaCameras } from '@/lib/cctv/sources/eur
 import {
   OWDB_AMERICAS, OWDB_AMERICAS_BOUNDS, OWDB_EMEA, OWDB_EMEA_BOUNDS, OWDB_APAC, OWDB_APAC_BOUNDS,
 } from '@/lib/cctv/generated/openwebcamdb.generated';
+import { markOfflineEmbeds } from '@/lib/cctv/liveness';
 
 /**
  * TAKIP — camera sources with their own adapter. As with STATE_FEEDS, an entry here is the whole wiring:
@@ -78,11 +86,14 @@ export const FEEDS: StateFeed[] = [
     region: 'seattle', idPrefix: 'seattle', fetch: fetchSeattleCameras,
     bounds: { minLat: 47.48, maxLat: 47.75, minLng: -122.45, maxLng: -122.22 },
   },
-  // CC BY-NC-ND: non-commercial use only.
-  {
-    region: 'alertcalifornia', idPrefix: 'alertca', fetch: fetchAlertCaCameras,
-    bounds: { minLat: 32.5, maxLat: 42.1, minLng: -124.5, maxLng: -114.0 },
-  },
+  // Commercial use needs the city's written authorization.
+  { region: 'bellevue', idPrefix: 'bellevue', bounds: BELLEVUE_BOUNDS, fetch: fetchBellevueCameras },
+  { region: 'redmond', idPrefix: 'redmond', bounds: REDMOND_BOUNDS, fetch: fetchRedmondCameras },
+  // "All rights reserved": permission not yet asked.
+  { region: 'kirkland', idPrefix: 'kirkland', bounds: KIRKLAND_BOUNDS, fetch: fetchKirklandCameras },
+  { region: 'kingcounty', idPrefix: 'kingcounty', bounds: KING_COUNTY_BOUNDS, fetch: fetchKingCountyCameras },
+  // CC BY-NC-ND: non-commercial use only. Hawaii to Alberta, so this loads for most of the West.
+  { region: 'alertcalifornia', idPrefix: 'alertca', bounds: ALERTCA_BOUNDS, fetch: fetchAlertCaCameras },
   { region: 'virginia', idPrefix: 'vdot', bounds: VDOT_BOUNDS, fetch: fetchVdotCameras },
   { region: 'austin', idPrefix: 'austin', bounds: AUSTIN_BOUNDS, fetch: fetchAustinCameras },
   { region: 'lexington', idPrefix: 'lexky', bounds: LEXINGTON_BOUNDS, fetch: fetchLexingtonCameras },
@@ -114,6 +125,8 @@ export const FEEDS: StateFeed[] = [
   { region: 'alabama', idPrefix: 'aldot', bounds: ALGO_BOUNDS, fetch: fetchAlgoCameras },
   { region: 'calgary', idPrefix: 'calgary', bounds: CALGARY_BOUNDS, fetch: fetchCalgaryCameras },
   { region: 'yorkregion', idPrefix: 'yorkregion', bounds: YORK_REGION_BOUNDS, fetch: fetchYorkRegionCameras },
+  { region: 'alberta', idPrefix: AB511.idPrefix, bounds: AB511.bounds, fetch: fetchAlbertaCameras },
+  { region: 'surrey', idPrefix: 'surrey', bounds: SURREY_BOUNDS, fetch: fetchSurreyCameras },
   // Open Government Data License v1.0; credit 經濟部水利署 (data.gov.tw 36687).
   { region: 'taiwan-wra', idPrefix: 'tw-wra', bounds: TAIWAN_WRA_BOUNDS, fetch: fetchTaiwanWraCameras },
   // The site reserves all rights to the Busan Transportation Information Center: permission not yet asked.
@@ -164,6 +177,8 @@ export const FEEDS: StateFeed[] = [
   { region: 'maryland', idPrefix: 'mdsha', bounds: MDCHART_BOUNDS, fetch: fetchMdChartCameras },
   // No terms found on modot.org or the traveler map.
   { region: 'missouri', idPrefix: 'modot', bounds: MODOT_BOUNDS, fetch: fetchModotCameras },
+  // Missouri side only; MoDOT's copies of these are tokenized video and dropped.
+  { region: 'kcscout', idPrefix: 'kcscout', bounds: KC_SCOUT_BOUNDS, fetch: fetchKcScoutCameras },
   // nd.gov disclaimer only.
   { region: 'northdakota', idPrefix: 'nddot', bounds: NDDOT_BOUNDS, fetch: fetchNddotCameras },
   // RI.gov: public information, may be distributed; credit requested.
@@ -194,6 +209,7 @@ export const FEEDS: StateFeed[] = [
   { region: 'serbia-borders', idPrefix: 'mup', bounds: MUP_SERBIA_BOUNDS, fetch: fetchMupSerbiaCameras },
   // OpenWebcamDB's terms are non-commercial and exclude aggregators; permission not yet asked for.
   { region: 'owdb-americas', idPrefix: 'owdb', bounds: OWDB_AMERICAS_BOUNDS, fetch: async () => OWDB_AMERICAS },
-  { region: 'owdb-emea', idPrefix: 'owdb', bounds: OWDB_EMEA_BOUNDS, fetch: async () => OWDB_EMEA },
+  // Konya's and Ankara's municipal embeds are off air; flagged until their player is live again.
+  { region: 'owdb-emea', idPrefix: 'owdb', bounds: OWDB_EMEA_BOUNDS, fetch: () => markOfflineEmbeds(OWDB_EMEA) },
   { region: 'owdb-apac', idPrefix: 'owdb', bounds: OWDB_APAC_BOUNDS, fetch: async () => OWDB_APAC },
 ];

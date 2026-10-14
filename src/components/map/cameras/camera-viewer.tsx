@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { CameraOff, ExternalLink, LoaderCircle, MapPin, Maximize2, Minimize2, PlayCircle, RefreshCw, X } from 'lucide-react';
+import { CameraOff, ExternalLink, LoaderCircle, LogIn, MapPin, Maximize2, Minimize2, PlayCircle, RefreshCw, X } from 'lucide-react';
 import Hls from 'hls.js';
 import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView, withdrawalCheck } from '@/lib/cameras/feed';
 import { clearLook, registerVideo } from '@/lib/vision/store';
@@ -12,6 +12,8 @@ import { useEscape } from '@/components/ui/use-escape';
 import { WindowFoldButton, WindowSizeButton } from '@/components/map/windows';
 import { useBottomBar } from '@/components/shell/mobile/use-bottom-bar';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { showAccountDialog } from '@/components/site/account/account-dialog-state';
+import { authClient } from '@/lib/account/auth-client';
 import CameraVision from './camera-vision';
 import { admitRoadCondition, parseRoadCondition, roadConditionLine } from '@/lib/cctv/road-condition';
 
@@ -31,6 +33,7 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [deadStream, setDeadStream] = useState<string | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   useEscape(onClose, !!camera && !windowed);
   const isMobile = useIsMobile();
@@ -67,7 +70,7 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
   const [resolution, setResolution] = useState<{ key: string; embed: string | null; offline: boolean; kind?: string } | null>(null);
   const resolvedEmbed = directEmbed ?? (resolution && resolution.key === resolveKey ? resolution.embed : null);
   const resolving = Boolean(resolveKey) && resolution?.key !== resolveKey;
-  const offline = resolution?.key === resolveKey && resolution.offline;
+  const offline = camera?.offline === true || (resolution?.key === resolveKey && resolution.offline);
   const gone = resolution?.key === resolveKey && resolution.kind === 'missing';
 
   // Live video exists at the source but cannot be replayed here, so offer the
@@ -85,7 +88,9 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
     return () => { live = false; };
   }, [resolveKey]);
 
-  const streamType = resolvedEmbed ? 'iframe' : (camera?.stream_type || 'jpg');
+  const declaredType = resolvedEmbed ? 'iframe' : (camera?.stream_type || 'jpg');
+  // A stream that won't play falls back to the camera's still, when it has one.
+  const streamType = declaredType === 'hls' && camera?.feed_url && deadStream === camera.stream_url ? 'jpg' : declaredType;
   const streamUrl: string | undefined = resolvedEmbed || camera?.stream_url;
   const view = offPlatformView({ hostedOffPlatform, resolving, resolvedEmbed, offline });
   const externalOnly = view !== 'inline';
@@ -113,6 +118,8 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
     }
 
     if (streamType === 'hls' && camera.stream_url) {
+      const stream = camera.stream_url;
+      const failed = () => (camera.feed_url ? setDeadStream(stream) : setError(true));
       if (Hls.isSupported() && videoRef.current) {
         const hls = new Hls({ enableWorker: false });
         hlsRef.current = hls;
@@ -123,10 +130,11 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
           videoRef.current?.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) setError(true);
+          if (data.fatal) failed();
         });
       } else if (videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
         videoRef.current.src = camera.stream_url;
+        videoRef.current.addEventListener('error', failed, { once: true });
         videoRef.current.addEventListener('loadedmetadata', () => {
           setLoading(false);
           videoRef.current?.play().catch(() => {});
@@ -246,12 +254,14 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
           </Overlay>
         ) : view === 'resolving' ? (
           <Overlay><Spinner /><p className="text-[12px] text-ink-2">Finding a direct feed…</p></Overlay>
-        ) : view === 'offline' ? (
+        ) : view === 'offline' && gone ? (
           <Overlay>
             <CameraOff aria-hidden className="size-5 text-ink-3" strokeWidth={1.75} />
-            <p className="text-[13px] font-medium text-ink-1">{gone ? 'This camera has been removed' : 'This camera is off air'}</p>
-            <p className="text-[12px] text-ink-3">{gone ? 'The publisher no longer lists it.' : 'The publisher has the feed switched off right now.'}</p>
+            <p className="text-[13px] font-medium text-ink-1">This camera has been removed</p>
+            <p className="text-[12px] text-ink-3">The publisher no longer lists it.</p>
           </Overlay>
+        ) : view === 'offline' ? (
+          <SignInOverlay>The publisher has the feed switched off right now.</SignInOverlay>
         ) : view === 'external' ? (
           <Overlay>
             <p className="text-[13px] font-medium text-ink-1">This feed only plays on the publisher’s site</p>
@@ -260,11 +270,9 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
             )}
           </Overlay>
         ) : error ? (
-          <Overlay>
-            <p className="text-[13px] font-medium text-ink-1">Couldn’t load the picture</p>
-            <p className="text-[12px] text-ink-3">The camera may be offline or restricted.</p>
-            <Button size="sm" icon={RefreshCw} onClick={() => { setError(false); setRetryCount(c => c + 1); }}>Try again</Button>
-          </Overlay>
+          <SignInOverlay action={<Button size="sm" icon={RefreshCw} onClick={() => { setError(false); setRetryCount(c => c + 1); }}>Try again</Button>}>
+            The camera may be offline or restricted.
+          </SignInOverlay>
         ) : streamType === 'hls' ? (
           <video ref={videoRef} className={cx('h-full w-full', fit)} autoPlay muted playsInline />
         ) : streamType === 'mjpeg' && camera.stream_url ? (
@@ -309,6 +317,25 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
 
 function Overlay({ children }: { children: React.ReactNode }) {
   return <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-surface-0/95 p-4 text-center">{children}</div>;
+}
+
+// A deliberate joke: no plan fixes a dead camera, so the second line gives the real reason.
+function SignInOverlay({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  const signedIn = Boolean(authClient.useSession().data);
+  return (
+    <Overlay>
+      <p className="text-[13px] font-medium text-ink-1">Please sign in or upgrade your account to view (faster)!</p>
+      <p className="text-[12px] text-ink-3">{children}</p>
+      {(!signedIn || action) && (
+        <div className="flex gap-2">
+          {!signedIn && (
+            <Button size="sm" variant="primary" icon={LogIn} onClick={() => showAccountDialog({ kind: 'sign-in', notice: 'It won’t bring that camera back, but it saves your areas, keys and workspaces.' })}>Sign in</Button>
+          )}
+          {action}
+        </div>
+      )}
+    </Overlay>
+  );
 }
 
 function Spinner() {

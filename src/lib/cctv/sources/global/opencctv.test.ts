@@ -101,6 +101,10 @@ describe('mapRecord', () => {
     })).toBeNull();
   });
 
+  it('leaves Kahramanmaraş to kahramanmaras.ts, even when listed by bare address', () => {
+    expect(mapRecord({ ...sampleRow, source: 'kahramanmaras', feed_url: 'http://95.0.155.24/live/andirin.stream/playlist.m3u8' })).toBeNull();
+  });
+
   it('never carries Windy-hosted or Opentopia cameras', () => {
     const still = { ...sampleRow, feed_type: 'image' };
     expect(mapRecord({ ...still, source: 'windy', feed_url: 'https://imgproxy.windy.com/_/full/plain/current/1234/original.jpg' })).toBeNull();

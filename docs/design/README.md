@@ -253,7 +253,9 @@ Owned by the map work, summarised here so the chrome and the data agree:
 markers are small and calm at low zoom and gain detail as you zoom in; dense
 point layers cluster; categorical colours come from the status/categorical
 tokens above, slightly desaturated; lines (cables, routes) are thin and
-translucent; every label uses Noto Sans with a dark halo.
+translucent; every label uses Noto Sans with a dark halo. A camera its
+operator lists but isn't streaming keeps its pin, faded, and says "Off air"
+rather than opening a dead player.
 
 ## Phones
 

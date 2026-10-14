@@ -82,6 +82,10 @@ describe('cameraCity', () => {
     expect(cameraCity({ id: 622, location: 'I-189 SOUTH BURLINGTON', city: null, county: null, state: 'Vermont' }, 'New England'))
       .toBe('Vermont');
   });
+
+  it('leaves the county bare where it is not a county', () => {
+    expect(cameraCity({ ...sample, county: 'Toronto' }, 'Ontario', '')).toBe('Toronto');
+  });
 });
 
 describe('mapIbi511Record', () => {
@@ -169,6 +173,35 @@ describe('mapIbi511Record', () => {
     );
     expect(asGeorgia?.id).toBe('gdot-1');
     expect(mapIbi511Record(sample, FDOT)?.id).toBe('fdot-1');
+  });
+
+  it('places a Canadian deployment in Canada', () => {
+    // Trimmed row from 511on.ca/List/GetData/Cameras (2026-10-13).
+    const qew: Ibi511Record = {
+      id: 1283,
+      roadway: 'QEW',
+      direction: 'Unknown',
+      location: 'QEW East of Concession Road',
+      county: 'Niagara',
+      latLng: { geography: { wellKnownText: 'POINT (-78.925595 42.909086)' } },
+      images: [{ imageUrl: '/map/Cctv/2555', videoUrl: null, isVideoAuthRequired: false, blocked: false, disabled: false }],
+    };
+    const mto: Ibi511Source = {
+      base: 'https://511on.ca', idPrefix: 'on', source: '511 Ontario', state: 'Ontario', country: 'Canada', countySuffix: '',
+      bounds: { minLat: 41.6, maxLat: 57.0, minLng: -95.3, maxLng: -74.2 },
+    };
+    expect(mapIbi511Record(qew, mto)).toEqual({
+      id: 'on-1283',
+      lat: 42.909086,
+      lng: -78.925595,
+      name: 'QEW East of Concession Road',
+      city: 'Niagara',
+      country: 'Canada',
+      feed_url: 'https://511on.ca/map/Cctv/2555',
+      source: '511 Ontario',
+    });
+    expect(mapIbi511Record({ ...qew, source: 'City of Toronto' }, { ...mto, excludeOwners: ['City of Toronto'] })).toBeNull();
+    expect(mapIbi511Record({ ...qew, source: 'COMPASS - Central' }, { ...mto, excludeOwners: ['City of Toronto'] })?.id).toBe('on-1283');
   });
 });
 

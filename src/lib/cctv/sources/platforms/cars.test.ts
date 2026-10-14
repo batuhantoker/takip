@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { featurePoint, mapCarsSnapshot, snapshotUrl, type CarsFeature, type CarsSource } from './cars';
+import { featurePoint, hlsUrl, mapCarsSnapshot, snapshotUrl, type CarsFeature, type CarsSource } from './cars';
 
 const MNDOT: CarsSource = {
   host: '511mn.org', idPrefix: 'mndot', source: 'MnDOT', state: 'Minnesota',
@@ -45,6 +45,47 @@ describe('mapCarsSnapshot', () => {
 
   it('falls back to a generated name', () => {
     expect(mapCarsSnapshot({ ...camera, title: '  ' }, MNDOT)?.name).toBe('MnDOT Camera 512007');
+  });
+
+  it('drops a still another source carries', () => {
+    expect(mapCarsSnapshot(camera, { ...MNDOT, excludeFeeds: /\/cameras\/MN\// })).toBeNull();
+    expect(mapCarsSnapshot(camera, { ...MNDOT, excludeFeeds: /\/cameras\/IA\// })?.id).toBe('mndot-512007');
+  });
+
+  it('adds the HLS stream when its host is listed', () => {
+    // Verbatim view from 511mn.org with `sources` selected (2026-10-13).
+    const live: CarsFeature = { ...camera, views: [{
+      category: 'VIDEO', url: 'https://public.carsprogram.org/cameras/MN/C30559?1791698100000',
+      sources: [{ type: 'application/x-mpegURL', src: 'https://video.dot.state.mn.us/public/C30559.stream/playlist.m3u8' }],
+    }] };
+    const cam = mapCarsSnapshot(live, { ...MNDOT, videoHosts: ['video.dot.state.mn.us'] });
+    expect(cam).toMatchObject({
+      feed_url: 'https://public.carsprogram.org/cameras/MN/C30559',
+      stream_url: 'https://video.dot.state.mn.us/public/C30559.stream/playlist.m3u8',
+      stream_type: 'hls',
+    });
+    expect(mapCarsSnapshot(live, MNDOT)?.stream_type).toBe('jpg');
+    expect(mapCarsSnapshot(live, MNDOT)?.stream_url).toBeUndefined();
+  });
+});
+
+describe('hlsUrl', () => {
+  const view = (src: string, type = 'application/x-mpegURL') => ({ url: 'https://x.example/a.jpg', sources: [{ type, src }] });
+
+  it('keeps listed https hosts and drops the default port', () => {
+    expect(hlsUrl(view('https://66ec3d11858f4.streamlock.net:443/live/a_public.stream/playlist.m3u8'), ['66ec3d11858f4.streamlock.net']))
+      .toBe('https://66ec3d11858f4.streamlock.net/live/a_public.stream/playlist.m3u8');
+    expect(hlsUrl(view('https://video4.iowadot.gov:8888/ankeny/dmtv105lb/playlist.m3u8'), ['video4.iowadot.gov']))
+      .toBe('https://video4.iowadot.gov:8888/ankeny/dmtv105lb/playlist.m3u8');
+  });
+
+  it('refuses unlisted hosts, plain http, other types and no list', () => {
+    // Massachusetts: TrafficLand, a session token in the query.
+    expect(hlsUrl(view('https://restream-5.trafficland.com/live/1107.stream/playlist.m3u8?token=1'), ['video.dot.state.mn.us'])).toBeNull();
+    expect(hlsUrl(view('http://video.dot.state.mn.us/public/C1.stream/playlist.m3u8'), ['video.dot.state.mn.us'])).toBeNull();
+    expect(hlsUrl(view('https://video.dot.state.mn.us/public/C1.mp4', 'video/mp4'), ['video.dot.state.mn.us'])).toBeNull();
+    expect(hlsUrl(view('https://video.dot.state.mn.us/public/C1.stream/playlist.m3u8'), undefined)).toBeNull();
+    expect(hlsUrl({ url: 'https://x.example/a.jpg', sources: null }, ['video.dot.state.mn.us'])).toBeNull();
   });
 });
 

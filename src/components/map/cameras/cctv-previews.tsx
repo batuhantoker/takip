@@ -291,7 +291,7 @@ function CctvPreviews({ mapRef, active, onOpen }: {
     for (const f of feats) {
       const p = (f.properties ?? {}) as Record<string, unknown>;
       const id = String(p.id ?? '');
-      if (!id || seen.has(id)) continue;
+      if (!id || seen.has(id) || p.offline === true) continue;
 
       const str = (k: string) => (p[k] ? String(p[k]) : undefined);
       /* What this camera can actually show in a tile. Null means it needs an

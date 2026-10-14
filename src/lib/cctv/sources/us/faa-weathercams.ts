@@ -41,10 +41,12 @@ export interface FaaSite {
   cameras?: FaaCamera[] | null;
 }
 
+const FIRE_NETWORKS = new Set(['UCSD', 'UNR', 'UO', 'ALERTWest']);
+
 export function mapFaaCamera(site: FaaSite, cam: FaaCamera | null | undefined, now: number = Date.now()): CctvCamera | null {
   if (site?.siteActive !== true || site.siteInMaintenance === true) return null;
-  // ALERTCalifornia's towers; alertcalifornia.ts carries them with stills.
-  if (site.operatedBy === 'UCSD') return null;
+  // Fire-camera towers alertcalifornia.ts carries with fresher stills (84 of the 87 partner sites on 2026-10-13).
+  if (FIRE_NETWORKS.has(site.operatedBy ?? '')) return null;
   if (!cam || cam.cameraInMaintenance === true || cam.cameraOutOfOrder === true) return null;
 
   const id = cam.cameraId;

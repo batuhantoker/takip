@@ -20,9 +20,9 @@ const row = (id: number): Ibi511Record => ({
 
 function serve(failStart?: number) {
   vi.mocked(stealthFetch).mockImplementation(async (url) => {
-    const start = JSON.parse(new URL(String(url)).searchParams.get('query')!).start as number;
+    const { start, length } = JSON.parse(new URL(String(url)).searchParams.get('query')!) as { start: number; length: number };
     if (start === failStart) return new Response('', { status: 503 });
-    const ids = Array.from({ length: Math.max(0, Math.min(100, TOTAL - start)) }, (_, i) => start + i);
+    const ids = Array.from({ length: Math.max(0, Math.min(length, TOTAL - start)) }, (_, i) => start + i);
     return Response.json({ data: ids.map(row), recordsTotal: TOTAL });
   });
 }
@@ -39,5 +39,14 @@ describe('loadIbi511Cameras', () => {
   it('still refuses a read that lost a page', async () => {
     serve(100);
     await expect(loadIbi511Cameras(CFG)).rejects.toThrow('short read: 100 of 150');
+  });
+
+  it('pages at the size the deployment asks for', async () => {
+    serve();
+    await loadIbi511Cameras({ ...CFG, pageSize: 50 });
+    const asked = vi.mocked(stealthFetch).mock.calls
+      .map(([url]) => JSON.parse(new URL(String(url)).searchParams.get('query')!) as { start: number; length: number });
+    expect(asked.map(q => q.start).sort((a, b) => a - b)).toEqual([0, 50, 100]);
+    expect(asked.every(q => q.length === 50)).toBe(true);
   });
 });

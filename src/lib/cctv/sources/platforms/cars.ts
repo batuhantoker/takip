@@ -4,7 +4,8 @@ import { stealthFetch } from '@/lib/stealthFetch';
 /**
  * TAKIP — helpers for the CARS 511 platform (Castle Rock), which several state DOTs run behind their own domains.
  * Every deployment answers the same GraphQL map query, so a state is a host and a bounding box. Indiana adds its own
- * HLS rebuild on top (./indiana); the rest show the still each camera's view carries.
+ * HLS rebuild on top (./indiana); the rest show the still each camera's view carries, and its HLS where `videoHosts`
+ * names the stream's host.
  */
 
 export interface Bounds { minLat: number; maxLat: number; minLng: number; maxLng: number }
@@ -16,6 +17,10 @@ export interface CarsSource {
   source: string;
   state: string;
   bounds: Bounds;
+  /** Stills another source carries from the operator's own feed. */
+  excludeFeeds?: RegExp;
+  /** Hosts whose HLS plays keyless and cross-origin. Others (Massachusetts' TrafficLand, session-tokened) stay stills. */
+  videoHosts?: string[];
 }
 
 /**
@@ -30,7 +35,7 @@ const QUERY = `query MapFeatures($input: MapFeaturesArgs!) {
       uri
       features { geometry }
       __typename
-      ... on Camera { active views(limit: 1) { category ... on CameraView { url } } }
+      ... on Camera { active views(limit: 1) { category ... on CameraView { url sources { type src } } } }
     }
     error { message }
   }
@@ -42,7 +47,11 @@ export interface CarsFeature {
   features?: Array<{ geometry?: { coordinates?: [number, number] } | null }> | null;
   __typename?: string | null;
   active?: boolean | null;
-  views?: Array<{ url?: string | null; category?: string | null }> | null;
+  views?: Array<{
+    url?: string | null;
+    category?: string | null;
+    sources?: Array<{ type?: string | null; src?: string | null }> | null;
+  }> | null;
 }
 
 /** Every map feature the deployment returns for a box. */
@@ -108,13 +117,29 @@ export function snapshotUrl(raw: string | null | undefined): string | null {
   return url.href;
 }
 
+/** The view's HLS stream, if it is served from one of `hosts`. */
+export function hlsUrl(view: NonNullable<CarsFeature['views']>[number] | undefined, hosts: string[] | undefined): string | null {
+  if (!hosts?.length) return null;
+  for (const s of view?.sources ?? []) {
+    if (!/mpegurl/i.test(s?.type ?? '')) continue;
+    try {
+      const url = new URL(s?.src ?? '');
+      if (url.protocol === 'https:' && hosts.includes(url.hostname)) return url.href;
+    } catch {
+      // Skip a malformed source; another may still be usable.
+    }
+  }
+  return null;
+}
+
 export function mapCarsSnapshot(f: CarsFeature, cfg: CarsSource): CctvCamera | null {
   const p = featurePoint(f, cfg.bounds);
   if (!p) return null;
   const id = featureId(f);
   if (!id) return null;
   const feed = snapshotUrl(f.views?.[0]?.url);
-  if (!feed) return null;
+  if (!feed || cfg.excludeFeeds?.test(feed)) return null;
+  const video = hlsUrl(f.views?.[0], cfg.videoHosts);
 
   return {
     id: `${cfg.idPrefix}-${id}`,
@@ -124,7 +149,7 @@ export function mapCarsSnapshot(f: CarsFeature, cfg: CarsSource): CctvCamera | n
     city: cfg.state,
     country: 'US',
     feed_url: feed,
-    stream_type: 'jpg',
+    ...(video ? { stream_url: video, stream_type: 'hls' as const } : { stream_type: 'jpg' as const }),
     external_url: featurePage(cfg.host, f, p),
     source: cfg.source,
   };

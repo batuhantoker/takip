@@ -6,7 +6,7 @@ import type { Bounds } from '@/lib/cctv/sources/platforms/cars';
  * only, no stills. Includes the Springfield-area Ozarks Traffic cameras MoDOT carries.
  * Terms: none found on modot.org or the traveler map; attribute MoDOT.
  * KC Scout rows (`traveler.modot.org/tisvc/…/CameraStream/…`) redirect to Referer-gated, tokenized Wowza URLs, so
- * they are dropped.
+ * they are dropped; ./kcscout carries their stills.
  */
 
 const API = 'https://traveler.modot.org/timconfig/feed/desktop/StreamingCams2.json';

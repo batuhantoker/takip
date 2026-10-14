@@ -34,10 +34,11 @@ export function addCctvLayers(map: maplibregl.Map, color: string) {
   map.addLayer({ id: 'cctv-dots', type: 'circle', source: 'cctv', filter: ['!', ['has', 'point_count']], paint: {
     'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 2.5, 10, 3.5, 14, 5, 17, 6.5],
     'circle-color': color,
-    'circle-opacity': 0.9,
+    // Off-air cameras keep their pin, faded. Opacity, because use-map-palette rewrites circle-color.
+    'circle-opacity': ['case', ['==', ['get', 'offline'], true], 0.35, 0.9],
     'circle-stroke-width': 1,
     'circle-stroke-color': MAP_INK.surface0,
-    'circle-stroke-opacity': 0.85,
+    'circle-stroke-opacity': ['case', ['==', ['get', 'offline'], true], 0.4, 0.85],
   }});
   map.addLayer({ id: 'cctv-label', type: 'symbol', source: 'cctv', minzoom: 15, filter: ['!', ['has', 'point_count']], layout: {
     'text-field': ['get', 'name'], 'text-size': LABEL_SIZE, 'text-font': ['Noto Sans Regular'],

@@ -1,24 +1,37 @@
-import type { CctvCamera } from '@/lib/cctv/types';
+import { proxiedImageUrl, type CctvCamera } from '@/lib/cctv/types';
 import type { Bounds } from '@/lib/cctv/sources/platforms/cars';
 
 /**
- * TAKIP — Illinois cameras from IDOT's "Illinois Gateway Traffic Cameras" ArcGIS layer (~1,557 views at 472
- * Lake County PASSAGE intersections), no key.
- * The layer's other ~1,460 views (IDOT, DuPage, Kane, ISTHA) are stills on cctv.travelmidwest.com, which answers
- * 403 to any foreign Referer, so they are left out.
+ * TAKIP — Illinois cameras from IDOT's "Illinois Gateway Traffic Cameras" ArcGIS layer (~3,010 views), no key:
+ * ~1,557 at Lake County PASSAGE intersections, and ~1,455 from IDOT (Chicago and statewide, Metro East included),
+ * DuPage and Kane counties and the Tollway on cctv.travelmidwest.com.
+ * Travel Midwest answers 403 to a foreign Referer, so its stills go through /api/cctv/proxy.
  * Terms: the layer is CC BY-SA 2.0, credit Illinois Department of Transportation; Lake County PASSAGE publishes none.
+ * Travel Midwest asks that republishing go through IDOT's Gateway data-request form: not yet filed.
  */
 
 const LAYER = 'https://services2.arcgis.com/aIrBD8yn1TDTEXoz/arcgis/rest/services/TrafficCamerasTM_Public/FeatureServer/0/query';
 const FIELDS = 'OBJECTID,ImgPath,CameraLocation,CameraDirection,y,x,SnapShot,TooOld';
 const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
-const STILL_HOST = 'www.lakecountypassage.com';
+const PASSAGE_HOST = 'www.lakecountypassage.com';
+const MIDWEST_HOST = 'cctv.travelmidwest.com';
 /** The layer's maxRecordCount. */
 const PAGE = 1000;
 const MAX_PAGES = 5;
-/** About 60% of today's 1,557: fewer is a broken read, not a smaller network. */
-const MIN_CAMERAS = 900;
-const NATIVE_ID = /^IL-[\w-]+$/;
+/** About 60% of today's 3,012: fewer is a broken read, not a smaller network. */
+const MIN_CAMERAS = 1800;
+const NATIVE_ID = /^IL-([A-Z]+\d*)-[\w-]+$/;
+/** By the id's agency segment. */
+const AGENCIES: Record<string, string> = {
+  LAKECOUNTY: 'IDOT / Lake County PASSAGE',
+  IDOTD1: 'IDOT',
+  IDOTD4: 'IDOT',
+  DUPAGECOUNTY: 'DuPage County DOT',
+  KANECOUNTY: 'Kane County DOT',
+  ISTHA: 'Illinois Tollway',
+};
+/** `IL-IDOTD4_5_St-Clair_SEB_I-64_…jpg`: the third segment is the county. */
+const MIDWEST_COUNTY = /^IL-[A-Z]+\d*_\d+_([A-Za-z-]+)_/;
 const DIRECTIONS: Record<string, string> = {
   N: 'North', S: 'South', E: 'East', W: 'West', NE: 'Northeast', NW: 'Northwest', SE: 'Southeast', SW: 'Southwest',
 };
@@ -37,6 +50,11 @@ export interface IllinoisCamera {
   TooOld?: string | null;
 }
 
+function midwestCounty(still: URL): string {
+  const county = still.pathname.split('/').pop()?.match(MIDWEST_COUNTY)?.[1];
+  return county ? `${county.replace(/^St-/, 'St. ').replace(/-/g, ' ')} County, Illinois` : 'Illinois';
+}
+
 export function mapIllinoisCamera(a: IllinoisCamera | null | undefined): CctvCamera | null {
   if (!a || a.TooOld === 'true') return null;
 
@@ -48,11 +66,15 @@ export function mapIllinoisCamera(a: IllinoisCamera | null | undefined): CctvCam
   } catch {
     return null;
   }
-  if (still.protocol !== 'https:' || still.hostname !== STILL_HOST) return null;
+  const passage = still.hostname === PASSAGE_HOST;
+  if (still.protocol !== 'https:' || !(passage || still.hostname === MIDWEST_HOST)) return null;
 
-  const camera = page.searchParams.get('id');
-  const dir = page.searchParams.get('direction');
-  if (!camera || !NATIVE_ID.test(camera) || !dir || !(dir === 'NONE' || Object.hasOwn(DIRECTIONS, dir))) return null;
+  // Tollway ids are base64, whose `+` arrives as a space.
+  const camera = page.searchParams.get('id')?.replace(/[^\w-]/g, '_');
+  const agency = camera?.match(NATIVE_ID)?.[1];
+  // Kane County's pages carry no direction; the row still does.
+  const dir = page.searchParams.get('direction') ?? a.CameraDirection;
+  if (!camera || !agency || !dir || !(dir === 'NONE' || Object.hasOwn(DIRECTIONS, dir))) return null;
 
   const lat = a.y;
   const lng = a.x;
@@ -66,18 +88,18 @@ export function mapIllinoisCamera(a: IllinoisCamera | null | undefined): CctvCam
     lat,
     lng,
     name: dir === 'NONE' ? place : `${place} – ${DIRECTIONS[dir]}`,
-    city: 'Lake County, Illinois',
+    city: passage ? 'Lake County, Illinois' : midwestCounty(still),
     country: 'US',
-    feed_url: still.href,
+    feed_url: passage ? still.href : proxiedImageUrl(still.href),
     stream_type: 'jpg',
     external_url: page.href,
-    source: 'IDOT / Lake County PASSAGE',
+    source: AGENCIES[agency] ?? 'Travel Midwest',
   };
 }
 
 function pageUrl(offset: number): string {
   const params = new URLSearchParams({
-    where: `SnapShot LIKE 'https://${STILL_HOST}/%'`,
+    where: `SnapShot LIKE 'https://${PASSAGE_HOST}/%' OR SnapShot LIKE 'https://${MIDWEST_HOST}/%'`,
     outFields: FIELDS,
     returnGeometry: 'false',
     orderByFields: 'OBJECTID',
@@ -109,6 +131,6 @@ export async function fetchIllinoisCameras(): Promise<CctvCamera[]> {
     if (json.features.length < PAGE) break;
   }
   if (seen.size < MIN_CAMERAS) throw new Error(`IDOT cameras short read: ${seen.size}`);
-  console.log(`[TAKIP] Illinois cameras — IDOT / Lake County PASSAGE: ${seen.size}`);
+  console.log(`[TAKIP] Illinois cameras — IDOT, Lake County PASSAGE, Travel Midwest: ${seen.size}`);
   return [...seen.values()];
 }

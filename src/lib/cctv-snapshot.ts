@@ -62,6 +62,7 @@ export async function readSnapshot(): Promise<SnapshotFile | null> {
  * half-written catalogue that the next boot would refuse to parse.
  */
 export async function writeSnapshot(regions: RegionCameras): Promise<void> {
+  if (process.env.TAKIP_CCTV_SNAPSHOT === 'off') return;
   const path = snapshotPath();
   const payload: SnapshotFile = { version: SNAPSHOT_VERSION, builtAt: Date.now(), regions };
   await mkdir(dirname(path), { recursive: true });

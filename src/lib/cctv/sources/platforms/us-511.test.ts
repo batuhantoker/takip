@@ -14,6 +14,7 @@ describe('STATE_FEEDS', () => {
       'mdsha', 'modot', 'nddot', 'ridot', 'nmdot', 'wvdot', 'okdot', 'vegvesen', 'msdot', 'ardot', 'wydot',
       'hdot', 'aldot', 'calgary', 'yorkregion', 'faa', 'hivis', 'ashcam', 'nysm', 'mlit-river', 'mlit-road',
       'tw-wra', 'kr-busan', 'kr-ulsan', 'kr-daegu', 'bayerninfo', 'itraffic', 'trafiroutes', 'osm', 'kr-topis', 'idot', 'tii', 'camstreamer', 'siata', 'myairportcams', 'qld', 'fotowebcam', 'panomax', 'webcamerapl', 'bellingen', 'actpr', 'transtar', 'trafficscot', 'bihamk', 'mup', 'njta',
+      'ab', 'kcscout', 'surrey', 'bellevue', 'redmond', 'kirkland', 'kingcounty', 'alertca',
     ];
     expect(new Set(prefixes).size).toBe(prefixes.length);
   });

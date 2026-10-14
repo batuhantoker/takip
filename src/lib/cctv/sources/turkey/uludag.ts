@@ -1,5 +1,6 @@
 import type { CctvCamera } from '@/lib/cctv/types';
 import type { Bounds } from '@/lib/cctv/sources/platforms/cars';
+import { markMissingMedia } from '@/lib/cctv/liveness';
 
 /**
  * TAKIP — Uludağ ski resort cameras (Bursa), read from the webcam list in uludaginfo.com's own /tr/webcam page
@@ -134,8 +135,10 @@ export async function fetchUludagCameras(): Promise<CctvCamera[]> {
   });
   if (!res.ok) throw new Error(`Uludağ webcams HTTP ${res.status}`);
 
-  const cams = parseUludagWebcamPage(await res.text());
-  if (!cams.length) throw new Error('Uludağ webcams: no cameras found in the page');
+  const listed = parseUludagWebcamPage(await res.text());
+  if (!listed.length) throw new Error('Uludağ webcams: no cameras found in the page');
+  // The list keeps stills that 404.
+  const cams = await markMissingMedia(listed);
   console.log(`[TAKIP] Uludağ cameras — Uludaginfo: ${cams.length}`);
   return cams;
 }

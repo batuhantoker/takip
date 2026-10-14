@@ -55,27 +55,18 @@ async function subSource(label: string, url: string, timeoutMs: number) {
   return null;
 }
 
-/** 511 Ontario and 511 Alberta answer an unkeyed request with HTTP 400 "Invalid Key" (since 2026-09 and 2026-08). */
-function keyed511(label: string, base: string, key: string | undefined) {
-  if (!key) return Promise.resolve(null);
-  return subSource(label, `${base}/api/v2/get/cameras?format=json&key=${encodeURIComponent(key)}`, 10000);
-}
-
-// ── CANADA: Ottawa, Toronto, Montreal, Quebec ──
+// ── CANADA: Ottawa, Toronto, Quebec, BC ──
 export async function fetchCanadaCameras(): Promise<any[]> {
   const cams: any[] = [];
 
-  /* All seven run at once. Awaited one after another their timeouts summed
+  /* All four run at once. Awaited one after another their timeouts summed
      to well over the 12s the route allows a region, so Canada kept coming
      back empty and only filled in on a later poll — the whole country
      looked like it was failing to load. They share nothing, so there was
      never a reason to queue them. */
-  const [ottawa, quebec, ontario, montreal, alberta, toronto, drivebc] = await Promise.all([
+  const [ottawa, quebec, toronto, drivebc] = await Promise.all([
     subSource('City of Ottawa', 'https://traffic.ottawa.ca/beta/camera_list', 12000),
     subSource('Quebec 511', 'https://ws.mapserver.transports.gouv.qc.ca/swtq?service=wfs&version=2.0.0&request=getfeature&typename=ms:infos_cameras&outfile=Camera&srsname=EPSG:4326&outputformat=geojson', 10000),
-    keyed511('511 Ontario', 'https://511on.ca', process.env.ONTARIO_511_KEY?.trim()),
-    subSource('Ville MTL', 'https://ville.montreal.qc.ca/circulation/sites/ville.montreal.qc.ca.circulation/files/cameras.json', 8000),
-    keyed511('511 Alberta', 'https://511.alberta.ca', process.env.ALBERTA_511_KEY?.trim()),
     subSource('City of Toronto', 'https://ckan0.cf.opendata.inter.prod-toronto.ca/dataset/a3309088-5fd4-4d34-8297-77c8301840ac/resource/4a568300-c7f8-496d-b150-dff6f5dc6d4f/download/traffic-camera-list-4326.geojson', 10000),
     subSource('DriveBC', 'https://www.drivebc.ca/api/webcams/', 10000),
   ]);
@@ -87,6 +78,8 @@ export async function fetchCanadaCameras(): Promise<any[]> {
     if (data) {
       for (const cam of (data || [])) {
         if (!cam.latitude || !cam.longitude) continue;
+        // MTO's own cameras, minutes staler than 511 Ontario's copy of them.
+        if (/^\(MTO\)/i.test(cam.description ?? '')) continue;
         cams.push({
           id: `ottawa-muni-${cam.id}`, lat: cam.latitude, lng: cam.longitude,
           name: cam.description || 'Ottawa Traffic Camera', city: 'Ottawa', country: 'Canada',
@@ -116,63 +109,8 @@ export async function fetchCanadaCameras(): Promise<any[]> {
     }
   }
 
-  // Ontario 511 (MTO Highway Cameras)
-  {
-    const data = ontario;
-    if (data) {
-      /* MTO capitalises its field names. Reading `cam.latitude` skipped all
-         944 rows, so the only Ontario markers on the map were the three
-         curated Toronto ones below — the province has been empty this whole
-         time. A view's Url serves the JPEG itself, no rewriting needed. */
-      for (const cam of (data || [])) {
-        const view = cam.Views?.find((v: { Status?: string; Url?: string }) => v.Status === 'Enabled') ?? cam.Views?.[0];
-        if (!cam.Latitude || !cam.Longitude || !view?.Url) continue;
-        cams.push({
-          id: `on-${cam.Id}`, lat: cam.Latitude, lng: cam.Longitude,
-          name: cam.Location || cam.Roadway || 'Ontario Camera', city: 'Ontario', country: 'Canada',
-          feed_url: view.Url, source: '511 Ontario',
-        });
-      }
-    }
-  }
-
-  // Ville de Montréal municipal cameras
-  {
-    const data = montreal;
-    if (data) {
-      for (const cam of (data || [])) {
-        cams.push({
-          id: `mtl-muni-${cams.length}`, lat: cam.latitude || cam.lat, lng: cam.longitude || cam.lng,
-          name: cam.description || cam.name || 'Montréal Camera', city: 'Montréal', country: 'Canada',
-          feed_url: cam.url || cam.imageUrl || '', source: 'Ville MTL',
-        });
-      }
-    }
-  }
-
-  // Curated Toronto cameras (fallback if 511ON fails)
-  const curated = [
-    { id: 'tor-1', lat: 43.6532, lng: -79.3832, name: 'Yonge / Dundas Square', city: 'Toronto', country: 'Canada', feed_url: 'https://511on.ca/api/v2/get/cameras', source: '511 Ontario' },
-    { id: 'tor-2', lat: 43.6426, lng: -79.3871, name: 'CN Tower / Lakeshore', city: 'Toronto', country: 'Canada', feed_url: 'https://511on.ca/api/v2/get/cameras', source: '511 Ontario' },
-    { id: 'tor-3', lat: 43.6711, lng: -79.3868, name: 'Bloor / Yonge', city: 'Toronto', country: 'Canada', feed_url: 'https://511on.ca/api/v2/get/cameras', source: '511 Ontario' },
-  ];
-  cams.push(...curated);
-
-  // Alberta 511
-  {
-    const data = alberta;
-    if (data) {
-      for (const cam of (data || [])) {
-        if (!cam.Latitude || !cam.Longitude || !cam.Views?.[0]?.Url) continue;
-        cams.push({
-          id: `ab-${cam.Id || cams.length}`, lat: cam.Latitude, lng: cam.Longitude,
-          name: cam.Location || 'Alberta Camera', city: 'Alberta', country: 'Canada',
-          feed_url: cam.Views[0].Url, source: 'Alberta 511',
-        });
-      }
-    }
-  }
-
+  /* 511 Ontario and 511 Alberta load as their own regions (platforms/us-511). Ville de Montréal's own feed is
+     retired: it redirects to Québec 511, which covers Montréal. */
 
   // Toronto Open Data Municipal Traffic Cameras
   {

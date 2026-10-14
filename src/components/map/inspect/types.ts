@@ -53,6 +53,7 @@ export interface CameraInfo {
   stream_type?: string;
   external_url?: string;
   road?: string;
+  offline?: boolean;
 }
 
 export interface CameraTarget {

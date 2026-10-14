@@ -31,12 +31,27 @@ const triState = {
   SnapShot: 'https://www.lakecountypassage.com/snapshots/Washington_@_Tri_State_cctv_East_Leg.jpg',
   WarningAge: 'false', TooOld: 'false', AgeInMinutes: '4',
 } as IllinoisCamera;
-// An IDOT view: its still host 403s a foreign Referer.
+// Travel Midwest views: the still host 403s a foreign Referer, so they go through the proxy.
 const hillside = {
   OBJECTID: 1, ImgPath: 'https://travelmidwest.com/showCamera?id=IL-IDOTD1-IK14B&direction=NONE',
   CameraLocation: 'Hillside Tower Camera 9', CameraDirection: 'NONE', y: 41.88597, x: -87.91483,
   SnapShot: 'https://cctv.travelmidwest.com/snapshots/IL-IDOTD1_1_Cook_WB_Albin_4188597_-8791483_2_NONE.jpg',
   WarningAge: 'false', TooOld: 'false', AgeInMinutes: '7',
+} as IllinoisCamera;
+const kirk = {
+  OBJECTID: 1520, ImgPath: 'https://travelmidwest.com/showCamera?id=IL-KANECOUNTY-43',
+  CameraLocation: 'Kirk Rd at Mesa Ln', CameraDirection: 'NONE', y: 41.817349, x: -88.27953,
+  SnapShot: 'https://cctv.travelmidwest.com/snapshots/IL-KANECOUNTY_1_Kane_NB_Kirk_4181735_-8827953_1_NONE.jpg', TooOld: 'false',
+} as IllinoisCamera;
+const springCreek = {
+  OBJECTID: 2950, ImgPath: 'https://travelmidwest.com/showCamera?id=IL-ISTHA-bkWelUZ79reGAKdLMh+MlC6jVSo=&direction=N',
+  CameraLocation: 'I-355 at Spring Creek Plaza', CameraDirection: 'N', y: 41.5766, x: -88.0005,
+  SnapShot: 'https://cctv.travelmidwest.com/snapshots/IL-ISTHA_1_Will_SEB_I-355-CASH_4157660_-8800050_1_N.jpg', TooOld: 'false',
+} as IllinoisCamera;
+const metroEast = {
+  OBJECTID: 2100, ImgPath: 'https://travelmidwest.com/showCamera?id=IL-IDOTD4-8101&direction=W',
+  CameraLocation: 'I-64 at IL 157', CameraDirection: 'W', y: 38.5899, x: -90.0599,
+  SnapShot: 'https://cctv.travelmidwest.com/snapshots/IL-IDOTD4_8_St-Clair_SEB_I-64_3858990_-9005990_1_W.jpg', TooOld: 'false',
 } as IllinoisCamera;
 
 describe('mapIllinoisCamera', () => {
@@ -63,8 +78,34 @@ describe('mapIllinoisCamera', () => {
     );
   });
 
-  it('drops travelmidwest stills and other hosts', () => {
-    expect(mapIllinoisCamera(hillside)).toBeNull();
+  it('serves a Travel Midwest view through the proxy, credited to its agency', () => {
+    expect(mapIllinoisCamera(hillside)).toEqual({
+      id: 'idot-IL-IDOTD1-IK14B',
+      lat: 41.88597,
+      lng: -87.91483,
+      name: 'Hillside Tower Camera 9',
+      city: 'Cook County, Illinois',
+      country: 'US',
+      feed_url: `/api/cctv/proxy?url=${encodeURIComponent(hillside.SnapShot!)}`,
+      stream_type: 'jpg',
+      external_url: hillside.ImgPath,
+      source: 'IDOT',
+    });
+    expect(mapIllinoisCamera(metroEast)).toMatchObject({ city: 'St. Clair County, Illinois', name: 'I-64 at IL 157 – West' });
+  });
+
+  it('reads a missing page direction from the row', () => {
+    expect(mapIllinoisCamera(kirk)).toMatchObject({ id: 'idot-IL-KANECOUNTY-43', name: 'Kirk Rd at Mesa Ln', source: 'Kane County DOT' });
+  });
+
+  it('turns a Tollway base64 id into a safe one', () => {
+    expect(mapIllinoisCamera(springCreek)).toMatchObject({
+      id: 'idot-IL-ISTHA-bkWelUZ79reGAKdLMh_MlC6jVSo_-N', source: 'Illinois Tollway', city: 'Will County, Illinois',
+    });
+  });
+
+  it('drops other hosts', () => {
+    expect(mapIllinoisCamera({ ...hillside, SnapShot: 'https://cctv.example.com/snapshots/x.jpg' })).toBeNull();
     expect(mapIllinoisCamera({ ...darrellEast, SnapShot: 'http://www.lakecountypassage.com/snapshots/x.jpg' })).toBeNull();
     expect(mapIllinoisCamera({ ...darrellEast, SnapShot: null })).toBeNull();
   });
@@ -101,24 +142,26 @@ describe('mapIllinoisCamera', () => {
 });
 
 describe('fetchIllinoisCameras', () => {
-  const views = (n: number) => Array.from({ length: n }, (_, i) => ({
-    attributes: { ...darrellEast, ImgPath: `https://travelmidwest.com/showCamera?id=IL-LAKECOUNTY-${i}&direction=E` },
+  const views = (n: number, from = 0) => Array.from({ length: n }, (_, i) => ({
+    attributes: { ...darrellEast, ImgPath: `https://travelmidwest.com/showCamera?id=IL-LAKECOUNTY-${from + i}&direction=E` },
   }));
 
-  it('pages the layer, filters to Lake County server-side and dedupes', async () => {
+  it('pages the layer, filters to the two still hosts server-side and dedupes', async () => {
     const fetch = vi.fn()
       .mockResolvedValueOnce(Response.json({ features: views(1000) }))
-      .mockResolvedValueOnce(Response.json({ features: [...views(557), { attributes: hillside }] }));
+      .mockResolvedValueOnce(Response.json({ features: views(1000, 1000) }))
+      .mockResolvedValueOnce(Response.json({ features: [...views(12, 2000), ...views(1), { attributes: hillside }] }));
     vi.stubGlobal('fetch', fetch);
     vi.spyOn(console, 'log').mockImplementation(() => {});
 
     const cams = await fetchIllinoisCameras();
 
-    expect(cams).toHaveLength(1000);
-    expect(fetch).toHaveBeenCalledTimes(2);
-    const second = new URL(String(fetch.mock.calls[1][0]));
-    expect(second.searchParams.get('resultOffset')).toBe('1000');
-    expect(second.searchParams.get('where')).toBe("SnapShot LIKE 'https://www.lakecountypassage.com/%'");
+    expect(cams).toHaveLength(2013);
+    expect(fetch).toHaveBeenCalledTimes(3);
+    const third = new URL(String(fetch.mock.calls[2][0]));
+    expect(third.searchParams.get('resultOffset')).toBe('2000');
+    expect(third.searchParams.get('where'))
+      .toBe("SnapShot LIKE 'https://www.lakecountypassage.com/%' OR SnapShot LIKE 'https://cctv.travelmidwest.com/%'");
   });
 
   it('throws on an HTTP error, an ArcGIS error body or a short read', async () => {
@@ -135,14 +178,14 @@ describe('fetchIllinoisCameras', () => {
 const liveIt = process.env.RUN_LIVE_TESTS === '1' ? it : it.skip;
 
 describe('fetchIllinoisCameras (live)', () => {
-  liveIt('fetches the Lake County PASSAGE views', async () => {
+  liveIt('fetches the Lake County PASSAGE and Travel Midwest views', async () => {
     const cams = await fetchIllinoisCameras();
-    expect(cams.length).toBeGreaterThan(1200);
+    expect(cams.length).toBeGreaterThan(2400);
     expect(new Set(cams.map(c => c.id)).size).toBe(cams.length);
     const b = ILLINOIS_BOUNDS;
     for (const c of cams) {
       expect(c.lat > b.minLat && c.lat < b.maxLat && c.lng > b.minLng && c.lng < b.maxLng).toBe(true);
-      expect(c.feed_url).toMatch(/^https:\/\/www\.lakecountypassage\.com\/snapshots\//);
+      expect(c.feed_url).toMatch(/^(https:\/\/www\.lakecountypassage\.com\/snapshots\/|\/api\/cctv\/proxy\?url=https%3A%2F%2Fcctv\.travelmidwest\.com%2F)/);
     }
   }, 30_000);
 });
