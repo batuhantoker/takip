@@ -4,6 +4,7 @@ import {
   earthquakePopupHtml, firePopupHtml, gdeltEventPopupHtml, incidentPopupHtml, malwarePopupHtml,
   nuclearPopupHtml, outagePopupHtml, portPopupHtml, radiationPopupHtml, scanTargetPopupHtml,
   sdkLinkPopupHtml, supplierPopupHtml, sweepDevicePopupHtml, weatherEventPopupHtml,
+  temperaturePointPopupHtml,
   weatherPointPopupHtml,
 } from '@/lib/map/popups/layer-popups';
 import { bindCctvClusterClicks } from '@/lib/cameras/map-layers';
@@ -233,12 +234,20 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
   });
 
   // ── Weather grid point (Open-Meteo) ──
-  map.on('click', ['wx-wind', 'wx-temp-label'], e => {
+  map.on('click', 'wx-wind', e => {
     const feature = e.features?.[0];
     if (!feature) return;
     const p = feature.properties as Record<string, unknown>;
     const coords = (feature.geometry as GeoJSON.Point).coordinates;
     popup(coords, weatherPointPopupHtml(p, coords));
+  });
+
+  // ── Temperature reading ──
+  map.on('click', 'wx-temp-label', e => {
+    const feature = e.features?.[0];
+    if (!feature) return;
+    const coords = (feature.geometry as GeoJSON.Point).coordinates;
+    popup(coords, temperaturePointPopupHtml(feature.properties as Record<string, unknown>, coords));
   });
 
   // ── Maritime Ships ──

@@ -376,6 +376,17 @@ export function weatherPointPopupHtml(p: Record<string, unknown>, coords: GeoJSO
   });
 }
 
+/** A reading of the temperature field where a label sits; GFS when it loaded, else the interpolated Open-Meteo grid. */
+export function temperaturePointPopupHtml(p: Record<string, unknown>, coords: GeoJSON.Position): string {
+  return pop({
+    kicker: 'Temperature',
+    meta: p.hour ? String(p.hour) : undefined,
+    title: formatTemperature(p.temp, getTemperatureUnit()) ?? '—',
+    subtitle: p.place ? String(p.place) : undefined,
+    note: `${popCoords(Number(coords[1]), Number(coords[0]), 2)} · ${p.source === 'gfs' ? 'NOAA GFS 0.25° model grid' : 'Open-Meteo 10° grid, interpolated'}`,
+  });
+}
+
 export function weatherEventPopupHtml(p: FeatureProps, coords: number[]): string {
   const high = p.severity === 'high';
   return pop({

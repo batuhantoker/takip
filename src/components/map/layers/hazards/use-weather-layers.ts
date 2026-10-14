@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useState, type RefObject } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { CLOUDS_ATTRIBUTION, CLOUDS_CREDIT, CLOUDS_LAYER, frameTime } from '@/lib/weather/live-clouds';
 import { createCloudLayer } from '@/lib/weather/live-clouds-layer';
@@ -10,22 +10,21 @@ import {
   decodeField, fieldFromGrid, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setTemperatureField,
   type TemperatureField, type WeatherGrid,
 } from '@/lib/weather/weather-field';
-import { toUnit, useTemperatureUnit } from '@/lib/weather/temperature-unit';
+import { PLACE_LABEL_MIN_ZOOM, placeTemperatureLabels, temperatureLabels, type LabelPlace } from '@/lib/weather/temperature-labels';
+import { BASEMAP_SOURCE } from '@/lib/basemap/provider';
+import { useTemperatureUnit } from '@/lib/weather/temperature-unit';
 import { stackGroundRasters } from '@/lib/basemap/ground-rasters';
 import type { LayerHookArgs, MapRef, WorldMapProps } from '@/components/map/types';
 
 export function useWeatherGridLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
-  const unit = useTemperatureUnit();
   useEffect(() => {
     if (!mapReady) return;
     const grid: WeatherGrid | null = data.weather_grid ?? null;
     const hour = grid ? `${grid.time.slice(11, 16)} UTC` : '';
-    setGeo('wx-points', grid && (activeLayers.wx_temperature || activeLayers.wx_wind)
-      ? grid.points.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: {
-        ...p, hour, shownTemp: p.temp == null ? null : Math.round(toUnit(p.temp, unit)),
-      } }))
+    setGeo('wx-points', grid && activeLayers.wx_wind
+      ? grid.points.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { ...p, hour } }))
       : []);
-  }, [mapReady, data.weather_grid, activeLayers.wx_temperature, activeLayers.wx_wind, unit, setGeo]);
+  }, [mapReady, data.weather_grid, activeLayers.wx_wind, setGeo]);
 }
 
 /** The 0.25° GFS field while the temperature layer is on; null until it loads, or if the route never answers. */
@@ -96,11 +95,11 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
   // Temperature field — GFS at 0.25° once it loads, the Open-Meteo grid until then
   // or if it never does; painted client-side either way (lib/weather/weather-field).
   const gfs = useGfsField(!!activeLayers.wx_temperature);
+  const grid: WeatherGrid | null = data.weather_grid ?? null;
+  const field = useMemo(() => gfs ?? (grid ? fieldFromGrid(grid) : null), [gfs, grid]);
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
     const map = mapRef.current;
-    const grid: WeatherGrid | null = data.weather_grid ?? null;
-    const field = gfs ?? (grid ? fieldFromGrid(grid) : null);
     setTemperatureField(field);
     if (!activeLayers.wx_temperature) {
       if (map.getLayer('wx-field')) map.removeLayer('wx-field');
@@ -125,7 +124,53 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
       map.addLayer({ id: 'wx-field', type: 'raster', source: 'wx-field', paint: { 'raster-opacity': 0.5, 'raster-resampling': 'linear', 'raster-fade-duration': 0 } }, 'day-night-fill');
     }
     stackGroundRasters(map);
-  }, [mapReady, activeLayers.wx_temperature, data.weather_grid, gfs, mapStyle, mapRef]);
+  }, [mapReady, activeLayers.wx_temperature, field, gfs, mapStyle, mapRef]);
+
+  // Readings under the place names the base map is showing; a sparse grid on the globe, where it names no cities.
+  const unit = useTemperatureUnit();
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    let shown = '';
+    const setLabels = (features: GeoJSON.Feature[]) => {
+      const key = features.map(f => `${(f.geometry as GeoJSON.Point).coordinates}:${f.properties?.shownTemp}`).join('|');
+      if (key === shown) return;
+      shown = key;
+      (map.getSource('wx-temp-points') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features });
+    };
+    if (!activeLayers.wx_temperature || !field) {
+      setLabels([]);
+      return;
+    }
+    const source = gfs ? 'gfs' : 'grid';
+    const update = () => {
+      const zoom = map.getZoom();
+      if (zoom < PLACE_LABEL_MIN_ZOOM) {
+        const b = map.getBounds();
+        setLabels(temperatureLabels(field, { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() }, zoom, unit, source));
+        return;
+      }
+      const layers = map.getLayersOrder().filter(id => {
+        const l = map.getLayer(id);
+        return l?.type === 'symbol' && l.source === BASEMAP_SOURCE && l.sourceLayer === 'place';
+      });
+      // Symbol queries return only the names that won a place on screen.
+      const places: LabelPlace[] = map.queryRenderedFeatures({ layers }).flatMap(f => f.geometry.type === 'Point' ? [{
+        name: String(f.properties.name ?? ''), cls: String(f.properties.class ?? ''), rank: Number(f.properties.rank ?? 99),
+        lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1],
+      }] : []);
+      setLabels(placeTemperatureLabels(field, places, unit, source));
+    };
+    // Names are placed a frame after their tiles land, so wait for the base map to settle.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => { clearTimeout(timer); timer = setTimeout(update, 250); };
+    const onData = (e: maplibregl.MapSourceDataEvent) => { if (e.sourceId === BASEMAP_SOURCE && e.isSourceLoaded) schedule(); };
+    update();
+    schedule();
+    map.on('moveend', schedule);
+    map.on('sourcedata', onData);
+    return () => { clearTimeout(timer); map.off('moveend', schedule); map.off('sourcedata', onData); };
+  }, [mapReady, activeLayers.wx_temperature, field, gfs, unit, mapStyle, mapRef]);
 
   // Precipitation radar — RainViewer's latest frame, where ground radar exists.
   useEffect(() => {

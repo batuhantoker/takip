@@ -85,7 +85,7 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
   createDot(map, 'dot-cctv', cameraColor, 10);
 
   addCctvSource(map);
-  const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','fires','fire-incidents','airport-delays','chokepoint-flow','outbreaks','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'launches', 'aurora', 'service-status', 'gnss-interference', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks', 'alert-pins', 'wx-points'];
+  const sources = ['flights','military','jets','private-fl','satellites','earthquakes','gdelt','day-night','fires','fire-incidents','airport-delays','chokepoint-flow','outbreaks','weather','infrastructure','maritime','maritime-choke','maritime-ships','live-news','conflict-zones', 'war-alerts-targets', 'war-alerts-lines', 'balloons', 'launches', 'aurora', 'service-status', 'gnss-interference', 'radiation', 'ip-sweep-devices', 'ip-sweep-pulse', 'ip-sweep-connections', 'scan-targets', 'sdk-entities', 'sdk-links', 'malware-nodes', 'malware-new', 'cyber-heads', 'gdelt-events', 'cf-outages', 'cf-attacks', 'alert-pins', 'wx-points', 'wx-temp-points'];
   sources.forEach(s => map.addSource(s, { type: 'geojson', data: EMPTY_FC }));
 
   // ── FLIGHT ROUTE VISUALIZATION SOURCES & LAYERS ──
@@ -597,10 +597,12 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
     'icon-color': ['interpolate',['linear'],['get','wind'], 0,'#E1F5FE', 15,'#81D4FA', 30,'#FFF176', 50,'#FFB74D', 75,'#E57373', 100,'#D81B60'],
     'icon-opacity': 0.9,
   }});
-  map.addLayer({ id: 'wx-temp-label', type: 'symbol', source: 'wx-points', filter: ['!=', ['get','shownTemp'], null], layout: {
+  map.addLayer({ id: 'wx-temp-label', type: 'symbol', source: 'wx-temp-points', layout: {
     'text-field': ['concat', ['to-string', ['get','shownTemp']], '°'],
     'text-size': ['interpolate',['linear'],['zoom'], 1,11, 5,12],
-    'text-font': ['Noto Sans Bold'], 'text-offset': [0, 1.3], 'text-allow-overlap': false,
+    // Under the place name it belongs to, and never pushing a name off the map.
+    'text-font': ['Noto Sans Bold'], 'text-anchor': 'top', 'text-offset': [0, 1.1],
+    'text-allow-overlap': true, 'text-ignore-placement': true,
   }, paint: labelPaint(MAP_INK.ink1) });
 
   // Maritime Ships — coloured by vessel class; arrows take over once headings are legible.
