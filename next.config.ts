@@ -29,6 +29,8 @@ const nextConfig: NextConfig = {
   transpilePackages: ['react-map-gl', 'mapbox-gl', 'maplibre-gl', '@takip/core', '@takip/archive', '@takip/connectors'],
   // Every corner covers a control (account, inspect close, full-screen exit); build errors still show as an overlay.
   devIndicators: false,
+  // Next dev refuses /_next/* to non-localhost origins; this lets a cloudflared quick tunnel show the dev server.
+  allowedDevOrigins: ['*.trycloudflare.com'],
   // Type errors block the build again. They were suppressed while 17 stood
   // unfixed; those are cleared, so the gate can do its job — the AstraPanel
   // crash (createPortal used without an import) shipped precisely because
