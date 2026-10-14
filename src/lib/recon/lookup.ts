@@ -20,7 +20,7 @@ export function lookupError(body: { error?: string; retry_after?: number }, fall
   return body.error || fallback;
 }
 
-export function lookupUrl(activeTab: string, query: string, scanType: string) {
+export function lookupUrl(activeTab: string, query: string) {
   let url = '';
   switch (activeTab) {
 
@@ -35,12 +35,12 @@ export function lookupUrl(activeTab: string, query: string, scanType: string) {
     case 'crypto': url = `/api/osint/crypto?address=${encodeURIComponent(query)}`; break;
     case 'username': url = `/api/osint/username?username=${encodeURIComponent(query)}`; break;
     case 'github': url = `/api/osint/github?user=${encodeURIComponent(query)}`; break;
-    case 'vuln': url = `/api/scanner?target=${encodeURIComponent(query)}&type=vuln`; break;
-    case 'scanner': url = `/api/scanner?target=${encodeURIComponent(query)}&type=${scanType}`; break;
-    case 'headers': url = `/api/scanner?target=${encodeURIComponent(query)}&type=headers`; break;
-    case 'ssl': url = `/api/scanner?target=${encodeURIComponent(query)}&type=ssl`; break;
-    case 'subdomains': url = `/api/scanner?target=${encodeURIComponent(query)}&type=subdomains`; break;
-    case 'tech': url = `/api/scanner?target=${encodeURIComponent(query)}&type=tech`; break;
+    case 'vuln': url = `/api/osint/vuln?target=${encodeURIComponent(query)}`; break;
+    case 'scanner': url = `/api/osint/portscan?target=${encodeURIComponent(query)}`; break;
+    case 'headers': url = `/api/osint/headers?url=${encodeURIComponent(query)}`; break;
+    case 'ssl': url = `/api/osint/tls?domain=${encodeURIComponent(query)}`; break;
+    case 'subdomains': url = `/api/osint/subdomains?domain=${encodeURIComponent(query)}`; break;
+    case 'tech': url = `/api/osint/tech?url=${encodeURIComponent(query)}`; break;
     case 'shodan': url = `https://internetdb.shodan.io/${encodeURIComponent(query)}`; break;
   }
   return url;

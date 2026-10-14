@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { Dot } from '@/components/ui/tag';
-import { CopyButton, ResultRow, day, renderFallback, type ToolResultProps } from './result-primitives';
+import { CopyButton, ResultRow, Target, Verdict, day, renderFallback, type ToolResultProps } from './result-primitives';
 
 export { DnsResult } from './dns-result';
 export { WhoisResult } from './whois-result';
@@ -63,20 +63,36 @@ export function CertsResult({ r, query }: ToolResultProps) {
   );
 }
 
+/** A live TLS handshake: the negotiated protocol and cipher, and the leaf certificate's health. */
 export function SslResult({ r, query }: ToolResultProps) {
-  const known = ['protocol', 'tls_version', 'cipher', 'cipher_suite', 'valid', 'issuer', 'subject', 'expires', 'not_after', 'sans'];
-  const hasKnown = known.some(k => r[k] != null);
-  if (!hasKnown) return renderFallback(r);
+  if (!r.ok && !r.protocol) return renderFallback(r);
+  const soon = r.days_left != null && r.days_left >= 0 && r.days_left <= 30;
+  const expired = r.days_left != null && r.days_left < 0;
+  const expiry = expired ? `Expired ${Math.abs(r.days_left)} days ago`
+    : r.days_left != null ? `${r.days_left} days left` : undefined;
+
   return (
-    <PanelSection title="TLS">
-      <ResultRow label="Host" value={query} mono={false} />
-      <ResultRow label="Protocol" value={r.protocol || r.tls_version} mono={false} />
-      <ResultRow label="Cipher" value={r.cipher || r.cipher_suite} mono={false} />
-      {r.valid !== undefined && <ResultRow label="Certificate" value={r.valid ? 'Valid' : 'Not valid'} tone={r.valid ? 'green' : 'red'} />}
-      <ResultRow label="Issuer" value={r.issuer} mono={false} />
-      <ResultRow label="Subject" value={r.subject} mono={false} />
-      <ResultRow label="Expires" value={day(r.expires || r.not_after)} />
-      <ResultRow label="Also covers" value={Array.isArray(r.sans) ? r.sans : r.sans} mono={false} />
-    </PanelSection>
+    <div>
+      <Verdict tone={r.valid ? 'green' : 'red'}
+        title={r.valid ? 'Certificate valid' : r.authorized ? (expired ? 'Certificate expired' : 'Name mismatch') : 'Certificate not trusted'}
+        body={r.valid
+          ? <>Trusted, covers <Target value={r.host || query} />, {expiry}</>
+          : r.auth_error ? r.auth_error.replace(/_/g, ' ') : !r.san_match ? `The certificate does not cover ${r.host || query}` : expiry} />
+      <PanelSection title="Connection">
+        <ResultRow label="Host" value={r.host || query} mono={false} />
+        <ResultRow label="Protocol" value={r.protocol} mono={false} tone={/TLSv1\.[01]|SSL/i.test(r.protocol ?? '') ? 'amber' : undefined} />
+        <ResultRow label="Cipher" value={r.cipher} mono={false} />
+      </PanelSection>
+      <PanelSection title="Certificate">
+        <ResultRow label="Issuer" value={r.issuer} mono={false} />
+        <ResultRow label="Subject" value={r.subject} mono={false} />
+        <ResultRow label="Trusted" value={r.authorized ? 'Yes' : 'No'} tone={r.authorized ? 'green' : 'red'}
+          note={!r.authorized && r.auth_error ? r.auth_error.replace(/_/g, ' ') : undefined} />
+        <ResultRow label="Covers host" value={r.san_match ? 'Yes' : 'No'} tone={r.san_match ? 'green' : 'red'} />
+        <ResultRow label="Valid from" value={day(r.not_before)} />
+        <ResultRow label="Expires" value={day(r.expires)} tone={expired ? 'red' : soon ? 'amber' : undefined} note={expiry} />
+        <ResultRow label="Also covers" value={(r.sans ?? []).slice(0, 30)} mono={false} />
+      </PanelSection>
+    </div>
   );
 }

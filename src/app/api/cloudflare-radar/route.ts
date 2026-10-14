@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
  *
  * Requires CLOUDFLARE_API_TOKEN — a free Cloudflare account token scoped to
  * "Radar: Read". Fails closed: with no token the route reports itself
- * unconfigured and the map layer stays hidden, mirroring /api/scanner.
+ * unconfigured and the map layer stays hidden.
  *
  * The token is read server-side only and is never included in a response.
  */

@@ -69,7 +69,7 @@ function OsintPanelInner({ isMobile, onClose, onSweepVisualize, onScanGeolocate 
     lookup.setQuery(query);
     if (id === 'fingerprint') fingerprint.run(profileMode(query), query);
     else if (id === 'donbot') setDonbotQuery(query.trim() || null);
-    else lookup.run(id, query, { scanType: lookup.scanType, cidr: lookup.sweepCidr });
+    else lookup.run(id, query, { cidr: lookup.sweepCidr });
   };
 
   const fetchCveDetails = useCallback(async (cveIds: string[]) => {

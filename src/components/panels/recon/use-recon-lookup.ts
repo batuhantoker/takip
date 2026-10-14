@@ -32,6 +32,20 @@ function saveRecent(list: HistoryEntry[]) {
 
 const GEO_TOOLS = new Set(['scanner', 'vuln', 'shodan', 'bgp', 'dns', 'whois', 'certs', 'ssl', 'subdomains', 'headers', 'tech', 'threats']);
 
+const IP_LIKE = /^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-f:]+:[0-9a-f:]+$/i;
+
+/** The query's address for map placement: itself if it is one, else its first A record. */
+async function resolveToIp(query: string): Promise<string | null> {
+  if (IP_LIKE.test(query)) return query;
+  const host = query.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').replace(/:\d+$/, '');
+  try {
+    const d = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`).then(r => r.json());
+    return d.Answer?.find((a: { type: number }) => a.type === 1)?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** All of Recon's lookup state and the one entry point that runs a tool. Kept out of the panel so the view stays small. */
 export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target: string, data: any) => void }) {
   const [query, setQuery] = useState('');
@@ -39,7 +53,6 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
   const [resultTool, setResultTool] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [scanType, setScanType] = useState('quick');
   const [sweepCidr, setSweepCidr] = useState(24);
   const [chainView, setChainView] = useState<ChainView>('brief');
   const [history, setHistory] = useState<HistoryEntry[]>(loadRecent);
@@ -65,7 +78,7 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
 
   // Takes tool and query as args: a caller that sets the tool then runs in one
   // handler would otherwise run against the previous tool (stale closure).
-  const run = useCallback(async (tool: string, raw: string, opts?: { scanType?: string; cidr?: number }) => {
+  const run = useCallback(async (tool: string, raw: string, opts?: { cidr?: number }) => {
     const q = raw.trim();
     if (!q || loading) return;
     if (needsSignIn(tool, signedIn)) { clearResults(); setError(SIGN_IN_REQUIRED); setResultTool(tool); return; }
@@ -93,7 +106,7 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
     }
 
     try {
-      const url = lookupUrl(tool, q, opts?.scanType ?? scanType);
+      const url = lookupUrl(tool, q);
       const res = await fetch(url, tool === 'shodan' ? { cache: 'no-store' } : undefined);
 
       if (tool === 'shodan' && res.status === 404) {
@@ -115,10 +128,16 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
 
       if (tool === 'phone') {
         if (data.lat && data.lng && onScanGeolocate) onScanGeolocate(q, { lat: data.lat, lng: data.lng, type: 'phone', region: data.region });
-      } else if (GEO_TOOLS.has(tool)) {
-        fetch(`/api/osint/ip?ip=${encodeURIComponent(q)}`)
-          .then(r => r.json())
-          .then(loc => { if (loc?.geo?.lat && loc?.geo?.lon && onScanGeolocate) onScanGeolocate(q, { lat: loc.geo.lat, lng: loc.geo.lon, ...loc, type: tool }); })
+      } else if (GEO_TOOLS.has(tool) && onScanGeolocate) {
+        // Domain and URL tools carry a hostname, not an IP; resolve it first so
+        // the IP geolocation route gets something it accepts instead of a 400.
+        resolveToIp(q)
+          .then(ip => {
+            if (!ip) return;
+            return fetch(`/api/osint/ip?ip=${encodeURIComponent(ip)}`)
+              .then(r => r.json())
+              .then(loc => { if (loc?.geo?.lat && loc?.geo?.lon) onScanGeolocate(q, { lat: loc.geo.lat, lng: loc.geo.lon, ...loc, type: tool }); });
+          })
           .catch(() => {});
       }
     } catch {
@@ -126,11 +145,11 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
     } finally {
       setLoading(false);
     }
-  }, [loading, signedIn, sweepCidr, scanType, clearResults, remember, onScanGeolocate]);
+  }, [loading, signedIn, sweepCidr, clearResults, remember, onScanGeolocate]);
 
   return {
     query, setQuery, results, resultTool, loading, error, setError,
-    scanType, setScanType, sweepCidr, setSweepCidr, chainView, setChainView,
+    sweepCidr, setSweepCidr, chainView, setChainView,
     history, clearHistory, sweepResult, sweepProgress, signedIn,
     run, clearResults, isSignInError: error === SIGN_IN_REQUIRED,
   };

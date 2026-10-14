@@ -4,53 +4,80 @@ import { ExternalLink } from 'lucide-react';
 import { PanelSection } from '@/components/ui/panel';
 import { ResultRow, PortRow, SEVERITY_TONE, Target, Verdict, known, plain, renderFallback, renderFallbackExcluding, type ToolResultProps } from './result-primitives';
 import { CveLine } from './cve-line';
+import { serviceName } from '@/lib/recon/ports';
 
-const SCAN_KEYS = ['host', 'target', 'scan_type', 'duration', 'scan_time', 'ports', 'open_ports', 'results'];
-
+/** A live connect scan: which of the common ports answered, and how long the sweep took. */
 export function ScannerResult({ r, query }: ToolResultProps) {
-  const ports = r.ports || r.open_ports || r.results || [];
-  const list = Array.isArray(ports) ? ports : [];
+  const list: any[] = Array.isArray(r.ports) ? r.ports : [];
+  const host = r.host || r.target || query;
   return (
     <div>
-      <Verdict title={list.length ? `${list.length} open ${list.length === 1 ? 'port' : 'ports'}` : 'No open ports found'}
-        body={<>On <Target value={r.host || r.target || query} />{(r.duration || r.scan_time) && <> · took {r.duration || r.scan_time}</>}</>} />
+      <Verdict tone={list.length ? 'blue' : undefined}
+        title={list.length ? `${list.length} open ${list.length === 1 ? 'port' : 'ports'}` : 'No open ports found'}
+        body={<>On <Target value={host} />{r.address && r.address !== host ? <> ({r.address})</> : null}{r.scanned ? <> · {r.scanned} common ports checked</> : null}{r.duration ? <> in {r.duration}</> : null}</>} />
       {list.length > 0 && (
         <PanelSection title="Open ports" hint={list.length}>
-          {list.map((p: any, i: number) => (
-            <PortRow key={i} port={p.port || p} state={p.state || 'open'} service={p.service || p.name} version={p.version} />
-          ))}
+          {list.map((p, i) => <PortRow key={i} port={p.port} state={p.state || 'open'} service={p.service} />)}
         </PanelSection>
       )}
-      {renderFallbackExcluding(r, SCAN_KEYS)}
+      {!list.length && (
+        <p className="mt-3 text-small text-ink-2">Nothing answered on the common ports. A firewall may be dropping the probes, or the host only listens elsewhere.</p>
+      )}
     </div>
   );
 }
 
-const VULN_KEYS = ['target', 'host', 'vulnerabilities', 'vulns', 'cves', 'risk_level', 'severity'];
-
+/** Known CVEs for a host, worst first, with how many of each severity and how many are being exploited. */
 export function VulnResult({ r, query }: ToolResultProps) {
-  const vulns: any[] = Array.isArray(r.vulnerabilities || r.vulns || r.cves) ? (r.vulnerabilities || r.vulns || r.cves) : [];
-  const exploits = vulns.filter(v => v.is_exploit);
-  const regular = vulns.filter(v => !v.is_exploit);
-  const risk = r.risk_level || r.severity;
+  const vulns: any[] = Array.isArray(r.vulnerabilities) ? r.vulnerabilities : [];
+  const total: number = r.total ?? vulns.length;
+  const c = r.counts ?? {};
+  const risk = r.risk_level && r.risk_level !== 'NONE' ? r.risk_level : null;
+  const stack: string[] = (r.software ?? []).map(software);
+  const target = r.target || query;
+  const address = r.ip && r.ip !== target ? <> ({r.ip})</> : null;
+  const breakdown = [
+    c.critical && `${c.critical} critical`, c.high && `${c.high} high`, c.medium && `${c.medium} medium`, c.low && `${c.low} low`,
+  ].filter(Boolean).join(' · ');
+
   return (
     <div>
-      <Verdict tone={vulns.length ? SEVERITY_TONE(risk) === 'neutral' ? 'amber' : SEVERITY_TONE(risk) : 'green'}
-        title={vulns.length ? `${vulns.length} known ${vulns.length === 1 ? 'vulnerability' : 'vulnerabilities'}` : 'No known vulnerabilities'}
-        body={<>For software seen on <Target value={r.target || query} />{risk ? <> · {plain(risk)} risk</> : null}</>} />
-      {regular.length > 0 && (
-        <PanelSection title="Vulnerabilities" hint={regular.length > 20 ? `first 20 of ${regular.length}` : regular.length}>
-          {regular.slice(0, 20).map((v, i) => (
-            <CveLine key={i} id={v.id || v.cve || v.name} severity={v.severity} cvss={v.cvss} type={v.type} description={v.description} />
+      <Verdict tone={!total ? 'green' : SEVERITY_TONE(risk ?? '') === 'neutral' ? 'amber' : SEVERITY_TONE(risk ?? '')}
+        title={total ? `${total.toLocaleString()} known ${total === 1 ? 'vulnerability' : 'vulnerabilities'}` : 'No known vulnerabilities'}
+        body={total
+          ? <>On <Target value={target} />{address}{c.kev ? <> · <span className="text-red">{c.kev} actively exploited</span></> : null}</>
+          : <>Shodan has no CVEs on record for <Target value={target} />{address}.</>} />
+
+      {total > 0 && (
+        <PanelSection title="Summary">
+          <ResultRow label="Risk" value={risk ? plain(risk) : null} tone={SEVERITY_TONE(risk ?? '')} mono={false} />
+          <ResultRow label="By severity" value={breakdown || null} mono={false} />
+          <ResultRow label="In CISA KEV" value={c.kev ?? 0} tone={c.kev ? 'red' : undefined}
+            note={c.kev ? 'Known to be exploited in the wild' : undefined} />
+        </PanelSection>
+      )}
+
+      {stack.length > 0 && (
+        <PanelSection title="Software seen">
+          <div className="flex flex-wrap gap-1.5">
+            {stack.map(s => <span key={s} className="rounded-control border border-line bg-surface-2 px-1.5 py-0.5 text-meta text-ink-2">{s}</span>)}
+          </div>
+        </PanelSection>
+      )}
+
+      {vulns.length > 0 && (
+        <PanelSection title="Worst first" hint={vulns.length < total ? `top ${vulns.length} of ${total.toLocaleString()}` : vulns.length}>
+          {vulns.map((v, i) => (
+            <CveLine key={i} id={v.id} severity={v.severity} cvss={v.cvss} epss={v.epss} kev={v.kev} description={v.description} />
           ))}
         </PanelSection>
       )}
-      {exploits.length > 0 && (
-        <PanelSection title="Public exploits" hint={exploits.length}>
-          {exploits.slice(0, 10).map((e, i) => <CveLine key={i} id={e.id} cvss={e.cvss} type={e.type} exploit />)}
-        </PanelSection>
+
+      {total > 0 && (
+        <p className="mt-4 text-meta leading-relaxed text-ink-3">
+          Matched by the software versions in Shodan’s last scan, so a patched build that keeps its version string still shows up. Confirm before acting.
+        </p>
       )}
-      {renderFallbackExcluding(r, VULN_KEYS)}
     </div>
   );
 }
@@ -70,9 +97,13 @@ export function ShodanResult({ r, query }: ToolResultProps) {
         body={ports.length
           ? <>As last seen on <Target value={ip} /> by Shodan’s scanners</>
           : <>Shodan has no record of open services on <Target value={ip} />.</>} />
-      {(ports.length > 0 || r.hostnames?.length > 0) && (
-        <PanelSection title="Exposed services">
-          <ResultRow label="Open ports" value={ports.join(', ')} mono />
+      {ports.length > 0 && (
+        <PanelSection title="Open ports" hint={ports.length}>
+          {ports.map(p => <PortRow key={p} port={p} state="open" service={serviceName(p)} />)}
+        </PanelSection>
+      )}
+      {(r.hostnames?.length > 0 || r.cpes?.length > 0 || r.tags?.length > 0) && (
+        <PanelSection title="Host">
           <ResultRow label="Host names" value={r.hostnames ?? []} mono={false} />
           <ResultRow label="Software" value={(r.cpes ?? []).map(software)} mono={false} />
           <ResultRow label="Tags" value={(r.tags ?? []).map(plain).join(', ')} mono={false} />
@@ -107,9 +138,8 @@ export function BgpResult({ r, query }: ToolResultProps) {
   const asn = r.type === 'ip' ? r.ip?.asn : r.asn;
   if (!asn) return renderFallback(r);
   const holder = known(asn.description) && asn.description !== asn.name ? asn.description : null;
-  // For an IP both country fields are ip-api's geolocation, so they say the same thing.
-  const place = country(asn.country_code)
-    ?? (r.type === 'ip' && known(r.ip.rir_allocation) && !/^undefined/.test(r.ip.rir_allocation) ? r.ip.rir_allocation : null);
+  // An IP's country is where it geolocates; an ASN's is where its registry says it is.
+  const place = country(asn.country_code);
   return (
     <div>
       <Verdict title={known(asn.name) ? asn.name : `AS${asn.asn}`}
@@ -118,12 +148,25 @@ export function BgpResult({ r, query }: ToolResultProps) {
         <ResultRow label="ASN" value={known(asn.asn) ? `AS${asn.asn}` : null} mono />
         <ResultRow label="Holder" value={holder} mono={false} />
         <ResultRow label={r.type === 'ip' ? 'Located in' : 'Registered in'} value={place} mono={false} />
+        <ResultRow label="Registry" value={r.registry} mono={false} />
+        {r.type === 'ip' && <ResultRow label="Announced prefix" value={known(r.ip.prefix) ? r.ip.prefix : null} />}
         {r.type === 'ip' && <ResultRow label="Reverse DNS" value={known(r.ip.ptr_record) ? r.ip.ptr_record : null} mono={false} />}
         {r.type === 'asn' && r.prefixes?.total_v4 + r.prefixes?.total_v6 > 0 && (
-          <ResultRow label="Prefixes" value={`${r.prefixes.total_v4} IPv4 · ${r.prefixes.total_v6} IPv6`} />
+          <ResultRow label="Prefixes" value={`${r.prefixes.total_v4.toLocaleString()} IPv4 · ${r.prefixes.total_v6.toLocaleString()} IPv6`} />
         )}
-        {r.type === 'asn' && r.peers?.total > 0 && <ResultRow label="Peers" value={r.peers.total} />}
+        {r.type === 'asn' && r.peers?.total > 0 && (
+          <ResultRow label="Peers" value={`${r.peers.total} · ${r.peers.upstream?.length ?? 0} upstream`} />
+        )}
       </PanelSection>
+      {r.type === 'asn' && r.peers?.upstream?.length > 0 && (
+        <PanelSection title="Upstream networks" hint={r.peers.upstream.length}>
+          <div className="flex flex-wrap gap-1.5">
+            {r.peers.upstream.slice(0, 20).map((asn: number) => (
+              <span key={asn} className="rounded-control border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-meta text-ink-2 tabular-nums">AS{asn}</span>
+            ))}
+          </div>
+        </PanelSection>
+      )}
     </div>
   );
 }

@@ -31,7 +31,7 @@ export function ReconResults({ lookup, isFullScreen, onSweepVisualize, expandedD
       )}
 
       {showStructured && (
-        <StructuredResults activeTab={lookup.resultTool!} chainView={lookup.chainView} results={lookup.results} query={lookup.query} scanType={lookup.scanType} />
+        <StructuredResults activeTab={lookup.resultTool!} chainView={lookup.chainView} results={lookup.results} query={lookup.query} />
       )}
     </div>
   );

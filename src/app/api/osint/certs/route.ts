@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { isRateLimited, getClientIp } from '@/lib/ssrf-guard';
 import { reconGate } from '@/lib/recon/gate';
 
-// Certificate Transparency lookup via crt.sh (free, no key)
+type CrtRow = { id: string | number; issuer_name: string; common_name: string; name_value: string; not_before: string; not_after: string; serial_number: string };
+type CertspotterRow = { id: string; dns_names?: string[]; issuer?: { name?: string; friendly_name?: string }; not_before: string; not_after: string; cert_sha256?: string };
+
+// Certificate Transparency lookup via crt.sh, with Cert Spotter when crt.sh is down (both keyless)
 export async function GET(req: Request) {
   const denied = await reconGate(req, 'network');
   if (denied) return denied;
@@ -20,17 +23,39 @@ export async function GET(req: Request) {
   }
 
   try {
-    const res = await fetch(`https://crt.sh/?q=%25.${encodeURIComponent(domain)}&output=json`, {
-      signal: AbortSignal.timeout(10000),
-      headers: { 'User-Agent': 'TAKIP-OSINT/0.1' },
-    });
+    let certs: CrtRow[] = [];
+    try {
+      const res = await fetch(`https://crt.sh/?q=%25.${encodeURIComponent(domain)}&output=json`, {
+        signal: AbortSignal.timeout(10000),
+        headers: { 'User-Agent': 'TAKIP-OSINT/0.1' },
+      });
+      if (res.ok) certs = await res.json();
+    } catch { /* crt.sh is often busy; fall back to certspotter below */ }
 
-    if (!res.ok) {
-      return NextResponse.json({ domain, certificates: [], error: 'crt.sh unavailable' });
+    // crt.sh down or empty → certspotter's CT view, mapped to the same shape.
+    if (!certs.length) {
+      const cs = await fetch(
+        `https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(domain)}&include_subdomains=true&expand=dns_names&expand=issuer&expand=not_before&expand=not_after`,
+        { signal: AbortSignal.timeout(10000), headers: { 'User-Agent': 'TAKIP-OSINT/0.1', Accept: 'application/json' } },
+      );
+      if (cs.ok) {
+        const rows: CertspotterRow[] = await cs.json();
+        certs = rows.map(r => ({
+          id: r.id,
+          issuer_name: r.issuer?.name || r.issuer?.friendly_name || '',
+          common_name: (r.dns_names || [])[0] || '',
+          name_value: (r.dns_names || []).join('\n'),
+          not_before: r.not_before,
+          not_after: r.not_after,
+          serial_number: r.cert_sha256?.slice(0, 16) || r.id,
+        }));
+      }
     }
 
-    const certs = await res.json();
-    
+    if (!certs.length) {
+      return NextResponse.json({ domain, certificates: [], subdomains: [], error: 'crt.sh unavailable' });
+    }
+
     // Deduplicate by common name and extract subdomains
     const seen = new Set<string>();
     const subdomains = new Set<string>();

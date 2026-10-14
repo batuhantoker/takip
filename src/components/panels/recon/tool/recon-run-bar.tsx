@@ -9,7 +9,7 @@ import type { ReconLookup } from '@/components/panels/recon/use-recon-lookup';
 /** The open tool's input: its field and run button on one line, then the few options the tool has. Port scans are always quick: the server refuses deeper ones. */
 export function ReconRunBar({ lookup, tool, autoFocus }: { lookup: ReconLookup; tool: ToolDef; autoFocus?: boolean }) {
   const briefOnly = tool.id === 'crypto' && lookup.chainView === 'brief';
-  const run = () => { if (lookup.query.trim()) lookup.run(tool.id, lookup.query, { scanType: lookup.scanType, cidr: lookup.sweepCidr }); };
+  const run = () => { if (lookup.query.trim()) lookup.run(tool.id, lookup.query, { cidr: lookup.sweepCidr }); };
 
   return (
     <div className="flex flex-col gap-3">

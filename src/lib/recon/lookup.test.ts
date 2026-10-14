@@ -25,7 +25,7 @@ describe('needsSignIn', () => {
 
   it('covers every lookup that leaves this origin', () => {
     const tabs = ['dns', 'certs', 'whois', 'threats', 'bgp', 'mac', 'phone', 'leaks', 'crypto', 'username', 'github', 'vuln', 'scanner', 'headers', 'ssl', 'subdomains', 'tech', 'shodan'];
-    const external = tabs.filter(tab => !lookupUrl(tab, 'q', 'quick').startsWith('/api/'));
+    const external = tabs.filter(tab => !lookupUrl(tab, 'q').startsWith('/api/'));
     expect(external).toEqual(['leaks', 'shodan']);
     for (const tab of external) expect(BROWSER_PROBE_TABS.has(tab), tab).toBe(true);
   });

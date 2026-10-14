@@ -38,7 +38,7 @@ export function detectQuery(raw: string): Detection {
   if (IPV6.test(q) && (q.match(/:/g)?.length ?? 0) >= 2) return { kind: 'ipv6', label: 'Looks like an IPv6 address', tools: ['bgp', 'shodan'] };
 
   if (/^https?:\/\//i.test(q)) return { kind: 'url', label: 'Looks like a web address', tools: ['headers', 'tech', 'ssl'] };
-  if (DOMAIN.test(q)) return { kind: 'domain', label: 'Looks like a domain', tools: ['dns', 'whois', 'certs', 'subdomains', 'ssl', 'tech'] };
+  if (DOMAIN.test(q)) return { kind: 'domain', label: 'Looks like a domain', tools: ['dns', 'whois', 'certs', 'subdomains', 'ssl', 'headers', 'tech', 'scanner', 'vuln'] };
 
   if (looksPhone(q)) return { kind: 'phone', label: 'Looks like a phone number', tools: ['phone', 'fingerprint'] };
 

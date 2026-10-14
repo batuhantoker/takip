@@ -1,8 +1,24 @@
 import { NextResponse } from 'next/server';
-import { PhoneNumberUtil, PhoneNumberFormat } from 'google-libphonenumber';
+import { PhoneNumberUtil, PhoneNumberFormat, PhoneNumberType } from 'google-libphonenumber';
 import { reconGate } from '@/lib/recon/gate';
 
 const phoneUtil = PhoneNumberUtil.getInstance();
+
+// libphonenumber's own classification, as a stable enum name the UI formats.
+const LINE_TYPE: Record<number, string> = {
+  [PhoneNumberType.FIXED_LINE]: 'FIXED_LINE',
+  [PhoneNumberType.MOBILE]: 'MOBILE',
+  [PhoneNumberType.FIXED_LINE_OR_MOBILE]: 'FIXED_LINE_OR_MOBILE',
+  [PhoneNumberType.TOLL_FREE]: 'TOLL_FREE',
+  [PhoneNumberType.PREMIUM_RATE]: 'PREMIUM_RATE',
+  [PhoneNumberType.SHARED_COST]: 'SHARED_COST',
+  [PhoneNumberType.VOIP]: 'VOIP',
+  [PhoneNumberType.PERSONAL_NUMBER]: 'PERSONAL_NUMBER',
+  [PhoneNumberType.PAGER]: 'PAGER',
+  [PhoneNumberType.UAN]: 'UAN',
+  [PhoneNumberType.VOICEMAIL]: 'VOICEMAIL',
+  [PhoneNumberType.UNKNOWN]: 'UNKNOWN',
+};
 
 const REGION_COORDS: Record<string, { lat: number, lng: number }> = {
   'US': { lat: 39.8283, lng: -98.5795 },
@@ -138,18 +154,11 @@ export async function GET(req: Request) {
           }
       }
 
-      // Basic Line Type Inference based on typical mobile starting digits in many regions
-      const firstDigit = String(nationalNumber).charAt(0);
-      let lineType = 'LANDLINE';
-      if (countryCode === 1 && String(nationalNumber).length === 10) {
-         lineType = 'MOBILE_OR_LANDLINE';
-      } else if (firstDigit === '7' || firstDigit === '8' || firstDigit === '9') {
-         lineType = 'MOBILE';
-      }
+      const lineType = LINE_TYPE[phoneUtil.getNumberType(parsedNumber)] ?? 'UNKNOWN';
 
+      // Country centroid, refined to the metro for NANP area codes (which are
+      // geographic). This is a coarse origin of the numbering plan, not a GPS fix.
       let coords = REGION_COORDS[regionCode];
-      
-      // Override with precise area code coordinates for NANP
       if (countryCode === 1) {
           const areaCode = String(nationalNumber).substring(0, 3);
           if (NANP_COORDS[areaCode]) {

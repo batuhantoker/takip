@@ -4,7 +4,7 @@ import { GET as dns } from './dns/route';
 import { GET as leaks } from './leaks/route';
 import { GET as phone } from './phone/route';
 import { GET as sweep } from './sweep/route';
-import { GET as scanner } from '../scanner/route';
+import { GET as portscan } from './portscan/route';
 
 const ACCESS = /\/api\/v1\/me\/access$/;
 
@@ -56,13 +56,13 @@ describe.each(families)('$family ($path)', ({ route, path }) => {
   });
 });
 
-describe('the scanner', () => {
-  it('asks for an account before anything else, even whether it is configured', async () => {
+describe('the port scanner', () => {
+  it('asks for an account before anything else', async () => {
     apiAnswers(null);
-    expect((await scanner(get('/api/scanner'))).status).toBe(401);
+    expect((await portscan(get('/api/osint/portscan'))).status).toBe(401);
     vi.restoreAllMocks();
     apiAnswers(newAccount());
-    expect((await scanner(get('/api/scanner'))).status).not.toBe(401);
+    expect((await portscan(get('/api/osint/portscan'))).status).not.toBe(401);
   });
 });
 

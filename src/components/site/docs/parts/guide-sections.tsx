@@ -106,10 +106,6 @@ export function ConfigurationSection() {
       <div className="space-y-2">
         {[
           {
-            k: 'SCANNER_URL / SCANNER_KEY',
-            v: 'Points at the separate RECON scanner backend. SCANNER_KEY must equal that backend’s OSIRIS_KEY. Leave both empty to disable RECON — /api/scanner then returns 503 by design.',
-          },
-          {
             k: 'SDK_INGEST_KEY',
             v: 'Shared secret for /api/sdk/ingest. The endpoint fails closed: while this is unset, ingestion is disabled and returns 503.',
           },

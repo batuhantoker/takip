@@ -30,7 +30,7 @@ export function ReconToolView({ tool, lookup, autoFocus, onBack, ownView, result
   const answered = mine && !lookup.loading && (lookup.results || lookup.sweepResult);
   const idle = !brief && !hasOutput && !lookup.error && !lookup.loading;
   const recent = lookup.history.filter(h => h.tool === tool.id);
-  const run = (q: string) => { lookup.setQuery(q); lookup.run(tool.id, q, { scanType: lookup.scanType, cidr: lookup.sweepCidr }); };
+  const run = (q: string) => { lookup.setQuery(q); lookup.run(tool.id, q, { cidr: lookup.sweepCidr }); };
 
   return (
     <>

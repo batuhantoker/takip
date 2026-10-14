@@ -7,7 +7,7 @@ import { Tag } from '@/components/ui/tag';
 import { Button } from '@/components/ui/button';
 import type { ReconData } from '@/lib/recon/lookup';
 
-export interface ToolResultProps { r: ReconData; query: string; scanType: string }
+export interface ToolResultProps { r: ReconData; query: string }
 
 /** An API's shouted enum ("HIGH", "FIXED_LINE") as words: "High", "Fixed line". */
 export const plain = (v: unknown) => {
