@@ -2,7 +2,7 @@
  * Wikipedia lookups for server routes, English unless a wiki code is given. Keyless; Wikimedia asks for a
  * descriptive User-Agent and a gentle request rate.
  */
-import { trimExtract, type WikiSummary } from '@/lib/space/wiki-topic';
+import { trimExtract, type WikiSummary } from './summary';
 
 const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
 const API = 'https://en.wikipedia.org';

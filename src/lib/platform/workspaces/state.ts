@@ -10,7 +10,7 @@ export type Basemap = { style?: string; projection?: 'globe' | 'mercator'; theme
 export type Viewport = { lat: number; lng: number; zoom: number; bearing?: number; pitch?: number };
 export type TimeState = { mode: 'live' } | { mode: 'replay'; t: number; speed?: number; playing?: boolean };
 export type Pin = { kind: string; id: string; label?: string; lat?: number; lng?: number };
-/** A drawn area as src/lib/areas/aoi-export.ts stores it. */
+/** A drawn area as src/lib/places/areas/aoi-export.ts stores it. */
 export type StoredArea = { id: string; name: string; geojson: { type: 'Feature'; geometry: { type: string; coordinates: unknown[] } } } & Record<string, unknown>;
 export type StoredPlace = { label: string; lat: number; lng: number; at: number } & Record<string, unknown>;
 

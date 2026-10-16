@@ -19,7 +19,7 @@ import {
   ThreatLevel,
   Classification,
 } from './types';
-import { LatticeAdapter } from './LatticeAdapter';
+import { LatticeAdapter } from './lattice-adapter';
 
 // ── TAKIP Feed → Entity Translators ───────────────────────────────
 
