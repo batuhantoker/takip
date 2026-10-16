@@ -10,8 +10,8 @@
  * the level is marked where it did.
  */
 import { useEffect, useRef, useState } from 'react';
-import { priceText } from '@/lib/oi/quant';
-import type { RunState } from '@/lib/oi/state';
+import { priceText } from '@/lib/ai/quant/series';
+import type { RunState } from '@/lib/ai/state';
 import { WORLD_COLORS } from '@/components/panels/ti-agent/theme';
 
 const DAY = 86_400_000;

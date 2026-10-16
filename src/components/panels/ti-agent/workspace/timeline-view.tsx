@@ -13,10 +13,10 @@ import { ArrowDownRight, ArrowUpRight, GanttChart, LoaderCircle } from 'lucide-r
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dot } from '@/components/ui/tag';
-import { formatAmount } from '@/lib/oi/forecast';
-import { priceText } from '@/lib/oi/quant';
-import { timelineOf, type Timeline, type TimelineCell, type TimelineLane } from '@/lib/oi/timeline';
-import { castOf, type RunState } from '@/lib/oi/state';
+import { formatAmount } from '@/lib/ai/forecast';
+import { priceText } from '@/lib/ai/quant/series';
+import { timelineOf, type Timeline, type TimelineCell, type TimelineLane } from '@/lib/ai/workspace/timeline';
+import { castOf, type RunState } from '@/lib/ai/state';
 import { fit, fmtDate, plural, smooth } from '@/components/panels/ti-agent/theme';
 import { TypeIcon } from '@/components/panels/ti-agent/atoms';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';

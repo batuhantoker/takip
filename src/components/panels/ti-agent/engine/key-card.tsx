@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { providerInfo } from '@/lib/oi/providers';
+import { providerInfo } from '@/lib/ai/providers/catalog';
 import { shortName } from '../theme';
 import { KeyForm, KeyPrivacy, type EngineState } from './key-form';
 

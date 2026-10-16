@@ -13,8 +13,8 @@ import { Switch } from '@/components/ui/field';
 import { Kbd } from '@/components/ui/kbd';
 import { PanelFooter, PanelSection } from '@/components/ui/panel';
 import { Segmented } from '@/components/ui/segmented';
-import { DEPTHS, SEED_MAX, estimateCalls, seedCost, type SeedScope } from '@/lib/oi/depths';
-import type { Depth, Frame } from '@/lib/oi/types';
+import { DEPTHS, SEED_MAX, estimateCalls, seedCost, type SeedScope } from '@/lib/ai/depths';
+import type { Depth, Frame } from '@/lib/ai/types';
 import { KIND_LABEL } from '../theme';
 import { ScrollBody } from '@/components/panels/ti-agent/parts/scroll-body';
 import { TextArea } from '@/components/panels/ti-agent/parts/text-area';
@@ -28,8 +28,8 @@ const EXAMPLES: { kind: Frame['kind']; text: string }[] = [
   { kind: 'number', text: 'Where will Brent crude settle on 31 December 2026, in USD a barrel?' },
 ];
 
-const DRAFT = 'takip.oi.draft';
-const PREFS = 'takip.oi.ask';
+const DRAFT = 'takip.ai.draft';
+const PREFS = 'takip.ai.ask';
 
 function readPrefs(): { depth: Depth; useFeeds: boolean } {
   try {
@@ -89,7 +89,7 @@ export function AskForm({ ready, providerName, onRun, keyCard, below, notice }: 
   const [trending, setTrending] = useState<{ question: string; probability: number; event: string; url: string }[]>([]);
   useEffect(() => {
     const ctl = new AbortController();
-    fetch('/api/oi/trending', { signal: ctl.signal })
+    fetch('/api/ai/trending', { signal: ctl.signal })
       .then(r => (r.ok ? r.json() : null))
       .then(j => { if (Array.isArray(j?.items)) setTrending(j.items); })
       .catch(() => { /* suggestions are a nicety: none is fine */ });
@@ -179,7 +179,7 @@ export function AskForm({ ready, providerName, onRun, keyCard, below, notice }: 
         <p className="mt-6 text-meta text-ink-3">
           The answer takes the shape of the question: a probability, a share for each outcome, or an estimate with a range, with how each world played out. A simulation, not a guarantee. The method follows{' '}
           <a href="https://github.com/666ghj/MiroFish" target="_blank" rel="noopener noreferrer" className="text-ink-2 underline decoration-ink-4 underline-offset-2 hover:text-ink-1">MiroFish</a>; forecasts are also on the{' '}
-          <a href="/docs#oi" className="text-ink-2 underline decoration-ink-4 underline-offset-2 hover:text-ink-1">API and MCP</a>.
+          <a href="/docs#ti" className="text-ink-2 underline decoration-ink-4 underline-offset-2 hover:text-ink-1">API and MCP</a>.
         </p>
       </ScrollBody>
 

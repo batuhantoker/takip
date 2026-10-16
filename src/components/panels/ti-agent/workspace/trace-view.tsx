@@ -12,8 +12,8 @@ import { Check, ChevronDown, LoaderCircle, Minus, X } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
 import { Stat } from '@/components/ui/stat';
-import { traceOf, type TraceStep } from '@/lib/oi/trace';
-import type { RunState } from '@/lib/oi/state';
+import { traceOf, type TraceStep } from '@/lib/ai/workspace/trace';
+import type { RunState } from '@/lib/ai/state';
 import { plural, took, tookParts } from '@/components/panels/ti-agent/theme';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';
 

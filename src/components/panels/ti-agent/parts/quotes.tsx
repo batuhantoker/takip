@@ -9,8 +9,8 @@
  */
 import { ArrowDownRight, ArrowUpRight, BadgeCheck, ExternalLink, Minus } from 'lucide-react';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
-import type { RunState } from '@/lib/oi/state';
-import type { Citation, ContextItem, Frame } from '@/lib/oi/types';
+import type { RunState } from '@/lib/ai/state';
+import type { Citation, ContextItem, Frame } from '@/lib/ai/types';
 import { leanWord } from '@/components/panels/ti-agent/theme';
 import { TypeIcon } from '@/components/panels/ti-agent/atoms';
 

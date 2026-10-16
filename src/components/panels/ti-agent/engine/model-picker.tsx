@@ -13,8 +13,8 @@ import { Check, ChevronDown, CornerDownLeft } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { SearchField } from '@/components/ui/search-field';
 import { Tag } from '@/components/ui/tag';
-import { isPlausibleModel, type ProviderId } from '@/lib/oi/providers';
-import { isReasoning, modelHint, organizeModels, type ModelOption } from '@/lib/oi/models';
+import { isPlausibleModel, type ProviderId } from '@/lib/ai/providers/catalog';
+import { isReasoning, modelHint, organizeModels, type ModelOption } from '@/lib/ai/providers/models';
 
 function Tags({ reasoning, isDefault }: { reasoning: boolean; isDefault: boolean }) {
   return (

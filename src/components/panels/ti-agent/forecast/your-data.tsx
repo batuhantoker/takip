@@ -8,8 +8,8 @@ import { FileText, Upload, X } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { Segmented } from '@/components/ui/segmented';
-import { PANEL_SEED_MAX, SEED_MAX, seedCost, type SeedScope } from '@/lib/oi/depths';
-import type { Depth } from '@/lib/oi/types';
+import { PANEL_SEED_MAX, SEED_MAX, seedCost, type SeedScope } from '@/lib/ai/depths';
+import type { Depth } from '@/lib/ai/types';
 import { shortName } from '../theme';
 import { TextArea } from '@/components/panels/ti-agent/parts/text-area';
 

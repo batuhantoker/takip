@@ -1,6 +1,6 @@
 'use client';
 /**
- * TAKIP OI Assist: talking to OI.
+ * TAKIP AI Assist: talking to AI.
  *
  * Dictation through the browser's own speech recognition (Chrome, Edge and
  * Safari have it; Firefox does not, and the mic button does not show there),

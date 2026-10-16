@@ -25,14 +25,14 @@ import ErrorBoundary from '@/components/ui/error-boundary';
 import { Segmented } from '@/components/ui/segmented';
 import { Dot } from '@/components/ui/tag';
 import { useEscape } from '@/components/ui/use-escape';
-import type { OiClient } from '@/lib/oi/client';
-import { workspaceLayout } from '@/lib/oi/layout';
-import { resolve } from '@/lib/oi/research';
-import type { RunState } from '@/lib/oi/state';
-import { progressOf, traceOf } from '@/lib/oi/trace';
+import type { AiClient } from '@/components/panels/ti-agent/use-ai';
+import { workspaceLayout } from '@/lib/ai/workspace/layout';
+import { resolve } from '@/lib/ai/workspace/selection';
+import type { RunState } from '@/lib/ai/state';
+import { progressOf, traceOf } from '@/lib/ai/workspace/trace';
 import { KIND_LABEL } from '@/components/panels/ti-agent/theme';
-import { OiMark } from '@/components/panels/ti-agent/atoms';
-import type { OiMode } from '@/components/panels/ti-agent/ti-mode';
+import { AiMark } from '@/components/panels/ti-agent/atoms';
+import type { AiMode } from '@/components/panels/ti-agent/ti-mode';
 import { Controls, InjectBox, UsageLine, Verdict } from '@/components/panels/ti-agent/run/run';
 import { ReportBody } from '@/components/panels/ti-agent/run/report';
 import { ContextList, Legend } from '@/components/panels/ti-agent/run/research-list';
@@ -46,12 +46,12 @@ import { ScrollBody } from '@/components/panels/ti-agent/parts/scroll-body';
 
 export type Stage = 'globe' | 'graph' | 'timeline' | 'table';
 export const STAGES: Stage[] = ['globe', 'graph', 'timeline', 'table'];
-export type WorkspaceMode = OiMode;
+export type WorkspaceMode = AiMode;
 
 export interface WorkspaceProps {
   /** The forecast, or null before there is one. */
   s: RunState | null;
-  oi: OiClient;
+  ai: AiClient;
   selected: string | null;
   onSelect: (key: string | null) => void;
   onLocate: (lat: number, lng: number, zoom?: number) => void;
@@ -76,6 +76,8 @@ export interface WorkspaceProps {
   askView: ReactNode;
   /** The model and key menu. */
   engineMenu: ReactNode;
+  /** Saved chats and New conversation, shown in Assist mode. */
+  assistActions?: ReactNode;
   onNewForecast: () => void;
   /** Whether TI is in the middle of a reply, for the mark in the top bar. */
   assistBusy?: boolean;
@@ -108,7 +110,7 @@ function runStatus(s: RunState): string {
 }
 
 export function Workspace(p: WorkspaceProps) {
-  const { s, oi, selected, onSelect, stage, onStage, onTheater } = p;
+  const { s, ai, selected, onSelect, stage, onStage, onTheater } = p;
   const [leftTab, setLeftTab] = useState<'assessment' | 'trace' | null>(null);
   const [copied, setCopied] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -144,7 +146,7 @@ export function Workspace(p: WorkspaceProps) {
 
   const share = async () => {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/?oi=${oi.runId}`);
+      await navigator.clipboard.writeText(`${window.location.origin}/?ai=${ai.runId}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch { /* clipboard blocked */ }
@@ -158,7 +160,7 @@ export function Workspace(p: WorkspaceProps) {
       {/* ── Top bar ── */}
       <header className={cx(SURFACE, 'flex-row items-center gap-3 overflow-visible px-3')} style={{ left: L.gap, right: L.gap, top: L.gap, height: 56 }}>
         <div className="flex shrink-0 items-center gap-2 pl-1">
-          <OiMark size={18} live={live} />
+          <AiMark size={18} live={live} />
           <span className="text-title font-semibold text-ink-1">TI</span>
         </div>
         <span aria-hidden className="h-7 w-px bg-line" />
@@ -168,7 +170,7 @@ export function Workspace(p: WorkspaceProps) {
               <p className="truncate text-body font-medium text-ink-1" title={s.question}>{s.question}</p>
               <p className="flex min-w-0 items-center gap-1.5 text-meta text-ink-3">
                 {s.frame && <span className="shrink-0">{KIND_LABEL[s.frame.kind]}</span>}
-                {oi.runId && <span className="shrink-0">· run <span className="font-mono">{oi.runId.slice(0, 6)}</span> ·</span>}
+                {ai.runId && <span className="shrink-0">· run <span className="font-mono">{ai.runId.slice(0, 6)}</span> ·</span>}
                 <Dot tone={s.status === 'failed' ? 'red' : s.status === 'running' ? 'gold' : s.status === 'done' ? 'green' : 'muted'} pulse={s.status === 'running'} />
                 <span className="truncate text-ink-2">{runStatus(s)}</span>
               </p>
@@ -183,9 +185,10 @@ export function Workspace(p: WorkspaceProps) {
         <Segmented size="sm" label="Stage" value={shown} onChange={onStage} options={stageOptions(hasRun)} className="shrink-0" />
         {s && <div className="w-[200px] shrink-0"><ObjectSearch ref={search} s={s} onPick={k => onSelect(k)} /></div>}
         <div className="flex shrink-0 items-center gap-0.5">
-          {s && <Controls s={s} oi={oi} focus={p.focus} onFocus={p.onFocus} following={p.following} onFollow={p.onFollow} />}
+          {s && <Controls s={s} ai={ai} focus={p.focus} onFocus={p.onFocus} following={p.following} onFollow={p.onFollow} />}
           {s && <Button size="sm" variant="ghost" icon={copied ? Check : Link2} onClick={share} title="Copy a link that replays this run">{copied ? 'Copied' : 'Copy link'}</Button>}
           {s && <IconButton label="New forecast" icon={Plus} onClick={p.onNewForecast} />}
+          {p.mode === 'assist' && p.assistActions}
           {p.engineMenu}
           <IconButton label="Leave full screen" kbd="Esc" icon={Minimize2} onClick={() => onTheater?.(false)} />
         </div>
@@ -205,8 +208,8 @@ export function Workspace(p: WorkspaceProps) {
         {p.mode === 'assist' ? p.assistView : s ? (
           <>
             <div className="shrink-0 border-t border-line p-4">
-              <Verdict key={oi.runId ?? ''} s={s} large />
-              {s.status === 'running' && oi.canSteer && <div className="mt-4"><InjectBox oi={oi} s={s} /></div>}
+              <Verdict key={ai.runId ?? ''} s={s} large />
+              {s.status === 'running' && ai.canSteer && <div className="mt-4"><InjectBox ai={ai} s={s} /></div>}
             </div>
             <div className="shrink-0 border-t border-line px-4 pt-3">
               <Segmented size="sm" label="Show" value={left} onChange={setLeftTab} options={[
@@ -217,7 +220,7 @@ export function Workspace(p: WorkspaceProps) {
             <ScrollBody>
               {p.errorBox}
               {left === 'trace' ? <TraceView s={s} />
-                : s.report ? <ReportBody s={s} runId={oi.runId} selected={selected} onSelect={onSelect} />
+                : s.report ? <ReportBody s={s} runId={ai.runId} selected={selected} onSelect={onSelect} />
                   : <ContextList s={s} selected={selected} onSelect={onSelect} />}
             </ScrollBody>
             <div className="flex min-h-11 shrink-0 items-center border-t border-line px-4"><UsageLine s={s} /></div>

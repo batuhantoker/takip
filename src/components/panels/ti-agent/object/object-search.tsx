@@ -4,13 +4,13 @@
  *
  * Ctrl+K (or ⌘K, or /) from anywhere in the workspace. Arrow keys move,
  * Enter opens, Escape clears and then leaves. Results come from
- * lib/oi/objects, best match first, with each object's type and icon.
+ * lib/ai/workspace/objects, best match first, with each object's type and icon.
  */
 import { forwardRef, useId, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { cx } from '@/components/ui/class-names';
 import { SearchField } from '@/components/ui/search-field';
-import { searchObjects, TYPE_LABEL } from '@/lib/oi/objects';
-import type { RunState } from '@/lib/oi/state';
+import { searchObjects, TYPE_LABEL } from '@/lib/ai/workspace/objects';
+import type { RunState } from '@/lib/ai/state';
 import { TypeIcon, accentFor } from '@/components/panels/ti-agent/atoms';
 
 export interface ObjectSearchHandle { focus: () => void }

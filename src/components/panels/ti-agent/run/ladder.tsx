@@ -11,9 +11,9 @@
  * more chance of getting there than the market's own history does.
  */
 import { useEffect, useRef, useState } from 'react';
-import { ladderGaps, ladderSentence, readLadder } from '@/lib/oi/ladder';
-import { priceText } from '@/lib/oi/quant';
-import type { RunState } from '@/lib/oi/state';
+import { ladderGaps, ladderSentence, readLadder } from '@/lib/ai/quant/ladder';
+import { priceText } from '@/lib/ai/quant/series';
+import type { RunState } from '@/lib/ai/state';
 import { ANCHOR } from '@/components/panels/ti-agent/theme';
 
 /** Probabilities on a square-root scale: a 2% rung and a 5% one stay apart, and 100% still fits. */

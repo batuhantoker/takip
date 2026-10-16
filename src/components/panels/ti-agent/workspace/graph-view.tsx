@@ -14,7 +14,7 @@
  * the prediction; Isolate keeps only a selection and its neighbours. A click
  * opens the same object as the globe.
  *
- * The layout is a small force simulation (lib/oi/graph). React draws the
+ * The layout is a small force simulation (lib/ai/workspace/graph). React draws the
  * elements; positions are written straight onto them each frame, so a tick
  * never re-renders the tree. The camera fits the graph as it grows, and
  * frames a selection with its neighbours, until someone pans or zooms.
@@ -22,10 +22,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Network } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
-import { buildGraph, createLayout, edgePath, fitView, litSet, FLOW_X, type GraphEdge, type GraphNodeKind, type LayoutMode, type View } from '@/lib/oi/graph';
-import { brief } from '@/lib/oi/research';
-import type { RunState } from '@/lib/oi/state';
-import type { LinkKind } from '@/lib/oi/types';
+import { buildGraph, createLayout, edgePath, fitView, litSet, FLOW_X, type GraphEdge, type GraphNodeKind, type LayoutMode, type View } from '@/lib/ai/workspace/graph';
+import { brief } from '@/lib/ai/workspace/selection';
+import type { RunState } from '@/lib/ai/state';
+import type { LinkKind } from '@/lib/ai/types';
 import { toneColor } from '@/components/panels/ti-agent/theme';
 import { FILTER_W, GraphFilters, GraphTip, GraphToolbar } from './graph-controls';
 import { GraphLegend, GraphNodeMark } from './graph-parts';
@@ -292,7 +292,7 @@ export function GraphView({ s, selected, onSelect }: { s: RunState; selected: st
               const tone = toneColor(e.tone);
               return (
                 <path key={e.key} ref={edgeRef(e.key)} fill="none" vectorEffect="non-scaling-stroke"
-                  className="oi-graph-in"
+                  className="ai-graph-in"
                   strokeLinecap={e.kind === 'cite' ? 'round' : undefined}
                   style={{
                     stroke: e.kind === 'evidence' || e.kind === 'cite' ? `color-mix(in srgb, ${tone} 60%, var(--ink-2))` : tone,
@@ -306,7 +306,7 @@ export function GraphView({ s, selected, onSelect }: { s: RunState; selected: st
           </g>
           <g>
             {graph.edges.map(e => (
-              <path key={e.key} ref={hitRef(e.key)} data-oi-edge={e.key} fill="none" stroke="transparent" strokeWidth={12} vectorEffect="non-scaling-stroke"
+              <path key={e.key} ref={hitRef(e.key)} data-ai-edge={e.key} fill="none" stroke="transparent" strokeWidth={12} vectorEffect="non-scaling-stroke"
                 style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
                 onPointerDown={ev => ev.stopPropagation()}
                 onClick={() => onSelect(e.key === selected ? null : e.key)}

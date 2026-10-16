@@ -6,7 +6,7 @@
  * colours set in the Style Studio, and only appear where TI draws or explains
  * them (the legend, the graph's lines).
  */
-import type { Frame, Link } from '@/lib/oi/types';
+import type { Frame, Link } from '@/lib/ai/types';
 
 /** CSS colours for SVG and inline styles; markup uses the token classes (text-gold, bg-surface-2…). */
 export const T = {
@@ -25,9 +25,9 @@ export const T = {
   green: 'var(--green)',
   blue: 'var(--blue)',
   /** The arcs' three colours, from the Style Studio. */
-  support: 'var(--map-oi-support)',
-  oppose: 'var(--map-oi-oppose)',
-  neutral: 'var(--map-oi-neutral)',
+  support: 'var(--map-ai-support)',
+  oppose: 'var(--map-ai-oppose)',
+  neutral: 'var(--map-ai-neutral)',
 };
 
 /**

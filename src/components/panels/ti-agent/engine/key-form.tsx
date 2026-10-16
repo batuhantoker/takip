@@ -4,13 +4,13 @@
  * this device remembers it, and a check that it works (which also lists the
  * models it can use).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowUpRight, Eye, EyeOff } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { Select, Switch, TextField } from '@/components/ui/field';
-import { PROVIDERS, providerInfo, type ProviderId } from '@/lib/oi/providers';
-import { checkKey, forgetKey, loadKey, saveEngine, saveKey, type Engine } from '@/lib/oi/client';
+import { PROVIDERS, providerInfo, type ProviderId } from '@/lib/ai/providers/catalog';
+import { checkKey, forgetKey, loadKey, saveEngine, saveKey, type Engine } from '@/lib/ai/client';
 import { shortName } from '../theme';
 
 export type ModelList = { models: { id: string; name: string }[]; listed: boolean };
@@ -63,6 +63,26 @@ export function KeyForm({ engine, setEngine, keyValue, setKey, onModels, onSaved
     onSaved?.();
   };
 
+  /** Local models: what the server has installed, which also checks it is running. An empty address finds one. */
+  const [address, setAddress] = useState(engine.base ?? '');
+  const connectLocal = async (base = engine.base ?? '') => {
+    setStatus({ kind: 'checking', text: '' });
+    const out = await checkKey('local', '', base);
+    if ('error' in out) { setStatus({ kind: 'error', text: out.error }); onModels?.(null); return; }
+    onModels?.({ models: out.models, listed: out.listed });
+    const model = out.models.some(m => m.id === engine.model) ? engine.model : out.preferred || engine.model;
+    const next = { ...engine, model, ...(base ? { base } : {}) };
+    if (!base) delete next.base;
+    if (model !== engine.model || next.base !== engine.base) update(next);
+    setStatus({ kind: 'ok', text: `${out.models.length} model${out.models.length === 1 ? '' : 's'}${out.base ? ` at ${out.base.replace(/^https?:\/\//, '').replace(/\/v1$/, '')}` : ''}` });
+  };
+  // Chosen, or opened while chosen: ask the server what it has.
+  useEffect(() => {
+    if (engine.provider !== 'local') return;
+    const t = setTimeout(() => void connectLocal(), 0);
+    return () => clearTimeout(t);
+  }, [engine.provider]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const forget = () => {
     forgetKey(engine.provider);
     setKey('');
@@ -104,6 +124,21 @@ export function KeyForm({ engine, setEngine, keyValue, setKey, onModels, onSaved
             update({ ...engine, remember: on });
             if (keyValue) saveKey(engine.provider, keyValue, on);
           }} />
+        </>
+      ) : engine.provider === 'local' ? (
+        <>
+          <p className="text-small text-ink-2">
+            Models you run yourself (Ollama, LM Studio, llama.cpp or vLLM) through their OpenAI-compatible API, reached from TAKIP&apos;s server. No key and no cost; speed depends on the hardware. Leave the address empty to find one on the usual ports, or give its host and port.
+          </p>
+          <form className="flex items-end gap-2" onSubmit={e => { e.preventDefault(); void connectLocal(address.trim()); }}>
+            <TextField label="Address" size="sm" className="min-w-0 flex-1" value={address} spellCheck={false} autoComplete="off"
+              onChange={e => { setAddress(e.target.value.trim()); setStatus({ kind: 'idle', text: '' }); }}
+              placeholder="Found automatically, or 127.0.0.1:8080" />
+            <Button type="submit" size="sm" variant={address.trim() !== (engine.base ?? '') ? 'primary' : 'secondary'} loading={status.kind === 'checking'}>
+              {address.trim() !== (engine.base ?? '') ? 'Connect' : 'Check'}
+            </Button>
+          </form>
+          {status.text && <p role="status" className={cx('-mt-1.5 text-meta', status.kind === 'error' ? 'text-red' : 'text-green')}>{status.text}</p>}
         </>
       ) : (
         <p className="text-small text-ink-2">Scripted answers for trying TI on a development server. No key, no cost, no real analysis.</p>

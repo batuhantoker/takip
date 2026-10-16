@@ -6,20 +6,20 @@ import { Button, IconButton } from '@/components/ui/button';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { Dot } from '@/components/ui/tag';
-import type { OiClient } from '@/lib/oi/client';
+import type { AiClient } from '@/components/panels/ti-agent/use-ai';
 import { ago, pct, sentence } from '../theme';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';
 
 const STATUS: Record<string, string> = { running: 'Running', failed: 'Failed', cancelled: 'Stopped' };
 const SHOWN = 5;
 
-export function HistoryList({ oi, onPick }: { oi: OiClient; onPick: (id: string) => void }) {
+export function HistoryList({ ai, onPick }: { ai: AiClient; onPick: (id: string) => void }) {
   const [all, setAll] = useState(false);
-  if (!oi.history.length) return null;
-  const rows = all ? oi.history : oi.history.slice(0, SHOWN);
+  if (!ai.history.length) return null;
+  const rows = all ? ai.history : ai.history.slice(0, SHOWN);
   return (
-    <PanelSection title="Your forecasts" hint={oi.history.length}
-      action={oi.history.length > SHOWN ? <Button variant="ghost" size="sm" onClick={() => setAll(v => !v)}>{all ? 'Show fewer' : 'Show all'}</Button> : undefined}>
+    <PanelSection title="Your forecasts" hint={ai.history.length}
+      action={ai.history.length > SHOWN ? <Button variant="ghost" size="sm" onClick={() => setAll(v => !v)}>{all ? 'Show fewer' : 'Show all'}</Button> : undefined}>
       {rows.map(h => {
         const answer = h.answer ? sentence(h.answer) : h.probability !== null ? pct(h.probability) : '';
         return (
@@ -31,7 +31,7 @@ export function HistoryList({ oi, onPick }: { oi: OiClient; onPick: (id: string)
                 {[STATUS[h.status], ago(h.at)].filter(Boolean).join(' · ')}
               </>
             )}
-            trailing={<IconButton size="sm" label="Remove from this list" icon={X} onClick={() => oi.forget(h.id)} className="-mr-1 text-ink-4 group-hover/row:text-ink-2" />} />
+            trailing={<IconButton size="sm" label="Remove from this list" icon={X} onClick={() => ai.forget(h.id)} className="-mr-1 text-ink-4 group-hover/row:text-ink-2" />} />
         );
       })}
     </PanelSection>

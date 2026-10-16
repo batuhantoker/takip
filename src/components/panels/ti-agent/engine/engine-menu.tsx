@@ -4,8 +4,8 @@ import { useMemo, useRef, useState, type ComponentProps, type MouseEvent } from 
 import { KeyRound } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { Popover } from '@/components/ui/popover';
-import { saveEngine } from '@/lib/oi/client';
-import { providerInfo } from '@/lib/oi/providers';
+import { saveEngine } from '@/lib/ai/client';
+import { providerInfo } from '@/lib/ai/providers/catalog';
 import { KeyForm, KeyPrivacy, type EngineState, type ModelList } from './key-form';
 import { ModelPicker } from './model-picker';
 
@@ -21,7 +21,7 @@ export function EngineSheet(p: EngineState) {
       <section className="flex flex-col gap-2">
         <h3 className="flex items-baseline gap-2 text-meta font-medium text-ink-3">
           <span className="flex-1">Model</span>
-          <span className="font-normal">{list ? (list.listed ? `${list.models.length} on this key` : 'Known names') : info.needsKey ? 'Recommended' : ''}</span>
+          <span className="font-normal">{list ? (list.listed ? `${list.models.length} ${info.needsKey ? 'on this key' : 'installed'}` : 'Known names') : info.needsKey ? 'Recommended' : ''}</span>
         </h3>
         <ModelPicker provider={engine.provider} models={list?.models ?? known} value={engine.model}
           onChange={model => { const next = { ...engine, model }; setEngine(next); saveEngine(next); }}

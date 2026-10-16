@@ -7,8 +7,8 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { cx } from '@/components/ui/class-names';
 import { Dot } from '@/components/ui/tag';
-import { latestPoints, type RunState } from '@/lib/oi/state';
-import { formatAmount, leader, positionIn } from '@/lib/oi/forecast';
+import { latestPoints, type RunState } from '@/lib/ai/state';
+import { formatAmount, leader, positionIn } from '@/lib/ai/forecast';
 import { T, fit, pct, smooth } from '@/components/panels/ti-agent/theme';
 import { PointTag } from '@/components/panels/ti-agent/atoms';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';
