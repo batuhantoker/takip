@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import type { StarCatalog } from '@/lib/space/earth-sky-layer';
+import type { StarCatalog } from '@/lib/space/globe/sky-layer';
 import { EQUATORIAL_TO_ECLIPTIC, mul } from '@/lib/space/frames';
-import { raDecVector, starColor } from '@/lib/space/sky-projection';
+import { raDecVector, starColor } from '@/lib/space/globe/sky-projection';
 import { dotTexture } from './shared';
 
 /**
