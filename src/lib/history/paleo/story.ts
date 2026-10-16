@@ -1,4 +1,4 @@
-import type { ReplayClock } from '@/lib/replay/clock';
+import type { ReplayClock } from '@/lib/map/replay/clock';
 import { atMa, maAt } from './deep-time';
 
 /*

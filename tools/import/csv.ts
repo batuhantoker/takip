@@ -1,4 +1,5 @@
 import { createReadStream } from 'node:fs';
+import { createGunzip } from 'node:zlib';
 
 const COMMA = 0x2c;
 const QUOTE = 0x22;
@@ -19,7 +20,7 @@ export function decodeField(bytes: Uint8Array): string {
   return s.replace(/ /g, ' ');
 }
 
-/** Streams RFC 4180 rows: quoted fields may hold commas, quotes and newlines. */
+/** Streams RFC 4180 rows: quoted fields may hold commas, quotes and newlines. A `.gz` path is gunzipped on the way. */
 export async function* csvRows(path: string): AsyncGenerator<string[]> {
   let field = new Uint8Array(256);
   let len = 0;
@@ -42,7 +43,8 @@ export async function* csvRows(path: string): AsyncGenerator<string[]> {
     quoteSeen = false;
   };
 
-  for await (const chunk of createReadStream(path) as AsyncIterable<Buffer>) {
+  const input = path.endsWith('.gz') ? createReadStream(path).pipe(createGunzip()) : createReadStream(path);
+  for await (const chunk of input as AsyncIterable<Buffer>) {
     let i = 0;
     if (first) {
       first = false;

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Geometry, Position, Ring } from '@takip/db';
 
 /*
- * Just enough of the ESRI shapefile format for polygon layers: .shp polygons (type 5) and the .dbf table.
+ * Just enough of the ESRI shapefile format: .shp polylines (type 3) and polygons (type 5), and the .dbf table.
  * Coordinates come back as stored; the caller reprojects.
  */
 
@@ -44,18 +44,22 @@ function readShp(path: string): (Geometry | null)[] {
     const len = buf.readInt32BE(off + 4) * 2;
     const at = off + 8;
     const type = buf.readInt32LE(at);
-    if (type === 0) out.push(null);
-    else if (type === 5) {
-      const parts = buf.readInt32LE(at + 36);
+    const parts = () => {
+      const count = buf.readInt32LE(at + 36);
       const points = buf.readInt32LE(at + 40);
-      const starts = Array.from({ length: parts }, (_, i) => buf.readInt32LE(at + 44 + i * 4));
-      const base = at + 44 + parts * 4;
-      const rings: Ring[] = starts.map((s, i) => {
-        const e = i + 1 < parts ? starts[i + 1] : points;
+      const starts = Array.from({ length: count }, (_, i) => buf.readInt32LE(at + 44 + i * 4));
+      const base = at + 44 + count * 4;
+      return starts.map((s, i) => {
+        const e = i + 1 < count ? starts[i + 1] : points;
         return Array.from({ length: e - s }, (_, k) => [buf.readDoubleLE(base + (s + k) * 16), buf.readDoubleLE(base + (s + k) * 16 + 8)] as Position);
       });
-      out.push(polygonFrom(rings));
-    } else throw new Error(`${path}: shape type ${type} is not supported`);
+    };
+    if (type === 0) out.push(null);
+    else if (type === 3) {
+      const lines = parts();
+      out.push(lines.length === 1 ? { type: 'LineString', coordinates: lines[0] } : { type: 'MultiLineString', coordinates: lines });
+    } else if (type === 5) out.push(polygonFrom(parts() as Ring[]));
+    else throw new Error(`${path}: shape type ${type} is not supported`);
     off = at + len;
   }
   return out;

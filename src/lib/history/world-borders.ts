@@ -1,6 +1,10 @@
-import { pop } from '@/lib/map/popups/kit';
-import { MAP_INK } from '@/lib/map/tokens';
-import { yearLabel } from '@/lib/replay/timeline-ticks';
+import { htmlEsc, pop, urlSafe } from '@/lib/map/popups/kit';
+import { MAP_INK } from '@/lib/map/style/tokens';
+import { yearLabel } from '@/lib/map/replay/timeline-ticks';
+import { summaryHtml } from './popup';
+import { languageName } from '@/lib/core/wikipedia/language';
+import { articleRef, refFromUrl } from '@/lib/core/wikipedia/refs';
+import type { ArticleSummary } from './wiki';
 
 /*
  * World borders in History, from Seshat's Cliopatria: the world's polities year by year, 3400 BCE to 2024
@@ -77,21 +81,44 @@ export type WorldBorderFeature = {
 /** "1914", "1924 – 1935", or "since 2006" for borders still standing at the data's end; t1 starts the year after. */
 export function yearsSpan(t0: number, t1: number | null): string {
   const first = clockYearLabel(clockYear(t0 * 1000));
-  if (t1 === null) return `since ${first}`;
+  // Map features drop null properties, so an open end can arrive as undefined.
+  if (t1 == null) return `since ${first}`;
   const last = clockYearLabel(clockYear(t1 * 1000) - 1);
   return last === first ? first : `${first} – ${last}`;
 }
 
-export function worldBorderPopupHtml(p: WorldBorderFeature): string {
+/** The Wikipedia article Cliopatria names for the polity, as /api/history/wiki takes it. */
+export const articleOf = (p: WorldBorderFeature) => (p.wiki ? refFromUrl(p.wiki) : null);
+
+/** What lands after the popup opens: the article, and whether its summary is open in full. */
+export type BorderExtras = { wiki?: ArticleSummary | null; expanded?: boolean };
+
+/** A polity's picture is mostly a flag or a map, so it sits small beside the article's name. */
+function articleHtml(w: ArticleSummary): string {
+  const img = w.image ? `<img class="tk-pop-thumb" src="${urlSafe(w.image.src)}" alt="" />` : '';
+  return `<div class="tk-pop-wiki tk-pop-article">${img}<div>
+    <div class="tk-pop-item-title">${htmlEsc(w.title)}</div>
+    ${w.description ? `<div class="tk-pop-list-meta">${htmlEsc(w.description)}</div>` : ''}
+  </div></div>`;
+}
+
+export function worldBorderPopupHtml(p: WorldBorderFeature, x: BorderExtras = {}): string {
   const whole = p.subject && p.subject !== p.name ? p.subject : null;
+  const w = x.wiki;
+  const ref = articleOf(p);
+  const lang = w?.lang ?? (ref ? articleRef(ref).lang : 'en');
+  const extract = w?.extract.trim();
+  const story = w ? articleHtml(w) + (extract ? summaryHtml(extract, !!x.expanded) : '') : '';
   return pop({
     kicker: whole ? `Part of ${whole}` : 'Polity',
     dot: powerColor(p.subject ?? p.name),
     title: p.name,
     rows: [{ label: 'These borders', value: yearsSpan(p.t0, p.t1) }],
-    note: 'Cliopatria, Seshat Global History Databank (CC BY 4.0). Drawn for world scale.',
+    foot: story ? `<div class="tk-pop-body">${story}</div>` : undefined,
     links: [
-      p.wiki ? { href: p.wiki, label: 'Wikipedia' } : { href: `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(p.name)}`, label: 'Search Wikipedia' },
+      w || p.wiki
+        ? { href: w?.url ?? p.wiki, label: lang === 'en' ? 'Wikipedia' : `${languageName(lang)} Wikipedia` }
+        : { href: `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(p.name)}`, label: 'Search Wikipedia' },
       /^Q\d+$/.test(p.wikidata ?? '') && { href: `https://www.wikidata.org/wiki/${p.wikidata}`, label: 'Wikidata' },
     ],
   });

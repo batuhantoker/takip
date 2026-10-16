@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createReplayClock } from '@/lib/replay/clock';
-import { busyFrom, createCountryView } from './country-view';
+import { createReplayClock } from '@/lib/map/replay/clock';
+import { busyFrom, createCountryView } from './countries/view';
 import { formatAt, formatValue, msAt, readingAt, readingText, scaleFor, type SeriesPayload, type ShapePoint, yearAt } from './series';
 
 const at = (iso: string) => Date.parse(iso);
@@ -126,8 +126,8 @@ describe('createCountryView', () => {
   const ok = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
   const settle = () => new Promise(r => setTimeout(r, 0));
 
-  it('loads a metric, then moves a clock outside its years to where most countries have data', async () => {
-    const clock = createReplayClock(at('2026-10-12T00:00:00Z'), { now: () => at('2026-10-12T00:00:00Z'), frame: () => 0, cancelFrame: () => {} });
+  it('loads a metric, then moves a clock before its years to where most countries have data', async () => {
+    const clock = createReplayClock(at('1700-01-01T00:00:00Z'), { now: () => at('2026-10-12T00:00:00Z'), frame: () => 0, cancelFrame: () => {} });
     const urls: string[] = [];
     const view = createCountryView(clock, (url => { urls.push(String(url)); return ok(payload); }) as typeof fetch);
     view.select('owid:le_0');
@@ -137,6 +137,15 @@ describe('createCountryView', () => {
     expect(urls).toEqual(['/api/replay/history/series/owid%3Ale_0']);
     expect(new Date(clock.time()).getUTCFullYear()).toBe(1950);
     expect(clock.speed()).toBe(365 * 86_400);
+  });
+
+  it('moves a clock past a series that stops before today to its latest year, at the same speed', async () => {
+    const clock = createReplayClock(at('2026-10-12T00:00:00Z'), { now: () => at('2026-10-12T00:00:00Z'), frame: () => 0, cancelFrame: () => {} });
+    const view = createCountryView(clock, (() => ok({ ...payload, years: [1751, 2019] })) as typeof fetch);
+    view.select('owid:le_0');
+    await settle();
+    expect(yearAt(clock.time())).toBeCloseTo(2019.5, 3);
+    expect(clock.speed()).toBe(60);
   });
 
   it('leaves the clock alone inside the years, and drops a stale answer', async () => {

@@ -1,5 +1,6 @@
 import type { Ctx } from '../context';
-import { importCowInterstate, importCowTerritorial } from './cow';
+import { importCowInterstate } from './cow';
+import { importCowTerritorial } from './cow-territorial';
 import { importAdmin0, importGlwd, importUnesco } from './geo';
 import { importGtd } from './gtd';
 import { importIcow } from './icow';
@@ -16,15 +17,22 @@ import {
 import { importUcdp } from './ucdp';
 import { importWac1914 } from './wac1914';
 import { importWdi } from './wdi';
+import { importWpp } from './wpp';
+import { importCckp } from './cckp';
+import { importWup } from './wup';
+import { importIdb } from './idb';
+import { importGep } from './gep';
+import { importImf } from './imf';
+import { importOecdLt } from './oecd-lt';
 import { importWw1 } from './ww1';
 import { importNoaa } from './noaa';
 import { importNuclear } from './nuclear';
 import { importWikidataAttacks, importWikidataBattles, importWikidataPolitics } from './wikidata';
+import { importWikidataMassacres, importWikidataRevolutions, importWikidataWars } from './wikidata-conflict';
 import { importWw2Borders } from './ww2';
 import { importOwidCovid } from './owid-covid';
 import { importCliopatria } from './cliopatria';
 import { importGdis } from './gdis';
-import { importWikidataMassacres, importWikidataRevolutions, importWikidataWars } from './wikidata-conflict';
 
 /**
  * Run order matters: later importers link to events earlier ones loaded (COW → WAC same_as, UCDP → WAC/COW,
@@ -40,6 +48,13 @@ export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
   gtd: importGtd,
   'ww1-wiki': importWw1,
   wdi: importWdi,
+  'wpp-2024': importWpp,
+  'wb-cckp': importCckp,
+  'wup-2025': importWup,
+  'census-idb': importIdb,
+  'wb-gep': importGep,
+  'imf-weo': importImf,
+  'oecd-lt-eo117': importOecdLt,
   'owid-conflict': importOwidConflict,
   'owid-le': importOwidLifeExpectancy,
   'owid-le-hmd': importOwidLifeExpectancyHmd,

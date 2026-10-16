@@ -48,20 +48,17 @@ describe('history popup', () => {
     expect(historyPopupHtml(p, d, { wiki })).not.toContain('data-history-lang');
   });
 
-  it('offers the article in its other languages, the shown one selected', () => {
+  it('shows the stored article in its language, with no picker', () => {
     const p = { id: 6, kind: 'battle', family: 'conflict', title: 'Batalla de Lleida', t0: s('1644-05-15'), t1: s('1644-05-15'), prec: Prec.day, ongoing: 0, geoPrec: 1 };
     const d = { ...p, tStart: p.t0, tEnd: null, endPrec: null, attrs: { wiki: 'fr:Bataille de Lérida (1644)' } };
     const wiki = {
       title: 'Bataille de Lérida (1644)', description: null, extract: 'La bataille de Lérida…', image: null, url: 'https://fr.wikipedia.org/wiki/Bataille_de_L%C3%A9rida_(1644)',
-      ref: 'fr:Bataille de Lérida (1644)', lang: 'fr', languages: [{ lang: 'kbp', title: 'Lleida' }, { lang: 'ca', title: 'Batalla de Lleida (1644)' }, { lang: 'en', title: 'Battle of Lleida (1644)' }],
+      ref: 'fr:Bataille de Lérida (1644)', lang: 'fr', languages: [{ lang: 'ca', title: 'Batalla de Lleida (1644)' }, { lang: 'en', title: 'Battle of Lleida (1644)' }],
     };
     const html = historyPopupHtml(p, d, { wiki });
-    expect(html).toContain('<option value="ca:Batalla de Lleida (1644)">Catalan</option>');
-    expect(html).toContain('<option value="Battle of Lleida (1644)">English</option>');
-    expect(html).toContain('<option value="fr:Bataille de Lérida (1644)" selected>French</option>');
-    expect(html.indexOf('>French<')).toBeLessThan(html.indexOf('>kbp<'));
+    expect(html).toContain('La bataille de Lérida');
+    expect(html).not.toContain('<select');
     expect(html).toContain('From French Wikipedia');
-    expect(historyPopupHtml(p, d, { wiki: { ...wiki, ref: 'ca:Batalla de Lleida (1644)', lang: 'ca', url: 'https://ca.wikipedia.org/wiki/Batalla' } })).toContain('From Catalan Wikipedia');
   });
 
   it('links an article in another Wikipedia under its language', () => {
@@ -94,6 +91,15 @@ describe('history popup', () => {
     expect(html).toContain('Battle of Khafji');
     expect(html).toContain('and 11 more');
     expect(historyPopupHtml(war, d, {})).toContain('Loading…');
+  });
+
+  it('offers Pin only when asked, and leaves the kicker to the window once pinned', () => {
+    const p = { id: 9, kind: 'conflict.rebellion', family: 'conflict', title: 'Kuomintang Islamic insurgency', t0: s('1950-01-01'), t1: s('1958-01-01'), prec: Prec.year, ongoing: 0, geoPrec: 3 };
+    expect(historyPopupHtml(p)).not.toContain('data-pop-pin');
+    expect(historyPopupHtml(p, undefined, {}, { pin: true })).toContain('data-pop-pin');
+    const windowed = historyPopupHtml(p, undefined, {}, { windowed: true });
+    expect(windowed).not.toContain('tk-pop-kicker');
+    expect(windowed).toContain('Kuomintang Islamic insurgency');
   });
 
   it('reads the day out of a GTD eventid', () => {

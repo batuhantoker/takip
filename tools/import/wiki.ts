@@ -32,7 +32,7 @@ export async function readWikiTable(name: string, dir = WIKI_DIR): Promise<Map<s
 
 export const wikiTablePath = (name: string, dir = WIKI_DIR) => join(dir, `${name}.csv`);
 
-/** attrs.wiki: an English title as is, another Wikipedia's as "fr:Titre" (read by src/lib/history/wiki.ts articleRef). */
+/** attrs.wiki: an English title as is, another Wikipedia's as "fr:Titre" (read by src/lib/core/wikipedia/refs.ts articleRef). */
 export const wikiRef = (lang: string, title: string) => (lang === 'en' ? title : `${lang}:${title}`);
 
 /** Wikipedias tried in this order for an item with no English article; then the first by code. */

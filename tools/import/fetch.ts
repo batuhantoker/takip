@@ -1,11 +1,13 @@
 /*
  * Downloads the keyless sources the second batch of importers reads into RAW_MORE (gitignored).
- *   npx tsx tools/import/fetch.ts <noaa|wikidata|attacks|conflicts|war-battles|sitelinks|articles|test-series|usgs-articles|wdi|owid|nuclear|covid|cliopatria|gdis|all>
+ *   npx tsx tools/import/fetch.ts <noaa|wikidata|attacks|conflicts|wpp|war-battles|sitelinks|articles|test-series|usgs-articles|wdi|owid|nuclear|covid|cliopatria|gdis|cckp|wup|idb|gep|imf|oecd-lt|all>
  * Files are replaced whole; importers hash them, so an unchanged download is skipped on import.
  */
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { gunzipSync } from 'node:zlib';
+import { zipEntry } from '../../src/lib/core/net/remote-zip';
 import { RAW_MORE, REPO } from './context';
 import { readCsv } from './csv';
 import { WIKI_DIR } from './wiki';
@@ -316,6 +318,29 @@ async function wdi() {
   console.log('wdi: done');
 }
 
+const WPP = 'https://population.un.org/wpp/assets/Excel%20Files/1_Indicator%20(Standard)';
+
+/**
+ * UN World Population Prospects 2024 (CC BY 3.0 IGO): the medium variant, with the January 2026 rows that re-estimate
+ * Togo, and the other variants and prediction intervals (75 MB, kept gzipped).
+ */
+async function wpp() {
+  const indicators = await get(`${WPP}/CSV_FILES/WPP2024_Demographic_Indicators_Medium.csv.gz`);
+  writeFileSync(out('wpp', 'WPP2024_Demographic_Indicators_Medium.csv'), gunzipSync(Buffer.from(await indicators.arrayBuffer())));
+  const variants = await get(`${WPP}/CSV_FILES/WPP2024_Demographic_Indicators_OtherVariants.csv.gz`);
+  writeFileSync(out('wpp', 'WPP2024_Demographic_Indicators_OtherVariants.csv.gz'), Buffer.from(await variants.arrayBuffer()));
+  const ages = await get(`${WPP}/CSV_FILES/WPP2024_PopulationByAge5GroupSex_Medium.csv.gz`);
+  writeFileSync(out('wpp', 'WPP2024_PopulationByAge5GroupSex_Medium.csv.gz'), Buffer.from(await ages.arrayBuffer()));
+  const agesUpdate = await zipEntry(`${WPP}/WPP2024_CSV_files_update.zip`, 'WPP2024_PopulationByAge5GroupSex_Medium_Update.csv');
+  if (!agesUpdate) throw new Error('wpp: the update zip has no age groups');
+  writeFileSync(out('wpp', 'WPP2024_PopulationByAge5GroupSex_Medium_Update.csv'), agesUpdate);
+  writeFileSync(out('wpp', 'WPP2024_Locations_notes.csv'), Buffer.from(await (await get(`${WPP}/CSV_FILES/WPP2024_Locations_notes.csv`)).arrayBuffer()));
+  const update = await zipEntry(`${WPP}/WPP2024_CSV_files_update.zip`, 'WPP2024_Demographic_Indicators_Medium_Update.csv');
+  if (!update) throw new Error('wpp: the update zip has no demographic indicators');
+  writeFileSync(out('wpp', 'WPP2024_Demographic_Indicators_Medium_Update.csv'), update);
+  console.log('wpp: done');
+}
+
 /** Our World in Data grapher CSVs with long country coverage before 1960 (CC BY 4.0). */
 export const OWID_CHARTS = [
   'gdp-per-capita-maddison-project-database',
@@ -326,6 +351,7 @@ export const OWID_CHARTS = [
   'mean-years-of-schooling-long-run',
   'co-emissions-per-capita',
   'children-born-per-woman',
+  'population',
 ];
 
 async function owid() {
@@ -379,7 +405,80 @@ async function gdis() {
   console.log('gdis: done');
 }
 
-const FETCHERS: Record<string, () => Promise<void>> = { noaa, wikidata, attacks, conflicts, 'war-battles': warBattles, sitelinks, articles, 'test-series': testSeries, 'usgs-articles': usgsArticles, wdi, owid, nuclear, covid, cliopatria, gdis };
+/** UN World Urbanization Prospects 2025 (CC BY 3.0 IGO): national definitions, and the degree of urbanisation; 12 MB, kept gzipped. */
+async function wup() {
+  const base = 'https://population.un.org/wup/assets/Download/Countries%20and%20Aggregates';
+  for (const file of ['WUP2025-DB-National-Definitions-Population-Data.csv.gz', 'WUP2025-DB-DEGURBA-Level1-Population-Surface-Data.csv.gz']) {
+    writeFileSync(out('wup', file), Buffer.from(await (await get(`${base}/${file}`)).arrayBuffer()));
+  }
+  console.log('wup: done');
+}
+
+/** US Census Bureau International Database (CC0, per its API metadata): the five-year-group file from the keyless zip (80 MB), and each country's last revision. */
+async function idb() {
+  const zip = out('idb', 'idbzip.zip');
+  writeFileSync(zip, Buffer.from(await (await get('https://www.census.gov/data-tools/demo/data/idb/dataset/idbzip.zip')).arrayBuffer()));
+  execFileSync('unzip', ['-o', '-q', '-j', zip, 'idb5yr.txt', '-d', join(RAW_MORE, 'idb')]);
+  const table = await get('https://www.census.gov/programs-surveys/international-programs/about/idb/countries-and-areas.html');
+  writeFileSync(out('idb', 'countries-and-areas.html'), await table.text());
+  console.log('idb: done');
+}
+
+/** World Bank Global Economic Prospects (CC BY 4.0): real GDP growth estimates and forecasts, 36 KB. */
+async function gep() {
+  const zip = out('gep', 'GEP_CSV.zip');
+  writeFileSync(zip, Buffer.from(await (await get('https://databankfiles.worldbank.org/public/ddpext_download/GEP_CSV.zip')).arrayBuffer()));
+  execFileSync('unzip', ['-o', '-q', '-j', zip, 'GEPCSV.csv', '-d', join(RAW_MORE, 'gep')]);
+  console.log('gep: done');
+}
+
+/** OECD Economic Outlook 117 long-term scenarios: GDP per person and CO₂ for every area and scenario, about 3.5 MB each. */
+async function oecdLt() {
+  for (const measure of ['GDPVD_CAP', 'CO2']) {
+    const url = `https://sdmx.oecd.org/public/rest/data/OECD.ECO.MAD,DSD_EO_LTB@DF_EO_LTB,1.0/.${measure}..A?dimensionAtObservation=AllDimensions&format=csvfile`;
+    writeFileSync(out('oecd-lt', `${measure}.csv`), await (await get(url)).text());
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  console.log('oecd-lt: done');
+}
+
+/** The IMF forbids automated bulk download, so this only says where a person gets the WEO file (datasets/imf.ts reads it). */
+async function imf() {
+  mkdirSync(join(RAW_MORE, 'imf'), { recursive: true });
+  console.log([
+    'imf: download it by hand, then run `npm run import -- seed imf-weo`:',
+    '  1. Open https://data.imf.org/en/datasets/IMF.RES:WEO (World Economic Outlook, October 2026).',
+    '  2. Download, choosing the full dataset as CSV.',
+    `  3. Put that one .csv file in ${join(RAW_MORE, 'imf')}.`,
+  ].join('\n'));
+}
+
+const CCKP = 'https://cckpapi.worldbank.org/cckp/v1';
+/** The variables History maps from the World Bank's Climate Change Knowledge Portal; tools/import/datasets/cckp.ts names them. */
+export const CCKP_VARS = ['tas', 'txx', 'hd35', 'hd40', 'tr', 'pr', 'r20mm', 'cdd'];
+export const CCKP_ERA5 = '1950-2025';
+
+/**
+ * CCKP country means (CC BY 4.0): ERA5 observed, and the bias-adjusted CMIP6 ensemble's 10th, 50th and 90th
+ * percentiles, its historical run 1950–2014 and five SSPs 2015–2100. About 50 MB, one variable at a time; a wrong
+ * code answers 200 with no data.
+ */
+async function cckp() {
+  const fetchData = async (code: string, file: string) => {
+    const body = (await (await get(`${CCKP}/${code}/all_countries?_format=json`)).json()) as { data?: Record<string, unknown> };
+    if (!body.data || !Object.keys(body.data).length) throw new Error(`cckp: no data for ${code}`);
+    writeFileSync(out('cckp', file), JSON.stringify(body.data));
+    await new Promise(r => setTimeout(r, 2000));
+  };
+  for (const v of CCKP_VARS) {
+    await fetchData(`era5-x0.25_timeseries_${v}_timeseries_annual_${CCKP_ERA5}_mean_historical_era5_x0.25_mean`, `era5-${v}.json`);
+    await fetchData(`cmip6-x0.25_timeseries_${v}_timeseries_annual_1950-2014_p10,median,p90_historical_ensemble_all_mean`, `cmip6-historical-${v}.json`);
+    await fetchData(`cmip6-x0.25_timeseries_${v}_timeseries_annual_2015-2100_p10,median,p90_ssp119,ssp126,ssp245,ssp370,ssp585_ensemble_all_mean`, `cmip6-${v}.json`);
+    console.log(`cckp ${v}`);
+  }
+}
+
+const FETCHERS: Record<string, () => Promise<void>> = { noaa, wikidata, attacks, conflicts, wpp, 'war-battles': warBattles, sitelinks, articles, 'test-series': testSeries, 'usgs-articles': usgsArticles, wdi, owid, nuclear, covid, cliopatria, gdis, cckp, wup, idb, gep, imf, 'oecd-lt': oecdLt };
 
 async function main() {
   const names = process.argv.slice(2);

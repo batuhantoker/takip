@@ -1,6 +1,8 @@
 import { Prec } from '@takip/core/time';
 import { htmlEsc, pop, type PopRow, urlSafe } from '@/lib/map/popups/kit';
-import { type ArticleSummary, articleRef, articleUrl, languageName, wikiRef } from './wiki';
+import { languageName } from '@/lib/core/wikipedia/language';
+import { articleRef, articleUrl } from '@/lib/core/wikipedia/refs';
+import type { ArticleSummary } from './wiki';
 
 /* Popups for the curated history layer (replay mode): wars, battles, claims, attacks, heritage. */
 
@@ -17,7 +19,7 @@ export const HISTORY_FAMILIES: Record<string, { color: string; label: string; ma
 };
 export const HISTORY_FALLBACK_COLOR = '#7F8B96';
 
-const KINDS: Record<string, string> = {
+export const KINDS: Record<string, string> = {
   war: 'War',
   'war.interstate': 'Interstate war',
   'war.civil': 'Civil war',
@@ -152,7 +154,7 @@ export function gtdRelatedLine(related: unknown): string | null {
   return `${ids.length} attacks ${span}`;
 }
 
-function when(p: HistoryFeature, d?: HistoryDetail | null): string {
+export function when(p: HistoryFeature, d?: HistoryDetail | null): string {
   const start = formatAt(d?.tStart ?? p.t0, p.prec);
   if (p.ongoing) return `since ${start}`;
   if (!d || d.tEnd === null) return start;
@@ -163,7 +165,7 @@ function when(p: HistoryFeature, d?: HistoryDetail | null): string {
 const SKIP = new Set(['url', 'wiki', 'place', 'placed_at', 'net', 'ids', 'status', 'sig', 't_raw', 'crit', 'dyads', 'eventid', 'alt_names', 'phase', 'specificity', 'vicinity', 'doubtterr', 'multiple', 'added_by_compiler']);
 
 /** The attrs a reader can use: scalars and lists of strings, plus belligerents as "a vs b". */
-function facts(attrs: Record<string, unknown>): [string, string][] {
+export function facts(attrs: Record<string, unknown>): [string, string][] {
   const out: [string, string][] = [];
   for (const [k, v] of Object.entries(attrs)) {
     if (SKIP.has(k) || v === null || v === '' || v === false) continue;
@@ -211,7 +213,7 @@ function attackRows(a: Record<string, unknown>): PopRow[] {
 const TEASER = 220;
 
 /** GTD summaries open with the date ("09/11/2001: "), which When already shows. */
-function summaryHtml(summary: string, expanded: boolean): string {
+export function summaryHtml(summary: string, expanded: boolean): string {
   const s = summary.replace(/^[\d/]+:\s*/, '');
   const para = (t: string) => `<p class="tk-pop-text">${htmlEsc(t)}</p>`;
   if (s.length <= TEASER + 40) return para(s);
@@ -220,23 +222,11 @@ function summaryHtml(summary: string, expanded: boolean): string {
   return `${para(`${cut}…`)}<button type="button" class="tk-pop-more" data-history-more>Read more</button>`;
 }
 
-/** The article in its other Wikipedias, by language name; picking one reloads the summary in it. */
-function languageSelect(w: ArticleSummary): string {
-  if (!w.languages?.length) return '';
-  const options = [{ ref: w.ref, lang: w.lang }, ...w.languages.map(l => ({ ref: wikiRef(l.lang, l.title), lang: l.lang }))]
-    .map(o => ({ ...o, name: languageName(o.lang) }))
-    // Small wikis the browser has no name for ("arz") go last.
-    .sort((a, b) => Number(a.name === a.lang) - Number(b.name === b.lang) || a.name.localeCompare(b.name));
-  const list = options.map(o => `<option value="${htmlEsc(o.ref)}"${o.lang === w.lang ? ' selected' : ''}>${htmlEsc(o.name)}</option>`).join('');
-  return `<span class="tk-pop-lang"><select data-history-lang aria-label="Article language">${list}</select></span>`;
-}
-
 function wikiHtml(w: ArticleSummary): string {
   const img = w.image ? `<img class="tk-pop-media tk-pop-photo" src="${urlSafe(w.image.src)}" alt="" />` : '';
   return `${img}<div class="tk-pop-wiki">
     <div class="tk-pop-item-title">${htmlEsc(w.title)}</div>
     ${w.description ? `<div class="tk-pop-list-meta">${htmlEsc(w.description)}</div>` : ''}
-    ${languageSelect(w)}
   </div>`;
 }
 
@@ -273,7 +263,8 @@ function linkedHtml(p: HistoryFeature, d: HistoryDetail, x: HistoryExtras): stri
     + linkedSection(`Related ${p.family === 'terror' ? 'attacks' : 'events'}`, g.related, x, gtdRelatedLine(d.attrs.related));
 }
 
-export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x: HistoryExtras = {}): string {
+/** `pin` offers the Pin button; `windowed` leaves the kicker to the window's header. */
+export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x: HistoryExtras = {}, view: { pin?: boolean; windowed?: boolean } = {}): string {
   const family = HISTORY_FAMILIES[p.family];
   const attack = p.kind === 'attack.terror';
   const rows: PopRow[] = [
@@ -301,7 +292,7 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
   const link = url && !isWikipedia(url) ? url : null;
   const source = d?.source ? (d.source.attribution ?? d.source.name) : d === undefined ? 'Loading details…' : null;
   return pop({
-    kicker: family?.label ?? 'Event',
+    kicker: view.windowed ? undefined : family?.label ?? 'Event',
     dot: family?.color ?? HISTORY_FALLBACK_COLOR,
     title: p.title ?? KINDS[p.kind] ?? p.kind,
     rows,
@@ -309,5 +300,6 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
     note: [placement(p, magnitude, d), source, x.wiki ? `· From ${wikipedia}, CC BY-SA` : null].filter(Boolean).join(' ') || undefined,
     links: [article ? { href: article, label: wikipedia } : null, link ? { href: link, label: 'Source page' } : null],
     wide: attack,
+    pin: view.pin,
   });
 }

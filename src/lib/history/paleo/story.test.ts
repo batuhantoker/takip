@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createReplayClock } from '@/lib/replay/clock';
+import { createReplayClock } from '@/lib/map/replay/clock';
 import { atMa } from './deep-time';
 import { type Chapter, createStory } from './story';
 

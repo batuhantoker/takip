@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { OPEN_HI, Prec } from '@takip/core/time';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { fromWkb, fromWkt, toWkb, type Geometry, vertexCount } from './geo/geometry';
-import { subdivide } from './geo/generalize';
+import { simplify, subdivide } from './geo/generalize';
 import { GeoPrec, type EventInput } from './history-stores';
 import { dataLayout } from './layout';
 import { type Db, openWriter } from './open';
@@ -140,6 +140,14 @@ describe('geometry', () => {
     expect(pieces.length).toBeGreaterThan(4);
     for (const p of pieces) expect(vertexCount(p)).toBeLessThanOrEqual(256 + 8);
     expect(subdivide(square)).toEqual([square]);
+  });
+
+  it('keeps a box per vanished island, not one across the sea between them', () => {
+    const isle = (x: number, y: number): [number, number][][] => [[[x, y], [x + 0.1, y], [x + 0.1, y + 0.1], [x, y + 0.1], [x, y]]];
+    const islands: Geometry = { type: 'MultiPolygon', coordinates: [isle(-24, 15), isle(44, -12)] };
+    expect(simplify(islands, 1)).toBeNull();
+    expect(simplify(islands, 1, true)).toEqual(islands);
+    expect(simplify({ type: 'Polygon', coordinates: isle(5, 5) }, 1, true)).toEqual({ type: 'Polygon', coordinates: isle(5, 5) });
   });
 });
 

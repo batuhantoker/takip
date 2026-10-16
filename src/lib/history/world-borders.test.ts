@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { borderWindow, clockYear, clockYearLabel, powerColor, worldBorderPopupHtml, yearsSpan, yearStart } from './world-borders';
+import { articleOf, borderWindow, clockYear, clockYearLabel, powerColor, worldBorderPopupHtml, yearsSpan, yearStart } from './world-borders';
 
 const s = (year: number) => yearStart(year) / 1000;
 
@@ -36,5 +36,24 @@ describe('world borders', () => {
     expect(html).toContain('Special:Search?search=British%20Raj');
     expect(html).toContain('https://www.wikidata.org/wiki/Q129286');
     expect(worldBorderPopupHtml({ id: 2, name: 'Ottoman Empire', subject: null, wiki: null, wikidata: null, t0: s(1914), t1: null })).toContain('Polity');
+  });
+
+  it('fills the popup with the Wikipedia article in place of the source line', () => {
+    const p = { id: 3, name: 'Elam', subject: null, wiki: 'https://en.wikipedia.org/wiki/Elam', wikidata: 'Q128904', t0: s(-2699), t1: s(-538) };
+    expect(articleOf(p)).toBe('Elam');
+    expect(articleOf({ ...p, wiki: null })).toBeNull();
+    const before = worldBorderPopupHtml(p);
+    expect(before).not.toContain('Cliopatria');
+    expect(before).toContain('href="https://en.wikipedia.org/wiki/Elam"');
+    const wiki = { title: 'Elam', description: 'Ancient civilization in Iran', extract: 'Elam was an ancient civilization. '.repeat(12).trim(), image: null, url: 'https://fr.wikipedia.org/wiki/%C3%89lam', ref: 'fr:Élam', lang: 'fr', languages: [{ lang: 'en', title: 'Elam' }] };
+    const html = worldBorderPopupHtml(p, { wiki });
+    expect(html).toContain('Ancient civilization in Iran');
+    expect(html).toContain('data-history-more');
+    expect(html).not.toContain('<select');
+    expect(html).toContain('>French Wikipedia<');
+    expect(html).toContain('https://www.wikidata.org/wiki/Q128904');
+    expect(worldBorderPopupHtml(p, { wiki, expanded: true })).toContain('Show less');
+    // A feature's null end arrives as undefined once the map has it.
+    expect(worldBorderPopupHtml({ ...p, t1: undefined as unknown as null })).toContain('since 2700 BCE');
   });
 });

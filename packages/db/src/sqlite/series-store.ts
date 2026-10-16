@@ -109,11 +109,13 @@ export class SqliteSeriesStore implements SeriesStore {
 
   entityMetrics(sourceIds: ReadonlySet<number>) {
     const rows = this.sql(`
-      SELECT m.metric_id AS metricId, m.code, m.name, m.unit, m.granularity, m.agg, m.topic, m.attrs, count(DISTINCT s.subject_id) AS subjects
+      SELECT m.metric_id AS metricId, m.code, m.name, m.unit, m.granularity, m.agg, m.topic, m.attrs, count(DISTINCT s.subject_id) AS subjects,
+        min((SELECT p.t FROM ts_point p WHERE p.series_id = s.series_id ORDER BY p.t LIMIT 1)) AS first,
+        max((SELECT p.t FROM ts_point p WHERE p.series_id = s.series_id ORDER BY p.t DESC LIMIT 1)) AS last
       FROM ts_metric m JOIN ts_series s USING (metric_id)
       WHERE s.subject_type = 'entity' AND s.source_id IN (SELECT value FROM json_each(?))
       GROUP BY m.metric_id ORDER BY m.code
-    `).all(JSON.stringify([...sourceIds])) as (Omit<MetricRow, 'attrs'> & { attrs: string; subjects: number })[];
-    return rows.map(r => ({ ...SqliteSeriesStore.metricRow(r), subjects: r.subjects }));
+    `).all(JSON.stringify([...sourceIds])) as (Omit<MetricRow, 'attrs'> & { attrs: string; subjects: number; first: number | null; last: number | null })[];
+    return rows.map(r => ({ ...SqliteSeriesStore.metricRow(r), subjects: r.subjects, first: r.first, last: r.last }));
   }
 }

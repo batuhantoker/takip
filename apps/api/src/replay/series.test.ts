@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AccessEnv } from '../access/middleware';
 import { openReplayData, type ReplayData } from './data';
 import { replayRoutes } from './routes';
-import { shapeSeries } from './series';
+import { shapeSeries, yearsOf } from './series';
 
 /** opensky's licence is viewable by anon in the catalog seed; `secret` is added below with a paid-only one. */
 const OPEN = 2;
@@ -128,7 +128,7 @@ describe('/api/replay/history/series', () => {
     }
     series.db.close();
     const { metrics } = await json<{ metrics: unknown[] }>(app().request('/api/replay/history/series'));
-    expect(metrics).toEqual([{ code: 'owid:le_0', name: 'Life expectancy at birth', unit: 'years', topic: 'health', subjects: 10 }]);
+    expect(metrics).toEqual([{ code: 'owid:le_0', name: 'Life expectancy at birth', unit: 'years', topic: 'health', subjects: 10, years: [1985, 2000] }]);
     expect((await app().request('/api/replay/history/series/fred:UNRATE')).status).toBe(422);
     expect((await app().request('/api/replay/history/series/nope')).status).toBe(404);
   });
@@ -158,5 +158,13 @@ describe('shapeSeries', () => {
     ];
     const polities = [{ entityId: 5, key: 'hist:ABK', name: 'Abkhazia', kind: 'disputed' }, { entityId: 6, key: 'FRA', name: 'France', kind: 'sovereign' }];
     expect(shapeSeries(rows, polities, [])).toEqual({ values: {}, names: {}, years: null });
+  });
+});
+
+describe('yearsOf', () => {
+  it('reports calendar years, fractional ones for a weekly metric, and nothing without points', () => {
+    expect(yearsOf(Date.UTC(1960, 0, 1), Date.UTC(2024, 0, 1), 'year')).toEqual([1960, 2024]);
+    expect(yearsOf(Date.parse('2020-03-29T00:00:00Z'), Date.parse('2020-04-12T00:00:00Z'), 'day')).toEqual([2020.24044, 2020.27869]);
+    expect(yearsOf(null, null, 'year')).toBeNull();
   });
 });

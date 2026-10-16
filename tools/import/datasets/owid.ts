@@ -267,6 +267,8 @@ const LONG_RUN: { slug: string; column: Column }[] = [
   { slug: 'mean-years-of-schooling-long-run', column: { column: 'mf_youth_and_adults__15_64_years__average_years_of_education', code: 'owid:schooling_years', name: 'Average years of schooling (ages 15–64)', unit: 'years', agg: 'mean', topic: 'education' } },
   { slug: 'co-emissions-per-capita', column: { column: 'emissions_total_per_capita', code: 'owid:co2_pc', name: 'CO₂ emissions per person', unit: 'tonnes per person', agg: 'mean', topic: 'environment' } },
   { slug: 'children-born-per-woman', column: { column: 'fertility_rate_hist', code: 'owid:fertility_hist', name: 'Fertility rate, long run', unit: 'live births per woman', agg: 'mean', topic: 'people' } },
+  // HYDE to 1800, Gapminder to 1949, UN WPP 2024 after: under the mental-health file's code, as that metric's fuller source.
+  { slug: 'population', column: { column: 'population_historical', code: 'owid:population', name: 'Population', unit: 'people', agg: 'sum', topic: 'population' } },
 ];
 
 export const importOwidLongRun = (ctx: Ctx) =>
