@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { cellBox, FINE_LEVELS, type FineLevel } from '@/lib/areas/boundaries';
-import { featuresInCell, loadFineSet } from '@/lib/areas/geoboundaries';
+import { cellBox, FINE_LEVELS, type FineLevel } from '@/lib/places/areas/boundaries';
+import { featuresInCell, loadFineSet } from '@/lib/places/areas/geoboundaries';
 
 // Outlines change on geoBoundaries' release cycle, not daily; let the CDN keep them.
 const CACHED = { 'Cache-Control': 'public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800' };

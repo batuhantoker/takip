@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { visitorIp } from '@/lib/ssrf-guard';
+import { visitorIp } from '@/lib/core/net/ssrf-guard';
 
 /* The answer is one visitor's location. No cache, shared or otherwise, may
    hand it to the next visitor. */

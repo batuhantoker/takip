@@ -44,7 +44,7 @@
   --brand-ink: #F2F5FA;
   --brand-accent: #2F80FF;
 
-  /* What the map itself draws with. Mirrored in src/lib/map/palette.ts, which
+  /* What the map itself draws with. Mirrored in src/lib/map/style/palette.ts, which
      reads these back; the two copies are pinned together by its tests. */
   --map-cctv: #5db58a;
   --map-sat-comms: #5db58a;
@@ -58,9 +58,9 @@
   --map-flight-gov: #d99a4e;
   --map-flight-military: #e5534b;
   --map-flight-unknown: #6d737b;
-  --map-oi-support: #b388ff;
-  --map-oi-oppose: #ff5ccb;
-  --map-oi-neutral: #8c7cff;
+  --map-ai-support: #b388ff;
+  --map-ai-oppose: #ff5ccb;
+  --map-ai-neutral: #8c7cff;
 
   /* Fonts */
   --font-hud: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -340,7 +340,7 @@ html:has(.admin-root) body {
 
 /* ── MapLibre ──
    maplibre-gl.css loads after this file, so overrides carry .maplibregl-map.
-   Popup bodies come from src/lib/map/popups/layer-popups.ts with their own inline panel
+   Popup bodies come from src/lib/map/popups/ with their own inline panel
    styles; the container supplies the one card and the inner panel goes flat. */
 .maplibregl-map .maplibregl-popup-content {
   background: var(--surface-1);
@@ -475,8 +475,8 @@ html:has(.admin-root) body {
 /* ── TI, search and directions ── */
 
 /* TI's theatre takes the whole screen: the app's own HUD steps back until it closes. */
-html[data-oi-theater] [data-hud],
-html[data-oi-theater] [data-map-controls] {
+html[data-ai-theater] [data-hud],
+html[data-ai-theater] [data-map-controls] {
   opacity: 0 !important;
   pointer-events: none !important;
   transition: opacity var(--motion) var(--ease);
@@ -484,12 +484,12 @@ html[data-oi-theater] [data-map-controls] {
 
 /* TI's research graph: marks fade in as the run finds them, an actor deciding its move pings.
    Fading stroke-opacity leaves opacity to the dimming. */
-@keyframes oi-graph-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes oi-edge-in { from { stroke-opacity: 0; } to { stroke-opacity: 1; } }
-@keyframes oi-graph-ping { from { transform: scale(0.75); opacity: 0.9; } to { transform: scale(1.6); opacity: 0; } }
-g.oi-graph-in { animation: oi-graph-in 0.7s ease-out both; }
-path.oi-graph-in { animation: oi-edge-in 0.9s ease-out both; }
-.oi-graph-ping { transform-box: fill-box; transform-origin: center; animation: oi-graph-ping 1.6s ease-out infinite; }
+@keyframes ai-graph-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ai-edge-in { from { stroke-opacity: 0; } to { stroke-opacity: 1; } }
+@keyframes ai-graph-ping { from { transform: scale(0.75); opacity: 0.9; } to { transform: scale(1.6); opacity: 0; } }
+g.ai-graph-in { animation: ai-graph-in 0.7s ease-out both; }
+path.ai-graph-in { animation: ai-edge-in 0.9s ease-out both; }
+.ai-graph-ping { transform-box: fill-box; transform-origin: center; animation: ai-graph-ping 1.6s ease-out infinite; }
 
 @media (max-width: 1024px) {
   :root { --edge-pad: 12px; --panel-gap: 8px; }

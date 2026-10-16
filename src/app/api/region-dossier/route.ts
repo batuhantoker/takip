@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { ATTRIBUTION } from '@/lib/places/nominatim';
-import { httpJson } from '@/lib/httpJson';
-import { cachedSource } from '@/lib/sourceCache';
-import { advisoriesFor } from '../advisories/lookup';
-import type { Advisory } from '../advisories/types';
+import { httpJson } from '@/lib/core/net/http-json';
+import { cachedSource } from '@/lib/core/net/source-cache';
+import { advisoriesFor } from '../(intel)/advisories/lookup';
+import type { Advisory } from '../(intel)/advisories/types';
 import { displacementFor } from '@takip/connectors/unhcr';
 import { streetCrimeNear } from '@takip/connectors/police-uk';
 

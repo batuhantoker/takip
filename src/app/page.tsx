@@ -6,6 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 import ErrorBoundary from '@/components/ui/error-boundary';
 import AccountButton from '@/components/site/account/account-button';
 import AccountDialog from '@/components/site/account/account-dialog';
+import MapTimeWall from '@/components/site/account/map-time/map-time-wall';
 import LiveFeedModal from '@/components/map/cameras/live-feed-modal';
 import { useLiveFeed } from '@/components/map/cameras/use-live-feed';
 import NavigationBanner from '@/components/panels/route/navigation-banner';
@@ -17,14 +18,16 @@ import RegionDossier from '@/components/map/dossier/region-dossier';
 import { useRegionDossier } from '@/components/map/dossier/use-region-dossier';
 import HistoryTimelineBar from '@/components/panels/history/history-timeline-bar';
 import { historyLayers } from '@/components/panels/history/history-layers';
-import { shownSatellites } from '@/lib/satellites/filter';
+import { replayLayers } from '@/components/map/replay/replay-layers';
+import { useBackToLive } from '@/components/shell/state/use-back-to-live';
+import { shownSatellites } from '@/lib/feeds/satellites/filter';
 import type { SatellitePoint } from '@/lib/space/scene/earth';
 import { useHistory } from '@/components/panels/history/use-history';
-import OiHoverCard from '@/components/panels/ti-agent/ti-hover-card';
-import type { OiPanelProps } from '@/components/panels/ti-agent/ti-panel';
-import { useOiAssist } from '@/components/panels/ti-agent/use-ti-assist';
-import { useOiSession } from '@/components/panels/ti-agent/use-ti-session';
-import { useOiShareLink } from '@/components/panels/ti-agent/use-ti-share-link';
+import AiHoverCard from '@/components/panels/ti-agent/ti-hover-card';
+import type { AiPanelProps } from '@/components/panels/ti-agent/ti-panel';
+import { useAiAssist } from '@/components/panels/ti-agent/use-ti-assist';
+import { useAiSession } from '@/components/panels/ti-agent/use-ti-session';
+import { useAiShareLink } from '@/components/panels/ti-agent/use-ti-share-link';
 import { useReconOverlays } from '@/components/panels/recon/use-recon-overlays';
 import TimelineBar from '@/components/map/replay/timeline-bar';
 import { useReplay } from '@/components/map/replay/use-replay';
@@ -46,8 +49,10 @@ import { LiveStats } from '@/components/shell/status-bar/status-cluster';
 import { useCursorReadout } from '@/components/shell/status-bar/use-cursor-readout';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { useKeyboardShortcuts } from '@/components/shell/keyboard/use-keyboard-shortcuts';
+import { useLayerGate } from '@/components/shell/state/use-layer-gate';
 import { useLayerPersistence } from '@/components/shell/state/use-layer-persistence';
 import { useLiveData } from '@/components/shell/state/use-live-data';
+import { useNearbyFlights } from '@/components/shell/state/use-nearby-flights';
 import { useMalwareStream } from '@/components/shell/state/use-malware-stream';
 import { useSdkEntities } from '@/components/shell/state/use-sdk-entities';
 import { useSplash } from '@/components/shell/splash/use-splash';
@@ -55,12 +60,13 @@ import { useStartup } from '@/components/shell/state/use-startup';
 import { useTheme } from '@/components/shell/map-look/use-theme';
 import type { BackendStatus, FlyToTarget, LiveData, MapCenter, MapProjection, MapStyle, MobilePanel } from '@/components/shell/state/types';
 import SpaceSwitcherBar from '@/components/panels/space/view/space-switcher-bar';
+import ShowingChip from '@/components/shell/showing/showing-chip';
 import { useSpaceMode } from '@/components/panels/space/view/use-space-mode';
 import { warmSpace } from '@/components/panels/space/view/warm-space';
 import type { GlobeLink } from '@/lib/space/globe-match';
-import { DEFAULT_LAYERS } from '@/lib/layers/defaults';
+import { DEFAULT_LAYERS } from '@/lib/map/layers/defaults';
 import type { TerrainStatus } from '@/lib/map/terrain/terrain';
-import { newsTransform } from '@/lib/alerts/news-transform';
+import { newsTransform } from '@/lib/intel/alerts/news-transform';
 
 const WorldMap = dynamic(() => import('@/components/map/world-map'), { ssr: false });
 const SpaceShell = dynamic(() => import('@/components/panels/space/view/space-shell'), { ssr: false });
@@ -90,7 +96,8 @@ export default function Dashboard() {
   /* The Live Alerts the feed's filters leave showing; the map pins those. */
   const [pinnedAlertIds, setPinnedAlertIds] = useState<string[] | null>(null);
   const [activeCamera, setActiveCamera] = useState<any>(null);
-  const [activeLayers, setActiveLayers] = useState(DEFAULT_LAYERS);
+  const [chosenLayers, setChosenLayers] = useState(DEFAULT_LAYERS);
+  const { activeLayers, setActiveLayers } = useLayerGate(chosenLayers, setChosenLayers);
   const [theme, setTheme] = useTheme();
   const isMobile = useIsMobile();
 
@@ -136,21 +143,27 @@ export default function Dashboard() {
   const recon = useReconOverlays();
   const { openFeed, ...feed } = useLiveFeed();
 
-  const session = useOiSession({ mobilePanel, setMobilePanel, setActiveTool, setFlyToLocation });
-  const { oi, oiTheater, setOiTheater, oiStage, setOiStage, setOiMode, setOiAutoFocus } = session;
-  useOiShareLink({ oi, setOiMode, setMobilePanel, setActiveTool, autoLocateCancelled });
-  const { oiHighlight, oiVoice, setOiVoicePersist, assist } = useOiAssist({
-    dataRef, oi, oiGlobe: session.oiGlobe, activeLayers, setActiveLayers, mapCenter, mapView, mapProjection, setMapProjection, mapStyle, setMapStyle,
-    oiTheater, setOiTheater, oiStage, setOiStage, setOiMode, setOiSelected: session.setOiSelected,
+  const session = useAiSession({ mobilePanel, setMobilePanel, setActiveTool, setFlyToLocation });
+  const { ai, aiTheater, setAiTheater, aiStage, setAiStage, setAiMode, setAiAutoFocus } = session;
+  useAiShareLink({ ai, setAiMode, setMobilePanel, setActiveTool, autoLocateCancelled });
+  const { aiHighlight, aiVoice, setAiVoicePersist, assist } = useAiAssist({
+    dataRef, ai, aiGlobe: session.aiGlobe, activeLayers, setActiveLayers, mapCenter, mapView, mapProjection, setMapProjection, mapStyle, setMapStyle,
+    aiTheater, setAiTheater, aiStage, setAiStage, setAiMode, setAiSelected: session.setAiSelected,
     setMobilePanel, setActiveTool, setShowLayers, setShowDirections: directions.setShowDirections, setFlyToLocation, setActiveCamera,
+    replay, history,
   });
-  const { oiFocus, toggleOiFocus } = useLayerPersistence({ activeLayers, setActiveLayers });
+  // What was chosen, not what the plan lets through: signing up brings closed layers back.
+  const { aiFocus, toggleAiFocus } = useLayerPersistence({ activeLayers: chosenLayers, setActiveLayers });
 
-  // History draws only the past: the map and the live pollers see every data layer off until LIVE.
-  const mapLayers = useMemo(() => (history.session ? historyLayers(activeLayers) : activeLayers), [history.session, activeLayers]);
+  // History draws only the past and Replay only what it recorded: the map and the live pollers see the rest off until LIVE.
+  const mapLayers = useMemo(
+    () => (history.session ? historyLayers(activeLayers) : replay.session ? replayLayers(activeLayers) : activeLayers),
+    [history.session, replay.session, activeLayers],
+  );
   // Space shows the satellites the map's layers would: none while they are off, or while History has them off.
   const spaceSatellites = useMemo(() => shownSatellites<SatellitePoint>(data.satellites, mapLayers), [data.satellites, mapLayers]);
   const { fetchEndpoint } = useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpaceWeather, activeLayers: mapLayers, replayActive: !!replay.session });
+  useNearbyFlights({ dataRef, dataVersion, setDataVersion, mapCenter, zoom: mapView.zoom, activeLayers: mapLayers, replayActive: !!replay.session });
   useReplaySatellites({ replay: replay.session, activeLayers, fetchEndpoint });
   useMalwareStream({ dataRef, setDataVersion, setBackendStatus, activeLayers });
   useSdkEntities({ dataRef, data, dataVersion, activeLayers });
@@ -187,16 +200,16 @@ export default function Dashboard() {
     setFlyToLocation({ lat: p.lat, lng: p.lng, zoom: 14, ts: Date.now() });
   }, [setRouteTarget, setActiveRoute, setShowDirections]);
 
-  const closeOi = () => { setActiveTool(null); setOiTheater(false); setOiAutoFocus(false); };
+  const closeAi = () => { setActiveTool(null); setAiTheater(false); setAiAutoFocus(false); };
   /** A sidebar entry: opens its panel, or closes the one already showing. */
   const toggleTool = (tool: ToolId) => {
     if (activeTool === tool) {
       if (tool === 'directions') directions.closeDirections();
-      if (tool === 'oi') closeOi();
+      if (tool === 'ai') closeAi();
       setActiveTool(null);
       return;
     }
-    if (oiTheater) setOiTheater(false);
+    if (aiTheater) setAiTheater(false);
     if (tool === 'directions' && !directions.showDirections) { setRouteTarget(null); setShowDirections(true); setShowDesktopSearch(false); }
     if (tool === 'history') startHistory();
     setActiveTool(tool);
@@ -205,21 +218,27 @@ export default function Dashboard() {
   const exitHistory = () => { closeHistory(); setActiveTool(t => (t === 'history' ? null : t)); };
   const openTool = (tool: ToolId) => { if (activeTool !== tool) toggleTool(tool); };
   useKeyboardShortcuts({
-    setShowDesktopSearch, onTool: toggleTool, onReplay: toggleReplay, setOiMode, setOiAutoFocus, setMobilePanel, setActiveTool, setFlyToLocation, setActiveLayers, setMapProjection,
+    setShowDesktopSearch, onTool: toggleTool, onReplay: toggleReplay, setAiMode, setAiAutoFocus, setMobilePanel, setActiveTool, setFlyToLocation, setActiveLayers, setMapProjection,
   });
+  useBackToLive({ activeLayers, past: history.session ? 'history' : replayOn ? 'replay' : null, exitPast: history.session ? exitHistory : toggleReplaySession });
 
   const layersOn = useMemo(() => countLayersOn(activeLayers), [activeLayers]);
   /** Where the map's own controls start: right of the sidebar and of any panel open beside it. */
-  const shellLeft = isMobile ? 0 : NAV_WIDTH + (activeTool && !oiTheater ? DOCK_WIDTH : 0);
+  const shellLeft = isMobile ? 0 : NAV_WIDTH + (activeTool && !aiTheater ? DOCK_WIDTH : 0);
 
-  const ti: OiPanelProps = {
-    oi, selected: session.oiSelected, onSelect: session.setOiSelected, focus: oiFocus, onFocus: toggleOiFocus,
-    onLocate: session.handleOiLocate, following: session.oiFollowing, onFollow: session.followOi,
-    assist, mode: session.oiMode, onMode: setOiMode, speakOn: oiVoice, onSpeak: setOiVoicePersist, stage: oiStage, onStage: setOiStage,
+  const ti: AiPanelProps = {
+    ai, selected: session.aiSelected, onSelect: session.setAiSelected, focus: aiFocus, onFocus: toggleAiFocus,
+    onLocate: session.handleAiLocate, following: session.aiFollowing, onFollow: session.followAi,
+    assist, mode: session.aiMode, onMode: setAiMode, speakOn: aiVoice, onSpeak: setAiVoicePersist, stage: aiStage, onStage: setAiStage,
   };
   const planner = directions.showDirections && (
     <RoutePlanner directions={directions} center={mapCenter ? { lat: mapCenter.lat, lng: mapCenter.lng } : null} onLocate={flyTo}
       onClose={() => { directions.closeDirections(); setActiveTool(t => (t === 'directions' ? null : t)); }} />
+  );
+
+  const showing = !space.inSpace && (
+    <ShowingChip isMobile={isMobile} revealed={splash.revealed} layers={mapLayers} chosen={activeLayers} setLayers={setActiveLayers} history={history.session} families={history.families}
+      replay={replay.session} arcgis={arcgis} areas={areas.drawnPolygons} onOpen={p => (isMobile ? setMobilePanel('layers') : openTool(p))} />
   );
 
   return (
@@ -269,11 +288,12 @@ export default function Dashboard() {
           onDrawCancel={areas.stopDrawing}
           onDrawComplete={areas.handleDrawComplete}
           drawnPolygons={areas.drawnPolygons}
-          onOiGlobe={session.handleOiGlobe}
-          onOiSelect={session.handleOiSelect}
-          onOiHover={session.setOiHover}
-          onOiFollow={session.setOiFollowing}
-          oiHighlight={oiHighlight}
+          imageryRequest={areas.imageryRequest}
+          onAiGlobe={session.handleAiGlobe}
+          onAiSelect={session.handleAiSelect}
+          onAiHover={session.setAiHover}
+          onAiFollow={session.setAiFollowing}
+          aiHighlight={aiHighlight}
           mobileSheetOpen={isMobile && !!mobilePanel}
           onInspectOpen={closeMobileSheet}
         />
@@ -288,7 +308,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {session.oiHover && !isMobile && <OiHoverCard oiHover={session.oiHover} />}
+      {session.aiHover && !isMobile && <AiHoverCard aiHover={session.aiHover} />}
 
       {/* Guidance is a banner at the top; on a phone the planner opens in it too. */}
       <NavigationBanner navSession={directions.navSession} setNavSession={directions.setNavSession} liveLocation={directions.liveLocation}
@@ -307,7 +327,9 @@ export default function Dashboard() {
               on3DModeSelected={terrain.on3DModeSelected} onTerrainFocus={terrain.onTerrainFocus} onTerrainRetry={terrain.onTerrainRetry} onOpenStudio={openStudio} />
           )} />
       )}
-      <SpaceSwitcherBar revealed={splash.revealed} isMobile={isMobile} inSpace={space.inSpace} focus={space.focus} onMap={space.exit} onSpace={space.enter} />
+      <SpaceSwitcherBar revealed={splash.revealed} isMobile={isMobile} inSpace={space.inSpace} focus={space.focus} onMap={space.exit} onSpace={space.enter}
+        beside={isMobile && showing} />
+      {!isMobile && showing}
 
       {isMobile ? (
         <MobileShell revealed={splash.revealed} mobilePanel={mobilePanel} setMobilePanel={setMobilePanel} directions={directions}
@@ -317,7 +339,7 @@ export default function Dashboard() {
       ) : (
         <>
           <NavSidebar groups={navItems({ layersOn, arcgisCount: arcgis.arcgisLayers.length, historyOn: !!history.session })} active={activeTool} onSelect={toggleTool}
-            revealed={splash.revealed} tiLive={oi.state?.status === 'running' || assist.busy} tiRunning={oi.state?.status === 'running'}
+            revealed={splash.revealed} tiLive={ai.state?.status === 'running' || assist.busy} tiRunning={ai.state?.status === 'running'}
             footer={<>
               <MoreMenu rail active={activeTool === 'markets'} onOpenMarkets={() => openTool('markets')} />
               <AccountButton rail />
@@ -328,7 +350,7 @@ export default function Dashboard() {
               <DockSlot key={activeTool}>
                 <DockTools tool={activeTool} onClose={() => setActiveTool(null)} data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers}
                   capabilities={capabilities} areas={areas} arcgis={arcgis} mapBounds={mapCenter?.bounds ?? null}
-                  ti={{ ...ti, onClose: closeOi, theater: oiTheater, onTheater: setOiTheater, autoFocus: session.oiAutoFocus }}
+                  ti={{ ...ti, onClose: closeAi, theater: aiTheater, onTheater: setAiTheater, autoFocus: session.aiAutoFocus }}
                   setFlyToLocation={setFlyToLocation} setPinnedAlertIds={setPinnedAlertIds} openFeed={openFeed}
                   refreshNews={() => fetchEndpoint('/api/news', newsTransform)} onSweep={recon.setSweepData}
                   onScanGeolocate={recon.addScanTarget} spaceWeather={spaceWeather} history={{ session: history.session, open: startHistory, exit: exitHistory }} />
@@ -344,7 +366,8 @@ export default function Dashboard() {
         </>
       )}
 
-      <AccountDialog />
+      <MapTimeWall />
+      <AccountDialog map={{ mapStyle, setMapStyle, activeLayers, setActiveLayers, ...terrain }} />
       <LiveFeedModal liveFeedUrl={feed.liveFeedUrl} liveFeedName={feed.liveFeedName} liveFeedEmbedAllowed={feed.liveFeedEmbedAllowed} setLiveFeedUrl={feed.setLiveFeedUrl} />
 
       {(dossier.regionDossier || dossier.dossierLoading) && (
