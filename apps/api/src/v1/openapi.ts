@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { Scalar } from '@scalar/hono-api-reference';
 import type { AppDb } from '../db/app-db';
+import { reportRoutes } from '../reports/routes';
 import { workspaceRoutes } from '../workspaces/routes';
 import { arcgisRoutes } from './arcgis/arcgis';
 import { aviationRoutes } from './aviation/routes';
@@ -27,6 +28,7 @@ export function v1Routes({ db }: { db: AppDb }) {
   app.route('/entity', entityRoutes());
   app.route('/', regionDossierRoutes());
   app.route('/', workspaceRoutes(db));
+  app.route('/', reportRoutes(db));
 
   app.openAPIRegistry.registerComponent('securitySchemes', 'apiKey', {
     type: 'http',

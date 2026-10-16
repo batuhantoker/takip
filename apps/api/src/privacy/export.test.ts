@@ -50,6 +50,7 @@ describe('GET /api/v1/account/export', () => {
         id: ada.workspaceId, name: 'Black Sea', rev: 1, visibility: 'link', shareSlug: expect.any(String), deletedAt: null,
         state: { v: 1, layers: { ships: true }, recentPlaces: [{ label: 'Home', lat: 41, lng: 29, at: 1 }] },
       }],
+      issueReports: [{ message: 'The ferry is drawn on land.', view: { link: '/?lat=41.0&lon=29.0', mode: 'live' }, status: 'open', resolvedAt: null }],
     });
     expect(data.signInMethods.map(m => m.provider).sort()).toEqual(['credential', 'google']);
     expect(data.sessions).toHaveLength(2);

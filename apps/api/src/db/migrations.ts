@@ -231,6 +231,22 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (day, subject_type, subject_id)
   ) STRICT, WITHOUT ROWID;
   `,
+  // Issue reports (reports/): the reporter's words and a JSON snapshot of their map view. user_id is null for visitors.
+  `
+  CREATE TABLE IF NOT EXISTS issue_report (
+    report_id    INTEGER PRIMARY KEY,
+    created_at   INTEGER NOT NULL,
+    user_id      TEXT,
+    message      TEXT NOT NULL,
+    view         TEXT NOT NULL DEFAULT '{}',
+    user_agent   TEXT,
+    status       TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved')),
+    resolved_at  INTEGER,
+    resolved_by  TEXT
+  ) STRICT;
+  CREATE INDEX IF NOT EXISTS issue_report_status ON issue_report (status, report_id);
+  CREATE INDEX IF NOT EXISTS issue_report_user ON issue_report (user_id) WHERE user_id IS NOT NULL;
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

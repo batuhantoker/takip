@@ -1,10 +1,11 @@
 'use client';
 
 import { useRef } from 'react';
-import { Landmark, Satellite } from 'lucide-react';
+import { Landmark, MessageSquareWarning, Satellite } from 'lucide-react';
 import { cx, ENTER } from '@/components/ui/class-names';
-import { MenuItem } from '@/components/ui/menu-item';
+import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { useDismiss } from '@/components/ui/use-dismiss';
+import { showReportDialog } from '@/components/site/report/report-dialog-state';
 
 /** A point on the map and where on screen it was right-clicked, relative to the map. */
 export interface MapMenuAt {
@@ -14,7 +15,7 @@ export interface MapMenuAt {
   y: number;
 }
 
-/** What can be asked about the point under a right-click. Nothing is fetched until an item is picked. */
+/** What can be asked about the point under a right-click, or reported there. Nothing is fetched until an item is picked. */
 export function MapMenu({ at, onClose, onDossier, onImagery }: {
   at: MapMenuAt;
   onClose: () => void;
@@ -31,6 +32,8 @@ export function MapMenu({ at, onClose, onDossier, onImagery }: {
       style={{ left: at.x, top: at.y }}>
       <MenuItem icon={Landmark} onSelect={pick(onDossier)}>Region dossier</MenuItem>
       <MenuItem icon={Satellite} onSelect={pick(onImagery)}>Satellite images here</MenuItem>
+      <MenuDivider />
+      <MenuItem icon={MessageSquareWarning} onSelect={pick(p => showReportDialog({ lat: p.lat, lng: p.lng }))}>Report an issue here</MenuItem>
     </div>
   );
 }

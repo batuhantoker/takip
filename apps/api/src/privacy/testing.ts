@@ -24,7 +24,7 @@ export async function startPrivacyApp() {
 
   /**
    * Signs `person` up with a row of every kind app.db keeps about a user: two sessions, a Google account, 2FA,
-   * an admin unlock, an API key and its usage, a shared workspace, a granted and a paid plan, an override, a pending
+   * an admin unlock, an API key and its usage, a shared workspace, an issue report, a granted and a paid plan, an override, a pending
    * reset link, and audit rows, one carrying an IP address, a user agent and the email.
    */
   async function withEverything(person = USER, { google = true } = {}) {
@@ -54,6 +54,7 @@ export async function startPrivacyApp() {
     expect(workspace.status).toBe(201);
     const workspaceId = ((await workspace.json()) as { id: string }).id;
     expect((await call(jar, 'POST', `/api/v1/workspaces/${workspaceId}/share`)).status).toBe(200);
+    expect((await call(jar, 'POST', '/api/v1/reports', { message: 'The ferry is drawn on land.', view: { link: '/?lat=41.0&lon=29.0', mode: 'live' } })).status).toBe(201);
 
     grantPlan(t.db, { userId, planId: 'pro', actor: OPERATOR, reason: `asked by ${person.email}` });
     setOverride(t.db, { userId, key: 'api.keys.max', value: '3', actor: OPERATOR, reason: 'partner' });

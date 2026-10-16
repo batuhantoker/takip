@@ -2,7 +2,7 @@
 
 import { useId, type ComponentProps, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { cx } from './class-names';
+import { cx, TRANSITION } from './class-names';
 import { FieldShell, fieldBox, fieldInput, type FieldSize } from './field-shell';
 
 export { SearchField } from './search-field';
@@ -44,7 +44,32 @@ export function TextField({ label, hint, error, size = 'md', className, leading,
   );
 }
 
-export type SelectProps = Omit<ComponentProps<'select'>, 'size' | 'className'> & Labelled & {
+export type TextAreaProps = Omit<ComponentProps<'textarea'>, 'className'> & Omit<Labelled, 'size'>;
+
+/** A labelled box for several lines of text. Without `label`, pass `aria-label`. */
+export function TextArea({ label, hint, error, className, id, rows = 4, ...rest }: TextAreaProps) {
+  const auto = useId();
+  const fid = id ?? auto;
+  return (
+    <FieldShell id={fid} label={label} hint={hint} error={error} className={className}>
+      <textarea
+        id={fid}
+        rows={rows}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error || hint ? `${fid}-note` : undefined}
+        className={cx(
+          'block w-full min-w-0 resize-y rounded-card border bg-surface-2 px-2.5 py-1.5 text-body leading-5 text-ink-1 outline-none placeholder:text-ink-3 focus:border-accent styled-scrollbar',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+          error ? 'border-red/60' : 'border-line-strong',
+          TRANSITION,
+        )}
+        {...rest}
+      />
+    </FieldShell>
+  );
+}
+
+export type SelectProps =Omit<ComponentProps<'select'>, 'size' | 'className'> & Labelled & {
   options?: { value: string; label: string; disabled?: boolean }[];
 };
 

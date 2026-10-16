@@ -138,6 +138,7 @@ export default function PrivacyPage() {
               'Your preferences and history live in your browser. Clearing this site’s data in your browser removes all of it.',
               'Features that use AI run on the key and provider you choose, and we pass your request straight through.',
               'We do not keep a record of what you search. Your address is held only briefly, in memory, to keep usage fair for everyone.',
+              'If you report an issue, we keep your message, a snapshot of your map view and your browser’s details, tied to your account if you are signed in. Deleting the account deletes its reports.',
               'The site reaches you through Cloudflare, which carries the connection between your browser and our server, as it does for much of the web.',
               'The free plans show a few ads from Google, never on the map. Google may use cookies to choose and measure them. Pro shows none.',
             ].map(t => (

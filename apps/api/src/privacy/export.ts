@@ -69,6 +69,10 @@ export function accountExport(db: AppDb, userId: string, { access, currentSessio
              created_at AS createdAt, updated_at AS updatedAt, deleted_at AS deletedAt
       FROM ws_workspace WHERE owner_id = ? ORDER BY created_at, workspace_id`, userId)
       .map((row): Json => ({ ...times(row, 'createdAt', 'updatedAt', 'deletedAt'), state: JSON.parse(row.state as string) as unknown })),
+    issueReports: all(`
+      SELECT report_id AS id, created_at AS createdAt, message, view, user_agent AS userAgent, status, resolved_at AS resolvedAt
+      FROM issue_report WHERE user_id = ? ORDER BY report_id`, userId)
+      .map((row): Json => ({ ...times(row, 'createdAt', 'resolvedAt'), view: JSON.parse(row.view as string) as unknown })),
   };
 }
 
