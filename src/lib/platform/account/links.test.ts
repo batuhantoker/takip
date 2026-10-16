@@ -28,6 +28,7 @@ describe('readAccountLink', () => {
     });
     expect(at('/?account=deleted')).toEqual({ link: { kind: 'deleted' }, cleanUrl: '/' });
     expect(at('/?account=sign-in')).toEqual({ link: { kind: 'sign-in' }, cleanUrl: '/' });
+    expect(at('/?account=sign-up')).toEqual({ link: { kind: 'sign-up' }, cleanUrl: '/' });
   });
 
   it('reads a deletion link that did not work, with its error code', () => {

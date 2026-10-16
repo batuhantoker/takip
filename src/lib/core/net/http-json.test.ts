@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { httpConditional } from './httpJson';
+import { httpConditional } from './http-json';
 
 /**
  * Live integration test — opt in with RUN_LIVE_TESTS=1 (hits the real

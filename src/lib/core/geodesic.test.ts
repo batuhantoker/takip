@@ -3,7 +3,7 @@ import {
   haversine, bearing, destination, polygonArea, ringPerimeter, pathLength,
   circleToRing, rectToRing, formatDistance, formatArea, compassPoint,
   EARTH_RADIUS_KM, type LngLat,
-} from './geo';
+} from './geodesic';
 
 /** Closed form for a lat/lon cell: R^2 * dLambda * (sin f2 - sin f1). */
 const exactCellArea = (w: number, s: number, e: number, n: number) =>

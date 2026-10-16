@@ -16,7 +16,8 @@ export type AccountLink =
   | { kind: 'deleted' }
   // A deletion link that didn't work (apps/api/src/auth/routes.ts).
   | { kind: 'delete-failed'; error: string }
-  | { kind: 'sign-in' };
+  | { kind: 'sign-in' }
+  | { kind: 'sign-up' };
 
 /** The state a link landed with, and the same URL without it. */
 export function readAccountLink(href: string): { link: AccountLink; cleanUrl: string } | null {
@@ -34,6 +35,7 @@ export function readAccountLink(href: string): { link: AccountLink; cleanUrl: st
     case 'deleted': link = { kind: 'deleted' }; break;
     case 'delete-failed': link = { kind: 'delete-failed', error: error ?? '' }; break;
     case 'sign-in': link = { kind: 'sign-in' }; break;
+    case 'sign-up': link = { kind: 'sign-up' }; break;
     default: return null;
   }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { cachedSource, clearSourceCache } from './sourceCache';
+import { cachedSource, clearSourceCache } from './source-cache';
 
 type Cam = { id: string };
 const cam = (id: string): Cam => ({ id });

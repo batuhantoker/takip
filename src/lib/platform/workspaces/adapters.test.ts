@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deserializeShapes } from '@/lib/areas/aoi-export';
+import { deserializeShapes } from '@/lib/places/areas/aoi-export';
 import { areasFrom, layersOver, oneOf, storedAreas } from './adapters';
 
 const AREA = {
