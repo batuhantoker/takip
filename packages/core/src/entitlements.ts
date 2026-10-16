@@ -1,13 +1,26 @@
 /*
- * Every entitlement a plan can carry. Values live in bill_plan_entitlement as JSON scalars;
- * a missing or malformed value falls back to the most restrictive one.
+ * Every entitlement a plan can carry. Values live in bill_plan_entitlement as JSON scalars; a plan
+ * without a valid row gets `fallback`: the most restrictive value for what plans sell, but open for
+ * map access, so a key added later never hides the map. `hint` is shown in Admin → Plans.
  */
 const bool = { type: 'bool', fallback: false } as const;
 const int = { type: 'int', fallback: 0 } as const;
 const licenceTiers = ['anon', 'free', 'paid'] as const;
 
+/** The Layers panel's sections (src/components/panels/layers/lib/layer-sections.ts), each switchable per plan. */
+export const MAP_LAYER_SECTIONS = ['air', 'sea', 'land', 'space', 'weather', 'conflict', 'cameras', 'reference'] as const;
+export type MapLayerSection = (typeof MAP_LAYER_SECTIONS)[number];
+export const layerEntitlement = <S extends MapLayerSection>(section: S) => `map.layers.${section}` as const;
+
+const layerSection = { type: 'bool', fallback: true, hint: "Off: the section's layers can't be switched on" } as const;
+const layerSections = Object.fromEntries(MAP_LAYER_SECTIONS.map(section => [layerEntitlement(section), layerSection])) as {
+  [S in MapLayerSection as `map.layers.${S}`]: typeof layerSection;
+};
+
 export const CATALOGUE = {
   'map.live': bool,
+  'map.minutes_per_day': { ...int, hint: 'Minutes of map a day, counted while a tab is open; 0 = no limit' },
+  ...layerSections,
   'api.enabled': bool,
   'api.keys.max': int,
   'api.requests_per_day': int,
@@ -19,6 +32,7 @@ export const CATALOGUE = {
   'workspaces.share': bool,
   'export.enabled': bool,
   'ai.hosted': bool,
+  'ai.assistant': { ...bool, hint: 'The TI assistant tab' },
   'ads.off': bool,
   'data.licence_tier': { type: 'enum', values: licenceTiers, fallback: 'anon' },
 } as const;

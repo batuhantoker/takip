@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { join } from 'node:path';
 import { createTransport } from 'nodemailer';
 import { ipTrust } from './access/client-ip';
+import { createMapTime } from './access/map-time';
 import { createAccess } from './access/resolver';
 import { createUsage } from './access/usage';
 import { schedulePruneUsage, usageJobs } from './access/usage-prune';
@@ -40,6 +41,8 @@ const replay = openReplayData(env.TAKIP_DATA_DIR);
 const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive') });
 const usage = createUsage(db, { logger });
 const keys = createApiKeys(db, { logger });
+// A stable salt keeps visitors' map minutes across restarts.
+const mapTime = createMapTime(db, env.BETTER_AUTH_SECRET ? { salt: env.BETTER_AUTH_SECRET } : {});
 const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
@@ -60,7 +63,7 @@ const stopJobs = createJobRunner(jobs, {
 const stopMail = mail.start();
 
 const metrics = createMetrics({ defaults: true });
-const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage, keys });
+const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage, keys, mapTime });
 
 const server = serve({ fetch: app.fetch, hostname: env.API_HOST, port: env.API_PORT }, info => {
   logger.info(`listening on http://${info.address}:${info.port}`);

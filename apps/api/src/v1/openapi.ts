@@ -31,7 +31,8 @@ export function v1Routes({ db }: { db: AppDb }) {
   app.openAPIRegistry.registerComponent('securitySchemes', 'apiKey', {
     type: 'http',
     scheme: 'bearer',
-    description: 'An API key from Account settings → API keys (`tk_…`), sent as `Authorization: Bearer tk_…`. Never in the URL.',
+    description: 'An API key from Account settings → API keys (`tk_…`), sent as `Authorization: Bearer tk_…`. Never in the URL. '
+      + 'Free accounts get one. Without a key, most endpoints answer `401 api_key_required`; `GET /api/v1/key-policy` lists the ones open to everyone.',
   });
   app.doc31('/openapi.json', {
     openapi: '3.1.0',

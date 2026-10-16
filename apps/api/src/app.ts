@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import type { Logger } from 'pino';
 import { clientIp, ipTrust, type IpTrust } from './access/client-ip';
+import { createKeyPolicy, keyPolicyGate, type KeyPolicy } from './access/key-policy';
+import { createMapTime, mapTimeRoutes, type MapTime } from './access/map-time';
 import { rateLimit, REPLAY_GROUP, replayRateLimit } from './access/limits';
 import { withAccess } from './access/middleware';
 import type { AccessResolver } from './access/resolver';
@@ -29,12 +31,13 @@ import { v1Routes } from './v1/openapi';
 
 export type AppObs = { logger?: Logger; metrics?: Metrics; metricsAllow?: readonly string[] };
 
-export function createApp({ auth, access, db, replay, switchboard, billing = null, obs = {}, trust = ipTrust(), usage = createUsage(db), keys = createApiKeys(db), enforceLimits = true }: {
+export function createApp({ auth, access, db, replay, switchboard, billing = null, obs = {}, trust = ipTrust(), usage = createUsage(db), keys = createApiKeys(db), policy = createKeyPolicy(db), mapTime = createMapTime(db), enforceLimits = true, enforceKeyPolicy = true }: {
   auth: Auth; access: AccessResolver; db: AppDb; replay?: ReplayData; switchboard?: SourceSwitchboard; billing?: BillingProvider | null;
-  obs?: AppObs; trust?: IpTrust; usage?: Usage; keys?: ApiKeys; enforceLimits?: boolean;
+  obs?: AppObs; trust?: IpTrust; usage?: Usage; keys?: ApiKeys; policy?: KeyPolicy; mapTime?: MapTime; enforceLimits?: boolean; enforceKeyPolicy?: boolean;
 }) {
   const { logger = silentLogger, metrics = createMetrics(), metricsAllow = [] } = obs;
   const app = new Hono();
+  const site = auth.options.baseURL ?? '';
   app.onError(unhandledError(logger));
   // Registered before every route: Hono runs handlers in registration order.
   app.use(httpMetrics(metrics), requestId(), requestLogger(logger));
@@ -45,18 +48,22 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   // Before the access middleware, so sign-in traffic never pays for a plan lookup.
   app.route('/api', authRoutes(auth));
   app.use('/api/v1/*', withAccess(auth, access, keys));
+  // Before the rate limit: a refused caller spends no tokens.
+  app.use('/api/v1/*', keyPolicyGate(policy, usage, { site, enforce: enforceKeyPolicy }));
   app.use('/api/v1/*', rateLimit(usage, { enforce: enforceLimits }), meter(usage));
-  app.route('/api/v1', accessRoutes(access));
+  app.route('/api/v1', accessRoutes(access, policy));
+  app.route('/api/v1', mapTimeRoutes(mapTime));
   app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', keyRoutes(keys));
   app.route('/api/v1', privacyRoutes({ db, auth, usage }));
   app.route('/api/v1', v1Routes({ db }));
   if (replay) {
     app.use('/api/replay/*', withAccess(auth, access, keys));
+    app.use('/api/replay/*', keyPolicyGate(policy, usage, { site, group: REPLAY_GROUP, enforce: enforceKeyPolicy }));
     app.use('/api/replay/*', replayRateLimit(usage, { enforce: enforceLimits }), meter(usage, REPLAY_GROUP), requiresScope('read:tracks'));
     app.route('/api/replay', replayRoutes(replay));
   }
   app.route('/api/billing', billingRoutes({ db, auth, access, provider: billing }));
-  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard, keys, usage, billing }));
+  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard, keys, usage, billing, policy }));
   return app;
 }

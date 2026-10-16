@@ -200,6 +200,37 @@ const MIGRATIONS: string[] = [
   ) STRICT, WITHOUT ROWID;
   CREATE INDEX IF NOT EXISTS ws_workspace_owner ON ws_workspace (owner_id, updated_at DESC) WHERE deleted_at IS NULL;
   `,
+  // Route groups an admin switched between keyless and key-only (access/key-policy.ts); no row means the group's default.
+  `
+  CREATE TABLE IF NOT EXISTS api_access_policy (
+    route_group   TEXT PRIMARY KEY,
+    key_required  INTEGER NOT NULL CHECK (key_required IN (0,1)),
+    updated_at    INTEGER NOT NULL,
+    updated_by    TEXT
+  ) STRICT, WITHOUT ROWID;
+  `,
+  // Daily map time per plan (0 = no limit), TI and the Layers sections; map_time counts the minutes (access/map-time.ts).
+  `
+  INSERT OR IGNORE INTO bill_plan_entitlement (plan_id, key, value) VALUES
+    ('anon', 'map.minutes_per_day', '15'),  ('free', 'map.minutes_per_day', '60'),  ('pro', 'map.minutes_per_day', '0'),
+    ('anon', 'ai.assistant', 'false'),       ('free', 'ai.assistant', 'true'),       ('pro', 'ai.assistant', 'true'),
+    ('anon', 'map.layers.air', 'true'),       ('free', 'map.layers.air', 'true'),       ('pro', 'map.layers.air', 'true'),
+    ('anon', 'map.layers.sea', 'true'),       ('free', 'map.layers.sea', 'true'),       ('pro', 'map.layers.sea', 'true'),
+    ('anon', 'map.layers.land', 'true'),      ('free', 'map.layers.land', 'true'),      ('pro', 'map.layers.land', 'true'),
+    ('anon', 'map.layers.space', 'true'),     ('free', 'map.layers.space', 'true'),     ('pro', 'map.layers.space', 'true'),
+    ('anon', 'map.layers.weather', 'true'),   ('free', 'map.layers.weather', 'true'),   ('pro', 'map.layers.weather', 'true'),
+    ('anon', 'map.layers.conflict', 'true'),  ('free', 'map.layers.conflict', 'true'),  ('pro', 'map.layers.conflict', 'true'),
+    ('anon', 'map.layers.cameras', 'true'),   ('free', 'map.layers.cameras', 'true'),   ('pro', 'map.layers.cameras', 'true'),
+    ('anon', 'map.layers.reference', 'true'), ('free', 'map.layers.reference', 'true'), ('pro', 'map.layers.reference', 'true');
+  CREATE TABLE IF NOT EXISTS map_time (
+    day           INTEGER NOT NULL,
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('anon','user')),
+    subject_id    TEXT NOT NULL,
+    minutes       INTEGER NOT NULL,
+    last_tick_at  INTEGER NOT NULL,
+    PRIMARY KEY (day, subject_type, subject_id)
+  ) STRICT, WITHOUT ROWID;
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

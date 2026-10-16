@@ -1,4 +1,5 @@
 import { expect, vi } from 'vitest';
+import { createKeyPolicy } from '../access/key-policy';
 import { createAccess } from '../access/resolver';
 import { createUsage } from '../access/usage';
 import { createApp, type AppObs } from '../app';
@@ -72,9 +73,9 @@ export const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 
 export type TestApp = Awaited<ReturnType<typeof startApp>>;
 
-// Limits are off unless a test is about them: most tests send many requests from one in-memory client.
+// Limits and the key policy are off unless a test is about them: most tests send many keyless requests from one in-memory client.
 // The job runners are never started: tests call jobs.runner.runDue() themselves, and mail runs as it's queued.
-export async function startApp(social: SocialEnv = {}, obs?: AppObs, { enforceLimits = false, billing = null, replay }: { enforceLimits?: boolean; billing?: BillingProvider | null; replay?: ReplayData } = {}) {
+export async function startApp(social: SocialEnv = {}, obs?: AppObs, { enforceLimits = false, enforceKeyPolicy = false, billing = null, replay }: { enforceLimits?: boolean; enforceKeyPolicy?: boolean; billing?: BillingProvider | null; replay?: ReplayData } = {}) {
   const db = openAppDb(':memory:');
   migrateAppSchema(db);
   const inbox = new Inbox();
@@ -83,7 +84,8 @@ export async function startApp(social: SocialEnv = {}, obs?: AppObs, { enforceLi
   const auth = await createAuth(db, { BETTER_AUTH_URL: ORIGIN, BETTER_AUTH_SECRET: AUTH_SECRET, ...social }, mail.sender, { billingPortal: billing !== null });
   const access = createAccess(db);
   const usage = createUsage(db);
-  const app = createApp({ auth, access, db, obs, usage, enforceLimits, billing, replay });
+  const policy = createKeyPolicy(db);
+  const app = createApp({ auth, access, db, obs, usage, policy, enforceLimits, enforceKeyPolicy, billing, replay });
   const jobs = { queue, runner: createJobRunner(queue, billingJobs({ db, access, provider: billing, queue })), mail };
 
   const post = (path: string, body: unknown, { cookie = '', origin = ORIGIN } = {}) =>
@@ -107,7 +109,7 @@ export async function startApp(social: SocialEnv = {}, obs?: AppObs, { enforceLi
     return jar;
   };
 
-  return { db, inbox, auth, app, access, usage, jobs, post, session, signUpVerified, close: () => db.close() };
+  return { db, inbox, auth, app, access, usage, policy, jobs, post, session, signUpVerified, close: () => db.close() };
 }
 
 const base64url = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');

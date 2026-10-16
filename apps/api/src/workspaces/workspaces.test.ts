@@ -244,9 +244,10 @@ describe('share links', () => {
 describe('ws_workspace migration', () => {
   it('runs again over an existing table', async () => {
     const { id } = await create();
+    const latest = t.db.pragma('user_version', { simple: true });
     t.db.pragma('user_version = 7');
     migrateAppSchema(t.db);
-    expect(t.db.pragma('user_version', { simple: true })).toBe(8);
+    expect(t.db.pragma('user_version', { simple: true })).toBe(latest);
     expect(row(id)).toMatchObject({ name: 'Black Sea' });
   });
 });

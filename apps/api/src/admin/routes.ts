@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import { CATALOGUE } from '@takip/core/entitlements';
 import { clearOverride, grantPlan, revokePlan, setOverride, setPlanValue, type Actor } from '../access/grants';
+import type { KeyPolicy } from '../access/key-policy';
 import type { AccessResolver } from '../access/resolver';
 import type { Usage } from '../access/usage';
 import type { Auth } from '../auth/auth';
@@ -12,6 +13,7 @@ import { adminKeyRoutes } from '../keys/admin-routes';
 import { adminBillingRoutes } from './billing-routes';
 import type { AdminEnv, AdminGate } from './gate';
 import { impersonation } from './impersonation';
+import { keyPolicyRoutes } from './key-policy-routes';
 import { allKeysRoutes } from './keys-routes';
 import { adminQueries } from './queries';
 import type { SourceSwitchboard } from '../replay/sources';
@@ -48,8 +50,9 @@ function change(c: Context, run: () => void, access: AccessResolver) {
 }
 
 /** Mounted at /api/admin. Everything but status, unlock and stopping an impersonation sits behind the gate. */
-export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, billing }: {
+export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, billing, policy }: {
   auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate; switchboard?: SourceSwitchboard; keys: ApiKeys; usage: Usage; billing: BillingProvider | null;
+  policy: KeyPolicy;
 }) {
   const app = new Hono<AdminEnv>();
   const queries = adminQueries(db, access);
@@ -80,6 +83,7 @@ export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, 
   if (switchboard) app.route('/sources', sourcesRoutes({ db, switchboard }));
   app.route('/users', adminKeyRoutes(keys));
   app.route('/keys', allKeysRoutes(keys));
+  app.route('/key-policy', keyPolicyRoutes({ db, policy, usage }));
   app.route('/usage', adminUsageRoutes({ db, usage }));
   app.route('/billing', adminBillingRoutes({ db, provider: billing }));
 
