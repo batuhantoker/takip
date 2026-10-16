@@ -3,7 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY;
 
 export function createMap(container: HTMLDivElement): maplibregl.Map | undefined {
-  // CARTO's Dark Matter look over OpenFreeMap tiles; CARTO's own tiles are the alternative (lib/basemap).
+  // CARTO's Dark Matter look over OpenFreeMap tiles; CARTO's own tiles are the alternative (lib/map/basemap).
   const styleUrl = '/dark-matter-style.json';
 
   maplibregl.setWorkerUrl(`/vendor/maplibre/${maplibregl.getVersion()}/maplibre-gl-worker.mjs`);

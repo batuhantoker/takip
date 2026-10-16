@@ -30,6 +30,8 @@ export interface PopSpec {
   note?: string;
   links?: Array<{ href: unknown; label: string } | false | null | undefined>;
   wide?: boolean;
+  /** A Pin button beside Close (`data-pop-pin`), for a popup its opener can turn into a window. */
+  pin?: boolean;
 }
 
 export const htmlEsc = (s: unknown): string => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -37,6 +39,8 @@ export const htmlEsc = (s: unknown): string => String(s ?? '').replace(/&/g, '&a
 export const urlSafe = (s: unknown): string => { const u = String(s ?? ''); return /^https?:\/\//i.test(u) ? htmlEsc(u) : '#'; };
 
 const HEX = /^#[0-9a-f]{3,8}$/i;
+// Lucide's pin.
+const PIN_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg>';
 
 export function pop(spec: PopSpec): string {
   const dot = spec.dot && HEX.test(spec.dot)
@@ -47,7 +51,8 @@ export function pop(spec: PopSpec): string {
     : '';
   const rows = (spec.rows ?? []).filter((r): r is PopRow => !!r && r.value != null && r.value !== '');
   const links = (spec.links ?? []).filter((l): l is { href: unknown; label: string } => !!l);
-  return `<div class="tk-pop${spec.wide ? ' tk-pop-wide' : ''}${head ? '' : ' tk-pop-nohead'}">
+  return `<div class="tk-pop${spec.wide ? ' tk-pop-wide' : ''}${head ? '' : ' tk-pop-nohead'}${spec.pin ? ' tk-pop-pinnable' : ''}">
+  ${spec.pin ? `<button type="button" class="tk-pop-pin" data-pop-pin aria-label="Pin as a window" title="Pin as a window">${PIN_ICON}</button>` : ''}
   ${head}
   <div class="tk-pop-title">${htmlEsc(spec.title)}</div>
   ${spec.subtitle ? `<div class="tk-pop-sub">${htmlEsc(spec.subtitle)}</div>` : ''}
