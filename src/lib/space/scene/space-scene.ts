@@ -1,46 +1,47 @@
 import * as THREE from 'three';
-import { LY_KM } from '@/lib/space/astro';
 import { earthOrientation, mul } from '@/lib/space/frames';
-import type { StarCatalog } from '@/lib/space/earth-sky-layer';
-import type { ExoplanetPayload } from '@/lib/space/exoplanets';
-import type { FleetCraft, FleetPayload } from '@/lib/space/fleet';
+import type { StarCatalog } from '@/lib/space/globe/sky-layer';
+import type { ExoplanetPayload } from '@/lib/space/deep/exoplanets';
+import type { FleetCraft, FleetPayload } from '@/lib/space/craft/fleet';
 import { jdFromMs, type Vec3 } from '@/lib/space/horizons';
-import { SpaceModel } from '@/lib/space/model';
-import type { NearbyStarCatalog } from '@/lib/space/nearby-stars';
-import type { OuterPayload } from '@/lib/space/outer';
-import type { ReplayModel } from '@/lib/space/replay-model';
-import { viewScale } from '@/lib/space/replay-pacing';
+import { SpaceModel } from '@/lib/space/scene/model';
+import type { NearbyStarCatalog } from '@/lib/space/deep/nearby-stars';
+import type { OuterPayload } from '@/lib/space/deep/outer';
+import type { ReplayModel } from '@/lib/space/replay/model';
+import { viewScale } from '@/lib/space/replay/pacing';
 import type { SpaceSelection } from '@/lib/space/selection';
 import { SKY_BODIES, type SkyKey, type SkyPayload } from '@/lib/space/sky';
-import type { SurfacePayload } from '@/lib/space/surface';
+import type { SurfacePayload } from '@/lib/space/bodies/surface';
 import type { GlobeWorldId } from '@/lib/space/worlds';
 import type { GlobeView } from '@/lib/space/globe-match';
-import { createPlanet, createSun, SUN_RADIUS_KM, type Planet } from './bodies';
-import { createCosmos } from './cosmos';
-import { CRAFT_MODELS } from '@/lib/space/craft-models';
-import { createCraftLayer } from './craft';
-import { createCraftModel } from './craft-model';
+import { createPlanet, createSun, SUN_RADIUS_KM, type Planet } from './bodies/planets';
+import { createCosmos } from './deep/cosmos';
+import { createCraftLayer } from './craft/layer';
+import { createCraftModel } from './craft/model';
 import { createEarth, EARTH_RADIUS_KM, type SatellitePoint } from './earth';
-import { createFlightReplay, type FlightReplay, type ReplayState } from './flight-replay';
+import { createFlightReplay, type FlightReplay } from './craft/flight-replay';
 import { createOrigin } from './floating-origin';
-import { createHeliosphere } from './heliosphere';
-import { createLabels, type LabelItem, type Occluder } from './labels';
-import { anchorName, anchorState, type AnchorState } from './anchors';
-import { clearanceKm, createGroundCamera, landerPosition, overGround } from './landed';
-import { createLocalGroup } from './local-group';
-import { createMilkyWay } from './milky-way';
-import { createNearbyStars } from './nearby-stars';
-import { createOort } from './oort';
-import { createOrbits } from './orbits';
-import { createOuterBodies } from './outer-bodies';
-import { createRig } from './rig';
-import { rotation, v3 } from './shared';
-import { labelItems, pickAt } from './scene-hud';
+import { createHeliosphere } from './deep/heliosphere';
+import { createLabels, type LabelItem, type Occluder } from './hud/labels';
+import { anchorName, anchorState, type AnchorState } from './camera/anchors';
+import { createGroundCamera, overGround } from './craft/landed';
+import { craftPosition, placeCraft } from './craft/placement';
+import { createLocalGroup } from './deep/local-group';
+import { createMilkyWay } from './deep/milky-way';
+import { createNearbyStars } from './deep/nearby-stars';
+import { createOort } from './deep/oort';
+import { createOrbits } from './bodies/orbits';
+import { createOuterBodies } from './deep/outer-bodies';
+import { createRig } from './camera/rig';
+import { v3 } from './shared';
+import { labelItems, pickAt } from './hud/targets';
 import { createStars } from './stars';
-import { createSurfaceMarks } from './surface-marks';
+import { createSurfaceMarks } from './bodies/surface-marks';
 import { ramp, tierFades, type TierFades } from './tiers';
-import { globePose, type MapLink } from './focus-camera';
-import { createZoomAnchoring, type MapTarget } from './zoom-anchor';
+import { globePose, type MapLink } from './camera/focus';
+import { createZoomAnchoring } from './camera/zoom-anchor';
+import { fitToDistance, placeBodies } from './frame-passes';
+import type { Anchor, SpaceLayers, SpaceSceneEvents } from './types';
 
 /**
  * TAKIP — the space view: the Sun, planets, Moon and every craft Horizons
@@ -49,39 +50,8 @@ import { createZoomAnchoring, type MapTarget } from './zoom-anchor';
  * through the nearest stars to the Milky Way and its neighbours.
  */
 
-export type Anchor =
-  | { kind: 'body'; key: SkyKey }
-  | { kind: 'craft'; id: number }
-  | { kind: 'system' }
-  | { kind: 'galaxy' }
-  | { kind: 'star'; index: number }
-  | { kind: 'exohost'; name: string }
-  | { kind: 'outer'; key: string }
-  | { kind: 'feature'; id: string };
-
-export interface SpaceLayers {
-  satellites: boolean; fleet: boolean; orbits: boolean; surface: boolean; labels: boolean;
-  /** Model shapes: the heliosphere, the Oort cloud, the Milky Way's disc. */
-  illustrations: boolean;
-  constellations: boolean;
-  exoplanets: boolean;
-}
-
-export interface CameraInfo { anchorName: string; distanceKm: number; sunKm: number }
-
-export interface SpaceSceneEvents {
-  onSelect: (sel: SpaceSelection | null) => void;
-  onCamera: (info: CameraInfo) => void;
-  /** Zoomed into Earth far enough to hand back to the map. */
-  onSurface?: (to: MapTarget) => void;
-  /** A flight replay's clock, a few times a second while one runs. */
-  onReplay?: (state: ReplayState | null) => void;
-}
-
 const TEXTURED: Partial<Record<SkyKey, string>> = { moon: '/api/space/texture/moon', mars: '/api/space/texture/mars' };
 const ECLIPTIC_NORTH = new THREE.Vector3(0, 0, 1);
-/** Larger NASA models (Europa Clipper's is 36 MB) wait for a lighter version or an explicit choice. */
-const MAX_MODEL_BYTES = 15e6;
 
 export class SpaceScene {
   readonly model = new SpaceModel();
@@ -413,26 +383,7 @@ export class SpaceScene {
     this.replay?.tick(performance.now());
     const ms = this.timeMs();
     const jd = jdFromMs(ms);
-    const earthPos = this.bodyPos('earth', jd);
-
-    for (const [key, p] of this.planets) {
-      const pos = this.bodyPos(key, jd);
-      p.group.visible = !!pos;
-      if (!pos) continue;
-      p.group.position.set(pos[0], pos[1], pos[2]);
-      // Live, the Moon and Mars turn by today's lighting tables; a replay uses the IAU rotation model, as its landers do.
-      const o = this.replay ? this.replay.model.orientation(key, jd) : this.model.orientation(key, jd, ms);
-      if (o) rotation(o, p.spin.matrix);
-      p.spin.matrixWorldNeedsUpdate = true;
-    }
-    if (earthPos) {
-      this.earth.sunDir.set(-earthPos[0], -earthPos[1], -earthPos[2]).normalize();
-      this.orbits.moonFrame.position.set(earthPos[0], earthPos[1], earthPos[2]);
-    }
-    if (!this.replay) {
-      this.surfaces.moon.update(ms);
-      this.surfaces.mars.update(ms);
-    }
+    const earthPos = placeBodies(this, jd, ms);
     const wall = performance.now();
     if (this.replay && wall - this.lastReplayEvent > 100) {
       this.lastReplayEvent = wall;
@@ -465,42 +416,12 @@ export class SpaceScene {
     }
     this.applyDrop();
     if (!this.leaving()) this.zoom.update();
-    this.placeCraft(jd, ms, earthPos);
+    placeCraft(this, jd, ms, earthPos, this.container.clientHeight);
     const cam = this.camera.position;
     const sunDist = cam.length();
     this.sunKm = sunDist;
     const f = this.fades = tierFades(sunDist, this.nearby.catalog() !== null);
-    // Orbits and trails fade in from ~100,000 km out to ~10 million: across the solar system they guide, beside a moon they clutter.
-    const fade = Math.max(0.06, Math.min(1, (Math.log10(Math.max(1, cam.distanceTo(this.rig.controls.target))) - 5) / 2));
-    this.orbits.fade(fade * f.planets);
-    this.craft.fade(this.replay ? 0 : fade * f.craft);
-    this.craft.points.visible = (this.layers.fleet || !!this.replay) && f.craft > 0.01;
-
-    this.sun.showFrame(!this.replay);
-    this.sun.sdo.quaternion.copy(this.camera.quaternion);
-    this.sun.fit(sunDist);
-    // From the outer planets the Sun must still read as the brightest thing in the sky;
-    // up close the SDO frame carries the corona, and a full glow would wash it out.
-    // Past the heliopause it shrinks to a star, and the 3D star field's Sun takes over.
-    const glowAngle = sunDist < 1e10 ? 0.06 : Math.max(0.004, 0.06 * Math.pow(1e10 / sunDist, 0.4));
-    this.sun.glow.scale.setScalar(Math.max(SUN_RADIUS_KM * 3, sunDist * glowAngle));
-    (this.sun.glow.material as THREE.SpriteMaterial).opacity = Math.min(1, Math.max(0.3, sunDist / 3e7)) * (f.stars > 0 ? 1 - ramp(sunDist, 0.05 * LY_KM, 0.5 * LY_KM) : 1);
-    const pxPerRad = this.container.clientHeight / 2 / Math.tan((this.camera.fov * Math.PI) / 360);
-    for (const p of this.planets.values()) {
-      const d = p.group.position.distanceTo(cam);
-      // A planet's dot hides once it would sit on the Sun's, a few pixels from it.
-      p.marker.visible = (p.def.radiusKm / d) * pxPerRad < 3 && (p.group.position.length() / sunDist) * pxPerRad > 4;
-      if (p.def.key === 'earth') this.earth.scaleForDistance(d);
-    }
-
-    this.backdrop?.update(this.camera, f.backdrop);
-    this.outer.update(jd, f.outer, f.belt, !!this.replay);
-    this.heliosphere.update(f.heliosphere, this.layers.illustrations);
-    this.oort.update(sunDist, f.oort, this.layers.illustrations);
-    this.nearby.update(f.stars, f.starFloor, this.layers.constellations ? f.figures : 0, this.layers.exoplanets, 0.35 + 0.65 * ramp(sunDist, 2_000 * LY_KM, 300 * LY_KM));
-    this.milkyWay.update(this.camera, f.milkyWaySky, f.disc, this.layers.illustrations);
-    this.localGroup.update(f.localGroup);
-    this.cosmos.update(f.localGalaxies, f.deepGalaxies, f.cmb, sunDist);
+    fitToDistance(this, jd, sunDist, f, this.container.clientHeight);
     const origin = this.origin.update(cam, cam.distanceTo(this.rig.controls.target));
     this.craft.rebase(origin);
     this.orbits.rebase(origin);
@@ -521,50 +442,8 @@ export class SpaceScene {
     }
   };
 
-  /**
-   * The fleet's dots, and the focus craft's model where one is loaded and
-   * readable; landed, a craft is a dot on the ground. Placed after the camera
-   * moves, since the model is sized for where the camera now is.
-   */
-  private placeCraft(jd: number, ms: number, earthPos: Vec3 | null) {
-    const focus = this.focusCraft();
-    const grounded = !!this.replay?.model.landed(jd);
-    this.craftModel.show(focus ? String(focus.id) : null, focus ? CRAFT_MODELS[focus.id] ?? null : null);
-    const focusAt = focus && !grounded ? this.craftPosition(focus, jd, ms) : null;
-    const at = focusAt && new THREE.Vector3(...focusAt);
-    // Never drawn bigger than half its height: a probe the size of its own altitude reads as sitting on the planet.
-    const drawn = this.craftModel.update(at, earthPos ? v3(earthPos) : null, this.camera, this.container.clientHeight, at ? 0.5 * clearanceKm(at, this.planets.values()) : Infinity);
-    const modelled = drawn && focus ? focus.id : null;
-    // Every frame: the camera follows a craft's exact position, so a dot moved less often steps against it.
-    this.craft.update(c => (c.id === modelled ? null : this.craftPosition(c, jd, ms)));
-  }
-
-  /** The craft whose model to show: the one replayed, else followed, else selected; only those with a model of a sensible size. */
-  private focusCraft(): FleetCraft | null {
-    const id = this.replay?.state.craftId
-      ?? (this.anchor.kind === 'craft' ? this.anchor.id : null)
-      ?? (this.selection?.kind === 'craft' ? this.selection.id : null);
-    const model = id !== null ? CRAFT_MODELS[id] : undefined;
-    if (id === null || !model || model.bytes > MAX_MODEL_BYTES) return null;
-    return this.fleet.find(c => c.id === id) ?? null;
-  }
-
-  /**
-   * Moon and Mars craft come from their ground tracks, a lander from where it
-   * stands; one that cannot be placed is not drawn.
-   */
   craftPosition(c: FleetCraft, jd: number, ms: number): [number, number, number] | null {
-    if (this.replay) return c.id === this.replay.state.craftId ? this.replay.model.craftAt(jd) : null;
-    if (c.region !== 'moon' && c.region !== 'mars') return this.model.craftPos(c, jd);
-    const landed = landerPosition(c, this.planets, this.surfaces);
-    if (landed) return [landed.x, landed.y, landed.z];
-    const marks = this.surfaces[c.region];
-    const i = marks.orbiters().findIndex(o => o.id === c.id);
-    const local = i >= 0 ? marks.orbiterPositions(ms)[i] : null;
-    const planet = this.planets.get(c.region);
-    if (!local || !planet) return null;
-    const w = new THREE.Vector3(...local).applyMatrix4(planet.spin.matrix).add(planet.group.position);
-    return [w.x, w.y, w.z];
+    return craftPosition(this, c, jd, ms);
   }
 
   anchorName(): string {
