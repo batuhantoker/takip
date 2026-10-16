@@ -1,6 +1,6 @@
 /*
  * Downloads the keyless sources the second batch of importers reads into RAW_MORE (gitignored).
- *   npx tsx tools/import/fetch.ts <noaa|wikidata|attacks|war-battles|sitelinks|articles|test-series|usgs-articles|wdi|owid|nuclear|covid|cliopatria|gdis|all>
+ *   npx tsx tools/import/fetch.ts <noaa|wikidata|attacks|conflicts|war-battles|sitelinks|articles|test-series|usgs-articles|wdi|owid|nuclear|covid|cliopatria|gdis|all>
  * Files are replaced whole; importers hash them, so an unchanged download is skipped on import.
  */
 import { execFileSync } from 'node:child_process';
@@ -139,6 +139,45 @@ async function attacks() {
 }
 
 /**
+ * Picked from the direct subclasses of war, rebellion, revolution and massacre on 2026-10-16 (instances in brackets).
+ * Left out: armed conflict (531; UCDP's conflicts, with no id to join on), sack (118), and the abstract ones
+ * (technological revolution, total war). Wars: war, civil, world, independence, national liberation, colonial,
+ * religious, proxy, revolutionary (1,767 / 382 / 5 / 28 / 26 / 25 / 57 / 10 / 2).
+ */
+export const WAR_CLASSES = ['Q198', 'Q8465', 'Q103495', 'Q21994376', 'Q1006311', 'Q2659056', 'Q1827102', 'Q864113', 'Q3119121'];
+/** Rebellion, insurgency, slave rebellion, mutiny, agrarian uprising (1,734 / 137 / 62 / 131 / 1). */
+export const REBELLION_CLASSES = ['Q124734', 'Q1323212', 'Q1155622', 'Q511866', 'Q114363090'];
+/** Revolution, nonviolent, communist, democratic (201 / 3 / 2 / 1); assassination (239). */
+export const REVOLUTION_CLASSES = ['Q10931', 'Q3827292', 'Q2415843', 'Q5255897'];
+export const ASSASSINATION_CLASSES = ['Q3882219'];
+/** Massacre, genocidal massacre, massacre of civilians (3,584 / 8 / 7); genocide (124). */
+export const MASSACRE_CLASSES = ['Q3199915', 'Q5533440', 'Q124612203'];
+export const GENOCIDE_CLASSES = ['Q41397'];
+
+/**
+ * Wikidata (CC0): wars and rebellions, revolutions and assassinations, massacres and genocides, one file each,
+ * with deaths and the country's point for items placed nowhere closer. The importers drop items the battle,
+ * politics and attack files already hold.
+ */
+async function conflicts() {
+  // Deaths as "amount/lower/upper" from one statement, so SAMPLE can't pair one estimate with another's bounds.
+  const extra = `OPTIONAL { ?item p:P1120/psv:P1120 ?dv . ?dv wikibase:quantityAmount ?da .
+      OPTIONAL { ?dv wikibase:quantityLowerBound ?dlo } OPTIONAL { ?dv wikibase:quantityUpperBound ?dhi }
+      BIND(CONCAT(STR(?da), "/", COALESCE(STR(?dlo), ""), "/", COALESCE(STR(?dhi), "")) AS ?deaths_) }
+    OPTIONAL { ?item wdt:P17/wdt:P625 ?countryCoord_ }`;
+  const files: [file: string, classes: string[]][] = [
+    ['wars.json', [...WAR_CLASSES, ...REBELLION_CLASSES]],
+    ['revolutions.json', [...REVOLUTION_CLASSES, ...ASSASSINATION_CLASSES]],
+    ['massacres.json', [...MASSACRE_CLASSES, ...GENOCIDE_CLASSES]],
+  ];
+  for (const [file, classes] of files) {
+    const ids = await items(classes);
+    console.log(`wikidata ${file}: ${ids.length} items`);
+    writeFileSync(out('wikidata', file), JSON.stringify(await details(ids, extra, ['deaths', 'countryCoord'])));
+  }
+}
+
+/**
  * WAC and COW wars as their wiki tables' articles: each article's Wikidata item, then every battle Wikidata puts
  * under it (P361 or P607, through campaigns and fronts). The import links them part_of.
  */
@@ -182,11 +221,13 @@ async function warBattles() {
 const NOT_WIKIPEDIA = new Set(['commons', 'species', 'meta', 'mediawiki', 'wikidata', 'sources', 'outreach', 'wikimania', 'incubator', 'foundation', 'wikifunctions', 'abstract']);
 
 /**
- * Every Wikipedia's article for the battles, treaties, coups and attacks with no English one, from the entity API: SPARQL
- * over sitelinks times out. Needs `wikidata` and `attacks` first. Writes { item: { wiki code: title } }.
+ * Every Wikipedia's article for the wars, battles, revolutions, treaties, coups, massacres and attacks with no English
+ * one, from the entity API: SPARQL over sitelinks times out. Needs `wikidata`, `attacks` and `conflicts` first. Writes
+ * { item: { wiki code: title } }.
  */
 async function sitelinks() {
-  const rows = ['battles.json', 'politics.json', 'attacks.json'].flatMap(f => JSON.parse(readFileSync(join(RAW_MORE, 'wikidata', f), 'utf8')) as { item: string; article?: string }[]);
+  const files = ['battles.json', 'politics.json', 'attacks.json', 'wars.json', 'revolutions.json', 'massacres.json'];
+  const rows = files.flatMap(f => JSON.parse(readFileSync(join(RAW_MORE, 'wikidata', f), 'utf8')) as { item: string; article?: string }[]);
   const ids = [...new Set(rows.filter(r => !r.article).map(r => r.item))];
   const links: Record<string, Record<string, string>> = {};
   for (let i = 0; i < ids.length; i += 50) {
@@ -338,7 +379,7 @@ async function gdis() {
   console.log('gdis: done');
 }
 
-const FETCHERS: Record<string, () => Promise<void>> = { noaa, wikidata, attacks, 'war-battles': warBattles, sitelinks, articles, 'test-series': testSeries, 'usgs-articles': usgsArticles, wdi, owid, nuclear, covid, cliopatria, gdis };
+const FETCHERS: Record<string, () => Promise<void>> = { noaa, wikidata, attacks, conflicts, 'war-battles': warBattles, sitelinks, articles, 'test-series': testSeries, 'usgs-articles': usgsArticles, wdi, owid, nuclear, covid, cliopatria, gdis };
 
 async function main() {
   const names = process.argv.slice(2);

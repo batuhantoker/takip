@@ -24,6 +24,7 @@ import { importWw2Borders } from './ww2';
 import { importOwidCovid } from './owid-covid';
 import { importCliopatria } from './cliopatria';
 import { importGdis } from './gdis';
+import { importWikidataMassacres, importWikidataRevolutions, importWikidataWars } from './wikidata-conflict';
 
 /**
  * Run order matters: later importers link to events earlier ones loaded (COW → WAC same_as, UCDP → WAC/COW,
@@ -53,6 +54,10 @@ export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
   'wikidata-battles': importWikidataBattles,
   'wikidata-politics': importWikidataPolitics,
   'wikidata-attacks': importWikidataAttacks,
+  // After the battles, which they link to, and in this order: each drops what the ones before hold.
+  'wikidata-wars': importWikidataWars,
+  'wikidata-revolutions': importWikidataRevolutions,
+  'wikidata-massacres': importWikidataMassacres,
   'noaa-hazards': importNoaa,
   'sipri-nuclear': importNuclear,
   'owid-longrun': importOwidLongRun,

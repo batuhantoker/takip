@@ -71,8 +71,11 @@ The sky, cosmos and Milky Way files are not committed yet. Mission notes (71 cra
 | battle | 13,520 | | hazard.volcano | 903 |
 | hazard.quake | 8,527 | | politics.coup | 460 |
 | battle.siege | 3,635 | | conflict.armed | 215 |
-| hazard.tsunami | 2,327 | | war.* (interstate, civil, independence, world) | 195 |
+| hazard.tsunami | 2,327 | | war, war.* (interstate, civil, independence, world) | 1,959 |
 | nuclear.test | 2,049 | | status.in_danger | 89 |
+| conflict.massacre | 3,324 | | conflict.rebellion | 1,185 |
+| politics.assassination | 159 | | politics.revolution | 131 |
+| conflict.genocide | 90 | | | |
 | politics.treaty | 1,706 | | nuclear.combat | 2 |
 | claim.territorial | 1,209 | | disaster.* (`gdis`, 2026-10-14) | 9,928 |
 
@@ -158,6 +161,9 @@ All imported on 2026-10-12, all `active`.
 | `wikidata-politics` | Treaties and coups | 1300 BCE → 2026 | 2,166 events |
 | `gtd` | Global Terrorism Database | 1970 → 2017 | 181,691 events |
 | `wikidata-attacks` | Terrorist attacks outside GTD's years, imported 2026-10-14 | 44 BCE → 2026 | 592 events |
+| `wikidata-wars` | Wars (civil, independence, colonial, religious, proxy, world) and rebellions, imported 2026-10-16. 130 are duplicates of WAC/COW wars and hide behind them; 225 sit at the middle of their battles (138 Wikidata places nowhere else, 87 it places only at one of several countries); 7,267 battles link `part_of` their war | 2600 BCE → 2026 | 2,949 events (2,819 shown) |
+| `wikidata-revolutions` | Revolutions and assassinations, imported 2026-10-16 | 509 BCE → 2026 | 290 events |
+| `wikidata-massacres` | Massacres (including prehistoric sites) and genocides that are not terrorist attacks, imported 2026-10-16 | 7500 BCE → 2026 | 3,414 events |
 | `sipri-nuclear` | Nuclear explosions | 1945 → 1998 | 2,051 events |
 | `gdis` | Where EM-DAT disasters struck (GDIS), imported 2026-10-14 | 1960 → 2018 | 9,928 events from 39,953 places |
 | `icow` | Territorial claims | 1816 → 2001 | 1,209 events, 2,511 series |
@@ -214,7 +220,7 @@ From `meta_licence` and `meta_access_policy`. `commercial_use` is blank where it
 | Licence | Used by | Commercial use | Redistribution |
 |---|---|---|---|
 | public-domain | naturalearth, usgs, noaa-hazards, takip-seed | yes | public domain |
-| cc0-1.0 | wikidata-battles, wikidata-politics | yes | public domain |
+| cc0-1.0 | wikidata-battles, wikidata-politics, wikidata-attacks, wikidata-wars, wikidata-revolutions, wikidata-massacres | yes | public domain |
 | adsblol-odbl | adsblol, adsblol-history | yes | share-alike |
 | satnogs-cc-by-sa | satnogs | yes | share-alike |
 | cc-by-4.0 | wdi, ucdp-brd, owid-*, gdis | not set | attribution |

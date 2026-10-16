@@ -65,6 +65,9 @@ export const SOURCES: SourceSeed[] = [
   { code: 'wikidata-battles', name: 'Wikidata: battles and sieges', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q178561', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-politics', name: 'Wikidata: treaties and coups', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q131569', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-attacks', name: 'Wikidata: terrorist attacks outside GTD’s years', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q2223653', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-wars', name: 'Wikidata: wars and rebellions', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q198', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-revolutions', name: 'Wikidata: revolutions and assassinations', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q10931', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-massacres', name: 'Wikidata: massacres and genocides', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q3199915', licence: 'cc0-1.0', events: true },
   // SIPRI report (Bergkvist and Ferm, 2000) via TidyTuesday; no licence stated, shown while terms are pending.
   { code: 'sipri-nuclear', name: 'Nuclear explosions 1945–1998', owner: 'SIPRI / FOA, via TidyTuesday', url: 'https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-08-20', licence: 'unknown', events: true },
   { code: 'owid-longrun', name: 'OWID: long-run country indicators (Maddison, V-Dem, Gapminder, UNESCO, GCB)', owner: 'Our World in Data', url: 'https://ourworldindata.org/', licence: 'cc-by-4.0' },
@@ -101,6 +104,11 @@ export const KINDS: EventKindInput[] = [
   { code: 'hazard.volcano', family: 'hazard' },
   { code: 'politics.treaty', family: 'politics' },
   { code: 'politics.coup', family: 'politics' },
+  { code: 'politics.revolution', family: 'politics' },
+  { code: 'politics.assassination', family: 'politics' },
+  { code: 'conflict.rebellion', family: 'conflict' },
+  { code: 'conflict.massacre', family: 'conflict' },
+  { code: 'conflict.genocide', family: 'conflict' },
   { code: 'nuclear.test', family: 'nuclear' },
   { code: 'nuclear.combat', family: 'nuclear' },
   // Where a disaster struck (EM-DAT's affected places), as opposed to hazard.*, the physical event.

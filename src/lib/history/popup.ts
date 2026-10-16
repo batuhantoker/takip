@@ -11,7 +11,7 @@ export const HISTORY_FAMILIES: Record<string, { color: string; label: string; ma
   territorial: { color: '#9B8AFB', label: 'Territory' },
   heritage: { color: '#5B9CF5', label: 'Heritage' },
   hazard: { color: '#D8C26A', label: 'Natural hazards', magnitude: 'Magnitude' },
-  politics: { color: '#D99AB4', label: 'Treaties and coups' },
+  politics: { color: '#D99AB4', label: 'Politics' },
   nuclear: { color: '#A9C46A', label: 'Nuclear explosions', magnitude: 'Yield (kt)' },
   disaster: { color: '#5BAE9A', label: 'Disasters', magnitude: 'Places hit' },
 };
@@ -24,6 +24,9 @@ const KINDS: Record<string, string> = {
   'war.world': 'World war',
   'war.independence': 'War of independence',
   'conflict.armed': 'Armed conflict',
+  'conflict.rebellion': 'Rebellion',
+  'conflict.massacre': 'Massacre',
+  'conflict.genocide': 'Genocide',
   battle: 'Battle',
   'claim.territorial': 'Territorial claim',
   'change.territorial': 'Territorial change',
@@ -35,6 +38,8 @@ const KINDS: Record<string, string> = {
   'hazard.volcano': 'Volcanic eruption',
   'politics.treaty': 'Treaty',
   'politics.coup': 'Coup',
+  'politics.revolution': 'Revolution',
+  'politics.assassination': 'Assassination',
   'nuclear.test': 'Nuclear test',
   'nuclear.combat': 'Nuclear attack',
   'disaster.flood': 'Flood',
@@ -278,7 +283,10 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
   // Map features drop null properties, so a missing magnitude arrives as undefined.
   const magnitude = d?.magnitude ?? p.magnitude;
   if (typeof magnitude === 'number' && family?.magnitude) {
-    rows.push({ label: family.magnitude, value: p.family === 'hazard' ? magnitude.toFixed(1) : count(magnitude), mono: true });
+    // A source's estimate with stated bounds reads as the estimate and its range.
+    const range = d?.attrs.magnitude_range;
+    const span = Array.isArray(range) && range.length === 2 && range.every(n => typeof n === 'number') ? ` (${count(range[0])}–${count(range[1])})` : '';
+    rows.push({ label: family.magnitude, value: (p.family === 'hazard' ? magnitude.toFixed(1) : count(magnitude)) + span, mono: true });
   }
   if (d) rows.push(...(attack ? attackRows(d.attrs) : facts(d.attrs).map(([label, value]) => ({ label, value }))));
   const summary = (attack ? text(d?.attrs.summary) : null) ?? (x.wiki?.extract.trim() || null);

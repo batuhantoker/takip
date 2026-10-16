@@ -14,6 +14,7 @@ export const CANONICAL_ORDER = [
   'cow-interstate',
   'cow-extra',
   'ucdp-brd',
+  'wikidata-wars',
   'usgs',
   'noaa-hazards',
   'ww1-wiki',

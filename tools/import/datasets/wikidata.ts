@@ -7,13 +7,13 @@ import { utc } from '../dates';
 import { EventBatch, resolveCanonical, validLonLat } from '../events';
 import { enwikiTitle, otherArticle } from '../wiki';
 
-const DIR = join(RAW_MORE, 'wikidata');
-const BATTLES = join(DIR, 'battles.json');
+export const DIR = join(RAW_MORE, 'wikidata');
+export const BATTLES = join(DIR, 'battles.json');
 const WORLD_WARS = join(DIR, 'world-wars.json');
-const POLITICS = join(DIR, 'politics.json');
-const ATTACKS = join(DIR, 'attacks.json');
+export const POLITICS = join(DIR, 'politics.json');
+export const ATTACKS = join(DIR, 'attacks.json');
 /** fetch.ts `war-battles`: WAC and COW wars' Wikidata items, and the battles under them. */
-const WAR_BATTLES = join(DIR, 'war-battles.json');
+export const WAR_BATTLES = join(DIR, 'war-battles.json');
 /** fetch.ts `sitelinks`: other Wikipedias' articles for items with no English one. */
 const SITELINKS = join(DIR, 'sitelinks.json');
 const AS_OF = '2026-10-12';
@@ -22,7 +22,7 @@ const SIEGE = 'Q188055';
 const NAVAL = 'Q1261499';
 const COUP = 'Q45382';
 /** WAC's canonical world wars, which Wikidata's world-war battles are part of. */
-const WAR_PARENT: Record<string, string> = { Q361: 'CNF-0001', Q362: 'CNF-0013' };
+export const WAR_PARENT: Record<string, string> = { Q361: 'CNF-0001', Q362: 'CNF-0013' };
 /** Their years, a year either side: Wikidata's part-of chains reach earlier battles too (an 1825 one under World War II). */
 const WAR_YEARS: Record<string, [number, number]> = { Q361: [1913, 1919], Q362: [1938, 1946] };
 const YEAR_MS = 365.25 * 86_400_000;
@@ -86,7 +86,7 @@ export function isoDate(s: string): { t: number; prec: Prec } {
 }
 
 /** One row per item from fetch.ts: the first value of each field, times as "<xsd time>/<precision>". */
-type Row = Record<string, string | undefined> & { item: string; classes: string };
+export type Row = Record<string, string | undefined> & { item: string; classes: string };
 
 /** Wikidata time precision: 11 day, 10 month, 9 year, 8 decade, 7 century, 6 millennium. */
 const PRECISION: Record<number, Prec> = { 6: Prec.millennium, 7: Prec.century, 8: Prec.decade, 9: Prec.year, 10: Prec.month, 11: Prec.day };
@@ -112,7 +112,7 @@ export function wdPoint(v: string | undefined): { lon: number; lat: number } | n
 }
 
 /** The start: the finer of point in time and start time, which items fill unevenly. */
-function start(r: Row, ...fallbacks: (string | undefined)[]) {
+export function start(r: Row, ...fallbacks: (string | undefined)[]) {
   const at = wdTime(r.t);
   const from = wdTime(r.t0);
   if (at && from) return from.prec >= at.prec ? from : at;
@@ -123,12 +123,12 @@ function start(r: Row, ...fallbacks: (string | undefined)[]) {
   return null;
 }
 
-const read = <T>(path: string) => JSON.parse(readFileSync(path, 'utf8')) as T;
+export const read = <T>(path: string) => JSON.parse(readFileSync(path, 'utf8')) as T;
 const wikiKey = (url: string) => decodeURIComponent(url).split('#')[0].replace(/^https?:\/\//, '').toLowerCase();
-const url = (r: Row) => r.article ?? `https://www.wikidata.org/wiki/${r.item}`;
-const sitelinkFiles = () => (existsSync(SITELINKS) ? [SITELINKS] : []);
-const readSitelinks = () => (existsSync(SITELINKS) ? read<Record<string, Record<string, string>>>(SITELINKS) : {});
-const classes = (r: Row) => new Set(r.classes.split('|'));
+export const url = (r: Row) => r.article ?? `https://www.wikidata.org/wiki/${r.item}`;
+export const sitelinkFiles = () => (existsSync(SITELINKS) ? [SITELINKS] : []);
+export const readSitelinks = () => (existsSync(SITELINKS) ? read<Record<string, Record<string, string>>>(SITELINKS) : {});
+export const classes = (r: Row) => new Set(r.classes.split('|'));
 
 /** Wikidata battles and sieges (CC0), 3300 BCE to today. World-war battles join WAC's wars and replace nothing. */
 export async function importWikidataBattles(ctx: Ctx) {
@@ -230,7 +230,7 @@ export async function importWikidataBattles(ctx: Ctx) {
 }
 
 /** Whether a battle starts within a war, a year either side; an ongoing war has a far-off t_hi. */
-function duringWar(ctx: Ctx) {
+export function duringWar(ctx: Ctx) {
   const at = ctx.history.prepare(`SELECT t_start AS t, t_lo AS lo, t_hi AS hi FROM ev_event WHERE event_id = ?`);
   return (battle: number, war: number) => {
     const b = at.get(battle) as { t: number } | undefined;
