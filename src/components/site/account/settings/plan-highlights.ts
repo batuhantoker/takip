@@ -1,5 +1,5 @@
-import type { Entitlements } from '@takip/core/entitlements';
-import { AD_CLIENT } from '@/lib/ads/ads';
+import { layerEntitlement, MAP_LAYER_SECTIONS, type Entitlements } from '@takip/core/entitlements';
+import { AD_CLIENT } from '@/lib/platform/ads';
 
 const span = (days: number) =>
   days >= 365 && days % 365 === 0 ? `${days / 365} year${days === 365 ? '' : 's'}` : `${days} day${days === 1 ? '' : 's'}`;
@@ -7,6 +7,7 @@ const hours = (h: number) => (h % 24 === 0 ? span(h / 24) : `${h} hour${h === 1 
 
 /** Only features that exist today are offered; a feature's entitlements join this list when it ships. */
 const BUILT: (keyof Entitlements)[] = [
+  'map.minutes_per_day', 'ai.assistant', ...MAP_LAYER_SECTIONS.map(layerEntitlement),
   'api.enabled', 'api.requests_per_day', 'api.rps', 'api.keys.max',
   'replay.lookback_days', 'replay.window_hours',
   'web.rps',
@@ -16,6 +17,9 @@ const BUILT: (keyof Entitlements)[] = [
 
 /** The entitlements worth naming to a person, in words; null when the plan lacks it. */
 const HIGHLIGHTS: ((e: Entitlements) => string | null)[] = [
+  e => (e['map.minutes_per_day'] ? `${e['map.minutes_per_day']} minutes of map a day` : 'No time limit on the map'),
+  e => (MAP_LAYER_SECTIONS.every(s => e[layerEntitlement(s)]) ? 'Every map layer' : null),
+  e => (e['ai.assistant'] ? 'The TI assistant' : null),
   e => (e['api.enabled']
     ? `API access: ${e['api.requests_per_day'].toLocaleString('en')} requests a day, ${e['api.rps']} a second per key, ${e['api.keys.max']} key${e['api.keys.max'] === 1 ? '' : 's'}`
     : null),

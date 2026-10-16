@@ -1,7 +1,7 @@
 'use client';
 
 import type { ComponentProps, ReactNode } from 'react';
-import { authClient } from '@/lib/account/auth-client';
+import { authClient } from '@/components/site/account/auth-client';
 import { Button } from '@/components/ui/button';
 import { showAccountDialog } from '../account-dialog-state';
 import { Notice, TextButton } from '../form-parts';

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronRight, CopyPlus, FolderOpen, HardDriveUpload, Link2, LogIn, Plus, Save } from 'lucide-react';
-import { workspaceSession } from '@/lib/workspaces/session';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { showAccountDialog } from '@/components/site/account/account-dialog-state';
 import { MENU_ITEM } from '@/components/ui/menu-styles';
 import { describeWorkspaceFailure, SIGN_IN_TO_SAVE } from '@/components/workspaces/messages';

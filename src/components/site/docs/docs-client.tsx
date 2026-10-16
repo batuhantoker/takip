@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AdSlot from '@/components/shell/ads/ad-slot';
-import { AD_SLOTS } from '@/lib/ads/ads';
+import { AD_SLOTS } from '@/lib/platform/ads';
 import CommandPalette, { buildPaletteItems } from '@/components/site/docs/parts/command-palette';
 import { ApiReference } from '@/components/site/docs/parts/api-reference';
 import { DocsHeader } from '@/components/site/docs/parts/docs-header';
@@ -18,7 +18,7 @@ import {
   SelfHostingSection,
   ShortcutsSection,
 } from '@/components/site/docs/parts/guide-sections';
-import { OiGuideSection } from '@/components/site/docs/parts/ti-guide';
+import { AiGuideSection } from '@/components/site/docs/parts/ti-guide';
 
 const FALLBACK_ORIGIN = 'https://takip.example';
 
@@ -124,7 +124,7 @@ export default function DocsClient() {
           <SelfHostingSection />
           <ConfigurationSection />
           <InterfaceSection />
-          <OiGuideSection origin={origin} />
+          <AiGuideSection origin={origin} />
           <ShortcutsSection />
 
           <AdSlot slot={AD_SLOTS.page} variant="page" className="my-12" />

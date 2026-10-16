@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { authClient } from '@/lib/account/auth-client';
+import { authClient } from '@/components/site/account/auth-client';
 import { Field, FormError } from '@/components/site/account/form-parts';
 import { FALLBACK_ERROR, useFormAction } from '@/components/site/account/use-form-action';
 import { Row, Section, SmallButton } from '@/components/site/account/settings/settings-parts';

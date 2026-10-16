@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { workspaceSession } from '@/lib/workspaces/session';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';
 import DialogFrame, { Hint } from './dialog-frame';
 import { workspaceCount } from '@/components/workspaces/messages';

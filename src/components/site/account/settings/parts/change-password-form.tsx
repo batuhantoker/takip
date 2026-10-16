@@ -1,6 +1,6 @@
 'use client';
 
-import { authClient } from '@/lib/account/auth-client';
+import { authClient } from '@/components/site/account/auth-client';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FormError, PASSWORDS_DIFFER, Submit } from '@/components/site/account/form-parts';
 import { FALLBACK_ERROR, useFormAction } from '@/components/site/account/use-form-action';

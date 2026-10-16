@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { API_KEY_SCOPES, createApiKey, daysFromNow, type NewApiKey } from '@/lib/account/api-keys';
+import { API_KEY_SCOPES, createApiKey, daysFromNow, type NewApiKey } from '@/lib/platform/account/api-keys';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select } from '@/components/ui/field';
 import { Field, FormError } from '@/components/site/account/form-parts';

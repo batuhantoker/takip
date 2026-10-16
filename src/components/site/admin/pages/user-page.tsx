@@ -1,7 +1,7 @@
 'use client';
 
-import { authClient } from '@/lib/account/auth-client';
-import { describeDevice } from '@/lib/account/device-label';
+import { authClient } from '@/components/site/account/auth-client';
+import { describeDevice } from '@/lib/platform/account/device-label';
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
 import { Badge, Button, Card, ErrorText, Muted, PageTitle, when } from '@/components/site/admin/parts/admin-parts';
 import type { PlansResponse, UserDetail } from '@/components/site/admin/admin-types';

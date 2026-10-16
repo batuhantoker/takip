@@ -2,7 +2,7 @@
 
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { Layers, Radar, Route, Search, TriangleAlert } from 'lucide-react';
-import { OiMark } from '@/components/panels/ti-agent/atoms';
+import { AiMark } from '@/components/panels/ti-agent/atoms';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import type { ActiveRoute, MobilePanel, NavSession } from '@/components/shell/state/types';
 
@@ -13,7 +13,7 @@ const TABS: Tab[] = [
   { id: 'layers', label: 'Layers', glyph: <Layers className={ICON} strokeWidth={1.75} /> },
   { id: 'intel', label: 'Alerts', glyph: <TriangleAlert className={ICON} strokeWidth={1.75} /> },
   { id: 'recon', label: 'Recon', glyph: <Radar className={ICON} strokeWidth={1.75} /> },
-  { id: 'oi', label: 'TI', glyph: <OiMark size={18} /> },
+  { id: 'ai', label: 'TI', glyph: <AiMark size={18} /> },
   { id: 'search', label: 'Search', glyph: <Search className={ICON} strokeWidth={1.75} /> },
   // Search and Route sit together: both answer "take me somewhere".
   { id: 'route', label: 'Route', glyph: <Route className={ICON} strokeWidth={1.75} /> },
@@ -50,7 +50,7 @@ export default function MobileNav({ mobilePanel, setMobilePanel, showDirections,
               }}
               className={cx(
                 'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-card text-meta font-medium disabled:opacity-40',
-                active ? (tab.id === 'oi' ? 'bg-gold-soft text-gold' : 'bg-surface-3 text-ink-1') : 'text-ink-3 active:bg-surface-2',
+                active ? (tab.id === 'ai' ? 'bg-gold-soft text-gold' : 'bg-surface-3 text-ink-1') : 'text-ink-3 active:bg-surface-2',
                 FOCUS_RING,
                 TRANSITION,
               )}>

@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { loadCameraCatalog, mergeCameraCatalog } from '@/lib/cameras/camera-catalog';
-import { newsTransform } from '@/lib/alerts/news-transform';
-import type { ActiveLayers } from '@/lib/layers/defaults';
+import { loadCameraCatalog, mergeCameraCatalog } from '@/lib/feeds/cameras/camera-catalog';
+import { newsTransform } from '@/lib/intel/alerts/news-transform';
+import { noteFeed, noteFeedFailure } from '@/lib/core/feed-log';
+import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import type { BackendStatus, LiveData } from './types';
 
 export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpaceWeather, activeLayers, replayActive = false }: {
@@ -31,13 +32,16 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       if (res.ok) {
         const json = await res.json();
         const d = transform ? transform(json) : json;
+        noteFeed(url, Object.keys(d ?? {}), json);
         dataRef.current = { ...dataRef.current, ...d };
         setDataVersion(v => v + 1);
         setBackendStatus('connected');
         return true;
       }
+      noteFeedFailure(url, `HTTP ${res.status}`);
       return false;
     } catch (e) {
+      noteFeedFailure(url, e instanceof Error ? e.message : 'failed');
       console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e);
       setBackendStatus('error');
       return false;
@@ -120,12 +124,10 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     // Satellites (any satellite sub-layer triggers fetch)
     const anySatLayer = activeLayers.satellites || activeLayers.sat_comms || activeLayers.sat_military || activeLayers.sat_navigation || activeLayers.sat_earth || activeLayers.sat_science;
     if (anySatLayer && !layerFetchedRef.current.has('satellites')) {
-      // Keep the moment the positions were propagated for. The catalogue is
-      // fetched once and never re-polled, so by the time an orbit is requested
-      // these markers can be a long way out of date — the orbit route needs the
-      // marker's epoch to draw a track that still passes through it.
+      // Fetched once, with the element sets: use-satellite-motion moves the
+      // markers from there and keeps the epoch the orbit route needs current.
       // In replay useReplaySatellites loads them, and a live answer racing it would win.
-      if (!replayActive) fetchEndpoint('/api/satellites', d => ({ ...d, satellites_at: d.timestamp }));
+      if (!replayActive) fetchEndpoint('/api/satellites?tle=1', d => ({ ...d, satellites_at: d.timestamp }));
       layerFetchedRef.current.add('satellites');
     }
     // Fires

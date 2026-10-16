@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { SIGN_IN_LINK, SETTINGS_CALLBACK } from '@/lib/account/links';
-import { stopImpersonating } from '@/lib/account/impersonation';
+import { SIGN_IN_LINK, SETTINGS_CALLBACK } from '@/lib/platform/account/links';
+import { stopImpersonating } from '@/lib/platform/account/impersonation';
 import { TakipMark } from '@/components/shell/brand/takip-mark';
 import { TakipWordmark } from '@/components/shell/brand/takip-wordmark';
 import { onLocked } from './admin-api';
@@ -18,6 +18,7 @@ const NAV = [
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/plans', label: 'Plans' },
   { href: '/admin/keys', label: 'API keys' },
+  { href: '/admin/api', label: 'API access' },
   { href: '/admin/usage', label: 'Usage' },
   { href: '/admin/billing', label: 'Billing' },
   { href: '/admin/sources', label: 'Sources' },

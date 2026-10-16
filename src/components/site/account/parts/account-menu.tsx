@@ -2,9 +2,9 @@
 
 import type { ComponentProps } from 'react';
 import { EyeOff, LogOut, Settings, ShieldCheck } from 'lucide-react';
-import { useAccess } from '@/lib/account/access';
-import { authClient } from '@/lib/account/auth-client';
-import { stopImpersonating } from '@/lib/account/impersonation';
+import { useAccess } from '@/components/site/account/use-access';
+import { authClient } from '@/components/site/account/auth-client';
+import { stopImpersonating } from '@/lib/platform/account/impersonation';
 import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';

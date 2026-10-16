@@ -1,7 +1,7 @@
 'use client';
 
 import type { Dispatch, SetStateAction } from 'react';
-import type { DrawMode } from '@/lib/areas/draw';
+import type { DrawMode } from '@/lib/places/areas/draw';
 import type { FlyToTarget, MapCenter, NavSession } from '@/components/shell/state/types';
 import SearchBar from './search-bar';
 import type { PlaceLike } from './places';

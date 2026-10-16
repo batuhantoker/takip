@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { Undo2 } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import { HEX_RE } from '@/lib/style/tokens';
+import { HEX_RE } from '@/lib/map/style/style-studio';
 
 /** "GEIST MONO" → "Geist mono"; the brand keeps its capitals. */
 export const sentence = (s: string) => (s === 'TAKIP' ? s : s.charAt(0) + s.slice(1).toLowerCase());

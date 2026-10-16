@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { fetchAccountExport } from '@/lib/account/export';
-import { downloadFile } from '@/lib/areas/aoi-export';
+import { fetchAccountExport } from '@/lib/platform/account/export';
+import { downloadFile } from '@/lib/places/areas/aoi-export';
 import { FormError } from '@/components/site/account/form-parts';
 import { FALLBACK_ERROR } from '@/components/site/account/use-form-action';
 import { Section, SignInAgain, SmallButton } from '@/components/site/account/settings/settings-parts';

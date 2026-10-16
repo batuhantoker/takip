@@ -1,6 +1,6 @@
 'use client';
 
-import { authClient } from '@/lib/account/auth-client';
+import { authClient } from '@/components/site/account/auth-client';
 import { showAccountDialog } from '../account-dialog-state';
 import { Notice, TextButton } from '../form-parts';
 import ApiKeysSection from '@/components/site/account/settings/api-keys/api-keys-section';

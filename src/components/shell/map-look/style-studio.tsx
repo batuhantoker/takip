@@ -7,10 +7,10 @@ import { IconButton } from '@/components/ui/button';
 import { Select, Switch } from '@/components/ui/field';
 import { Panel, PanelSection } from '@/components/ui/panel';
 import { cx, ENTER, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import { MAP_DEFAULTS, type MapPaletteKey } from '@/lib/map/palette';
+import { MAP_DEFAULTS, type MapPaletteKey } from '@/lib/map/style/palette';
 import {
   applySettings, clearSettings, FONT_MONO, FONT_UI, loadSavedSettings, PRESETS, readTheme, sanitize, saveSettings, shade, type StyleSettings,
-} from '@/lib/style/tokens';
+} from '@/lib/map/style/style-studio';
 import { AutoSlider, ResettableSwatch, Row, sentence, Slider, SubHead, Swatch } from './style-studio-controls';
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -24,12 +24,12 @@ const AIRCRAFT: [MapPaletteKey, string, string][] = [
   ['flightMilitary', 'Military', 'Military aircraft'], ['flightUnknown', 'Unknown', 'Unknown aircraft'],
 ];
 const TI_ARCS: [MapPaletteKey, string, string][] = [
-  ['oiSupport', 'Aligned', 'TI arcs: aligned or agreeing'], ['oiOppose', 'Opposed', 'TI arcs: opposed or disputing'], ['oiNeutral', 'Neutral', 'TI arcs: neutral, evidence'],
+  ['aiSupport', 'Aligned', 'TI arcs: aligned or agreeing'], ['aiOppose', 'Opposed', 'TI arcs: opposed or disputing'], ['aiNeutral', 'Neutral', 'TI arcs: neutral, evidence'],
 ];
 
 /**
  * Style Studio: every UI token on one card, live. The token maths lives in
- * `@/lib/style/tokens`; this file is the controls and the wiring around them.
+ * `@/lib/map/style/style-studio`; this file is the controls and the wiring around them.
  */
 function StyleStudio({ onClose, isMobile }: { onClose: () => void; isMobile?: boolean }) {
   const [s, setS] = useState<StyleSettings | null>(null);

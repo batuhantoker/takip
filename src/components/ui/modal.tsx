@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Panel } from '@/components/ui/panel';
+import { Panel, type PanelTabs } from '@/components/ui/panel';
 import { cx, ENTER } from '@/components/ui/class-names';
 
 /**
@@ -10,12 +10,13 @@ import { cx, ENTER } from '@/components/ui/class-names';
  * the shortcut sheet, the token chart, the account. Escape, the close button
  * or a press on the dimmed map closes it; focus comes back to where it was.
  */
-export function Modal({ open, onClose, title, subtitle, actions, className, bare, children }: {
+export function Modal<T extends string = string>({ open, onClose, title, subtitle, actions, tabs, className, bare, children }: {
   open: boolean;
   onClose: () => void;
   title: string;
   subtitle?: ReactNode;
   actions?: ReactNode;
+  tabs?: PanelTabs<T>;
   /** Width, as a max-w class. */
   className?: string;
   bare?: boolean;
@@ -38,7 +39,7 @@ export function Modal({ open, onClose, title, subtitle, actions, className, bare
       <div aria-hidden onPointerDown={onClose} className={cx('absolute inset-0 bg-surface-0/70', ENTER)} />
       <div ref={box} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}
         className={cx('relative flex max-h-[min(88vh,820px)] w-full flex-col outline-none starting:translate-y-1', ENTER, className ?? 'max-w-md')}>
-        <Panel docked={false} title={title} subtitle={subtitle} actions={actions} onClose={onClose} bare={bare} className="w-full">
+        <Panel docked={false} title={title} subtitle={subtitle} actions={actions} tabs={tabs} onClose={onClose} bare={bare} className="w-full">
           {children}
         </Panel>
       </div>

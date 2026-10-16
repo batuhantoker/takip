@@ -1,7 +1,7 @@
 'use client';
 
 import { UserRound } from 'lucide-react';
-import { authClient } from '@/lib/account/auth-client';
+import { authClient } from './auth-client';
 import { Button } from '@/components/ui/button';
 import { RailButton } from '@/components/shell/sidebar/rail-button';
 import { showAccountDialog } from './account-dialog-state';

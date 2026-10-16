@@ -2,11 +2,11 @@
 
 import { useEffect, useLayoutEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { authClient } from '@/lib/account/auth-client';
-import { restoreDevice } from '@/lib/workspaces/device';
-import { workspaceParts } from '@/lib/workspaces/parts';
-import { workspaceSession } from '@/lib/workspaces/session';
-import { registerStoredParts } from '@/lib/workspaces/stored-parts';
+import { authClient } from '@/components/site/account/auth-client';
+import { restoreDevice } from '@/lib/platform/workspaces/device';
+import { workspaceParts } from '@/lib/platform/workspaces/parts';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
+import { registerStoredParts } from '@/lib/platform/workspaces/stored-parts';
 import ConflictDialog from '@/components/workspaces/parts/conflict-dialog';
 import DialogFrame, { Hint } from '@/components/workspaces/parts/dialog-frame';
 import ImportOffer from '@/components/workspaces/parts/import-offer';

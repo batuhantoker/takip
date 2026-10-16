@@ -2,6 +2,7 @@
 
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
 import { Badge, ErrorText, Muted, PageTitle, TABLE, TD, TH, when } from '@/components/site/admin/parts/admin-parts';
+import { Switch } from '@/components/site/admin/parts/admin-switch';
 import { useAdminAction } from '@/components/site/admin/use-admin-action';
 
 type CoverageStatus = 'ok' | 'degraded' | 'down' | 'not_recording';
@@ -92,30 +93,5 @@ export default function SourcesPage() {
       )}
       {!data && !error && <Muted>Loading…</Muted>}
     </>
-  );
-}
-
-function Switch({ on, states, disabled, label, onClick }: {
-  on: boolean;
-  states: [on: string, off: string];
-  disabled: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="inline-flex items-center gap-2 h-8 whitespace-nowrap disabled:opacity-40"
-    >
-      <span className={`relative inline-block w-8 h-[18px] rounded-full border transition-colors ${on ? 'border-accent bg-accent' : 'border-line-strong bg-surface-3'}`}>
-        <span className={`absolute top-[2px] size-3 rounded-full transition-[left] ${on ? 'left-[16px] bg-on-accent' : 'left-[2px] bg-ink-3'}`} />
-      </span>
-      <span className={`text-[12px] ${on ? 'text-ink-1' : 'text-red'}`}>{on ? states[0] : states[1]}</span>
-    </button>
   );
 }

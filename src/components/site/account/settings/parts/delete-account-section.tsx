@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { DELETED_CALLBACK } from '@/lib/account/links';
-import { authClient } from '@/lib/account/auth-client';
-import { billingPortalUrl } from '@/lib/account/billing-portal';
+import { DELETED_CALLBACK } from '@/lib/platform/account/links';
+import { authClient } from '@/components/site/account/auth-client';
+import { billingPortalUrl } from '@/lib/platform/account/billing-portal';
 import { FormError, Notice } from '@/components/site/account/form-parts';
 import { FALLBACK_ERROR } from '@/components/site/account/use-form-action';
 import { Section, SmallButton } from '@/components/site/account/settings/settings-parts';

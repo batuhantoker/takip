@@ -1,4 +1,4 @@
-import type { ApiKeyFailure } from '@/lib/account/api-keys';
+import type { ApiKeyFailure } from '@/lib/platform/account/api-keys';
 import { FALLBACK_ERROR } from '@/components/site/account/use-form-action';
 
 export const keyCount = (n: number) => (n === 1 ? '1 key' : `${n} keys`);

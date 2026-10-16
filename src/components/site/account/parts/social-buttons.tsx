@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { SIGN_IN_FAILED_CALLBACK } from '@/lib/account/links';
-import { authClient } from '@/lib/account/auth-client';
+import { SIGN_IN_FAILED_CALLBACK } from '@/lib/platform/account/links';
+import { authClient } from '@/components/site/account/auth-client';
 import { Button } from '@/components/ui/button';
 import { PROVIDER_ICONS } from './provider-icons';
 import { PROVIDER_LABELS as LABELS, loadProviders, type ProviderId } from '@/components/site/account/providers';

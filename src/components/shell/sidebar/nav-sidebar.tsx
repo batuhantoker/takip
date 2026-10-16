@@ -3,7 +3,7 @@
 import { Fragment, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { TakipMark } from '@/components/shell/brand/takip-mark';
-import { OiMark } from '@/components/panels/ti-agent/atoms';
+import { AiMark } from '@/components/panels/ti-agent/atoms';
 import { Dot } from '@/components/ui/tag';
 import { cx } from '@/components/ui/class-names';
 import { NAV_WIDTH, type ToolId } from './dock';
@@ -63,8 +63,8 @@ export function NavSidebar({ groups, active, onSelect, tiLive, tiRunning, footer
         ))}
         <div aria-hidden className="mx-auto my-3 h-px w-8 shrink-0 bg-line" />
         <div className="relative">
-          <RailButton glyph={<OiMark size={18} live={tiLive} />} label="TI" tone="gold" hint="Ask TI to work the map" kbd="T"
-            active={active === 'oi'} pressed={active === 'oi'} onClick={() => onSelect('oi')} />
+          <RailButton glyph={<AiMark size={18} live={tiLive} />} label="TI" tone="gold" hint="Ask TI to work the map" kbd="T"
+            active={active === 'ai'} pressed={active === 'ai'} onClick={() => onSelect('ai')} />
           {/* Dot is position: relative itself, so a wrapper places it. */}
           {tiRunning && <span className="pointer-events-none absolute top-2 right-3 flex"><Dot tone="gold" pulse label="TI is working" /></span>}
         </div>

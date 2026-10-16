@@ -4,8 +4,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { usePathname } from 'next/navigation';
 import Script from 'next/script';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
-import { useAccess } from '@/lib/account/access';
-import { AD_CLIENT, AD_SLOTS, showAds } from '@/lib/ads/ads';
+import { useAccess } from '@/components/site/account/use-access';
+import { AD_CLIENT, AD_SLOTS, showAds } from '@/lib/platform/ads';
 import AdblockNotice from './adblock-notice';
 import { baitHidden } from './adblock-bait';
 

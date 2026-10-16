@@ -3,7 +3,7 @@
 import { useId, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Bookmark, ChevronDown } from 'lucide-react';
-import { authClient } from '@/lib/account/auth-client';
+import { authClient } from '@/components/site/account/auth-client';
 import { showAccountDialog } from '@/components/site/account/account-dialog-state';
 import { useDismiss } from '@/components/ui/use-dismiss';
 import { SIGN_IN_TO_SAVE } from './messages';

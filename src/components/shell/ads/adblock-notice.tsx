@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Heart, X } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, ENTER } from '@/components/ui/class-names';
-import { ADBLOCK_SNOOZE_KEY, ADBLOCK_SNOOZE_MS, adblockSnoozed } from '@/lib/ads/ads';
+import { ADBLOCK_SNOOZE_KEY, ADBLOCK_SNOOZE_MS, adblockSnoozed } from '@/lib/platform/ads';
 
 /** Long enough for the splash and a first look around. */
 const DELAY_MS = 20_000;

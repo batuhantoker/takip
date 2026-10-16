@@ -1,14 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import type { ActiveLayers } from '@/lib/layers/defaults';
+import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import { pickLandingCity } from '@/lib/places/landing-cities';
-import { loadLayers } from '@/lib/layers/saved';
+import { loadLayers } from '@/lib/map/layers/saved';
+import { parseTrack, requestTrack } from '@/components/map/inspect/track-request';
 import type { FlyToTarget } from './types';
 
 type Home = { lat: number; lng: number; zoom?: number };
 
-/** The view a shared link names (share-panel.tsx writes lat, lon and zoom), if it is a real place. */
+/** The view a shared link names (share-panel.tsx writes lat, lon and zoom; a card's link adds track), if it is a real place. */
 function sharedView(p: URLSearchParams): Home | null {
   if (!p.has('lat') || !p.has('lon')) return null;
   const lat = Number(p.get('lat'));
@@ -89,6 +90,16 @@ export function useStartup({ setActiveLayers, setFlyToLocation, splashGone }: {
        well-covered city, rather than stopping on the globe. */
     const shared = sharedView(p);
     let located = !!shared;
+
+    // A link that follows an aircraft, ship or satellite (track=aircraft:4bb1c2): the map finds it and follows it.
+    const track = parseTrack(p.get('track'));
+    if (track) {
+      requestTrack(track);
+      const needs = track.kind === 'ship' ? ['maritime'] : track.kind === 'satellite' ? ['satellites'] : ['flights', 'private', 'jets', 'military'];
+      setActiveLayers(prev => (needs.some(k => prev[k as keyof ActiveLayers]) ? prev : { ...prev, ...Object.fromEntries(needs.map(k => [k, true])) }));
+      // With no view in the link, the camera goes to the target, not the viewer's city.
+      if (!shared) autoLocateCancelled.current = true;
+    }
     const landSomewhere = () => {
       if (located || geoController.signal.aborted) return;
       located = true;

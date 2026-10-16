@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { KeyRound } from 'lucide-react';
-import { isExpired, revokeApiKey, type ApiKey } from '@/lib/account/api-keys';
-import { timeAgo } from '@/lib/account/device-label';
+import { isExpired, revokeApiKey, type ApiKey } from '@/lib/platform/account/api-keys';
+import { timeAgo } from '@/lib/platform/account/device-label';
 import { FormError } from '@/components/site/account/form-parts';
 import { describeKeyFailure } from './api-key-messages';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';

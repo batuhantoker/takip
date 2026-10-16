@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Kbd } from '@/components/ui/kbd';
 import { cx, TRANSITION } from '@/components/ui/class-names';
-import { haversine } from '@/lib/geo';
+import { haversine } from '@/lib/core/geodesic';
 
 export interface PlaceLike {
   label: string;

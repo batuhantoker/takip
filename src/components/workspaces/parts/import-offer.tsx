@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { IMPORTED_NAME } from '@/lib/workspaces/device';
-import { workspaceSession } from '@/lib/workspaces/session';
+import { IMPORTED_NAME } from '@/lib/platform/workspaces/device';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { FormError } from '@/components/site/account/form-parts';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';
 import DialogFrame, { Hint } from './dialog-frame';

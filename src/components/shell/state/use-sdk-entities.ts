@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, type RefObject } from 'react';
-import type { ActiveLayers } from '@/lib/layers/defaults';
+import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import type { LiveData } from './types';
 
 export function useSdkEntities({ dataRef, data, dataVersion, activeLayers }: {
