@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { AD_CLIENT } from '@/lib/ads/ads';
+import { AD_CLIENT } from '@/lib/platform/ads';
 import { useAds } from './ads-provider';
 
 declare global {

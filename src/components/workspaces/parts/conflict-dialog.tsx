@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { WorkspaceFailure } from '@/lib/workspaces/api';
-import { workspaceSession } from '@/lib/workspaces/session';
+import type { WorkspaceFailure } from '@/lib/platform/workspaces/api';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { FormError } from '@/components/site/account/form-parts';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';
 import DialogFrame, { Hint } from './dialog-frame';

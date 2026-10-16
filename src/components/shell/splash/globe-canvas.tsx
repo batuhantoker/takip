@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { createGlobeScene } from '@/lib/splash/globe-scene';
+import { createGlobeScene } from '@/lib/map/splash/globe-scene';
 
 const READY_STAGE = 3;
 

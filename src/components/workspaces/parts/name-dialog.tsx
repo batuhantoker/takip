@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { workspaceSession } from '@/lib/workspaces/session';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { Field, FormError, Submit } from '@/components/site/account/form-parts';
 import DialogFrame, { Hint } from './dialog-frame';
 import { describeWorkspaceFailure } from '@/components/workspaces/messages';

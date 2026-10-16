@@ -2,9 +2,9 @@
 
 import { useState, type FormEvent } from 'react';
 import { Link2 } from 'lucide-react';
-import { timeAgo } from '@/lib/account/device-label';
-import type { WorkspaceFailure, WorkspaceSummary } from '@/lib/workspaces/api';
-import { workspaceSession } from '@/lib/workspaces/session';
+import { timeAgo } from '@/lib/platform/account/device-label';
+import type { WorkspaceFailure, WorkspaceSummary } from '@/lib/platform/workspaces/api';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { FormError, INPUT } from '@/components/site/account/form-parts';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';
 import { describeWorkspaceFailure } from '@/components/workspaces/messages';

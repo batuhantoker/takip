@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAccess } from '@/lib/account/access';
-import { isExpired, listApiKeys, type ApiKey, type NewApiKey } from '@/lib/account/api-keys';
+import { useAccess } from '@/components/site/account/use-access';
+import { isExpired, listApiKeys, type ApiKey, type NewApiKey } from '@/lib/platform/account/api-keys';
 import { FormError, Notice } from '@/components/site/account/form-parts';
 import { describeKeyFailure, keyCount } from './api-key-messages';
 import ApiKeyRow from './api-key-row';

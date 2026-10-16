@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
-import { useAccess } from '@/lib/account/access';
-import { shareUrl } from '@/lib/workspaces/api';
-import { workspaceParts } from '@/lib/workspaces/parts';
-import { workspaceSession } from '@/lib/workspaces/session';
+import { useAccess } from '@/components/site/account/use-access';
+import { shareUrl } from '@/lib/platform/workspaces/api';
+import { workspaceParts } from '@/lib/platform/workspaces/parts';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { showAccountDialog } from '@/components/site/account/account-dialog-state';
 import { FormError, INPUT } from '@/components/site/account/form-parts';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';

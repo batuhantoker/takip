@@ -1,5 +1,5 @@
 import type { Access } from '@takip/core/entitlements';
-import type { ApiKey } from '@/lib/account/api-keys';
+import type { ApiKey } from '@/lib/platform/account/api-keys';
 
 /* Response shapes of apps/api/src/admin/routes.ts. */
 
@@ -55,7 +55,7 @@ export type Overview = {
 };
 
 export type PlansResponse = {
-  catalogue: { key: string; type: 'bool' | 'int' | 'enum'; values?: string[]; fallback: unknown }[];
+  catalogue: { key: string; type: 'bool' | 'int' | 'enum'; values?: string[]; fallback: unknown; hint?: string }[];
   plans: { id: string; name: string; public: number; values: Record<string, string> }[];
 };
 

@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Eye } from 'lucide-react';
-import { authClient } from '@/lib/account/auth-client';
-import { stopImpersonating } from '@/lib/account/impersonation';
+import { authClient } from '@/components/site/account/auth-client';
+import { stopImpersonating } from '@/lib/platform/account/impersonation';
 import { Button } from '@/components/ui/button';
 
 /** Shown on top of everything while an admin views the site as someone else. Portalled, so no panel's opacity or stacking hides it. */

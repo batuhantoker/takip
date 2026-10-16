@@ -50,6 +50,7 @@ const GROUPS: { title: string; items: Shortcut[] }[] = [
       { keys: [['P']], label: 'Replay recorded ships and aircraft' },
       { keys: [['H']], label: 'History: the past on a timeline' },
       { keys: [['Space']], label: 'Play or pause the timeline' },
+      { keys: [[','], ['.']], label: 'Replay: jump back or ahead' },
       { keys: [['J']], label: 'Go to a date or time' },
     ],
   },

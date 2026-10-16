@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type RefObject } from 'react';
-import { mapGlobe, splashGlobeRadius } from '@/lib/splash/map-handoff';
+import { mapGlobe, splashGlobeRadius } from '@/lib/map/splash/map-handoff';
 
 /** The move that lands the splash globe on the map's opening globe, which fills the viewport behind it. */
 export function useGlobeHandoff(ref: RefObject<HTMLElement | null>) {

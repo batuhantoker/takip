@@ -5,18 +5,18 @@ import type { Dispatch, SetStateAction } from 'react';
 import LiveAlerts from '@/components/panels/alerts/alerts-panel';
 import ArcGISPanel from '@/components/panels/arcgis/arcgis-panel';
 import MarketsPanel from '@/components/panels/markets/markets-panel';
-import type { OiPanelProps } from '@/components/panels/ti-agent/ti-panel';
+import type { AiPanelProps } from '@/components/panels/ti-agent/ti-panel';
 import type { Areas } from '@/components/panels/areas/use-areas';
 import type { ArcgisLayers } from '@/components/panels/arcgis/use-arcgis-layers';
 import type { HistorySession } from '@/lib/history/session';
-import type { ActiveLayers } from '@/lib/layers/defaults';
+import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import { DOCK_WIDTH, NAV_WIDTH, type ToolId } from './dock';
 import type { FlyToTarget, LiveData, MapCenter } from '@/components/shell/state/types';
 
 const LayersPane = dynamic(() => import('@/components/panels/layers/layers-panel'));
 const SpaceDock = dynamic(() => import('@/components/panels/space/space-panel'), { ssr: false });
 const OsintPanel = dynamic(() => import('@/components/panels/recon/recon-panel'));
-const OiPanel = dynamic(() => import('@/components/panels/ti-agent/ti-panel'));
+const AiPanel = dynamic(() => import('@/components/panels/ti-agent/ti-panel'));
 const DrawingToolbar = dynamic(() => import('@/components/panels/areas/areas-panel'), { ssr: false });
 const HistoryPanel = dynamic(() => import('@/components/panels/history/history-panel'));
 
@@ -30,7 +30,7 @@ export default function DockTools({ tool, onClose, data, activeLayers, setActive
   setActiveLayers: Dispatch<SetStateAction<ActiveLayers>>;
   capabilities: Record<string, boolean>;
   /** The TI panel's props, already set up for the desktop. */
-  ti: OiPanelProps;
+  ti: AiPanelProps;
   areas: Areas;
   arcgis: ArcgisLayers;
   mapBounds: MapCenter['bounds'] | null;
@@ -48,7 +48,7 @@ export default function DockTools({ tool, onClose, data, activeLayers, setActive
     case 'layers': return (
       <LayersPane data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} capabilities={capabilities} onClose={onClose} />
     );
-    case 'oi': return <OiPanel {...ti} />;
+    case 'ai': return <AiPanel {...ti} />;
     case 'draw': return (
       <DrawingToolbar
         drawMode={areas.drawMode}
@@ -68,6 +68,7 @@ export default function DockTools({ tool, onClose, data, activeLayers, setActive
         watched={areas.watched}
         onToggleWatch={areas.toggleWatch}
         watchEvents={areas.watchEvents}
+        onImagery={areas.showImagery}
         onClose={onClose}
       />
     );

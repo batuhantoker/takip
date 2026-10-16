@@ -1,11 +1,13 @@
 import { useSyncExternalStore } from 'react';
+import type { SettingsTab } from '@/components/shell/settings/lib/tabs';
 
 export type View =
   | { kind: 'sign-in'; notice?: string }
-  | { kind: 'sign-up' }
+  | { kind: 'sign-up'; notice?: string }
   | { kind: 'forgot'; notice?: string }
   | { kind: 'new-password'; token: string }
-  | { kind: 'settings'; notice?: string }
+  /** The Settings window; without a tab it opens on Account. */
+  | { kind: 'settings'; tab?: SettingsTab; notice?: string }
   | { kind: 'two-factor' }
   | { kind: 'sent'; title: string; body: string };
 

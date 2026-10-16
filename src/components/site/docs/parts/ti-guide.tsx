@@ -2,9 +2,9 @@
 
 import { Callout, Code, CodeBlock, Section } from './docs-primitives';
 
-export function OiGuideSection({ origin }: { origin: string }) {
+export function AiGuideSection({ origin }: { origin: string }) {
   return (
-    <Section id="oi" eyebrow="Guide" title="TI & MCP">
+    <Section id="ti" eyebrow="Guide" title="TI & MCP">
       <p>
         TI (Takip AI) is the AI in TAKIP, on your own model key, and it works two ways. <strong>Assist</strong> is a
         conversation (press <kbd>T</kbd>): ask in words, typed or spoken, and TI works the map for you. It flies
@@ -32,7 +32,7 @@ export function OiGuideSection({ origin }: { origin: string }) {
         {[
           { k: 'Your own key', v: 'OpenAI, Anthropic, Google Gemini, OpenRouter, Groq, DeepSeek, xAI, Mistral or Qwen. The key stays in your browser and travels in a header with your requests; the server uses it for your run and never stores or logs it.' },
           { k: 'Cost', v: 'Quick: 4 actors × 3 periods × 2 worlds, about 34 model calls. Standard: 6 × 4 × 3, about 88. Deep: 7 × 4 × 4, about 132. A world that settles early stops spending. Billed by your provider at its own rates.' },
-          { k: 'Sharing', v: 'Every run has a link, /?oi=<id>, that replays the whole analysis on the globe for anyone who opens it. Runs are kept for three hours after they finish.' },
+          { k: 'Sharing', v: 'Every run has a link, /?ai=<id>, that replays the whole analysis on the globe for anyone who opens it. Runs are kept for three hours after they finish.' },
           { k: 'Steering', v: 'Whoever started a run holds its token: they alone can inject events into it or stop it. Anyone with a key can question the actors and the report agent.' },
           { k: 'On the globe', v: 'Violet arcs are alignments and cooperation, magenta are rivalries and pressure, indigo is everything in between; evidence from the feeds is a paler wash of its tone, and each move is an arc from the actor that made it to the actor it was aimed at. All three colours are yours to set in the Style Studio (Map layers → TI).' },
           { k: 'Workspace', v: 'Full screen (the expand button, with or without a forecast) opens the TI workspace. On the left, the same Forecast / Assist switch as the panel: the ask form, then the prediction with the report or the execution trace (every step the engine took, timed, with what it produced); or the conversation. In the middle, four views on keys 1 to 4: the live globe; the research graph, after MiroFish, with every actor and cited source and every relation, move and quote between them, filters and a flow layout; the timeline, each simulated world period by period with its events, under the worlds pooled; and sortable tables of actors, moves, events, sources and links. On the right, once there is a run, whatever is selected, as an object with its properties and links. Ctrl+K (⌘K) finds any object by name, and in Assist TI can open the workspace, switch its view and open objects for you.' },
@@ -59,25 +59,25 @@ export function OiGuideSection({ origin }: { origin: string }) {
             label: 'cURL',
             lang: 'bash',
             code: `# Start: answers 202 with the run id, a watch link and a run token
-curl -s -X POST ${origin}/api/oi/runs \\
+curl -s -X POST ${origin}/api/ai/runs \\
   -H "Content-Type: application/json" \\
-  -H "X-OI-Provider: openai" \\
-  -H "X-OI-Key: $OPENAI_API_KEY" \\
+  -H "X-AI-Provider: openai" \\
+  -H "X-AI-Key: $OPENAI_API_KEY" \\
   -d '{"question": "Will the Fed cut rates at its next meeting?", "depth": "quick"}'
 
 # Wait up to 55 s for the prediction (repeat until status is "done")
-curl -s "${origin}/api/oi/runs/RUN_ID?wait=55"
+curl -s "${origin}/api/ai/runs/RUN_ID?wait=55"
 
 # Or watch it happen
-curl -N ${origin}/api/oi/runs/RUN_ID/events`,
+curl -N ${origin}/api/ai/runs/RUN_ID/events`,
           },
         ]}
       />
 
       <p>
         The same engine is an MCP server at <Code>{`${origin}/api/mcp`}</Code> (Streamable HTTP). Give an agent the
-        tools <Code>oi_predict</Code>, <Code>oi_get_run</Code>, <Code>oi_ask</Code>,{' '}
-        <Code>oi_inject</Code> and <Code>oi_cancel</Code>, plus <Code>takip_world_brief</Code> and{' '}
+        tools <Code>ai_predict</Code>, <Code>ai_get_run</Code>, <Code>ai_ask</Code>,{' '}
+        <Code>ai_inject</Code>, <Code>ai_cancel</Code> and <Code>ai_info</Code>, plus <Code>takip_world_brief</Code> and{' '}
         <Code>takip_markets</Code> and <Code>takip_trending</Code>, which are free and need no key. The model key is set once on the connection, as
         headers, so it never appears in the agent&apos;s conversation.
       </p>
@@ -92,17 +92,17 @@ mcp_servers:
   takip:
     url: "${origin}/api/mcp"
     headers:
-      X-OI-Provider: "anthropic"
-      X-OI-Key: "sk-ant-..."
-      X-OI-Model: "claude-haiku-4-5-20251001"
+      X-AI-Provider: "anthropic"
+      X-AI-Key: "sk-ant-..."
+      X-AI-Model: "claude-haiku-4-5-20251001"
     timeout: 300`,
           },
           {
             label: 'Claude Code',
             lang: 'bash',
             code: `claude mcp add --transport http takip ${origin}/api/mcp \\
-  --header "X-OI-Provider: openai" \\
-  --header "X-OI-Key: $OPENAI_API_KEY"`,
+  --header "X-AI-Provider: openai" \\
+  --header "X-AI-Key: $OPENAI_API_KEY"`,
           },
           {
             label: 'Cursor / JSON',
@@ -112,8 +112,8 @@ mcp_servers:
     "takip": {
       "url": "${origin}/api/mcp",
       "headers": {
-        "X-OI-Provider": "google",
-        "X-OI-Key": "AIza..."
+        "X-AI-Provider": "google",
+        "X-AI-Key": "AIza..."
       }
     }
   }
@@ -122,9 +122,9 @@ mcp_servers:
         ]}
       />
       <Callout tone="info" title="How long a prediction takes">
-        A few minutes, depending on depth and provider. <Code>oi_predict</Code> waits for it when the
+        A few minutes, depending on depth and provider. <Code>ai_predict</Code> waits for it when the
         client accepts a streamed response, sending progress as each phase and period completes. Over plain JSON it
-        waits about 80 seconds, then returns the run id to poll with <Code>oi_get_run</Code> and{' '}
+        waits about 80 seconds, then returns the run id to poll with <Code>ai_get_run</Code> and{' '}
         <Code>wait_seconds</Code>.
       </Callout>
       <p className="text-[13px] text-ink-3">

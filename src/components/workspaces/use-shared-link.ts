@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { workspaceSession } from '@/lib/workspaces/session';
+import { workspaceSession } from '@/lib/platform/workspaces/session';
 
 /**
  * Opens the shared workspace a /w/<slug>?t= link landed with (src/app/w/[slug]/page.tsx sends it here as

@@ -1,6 +1,6 @@
 'use client';
 
-import { useAccess, usePlans } from '@/lib/account/access';
+import { useAccess, usePlans } from '@/components/site/account/use-access';
 import { planGains } from '@/components/site/account/settings/plan-highlights';
 import { Row, Section, SmallButton } from '@/components/site/account/settings/settings-parts';
 

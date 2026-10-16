@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { countLayersOn } from '@/components/shell/sidebar/nav-items';
 import { formatPosition } from '@/components/shell/status-bar/use-cursor-readout';
+import { trackKey, trackedNow } from '@/components/map/inspect/track-request';
 
 interface SharePanelProps {
   /** Where the map is looking; use-startup.ts reads lat, lon and zoom back from the link. */
@@ -14,7 +15,7 @@ interface SharePanelProps {
   activeLayers: Record<string, boolean>;
 }
 
-/** A link to this view (place, zoom and layers), to copy or post. */
+/** A link to this view (place, zoom, layers and what it follows), to copy or post. */
 export default function SharePanel({ center, zoom, activeLayers }: SharePanelProps) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -31,6 +32,9 @@ export default function SharePanel({ center, zoom, activeLayers }: SharePanelPro
     params.set('zoom', zoom.toFixed(2));
     const layerKeys = Object.entries(activeLayers).filter(([, v]) => v).map(([k]) => k).join(',');
     params.set('layers', layerKeys);
+    // What the map follows travels too; the link opens following it.
+    const tracked = trackedNow();
+    if (tracked) params.set('track', trackKey(tracked));
     const base = typeof window !== 'undefined' ? window.location.origin : '';
     return `${base}/?${params.toString()}`;
   }, [lat, lng, zoom, activeLayers]);

@@ -16,8 +16,9 @@ export function OverviewSection() {
         the API layer absorbs those differences and hands back consistent JSON.
       </p>
       <Callout tone="good" title="No credentials needed">
-        Aviation, maritime, satellites, fires, earthquakes, weather, news, and CVE data all come from public
-        keyless feeds. Keys only matter for the optional RECON scanner and for raising rate limits.
+        Aviation, satellites, fires, earthquakes, weather, news, and CVE data all come from public keyless
+        feeds, and the RECON tools run keyless too. A few layers need a key of their own: live vessels, Cloudflare
+        Radar and TomTom traffic flow.
       </Callout>
     </Section>
   );
@@ -27,8 +28,8 @@ export function QuickStartSection({ origin }: { origin: string }) {
   return (
     <Section id="quickstart" eyebrow="Guide" title="Quick start">
       <p>
-        Every read endpoint is a plain <Code>GET</Code> returning JSON. Nothing below needs authentication —
-        paste any of it into a terminal.
+        Every feed is a plain <Code>GET</Code> returning JSON and needs no authentication — paste any of these
+        into a terminal.
       </p>
       <CodeBlock
         label="Fetch live aircraft"
@@ -61,6 +62,11 @@ print(len(data["commercial_flights"]), "commercial")`,
 #   "timestamp": "2026-07-29T12:00:00Z" }`}</Pre>
       <p>The OSINT lookups each take one subject, so they compose cleanly in a pipeline. They need an account, so send an API key:</p>
       <Pre label="Passive subdomain enumeration" lang="bash">{`curl -s -H "Authorization: Bearer $YOUR_API_KEY" "${origin}/api/osint/certs?domain=example.com" | jq -r '.subdomains[]'`}</Pre>
+      <p>
+        The same key opens the accounts API (<Code>/api/v1</Code>, documented at <Code>/api/v1/docs</Code>) and replay data
+        (<Code>/api/replay</Code>). Without one, most of their endpoints answer <Code>401 api_key_required</Code>;{' '}
+        <Code>/api/v1/key-policy</Code> lists the ones open to everyone. A free account comes with a key.
+      </p>
       <Callout tone="info" title="Try before you write code">
         Every GET endpoint in the reference below has a <strong>Send request</strong> button that runs it against
         this instance and shows the live response.
@@ -72,7 +78,11 @@ print(len(data["commercial_flights"]), "commercial")`,
 export function SelfHostingSection() {
   return (
     <Section id="self-hosting" eyebrow="Guide" title="Self-hosting">
-      <p>TAKIP needs Node 20+ and no database. A local instance is three commands:</p>
+      <p>
+        The map needs Node 20+ and no database. Accounts, and with them the OSINT tools, come from the accounts
+        API in <Code>apps/api</Code>, which <Code>npm run dev</Code> starts beside the web app on port 4100. A local
+        instance is three commands:
+      </p>
       <Pre label="Local development" lang="bash">{`git clone https://github.com/batuhantoker/takip.git
 cd takip
 npm install
@@ -110,8 +120,20 @@ export function ConfigurationSection() {
             v: 'Shared secret for /api/sdk/ingest. The endpoint fails closed: while this is unset, ingestion is disabled and returns 503.',
           },
           {
-            k: 'TAKIP_TELEGRAM_CHANNELS',
-            v: 'Comma-separated public Telegram channel names (no @) for the Telegram OSINT layer, overriding the curated default set.',
+            k: 'AIS_API_KEY',
+            v: 'aisstream.io key for live vessel positions. Without it /api/maritime still has ports and chokepoints, but no ships.',
+          },
+          {
+            k: 'CLOUDFLARE_API_TOKEN',
+            v: 'A Cloudflare token scoped to Radar: Read, for the internet outages and attack-origins layer. Unset, /api/cloudflare-radar reports itself unconfigured.',
+          },
+          {
+            k: 'TOMTOM_API_KEY',
+            v: 'TomTom key for the worldwide traffic flow tiles. Unset, /api/traffic/flow answers 204.',
+          },
+          {
+            k: 'GEMINI_API_KEY_1 … _8',
+            v: 'The server’s own Gemini keys for the AI routes, used for Pro plans. Anyone can still send their own in X-Gemini-Key.',
           },
           {
             k: 'TAKIP_PORT',
@@ -128,12 +150,13 @@ export function ConfigurationSection() {
         ))}
       </div>
       <h3 className="text-[15px] font-semibold text-ink-1 pt-3">
-        Optional — higher rate limits only
+        Optional — higher limits or deeper results
       </h3>
       <p>
-        <Code>FIRMS_API_KEY</Code>, <Code>OPENSKY_CLIENT_ID</Code>, <Code>OPENSKY_CLIENT_SECRET</Code>,{' '}
-        <Code>N2YO_API_KEY</Code>, <Code>AIS_API_KEY</Code>. The public keyless feeds are used unless you extend
-        the code to prefer these.
+        <Code>OPENSKY_CLIENT_ID</Code> and <Code>OPENSKY_CLIENT_SECRET</Code> lift OpenSky’s anonymous budget of
+        400 credits a day. <Code>ETHERSCAN_API_KEY</Code> and <Code>HELIUS_API_KEY</Code> deepen Ethereum and
+        Solana wallet lookups. <Code>FIRMS_API_KEY</Code> and <Code>N2YO_API_KEY</Code> are not read: the keyless
+        feeds serve those layers.
       </p>
       <Callout tone="warn" title="Secrets hygiene">
         Generate secrets with <Code>openssl rand -hex 32</Code>. Never commit a populated <Code>.env</Code> —

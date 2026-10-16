@@ -48,7 +48,10 @@ export default function PlansPage() {
             <tbody>
               {data.catalogue.map(spec => (
                 <tr key={spec.key}>
-                  <td className={`${TD} font-mono text-[11px] whitespace-nowrap`}>{spec.key}</td>
+                  <td className={TD}>
+                    <div className="font-mono text-[11px] whitespace-nowrap">{spec.key}</div>
+                    {spec.hint && <div className="mt-0.5 max-w-[260px] text-[11px] text-ink-3">{spec.hint}</div>}
+                  </td>
                   {data.plans.map(plan => (
                     <td key={plan.id} className={TD}>
                       <Cell

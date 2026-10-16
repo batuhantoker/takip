@@ -2,8 +2,8 @@
 
 import { useEffect, useEffectEvent, type Dispatch, type SetStateAction } from 'react';
 import { stepCamera } from '@/components/map/controls/map-controls';
-import type { ActiveLayers } from '@/lib/layers/defaults';
-import type { OiMode } from '@/components/panels/ti-agent/ti-panel';
+import type { ActiveLayers } from '@/lib/map/layers/defaults';
+import type { AiMode } from '@/components/panels/ti-agent/ti-panel';
 import type { ToolId } from '@/components/shell/sidebar/dock';
 import type { FlyToTarget, MapProjection, MobilePanel } from '@/components/shell/state/types';
 
@@ -12,14 +12,14 @@ const PAN: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: 
 
 /** The app's single keys. keyboard-shortcuts.tsx lists them; keep the two in step. */
 export function useKeyboardShortcuts({
-  setShowDesktopSearch, onTool, onReplay, setOiMode, setOiAutoFocus, setMobilePanel, setActiveTool, setFlyToLocation, setActiveLayers, setMapProjection,
+  setShowDesktopSearch, onTool, onReplay, setAiMode, setAiAutoFocus, setMobilePanel, setActiveTool, setFlyToLocation, setActiveLayers, setMapProjection,
 }: {
   setShowDesktopSearch: Dispatch<SetStateAction<boolean>>;
   /** Opens a sidebar panel, or closes it if it is the one showing. */
   onTool: (tool: ToolId) => void;
   onReplay: () => void;
-  setOiMode: Dispatch<SetStateAction<OiMode>>;
-  setOiAutoFocus: Dispatch<SetStateAction<boolean>>;
+  setAiMode: Dispatch<SetStateAction<AiMode>>;
+  setAiAutoFocus: Dispatch<SetStateAction<boolean>>;
   setMobilePanel: Dispatch<SetStateAction<MobilePanel | null>>;
   setActiveTool: Dispatch<SetStateAction<ToolId | null>>;
   setFlyToLocation: Dispatch<SetStateAction<FlyToTarget | null>>;
@@ -30,7 +30,7 @@ export function useKeyboardShortcuts({
     const t = e.target instanceof HTMLElement ? e.target : null;
     if (t && (['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) || t.isContentEditable)) return;
     // The full-screen workspace has keys of its own.
-    if (document.documentElement.hasAttribute('data-oi-theater')) return;
+    if (document.documentElement.hasAttribute('data-ai-theater')) return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'f' || e.key === 'k')) {
       e.preventDefault();
       setShowDesktopSearch(true);
@@ -61,10 +61,10 @@ export function useKeyboardShortcuts({
         break;
       case 't':
       case 'o':
-        setOiMode('assist');
-        setOiAutoFocus(true);
-        if (window.matchMedia('(max-width: 767px)').matches) setMobilePanel('oi');
-        else setActiveTool('oi');
+        setAiMode('assist');
+        setAiAutoFocus(true);
+        if (window.matchMedia('(max-width: 767px)').matches) setMobilePanel('ai');
+        else setActiveTool('ai');
         break;
       case 's': setShowDesktopSearch(p => !p); break;
       case 'p': onReplay(); break;

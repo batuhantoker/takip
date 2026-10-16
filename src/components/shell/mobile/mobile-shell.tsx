@@ -7,9 +7,9 @@ import MarketsPanel from '@/components/panels/markets/markets-panel';
 import SearchBar from '@/components/shell/search/search-bar';
 import ViewPresets from '@/components/map/controls/view-presets';
 import type { PlaceLike } from '@/components/shell/search/places';
-import type { OiPanelProps } from '@/components/panels/ti-agent/ti-panel';
+import type { AiPanelProps } from '@/components/panels/ti-agent/ti-panel';
 import type { Directions } from '@/components/panels/route/use-directions';
-import type { ActiveLayers } from '@/lib/layers/defaults';
+import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import type { TerrainStatus } from '@/lib/map/terrain/terrain';
 import AppHeader from './app-header';
 import SharePanel from './share-panel';
@@ -21,7 +21,7 @@ import type { FlyToTarget, LiveData, MapCenter, MapView, MobilePanel } from '@/c
 
 const LayerPanel = dynamic(() => import('@/components/panels/layers/layers-mobile'));
 const OsintPanel = dynamic(() => import('@/components/panels/recon/recon-panel'));
-const OiPanel = dynamic(() => import('@/components/panels/ti-agent/ti-panel'));
+const AiPanel = dynamic(() => import('@/components/panels/ti-agent/ti-panel'));
 
 /** The phone's view: the mark, More and the account up top, the bottom bar, and the one sheet it opens. */
 export default function MobileShell({ revealed, mobilePanel, setMobilePanel, directions, data, activeLayers, setActiveLayers, capabilities,
@@ -37,7 +37,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
   terrain: { terrainStatus: TerrainStatus; on3DModeSelected: () => void; onTerrainRetry: () => void; onTerrainFocus: () => void };
   theme: ThemeId;
   setTheme: (theme: ThemeId) => void;
-  ti: OiPanelProps;
+  ti: AiPanelProps;
   spaceWeather: any;
   mapCenter: MapCenter | null;
   mapView: MapView;
@@ -71,7 +71,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
           </>
         )}
         {mobilePanel === 'markets' && <MarketsPanel data={data} spaceWeather={spaceWeather} />}
-        {mobilePanel === 'oi' && <OiPanel {...ti} embedded />}
+        {mobilePanel === 'ai' && <AiPanel {...ti} embedded />}
         {mobilePanel === 'intel' && <IntelFeed data={data} onLocate={(lat, lng) => flyAndClose(lat, lng)} />}
         {mobilePanel === 'search' && (
           <>

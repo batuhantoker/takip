@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { KeyRound } from 'lucide-react';
-import { RESET_CALLBACK, SETTINGS_CALLBACK } from '@/lib/account/links';
-import { authClient } from '@/lib/account/auth-client';
+import { RESET_CALLBACK, SETTINGS_CALLBACK } from '@/lib/platform/account/links';
+import { authClient } from '@/components/site/account/auth-client';
 import { Notice } from '@/components/site/account/form-parts';
 import { PROVIDER_ICONS } from '@/components/site/account/parts/provider-icons';
 import { PROVIDER_IDS, PROVIDER_LABELS, canConnect, loadProviders, type ProviderId } from '@/components/site/account/providers';

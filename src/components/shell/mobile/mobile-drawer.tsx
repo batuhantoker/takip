@@ -12,7 +12,7 @@ const TITLES: Record<MobilePanel, string> = {
   intel: 'Alerts',
   search: 'Search',
   recon: 'Recon',
-  oi: 'TI',
+  ai: 'TI',
 };
 
 /** How far the sheet must be pulled down before letting go closes it. */

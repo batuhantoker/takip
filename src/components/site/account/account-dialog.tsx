@@ -1,23 +1,22 @@
 'use client';
 
 import { useEffect } from 'react';
-import { readAccountLink, type AccountLink } from '@/lib/account/links';
+import { readAccountLink, type AccountLink } from '@/lib/platform/account/links';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { showAccountDialog, useAccountDialog, type View } from './account-dialog-state';
+import SettingsWindow, { type MapSettings } from '@/components/shell/settings/settings-window';
 import CredentialsForm from '@/components/site/account/parts/credentials-form';
 import ImpersonationBanner from '@/components/site/account/parts/impersonation-banner';
 import ForgotPasswordForm from '@/components/site/account/parts/forgot-password-form';
 import NewPasswordForm from '@/components/site/account/parts/new-password-form';
 import TwoFactorForm from '@/components/site/account/parts/two-factor-form';
-import AccountSettings from './settings/account-settings';
 
 const TITLES = {
   'sign-in': 'Sign in',
   'sign-up': 'Create account',
   forgot: 'Reset password',
   'new-password': 'Choose a new password',
-  settings: 'Account settings',
   'two-factor': 'Two-factor check',
 } as const;
 
@@ -66,11 +65,19 @@ function viewFor(link: AccountLink): View {
       return { kind: 'settings', notice: DELETE_ERRORS[link.error] ?? "Nothing was deleted: that link didn't work. Ask for a new one under Delete account." };
     case 'sign-in':
       return { kind: 'sign-in' };
+    case 'sign-up':
+      return { kind: 'sign-up' };
   }
 }
 
-/** Mount once per page. Opens itself when an emailed link lands here. Carries the impersonation banner, since it is mounted in every map state, phones included. */
-export default function AccountDialog() {
+/** Account settings are a tab of the Settings window, which this shows too. */
+type AccountView = Exclude<View, { kind: 'settings' }>;
+
+/**
+ * Mount once per page. Opens itself when an emailed link lands here. Carries the impersonation banner and the
+ * Settings window, since it is mounted in every map state, phones included; `map` is the page's map state for Settings.
+ */
+export default function AccountDialog({ map }: { map?: MapSettings }) {
   const view = useAccountDialog();
 
   useEffect(() => {
@@ -83,16 +90,16 @@ export default function AccountDialog() {
   return (
     <>
       <ImpersonationBanner />
-      {view && <Dialog view={view} />}
+      {view && view.kind !== 'settings' && <Dialog view={view} />}
+      <SettingsWindow view={view?.kind === 'settings' ? view : null} map={map} />
     </>
   );
 }
 
-function Dialog({ view }: { view: View }) {
+function Dialog({ view }: { view: AccountView }) {
   const close = () => showAccountDialog(null);
-  const settings = view.kind === 'settings';
   return (
-    <Modal open onClose={close} title={view.kind === 'sent' ? view.title : TITLES[view.kind]} className={settings ? 'max-w-[440px]' : 'max-w-[380px]'} bare>
+    <Modal open onClose={close} title={view.kind === 'sent' ? view.title : TITLES[view.kind]} className="max-w-[380px]" bare>
       <div className="styled-scrollbar min-h-0 flex-1 overflow-y-auto border-t border-line">
         <Body view={view} close={close} />
       </div>
@@ -100,18 +107,16 @@ function Dialog({ view }: { view: View }) {
   );
 }
 
-function Body({ view, close }: { view: View; close: () => void }) {
+function Body({ view, close }: { view: AccountView; close: () => void }) {
   switch (view.kind) {
     case 'sign-in':
       return <CredentialsForm key="sign-in" mode="sign-in" notice={view.notice} />;
     case 'sign-up':
-      return <CredentialsForm key="sign-up" mode="sign-up" />;
+      return <CredentialsForm key="sign-up" mode="sign-up" notice={view.notice} />;
     case 'forgot':
       return <ForgotPasswordForm notice={view.notice} />;
     case 'new-password':
       return <NewPasswordForm token={view.token} />;
-    case 'settings':
-      return <AccountSettings notice={view.notice} />;
     case 'two-factor':
       return <TwoFactorForm />;
     case 'sent':

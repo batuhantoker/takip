@@ -1,5 +1,5 @@
-import type { WorkspaceFailure } from '@/lib/workspaces/api';
-import { MAX_STATE_BYTES } from '@/lib/workspaces/state';
+import type { WorkspaceFailure } from '@/lib/platform/workspaces/api';
+import { MAX_STATE_BYTES } from '@/lib/platform/workspaces/state';
 
 const FALLBACK = 'Something went wrong. Try again.';
 

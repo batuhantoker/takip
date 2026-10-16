@@ -9,7 +9,7 @@ export type MapView = { zoom: number; latitude: number };
  */
 export type FlyToTarget = { lat: number; lng: number; zoom?: number; alertId?: string; duration?: number; quiet?: boolean; offset?: [number, number]; onArrive?: () => void; ts: number };
 export type MapCenter = { lat: number; lng: number; bounds?: { west: number; south: number; east: number; north: number } };
-export type MobilePanel = 'layers'|'markets'|'intel'|'search'|'recon'|'oi';
+export type MobilePanel = 'layers'|'markets'|'intel'|'search'|'recon'|'ai';
 export type MapProjection = 'globe'|'mercator';
 export type MapStyle = 'dark'|'satellite'|'topo';
 export type ActiveRoute = RouteResult & {

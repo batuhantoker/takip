@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { NewApiKey } from '@/lib/account/api-keys';
+import type { NewApiKey } from '@/lib/platform/account/api-keys';
 import { Notice } from '@/components/site/account/form-parts';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';
 

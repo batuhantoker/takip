@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { startImpersonating } from '@/lib/account/impersonation';
+import { startImpersonating } from '@/lib/platform/account/impersonation';
 import { Button, Card, ErrorText, Input, Label, Muted } from '@/components/site/admin/parts/admin-parts';
 import type { UserDetail } from '@/components/site/admin/admin-types';
 

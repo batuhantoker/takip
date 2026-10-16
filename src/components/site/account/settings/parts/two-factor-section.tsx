@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type FormEvent } from 'react';
-import { authClient } from '@/lib/account/auth-client';
+import { authClient } from '@/components/site/account/auth-client';
 import { Field, FormError, Notice } from '@/components/site/account/form-parts';
 import { FALLBACK_ERROR } from '@/components/site/account/use-form-action';
 import QrCode from './qr-code';

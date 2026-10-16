@@ -1,6 +1,6 @@
 'use client';
 
-import { isExpired } from '@/lib/account/api-keys';
+import { isExpired } from '@/lib/platform/account/api-keys';
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
 import { Badge, Button, Card, ErrorText, Muted, day, when } from '@/components/site/admin/parts/admin-parts';
 import type { AdminApiKey } from '@/components/site/admin/admin-types';

@@ -4,10 +4,10 @@ import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 import AdSlot from '@/components/shell/ads/ad-slot';
 import { useEscape } from '@/components/ui/use-escape';
 import { cx } from '@/components/ui/class-names';
-import { AD_SLOTS } from '@/lib/ads/ads';
+import { AD_SLOTS } from '@/lib/platform/ads';
 
 /** What the sidebar can open beside it, one at a time. */
-export type ToolId = 'layers' | 'oi' | 'draw' | 'alerts' | 'history' | 'recon' | 'directions' | 'space' | 'arcgis' | 'markets';
+export type ToolId = 'layers' | 'ai' | 'draw' | 'alerts' | 'history' | 'recon' | 'directions' | 'space' | 'arcgis' | 'markets';
 
 /** Sidebar width, and the panel column that opens flush beside it. Search and the map controls keep clear of both. */
 export const NAV_WIDTH = 72;

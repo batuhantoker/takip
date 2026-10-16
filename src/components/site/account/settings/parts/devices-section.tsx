@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
-import { authClient } from '@/lib/account/auth-client';
-import { describeDevice, timeAgo } from '@/lib/account/device-label';
+import { authClient } from '@/components/site/account/auth-client';
+import { describeDevice, timeAgo } from '@/lib/platform/account/device-label';
 import { FormError } from '@/components/site/account/form-parts';
 import { FALLBACK_ERROR } from '@/components/site/account/use-form-action';
 import { Row, Section, SignInAgain, SmallButton, needsFreshSignIn } from '@/components/site/account/settings/settings-parts';

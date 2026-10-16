@@ -1,7 +1,7 @@
 import { useEffect, useRef, useSyncExternalStore, type DependencyList } from 'react';
-import { notifyWorkspaceChanged, registerWorkspacePart, type WorkspacePart } from '@/lib/workspaces/parts';
-import { INITIAL_SNAPSHOT, workspaceSession } from '@/lib/workspaces/session';
-import type { PartName } from '@/lib/workspaces/state';
+import { notifyWorkspaceChanged, registerWorkspacePart, type WorkspacePart } from '@/lib/platform/workspaces/parts';
+import { INITIAL_SNAPSHOT, workspaceSession } from '@/lib/platform/workspaces/session';
+import type { PartName } from '@/lib/platform/workspaces/state';
 
 const subscribe = (listener: () => void) => workspaceSession().subscribe(listener);
 const snapshot = () => workspaceSession().get();
