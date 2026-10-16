@@ -4,7 +4,7 @@
  * Most small attacks have none, and that is the usual answer.
  */
 
-import type { WikiSummary } from '@/lib/space/wiki-topic';
+import type { WikiSummary } from '@/lib/core/wikipedia/summary';
 
 const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
 const SPARQL = 'https://query.wikidata.org/sparql';
@@ -16,37 +16,8 @@ const EVENT_TYPE = /attack|bomb|massacre|hijack|shooting|assassinat|hostage|kidn
 
 export const isDay = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
 
-/** A title an importer stored: no characters Wikipedia forbids in titles, and not a path or a query. */
-export const isArticleTitle = (s: string) => s.length > 0 && s.length <= 255 && !/[#<>[\]{}|\u0000-\u001f\u007f]/.test(s) && !/^[./]/.test(s);
-
-/**
- * attrs.wiki is an English title, or "fr:Titre" for an article in another Wikipedia. Wiki codes are lowercase
- * and titles start uppercase, so the prefix can't be mistaken for part of an English title.
- */
-export function articleRef(stored: string): { lang: string; title: string } {
-  const m = stored.match(/^([a-z][a-z0-9-]{1,15}):(.+)$/);
-  return m ? { lang: m[1], title: m[2] } : { lang: 'en', title: stored };
-}
-
-/** The other way round; tools/import/wiki.ts writes the same form. */
-export const wikiRef = (lang: string, title: string) => (lang === 'en' ? title : `${lang}:${title}`);
-
 /** What /api/history/wiki answers: the summary, the ref it was asked for, and the article's other languages. */
 export type ArticleSummary = WikiSummary & { ref: string; lang: string; languages: { lang: string; title: string }[] };
-
-export const articleUrl = (stored: string) => {
-  const { lang, title } = articleRef(stored);
-  return `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
-};
-
-/** "French" for fr; the code itself where the browser has no name for it. */
-export function languageName(lang: string): string {
-  try {
-    return new Intl.DisplayNames(['en'], { type: 'language' }).of(lang) ?? lang;
-  } catch {
-    return lang;
-  }
-}
 
 export function eventQuery(day: string, lon: number, lat: number): string {
   const next = new Date(Date.parse(day) + 86_400_000).toISOString().slice(0, 10);

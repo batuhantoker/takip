@@ -1,3 +1,5 @@
+import type { Projection } from './projection';
+
 /*
  * Country-year series for the replay choropleth: the payload from /api/replay/history/series, the value
  * at a moment, and one colour scale per metric, fixed across all years so colours compare through time.
@@ -22,24 +24,29 @@ export type SeriesPayload = {
   names: Record<string, string>;
   years: [number, number] | null;
   step?: Step;
+  /** Set when projections follow the estimates (projection.ts). */
+  projection?: Projection;
 };
 
-export type CatalogueMetric = { code: string; name: string; unit: string | null; topic: string | null; subjects: number };
+/** `years`: the first and last point, as SeriesPayload.years reports them. */
+export type CatalogueMetric = { code: string; name: string; unit: string | null; topic: string | null; subjects: number; years?: [number, number] | null };
 
 /** Points further apart than this (MAX_GAP_DAYS in a 'day' series) aren't joined: the time between shows as no data. */
 export const MAX_GAP_YEARS = 10;
-const MAX_GAP_DAYS = 56;
+export const MAX_GAP_DAYS = 56;
 const DAYS_PER_YEAR = 365.25;
 const HALF_WEEK_YEARS = 3.5 / DAYS_PER_YEAR;
 
 /**
  * `v` drives the colour and moves smoothly between points; `shown` is what to print: the recorded value
  * when the year (or, in a 'day' series, the week) has one, else the estimate between the two points around it.
- * `year` and `between` are the points' own x.
+ * `year` and `between` are the points' own x. `projected` marks a projected value, never a measured one, and
+ * `range` is the publisher's own range around it ("95% prediction interval"); `note` names a simulated year's value.
  */
+type Projected = { projected?: true; range?: { lo: number; hi: number; label: string }; note?: string };
 export type Reading =
-  | { v: number; shown: number; kind: 'recorded'; year: number; via?: string }
-  | { v: number; shown: number; kind: 'interpolated'; between: [number, number]; via?: string };
+  | ({ v: number; shown: number; kind: 'recorded'; year: number; via?: string } & Projected)
+  | ({ v: number; shown: number; kind: 'interpolated'; between: [number, number]; via?: string } & Projected);
 
 function utcYearStart(year: number) {
   const d = new Date(0);
@@ -63,9 +70,10 @@ export function msAt(y: number) {
 
 /**
  * A year's value counts from mid-year, so playback passes through each recorded value. A dated point
- * counts from its date, and is the recorded value for the half week either side of it.
+ * counts from its date, and is the recorded value for the half week either side of it. Points from
+ * `projectedFrom` on are projections: never blended with the estimates before them.
  */
-export function readingAt(points: readonly ShapePoint[], y: number, step: Step = 'year'): Reading | null {
+export function readingAt(points: readonly ShapePoint[], y: number, step: Step = 'year', projectedFrom?: number): Reading | null {
   const dated = step === 'day';
   const year = Math.floor(y);
   const c = dated ? y : y - 0.5;
@@ -83,12 +91,41 @@ export function readingAt(points: readonly ShapePoint[], y: number, step: Step =
   const b = points[i + 1];
   const isExact = (p: ShapePoint | undefined) => !!p && (dated ? Math.abs(p[0] - y) <= HALF_WEEK_YEARS : p[0] === year);
   const exact = isExact(a) ? a : isExact(b) ? b : undefined;
+  const isProjected = (p: ShapePoint) => projectedFrom !== undefined && p[0] >= projectedFrom;
   let v: number | undefined;
-  if (a && b && b[0] - a[0] <= (dated ? MAX_GAP_DAYS / DAYS_PER_YEAR : MAX_GAP_YEARS)) v = a[1] + ((b[1] - a[1]) * (c - a[0])) / (b[0] - a[0]);
-  else if (exact) v = exact[1];
+  if (a && b && b[0] - a[0] <= (dated ? MAX_GAP_DAYS / DAYS_PER_YEAR : MAX_GAP_YEARS) && isProjected(a) === isProjected(b)) {
+    v = a[1] + ((b[1] - a[1]) * (c - a[0])) / (b[0] - a[0]);
+  } else if (exact) v = exact[1];
   if (v === undefined) return null;
-  if (exact) return { v, shown: exact[1], kind: 'recorded', year: exact[0], via: exact[2] };
-  return { v, shown: v, kind: 'interpolated', between: [a![0], b![0]], via: a![2] ?? b![2] };
+  if (exact) return { v, shown: exact[1], kind: 'recorded', year: exact[0], via: exact[2], ...(isProjected(exact) && { projected: true }) };
+  return { v, shown: v, kind: 'interpolated', between: [a![0], b![0]], via: a![2] ?? b![2], ...(isProjected(a!) && { projected: true }) };
+}
+
+/** The value a series has at exactly `x`, if any. */
+function valueAt(points: readonly ShapePoint[] | undefined, x: number): number | undefined {
+  if (!points) return undefined;
+  let lo = 0;
+  let hi = points.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (points[mid][0] === x) return points[mid][1];
+    if (points[mid][0] < x) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return undefined;
+}
+
+/** A country's reading at fractional year `y`, its projected years marked, with the published range where there is one. */
+export function countryReading(data: SeriesPayload, key: string, y: number): Reading | null {
+  const points = data.values[key];
+  const p = data.projection;
+  const read = points ? readingAt(points, y, data.step, p?.starts[key]) : null;
+  const year = read && (read.kind === 'recorded' ? read.year : read.between[1]);
+  const r = read && p?.simulated && read.projected && year! <= p.simulated.to ? { ...read, note: p.simulated.label } : read;
+  if (!r?.projected || r.kind !== 'recorded' || !p?.range) return r;
+  const lo = valueAt(p.range.lo[key], r.year);
+  const hi = valueAt(p.range.hi[key], r.year);
+  return lo === undefined || hi === undefined ? r : { ...r, range: { lo, hi, label: p.range.label } };
 }
 
 export type Scale = { lo: number; hi: number; log: boolean; norm(v: number): number; at(f: number): number };
@@ -159,9 +196,12 @@ const DAY_MS = 86_400_000;
 export const formatAt = (x: number, step: Step = 'year') =>
   step === 'day' ? DATE.format(Math.round(msAt(x) / DAY_MS) * DAY_MS) : formatYear(x);
 
-export function readingText(r: Reading, unit: string | null, names: Record<string, string>, step: Step = 'year'): string {
+/** `projection` names a projected reading ("UN projection (medium variant)"). */
+export function readingText(r: Reading, unit: string | null, names: Record<string, string>, step: Step = 'year', projection = 'projection'): string {
   const value = formatValue(r.shown, unit);
   const via = r.via ? ` · ${names[r.via] ?? r.via} value` : '';
-  if (r.kind === 'recorded') return `${value} ${step === 'day' ? 'on' : 'in'} ${formatAt(r.year, step)}${via}`;
-  return `≈ ${value}, between ${formatAt(r.between[0], step)} and ${formatAt(r.between[1], step)}${via}`;
+  const range = r.range ? `, ${r.range.label} ${formatValue(r.range.lo)}–${formatValue(r.range.hi)}` : '';
+  const projected = r.projected ? ` · ${r.note ?? projection}${range}` : '';
+  if (r.kind === 'recorded') return `${value} ${step === 'day' ? 'on' : 'in'} ${formatAt(r.year, step)}${via}${projected}`;
+  return `≈ ${value}, between ${formatAt(r.between[0], step)} and ${formatAt(r.between[1], step)}${via}${projected}`;
 }

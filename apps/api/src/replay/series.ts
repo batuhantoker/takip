@@ -38,6 +38,12 @@ export function fractionalYear(ms: number) {
   return Number((year + (ms - start) / (Date.UTC(year + 1, 0, 1) - start)).toFixed(5));
 }
 
+/** A metric's first and last point as the series reports its years: calendar years, or fractional for a 'day' metric. */
+export function yearsOf(first: number | null, last: number | null, step: Step): [number, number] | null {
+  if (first === null || last === null) return null;
+  return step === 'day' ? [fractionalYear(first), fractionalYear(last)] : [yearOf(first), yearOf(last)];
+}
+
 /** Points by shape key. A shape's own value wins over one painted from a historical polity at the same time. */
 export function shapeSeries(rows: readonly SeriesPointRow[], polities: readonly PolityKey[], render: readonly PolityRender[], step: Step = 'year') {
   const keyOf = step === 'year' ? yearOf : (ms: number) => ms;
@@ -115,7 +121,7 @@ export function seriesRoutes(data: ReplayData) {
     if (cached && data.now() - cached.at < CATALOGUE_TTL_MS) return c.json(cached.body, 200, CACHE);
     const metrics = s.series.entityMetrics(s.policy.sourceIds)
       .filter(m => MAPPED.has(m.granularity) && m.subjects >= MIN_SUBJECTS)
-      .map(m => ({ code: m.code, name: m.name, unit: m.unit, topic: m.topic, subjects: m.subjects }));
+      .map(m => ({ code: m.code, name: m.name, unit: m.unit, topic: m.topic, subjects: m.subjects, years: yearsOf(m.first, m.last, m.granularity as Step) }));
     const body = { metrics };
     catalogues.set(s.policy.hash, { at: data.now(), body });
     return c.json(body, 200, CACHE);

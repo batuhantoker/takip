@@ -81,9 +81,15 @@ function simplifyPolygon(p: Ring[], tol: number): Ring[] | null {
 
 const boxRing = (b: Bbox): Ring => [[b.w, b.s], [b.e, b.s], [b.e, b.n], [b.w, b.n], [b.w, b.s]];
 
+/** A box per polygon: one round them all would cover the sea between far-flung islands. */
+function partBoxes(polys: Ring[][]): Geometry {
+  const boxes = polys.map(p => [boxRing(bboxOf({ type: 'Polygon', coordinates: p }))]);
+  return boxes.length === 1 ? { type: 'Polygon', coordinates: boxes[0] } : { type: 'MultiPolygon', coordinates: boxes };
+}
+
 /**
  * The geometry at a band's tolerance. Features that vanish return null, unless `keepSmall`,
- * which keeps a box of the original so small polities still get a choropleth cell.
+ * which keeps boxes of the original so small polities still get a choropleth cell.
  */
 export function simplify(g: Geometry, tol: number, keepSmall = false): Geometry | null {
   if (tol <= 0 || g.type === 'Point') return g;
@@ -98,7 +104,7 @@ export function simplify(g: Geometry, tol: number, keepSmall = false): Geometry 
     case 'MultiPolygon': {
       const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
       const out = polys.map(p => simplifyPolygon(p, tol)).filter((p): p is Ring[] => !!p);
-      if (!out.length) return keepSmall ? { type: 'Polygon', coordinates: [boxRing(bboxOf(g))] } : null;
+      if (!out.length) return keepSmall ? partBoxes(polys) : null;
       return out.length === 1 ? { type: 'Polygon', coordinates: out[0] } : { type: 'MultiPolygon', coordinates: out };
     }
   }

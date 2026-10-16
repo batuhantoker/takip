@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { atMa } from '@/lib/paleo/deep-time';
+import { atMa } from '@/lib/history/paleo/deep-time';
 import { createHistorySession } from './session';
 
 describe('history session deep time', () => {

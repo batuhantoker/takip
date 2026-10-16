@@ -1,12 +1,15 @@
-import { atMa } from '@/lib/paleo/deep-time';
-import { createStory, type Story } from '@/lib/paleo/story';
-import { createReplayClock, type ReplayClock } from '@/lib/replay/clock';
-import { type CountryView, createCountryView } from './country-view';
+import { atMa } from '@/lib/history/paleo/deep-time';
+import { createStory, type Story } from '@/lib/history/paleo/story';
+import { createReplayClock, type ReplayClock } from '@/lib/map/replay/clock';
+import { type CountryChart, createCountryChart } from './countries/chart';
+import { type CountryView, createCountryView, type PicksSnapshot } from './countries/view';
+import { type Projection, projectionEnd } from './projection';
 
 /*
  * The History tab's state outside React: its own clock (years, not the hours Replay records), which event
  * families are on, and what fills the countries: a metric, or wartime borders. Deep time swaps all of that for
  * the plate model on a clock of its own, millions of years long. Replay and History never run together.
+ * The clock stops at today, unless the countries show projections: then it runs on to their end.
  */
 
 /** Wars and battles start on; attacks (181k GTD rows) and the rest wait to be asked for. */
@@ -26,6 +29,8 @@ export type HistorySession = {
   deep(): boolean;
   setDeep(on: boolean): void;
   countries: CountryView;
+  /** Countries charted over time; kept while the colouring is off, so the next indicator charts them too. */
+  chart: CountryChart;
   families(): string[];
   setFamily(family: string, on: boolean): void;
   /** Border layers shown (war-layers.ts, world-borders.ts), one at a time; either these or a country metric fill the map, not both. */
@@ -37,9 +42,16 @@ export type HistorySession = {
 };
 
 export function createHistorySession(start: number, get: typeof fetch = fetch): HistorySession {
-  const clock = createReplayClock(start);
+  // The clock's ceiling reads the country view, which needs the clock.
+  let projection = (): Projection | null => null;
+  const ceiling = () => {
+    const p = projection();
+    return p ? Math.max(Date.now(), projectionEnd(p)) : Date.now();
+  };
+  const clock = createReplayClock(start, { now: ceiling });
   clock.setSpeed(MONTH_SPEED);
   const countries = createCountryView(clock, get);
+  projection = countries.projection;
   const deepClock = createReplayClock(atMa(DEEP_START_MA), { now: () => 0 });
   deepClock.setSpeed(DEEP_SPEED);
   const listeners = new Set<() => void>();
@@ -47,21 +59,20 @@ export function createHistorySession(start: number, get: typeof fetch = fetch): 
   let layers: string[] = [];
   let deep = false;
   // The calendar's colouring and play state, put back on leaving deep time; its border layers simply wait.
-  let calendar: { view: { code: string; source?: string } | null; playing: boolean } | null = null;
+  let calendar: { view: PicksSnapshot | null; playing: boolean } | null = null;
   const emit = () => listeners.forEach(l => l());
 
   const setDeep = (on: boolean) => {
     if (deep === on) return;
     deep = on;
     if (on) {
-      const v = countries.state();
-      calendar = { view: v.status === 'off' ? null : { code: v.code, source: v.status === 'ready' ? v.data.source.code : undefined }, playing: clock.playing() };
+      calendar = { view: countries.snapshot(), playing: clock.playing() };
       clock.pause();
       countries.select(null);
     } else {
       story.close();
       deepClock.pause();
-      if (calendar?.view) countries.select(calendar.view.code, calendar.view.source);
+      if (calendar?.view) countries.restore(calendar.view);
       if (calendar?.playing) clock.play();
       calendar = null;
     }
@@ -69,6 +80,8 @@ export function createHistorySession(start: number, get: typeof fetch = fetch): 
   };
   const story = createStory(deepClock, { onOpen: () => setDeep(true) });
   const offCountries = countries.subscribe(() => {
+    // Nothing but projections may stand past today.
+    if (clock.time() > ceiling()) clock.seek(ceiling());
     if (countries.state().status === 'off' || !layers.length) return;
     layers = [];
     emit();
@@ -80,6 +93,7 @@ export function createHistorySession(start: number, get: typeof fetch = fetch): 
     deep: () => deep,
     setDeep,
     countries,
+    chart: createCountryChart(),
     families: () => families,
     setFamily(family, on) {
       if (families.includes(family) === on) return;

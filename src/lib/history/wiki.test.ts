@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { articleRef, articleUrl, eventQuery, isArticleTitle, isDay, pickArticle } from './wiki';
+import { eventQuery, isDay, pickArticle } from './wiki';
 
 describe('history wiki lookup', () => {
   it('asks for that day only, around the point', () => {
@@ -18,25 +18,5 @@ describe('history wiki lookup', () => {
       { title: 'September 11 attacks', dist: 30, types: ['coordinated terrorist attack'] },
     ])).toBe('American Airlines Flight 77');
     expect(pickArticle([{ title: 'Some match', dist: 1, types: ['association football match'] }])).toBeNull();
-  });
-
-  it('takes a stored title, not a path, a query or a link', () => {
-    expect(isArticleTitle('Cenepa War')).toBe(true);
-    expect(isArticleTitle("Barrios' War of Reunification")).toBe(true);
-    expect(isArticleTitle('Russo-Ukrainian war (2022–present)')).toBe(true);
-    expect(isArticleTitle('')).toBe(false);
-    expect(isArticleTitle('../../etc')).toBe(false);
-    expect(isArticleTitle('Gulf War#Background')).toBe(false);
-    expect(isArticleTitle('a|b')).toBe(false);
-  });
-
-  it('reads a wiki code before the title, and only a lowercase one', () => {
-    expect(articleRef('Cenepa War')).toEqual({ lang: 'en', title: 'Cenepa War' });
-    expect(articleRef('fr:Crise séparatiste des Comores')).toEqual({ lang: 'fr', title: 'Crise séparatiste des Comores' });
-    expect(articleRef('zh-yue:二戰')).toEqual({ lang: 'zh-yue', title: '二戰' });
-    expect(articleRef('zh-classical:赤壁之戰')).toEqual({ lang: 'zh-classical', title: '赤壁之戰' });
-    expect(articleRef('be-x-old:Бітва')).toEqual({ lang: 'be-x-old', title: 'Бітва' });
-    expect(articleRef('Star Wars: Episode IV')).toEqual({ lang: 'en', title: 'Star Wars: Episode IV' });
-    expect(articleUrl('pl:Bitwa pod Grunwaldem')).toBe('https://pl.wikipedia.org/wiki/Bitwa_pod_Grunwaldem');
   });
 });

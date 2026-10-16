@@ -1,4 +1,4 @@
-import { twoline2satrec, propagate, gstime, eciToGeodetic, degreesLat, degreesLong } from 'satellite.js';
+import { twoline2satrec, propagate, gstime, eciToGeodetic, degreesLat, degreesLong, type SatRec } from 'satellite.js';
 
 /**
  * TAKIP — orbital propagation
@@ -34,6 +34,12 @@ export function wrapLongitude(deg: number): number {
  * satellite that has re-entered still has a TLE in the catalog for a while.
  */
 export function propagateTLE(line1: string, line2: string, when: Date = new Date()): SatPosition | null {
+  const satrec = parseTLE(line1, line2);
+  return satrec ? propagateSatrec(satrec, when) : null;
+}
+
+/** One TLE parsed for SGP4, to propagate many times; null where SGP4 declines it. */
+export function parseTLE(line1: string, line2: string): SatRec | null {
   let satrec;
   try {
     satrec = twoline2satrec(line1, line2);
@@ -41,8 +47,11 @@ export function propagateTLE(line1: string, line2: string, when: Date = new Date
     return null;
   }
   // satrec.error is SGP4's own status; non-zero means it declined to model this.
-  if (!satrec || (satrec as { error?: number }).error) return null;
+  return satrec && !(satrec as { error?: number }).error ? satrec : null;
+}
 
+/** propagateTLE for a parsed TLE. Satellites placed at the same instant can share its `gmst`. */
+export function propagateSatrec(satrec: SatRec, when: Date, gmst: number = gstime(when)): SatPosition | null {
   let eci;
   try {
     eci = propagate(satrec, when);
@@ -52,7 +61,7 @@ export function propagateTLE(line1: string, line2: string, when: Date = new Date
   const position = eci?.position;
   if (!position || typeof position === 'boolean') return null;
 
-  const geodetic = eciToGeodetic(position, gstime(when));
+  const geodetic = eciToGeodetic(position, gmst);
   const lat = degreesLat(geodetic.latitude);
   const lng = wrapLongitude(degreesLong(geodetic.longitude));
   const altKm = geodetic.height;

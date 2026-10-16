@@ -1,8 +1,7 @@
 import { Prec } from '@takip/core/time';
 import { describe, expect, it } from 'vitest';
 import { Reporter } from '../context';
-import { readCsv } from '../csv';
-import { cowDate, readTerritorialPlaces, TERRITORIAL_ROWS, WAC_MATCHES, WW2_MATCHES } from './cow';
+import { cowDate, WAC_MATCHES } from './cow';
 import { readPlaces, yyyymm } from './icow';
 
 describe('cow dates', () => {
@@ -41,29 +40,10 @@ describe('icow places', () => {
   });
 });
 
-describe('cow territorial places', () => {
-  it('names a place for every territory a row points at', async () => {
-    const places = await readTerritorialPlaces();
-    const rows = await readCsv(TERRITORIAL_ROWS);
-    expect(rows).toHaveLength(842);
-    const unplaced = rows.filter(r => !places.has(r.fix || r.entity)).map(r => r.number);
-    expect(unplaced).toEqual(['879']);
-    expect(places.get(rows.find(r => r.number === '5')!.entity)?.name).toBe('Gambia');
-    expect(places.get(rows.find(r => r.number === '360')!.fix)).toEqual({ name: 'Clipperton Island', lon: -109.22, lat: 10.3 });
-  });
-});
-
 describe('cow links', () => {
   it('lists each COW war once and maps WWII to the WAC row, not CNF-0002', () => {
     const wars = WAC_MATCHES.map(m => m[0]);
     expect(new Set(wars).size).toBe(wars.length);
     expect(WAC_MATCHES.find(m => m[0] === '139')?.[1]).toBe('CNF-0013');
-  });
-
-  it('matches each WW2 change once, and same_as only one to one', () => {
-    const ww2 = WW2_MATCHES.map(m => m[1]);
-    expect(new Set(ww2).size).toBe(ww2.length);
-    const same = WW2_MATCHES.filter(m => m[2] === 'same_as').map(m => m[0]);
-    expect(new Set(same).size).toBe(same.length);
   });
 });

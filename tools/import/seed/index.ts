@@ -22,9 +22,10 @@ const SCHEMES: [number, string][] = [
  * tier while terms are pending; can_export stays 0. GTD is non-commercial and forbids redistribution; GLWD v1 is
  * free for non-commercial use; the Kaggle compilations (WAC, trade war, IQ) state no licence.
  */
-const LICENCES = [
+export const LICENCES = [
   { code: 'cc-by-4.0', name: 'Creative Commons Attribution 4.0', url: 'https://creativecommons.org/licenses/by/4.0/', commercial: null, redistribution: 'attribution' },
   { code: 'cc-by-sa-4.0', name: 'Creative Commons Attribution-ShareAlike 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/', commercial: null, redistribution: 'share_alike' },
+  { code: 'cc-by-3.0-igo', name: 'Creative Commons Attribution 3.0 IGO', url: 'https://creativecommons.org/licenses/by/3.0/igo/', commercial: 1, redistribution: 'attribution' },
   { code: 'cc-by-sa-3.0-igo', name: 'Creative Commons Attribution-ShareAlike 3.0 IGO', url: 'https://creativecommons.org/licenses/by-sa/3.0/igo/', commercial: null, redistribution: 'share_alike' },
   { code: 'cow-terms', name: 'Correlates of War: free use with citation', url: 'https://correlatesofwar.org/data-sets/', commercial: null, redistribution: 'attribution' },
   { code: 'gtd-terms', name: 'GTD terms of use: non-commercial, no redistribution', url: 'https://www.start.umd.edu/gtd/terms-of-use/', commercial: 0, redistribution: 'none' },
@@ -34,6 +35,8 @@ const LICENCES = [
   { code: 'gpl-3.0', name: 'GNU General Public License v3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html', commercial: 1, redistribution: 'share_alike' },
   { code: 'cc0-1.0', name: 'Creative Commons CC0 1.0 (public domain dedication)', url: 'https://creativecommons.org/publicdomain/zero/1.0/', commercial: 1, redistribution: 'public_domain' },
   { code: 'unknown', name: 'No licence stated', url: null, commercial: null, redistribution: 'unknown' },
+  { code: 'oecd-terms', name: 'OECD terms: any use, commercial included, with attribution carried into sub-licences', url: 'https://www.oecd.org/en/about/terms-conditions.html', commercial: 1, redistribution: 'attribution' },
+  { code: 'imf-terms', name: 'IMF copyright and terms: attribution; commercial reuse and systematic download need written permission', url: 'https://www.imf.org/en/About/copyright-and-terms', commercial: 0, redistribution: 'attribution' },
 ] as const;
 
 type SourceSeed = { code: string; name: string; owner: string; url?: string; licence: string; events?: boolean; attribution?: string };
@@ -65,6 +68,16 @@ export const SOURCES: SourceSeed[] = [
   { code: 'wikidata-battles', name: 'Wikidata: battles and sieges', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q178561', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-politics', name: 'Wikidata: treaties and coups', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q131569', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-attacks', name: 'Wikidata: terrorist attacks outside GTD’s years', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q2223653', licence: 'cc0-1.0', events: true },
+  { code: 'wpp-2024', name: 'UN World Population Prospects 2024 (estimates 1950–2023, projections to 2100)', owner: 'UN DESA, Population Division', url: 'https://population.un.org/wpp/', licence: 'cc-by-3.0-igo' },
+  { code: 'wup-2025', name: 'UN World Urbanization Prospects 2025 (estimates 1950–2025, projections to 2050)', owner: 'UN DESA, Population Division', url: 'https://population.un.org/wup/', licence: 'cc-by-3.0-igo' },
+  // CC0 per the IDB API's metadata; API users must also say it "uses the Census Bureau Data API but is not endorsed or certified by the Census Bureau".
+  { code: 'census-idb', name: 'US Census Bureau International Database (December 2025)', owner: 'U.S. Census Bureau', url: 'https://www.census.gov/programs-surveys/international-programs/about/idb.html', licence: 'cc0-1.0' },
+  { code: 'wb-gep', name: 'World Bank Global Economic Prospects (June 2026)', owner: 'World Bank Group', url: 'https://www.worldbank.org/en/publication/global-economic-prospects', licence: 'cc-by-4.0' },
+  { code: 'oecd-lt-eo117', name: 'OECD Economic Outlook 117 long-term scenarios', owner: 'OECD Economics Department', url: 'https://www.oecd.org/en/data/datasets/long-term-baseline-projections.html', licence: 'oecd-terms' },
+  // Shown for personal use while commercial reuse waits on the IMF's written permission (copyright@imf.org).
+  { code: 'imf-weo', name: 'IMF World Economic Outlook (October 2026)', owner: 'International Monetary Fund', url: 'https://data.imf.org/en/datasets/IMF.RES:WEO', licence: 'imf-terms' },
+  // CCKP's metadata page: "All CCKP data adhere to CC-BY 4.0" (the AWS registry's ODbL listing is not the portal's own).
+  { code: 'wb-cckp', name: 'World Bank Climate Change Knowledge Portal (CMIP6 models 1950–2100, ERA5 observed 1950–2025)', owner: 'World Bank Group', url: 'https://climateknowledgeportal.worldbank.org/', licence: 'cc-by-4.0' },
   { code: 'wikidata-wars', name: 'Wikidata: wars and rebellions', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q198', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-revolutions', name: 'Wikidata: revolutions and assassinations', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q10931', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-massacres', name: 'Wikidata: massacres and genocides', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q3199915', licence: 'cc0-1.0', events: true },
