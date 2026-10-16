@@ -1,35 +1,24 @@
 # Roadmap
 
 Open work only. Merged on 2026-10-13 from the old `TODO.md` and `BACKEND-handoff.md`, then reordered with the user the same day around what TAKIP is for now: a personal tool, with the release decision open. Delete items once they're done; don't tick them. The backend build log (what was built, the user's answers, working rules) is [`architecture/backend-log.md`](architecture/backend-log.md). Data research with its own fix lists: [`architecture/data-roadmap.md`](architecture/data-roadmap.md) and [`architecture/map-detail.md`](architecture/map-detail.md); this file sets the order.
+Edited by Batuhan. 2026-10-16. Clear the title number and delete this time next time you read this. I got bored half way thru 
 
-## Decided
+##
 
-Older docs cite these by pointing at this file.
-
-- **Personal use for now.** Whether TAKIP goes public is open (§3). Until it's answered, the work in §5 is frozen: kept working, not extended.
-- **Focus:** wars and history first, then flights and ships, then weather and disasters. Space and cameras are parked (§6); no new camera regions.
-- **A good database without storing a lot:** record what upstreams forget, and only when it changes; fetch on demand what upstreams keep (`architecture/replay-database.md` §7.8); keep the curated data (events, borders, series, coarse tracks) forever; delete raw files and fine track detail after a retention period (§3).
-- **Refactor in place, not a rebuild:** the monorepo in `apps/` and `packages/` (`architecture/backend.md`). No World Monitor fork.
-- **Raw archive from day one:** `data/archive/` (`architecture/replay-database.md` §7.1), with a retention period (1.3).
-- **Recon and people-search tools:** kept, behind an account, with per-account limits by family (`src/lib/recon/gate.ts`): breach 20 an hour, people 30 an hour, scan 30 an hour, network 15 a minute, reference 30 a minute.
-- **Hosted AI:** gated behind `ai.hosted` (on for `pro`); bring-your-own key stays free. The other product answers are in `architecture/backend-log.md` §6.
 
 ## 1. Action items
 
 In order. "(you)" marks the user's own steps.
 
-### 1.1 History you can trust, wars first
-The history data has known wrong placements and unlinked duplicates (`architecture/data-roadmap.md` §4).
-1. GTD `eventid` is Excel-mangled (`1.97E+11`), so it can't join a fresh START copy or Wikidata P4089.
-2. Wikipedia references for the rest (`architecture/dataset-import-map.md` §6): GTD attacks through P4089 once 1 lands; ICOW claims in other languages, which first needs each claim's Wikidata item; the 10 UCDP conflicts and COW war 60 left blank.
+### 1.0 A new name
+1. (you) Make a Cloudflare token with Account → Registrar (Edit), and save it with the account ID in `~/.config/cloudflare/registrar.env`.
+2. Check the shortlist with the Registrar `domain-check` API, which shows price and premium tier. `domain-search` gives more ideas.
+   - The shortlist was screened over RDAP on 2026-10-15: Rasat, Terrarum, Piri, Seyir, Armillary, or keep TAKIP with `takipmap.com`.
+   - The user wants "digital world twin" in the name. Twin names screened the same day: TwinAtlas, EarthTwin, MirrorEarth, GlobeTwin, Imago Mundi, and İkiz Dünya (`ikizdunya.com` is the only free twin `.com`). Every literal twin `.com` is taken.
+   - The API covers about 40 endings, so `.live`, `.world` and `.earth` rest on RDAP.
+3. Rename: the brand geometry (`tools/brand`), `SITE_URL`, and the rebrand leftovers in §4.
 
-### 1.2 Fix-it pass, Route first
-The user hit Route problems ("not all locations show up straight") and remembers other issues all over without specifics.
-1. (you) Write down three Route failures: what you typed, what you expected, what you got.
-2. Diagnose Route against them. Directions go through public demo servers (`router.project-osrm.org`, `valhalla1.openstreetmap.de`; `apps/api/src/v1/directions/`) that rate-limit and drop requests; place search is Photon (`photon.komoot.io`, `apps/api/src/v1/geo/geocoders.ts`).
-3. Walk every tool in a browser (Layers, Alerts, Areas, History, Replay, Space, Route, Recon, ArcGIS, TI, Markets, and phone width) and log each problem in §4.
-4. Satellites catalogued since 2026-07-11 are missing: CelesTrak ran out of 5-digit catalog numbers and TLE text can't carry the new ones. Fetch `FORMAT=json` (OMM) instead of `FORMAT=tle` (`src/app/api/satellites/celestrak.ts:18`), parse it with satellite.js `json2satrec` (`packages/connectors/src/orbit.ts`), store OMM in `tle.db`, and keep the TLE parser for the SatNOGS fallback (data-roadmap §0).
-5. Fix what §4 collects, in one batch.
+
 
 ### 1.3 Record around the clock, with cleanup
 Replay has tracks only for 11–12 Oct 2026: nothing has been sealed since, because `npm run dev` doesn't start the worker. Raw files still land (~0.5 GB a day, ships ~400 MB of it) and nothing deletes them.
@@ -51,7 +40,7 @@ Needs 1.3.
 1. Fix the adsb.lol history CLI (`apps/ingest/src/backfill/adsblol-history.ts`): accept plain `.tar` releases (505 in 2023, 124 in 2024), try the `prod-1` variant, and look in both years' repos around New Year (data-roadmap §0).
 2. Index the backfilled day: `npm run ingest -- backfill adsblol-history 2026-10-11 --index-only` (streams 3.2 GB again).
 3. Run adsb.lol daily history as a scheduled worker job. A day holds ~55k aircraft against ~17k from live polling, fills our own outages, and takes load off OpenSky, which uses ~75% of its daily credits.
-4. Add the missing aircraft types to `TYPE_BATCHES` (`src/app/api/flights/adsb-lol.ts`): the batches reach 13,956 of 18,064 aircraft. Missing: E75L 347, E145 48, AT75 32, S92 29, E545 28, H25B 27, DHC6 24.
+4. Add the missing aircraft types to `TYPE_BATCHES` (`src/app/api/(feeds)/flights/adsb-lol.ts`): the batches reach 13,956 of 18,064 aircraft. Missing: E75L 347, E145 48, AT75 32, S92 29, E545 28, H25B 27, DHC6 24.
 5. Trace route in `apps/api` (through the backend lead): one aircraft's full trace for a day as TRK1, cached; then clicking a replayed aircraft draws it.
 6. A second ship source: Digitraffic AIS (data-roadmap §1 #6). AISStream allows 3 open connections, has no SLA, and reconnected 3 times in one hour.
 7. Days built on demand: `202 building` with `Retry-After` from the chunk route while the worker streams a release, one build per day; the timeline marks such days as fetchable.
@@ -62,7 +51,7 @@ Needs 1.3.
 1. `src/app/page.tsx`: `<WorkspaceHost />` (from `@/components/workspaces/workspace-host`), right after `<AccountDialog />`.
 2. Desktop, `search-spotlight.tsx`: `<WorkspaceChip />` beside `<SearchTrigger>` in one flex row, at the trigger's current position and width.
 3. Phone, `mobile-shell.tsx`: after `<AppHeader … isMobile />`, add `<div data-hud className="absolute top-4 right-4 z-[210]"><WorkspaceChip align="right" /></div>`.
-4. Register the map state in `page.tsx` with `useWorkspacePart` (from `@/components/workspaces/use-workspace`; adapters in `@/lib/workspaces/adapters`):
+4. Register the map state in `page.tsx` with `useWorkspacePart` (from `@/components/workspaces/use-workspace`; adapters in `@/lib/platform/workspaces/adapters`):
    - `basemap`: `mapStyle`/`mapProjection`.
    - `layers`: `activeLayers`, set with `layersOver`.
    - `viewport`: `mapCenter` and `mapView.zoom`, set through `setFlyToLocation`.
@@ -78,23 +67,67 @@ Needs 1.3.
 - Delete `src/app/api/region-dossier/` and `apps/api/src/v1/testing/legacy.ts`. Turn the parity cases into contract tests, move the old unit tests to `v1/region-dossier/{place,wikidata}.test.ts`, and update `src/components/site/docs/api-catalog.ts`.
 
 **Make CI green.**
-- `src/lib/oi/context.test.ts` "carries on without a source that fails" fails: the one failure in `npm test` (checked 2026-10-13; 3,353 pass).
+- `src/lib/ai/research/context.test.ts` "carries on without a source that fails" fails: the one failure in `npm test` (checked 2026-10-13; 3,353 pass).
 - Lint is scoped to `apps packages tools`. Widen it as the web app's lint errors are cleared.
+
+**Finish the src/lib reorganisation** ([`architecture/code-map.md`](architecture/code-map.md), Pending).
+- Put `src/app/api/region-dossier/` in a route group (an apps/api test imports it by path), or finish the switch to `/api/v1/region-dossier` above.
+- Backend lead: point the apps/api comments at the new paths (`src/lib/platform/account/links.ts`, `src/lib/platform/workspaces/state.ts`, `src/lib/places/areas/aoi-export.ts`); the list is in the code map.
+
+**Put the name "TI" in one constant.** It is written out in 21 files (~80 strings, the prompt included). Left from the `oi` → `ai` rename (done 2026-10-16).
+
+**Drop the `oi` back-compat** one release after 2026-10-16: the `/api/oi` rewrites in `next.config.ts`, `aiHeader`'s `x-oi-*` fallback (`src/lib/ai/service.ts`), the `oi_*` MCP names (`toolName` in `src/lib/ai/mcp.ts`), the `OI_*` env fallbacks, `?oi=` run links, `src/lib/ai/storage-migration.ts`, and the Style Studio `oiSupport` keys.
+
+### 1.6 From the God's Eye View and Worldview surveys
+Chosen by the user on 2026-10-15. Details are in [`inspiration-sources/gods-eye-view.md`](inspiration-sources/gods-eye-view.md) and [`inspiration-sources/nasa-worldview.md`](inspiration-sources/nasa-worldview.md).
+1. **Road traffic, what's left.** The layer has NDW (the Netherlands) and Rennes and Nantes (`src/lib/feeds/traffic/`). Still to do:
+   - **NDW lines after 2027-02-09,** when NDW stops publishing the Meetvakken shapefile: build them from NWB or a v3 replacement, and rebuild `data/traffic/ndw-sites.json` until then when its `Version.txt` changes. Confirm NDW's licence.
+   - **More segment feeds:** Strasbourg and Grenoble once their class codes are confirmed, València (no timestamp), Hong Kong (speed only, so labels rather than tint; lines from the Road Network CENTERLINE in EPSG:2326). Re-test Taiwan's freeway feed from another network.
+   - **Germany:** Autobahn GmbH reported jams as their own overlay, not as measured tint (about 100 per-road endpoints per refresh).
+   - **Detector pins:** Digitraffic TMS (it has a free-flow speed), Madrid, Bison Futé, CITA Luxembourg, Flanders MIV, MnDOT, drawn as marks at the sensor, never along the road.
+   - **TomTom flow tiles** (worldwide behind `TOMTOM_API_KEY`, `/api/traffic/flow`): check TomTom's terms for paid plans (its free tier reads as evaluation); stop drawing them where an open feed measures the same roads (both draw in the Netherlands, Rennes and Nantes today; a mask needs a Netherlands polygon, not `NDW_BBOX`, which spans Brussels and Cologne).
+2. **Satellite imagery, what's left.** Satellite Live (the geostationary ring) and Satellite Daily (true colour back to 2000, following History and Replay) are in (`src/lib/feeds/imagery/`). Still to do:
+   - **Whole-Earth live view:** done 2026-10-15, with four bands cut at the midpoints (`src/lib/feeds/imagery/geostationary.ts`). Left:
+     - Check EUMETSAT's commercial terms for the MTG GeoColor band.
+     - Himawari's band is synthesised: infrared cloud, plus visible cloud by day, over Blue and Black Marble. Cold ground at night (Siberia, Tibet) can read as thin cloud; a real Himawari GeoColor source would fix both.
+     - Feather the four seams.
+   - **Replay:** snap to DescribeDomains, because the 10-minute archive has gaps.
+   - **Images of an area:** done 2026-10-15. Right-click → "Satellite images here" (10 km, 50 km, 200 km or the map view, up to 500 km), or "Satellite images" on a shape in Areas (`src/components/map/imagery/`, `src/lib/feeds/imagery/area*.ts`), shows:
+     - the last 60 days of Sentinel-2, Sentinel-1 radar and Landsat passes from Planetary Computer, each with how much of the area it covers, drawn on the map when picked;
+     - a "clearest mix" when no one pass covers the area: the clearest tiles of several dates;
+     - "Save image of the area": a PNG up to 4096 px, cut from PC's crop endpoint in Web Mercator;
+     - where the picked pass's satellite is now, with its orbit ahead, and the next overflights.
+     Left to do:
+     - Before/after compare across two dates.
+     - Alert when a new clear image of a watched area arrives (a paid-plan candidate).
+     - A georeferenced save (GeoTIFF, or a world file next to the PNG); a 4096 px PNG runs to about 35 MB.
+     - The mix ranks tiles by the whole 110 km tile's cloud cover, not the cloud over the area.
+     - A phone version: touch long-press still opens the dossier.
+     - Check Planetary Computer's terms before paid plans.
+     - Polish: close the right-click menu when the map moves; redraw the picked pass and the area outline after a basemap switch (they are dropped now).
+   - **Controls:** per-layer opacity, and legends from GIBS colormaps.
+   - **Playback:** an in-memory tile cache for preload, since dated tiles are `no-store`.
+   - **Compare** across two dates.
+   - **More imagery:** Esri Wayback (2014 on; paid use needs an Esri account) and Black Marble night lights.
+3. **Map looks:** night vision, thermal, noir and snow, opt-in and on the map only (design rule added 2026-10-15). Later.
 
 ## 2. After the action items
 
-- **Weather and disasters** (data-roadmap §1): FIRMS NOAA-20 and NOAA-21 fire files next to S-NPP and MODIS (`src/app/api/fires/route.ts`); the GDACS API with polygons, and USGS volcano alert levels; aviationweather.gov international SIGMETs (including volcanic ash) and METARs; the EMSC earthquake WebSocket; NWS / NHC alerts into ingest; MeteoAlarm; river levels and flood warnings; tsunami.gov CAP.
+- **Weather and disasters** (data-roadmap §1): the GDACS API with polygons, and USGS volcano alert levels; aviationweather.gov international SIGMETs (including volcanic ash) and METARs; the EMSC earthquake WebSocket; NWS / NHC alerts into ingest; MeteoAlarm; river levels and flood warnings; tsunami.gov CAP.
 - **More history** (data-roadmap §2): IBTrACS cyclone tracks; fix the timeline rebuild (it redoes the whole quake family on every load), then backfill USGS ComCat at M4.5+ and re-run `noaa-hazards --force`; the GDACS archive and NOAA Storm Events.
 - **More history on demand:** GDELT raw files, FIRMS, ERA5, and OpenSky `/tracks/all` for the last 30 days.
 - **GDELT stories:** the live layer works; the ingest connector and history wait on §3.4 (`architecture/gdelt.md`).
+- **TI on live conflicts** (asked 2026-10-16, after the history tools `chronicle` and `past_event`): a read tool over GDELT, alerts and hazards ("what's flaring up near the Red Sea"), then a watch on a region or topic that notifies through alerts.
+- **More projections** (`data-sources.md`, Projections): OECD-FAO; Wittgenstein education (decided 2026-10-16: five-yearly values blend between published years, marked "≈", as gaps do; needs an `.rds` reader for the Data Explorer's 1950–2100 files, or Zenodo's counts from 2020). The IMF World Economic Outlook is in from a hand-downloaded CSV (decided 2026-10-16), for personal use until the IMF permits commercial reuse; each new edition is downloaded the same way. Then the window means (Aqueduct, INFORM Climate Change, Human Climate Horizons), which need History to draw a value across its 20- or 30-year window.
 
 ## 3. Decisions waiting on the user
 
-1. **Personal or public,** and when to decide (suggested: after §1). The answer unfreezes or drops §5. The name follows from it: TAKIP is the working name and `https://takip.example` the placeholder. "Takip" is an everyday Turkish word (crowded search results, hard to get a domain), and in Turkish it can also mean following a person.
-2. **Where it runs and how the phone reaches it:** a NUC, a cloud server, or the Mac left on; reached privately (Tailscale, your devices only) or at a public address. A public address needs the hosting and security work in §5 first.
-3. **How long to keep data, and a disk budget.** Proposed: fine track detail (L0) 3 months, L1 90 days, L2 forever. How long raw files are kept is open.
+1. **The new name:** BT:TBD see 1.0. "Takip" is an everyday Turkish word (crowded search results, hard to get a domain), and in Turkish it can also mean following a person. `https://takip.example` is the placeholder.
+2. **Where it runs and how the phone reaches it:**  BT:TBD a NUC, a cloud server, or the Mac left on; reached privately (Tailscale, your devices only) or at a public address. A public address needs the hosting and security work in §5 first.
+3. **How long to keep data, and a disk budget.** BT:TBD, I am not sure, for now just record we will get there can geProposed: fine track detail (L0) 3 months, L1 90 days, L2 forever. How long raw files are kept is open.
 4. **History:** whether the plan lookback limit applies to History at all (recommended: no, for personal use); and GDELT history as one entry per story per day, or news intensity per country (`architecture/gdelt.md`).
 5. **Cameras as their own product:** later.
+6. **Long-run country numbers** (researched 2026-10-16; Maddison GDP per person is already in through `owid-longrun`, value for value, and so is OWID's long-run population (HYDE, Gapminder, UN; year 0–2023) on today's countries). Maddison population and total GDP need: whether totals (population, GDP) may be drawn on historical polities like the USSR, which the series API would paint onto each successor's shape (an `apps/api` change); and Maddison's rule to cite its source papers wherever its data is shown.
 
 ## 4. Known issues
 
@@ -129,7 +162,7 @@ Built or designed for other people using TAKIP. Frozen until §3.1 is answered.
 - **Privacy text:** rewrite [`privacy-draft.md`](privacy-draft.md) (14 `TODO(user)`) into `/privacy` before accounts launch.
 - **Free vs paid (draft).** Free: the map and every public layer, AI with your own key, a rate-limited API and MCP server, self-hosting. Paid: alerts on watched areas and assets (email, Slack, webhook); a historical archive of public data; higher API quotas; team workspaces; connecting your own data and linking it to public entities; reports; SSO. Accounts, plans, entitlements and usage metering are built.
 - **Key scopes:** OSINT can't check scopes because `me/access` doesn't expose them (add an `osint` scope); workspaces refuse scoped keys (add a workspaces scope).
-- **Workspaces:** the state schema exists twice (`apps/api/src/workspaces/state.ts`, `src/lib/workspaces/state.ts`; move it to `packages/core`); nothing purges soft-deleted rows; a share link survives a plan that loses `workspaces.share`; closing a tab saves only states under ~60 KB.
+- **Workspaces:** the state schema exists twice (`apps/api/src/workspaces/state.ts`, `src/lib/platform/workspaces/state.ts`; move it to `packages/core`); nothing purges soft-deleted rows; a share link survives a plan that loses `workspaces.share`; closing a tab saves only states under ~60 KB.
 - **Impersonation:** an expired window isn't audited and leaves the admin signed out; the "30 minutes" in the copy isn't read from `IMPERSONATION_S`; `impersonation-guard.ts` relies on a Better Auth internal, so re-check it on upgrades.
 - **Usage:** response bytes are counted only when `Content-Length` is set; replay chunks aren't metered in bytes.
 - **Still to check in a browser:** the Keys and Usage admin pages (404 until `npm run dev` restarts); the impersonation banner at phone width; the recon "Sign in to use recon tools" notice; the delete-account refusal while a paid subscription is active.
@@ -137,15 +170,16 @@ Built or designed for other people using TAKIP. Frozen until §3.1 is answered.
 ### Legacy routes still in the web app (`architecture/backend.md` §13)
 - **Live feeds** (flights, maritime, satellites, cctv, quakes, fires, weather, news and so on): fetching moves to `apps/ingest` connectors, serving to `/api/v1` and a live API (SSE or WebSockets) that pushes ships and flights by viewport, replacing the 10 s full-snapshot polling.
 - **Media proxies** (cctv proxy, frame, resolve, stream-status): move to the api as a closed proxy that takes ids, never URLs.
-- **AI and OI** (`ai/*`, `oi/*`, `mcp`): move to the api. Drop the deprecated `Authorization: Bearer <model key>` form one release after the change.
+- **AI and TI** (`ai/*`, `mcp`): move to the api. Drop the deprecated `Authorization: Bearer <model key>` form one release after the change.
 - **OSINT and recon** (`osint/*`): move to the api.
 - **Platform** (`sdk/ingest`, `sdk/stream`, `github-webhook`, `health`, `stats`, `reference`): move to the api. `sdk/ingest` should take API keys with a `write:entities` scope instead of `SDK_INGEST_KEY`.
+- **Key policy for the legacy feeds:** Admin → API access only switches `/api/v1` and `/api/replay` groups (`apps/api/src/access/key-policy.ts`); `/api/flights`, `/api/maritime` and the other web-app routes stay keyless and unmetered until they move. Gating them earlier needs a Next `proxy.ts` that asks the api, and `stats`, `markets` and `scm-suppliers` fetch their own `/api/*` server-side, so they would need a way past it.
 
 ### Security
 - Review every route that fetches a URL, for SSRF: `cctv/proxy`, `arcgis`, `cctv/resolve`, `cctv/stream-status`, `cctv/frame`, `entity/expand`, `osint/*`. The closed media proxy removes the largest surface.
-- Check auth on `sdk/ingest`, `github-webhook`, `mcp` and `oi/*`.
-- Check `innerHTML` interpolation in the map popups (`src/lib/map/popups/layer-popups.ts`) for XSS.
-- Review how bring-your-own API keys are handled, and the CSP and CORS settings; review `nginx/nginx.conf` and `intel/server.js`.
+- Check auth on `sdk/ingest`, `github-webhook`, `mcp` and `ai/*`.
+- Check `innerHTML` interpolation in the map popups (`layer-popups.ts` and `cyber-popups.ts` in `src/lib/map/popups/`) for XSS.
+- Review how bring-your-own API keys are handled, and the CSP and CORS settings; review `nginx/nginx.conf` and the `intel/` service.
 - Recon leftovers: the sweep's own limiter keys on a header the client writes, and several OSINT routes share one bare-IP bucket.
 - `stealthFetch` still sends fake browser user agents and `X-Forwarded-For` for about 60 CCTV adapters and `/api/{conflicts,gdelt,weather}`. The aviation lookups are already honest; the CCTV owners decide the rest.
 
@@ -176,16 +210,18 @@ Measured locally on 11 Oct 2026 (one dev server, one tab):
 
 ## 6. Parked
 
-- **Space:** what is left in [`space-view.md`](space-view.md); Space-Track SATCAT, TLE history and the CelesTrak fallback (data-roadmap §1 #8, §2 #8); day and night on the satellite view (the `day_night` layer draws the terminator, `src/lib/basemap/solar-terminator.ts`; check how it reads over SAT imagery and whether night needs city lights). The missing-satellites fix stays in 1.2.
+- **Space:** what is left in [`space-view.md`](space-view.md); Space-Track SATCAT, TLE history and the CelesTrak fallback (data-roadmap §1 #8, §2 #8); day and night on the satellite view (the `day_night` layer draws the terminator, `src/lib/map/basemap/solar-terminator.ts`; check how it reads over SAT imagery and whether night needs city lights). The missing-satellites fix stays in 1.2.
 - **Cameras:** no new regions. Known fixes from the removed `CCTV-handoff.md` §8: opentopia cameras, HK duplicates, reused ids, `us-central`, the Kansas box, MassDOT, Caltrans HLS. The catalogue is still a JSON file (`.cache/cctv-catalog.json`); planned: a SQLite store, an ingest job outside the request path, vector tiles by zoom, deduplication, admission rules and a health checker.
 - **Analysis:** density and trend maps, event correlation, anomaly detection, impact analysis (`architecture/README.md`, phase 3); the dependency map over infrastructure.
 - **Bulk history:** adsb.lol `globe_history` 2023–26 beyond one day a week, NOAA MarineCadastre AIS, the FIRMS archive, the OpenHistoricalMap planet file (data-roadmap §2).
-- **Live data outside the focus:** Digitraffic trains, Wikipedia EventStreams, GTFS-RT vehicle positions, the power grid, measured air quality, the World Port Index, critical infrastructure and military installation layers, and the rest of [`data-sources.md`](data-sources.md).
-- **Code health:** replace the `dataRef` + `dataVersion` global state pattern (still in 3 files); reduce `any` and `eslint-disable`; dead code in `src/lib/sdk` (Polybolos/Lattice; nothing imports it), and decide whether `intel/` stays; unused dependencies and `npm audit`; bound the in-memory caches; settle the semantics of `/api/health`; structured logging in the web app (the api uses `pino`, the web app `[TAKIP] console.*`); named migrations instead of positional `user_version` (a `schema_migration` table seeded from the current version), since concurrent sessions have collided on a slot; `docker-publish.yml` publishes to GHCR after every green push to `master`.
+- **Transit:** feeds behind a free key (Sweden's Trafiklab, SF Bay 511, Île-de-France PRIM, England's BODS); timetable-only cities from static GTFS; rerun `tools/transit/build-feeds.ts` now and then, in daytime for Asia once.
+- **Metros still missing** (surveyed 2026-10-15): free-key positions for WMATA, CTA's official `ttpositions` (the keyless map endpoint in use is outside its licence), Sydney, Melbourne, Seoul, Taiwan TDX, Brussels STIB and Lisbon; PATH from `ridepath.json` arrivals; Hong Kong MTR, Taipei and JR West from per-station arrivals; Stockholm SL departures; KTMB and Adelaide trains need a daytime probe. Istanbul and İzmir publish no live metro data, so they run from their timetables, labelled scheduled (the İBB GTFS lapsed on 2024-12-31 and lacks M11 and later lines; Ankara has no public GTFS); other no-live metros with a GTFS could follow, kept few. Estimated trains move in straight lines between stops; snapping them to shapes (NYC's realtime trip ids are the tail of the static ones) is open.
+- **Live data outside the focus:** Digitraffic trains, Wikipedia EventStreams, the power grid, measured air quality, the World Port Index, critical infrastructure and military installation layers, and the rest of [`data-sources.md`](data-sources.md).
+- **Code health:** replace the `dataRef` + `dataVersion` global state pattern (still in 3 files); reduce `any` and `eslint-disable`; dead code in `src/lib/platform/sdk` (Polybolos/Lattice; nothing imports it), and decide whether `intel/` stays; unused dependencies and `npm audit`; bound the in-memory caches; settle the semantics of `/api/health`; structured logging in the web app (the api uses `pino`, the web app `[TAKIP] console.*`); named migrations instead of positional `user_version` (a `schema_migration` table seeded from the current version), since concurrent sessions have collided on a slot; `docker-publish.yml` publishes to GHCR after every green push to `master`.
 - **Satellite object detection (idea):** a small model runs in the browser on the satellite view and marks aircraft, ships, tanks and vehicles; users confirm or correct the marks, and the corrections improve the dataset.
   - Imagery terms: can we run detection on it, store the results and train on it? Esri World Imagery (the current SAT view), NAIP, Sentinel-2 (`/api/sentinel` already searches it), OpenAerialMap.
   - Shortlist an aerial detector and dataset: DOTA, xView, DIOR, SpaceNet. Ultralytics YOLO is AGPL-3.0.
-  - Spike: aircraft at a few airports, reusing camera vision (`src/lib/vision/`: worker, onnxruntime-web, overlay). Measure precision and recall against hand labels, and per-tile latency with WebGPU vs WASM.
+  - Spike: aircraft at a few airports, reusing camera vision (`src/lib/intel/vision/`: worker, onnxruntime-web, overlay). Measure precision and recall against hand labels, and per-tile latency with WebGPU vs WASM.
   - Design the detection record (tile, imagery date, class, box, confidence, model version), opt-in, vetting and dedup rules for corrections, and the store.
-  - Give OI Assist a `satellite` tool next to `camera`; make detections a cited evidence source in OI Forecast.
+  - Give AI Assist a `satellite` tool next to `camera`; make detections a cited evidence source in AI Forecast.
   - Decide which classes and areas are off-limits: military sites, people.

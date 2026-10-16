@@ -57,6 +57,9 @@ const nextConfig: NextConfig = {
         { source: '/api/flight-route', destination: `${api}/api/v1/flight-route` },
         { source: '/api/satellites/orbit', destination: `${api}/api/v1/satellites/orbit` },
         { source: '/api/replay/:path*', destination: `${api}/api/replay/:path*` },
+        // TI's routes moved from /api/oi on 2026-10-16; old clients and scripts still call it.
+        { source: '/api/oi', destination: '/api/ai' },
+        { source: '/api/oi/:path*', destination: '/api/ai/:path*' },
       ],
       afterFiles: [],
       fallback: [],

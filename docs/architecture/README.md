@@ -111,3 +111,4 @@ For every source, record:
 | [`map-detail.md`](./map-detail.md) | More detail on the base map, and "who owns or runs this?" lookups |
 | [`gdelt.md`](./gdelt.md) | The GDELT story layer (parked) |
 | [`history-map-notes.md`](./history-map-notes.md) | Where History's map colours and popups come from |
+| [`code-map.md`](./code-map.md) | What each src/lib domain, component group and API route family holds, and who uses it |
