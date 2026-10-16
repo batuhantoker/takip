@@ -10,13 +10,13 @@ import { Tag } from '@/components/ui/tag';
 import { Tooltip } from '@/components/ui/tooltip';
 import { norm, sub } from '@/lib/space/astro';
 import { distance, speed } from '@/lib/space/format';
-import type { Encounter } from '@/lib/space/flight-history';
-import { siteNear } from '@/lib/space/landing-sites';
+import type { Encounter } from '@/lib/space/replay/flight-history';
+import { siteNear } from '@/lib/space/craft/landing-sites';
 import { isGlobeWorld } from '@/lib/space/worlds';
-import { RATES, rateLabel, replayDate, span } from '@/lib/space/replay-format';
-import type { ReplayModel } from '@/lib/space/replay-model';
+import { RATES, rateLabel, replayDate, span } from '@/lib/space/replay/format';
+import type { ReplayModel } from '@/lib/space/replay/model';
 import { wikiTopic } from '@/lib/space/wiki-topic';
-import type { ReplayState } from '@/lib/space/scene/flight-replay';
+import type { ReplayState } from '@/lib/space/scene/craft/flight-replay';
 import { useWiki } from '../use-wiki';
 import FlightTrack, { flightDate } from './flight-track';
 

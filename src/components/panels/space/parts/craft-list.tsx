@@ -6,7 +6,7 @@ import { Disclosure } from '@/components/ui/disclosure';
 import { IconButton } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
-import { REGION_LABEL, REGION_ORDER, type FleetCraft, type FleetPayload, type Region } from '@/lib/space/fleet';
+import { REGION_LABEL, REGION_ORDER, replayable, type FleetCraft, type FleetPayload, type Region } from '@/lib/space/craft/fleet';
 import { lightTime } from '@/lib/space/format';
 import { requestWorld } from '@/lib/space/world-events';
 import { DistanceCell } from './distance-cell';
@@ -37,7 +37,7 @@ function CraftRow({ c }: { c: FleetCraft }) {
         <>
           <DistanceCell km={c.earthKm} light={lightTime(c.lightSec)} />
           {/* Quiet until the row is pointed at or focused, so a column of identical icons does not shout. */}
-          {c.region !== 'earth-orbit' ? (
+          {replayable(c) ? (
             <span className="opacity-50 transition-opacity duration-150 group-hover/row:opacity-100 focus-within:opacity-100 motion-reduce:transition-none">
               <IconButton size="sm" icon={History} label={`Watch ${c.name}’s flight`} tooltipSide="left"
                 onClick={() => requestWorld({ focus: 'solar', replay: c.id })} />

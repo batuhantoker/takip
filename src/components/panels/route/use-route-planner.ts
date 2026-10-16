@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
-import type { LiveLocation, Place, RouteResult } from '@/lib/route/plan';
+import type { LiveLocation, Place, RouteResult } from '@/lib/places/route/plan';
 
 export interface RoutePlannerCallbacks {
   onRoute: (route: (RouteResult & {

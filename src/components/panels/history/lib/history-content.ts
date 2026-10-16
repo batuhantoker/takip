@@ -7,13 +7,13 @@ const THIS_YEAR = new Date().getUTCFullYear();
 // GTD and the Stanford war borders are non-commercial; each map popup names its record's source.
 /** How the History panel names each event family, the years its sources cover, and what it holds. */
 export const FAMILY_TEXT: Record<string, { name: string; span: string; note: string }> = {
-  conflict: { name: 'Wars and battles', span: '3000 BCE–2025', note: 'Battles, sieges, wars and their death tolls' },
+  conflict: { name: 'Wars and battles', span: `7500 BCE–${THIS_YEAR}`, note: 'Wars, battles, rebellions and massacres, with death tolls' },
   terror: { name: 'Attacks', span: `44 BCE–${THIS_YEAR}`, note: 'GTD for 1970–2017, Wikidata before and since' },
   territorial: { name: 'Territorial claims', span: '1816–2018', note: 'Claims and transfers of land between states' },
   // The danger list is as of 2021, so earlier years show only sites taken off it.
   heritage: { name: 'Heritage in danger', span: '1988–2022', note: 'Sites UNESCO lists in danger, as of 2021' },
   hazard: { name: 'Natural hazards', span: `2150 BCE–${THIS_YEAR}`, note: 'Significant quakes, tsunamis and eruptions' },
-  politics: { name: 'Treaties and coups', span: `1300 BCE–${THIS_YEAR}`, note: 'Treaty signings and coups, from Wikidata' },
+  politics: { name: 'Politics', span: `1300 BCE–${THIS_YEAR}`, note: 'Treaties, coups, revolutions and assassinations, from Wikidata' },
   nuclear: { name: 'Nuclear explosions', span: '1945–1998', note: 'Tests, and Hiroshima and Nagasaki' },
   disaster: { name: 'Disasters', span: '1960–2018', note: 'Where floods, storms and droughts struck' },
 };
@@ -41,7 +41,7 @@ function utc(year: number, month: number, day: number) {
 
 export const MOMENTS: Moment[] = [
   { label: 'Battle of Marathon', at: utc(-489, 7, 1), place: { lat: 38.4, lng: 23.6, zoom: 5 } },
-  { label: 'Fall of the Western Roman Empire', at: utc(476, 8, 4), place: { lat: 44.4, lng: 12.2, zoom: 4.5 }, families: ['politics'], note: 'Also shows treaties and coups' },
+  { label: 'Fall of the Western Roman Empire', at: utc(476, 8, 4), place: { lat: 44.4, lng: 12.2, zoom: 4.5 }, families: ['politics'], note: 'Also shows treaties, coups and revolutions' },
   { label: 'Battle of Hastings', at: utc(1066, 9, 14), place: { lat: 50.9, lng: 0.5, zoom: 5.5 } },
   { label: 'Fall of Constantinople', at: utc(1453, 4, 29), place: { lat: 41, lng: 28.9, zoom: 5 } },
   { label: 'Battle of Waterloo', at: utc(1815, 5, 18), place: { lat: 50.7, lng: 4.4, zoom: 5 } },

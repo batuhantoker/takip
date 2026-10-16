@@ -3,7 +3,7 @@
 import { cx, isNumeric } from '@/components/ui/class-names';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
-import { detectQuery } from '@/lib/recon/detect-query';
+import { detectQuery } from '@/lib/intel/recon/detect-query';
 import { toolById } from '@/components/panels/recon/recon-tools';
 
 /** After an answer, the other lookups that fit the same query, so one target can be worked through without retyping it. */

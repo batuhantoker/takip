@@ -7,8 +7,8 @@ import { SearchField } from '@/components/ui/search-field';
 import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { Tooltip } from '@/components/ui/tooltip';
-import { BLOCS, BLOC_ORDER, type AlertThread, type Bloc } from '@/lib/alerts/digest';
-import type { NewsAlert } from '@/lib/alerts/live-alerts';
+import { BLOCS, BLOC_ORDER, type AlertThread, type Bloc } from '@/lib/intel/alerts/digest';
+import type { NewsAlert } from '@/lib/intel/alerts/live-alerts';
 import type { AlertTab, NewsKind } from '@/components/panels/alerts/hooks/use-alert-list';
 
 const PLACEHOLDER: Record<AlertTab, string> = {

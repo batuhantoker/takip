@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
-import type { NavProgress } from '@/lib/route/navigation';
+import type { NavProgress } from '@/lib/places/route/navigation';
 import type { ActiveRoute, NavSession } from '@/components/shell/state/types';
 import type { LiveLocation } from './directions-bar';
 

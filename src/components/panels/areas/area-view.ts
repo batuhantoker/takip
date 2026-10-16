@@ -1,5 +1,5 @@
-import type { DrawMode, DrawnShape } from '@/lib/areas/draw';
-import { formatArea, formatDistance } from '@/lib/geo';
+import type { DrawMode, DrawnShape } from '@/lib/places/areas/draw';
+import { formatArea, formatDistance } from '@/lib/core/geodesic';
 
 export const SHAPE_NAME: Record<DrawMode, string> = {
   polygon: 'Area', rectangle: 'Box', circle: 'Radius', line: 'Path', region: 'Region',

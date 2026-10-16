@@ -1,5 +1,5 @@
 import { Landmark, PlaneLanding, TrainFront, Waves } from 'lucide-react';
-import { REFERENCE_DATASETS, REFERENCE_GROUPS, type ReferenceGroupId } from '@/lib/reference/catalog';
+import { REFERENCE_DATASETS, REFERENCE_GROUPS, type ReferenceGroupId } from '@/lib/feeds/reference/catalog';
 
 const ICONS: Record<ReferenceGroupId, typeof Landmark> = {
   airfields: PlaneLanding,

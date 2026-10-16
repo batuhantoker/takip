@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import { buildThreads, type DigestReport } from '@/lib/alerts/digest';
+import { buildThreads, type DigestReport } from '@/lib/intel/alerts/digest';
 import {
   rec, str, toNews, toQuake, toWarning, type LiveAlertsData, type NewsAlert, type QuakeAlert, type WarningAlert,
-} from '@/lib/alerts/live-alerts';
+} from '@/lib/intel/alerts/live-alerts';
 
 export function useAlertItems(data: LiveAlertsData) {
   const news = useMemo(

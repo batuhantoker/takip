@@ -1,5 +1,5 @@
 import type { DotTone } from '@/components/ui/tag';
-import type { AlertItem, QuakeAlert, WarningAlert } from '@/lib/alerts/live-alerts';
+import type { AlertItem, QuakeAlert, WarningAlert } from '@/lib/intel/alerts/live-alerts';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;

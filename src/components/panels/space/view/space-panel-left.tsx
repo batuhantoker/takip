@@ -7,13 +7,13 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Panel, PanelSection } from '@/components/ui/panel';
 import { Switch } from '@/components/ui/switch';
 import { AU_KM, C_KM_S } from '@/lib/space/astro';
-import type { ExoplanetPayload } from '@/lib/space/exoplanets';
+import type { ExoplanetPayload } from '@/lib/space/deep/exoplanets';
 import { distance, lightTime } from '@/lib/space/format';
-import type { FleetPayload, Region } from '@/lib/space/fleet';
-import type { NearbyStarCatalog } from '@/lib/space/nearby-stars';
-import type { OuterPayload } from '@/lib/space/outer';
-import { REGION_COLOR } from '@/lib/space/scene/craft';
-import type { CameraInfo, SpaceLayers } from '@/lib/space/scene/space-scene';
+import type { FleetPayload, Region } from '@/lib/space/craft/fleet';
+import type { NearbyStarCatalog } from '@/lib/space/deep/nearby-stars';
+import type { OuterPayload } from '@/lib/space/deep/outer';
+import { REGION_COLOR } from '@/lib/space/scene/craft/layer';
+import type { CameraInfo, SpaceLayers } from '@/lib/space/scene/types';
 
 /** The space view's left panel: where the camera is, what is drawn, and where it all comes from. */
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { type MouseEvent, useMemo, useState } from 'react';
-import { climateAt } from '@/lib/paleo/climate';
-import { formatMa, periodAt } from '@/lib/paleo/deep-time';
+import { climateAt } from '@/lib/history/paleo/climate';
+import { formatMa, periodAt } from '@/lib/history/paleo/deep-time';
 
 const W = 368;
 const H = 64;

@@ -5,7 +5,7 @@ import { Activity, CloudSun, Newspaper, SearchX, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useEscape } from '@/components/ui/use-escape';
-import type { AlertItem, LocateOptions } from '@/lib/alerts/live-alerts';
+import type { AlertItem, LocateOptions } from '@/lib/intel/alerts/live-alerts';
 import NewsRow, { newsTarget } from '@/components/panels/alerts/rows/news-row';
 import QuakeRow from '@/components/panels/alerts/rows/quake-row';
 import StatementRow from '@/components/panels/alerts/rows/statement-row';

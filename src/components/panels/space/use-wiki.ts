@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { WikiSummary, WikiTopic } from '@/lib/space/wiki-topic';
+import type { WikiSummary } from '@/lib/core/wikipedia/summary';
+import type { WikiTopic } from '@/lib/space/wiki-topic';
 
 /** A Wikipedia lead and picture for a space-view topic, fetched once per topic for the session. */
 const cache = new Map<string, Promise<WikiSummary | null>>();

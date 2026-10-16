@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AU_KM } from '@/lib/space/astro';
-import type { StarCatalog } from '@/lib/space/earth-sky-layer';
+import type { StarCatalog } from '@/lib/space/globe/sky-layer';
 import { LY_KM } from '@/lib/space/astro';
-import type { CosmosMeta } from '@/lib/space/cosmos';
-import type { NearbyStarCatalog } from '@/lib/space/nearby-stars';
+import type { CosmosMeta } from '@/lib/space/deep/cosmos';
+import type { NearbyStarCatalog } from '@/lib/space/deep/nearby-stars';
 import type { SpaceSelection } from '@/lib/space/selection';
 import type { SatellitePoint } from '@/lib/space/scene/earth';
-import type { ReplayState } from '@/lib/space/scene/flight-replay';
-import { SpaceScene, type CameraInfo, type SpaceLayers } from '@/lib/space/scene/space-scene';
-import type { MapTarget } from '@/lib/space/scene/zoom-anchor';
+import type { ReplayState } from '@/lib/space/scene/craft/flight-replay';
+import { SpaceScene } from '@/lib/space/scene/space-scene';
+import type { CameraInfo, SpaceLayers } from '@/lib/space/scene/types';
+import type { MapTarget } from '@/lib/space/scene/camera/zoom-anchor';
 import { useExoplanets, useFleet, useOuter, useSky, useSunFrames, useSurface } from '@/components/panels/space/use-space-data';
 
 const json = <T,>(url: string) => fetch(url).then(r => (r.ok ? r.json() as Promise<T> : null)).catch(() => null);

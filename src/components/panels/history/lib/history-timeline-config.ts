@@ -1,4 +1,4 @@
-import { HISTORY_START } from '@/lib/replay/time-input';
+import { HISTORY_START } from '@/lib/map/replay/time-input';
 import type { ChoiceGroup } from '@/components/map/replay/timeline-controls';
 import type { GoToExample } from '@/components/map/replay/go-to-popover';
 

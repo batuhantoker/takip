@@ -1,14 +1,14 @@
 import { C_KM_S, norm } from '@/lib/space/astro';
-import { CRAFT_MODELS } from '@/lib/space/craft-models';
-import { REGION_LABEL, type FleetPayload } from '@/lib/space/fleet';
+import { CRAFT_MODELS } from '@/lib/space/craft/models';
+import { REGION_LABEL, type FleetPayload } from '@/lib/space/craft/fleet';
 import { age, distance, latLng, lightTime, speed } from '@/lib/space/format';
 import { jdFromMs } from '@/lib/space/horizons';
-import { LANDING_SITES, SITE_KIND_LABEL } from '@/lib/space/landing-sites';
+import { LANDING_SITES, SITE_KIND_LABEL } from '@/lib/space/craft/landing-sites';
 import type { SpaceSelection } from '@/lib/space/selection';
 import { sampleAt, type SkyPayload } from '@/lib/space/sky';
-import { trackAt, type SurfacePayload } from '@/lib/space/surface';
+import { trackAt, type SurfacePayload } from '@/lib/space/bodies/surface';
 import type { CardData as Card } from './describe-deep';
-import { REGION_COLOR } from '@/lib/space/scene/craft';
+import { REGION_COLOR } from '@/lib/space/scene/craft/layer';
 
 /** Inspect cards for the solar system: planets and moons, spacecraft, landing sites, rovers and orbiters. */
 

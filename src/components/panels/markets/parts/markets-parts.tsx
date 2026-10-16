@@ -3,7 +3,7 @@
 import { TriangleAlert } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
 import { Dot } from '@/components/ui/tag';
-import { exchangeClocks } from '@/lib/markets/markets';
+import { exchangeClocks } from '@/lib/intel/markets/markets';
 
 const mono = 'font-mono tabular-nums';
 

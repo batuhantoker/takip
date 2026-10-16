@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
 import { Dot } from '@/components/ui/tag';
+import { allProjectedAt, projectedAt } from '@/lib/history/projection';
 import type { HistorySession } from '@/lib/history/session';
-import { longMa, maAt, periodAt } from '@/lib/paleo/deep-time';
-import { CHAPTERS } from '@/lib/paleo/story';
-import { longDate } from '@/components/panels/history/lib/format-date';
+import { longMa, maAt, periodAt } from '@/lib/history/paleo/deep-time';
+import { CHAPTERS } from '@/lib/history/paleo/story';
+import { longDate, shortDate } from '@/components/panels/history/lib/format-date';
 import { CountriesSection } from '@/components/panels/history/parts/history-countries-section';
 import { DeepTimeSection } from '@/components/panels/history/parts/history-deep-section';
 import { BordersSection, EventsSection, type FlyTo, MomentsSection } from '@/components/panels/history/parts/history-sections';
@@ -19,7 +20,13 @@ type Props = { onClose: () => void; onExit?: () => void; onFlyTo?: FlyTo };
 /** Where the clock stands, in words: "Showing 2 October 1914", "250 million years ago · Triassic". Ticks with the timeline so the two agree. */
 function WhereInTime({ session }: { session: HistorySession }) {
   useHistoryTick(session);
-  if (!session.deep()) return <>Showing {longDate(session.clock.time())}</>;
+  if (!session.deep()) {
+    const t = session.clock.time();
+    const projection = session.countries.projection();
+    // The short date leaves room for the tag in the panel's subtitle.
+    if (!projectedAt(projection, t)) return <>Showing {longDate(t)}</>;
+    return <>Showing {shortDate(t)} · {allProjectedAt(projection, t) ? 'projected' : 'partly projected'}</>;
+  }
   const ma = maAt(session.deepClock.time());
   const open = session.story.index();
   return <>{open === null ? `${longMa(ma)} · ${periodAt(ma).name}` : `${CHAPTERS[open].title} · ${longMa(ma)}`}</>;

@@ -3,7 +3,7 @@
 import { cx, FOCUS_RING, TRANSITION, type Tone } from '@/components/ui/class-names';
 import { Stat } from '@/components/ui/stat';
 import { Tooltip } from '@/components/ui/tooltip';
-import type { QuakeAlert } from '@/lib/alerts/live-alerts';
+import type { QuakeAlert } from '@/lib/intel/alerts/live-alerts';
 import { magnitude } from '@/components/panels/alerts/format';
 
 export type StatPick = 'severe' | 'rocket' | 'breaking' | 'quake';

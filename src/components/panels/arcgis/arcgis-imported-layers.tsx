@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { Switch } from '@/components/ui/switch';
-import { countFeatures, type ImportedLayer } from '@/lib/layers/arcgis';
+import { countFeatures, type ImportedLayer } from '@/lib/map/layers/arcgis';
 import { ArcgisLayerOptions } from './arcgis-layer-options';
 import { layerTitle } from './arcgis-result-row';
 

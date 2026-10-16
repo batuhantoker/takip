@@ -6,7 +6,7 @@ import { Button, IconButton } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PanelSection } from '@/components/ui/panel';
 import { Tag } from '@/components/ui/tag';
-import type { ArcGISResult, ImportedLayer } from '@/lib/layers/arcgis';
+import type { ArcGISResult, ImportedLayer } from '@/lib/map/layers/arcgis';
 import { ArcgisResultRow } from './arcgis-result-row';
 import { ArcgisTopics } from './arcgis-topics';
 

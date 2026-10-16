@@ -2,8 +2,8 @@
 
 import { BadgeCheck, ExternalLink } from 'lucide-react';
 import { PanelSection } from '@/components/ui/panel';
-import type { Account, Fact, Identity } from '@/lib/recon/people/correlate';
-import { bareUrl } from '@/lib/recon/fingerprint-rows';
+import type { Account, Fact, Identity } from '@/lib/intel/recon/people/correlate';
+import { bareUrl } from '@/lib/intel/recon/fingerprint/rows';
 import type { FingerprintState } from './use-fingerprint-search';
 import { SearchNext, type Lead } from './fingerprint-leads';
 

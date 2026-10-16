@@ -8,9 +8,9 @@ import { ListRow } from '@/components/ui/list-row';
 import { MenuItem } from '@/components/ui/menu-item';
 import { PanelSection } from '@/components/ui/panel';
 import { Popover } from '@/components/ui/popover';
-import { queryArea, type DrawnShape } from '@/lib/areas/draw';
-import { selectInArea, MAX_ITEMS_PER_GROUP } from '@/lib/areas/aoi';
-import { contentsToCSV, contentsToGeoJSON, downloadFile } from '@/lib/areas/aoi-export';
+import { queryArea, type DrawnShape } from '@/lib/places/areas/draw';
+import { selectInArea, MAX_ITEMS_PER_GROUP } from '@/lib/places/areas/aoi';
+import { contentsToCSV, contentsToGeoJSON, downloadFile } from '@/lib/places/areas/aoi-export';
 
 /**
  * What is inside a selected area. Recomputed from the live store, so the readout tracks aircraft

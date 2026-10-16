@@ -5,8 +5,8 @@ import { Download, PenLine, Trash2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel, PanelSection } from '@/components/ui/panel';
-import type { DrawMode, DrawProgress, DrawnShape } from '@/lib/areas/draw';
-import type { WatchEvent } from '@/lib/areas/watch';
+import type { DrawMode, DrawProgress, DrawnShape } from '@/lib/places/areas/draw';
+import type { WatchEvent } from '@/lib/places/areas/watch';
 import AoiContents from '@/components/panels/areas/parts/aoi-contents';
 import AreaRow from '@/components/panels/areas/parts/area-row';
 import { framing } from './area-view';
@@ -34,6 +34,8 @@ interface DrawingToolbarProps {
   watched?: Set<string>;
   onToggleWatch?: (id: string) => void;
   watchEvents?: WatchEvent[];
+  /** Open the satellite images of a shape. */
+  onImagery?: (shape: DrawnShape) => void;
   onClose?: () => void;
 }
 
@@ -43,7 +45,7 @@ const UNDO_MS = 8000;
 export default function DrawingToolbar({
   drawMode, onSetDrawMode, progress, polygons, onDeletePolygon, onClearAll, onRestore, onExportGeoJSON,
   selectedPolygon, onSelectPolygon, onRenamePolygon, data, onLocateEntity, onLocateArea,
-  watched, onToggleWatch, watchEvents = [], onClose,
+  watched, onToggleWatch, watchEvents = [], onImagery, onClose,
 }: DrawingToolbarProps) {
   const [undo, setUndo] = useState<{ message: string; shapes: DrawnShape[] } | null>(null);
   const undoTimer = useRef<number | undefined>(undefined);
@@ -138,6 +140,7 @@ export default function DrawingToolbar({
                   onRename={name => onRenamePolygon(p.id, name)}
                   onDelete={() => remove(p)}
                   onShow={() => show(p)}
+                  onImagery={onImagery ? () => onImagery(p) : undefined}
                 />
               </li>
             ))}

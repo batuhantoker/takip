@@ -9,7 +9,7 @@ import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES } from '@/lib/history/popup';
 import type { HistorySession } from '@/lib/history/session';
 import { WAR_LAYERS, type WarLayer } from '@/lib/history/war-layers';
 import { WORLD_BORDERS } from '@/lib/history/world-borders';
-import { yearLabel } from '@/lib/replay/timeline-ticks';
+import { yearLabel } from '@/lib/map/replay/timeline-ticks';
 import { FAMILY_TEXT, type Moment, MOMENTS, type Place } from '@/components/panels/history/lib/history-content';
 import { HistoryCard } from './history-card';
 import { ToggleRow } from './toggle-row';
@@ -64,7 +64,7 @@ export function BordersSection({ session, onFlyTo }: { session: HistorySession; 
   return (
     <PanelSection title="Borders">
       <div className="flex flex-col gap-2">
-        <HistoryCard title={WORLD_BORDERS.label} body="Countries and empires year by year, from 3400 BCE to 2024."
+        <HistoryCard title={WORLD_BORDERS.label} body="Countries and empires year by year, from 3400 BCE to 2024. Zoomed in, OpenHistoricalMap adds dated borders down to duchies and free cities."
           control={<Switch label="Show world borders on the map" hideLabel checked={layers.includes(WORLD_BORDERS.code)} onChange={on => session.setLayer(WORLD_BORDERS.code, on)} />}>
           <Button size="sm" icon={Play} onClick={playWorld}>Play {WORLD_BORDERS.playYears}</Button>
         </HistoryCard>

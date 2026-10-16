@@ -1,6 +1,6 @@
 'use client';
 
-import { FUNCTIONS } from '@/lib/markets/markets';
+import { FUNCTIONS } from '@/lib/intel/markets/markets';
 import { sectionTitle } from '@/components/panels/markets/markets-format';
 
 /** What the find field understands. */

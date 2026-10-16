@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { ArrowUp, ArrowUpLeft, ArrowUpRight, CornerUpLeft, CornerUpRight, Flag, MapPin, Merge, RotateCw, Ship, Undo2, type LucideIcon } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
-import { maneuverKind, type ManeuverKind } from '@/lib/route/maneuver';
+import { maneuverKind, type ManeuverKind } from '@/lib/places/route/maneuver';
 
 /** The start: a hollow ring, as on the map. */
 export function StartMark({ className }: { className?: string }) {

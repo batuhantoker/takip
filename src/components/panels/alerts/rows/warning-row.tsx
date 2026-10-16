@@ -2,11 +2,11 @@
 
 import { ExternalLink, MapPin } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
-import type { AlertItem, LocateOptions, WarningAlert } from '@/lib/alerts/live-alerts';
+import type { AlertItem, LocateOptions, WarningAlert } from '@/lib/intel/alerts/live-alerts';
 import { AlertRow, Meta } from './alert-row';
 import { endsIn, plural, SEVERITY_LABEL, toneLabel, toneOf, until } from '@/components/panels/alerts/format';
 import { openLink, SimilarList } from './row-parts';
-import { warningHeadline, warningPlace, type WarningPlace } from '@/lib/alerts/warning-copy';
+import { warningHeadline, warningPlace, type WarningPlace } from '@/lib/intel/alerts/warning-copy';
 
 /* Issuers send one notice per district, often twice; the folded copies are worth listing once per place. */
 function otherPlaces(lead: WarningAlert, others: WarningAlert[]) {

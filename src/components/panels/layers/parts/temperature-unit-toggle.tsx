@@ -1,7 +1,8 @@
 'use client';
 
 import { Segmented, type SegmentedOption } from '@/components/ui/segmented';
-import { setTemperatureUnit, useTemperatureUnit, type TemperatureUnit } from '@/lib/weather/temperature-unit';
+import { useTemperatureUnit } from '@/components/map/layers/use-temperature-unit';
+import { setTemperatureUnit, type TemperatureUnit } from '@/lib/feeds/weather/temperature-unit';
 
 const UNITS: SegmentedOption<TemperatureUnit>[] = [
   { value: 'c', label: '°C' },

@@ -5,8 +5,8 @@ import { PanelSection } from '@/components/ui/panel';
 import {
   PULSE, formatMove, formatPrice, longName,
   type FunctionCode, type MarketQuote as Quote,
-} from '@/lib/markets/markets';
-import { FEED_SECTIONS, SECTION_OF } from '@/lib/markets/terminal';
+} from '@/lib/intel/markets/markets';
+import { FEED_SECTIONS, SECTION_OF } from '@/lib/intel/markets/terminal';
 import { heatTint, moveTone, pulseLabel, sectionTitle } from '@/components/panels/markets/markets-format';
 
 interface MarketBreadth { up: number; down: number; flat: number; total: number; best: Quote[]; worst: Quote[] }

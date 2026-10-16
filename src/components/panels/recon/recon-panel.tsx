@@ -14,10 +14,10 @@ import { ReconResults } from '@/components/panels/recon/results/recon-results';
 import { ToolList } from '@/components/panels/recon/parts/tool-list';
 import { ToolRail } from '@/components/panels/recon/parts/tool-rail';
 import { ExpandedView } from '@/components/panels/recon/parts/expanded-view';
-import { profileMode } from '@/lib/recon/suggest-tools';
+import { profileMode } from '@/lib/intel/recon/suggest-tools';
 import FingerprintSearch, { useFingerprintSearch } from '@/components/panels/recon/fingerprint/fingerprint-search';
 import { SignInFooter, SignInNotice } from '@/components/panels/recon/parts/sign-in-notice';
-import { SIGN_IN_REQUIRED } from '@/lib/recon/lookup';
+import { SIGN_IN_REQUIRED } from '@/lib/intel/recon/lookup';
 
 interface OsintPanelProps {
   isMobile?: boolean;

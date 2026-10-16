@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CATEGORIES, type Category } from '@/lib/recon/fingerprint';
+import { CATEGORIES, type Category } from '@/lib/intel/recon/fingerprint/search';
 import type { FingerprintState } from './use-fingerprint-search';
-import { STATUS_META, TIER_RANK, type Row } from '@/lib/recon/fingerprint-rows';
+import { STATUS_META, TIER_RANK, type Row } from '@/lib/intel/recon/fingerprint/rows';
 import { FingerprintSearchBar } from './fingerprint-search-bar';
 import { FingerprintHistory } from './fingerprint-history';
 import { FingerprintUsernameResults } from './fingerprint-username-results';

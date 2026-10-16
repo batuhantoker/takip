@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REFERENCE_GROUPS } from '@/lib/reference/catalog';
+import { REFERENCE_GROUPS } from '@/lib/feeds/reference/catalog';
 import { LAYER_GROUPS, type LayerGroupDef } from '@/components/panels/layers/layer-groups';
 import { filterSections, groupSections, groupTitle, OTHER_SECTION_ID, sectionFor } from './layer-sections';
 import { sentenceCase } from './sentence-case';
@@ -28,6 +28,7 @@ describe('sectionFor', () => {
     expect(sectionFor('NETWORK')).toBe('conflict');
     expect(sectionFor('NETINTEL')).toBe('conflict');
     expect(sectionFor('SURVEIL')).toBe('cameras');
+    expect(sectionFor('ROADS')).toBe('land');
     expect(sectionFor('OUTDOOR')).toBe('reference');
     for (const g of REFERENCE_GROUPS) expect(sectionFor(g.label), g.label).toBe('reference');
   });

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { groupStatements, type AlertThread, type Bloc } from '@/lib/alerts/digest';
-import { urgency, type AlertItem, type NewsAlert, type QuakeAlert, type WarningAlert } from '@/lib/alerts/live-alerts';
+import { groupStatements, type AlertThread, type Bloc } from '@/lib/intel/alerts/digest';
+import { urgency, type AlertItem, type NewsAlert, type QuakeAlert, type WarningAlert } from '@/lib/intel/alerts/live-alerts';
 import { bucketOf, SEVERITY_GROUP } from '@/components/panels/alerts/format';
 
 export type AlertTab = 'all' | 'news' | 'warnings' | 'quakes';

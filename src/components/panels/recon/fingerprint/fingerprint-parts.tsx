@@ -2,7 +2,7 @@
 
 import { cx } from '@/components/ui/class-names';
 import { Tag } from '@/components/ui/tag';
-import type { Row, RowStatus } from '@/lib/recon/fingerprint-rows';
+import type { Row, RowStatus } from '@/lib/intel/recon/fingerprint/rows';
 import { STATUS_DISPLAY } from './fingerprint-status';
 
 /** `live` is false once a search has ended: a hit still awaiting calibration then never got it. Found is what the list is, so it goes unmarked. */

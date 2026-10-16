@@ -1,4 +1,4 @@
-import { FUNCTIONS, type FunctionCode } from '@/lib/markets/markets';
+import { FUNCTIONS, type FunctionCode } from '@/lib/intel/markets/markets';
 
 /** Green or red only for change; no reading and no move stay neutral. */
 export const moveTone = (pct: number | null | undefined) =>

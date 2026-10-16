@@ -6,7 +6,7 @@ import { PanelSection } from '@/components/ui/panel';
 import { Tag } from '@/components/ui/tag';
 import type { FingerprintState } from './use-fingerprint-search';
 import { ResultRow, plain } from '@/components/panels/recon/results/result-primitives';
-import { parseHandle } from '@/lib/recon/people/handles';
+import { parseHandle } from '@/lib/intel/recon/people/handles';
 import { SearchNext, type Lead } from './fingerprint-leads';
 
 type Source = FingerprintState['sources'][number];

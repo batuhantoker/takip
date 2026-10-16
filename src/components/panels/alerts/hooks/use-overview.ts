@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { AlertBrief } from '@/lib/alerts/digest';
-import { hostedAiNotice, type HostedAiBlock } from '@/lib/ai/hosted';
+import type { AlertBrief } from '@/lib/intel/alerts/digest';
+import { hostedAiNotice, type HostedAiBlock } from '@/lib/intel/ai/hosted';
 
 export interface OverviewResult {
   overview: string;

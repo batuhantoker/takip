@@ -9,7 +9,7 @@ import { CircleAlert, LoaderCircle, X } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
 import { Segmented } from '@/components/ui/segmented';
-import { MAP_INK } from '@/lib/map/tokens';
+import { MAP_INK } from '@/lib/map/style/tokens';
 
 interface Candle {
   time: number;

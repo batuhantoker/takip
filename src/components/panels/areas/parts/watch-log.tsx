@@ -3,7 +3,7 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { PanelSection } from '@/components/ui/panel';
 import { Switch } from '@/components/ui/switch';
-import type { WatchEvent } from '@/lib/areas/watch';
+import type { WatchEvent } from '@/lib/places/areas/watch';
 
 const clock = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
 

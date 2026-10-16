@@ -1,8 +1,9 @@
 import {
   Plane, Satellite, Sun, AlertTriangle, Camera,
-  CloudLightning, Ship, Network, Megaphone, CloudSun, Mountain
+  CloudLightning, Ship, Network, Megaphone, CloudSun, Mountain, Bus
 } from 'lucide-react';
-import { SHIP_CLASSES, SHIPS_UNDERWAY } from '@/lib/ships/filter';
+import { Car } from 'lucide-react';
+import { SHIP_CLASSES, SHIPS_UNDERWAY } from '@/lib/feeds/maritime/ship-filter';
 import { REFERENCE_LAYER_GROUPS } from '@/components/panels/layers/lib/reference-groups';
 
 export interface LayerDef {
@@ -41,9 +42,12 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
     icon: CloudSun,
     layers: [
       { key: 'wx_temperature', label: 'Temperature', description: 'NOAA GFS · 0.25° · Open-Meteo until it loads', dataKey: '' },
-      { key: 'wx_wind', label: 'Wind', description: 'Open-Meteo · 10 m · arrows show where it blows', dataKey: '' },
-      { key: 'wx_radar', label: 'Rain Radar', description: 'RainViewer · where ground radar exists', dataKey: '' },
+      { key: 'wx_wind', label: 'Wind', description: 'NOAA GFS forecast · 10 m · streaks move with the wind · Open-Meteo arrows until it loads', dataKey: '' },
+      { key: 'wx_radar', label: 'Rain Radar', description: 'RainViewer · where ground radar exists · last 2 hours, loops and follows Replay', dataKey: '' },
+      { key: 'wx_lightning', label: 'Lightning', description: 'NOAA nowCOAST · strikes per 15 min · the Americas and the Pacific · follows Replay', dataKey: '' },
       { key: 'live_clouds', label: 'Live Clouds', description: 'NOAA satellites · lit in 3D · hourly', dataKey: '' },
+      { key: 'sat_live', label: 'Satellite Live', description: 'GOES, Meteosat, Himawari · the whole Earth every 10 min, about 40 min behind', dataKey: '' },
+      { key: 'sat_daily', label: 'Satellite Daily', description: 'NASA VIIRS and MODIS · the whole Earth once a day · follows History and Replay back to 2000', dataKey: '' },
     ],
   },
   {
@@ -56,6 +60,8 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'jets', label: 'Private Jets', dataKey: 'private_jets' },
       { key: 'military', label: 'Military', dataKey: 'military_flights' },
       { key: 'airport_delays', label: 'Airport Delays', description: 'FAA ground stops and delays · US', dataKey: 'airport_delays' },
+      { key: 'airport_weather', label: 'Airport Weather', description: 'METARs worldwide · VFR, MVFR, IFR, LIFR', dataKey: '' },
+      { key: 'sigmets', label: 'Hazard Airspace', description: 'SIGMETs · storms, turbulence, icing, volcanic ash', dataKey: '' },
     ],
   },
   {
@@ -67,6 +73,14 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: SHIPS_UNDERWAY, label: 'Underway only', description: 'Hide anchored and moored', dataKey: '', parent: 'maritime' },
       ...SHIP_CLASSES.map(c => ({ key: c.key, label: c.label, dataKey: '', parent: 'maritime' })),
       { key: 'chokepoint_flow', label: 'Chokepoint Traffic', description: 'IMF PortWatch · daily transits vs. own baseline', dataKey: 'chokepoint_flow' },
+    ],
+  },
+  {
+    label: 'TRANSIT',
+    fullLabel: 'PUBLIC TRANSIT',
+    icon: Bus,
+    layers: [
+      { key: 'transit', label: 'Buses & Trains', description: 'Live buses, trams, trains and metros · vehicles from zoom 10', dataKey: '' },
     ],
   },
   {
@@ -92,7 +106,16 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
     layers: [
       { key: 'cctv', label: 'CCTV Cameras', dataKey: 'cameras' },
       { key: 'cctv_previews', label: 'Live Previews', dataKey: '', parent: 'cctv' },
+      { key: 'alpr', label: 'Plate Readers (ALPR)', description: 'DeFlock · OpenStreetMap · US and Canada · view cones from zoom 13', dataKey: '' },
       { key: 'live_news', label: 'Live News Feeds', dataKey: 'live_feeds' },
+    ],
+  },
+  {
+    label: 'ROADS',
+    fullLabel: 'ROAD TRAFFIC',
+    icon: Car,
+    layers: [
+      { key: 'traffic', label: 'Road Traffic', description: 'Measured speeds · worldwide with a TomTom key, else Netherlands, Rennes, Nantes · slow roads tinted from zoom 10', dataKey: '' },
     ],
   },
   {
@@ -101,7 +124,7 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
     icon: CloudLightning,
     layers: [
       { key: 'earthquakes', label: 'Earthquakes', dataKey: 'earthquakes' },
-      { key: 'fires', label: 'Active Fires', description: 'NASA FIRMS hotspots · CWFIS incidents (Canada)', dataKey: 'fires' },
+      { key: 'fires', label: 'Active Fires', description: 'NASA FIRMS hotspots · NIFC perimeters (US) · CWFIS incidents (Canada)', dataKey: 'fires' },
       { key: 'weather', label: 'Severe Weather', dataKey: 'weather_events' },
       { key: 'radiation', label: 'Radiation', description: 'EPA RadNet · Safecast · hourly', dataKey: 'radiation' },
       { key: 'outbreaks', label: 'Disease Outbreaks', description: 'WHO · CDC · ECDC notices · by country', dataKey: 'outbreaks' },

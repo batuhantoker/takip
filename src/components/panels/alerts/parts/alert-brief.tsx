@@ -3,7 +3,7 @@
 import { RefreshCw } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import type { AlertBrief, AlertThread } from '@/lib/alerts/digest';
+import type { AlertBrief, AlertThread } from '@/lib/intel/alerts/digest';
 import { ago, magnitude, plural } from '@/components/panels/alerts/format';
 import { TiGlyph } from '@/components/panels/ti-agent/atoms';
 import { Spinner } from '@/components/panels/alerts/rows/row-parts';
