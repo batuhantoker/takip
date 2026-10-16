@@ -10,11 +10,11 @@ import { Tooltip } from '@/components/ui/tooltip';
 
 export type GoToExample = { label: string; value: string };
 
-/** "Go to…": type a time, or pick one of a few examples. `onGo` says whether it understood the text. */
+/** "Go to…": type a time, or pick one of a few examples. `onGo` says whether it understood the text, or why it can't go there. */
 export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examples, title = 'Go to a date' }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGo: (text: string) => boolean;
+  onGo: (text: string) => boolean | string;
   placeholder: string;
   /** Shown when the text isn't a time. */
   hint: string;
@@ -22,15 +22,16 @@ export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examp
   title?: string;
 }) {
   const [text, setText] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const go = (value: string, close: () => void) => {
-    if (!onGo(value)) {
-      setError(true);
+    const went = onGo(value);
+    if (went !== true) {
+      setError(went || hint);
       return;
     }
     setText('');
-    setError(false);
+    setError(null);
     close();
   };
 
@@ -38,7 +39,7 @@ export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examp
   return (
     <Tooltip label={title} kbd="J" disabled={open}>
       <span className="inline-flex">
-        <Popover open={open} onOpenChange={o => { onOpenChange(o); if (!o) setError(false); }} label={title} placement="top" align="end" className="w-80 p-3"
+        <Popover open={open} onOpenChange={o => { onOpenChange(o); if (!o) setError(null); }} label={title} placement="top" align="end" className="w-80 p-3"
           trigger={
             <Button variant="ghost" size="sm" icon={CalendarSearch} aria-label={title} aria-keyshortcuts="J">
               <span className="hidden @5xl/timeline:inline">Go to</span>
@@ -48,8 +49,8 @@ export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examp
             <>
               <form onSubmit={(e: FormEvent) => { e.preventDefault(); go(text, close); }}>
                 <TextField label={title} value={text} placeholder={placeholder} data-autofocus autoComplete="off" spellCheck={false}
-                  onChange={e => { setText(e.target.value); setError(false); }}
-                  error={error ? hint : undefined} />
+                  onChange={e => { setText(e.target.value); setError(null); }}
+                  error={error ?? undefined} />
               </form>
               <p className="mt-3 mb-1 text-meta font-medium text-ink-3">Or try</p>
               <ul className="-mx-1 flex flex-col">

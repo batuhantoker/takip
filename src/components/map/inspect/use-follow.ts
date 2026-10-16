@@ -8,6 +8,16 @@ let followed: string | null = null;
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 const setFollowed = (key: string | null) => { followed = key; listeners.forEach(l => l()); };
+/** Cards on screen, by follow key. */
+const mounted = new Map<string, number>();
+
+/** For a subject that moves the camera itself while it animates (a tracked bus gliding along its route). */
+export const isFollowed = (key: string) => followed === key;
+
+/** The followed key, and setting it from outside a card (a shared link, TI); the card's own Follow reflects it. */
+export const followedKey = () => followed;
+export const followKey = setFollowed;
+export const subscribeFollow = subscribe;
 
 /** Keep the map centred on a moving thing until the person drags the map away. */
 export function useFollow(mapRef: MapRef, pos: { lat: number; lng: number } | null, key: string) {
@@ -16,8 +26,15 @@ export function useFollow(mapRef: MapRef, pos: { lat: number; lng: number } | nu
     if (on) setFollowed(key);
     else if (followed === key) setFollowed(null);
   }, [key]);
-  // A card that closes stops its follow.
-  useEffect(() => () => { if (followed === key) setFollowed(null); }, [key]);
+  // A card that closes stops its follow. Checked a tick later, so a card that remounts at once (Strict Mode,
+  // a moved window) keeps a follow set before it mounted, as a shared link's is.
+  useEffect(() => {
+    mounted.set(key, (mounted.get(key) ?? 0) + 1);
+    return () => {
+      mounted.set(key, (mounted.get(key) ?? 1) - 1);
+      setTimeout(() => { if (!mounted.get(key) && followed === key) setFollowed(null); }, 0);
+    };
+  }, [key]);
 
   useEffect(() => {
     if (!following || !pos) return;

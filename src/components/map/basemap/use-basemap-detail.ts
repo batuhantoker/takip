@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { BASEMAP_SOURCE } from '@/lib/basemap/provider';
-import { DETAIL_GROUND, DETAIL_LABELS, MILITARY_HATCH } from '@/lib/basemap/detail-layers';
-import { hatchImage } from '@/lib/map/hatch';
+import { BASEMAP_SOURCE } from '@/lib/map/basemap/provider';
+import { DETAIL_GROUND, DETAIL_LABELS, MILITARY_HATCH } from '@/lib/map/basemap/detail-layers';
+import { hatchImage } from '@/lib/map/style/hatch';
 import type { MapRef } from '@/components/map/types';
 
 const isBaseLayer = (l: { id: string; source?: unknown }) =>
   l.source === BASEMAP_SOURCE && !l.id.startsWith('detail-') && !l.id.startsWith('takip-');
 
-/** Adds the base map detail (lib/basemap/detail-layers): ground under the base labels, labels over them and under every overlay. */
+/** Adds the base map detail (lib/map/basemap/detail-layers): ground under the base labels, labels over them and under every overlay. */
 export function useBasemapDetail({ mapRef, mapReady }: { mapRef: MapRef; mapReady: boolean }) {
   useEffect(() => {
     const map = mapRef.current;

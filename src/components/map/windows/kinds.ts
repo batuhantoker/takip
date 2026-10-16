@@ -1,15 +1,18 @@
 import type { Limits } from '@/components/map/windows/lib/geometry';
 import type { MapArea } from './map-area';
 
-export type WindowKind = 'inspect' | 'watch' | 'dossier' | 'camera' | 'live';
+export type WindowKind = 'inspect' | 'watch' | 'dossier' | 'imagery' | 'chart' | 'camera' | 'live' | 'pinned';
 
 /** Docked width, the width double-click takes it to, and whether it holds a 16:9 picture. */
 export const KINDS: Record<WindowKind, { width: number; big: number; video: boolean }> = {
   inspect: { width: 340, big: 480, video: false },
   watch: { width: 340, big: 420, video: false },
   dossier: { width: 400, big: 560, video: false },
+  imagery: { width: 420, big: 560, video: false },
+  chart: { width: 400, big: 640, video: false },
   camera: { width: 440, big: 960, video: true },
   live: { width: 560, big: 960, video: true },
+  pinned: { width: 340, big: 480, video: false },
 };
 
 /** Pictures play in at most this many windows at once; the rest wait with a Play button. */

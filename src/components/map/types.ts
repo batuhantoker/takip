@@ -1,13 +1,13 @@
 import type { RefObject } from 'react';
 import type * as maplibregl from 'maplibre-gl';
-import type { DrawAction, DrawMode, DrawProgress, DrawResult } from '@/lib/areas/draw';
+import type { DrawAction, DrawMode, DrawProgress, DrawResult } from '@/lib/places/areas/draw';
 import type { TerrainStatus } from '@/lib/map/terrain/terrain';
-import type { Highlight } from '@/lib/oi/assist/tools';
-import type { OiGlobe, OiHover } from '@/lib/oi/globe';
+import type { Highlight } from '@/lib/ai/assist/tools';
+import type { AiGlobe, AiHover } from '@/lib/ai/globe/attach';
 import type { HistorySession } from '@/lib/history/session';
-import type { ReplaySession } from '@/lib/replay/session';
+import type { ReplaySession } from '@/lib/map/replay/session';
 import type { GlobeLink, GlobeView } from '@/lib/space/globe-match';
-import type { createSatelliteLayer } from '@/lib/satellites/layer';
+import type { createSatelliteLayer } from '@/lib/feeds/satellites/layer';
 
 /** The catalogue fields the satellite layer and its popup actually read. */
 export interface SatelliteRow {
@@ -19,6 +19,15 @@ export interface SatelliteRow {
   mission?: string;
   category?: string;
   noradId?: string;
+  /** The element sets, when asked for: replay propagates them in the browser. */
+  line1?: string;
+  line2?: string;
+}
+
+export interface ImageryRequest {
+  shape: GeoJSON.Polygon | GeoJSON.MultiPolygon;
+  name: string;
+  seq: number;
 }
 
 export interface WorldMapProps {
@@ -56,6 +65,8 @@ export interface WorldMapProps {
   theme?: 'core' | 'ghost';
   drawnPolygons?: Array<{ id: string; name: string; geojson: GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon | GeoJSON.LineString>; color: string; meta?: { label?: [number, number] } }>;
   arcgisLayers?: Array<{ id: string; title: string; geojson: any; color?: string; opacity?: number }>;
+  /** The last "Satellite images" ask from the Areas tool; each new one opens the window on that shape. */
+  imageryRequest?: ImageryRequest | null;
   /** Active draw mode, or null when not drawing. */
   drawMode?: DrawMode | null;
   onDrawProgress?: (p: DrawProgress | null) => void;
@@ -91,20 +102,20 @@ export interface WorldMapProps {
   onFollowInterrupt?: () => void;
   /** Live navigation: tighter zoom and the map turned to face travel direction. */
   navigating?: boolean;
-  /** Hands the page OI's globe layer, so a run draws without re-rendering the map. Null when it goes. */
-  onOiGlobe?: (globe: OiGlobe | null) => void;
-  /** A piece of OI's analysis was clicked: an arc ("link:<id>") or a point ("a:<actor>", "e:<event>"…); null for empty map. */
-  onOiSelect?: (key: string | null) => void;
-  /** The pointer is over a piece of OI's analysis, or has left it. */
-  onOiHover?: (hover: OiHover | null) => void;
-  /** OI's camera started or stopped following the run. */
-  onOiFollow?: (following: boolean) => void;
+  /** Hands the page AI's globe layer, so a run draws without re-rendering the map. Null when it goes. */
+  onAiGlobe?: (globe: AiGlobe | null) => void;
+  /** A piece of AI's analysis was clicked: an arc ("link:<id>") or a point ("a:<actor>", "e:<event>"…); null for empty map. */
+  onAiSelect?: (key: string | null) => void;
+  /** The pointer is over a piece of AI's analysis, or has left it. */
+  onAiHover?: (hover: AiHover | null) => void;
+  /** AI's camera started or stopped following the run. */
+  onAiFollow?: (following: boolean) => void;
   /** A phone panel sheet is open: the inspect sheet steps aside, one sheet at a time. */
   mobileSheetOpen?: boolean;
   /** Something was opened for inspection (card, satellite or camera): the page can close its own sheet. */
   onInspectOpen?: () => void;
-  /** What OI Assist has marked on the map: found things, named places, a searched area. */
-  oiHighlight?: Highlight | null;
+  /** What AI Assist has marked on the map: found things, named places, a searched area. */
+  aiHighlight?: Highlight | null;
 }
 
 export type MapRef = RefObject<maplibregl.Map | null>;

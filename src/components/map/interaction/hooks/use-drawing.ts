@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type RefObject } from 'react';
 import type * as maplibregl from 'maplibre-gl';
-import { buildGeometry, closeRing, drawReducer, initialDrawState, measure, type DrawAction, type DrawState } from '@/lib/areas/draw';
+import { buildGeometry, closeRing, drawReducer, initialDrawState, measure, type DrawAction, type DrawState } from '@/lib/places/areas/draw';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 interface DrawingArgs {

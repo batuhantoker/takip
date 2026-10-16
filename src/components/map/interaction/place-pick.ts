@@ -1,9 +1,9 @@
 import * as maplibregl from 'maplibre-gl';
 import type { RefObject } from 'react';
-import { BASEMAP_SOURCE } from '@/lib/basemap/provider';
-import { KIND_LABEL, kindOf, namesOf } from '@/lib/places/wiki';
-import { placePopupHtml, type PlaceInfo } from '@/lib/places/place-popup';
-import type { WikiSummary } from '@/lib/space/wiki-topic';
+import { BASEMAP_SOURCE } from '@/lib/map/basemap/provider';
+import { KIND_LABEL, kindOf, namesOf } from '@/lib/places/labels/wiki';
+import { placePopupHtml, type PlaceInfo } from '@/lib/places/labels/place-popup';
+import type { WikiSummary } from '@/lib/core/wikipedia/summary';
 
 /** How near a label, in pixels, a click has to land. */
 const HIT_PX = 4;
@@ -15,7 +15,7 @@ export interface PlacePick {
 
 interface PlacePickDeps {
   popupRef: RefObject<maplibregl.Popup | null>;
-  /** True when the click belongs to something else: a draw tool, a marker, OI, a satellite. */
+  /** True when the click belongs to something else: a draw tool, a marker, AI, a satellite. */
   claimed: (e: maplibregl.MapMouseEvent) => boolean;
 }
 

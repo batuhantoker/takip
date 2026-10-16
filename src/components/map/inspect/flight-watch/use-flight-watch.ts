@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import type { AircraftDetail, Airport, FlightTelemetry } from '@/lib/flights/watch';
+import type { AircraftDetail, Airport, FlightTelemetry } from '@/lib/feeds/aviation/flight-watch';
 import { unwatchFlight, useWatchedFlights, watchFlight } from './watch-store';
 
 type Feed = Record<string, unknown>;

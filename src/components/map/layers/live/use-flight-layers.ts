@@ -2,27 +2,40 @@
 
 import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
-import type { Airport } from '@/lib/flights/watch';
+import type { Airport } from '@/lib/feeds/aviation/flight-watch';
+import { EMERGENCY_SOURCE, emergencyOf } from '@/lib/feeds/aviation/emergency';
+import type { FlightLayer } from '@/components/map/inspect/types';
+import type { LiveFlight } from '@/components/map/inspect/live';
 import type { LayerHookArgs, MapRef } from '@/components/map/types';
+
+type Row = LiveFlight & { near?: boolean };
 
 export function useFlightLayers({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
   // Flight data → GeoJSON (GPU rendered)
   useEffect(() => {
     if (!mapReady) return;
-    const toFeatures = (arr: any[], decimate: number = 1) => {
+    const props = (f: Row) => ({ callsign: f.callsign, heading: f.heading || 0, alt: f.alt, model: f.model, speed_knots: f.speed_knots, registration: f.registration, icao24: f.icao24 });
+    const point = (f: Row, properties: Record<string, unknown>) => ({ type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [f.lng, f.lat] }, properties });
+    const emergencies: ReturnType<typeof point>[] = [];
+    const toFeatures = (arr: Row[] | undefined, layer: FlightLayer, decimate: number = 1) => {
       let filtered = arr || [];
+      // Aircraft in distress go to their own layer, every one of them.
+      filtered = filtered.filter(f => {
+        const declared = emergencyOf(f);
+        if (declared) emergencies.push(point(f, { ...props(f), declared, layer }));
+        return !declared;
+      });
+      // Thinned worldwide; the near-real-time rows around the view are all drawn.
       if (decimate > 1) {
-        filtered = filtered.filter((_, i) => i % decimate === 0);
+        filtered = filtered.filter((f, i) => f?.near || i % decimate === 0);
       }
-      return filtered.map((f: any) => ({
-        type: 'Feature' as const, geometry: { type: 'Point' as const, coordinates: [f.lng, f.lat] },
-        properties: { callsign: f.callsign, heading: f.heading || 0, alt: f.alt, model: f.model, speed_knots: f.speed_knots, registration: f.registration, icao24: f.icao24 },
-      }));
+      return filtered.map(f => point(f, props(f)));
     };
-    setGeo('flights', activeLayers.flights ? toFeatures(data.commercial_flights, 10) : []);
-    setGeo('private-fl', activeLayers.private ? toFeatures(data.private_flights, 2) : []);
-    setGeo('jets', activeLayers.jets ? toFeatures(data.private_jets, 2) : []);
-    setGeo('military', activeLayers.military ? toFeatures(data.military_flights) : []);
+    setGeo('flights', activeLayers.flights ? toFeatures(data.commercial_flights, 'fl-commercial', 10) : []);
+    setGeo('private-fl', activeLayers.private ? toFeatures(data.private_flights, 'fl-private', 2) : []);
+    setGeo('jets', activeLayers.jets ? toFeatures(data.private_jets, 'fl-jets', 2) : []);
+    setGeo('military', activeLayers.military ? toFeatures(data.military_flights, 'fl-military') : []);
+    setGeo(EMERGENCY_SOURCE, emergencies);
   }, [mapReady, data.commercial_flights, data.private_flights, data.private_jets, data.military_flights, activeLayers.flights, activeLayers.private, activeLayers.jets, activeLayers.military]);
 }
 

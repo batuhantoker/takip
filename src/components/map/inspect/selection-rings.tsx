@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
 import { useWindows } from '@/components/map/windows';
 import type { MapRef } from '@/components/map/types';
-import { MAP_INK } from '@/lib/map/tokens';
+import { MAP_INK } from '@/lib/map/style/tokens';
 import { useRings } from './rings';
 
 const SRC = 'inspect-selection';

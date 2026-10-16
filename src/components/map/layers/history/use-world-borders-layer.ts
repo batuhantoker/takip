@@ -3,10 +3,11 @@
 import { type RefObject, useEffect } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { HistorySession } from '@/lib/history/session';
-import { borderWindow, clockYear, powerColor, WORLD_BORDERS, type WorldBorderFeature, worldBorderPopupHtml, yearStart } from '@/lib/history/world-borders';
-import { MAP_INK, labelPaint } from '@/lib/map/tokens';
+import { borderWindow, clockYear, powerColor, WORLD_BORDERS, type WorldBorderFeature, yearStart } from '@/lib/history/world-borders';
+import { MAP_INK, labelPaint } from '@/lib/map/style/tokens';
 import type { MapRef } from '@/components/map/types';
 import { hideModernBorders } from './modern-borders';
+import { openWorldBorderPopup } from './world-border-popup';
 
 /*
  * World borders in History: Cliopatria's polities in the clock's year, each coloured by the empire or union holding it.
@@ -44,7 +45,8 @@ function addLayers(map: maplibregl.Map) {
   } }, before);
   if (!map.getLayer(LINE)) map.addLayer({ id: LINE, type: 'line', source: SOURCE, filter: isShape as never, paint: {
     'line-color': MAP_INK.ink2,
-    'line-opacity': 0.45,
+    // OpenHistoricalMap's dated borders take over up close (use-ohm-detail-layer); this one is drawn for world scale.
+    'line-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.45, 9, 0.15] as never,
     'line-width': ['interpolate', ['linear'], ['zoom'], 2, 0.5, 6, 1] as never,
   } }, before);
   if (!map.getLayer(LABELS)) map.addLayer({ id: LABELS, type: 'symbol', source: SOURCE, minzoom: 1, filter: ['has', 'label'] as never, layout: {
@@ -146,9 +148,7 @@ export function useWorldBordersLayer({ mapRef, mapReady, history, popupRef }: {
       // An event mark over the country opens its own popup.
       const events = ['history-events', 'history-cells'].filter(l => map.getLayer(l));
       if (!f || (events.length && map.queryRenderedFeatures(e.point, { layers: events }).length)) return;
-      popupRef.current?.remove();
-      popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '320px', offset: 8 })
-        .setLngLat(e.lngLat).setHTML(worldBorderPopupHtml(f.properties as unknown as WorldBorderFeature)).addTo(map);
+      openWorldBorderPopup(map, popupRef, f.properties as unknown as WorldBorderFeature, e.lngLat);
     };
     const pointer = () => { map.getCanvas().style.cursor = 'pointer'; };
     const unpointer = () => { map.getCanvas().style.cursor = ''; };

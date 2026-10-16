@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Airport } from '@/lib/flights/watch';
+import type { Airport } from '@/lib/feeds/aviation/flight-watch';
 import { clockTime } from '@/components/map/inspect/format';
 import { Note } from '@/components/map/inspect/parts/inspect-card';
 import type { RouteState } from '@/components/map/inspect/types';

@@ -2,6 +2,7 @@
 
 import { useEffect, type RefObject } from 'react';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
+import { coalesceTrackingMoves } from '@/lib/map/camera/tracking-moves';
 
 export function useDemoSpin({ mapRef, mapReady, demoMode }: { mapRef: MapRef; mapReady: boolean; demoMode: boolean }) {
   useEffect(() => {
@@ -97,7 +98,8 @@ export function useMapCenter({ mapRef, mapReady, onMapCenter }: { mapRef: MapRef
     // Fire immediately so panels get initial coordinates
     reportCenter();
 
-    map.on('moveend', reportCenter);
-    return () => { map.off('moveend', reportCenter); };
+    const onMoveEnd = coalesceTrackingMoves(reportCenter);
+    map.on('moveend', onMoveEnd.handler);
+    return () => { map.off('moveend', onMoveEnd.handler); onMoveEnd.cancel(); };
   }, [mapReady, onMapCenter, mapRef]);
 }

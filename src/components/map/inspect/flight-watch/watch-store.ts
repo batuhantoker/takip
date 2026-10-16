@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { WatchedFlight } from '@/lib/flights/watch';
+import type { WatchedFlight } from '@/lib/feeds/aviation/flight-watch';
 
 const MAX = 6;
 let watched: WatchedFlight[] = [];

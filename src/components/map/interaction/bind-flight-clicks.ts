@@ -1,8 +1,9 @@
 import type * as maplibregl from 'maplibre-gl';
 import type { InspectSink, FlightLayer, RouteState } from '@/components/map/inspect/types';
-import { flightPathFeatures, routeFor } from '@/lib/flights/path';
-import type { AircraftDetail } from '@/lib/flights/watch';
-import { EMPTY_FC } from '@/lib/basemap/base-layers';
+import { flightPathFeatures, routeFor } from '@/lib/feeds/aviation/flight-path';
+import type { AircraftDetail } from '@/lib/feeds/aviation/flight-watch';
+import { EMPTY_FC } from '@/lib/map/basemap/bands/shared';
+import { EMERGENCY_PICK } from '@/lib/feeds/aviation/emergency';
 import { idSafe, type ScheduleReply } from '@/lib/map/popups/layer-popups';
 
 const FLIGHT_LAYERS: FlightLayer[] = ['fl-commercial', 'fl-private', 'fl-jets', 'fl-military'];
@@ -116,6 +117,14 @@ export function bindFlightClicks(map: maplibregl.Map, sink: InspectSink, drawing
     map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   });
+  // An aircraft in distress is drawn on its own layer, and opens as the layer it belongs to.
+  map.on('click', EMERGENCY_PICK, e => {
+    const f = e.features?.[0];
+    if (!f || drawing()) return;
+    select(f.properties as FlightPick, (f.geometry as GeoJSON.Point).coordinates as [number, number], f.properties.layer as FlightLayer);
+  });
+  map.on('mouseenter', EMERGENCY_PICK, () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', EMERGENCY_PICK, () => { map.getCanvas().style.cursor = ''; });
 
   return {
     select,

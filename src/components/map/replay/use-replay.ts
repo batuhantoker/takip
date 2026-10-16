@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { createReplaySession, type ReplaySession } from '@/lib/replay/session';
+import { createReplaySession, type ReplaySession } from '@/lib/map/replay/session';
 
 /** Replay opens an hour back, playing at a minute per second, so there is movement at once. */
 const START_BACK_MS = 60 * 60_000;

@@ -1,8 +1,8 @@
 'use client';
 
 import { Fragment, type ReactNode } from 'react';
-import { ChevronDown, Pause, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ChevronDown, Pause, Play, RotateCcw, RotateCw } from 'lucide-react';
+import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
@@ -23,6 +23,14 @@ export function PlayButton({ playing, onToggle }: { playing: boolean; onToggle: 
         <Icon aria-hidden className={cx('size-4', !playing && 'translate-x-px')} strokeWidth={1.75} fill="currentColor" />
       </button>
     </Tooltip>
+  );
+}
+
+/** Back or ahead by `span` ("10 min"), either side of the play button. */
+export function JumpButton({ dir, span, onJump }: { dir: -1 | 1; span: string; onJump: (dir: -1 | 1) => void }) {
+  return (
+    <IconButton label={`${dir < 0 ? 'Back' : 'Ahead'} ${span}`} icon={dir < 0 ? RotateCcw : RotateCw} kbd={dir < 0 ? ',' : '.'}
+      tooltipSide="top" onClick={() => onJump(dir)} />
   );
 }
 

@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { CameraOff, ExternalLink, LoaderCircle, LogIn, MapPin, Maximize2, Minimize2, PlayCircle, RefreshCw, X } from 'lucide-react';
 import Hls from 'hls.js';
-import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView, withdrawalCheck } from '@/lib/cameras/feed';
-import { clearLook, registerVideo } from '@/lib/vision/store';
+import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView, withdrawalCheck } from '@/lib/feeds/cameras/feed';
+import { clearLook, registerVideo } from '@/lib/intel/vision/store';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, ENTER } from '@/components/ui/class-names';
 import { Dot } from '@/components/ui/tag';
@@ -13,9 +13,9 @@ import { WindowFoldButton, WindowSizeButton } from '@/components/map/windows';
 import { useBottomBar } from '@/components/shell/mobile/use-bottom-bar';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { showAccountDialog } from '@/components/site/account/account-dialog-state';
-import { authClient } from '@/lib/account/auth-client';
+import { authClient } from '@/components/site/account/auth-client';
 import CameraVision from './camera-vision';
-import { admitRoadCondition, parseRoadCondition, roadConditionLine } from '@/lib/cctv/road-condition';
+import { admitRoadCondition, parseRoadCondition, roadConditionLine } from '@/lib/feeds/cameras/road-condition';
 
 interface CameraViewerProps {
   camera: any | null;

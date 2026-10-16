@@ -1,9 +1,10 @@
 'use client';
 
 import { Eye, Loader2, ScanSearch, Timer, X } from 'lucide-react';
-import { VEHICLES, type Detection, type Label } from '@/lib/vision/detect';
-import { countWords, describeWatch, labelWord } from '@/lib/vision/analysis';
-import { clearLook, look, sourceOf, useLook, type VisionCamera } from '@/lib/vision/store';
+import { VEHICLES, type Detection, type Label } from '@/lib/intel/vision/detect';
+import { countWords, describeWatch, labelWord } from '@/lib/intel/vision/analysis';
+import { clearLook, look, sourceOf, type VisionCamera } from '@/lib/intel/vision/store';
+import { useLook } from './use-look';
 
 /**
  * TAKIP — the camera's analysis overlay.
@@ -76,7 +77,7 @@ export default function CameraVision({ camera, fit, ready }: { camera: VisionCam
       )}
 
       {/* TI is looking: say so while it does. */}
-      {state?.by === 'oi' && busy && (
+      {state?.by === 'ai' && busy && (
         <div className="absolute top-2 right-2 z-30 inline-flex h-6 items-center gap-1.5 rounded-md bg-black/70 px-2 text-[11px] font-medium text-gold">
           <span className="size-1.5 rounded-full bg-gold motion-safe:animate-pulse" /> TI is looking
         </div>
@@ -114,8 +115,8 @@ export default function CameraVision({ camera, fit, ready }: { camera: VisionCam
       {a && !busy && (
         <div className="absolute right-0 bottom-0 left-0 z-[31] bg-surface-0/90 px-3 py-2" aria-live="polite">
           <div className="flex items-center gap-2 text-[11px] text-ink-3">
-            <Eye aria-hidden className={state.by === 'oi' ? 'size-3.5 text-gold' : 'size-3.5'} strokeWidth={1.75} />
-            <span className="truncate">{state.by === 'oi' ? 'TI looked' : 'Counted'} at <span className="font-mono tabular-nums">{clock(a.at)}</span> on this device · {a.light}</span>
+            <Eye aria-hidden className={state.by === 'ai' ? 'size-3.5 text-gold' : 'size-3.5'} strokeWidth={1.75} />
+            <span className="truncate">{state.by === 'ai' ? 'TI looked' : 'Counted'} at <span className="font-mono tabular-nums">{clock(a.at)}</span> on this device · {a.light}</span>
             <button onClick={() => clearLook(camera.id)} className="ml-auto shrink-0 rounded-sm px-1.5 py-0.5 text-[11px] font-medium text-ink-2 hover:bg-white/10 hover:text-ink-1">
               Back to live
             </button>

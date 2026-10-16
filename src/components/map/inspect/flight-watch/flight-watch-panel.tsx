@@ -12,7 +12,7 @@ import {
   type FlightTelemetry,
   type ScheduledRoute,
   type WatchedFlight,
-} from '@/lib/flights/watch';
+} from '@/lib/feeds/aviation/flight-watch';
 
 interface FlightWatchPanelProps {
   watched: WatchedFlight[];

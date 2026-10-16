@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
-import { maAt } from '@/lib/paleo/deep-time';
-import { motionAt, trailTo } from '@/lib/paleo/motion';
-import { loadPlateModel, type Pin, type PlateModel } from '@/lib/paleo/reconstruct';
-import { CHAPTERS, PLACES } from '@/lib/paleo/story';
+import { maAt } from '@/lib/history/paleo/deep-time';
+import { motionAt, trailTo } from '@/lib/history/paleo/motion';
+import { loadPlateModel, type Pin, type PlateModel } from '@/lib/history/paleo/reconstruct';
+import { CHAPTERS, PLACES } from '@/lib/history/paleo/story';
 import type { HistorySession } from '@/lib/history/session';
-import { addLayers, MARKS, PIN_DOT, removeLayers, SHAPES, TRAILS } from '@/lib/paleo/map-style';
+import { addLayers, MARKS, PIN_DOT, removeLayers, SHAPES, TRAILS } from '@/lib/history/paleo/map-style';
 import type { MapRef } from '@/components/map/types';
 
 /*

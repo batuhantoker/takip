@@ -1,9 +1,9 @@
 import * as maplibregl from 'maplibre-gl';
 import type { RefObject } from 'react';
-import { drawnAt, routeGeometry, routesAt, type RouteSummary } from '@/lib/hiking/api';
-import type { RouteDetails } from '@/lib/hiking/details';
-import { boxContains, mercatorBox, type MercatorBox } from '@/lib/hiking/mercator';
-import { hikingPopupHtml, type DetailsState } from '@/lib/hiking/popup';
+import { drawnAt, routeGeometry, routesAt, type RouteSummary } from '@/lib/feeds/hiking/api';
+import type { RouteDetails } from '@/lib/feeds/hiking/details';
+import { boxContains, mercatorBox, type MercatorBox } from '@/lib/feeds/hiking/mercator';
+import { hikingPopupHtml, type DetailsState } from '@/lib/feeds/hiking/popup';
 
 const SOURCE = 'hiking-highlight';
 const CASING = 'hiking-highlight-casing';
@@ -21,7 +21,7 @@ export interface HikingPick {
 
 interface HikingPickDeps {
   popupRef: RefObject<maplibregl.Popup | null>;
-  /** True when the click belongs to something else: a draw tool, a marker, OI, a satellite. */
+  /** True when the click belongs to something else: a draw tool, a marker, AI, a satellite. */
   claimed: (e: maplibregl.MapMouseEvent) => boolean;
 }
 

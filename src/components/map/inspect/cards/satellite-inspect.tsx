@@ -10,6 +10,7 @@ import { InspectCard, Note, SourceLinks, StatRow, WhereRow } from '@/components/
 import { MoveActions } from '@/components/map/inspect/parts/inspect-actions';
 import { useFollow } from '@/components/map/inspect/use-follow';
 import { usePlaceName } from '@/components/map/inspect/use-place-name';
+import { SatellitePasses } from '@/components/map/inspect/parts/satellite-passes';
 
 /** A picked satellite. The marker sits at altitude, so the card stands in for a popup. */
 export interface SatelliteDetail {
@@ -26,6 +27,9 @@ export interface SatelliteDetail {
   periodMinutes?: number | null;
   /** Whether the orbit track on the globe is on its way, drawn, or unavailable. */
   track: 'loading' | 'ready' | 'unavailable';
+  /** The element set the marker is propagated from, when the catalogue sent it. */
+  line1?: string;
+  line2?: string;
 }
 
 const EARTH_RADIUS_KM = 6371;
@@ -60,7 +64,7 @@ export function SatelliteInspect({ sat, mapRef, onClose }: { sat: SatelliteDetai
       subtitle={[mission, shell.note].filter(Boolean).join(' · ')}
       tags={<Tag>{shell.label}</Tag>}
       onClose={onClose}
-      headerActions={<MoveActions mapRef={mapRef} lat={sat.lat} lng={sat.lng} zoom={3} following={following} onFollow={setFollowing} />}
+      headerActions={<MoveActions mapRef={mapRef} lat={sat.lat} lng={sat.lng} zoom={3} following={following} onFollow={setFollowing} share={sat.noradId ? { kind: 'satellite', id: sat.noradId } : undefined} />}
       footer={<span>Position from the latest orbital elements</span>}
     >
       <StatRow>
@@ -77,6 +81,7 @@ export function SatelliteInspect({ sat, mapRef, onClose }: { sat: SatelliteDetai
           {sat.track === 'loading' ? 'Plotting the orbit…' : sat.track === 'ready' ? 'Orbit drawn on the globe' : 'No orbit track for this satellite'}
         </Note>
       </PanelSection>
+      {sat.line1 && sat.line2 && <SatellitePasses line1={sat.line1} line2={sat.line2} mapRef={mapRef} />}
       <PanelSection title="Directly below">
         <WhereRow lat={sat.lat} lng={sat.lng} place={place ? (place.sea ? `The ${place.name}` : place.name) : null} />
       </PanelSection>

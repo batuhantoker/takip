@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { EMPTY_FC } from '@/lib/basemap/base-layers';
-import { computeSolarTerminator } from '@/lib/basemap/solar-terminator';
-import { photoBefore, rasterBefore, setGround } from '@/lib/basemap/imagery-legibility';
-import { stackGroundRasters } from '@/lib/basemap/ground-rasters';
+import { EMPTY_FC } from '@/lib/map/basemap/bands/shared';
+import { computeSolarTerminator } from '@/lib/map/basemap/solar-terminator';
+import { photoBefore, rasterBefore, setGround } from '@/lib/map/basemap/imagery-legibility';
+import { stackGroundRasters } from '@/lib/map/basemap/ground-rasters';
+import { BUILDINGS_LAYER, buildingColor, getBuildingStyle, readAccent } from '@/lib/map/basemap/buildings';
+import { useBuildingPaint } from './use-building-style';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 interface BasemapArgs {
@@ -43,22 +45,16 @@ export function useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle }: Ba
         // render heights. No second worldwide vector source is needed.
 
         // ── 3D BUILDING EXTRUSION LAYER ──
-        if (!map.getLayer('takip-3d-buildings')) {
+        if (!map.getLayer(BUILDINGS_LAYER)) {
+          const look = getBuildingStyle();
           map.addLayer({
-            id: 'takip-3d-buildings',
+            id: BUILDINGS_LAYER,
             source: 'basemap',
             'source-layer': 'building',
             type: 'fill-extrusion',
             minzoom: 14.5,
             paint: {
-              'fill-extrusion-color': [
-                'interpolate', ['linear'], ['get', 'render_height'],
-                0, '#1a1a2e',
-                20, '#16213e',
-                50, '#0f3460',
-                120, '#533483',
-                300, '#e94560',
-              ],
+              'fill-extrusion-color': buildingColor(look.look, readAccent()),
               'fill-extrusion-height': [
                 'interpolate', ['linear'], ['zoom'],
                 14.5, 0,
@@ -69,11 +65,8 @@ export function useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle }: Ba
                 14.5, 0,
                 15.5, ['get', 'render_min_height']
               ],
-              'fill-extrusion-opacity': [
-                'interpolate', ['linear'], ['zoom'],
-                14.5, 0,
-                15, 0.7,
-              ],
+              // The rise from zoom 14.5 eases them in, so no fade: below 100% is the person's choice.
+              'fill-extrusion-opacity': look.opacity,
             },
           });
         }
@@ -85,12 +78,13 @@ export function useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle }: Ba
 
       } else {
         // ── DISABLE 3D ──
-        if (map.getLayer('takip-3d-buildings')) map.removeLayer('takip-3d-buildings');
+        if (map.getLayer(BUILDINGS_LAYER)) map.removeLayer(BUILDINGS_LAYER);
       }
     } catch (e) {
       console.warn('[TAKIP] 3D terrain toggle error:', e);
     }
   }, [mapReady, activeLayers.terrain_3d, mapRef]);
+  useBuildingPaint({ mapRef, mapReady, on: !!activeLayers.terrain_3d });
 
   // Satellite / Topo / Dark style switching
   useEffect(() => {

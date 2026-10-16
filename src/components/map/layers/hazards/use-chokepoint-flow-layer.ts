@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { chokepointFlowFeatures, type ChokepointDisruptionRow, type ChokepointFlowRow } from '@/lib/hazards/chokepoint-flow';
+import { chokepointFlowFeatures, type ChokepointDisruptionRow, type ChokepointFlowRow } from '@/lib/feeds/maritime/chokepoint-flow';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useChokepointFlowLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {

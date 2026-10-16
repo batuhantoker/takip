@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { useId, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { Map as MapIcon, Moon, Mountain, Satellite } from 'lucide-react';
 import { Popover } from '@/components/ui/popover';
 import { cx, FOCUS_RING, TRANSITION, type IconType } from '@/components/ui/class-names';
@@ -42,6 +42,19 @@ function Swatch({ style, on, onPick }: { style: (typeof STYLES)[number]; on: boo
   );
 }
 
+/** Dark, Satellite or Topo, as pictures. Also offered in Settings. */
+export function BaseMapPicker({ mapStyle, setMapStyle, labelledBy }: {
+  mapStyle: MapStyle;
+  setMapStyle: Dispatch<SetStateAction<MapStyle>>;
+  labelledBy?: string;
+}) {
+  return (
+    <div role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : 'Base map'} className="grid grid-cols-3 gap-2">
+      {STYLES.map(s => <Swatch key={s.id} style={s} on={s.id === mapStyle} onPick={() => setMapStyle(s.id)} />)}
+    </div>
+  );
+}
+
 /**
  * The base map: three big choices, and under them how the map is drawn
  * (day and night, 3D, theme, tile provider), which `options` brings.
@@ -54,16 +67,15 @@ export function BaseMapButton({ mapStyle, setMapStyle, options, touch }: {
   touch: boolean;
 }) {
   const [studio, setStudio] = useState(false);
+  const labelId = useId();
   return (
     <>
       <Popover label="Base map and options" placement="left" align="end" className="w-[296px] p-3"
         trigger={<ClusterButton label="Base map and options" touch={touch}><MapIcon aria-hidden className="size-4" strokeWidth={1.75} /></ClusterButton>}>
         {close => (
           <>
-            <p id="base-map-label" className="mb-2 text-meta font-medium text-ink-3">Base map</p>
-            <div role="radiogroup" aria-labelledby="base-map-label" className="grid grid-cols-3 gap-2">
-              {STYLES.map(s => <Swatch key={s.id} style={s} on={s.id === mapStyle} onPick={() => setMapStyle(s.id)} />)}
-            </div>
+            <p id={labelId} className="mb-2 text-meta font-medium text-ink-3">Base map</p>
+            <BaseMapPicker mapStyle={mapStyle} setMapStyle={setMapStyle} labelledBy={labelId} />
             {options?.(() => { close(); setStudio(true); }, close)}
           </>
         )}

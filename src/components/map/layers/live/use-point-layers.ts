@@ -13,7 +13,7 @@ export function useCctvLayer({ mapReady, data, activeLayers, setGeo }: LayerHook
 export function useNaturalEventLayers({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('fires', activeLayers.fires && data.fires ? data.fires.map((f: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [f.lng, f.lat] }, properties: { brightness: f.brightness } })) : []);
+    setGeo('fires', activeLayers.fires && data.fires ? data.fires.map((f: { lng: number; lat: number; brightness?: number; frp?: number; satellites?: number; date?: string; time?: string }) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [f.lng, f.lat] }, properties: { brightness: f.brightness, frp: f.frp, satellites: f.satellites, date: f.date, time: f.time } })) : []);
   }, [mapReady, data.fires, activeLayers.fires, setGeo]);
 
   useEffect(() => {

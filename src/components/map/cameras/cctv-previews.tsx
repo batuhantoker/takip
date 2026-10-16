@@ -2,8 +2,8 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Maximize2 } from 'lucide-react';
-import { freshen, previewMedia, refreshInterval, VIDEO_KINDS, type PreviewKind } from '@/lib/cameras/preview';
-import { layoutTile, tileHeight, tilesOverlap, type TileGeometry } from '@/lib/cameras/tile-layout';
+import { freshen, previewMedia, refreshInterval, VIDEO_KINDS, type PreviewKind } from '@/lib/feeds/cameras/preview';
+import { layoutTile, tileHeight, tilesOverlap, type TileGeometry } from '@/lib/feeds/cameras/tile-layout';
 import type { Map as MlMap } from 'maplibre-gl';
 
 /**
@@ -38,12 +38,12 @@ const LABEL_H = GEOM.labelHeight;
 const GAP = GEOM.gap;
 const TILE_H = tileHeight(GEOM);
 
-/** Placement lives in lib/cameras/tile-layout — the live-news tiles share it. */
+/** Placement lives in lib/feeds/cameras/tile-layout — the live-news tiles share it. */
 function layout(pt: { x: number; y: number }, width: number, height: number) {
   return layoutTile(pt, { width, height }, GEOM);
 }
 
-/** Whatever the camera layer is currently drawn in — see lib/map/palette. */
+/** Whatever the camera layer is currently drawn in — see lib/map/style/palette. */
 const CAM = 'var(--map-cctv)';
 /** color-mix keeps every tint tied to that property, not to a frozen hex. */
 const cam = (pct: number) => `color-mix(in srgb, ${CAM} ${pct}%, transparent)`;
@@ -60,7 +60,7 @@ export interface PreviewCamera {
   stream_url?: string;
   stream_type?: string;
   external_url?: string;
-  /** Resolved once during selection — see lib/cameras/preview. */
+  /** Resolved once during selection — see lib/feeds/cameras/preview. */
   media: { kind: PreviewKind; url: string };
 }
 

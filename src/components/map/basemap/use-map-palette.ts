@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { MAP_PALETTE_KEYS, readMapPalette, type MapPalette } from '@/lib/map/palette';
-import type { OiGlobe } from '@/lib/oi/globe';
-import { STYLE_EVENT } from '@/lib/style/tokens';
+import { MAP_PALETTE_KEYS, readMapPalette, type MapPalette } from '@/lib/map/style/palette';
+import type { AiGlobe } from '@/lib/ai/globe/attach';
+import { STYLE_EVENT } from '@/lib/map/style/style-studio';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 interface MapPaletteArgs {
@@ -12,10 +12,10 @@ interface MapPaletteArgs {
   theme: NonNullable<WorldMapProps['theme']>;
   palette: MapPalette;
   setPalette: Dispatch<SetStateAction<MapPalette>>;
-  oiGlobeRef: RefObject<OiGlobe | null>;
+  aiGlobeRef: RefObject<AiGlobe | null>;
 }
 
-export function useMapPalette({ mapRef, mapReady, theme, palette, setPalette, oiGlobeRef }: MapPaletteArgs) {
+export function useMapPalette({ mapRef, mapReady, theme, palette, setPalette, aiGlobeRef }: MapPaletteArgs) {
   /**
    * Pull the palette out of the document whenever it can have changed.
    *
@@ -75,10 +75,10 @@ export function useMapPalette({ mapRef, mapReady, theme, palette, setPalette, oi
       updateMapIcon('plane-grey', palette.flightUnknown, 24);
     }, [mapReady, palette, mapRef]);
 
-  // OI's arcs take their three tones from the Style Studio (violet, magenta, indigo unless changed).
+  // AI's arcs take their three tones from the Style Studio (violet, magenta, indigo unless changed).
   useEffect(() => {
-    oiGlobeRef.current?.setColors({ support: palette.oiSupport, oppose: palette.oiOppose, neutral: palette.oiNeutral });
-  }, [palette.oiSupport, palette.oiOppose, palette.oiNeutral, oiGlobeRef]);
+    aiGlobeRef.current?.setColors({ support: palette.aiSupport, oppose: palette.aiOppose, neutral: palette.aiNeutral });
+  }, [palette.aiSupport, palette.aiOppose, palette.aiNeutral, aiGlobeRef]);
 
     // Cameras are circles, so the colour is a paint property: the dot and the cluster ring.
     useEffect(() => {

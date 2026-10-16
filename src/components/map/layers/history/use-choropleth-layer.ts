@@ -2,14 +2,17 @@
 
 import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
-import { rampFor, readingAt, type SeriesPayload, yearAt } from '@/lib/history/series';
+import { countryReading, rampFor, type SeriesPayload, yearAt } from '@/lib/history/series';
 import type { HistorySession } from '@/lib/history/session';
-import { hatchImage } from '@/lib/map/hatch';
+import { hatchImage } from '@/lib/map/style/hatch';
+import { MAP_INK, SERIES_INK } from '@/lib/map/style/tokens';
 import type { MapRef } from '@/components/map/types';
 
 /*
  * History's country colouring: today's shapes coloured by a metric at the clock's year. The series arrives once;
  * the clock only changes feature-state. Countries without a value are hatched: missing is never zero.
+ * A projected value is hatched the other way over its colour, so it never passes for a measured one.
+ * A click charts a country over time (country-chart.ts); a charted country is outlined in its chart colour.
  */
 
 const SOURCE = 'history-view';
@@ -17,13 +20,23 @@ const NODATA = 'history-view-nodata';
 const FILL = 'history-view-fill';
 const LINE = 'history-view-line';
 const HATCH = 'history-view-hatch';
-const LAYERS = [LINE, FILL, NODATA];
+const PROJECTED = 'history-view-projected';
+const PROJECTED_HATCH = 'history-view-projected-hatch';
+const CHARTED = 'history-view-charted';
+const CHARTED_CASING = 'history-view-charted-casing';
+const LAYERS = [CHARTED, CHARTED_CASING, LINE, PROJECTED, FILL, NODATA];
+/** Events drawn over the countries; a click on one opens its popup instead of charting the country. */
+const EVENT_LAYERS = ['history-events', 'history-cells'];
 const FRAME_MS = 125;
 /** Repaint once the clock has moved this many years: about a week, or a day for a weekly series. */
 const STEP_YEARS = 0.02;
 const STEP_YEARS_DATED = 0.0027;
 
 const hasValue = ['==', ['typeof', ['feature-state', 't']], 'number'];
+const isProjected = ['boolean', ['feature-state', 'p'], false];
+const isCharted = ['==', ['typeof', ['feature-state', 'c']], 'number'];
+const chartColor = ['match', ['coalesce', ['feature-state', 'c'], -1], ...SERIES_INK.flatMap((c, i) => [i, c]), 'rgba(0,0,0,0)'];
+const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
 
 /** Under the basemap's labels and every overlay, which all sit above its first symbol layer. */
 function beneath(map: maplibregl.Map) {
@@ -32,6 +45,7 @@ function beneath(map: maplibregl.Map) {
 
 function addLayers(map: maplibregl.Map, dark: boolean) {
   if (!map.hasImage(HATCH)) map.addImage(HATCH, hatchImage([127, 139, 150, 130]));
+  if (!map.hasImage(PROJECTED_HATCH)) map.addImage(PROJECTED_HATCH, hatchImage([...rgb(MAP_INK.slate), 210], { flip: true }));
   if (!map.getSource(SOURCE)) map.addSource(SOURCE, { type: 'geojson', data: '/data/boundaries/countries.json', promoteId: 'id' });
   const before = beneath(map);
   const ramp = rampFor(dark);
@@ -44,9 +58,23 @@ function addLayers(map: maplibregl.Map, dark: boolean) {
     'fill-color': color as never,
     'fill-opacity': ['case', hasValue, 0.68, 0] as never,
   } }, before);
+  if (!map.getLayer(PROJECTED)) map.addLayer({ id: PROJECTED, type: 'fill', source: SOURCE, paint: {
+    'fill-pattern': PROJECTED_HATCH,
+    'fill-opacity': ['case', ['all', hasValue, isProjected], 1, 0] as never,
+  } }, before);
   if (!map.getLayer(LINE)) map.addLayer({ id: LINE, type: 'line', source: SOURCE, paint: {
     'line-color': ['case', ['boolean', ['feature-state', 'hover'], false], dark ? '#ECEEF0' : '#111317', dark ? 'rgba(255,255,255,0.14)' : 'rgba(17,19,23,0.22)'] as never,
     'line-width': ['case', ['boolean', ['feature-state', 'hover'], false], 1.5, 0.5] as never,
+  } }, before);
+  if (!map.getLayer(CHARTED_CASING)) map.addLayer({ id: CHARTED_CASING, type: 'line', source: SOURCE, paint: {
+    'line-color': MAP_INK.surface0,
+    'line-width': 4.5,
+    'line-opacity': ['case', isCharted, 0.7, 0] as never,
+  } }, before);
+  if (!map.getLayer(CHARTED)) map.addLayer({ id: CHARTED, type: 'line', source: SOURCE, paint: {
+    'line-color': chartColor as never,
+    'line-width': 2,
+    'line-opacity': ['case', isCharted, 1, 0] as never,
   } }, before);
 }
 
@@ -72,6 +100,7 @@ export function useChoroplethLayer({ mapRef, mapReady, history, mapStyle }: {
     let painted = new Set<string>();
     let appliedYear = NaN;
     let hoverKey: string | null = null;
+    let outlined = new Set<string>();
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const paint = (force = false) => {
@@ -81,11 +110,11 @@ export function useChoroplethLayer({ mapRef, mapReady, history, mapStyle }: {
       if (!force && Math.abs(y - appliedYear) < (s.data.step === 'day' ? STEP_YEARS_DATED : STEP_YEARS)) return;
       appliedYear = y;
       const next = new Set<string>();
-      for (const [key, points] of Object.entries(s.data.values)) {
-        const r = readingAt(points, y, s.data.step);
+      for (const key of Object.keys(s.data.values)) {
+        const r = countryReading(s.data, key, y);
         if (!r) continue;
         next.add(key);
-        map.setFeatureState({ source: SOURCE, id: key }, { t: s.scale.norm(r.v) });
+        map.setFeatureState({ source: SOURCE, id: key }, { t: s.scale.norm(r.v), p: !!r.projected });
       }
       for (const key of painted) if (!next.has(key)) map.removeFeatureState({ source: SOURCE, id: key }, 't');
       painted = next;
@@ -94,8 +123,15 @@ export function useChoroplethLayer({ mapRef, mapReady, history, mapStyle }: {
 
     const hoverAt = (key: string, name: string) => {
       const s = view.state();
-      const points = s.status === 'ready' ? s.data.values[key] : undefined;
-      view.setHovered({ key, name, reading: points && s.status === 'ready' ? readingAt(points, yearAt(history.clock.time()), s.data.step) : null });
+      view.setHovered({ key, name, reading: s.status === 'ready' ? countryReading(s.data, key, yearAt(history.clock.time())) : null });
+    };
+
+    const outline = () => {
+      if (!shown) return;
+      const next = new Map(history.chart.countries().map(c => [c.key, c.slot]));
+      for (const key of outlined) if (!next.has(key)) map.removeFeatureState({ source: SOURCE, id: key }, 'c');
+      for (const [key, slot] of next) map.setFeatureState({ source: SOURCE, id: key }, { c: slot });
+      outlined = new Set(next.keys());
     };
 
     // While the next metric loads, the previous one stays drawn.
@@ -105,6 +141,7 @@ export function useChoroplethLayer({ mapRef, mapReady, history, mapStyle }: {
         if (shown) removeLayers(map);
         shown = null;
         painted = new Set();
+        outlined = new Set();
         return;
       }
       if (s.status !== 'ready' || s.data === shown) return;
@@ -113,6 +150,7 @@ export function useChoroplethLayer({ mapRef, mapReady, history, mapStyle }: {
       painted = new Set();
       shown = s.data;
       paint(true);
+      outline();
     };
 
     const tick = () => {
@@ -135,21 +173,38 @@ export function useChoroplethLayer({ mapRef, mapReady, history, mapStyle }: {
       hoverKey = null;
       view.setHovered(null);
     };
+    const onClick = (e: maplibregl.MapLayerMouseEvent) => {
+      const f = e.features?.[0];
+      const key = typeof f?.id === 'string' ? f.id : null;
+      const events = EVENT_LAYERS.filter(l => map.getLayer(l));
+      if (!f || !key || (events.length && map.queryRenderedFeatures(e.point, { layers: events }).length)) return;
+      history.chart.toggle(key, String(f.properties?.name ?? key));
+    };
+    const pointer = () => { map.getCanvas().style.cursor = 'pointer'; };
+    const unpointer = () => { map.getCanvas().style.cursor = ''; };
 
     map.on('mousemove', NODATA, onMove);
     map.on('mouseleave', NODATA, onLeave);
+    map.on('click', NODATA, onClick);
+    map.on('mouseenter', NODATA, pointer);
+    map.on('mouseleave', NODATA, unpointer);
     const unview = view.subscribe(sync);
+    const unchart = history.chart.subscribe(outline);
     const unclock = history.clock.subscribe(schedule);
     sync();
 
     return () => {
       clearTimeout(timer);
       unview();
+      unchart();
       unclock();
       view.setHovered(null);
       try {
         map.off('mousemove', NODATA, onMove);
         map.off('mouseleave', NODATA, onLeave);
+        map.off('click', NODATA, onClick);
+        map.off('mouseenter', NODATA, pointer);
+        map.off('mouseleave', NODATA, unpointer);
         removeLayers(map);
       } catch {
         // The map itself was removed (a theme change remounts it), taking its layers with it.

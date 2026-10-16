@@ -1,6 +1,6 @@
 import type * as maplibregl from 'maplibre-gl';
 import type { RefObject } from 'react';
-import type { AlertPinFeature } from '@/lib/alerts/map-pins';
+import type { AlertPinFeature } from '@/lib/intel/alerts/map-pins';
 import { alertPopupHtml } from '@/lib/map/popups/layer-popups';
 import type { ShowPopup } from '@/components/map/types';
 
