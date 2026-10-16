@@ -13,7 +13,7 @@
 | Auth | **Better Auth.** Email and password with verification and reset, plus Google and GitHub OAuth. Sessions are cookies backed by the database. Plugins: `admin` and `twoFactor`; `organization` is ready to switch on. API keys are our own table (§6). It supports SQLite now and Postgres later through the same config. |
 | Paywall | Subscription tiers. **Entitlements are stored as data, not code,** so "we will see" means editing rows. The billing provider sits behind an adapter and is chosen later (§7.4). |
 | Paid at launch | API access and quotas. Everything else is an entitlement row that can be moved between tiers. |
-| Anonymous | The live map stays open without an account. An account adds saved workspaces, API keys and whatever plans unlock. |
+| Anonymous | The live map is open without an account for `map.minutes_per_day` minutes a day (15 to start; 2026-10-16), then a wall asks for a free account. TI and any Layers section a plan closes ask for one at once. An account adds more map time, saved workspaces, API keys and whatever plans unlock. |
 | Also in scope | Admin console and saved workspaces. |
 | App data store | `data/db/app.db` (SQLite), separate from the data platform's files. **It gets backups** (§12.2): unlike the data platform, it can't be rebuilt from an archive. |
 
@@ -141,7 +141,7 @@ requestId → pino logger → principal → rate limit → entitlement guard →
 - **Email** for verification and reset is sent by the `EmailSender`, queued through the `job` table, and retried (`apps/api/src/mail/mail-queue.ts`).
   - Better Auth's callbacks only enqueue an `email.send` job, after the response. The queue runs straight away; a failed send retries after 2, 4, 8, 16 and 32 minutes, then fails.
   - Account deletion removes the user's `email.send` rows.
-- **Emailed links land on the map,** not on separate pages: `/?account=verified` and `/?account=reset-password&token=…` open the account dialog in the right state (`src/lib/account/links.ts`). Sign-in passes no `callbackURL`, because the client follows it after every successful sign-in; when an unverified user signs in, the client asks for a fresh link itself.
+- **Emailed links land on the map,** not on separate pages: `/?account=verified` and `/?account=reset-password&token=…` open the account dialog in the right state (`src/lib/platform/account/links.ts`). Sign-in passes no `callbackURL`, because the client follows it after every successful sign-in; when an unverified user signs in, the client asks for a fresh link itself.
 
 **In `web`:**
 - `better-auth/react` is used for sign-in and sign-up forms and for session hooks against the same origin.
@@ -150,9 +150,9 @@ requestId → pino logger → principal → rate limit → entitlement guard →
 - **Map shell:** an account button sits in the top bar (`ui-direction.md`: search and controls live there). Sign-in opens as a dialog over the map, not as a page change.
 
 **Model keys and `Authorization`** (*changed 2026-10-12*):
-- OI, OI Assist and MCP take the caller's model provider key in `X-OI-Key`. `Authorization` is reserved for our own API keys and sessions.
-- For one release, `Authorization: Bearer <model key>` still works when `X-OI-Key` is absent, logging a deprecation warning. A `tk_` token is never treated as a model key.
-- Changelog: "OI and MCP: send model keys in `X-OI-Key`. `Authorization: Bearer <model key>` still works this release and goes away next release. Update your MCP client headers. Hosted AI now needs Pro; bring-your-own-key stays free."
+- AI, AI Assist and MCP take the caller's model provider key in `X-AI-Key`. `Authorization` is reserved for our own API keys and sessions.
+- For one release, `Authorization: Bearer <model key>` still works when `X-AI-Key` is absent, logging a deprecation warning. A `tk_` token is never treated as a model key.
+- Changelog: "AI and MCP: send model keys in `X-AI-Key`. `Authorization: Bearer <model key>` still works this release and goes away next release. Update your MCP client headers. Hosted AI now needs Pro; bring-your-own-key stays free."
 
 ## 7. Plans, entitlements and billing
 
@@ -174,6 +174,8 @@ requestId → pino logger → principal → rate limit → entitlement guard →
 | Key | Type | anon | free | paid (example) |
 |---|---|---|---|---|
 | `map.live` | bool | ✓ | ✓ | ✓ |
+| `map.minutes_per_day` (0 = no limit) | int | 15 | 60 | 0 |
+| `map.layers.<section>` (air, sea, land, space, weather, conflict, cameras, reference) | bool | ✓ | ✓ | ✓ |
 | `api.enabled` | bool | ✗ | ✗ | ✓ |
 | `api.keys.max` | int | 0 | 0 | 5 |
 | `api.requests_per_day` | int | — | — | 100,000 |
@@ -185,6 +187,7 @@ requestId → pino logger → principal → rate limit → entitlement guard →
 | `workspaces.share` | bool | ✗ | ✓ | ✓ |
 | `export.enabled` | bool | ✗ | ✗ | ✓ |
 | `ai.hosted` | bool | ✗ | ✗ | later |
+| `ai.assistant` (the TI tab) | bool | ✗ | ✓ | ✓ |
 | `ads.off` | bool | ✗ | ✗ | ✓ |
 | `data.licence_tier` | enum | `anon` | `free` | `paid` |
 
@@ -237,8 +240,13 @@ It depends on where the business is registered. Stripe doesn't onboard every cou
   - Users create them in Account → API keys. A key is shown once and stored hashed with its prefix.
   - It carries optional scopes (`read:tracks`, `read:events`, `read:series`, `export`) and an expiry.
   - A key counts against its owner's plan.
+- **Map time** (`apps/api/src/access/map-time.ts`): `GET /api/v1/me/time` reads today's minutes and `POST` is the web app's tick, once a minute while a tab is visible; two tabs count one minute. Minutes are kept per account, or per anonymous address block under a daily hash salted with `BETTER_AUTH_SECRET`, in `map_time` (today only). The wall is the web app's (`src/components/site/account/map-time/`); data routes don't refuse an over-time session, so this steers rather than enforces. Keys are never counted.
+- **Keyless access** (`apps/api/src/access/key-policy.ts`): each data route group of `/api/v1` and `/api/replay` either needs a key or is open. Admin → API access switches them, one at a time or all at once, and shows each group's week of traffic. Every change is audited.
+  - A caller with neither a key nor a session gets `401 {"error":"api_key_required","signup_url":"…/?account=sign-up"}`. The refusal counts as `denied` in `usage_counter`.
+  - Requests from the web app's own pages (`Sec-Fetch-Site: same-origin` or `same-site`) always pass, so the map stays open. Other clients can forge the header, so it steers them to keys rather than enforcing them; `web.rps` still limits them.
+  - Account and meta groups (`me`, `plans`, `keys`, `usage`, `account`, `auth`, `workspaces`, `w`, docs) are never gated. `GET /api/v1/key-policy` lists the switchable groups for API users.
 - **Quotas (§5):** per-second token buckets and daily counters, with `RateLimit-*` headers. A `GET /api/v1/usage` endpoint shows the caller's own usage.
-- **The MCP server** (`/api/mcp`) moves under `api` and authenticates with the same keys. A bring-your-own model key stays free through `X-OI-Key`.
+- **The MCP server** (`/api/mcp`) moves under `api` and authenticates with the same keys. A bring-your-own model key stays free through `X-AI-Key`.
 - **What `v1` covers first:**
   - replay manifest, tracks chunks, event and feature tiles, series, TLE, entity as of a time;
   - search;
@@ -351,8 +359,8 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 | Live feeds: flights, maritime, satellites, cctv, earthquakes, fires, weather, weather-grid, news, gdelt, gdelt-events, conflicts, cyber-attacks, malware (+stream), cloudflare-radar, space-weather, markets | Fetch upstream inside `web` | Fetching moves to `ingest` connectors; serving moves to `api` `/api/v1` and `/api/live` | With data phases 1c and 2. The browser switches layer by layer. |
 | On-demand lookups: aircraft, flight-route, geosearch, geo/reverse, region-dossier, directions, arcgis, satellites/orbit, markets/history, entity/expand | `web` | `api` `/api/v1/*`, with per-key upstream limits | Early; mostly mechanical ports |
 | Media proxies: cctv/proxy, frame, resolve, stream-status, texas/snapshot, proxy-tiles | `web` | `api`, as a **closed proxy** that takes ids, never URLs (`INSPIRATION.md` L169) | With the camera move to `catalog.db` |
-| AI and OI: ai/*, oi/*, mcp | `web` | `api`; BYO key free; hosted AI gated by `ai.hosted` | After auth. *Gated in `web` since 2026-10-12:* the server-key fallback of `ai/analyze` and `ai/briefing` returns 403 without `ai.hosted`; `ai/overview` falls back to its keyless heuristic read-out |
-| OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Kept** (`docs/roadmap.md`). | Any time. *Gated in `web` since 2026-10-12:* every route needs an account, with per-account limits by family (`src/lib/recon/gate.ts`); the tabs that probe providers from the browser ask visitors to sign in first |
+| AI and TI: ai/*, mcp | `web` | `api`; BYO key free; hosted AI gated by `ai.hosted` | After auth. *Gated in `web` since 2026-10-12:* the server-key fallback of `ai/analyze` and `ai/briefing` returns 403 without `ai.hosted`; `ai/overview` falls back to its keyless heuristic read-out |
+| OSINT and recon: osint/*, scanner | `web` | `api`, account required, stricter limits. **Kept** (`docs/roadmap.md`). | Any time. *Gated in `web` since 2026-10-12:* every route needs an account, with per-account limits by family (`src/lib/intel/recon/gate.ts`); the tabs that probe providers from the browser ask visitors to sign in first |
 | Platform: sdk/ingest, sdk/stream, github-webhook, health, stats, reference | `web` | `api`. `sdk/ingest` uses API keys with a `write:entities` scope instead of the shared `SDK_INGEST_KEY`. | Alongside the routes that depend on them |
 
 ## 14. Security baseline
@@ -392,7 +400,7 @@ The move follows the strangler pattern: one group at a time, each behind an ngin
 | Phase | Backend | Data platform (`replay-database.md` §13) |
 |---|---|---|
 | **B0** | Monorepo skeleton: move the app to `apps/web` unchanged; `packages/config`, `packages/core`; Turborepo; CI gates (lint, typecheck, test). ~~Remove the Umami IP event~~ (done: Umami removed). | Phase 0 recorder (inside `apps/web`) |
-| **B1** | **Started:** `apps/api` (Hono), Better Auth email+password sign-up, sign-in and sign-out, `app.db`, the account button and dialog; `web` proxies `/api/auth/*` to `api`. Required email verification and password reset, mailed through an `EmailSender` (SMTP, or the console in development). Social sign-in (Google, Facebook, Apple, Microsoft, GitHub, X, Discord). An Account settings dialog: name, password (change, or set one via the reset email), connect and disconnect providers (not Facebook, which never vouches for the email), signed-in devices, and account deletion confirmed by an email link opened in the signed-in browser. **Still to do:** nginx path routing. Litestream for `app.db`. The `X-OI-Key` header change starts. (Admin role and 2FA: built, see §11.) | 1a: `packages/db`, seeds |
+| **B1** | **Started:** `apps/api` (Hono), Better Auth email+password sign-up, sign-in and sign-out, `app.db`, the account button and dialog; `web` proxies `/api/auth/*` to `api`. Required email verification and password reset, mailed through an `EmailSender` (SMTP, or the console in development). Social sign-in (Google, Facebook, Apple, Microsoft, GitHub, X, Discord). An Account settings dialog: name, password (change, or set one via the reset email), connect and disconnect providers (not Facebook, which never vouches for the email), signed-in devices, and account deletion confirmed by an email link opened in the signed-in browser. **Still to do:** nginx path routing. Litestream for `app.db`. The `X-AI-Key` header change starts. (Admin role and 2FA: built, see §11.) | 1a: `packages/db`, seeds |
 | **B2** | Saved workspaces, share links, localStorage import | 1b: importers, historical atlas |
 | **B3** | **Started:** plans and entitlements as rows, the resolver (plan ⊕ overrides, manual grants with end dates, a `past_due` grace period), the `withAccess`/`requires` middleware with the §5.4 403 body, `GET /api/v1/me/access` and `/api/v1/plans`, the operator CLI, the Plan section in Account settings, and `requireEntitlement()` for routes still in `web`. **Still to do:** rate limits and quotas, metering. Plans, entitlements resolver, API keys, quotas and metering, `/api/v1` with OpenAPI docs. On-demand lookups ported. **Billing adapter for the chosen provider:** checkout, portal, webhooks, reconciliation. | 1c: ingest worker |
 | **B4** | **Started:** admin role, 2FA for admins with a per-session step-up, and the console's users, plans, audit and overview pages (§11). **Still to do:** keys and usage, sources and ingest health, datasets, licences, impersonation. | — |

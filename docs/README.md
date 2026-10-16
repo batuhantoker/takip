@@ -10,9 +10,10 @@
 | Reference | |
 |---|---|
 | [`cctv-adding-sources.md`](cctv-adding-sources.md) | Adding or fixing a camera source |
+| [`architecture/code-map.md`](architecture/code-map.md) | What each src/lib domain, component group and API route family holds, and who uses it |
 | [`space-view.md`](space-view.md) | The space view: what is built, decisions, where the code is, what is left |
 | [`data-sources.md`](data-sources.md) | Candidate public data sources, and how to choose one |
-| [`inspiration-sources/`](inspiration-sources/README.md) | Sources and features surveyed in World Monitor, Provenance and Argus |
+| [`inspiration-sources/`](inspiration-sources/README.md) | Sources and features surveyed in World Monitor, Provenance, Argus, God's Eye View and NASA Worldview |
 | [`runbooks/app-db-restore.md`](runbooks/app-db-restore.md) | Restoring `app.db` from a snapshot |
 | [`privacy-draft.md`](privacy-draft.md) | Draft privacy text for accounts; not live |
 | [`../data/reference/README.md`](../data/reference/README.md) | The reference map data files |

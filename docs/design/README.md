@@ -41,6 +41,14 @@ These are the tells of a generated UI. None of them ship.
 - Emoji or decorative icons in front of every row.
 - Repeating the same item three times. Group duplicates and show a count.
 
+**One exception: map looks.**
+- A person may pick a look for the map, such as night vision, thermal, noir or snow.
+- A look is off by default and is remembered once picked.
+- It changes the map canvas only, never panels or other chrome.
+- Data keeps its meaning colours wherever the renderer allows.
+- It is one control in Map options, switched by number keys, and it travels in share links.
+- Decided with the user on 2026-10-15.
+
 ## Tokens
 
 All tokens live in `src/app/globals.css` and are exposed to Tailwind through
@@ -81,6 +89,7 @@ values or `rgba(...)`.
 | `--green` | `#46B97F` | live, healthy, success |
 | `--blue` | `#5B9CF5` | informational |
 | `--violet` | `#9B8AFB` | rare categorical use |
+| `SERIES_INK` | `#C98500` `#D55181` `#9085E9` `#008300` `#3987E5` `#D95926` | series compared side by side (History's country chart and the outlines that match it), handed out in this order; lives in `src/lib/map/style/tokens.ts`, not CSS |
 
 Selected states are mostly **neutral** (`surface-3` + `ink-1`), not accent.
 The accent is a scarce resource: if more than a few things on screen are
@@ -122,9 +131,9 @@ Never below 11 px. Never letter-spaced uppercase.
 ```
 ┌────┬──────────────┬──────────────────────────────────────────┐
 │ ◎  │ Panel title ✕│ [Search places, coordinates…   /]        │
-│Lyr │──────────────│                                ┌────────┐│
-│Alr │ section      │                                │inspect ││
-│Are │  row         │              the map           │ card   ││
+│Lyr │──────────────│                             [Showing 4 ▾]│
+│Alr │ section      │                                ┌────────┐│
+│Are │  row         │              the map           │inspect ││
 │His │  row         │                                └────────┘│
 │Spc │              │                                      [+] │
 │Rte │              │ [Map | Space ▾]          scale  [−] [◐]  │
@@ -150,6 +159,21 @@ Never below 11 px. Never letter-spaced uppercase.
 - **Map / Space** is one compact control at the bottom-left of the map area.
   On the map it reads `Map | Space ▾`; the menu lists the stops (Earth, Moon,
   Mars, Sun, System, Stars, Galaxy, Universe). In space the stops show inline.
+- **Showing** sits at the top-right of the map (beside Map / Space on a phone),
+  so there is always one place that says what you are looking at. It reads `Showing 4`: a green
+  dot when live, a grey one in History or Replay, and the number of things
+  drawn (`Showing 0` with nothing on, so it never goes away). It opens a popover,
+  as the Space menu does: first the mode and time in a sentence or two
+  ("History · 14 July 1981. World borders of 1981, with wars and battles around
+  that date."), then every layer, event family, border layer, colouring,
+  ArcGIS layer and drawn area on the map, grouped by kind, each with its
+  switch. A row switched off stays, greyed, until the popover closes. Under
+  them, Recent lists up to five things the person had on and switched off
+  (from here, Layers or History), newest first and remembered across reloads,
+  each with its switch to put it back. It offers only what fits the map shown,
+  and is left out when there is nothing recent; it never suggests things the
+  person hasn't used. Neither counts towards the number. The footer opens
+  Layers, or History while History runs.
 - **Status bar** (28 px, `surface-0`, hairline top, 11 px `ink-3`): pointer
   position and place on the left, live state and count, UTC clock and a `?` for
   shortcuts on the right. No price tickers. Links live in the More menu.
@@ -159,11 +183,13 @@ Never below 11 px. Never letter-spaced uppercase.
 ### Windows on the map
 
 Everything that opens over the map is a window (`@/components/map/windows`):
-inspect cards, camera players, live TV, the place dossier and the watched
-aircraft. Map pins' own popups stay anchored to their point. A camera window
+inspect cards, camera players, live TV, the place dossier, the satellite images
+of a place, the watched aircraft, and History events pinned from their popups. Map pins' own popups
+stay anchored to their point; a History event's popup has a Pin beside Close that turns it into a
+window (closed again on leaving History or Replay; not on a phone). A camera window
 has a thin `ink-2` line from its nearest edge to the camera's ring on the map.
 
-- **Stacked.** Windows dock in a column at the top-right (12 px in, cards
+- **Stacked.** Windows dock in a column at the top-right, below Showing (12 px in, cards
   340 px wide, video as wide as it needs), newest on top, 8 px apart, ending
   above the control cluster. When the column runs out, older windows open with
   a scroll or fold to their header; click a folded one to bring it to the top.
@@ -188,6 +214,22 @@ the strongest, and Follow belongs to one card at a time. At most four
 pictures play at once; the rest wait with a Play button. Windows open with a
 120 ms fade and a 4 px rise, and drags have no inertia. On a phone none of
 this applies: one bottom sheet at a time, no dragging.
+
+### Plan limits
+
+Two things open over the map without being windows:
+
+- **Account prompt.** Reaching for something the plan leaves out (TI, a
+  Layers section the plan closes) opens the account dialog with one line
+  saying why: "Create a free account to use TI." for a visitor, or the
+  Account tab with "TI isn't in your plan." for a member. A closed layer stays
+  off. Only a click or key press asks; layers restored on load are just left
+  off.
+- **Time wall.** When the plan's map minutes for the day run out, a 380 px card
+  sits centred over the blurred map and can't be closed. Visitors get Create
+  account and Sign in, members See plans, and both are told when the map opens
+  again (00:00 UTC). It sits under the account dialog, so its buttons open on
+  top of it.
 
 ## Panel anatomy
 
@@ -261,3 +303,5 @@ rather than opening a dead player.
 
 Desktop first. Phones get the map, search, a bottom sheet for one panel at a
 time and the same tokens. Nothing on a phone may depend on hover.
+Map / Space and Showing sit above the bottom bar, and their popovers open
+over the map, never beside a sheet.

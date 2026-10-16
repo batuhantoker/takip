@@ -8,7 +8,7 @@
 | Issue | Evidence | Fix | Effort |
 |---|---|---|---|
 | **The ingest worker isn't running** | ✓ There is no process. The last USGS poll was at 23:22 UTC and nothing has been sealed into tracks since 23:17. `tools/dev.mjs` starts only Next and `apps/api`. Raw files still land whenever something calls the routes. | Start it (`npm start -w @takip/ingest`), and decide whether `npm run dev` should start it too | S |
-| **Satellites catalogued since 2026-07-11 are missing** | ✓ We fetch `FORMAT=tle` (`src/app/api/satellites/celestrak.ts:18`). CelesTrak ran out of 5-digit catalog numbers on 2026-07-11, and TLE text can't carry the new ones. The probe found 225 objects in the last 30 days, all with ids 100686–100982. | Switch to `FORMAT=json` (OMM) and parse it with satellite.js `json2satrec` (`packages/connectors/src/orbit.ts:39`). Store OMM in `tle.db`, and keep the TLE parser for the SatNOGS fallback. | S |
+| **Satellites catalogued since 2026-07-11 are missing** | ✓ We fetch `FORMAT=tle` (`src/app/api/(feeds)/satellites/celestrak.ts:18`). CelesTrak ran out of 5-digit catalog numbers on 2026-07-11, and TLE text can't carry the new ones. The probe found 225 objects in the last 30 days, all with ids 100686–100982. | Switch to `FORMAT=json` (OMM) and parse it with satellite.js `json2satrec` (`packages/connectors/src/orbit.ts:39`). Store OMM in `tle.db`, and keep the TLE parser for the SatNOGS fallback. | S |
 | **The adsb.lol history CLI can't fetch most older days** | ✓ `/\.tar\.[a-z]{2}$/` (`apps/ingest/src/backfill/adsblol-history.ts:72`) skips releases published as a plain `.tar` (505 in 2023, 124 in 2024). The `prod-1` variant is never tried, and days around New Year sit in the neighbouring year's repo. | Accept `.tar`, try `prod-1`, and look in both years' repos | S |
 | **OpenSky is near its daily budget** | We make about 720–770 calls a day × 4 credits, about 75% of the 4,000 credits. A browser polling at the same time can push it to 96%. The licence is "research and non-commercial purposes" only ([docs](https://openskynetwork.github.io/opensky-api/rest.html)). | Lean on adsb.lol history (live #2) and keep OpenSky as a supplement | — |
 | **AIS depends on one source** | AISStream allows "3 open connections" per IP and per account, and has no SLA ([docs](https://aisstream.io/documentation#limits)). It reconnected 3 times in one hour. | Add a second source (live #6) | M |
@@ -19,18 +19,18 @@
 |---|---|---|---|---|---|---|
 | 1 | **CelesTrak OMM JSON** (§0) | none | "only download data once per update", which is every 2 h; 50 errors in 2 h gets you firewalled ([policy](https://celestrak.org/usage-policy.php)) | n.d. | S | yes (already) |
 | 2 | **adsb.lol daily history as a scheduled worker job**, after the CLI fix. One day holds about 55k aircraft; live polling sees about 17k. It also fills our own outages. | none | GitHub API 60 requests/h unauthenticated; asset downloads n.d. | ODbL | S | yes |
-| 3 | **FIRMS NOAA-20 and NOAA-21 fire files** next to S-NPP and MODIS (`src/app/api/fires/route.ts:46`) | none (a free MAP_KEY gives "5000 transactions / 10-minute interval", [docs](https://firms.modaps.eosdis.nasa.gov/api/map_key/)) | n.d. for the keyless files | CC0 | S | new rows |
+| 3 | **FIRMS NOAA-20 and NOAA-21 fire files** next to S-NPP and MODIS (`src/app/api/(feeds)/fires/route.ts:46`) | none (a free MAP_KEY gives "5000 transactions / 10-minute interval", [docs](https://firms.modaps.eosdis.nasa.gov/api/map_key/)) | n.d. for the keyless files | CC0 | S | new rows |
 | 4 | **Record the feeds whose upstream keeps no history:** FAA airport status, war alerts (ubilling keeps none, Tzeva Adom the last 50 waves), NWS (7 days) and WMO alerts, SWPC (rolling windows), FIRMS (24 h). Also add `recordIfChanged`: ✓ the recorder hashes every body (`packages/archive/src/recorder.ts:102`) but never compares the hashes. | — | — | per feed; don't record IODA ("All Rights Reserved") or liveuamap | S–M | yes |
-| 5 | **Add missing aircraft types to `TYPE_BATCHES`** (`src/app/api/flights/adsb-lol.ts`). The batches reach 13,956 of 18,064 aircraft. Missing: E75L 347, E145 48, AT75 32, S92 29, E545 28, H25B 27, DHC6 24. | — | adsb.lol: "dynamic"; a key "by feeding" is planned | ODbL | S | yes |
+| 5 | **Add missing aircraft types to `TYPE_BATCHES`** (`src/app/api/(feeds)/flights/adsb-lol.ts`). The batches reach 13,956 of 18,064 aircraft. Missing: E75L 347, E145 48, AT75 32, S92 29, E545 28, H25B 27, DHC6 24. | — | adsb.lol: "dynamic"; a key "by feeding" is planned | ODbL | S | yes |
 | 6 | **Digitraffic AIS** (northern Baltic): REST, or MQTT over `wss://meri.digitraffic.fi:443/mqtt` | none; send a `Digitraffic-User` header and gzip | without the header 60/min (REST) and 5/min (MQTT); the header raises it, number n.d. ([docs](https://www.digitraffic.fi/en/support/instructions/)) | CC BY 4.0 | M | yes |
-| 7 | **aviationweather.gov** international SIGMETs (including volcanic ash) and METARs | none | 100/min ([docs](https://aviationweather.gov/data/api/)) | US government | S | yes (upstream keeps 30 days) |
+| 7 | **Record aviationweather.gov** METARs and international SIGMETs. The live layers exist (`/api/aviation-weather`, 2026-10-15); nothing is stored yet | none | 100/min ([docs](https://aviationweather.gov/data/api/)) | US government | S | yes (upstream keeps 30 days) |
 | 8 | **Space-Track**: whole catalogue, and a fallback for CelesTrak | free account | <30/min and <300/h; GP data once an hour ([docs](https://www.space-track.org/documentation#/api)) | redistribution with citation ([user agreement](https://www.space-track.org/documentation#/user_agree)) | S–M | yes |
 | 9 | **EMSC earthquake WebSocket**: pushes instead of 60 s polling, and catches revisions | none | n.d. | CC BY 4.0 | S–M | yes |
 | 10 | **MeteoAlarm** European weather warnings (38 country Atom feeds, WebSub) | none | n.d. | CC BY 4.0 with extra redistribution terms (not read: the page needs JavaScript) | M | yes |
 | 11 | **River levels and flood warnings:** UK EA, the USGS OGC API (WaterServices shuts down in Q1 2027), Pegelonline, Hub'Eau | none (USGS key optional) | n.d. | OGL v3 with credit / PD / DL-DE Zero / Etalab | M | EA warnings: yes |
 | 12 | **Measured air quality:** Sensor.Community (or OpenAQ v3). Replaces Open-Meteo's modelled data for ~50 cities. | none (OpenAQ: free key) | Sensor.Community n.d.; OpenAQ 60/min, 2,000/h ([docs](https://docs.openaq.org/using-the-api/rate-limits)) | ODbL / per provider, and OpenAQ bars competing products | S–M | optional |
 | 13 | **USGS volcano alert levels (HANS) and the GDACS API**, which has polygons; today we read only the GDACS RSS | none | GDACS ≤100 records per request ([quickstart](https://www.gdacs.org/Documents/2025/GDACS_API_quickstart_v1.pdf)) | PD / GDACS asks for credit | S | no (both keep history) |
-| 14 | **Vehicle positions:** 556 keyless GTFS-RT feeds (Mobility Database), Entur, Digitraffic trains | none (Entur: `ET-Client-Name` header) | per feed | per feed; Entur NLOD; Digitraffic CC BY 4.0 | M–L | yes |
+| 14 | **Vehicle positions:** ~600 keyless GTFS-RT feeds (Mobility Database + Transitland Atlas, Entur among them) and İETT are in as `/api/transit` (2026-10-15); Digitraffic trains are not | none (Entur: `ET-Client-Name` header) | per feed | per feed; Entur NLOD; Digitraffic CC BY 4.0 | M–L | yes |
 | 15 | **Kystverket AIS** (Norway) over TCP | none | n.d. | NLOD | M | yes (the TCP connection timed out when probed) |
 | 16 | **Power grid:** ENTSO-E, EIA | free token / free key | 400/min ([docs](https://transparencyplatform.zendesk.com/hc/en-us/articles/12783148966036-API-Rate-Limit-Part-1)); ~9,000/h ([docs](https://www.eia.gov/opendata/faqs.php)) | CC BY 4.0 / PD | M | low priority |
 
@@ -65,7 +65,7 @@
 | 10 | **NASA FIRMS archive** → needs the stream store, or a daily-cell aggregate | MODIS 2000 →, VIIRS 2012 → | 32–385 MB a year | CC0 (yes) | none | L |
 | 11 | **CShapes 2.0** borders with exact dates, and capitals → `geo` | 1886–2019 | 26 MB | CC BY-NC-SA (**no**) | none | S–M |
 | 12 | **GTD from START** (adds 2018–20, and intact ids) | 1970–2020 | unknown | non-commercial; display needs permission (**no**) | request form | S |
-| 13 | **OpenHistoricalMap** dated boundaries → `geo` | varies | 1.32 GB planet file | CC0 (yes) | none | L |
+| 13 | **OpenHistoricalMap**: drawn straight from its vector tiles under History's world borders from z7 since 2026-10-16 (`src/lib/history/ohm.ts`). Left: an import only for gaps (its 1500 Europe lacks France, Hungary and the Holy Roman Empire as shapes), dated places, roads and walls from z8 | varies | tiles; the 1.32 GB planet file if imported | CC0 (yes) | none | M (import) |
 | 14 | **GDACS archive** → `ev_event` | ~2000 → now | 158k events | unknown | none | M |
 | 15 | **NOAA Storm Events** → `ev_event` | 1950 → now, US | 303 MB | US federal | none | M |
 
@@ -79,7 +79,7 @@
   - Danish AIS is ~4.2 TB, with an unclear licence.
   - The Open-Meteo historical API needs a paid plan for commercial use.
 - **Usable later:**
-  - ERA5 ("any purpose … lawful") and UN WPP 2024 (CC BY 3.0 IGO).
+  - ERA5 ("any purpose … lawful"). UN WPP 2024 is loaded with its projections to 2100 (`wpp-2024`, 2026-10-16).
   - GHSL, HYDE 3.3 and Hansen forest loss are rasters (CC BY 4.0), and we have no import path for rasters yet.
 
 ## 3. Licence corrections (`meta_licence` doesn't reflect these yet)
@@ -105,7 +105,7 @@
 ## 4. Data-quality fixes
 
 - **Duplicates vanish under licence gating.** ✓ The event query keeps only rows where `event_id = canonical_id` (`packages/db/src/sqlite/event-store.ts`), and `CANONICAL_ORDER` (`tools/import/events.ts:12`) puts `wac1914` and the COW sources first. If a tier loses access to a canonical row's source, its `same_as` duplicates disappear with it. Fix: pick the canonical row per tier, or put commercially usable sources first.
-- **Duplicates are linked by checked-in tables:** `WAR_MATCHES` (`ucdp.ts`, UCDP ↔ WAC/COW), `WW2_MATCHES` (`cow.ts`, COW territorial ↔ WW2 borders) and `DUPLICATES` (`wikidata.ts`). Of the 64 groups of Wikidata battles with the same title and year, 23 were one battle; the rest are different battles (Cedar Creek in Florida and in Virginia, 1864). Left open: Battle of Aleppo 1400 (July vs November), Kota Batu 1578 (two enwiki articles), Siege of Janjira, Siege of Riga 1700.
+- **Duplicates are linked by checked-in tables:** `WAR_MATCHES` (`ucdp.ts`, UCDP ↔ WAC/COW), `WW2_MATCHES` (`cow-territorial.ts`, COW territorial ↔ WW2 borders) and `DUPLICATES` (`wikidata.ts`). Of the 64 groups of Wikidata battles with the same title and year, 23 were one battle; the rest are different battles (Cedar Creek in Florida and in Virginia, 1864). Left open: Battle of Aleppo 1400 (July vs November), Kota Batu 1578 (two enwiki articles), Siege of Janjira, Siege of Riga 1700.
 - **GTD `eventid` is Excel-mangled** (`1.97E+11`), so it can't join a fresh START copy or Wikidata P4089.
 - **Locations:**
   - UCDP conflicts are placed at the middle of their GED events (2026-10-14); before, they sat at their countries' centroids, and three multi-country ones at sea.
@@ -127,13 +127,13 @@
 
 **Next 2–4 weeks:**
 1. Digitraffic AIS.
-2. aviationweather.gov.
+2. Record aviationweather.gov.
 3. Space-Track SATCAT and the CelesTrak fallback.
 5. IBTrACS.
 6. The EMSC socket.
 
 **Later:**
-- MeteoAlarm, river levels, air quality and vehicle positions.
+- MeteoAlarm, river levels and air quality.
 - MarineCadastre windows.
 - The stream store, then FIRMS history.
 - OpenHistoricalMap.

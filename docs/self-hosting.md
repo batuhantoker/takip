@@ -142,8 +142,8 @@ them only if you extend the relevant route or hit rate limits.
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `TAKIP_TELEGRAM_CHANNELS` | Comma-separated list of public Telegram channel usernames (no `@`) to scrape for the **Telegram OSINT** map layer. Overrides the curated default set. | `osintdefender,insiderpaper,aljazeeraenglish,nexta_live,war_monitor` |
 | `TAKIP_PORT` | Host port the compose file publishes (container itself always listens on 3000). | `3000` |
+| `AI_LOCAL_BASE_URL` | Lets TI run on your own models: any OpenAI-compatible server (Ollama, LM Studio, llama.cpp, vLLM). From inside the container the host is `http://host.docker.internal:11434/v1` (Ollama). Every visitor's TI can use it, so set it only on a private server. `AI_LOCAL_MODEL`, `AI_LOCAL_API_KEY`, `AI_LOCAL_CONCURRENCY` and `AI_LOCAL_ALLOW_CUSTOM` (readers may type their own address) are in `.env.example`. | off (in development: the usual local ports) |
 
 ### Keyless sources (no configuration needed)
 

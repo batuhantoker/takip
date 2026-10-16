@@ -1,14 +1,15 @@
 # Adding a camera source
 
-Read this before adding or fixing a CCTV source. It should save you from re-reading `src/lib/cctv/` from scratch.
+Read this before adding or fixing a CCTV source. It should save you from re-reading `src/lib/feeds/cameras/` from scratch.
 
 Where things live:
 
-- `src/app/api/cctv/`: HTTP handlers only (`route.ts`, `proxy/`, `resolve/`, `frame/`, per-source still and stream routes).
-- `src/lib/cctv/types.ts`: the camera record.
-- `src/lib/cctv/catalog/`: region wiring (`feeds.ts`, `registry.ts`, `bounds.ts`, `refresh.ts`, `response.ts`, `sources.ts`).
-- `src/lib/cctv/sources/<group>/`: one adapter per file, tests beside it. Groups: `platforms` (shared 511 stacks), `global`, `us`, `canada`, `latin-america`, `europe`, `turkey`, `asia`, `oceania`, `africa`.
-- `src/lib/cctv/generated/`: `*.generated.ts` lists written by `scratch/scrape_*.js`.
+- `src/app/api/(feeds)/cctv/`: HTTP handlers only (`route.ts`, `proxy/`, `resolve/`, `frame/`, per-source still and stream routes).
+- `src/lib/feeds/cameras/types.ts`: the camera record.
+- `src/lib/feeds/cameras/catalog/`: region wiring (`feeds.ts`, `registry.ts`, `bounds.ts`, `refresh.ts`, `response.ts`, `sources.ts`) and the on-disk catalogue snapshot (`snapshot.ts`).
+- `src/lib/core/net/`: the fetch helpers adapters use (`stealth-fetch.ts`, `http-json.ts`, `source-cache.ts`, `http2.ts`, `ssrf-guard.ts`, `fetch-pool.ts`, `user-agent.ts`).
+- `src/lib/feeds/cameras/sources/<group>/`: one adapter per file, tests beside it. Groups: `platforms` (shared 511 stacks), `global`, `us`, `canada`, `latin-america`, `europe`, `turkey`, `asia`, `oceania`, `africa`.
+- `src/lib/feeds/cameras/generated/`: `*.generated.ts` lists written by `scratch/scrape_*.js`.
 
 - Last verified: 2026-10-12, at commit `4794154` plus the uncommitted Wyoming, Mississippi, Arkansas and South Africa work.
 - Background reading: [`CCTV-handoff.md`](../CCTV-handoff.md) has catalogue numbers, the duplicates audit and the planned DB design.
@@ -44,11 +45,11 @@ What this means for an adapter:
 
 1. **Probe the upstream** (§4). Record the count, the fields, the bounds, the media type, the https/CORS status and any overlap with sources we already have.
 2. **Identify the platform** (§5). If it is IBI, CARS GraphQL or CARS 511x, adding it is **one entry in `us-511.ts`**. Then skip to step 6.
-3. Otherwise **write `src/lib/cctv/sources/<group>/<name>.ts`**: types for the raw row, a pure `mapX()` and an exported `fetchXCameras()`. Copy `sources/us/kentucky.ts` or `sources/us/nyc.ts`.
-4. **Wire it up with one entry in `FEEDS` (`src/lib/cctv/catalog/feeds.ts`)**: `{ region, idPrefix, bounds, fetch }`. That registers the region and the box it loads for.
+3. Otherwise **write `src/lib/feeds/cameras/sources/<group>/<name>.ts`**: types for the raw row, a pure `mapX()` and an exported `fetchXCameras()`. Copy `sources/us/kentucky.ts` or `sources/us/nyc.ts`.
+4. **Wire it up with one entry in `FEEDS` (`src/lib/feeds/cameras/catalog/feeds.ts`)**: `{ region, idPrefix, bounds, fetch }`. That registers the region and the box it loads for.
 5. If the media host needs it (plain http, Referer quirks), **add it to the proxy allowlist** (§6).
 6. **Write tests** (§7): fixture tests for the mapper, plus one live test. Add a new id prefix to `us-511.test.ts`.
-7. **Verify** (§8): `npx vitest run src/lib/cctv/sources/<group>/<name>.test.ts`, the live test, `npx tsc --noEmit`, `npx eslint <files>`, and then the dev server.
+7. **Verify** (§8): `npx vitest run src/lib/feeds/cameras/sources/<group>/<name>.test.ts`, the live test, `npx tsc --noEmit`, `npx eslint <files>`, and then the dev server.
 8. **Update this doc**: the source table in §10, and any platform you discovered.
 
 ---
@@ -56,14 +57,14 @@ What this means for an adapter:
 ## 2. How it works today
 
 ```
-Browser ── GET /api/cctv?region=all ──▶ src/app/api/cctv/route.ts
+Browser ── GET /api/cctv?region=all ──▶ src/app/api/(feeds)/cctv/route.ts
                                           RAW_REGION_FETCHERS { region → fetcher }
                                             + STATE_FEEDS from us-511.ts (merged in; a duplicate region throws)
                                           each wrapped in cachedSource('cctv:<region>')  (30-min TTL, stale on error)
                                           4 regions at a time, 12 s per region, 5-min backoff
                                           prebuilt gzip payload + .cache/cctv-catalog.json snapshot
         ◀── merged JSON (every camera, ~1.5 MB gzipped) ──
-src/lib/cameras/camera-catalog.ts   merges by id; retries pending regions only
+src/lib/feeds/cameras/camera-catalog.ts   merges by id; retries pending regions only
 use-point-layers.ts         one 'cctv' GeoJSON source → cctv-dots / cctv-label layers
 CameraViewer.tsx            plays hls / mp4 / mjpeg / iframe, or a jpg refreshed every 5 s (?_t=)
 CctvPreviews.tsx            preview tiles from zoom 13 (jpg refreshed every 15 s)
@@ -74,7 +75,7 @@ CctvPreviews.tsx            preview tiles from zoom 13 (jpg refreshed every 15 s
 
 ---
 
-## 3. The camera record (`src/lib/cctv/types.ts`)
+## 3. The camera record (`src/lib/feeds/cameras/types.ts`)
 
 ```ts
 interface CctvCamera {
@@ -88,7 +89,7 @@ interface CctvCamera {
   stream_type?: 'jpg' | 'hls' | 'iframe' | 'mjpeg' | 'mp4';   // missing means jpg
   external_url?: string; // the operator's page; link-only when it is the only media field
   source: string;        // the agency label on the card, e.g. 'NYSDOT', 'NYC DOT'
-  road?: RoadCondition;  // measured surface from the operator's paired weather station (lib/cctv/road-condition.ts)
+  road?: RoadCondition;  // measured surface from the operator's paired weather station (lib/feeds/cameras/road-condition.ts)
 }
 ```
 
@@ -139,7 +140,7 @@ What to write down:
 
 ## 5. Pick a path
 
-### 5.1 Known shared platforms: one line in `src/lib/cctv/sources/platforms/us-511.ts`
+### 5.1 Known shared platforms: one line in `src/lib/feeds/cameras/sources/platforms/us-511.ts`
 
 `STATE_FEEDS` entries carry the region, the id prefix, the bounds and the fetcher. `route.ts` registers both the region and its viewport box from them automatically.
 
@@ -201,18 +202,18 @@ export async function fetchXCameras(): Promise<CctvCamera[]> {
 Then add one entry to `FEEDS` in `catalog/feeds.ts`:
 
 ```ts
-import { X_BOUNDS, fetchXCameras } from '@/lib/cctv/sources/<group>/x';
+import { X_BOUNDS, fetchXCameras } from '@/lib/feeds/cameras/sources/<group>/x';
 { region: 'x', idPrefix: 'x', bounds: X_BOUNDS, fetch: fetchXCameras },
 ```
 
 Older modules are wired by hand in `catalog/registry.ts` (`RAW_REGION_FETCHERS`) and `catalog/bounds.ts` (`getRegionsForBounds`). Don't add new ones there.
 
-If an upstream keeps listing cameras it no longer streams, pass the list through `src/lib/cctv/liveness.ts`: `markMissingMedia` (one HEAD per camera, flags 404s; small lists only) or `markOfflineEmbeds` (asks tvkur and player.im whether an embed is on air). Both set `offline: true` only when the host definitely says it's off, so the pin stays and says so, and it clears by itself once the camera is back. An adapter must not return `[]` for a list the operator emptied on purpose: `cachedSource` treats empty as a failure and keeps serving the last list as if live. Return the last known cameras flagged `offline` instead (`turkey/kayseri-last-known.ts`).
+If an upstream keeps listing cameras it no longer streams, pass the list through `src/lib/feeds/cameras/liveness.ts`: `markMissingMedia` (one HEAD per camera, flags 404s; small lists only) or `markOfflineEmbeds` (asks tvkur and player.im whether an embed is on air). Both set `offline: true` only when the host definitely says it's off, so the pin stays and says so, and it clears by itself once the camera is back. An adapter must not return `[]` for a list the operator emptied on purpose: `cachedSource` treats empty as a failure and keeps serving the last list as if live. Return the last known cameras flagged `offline` instead (`turkey/kayseri-last-known.ts`).
 
 Choosing an HTTP client:
 
 - **Government APIs:** use plain `fetch` with an honest `UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)'`.
-- **Sites that block bots:** `stealthFetch` (`src/lib/stealthFetch.ts`) randomises the UA and spoofs forwarding headers.
+- **Sites that block bots:** `stealthFetch` (`src/lib/core/net/stealth-fetch.ts`) randomises the UA and spoofs forwarding headers.
 
 ### 5.3 Overlapping sources: who owns a row
 
@@ -236,9 +237,9 @@ Use `public-webcams.ts`, `world-live.ts`, `asia-live.ts` and the `*.generated.ts
 
 1. **Prefix ids by source** and keep them unique. Add a new prefix to the list in `us-511.test.ts`.
 2. **Filter rows to the bounds box.** The same box decides when the region loads.
-3. **Throw on failure, a bad shape or a short read.** `sourceCache` treats an empty result or a throw as a failure and keeps serving the last good data. A swallowed error that returns `[]` wipes nothing, but it hides the outage. A partial result is worse: it gets cached as if it were the truth.
+3. **Throw on failure, a bad shape or a short read.** `cachedSource` (`src/lib/core/net/source-cache.ts`) treats an empty result or a throw as a failure and keeps serving the last good data. A swallowed error that returns `[]` wipes nothing, but it hides the outage. A partial result is worse: it gets cached as if it were the truth.
 4. **Use https media only.** Upgrade known hosts to https (see `kentucky.ts` `snapshotUrl`). Otherwise proxy the host:
-   - add it to `ALLOWED_HOSTS` in `src/app/api/cctv/proxy/route.ts`;
+   - add it to `ALLOWED_HOSTS` in `src/app/api/(feeds)/cctv/proxy/route.ts`;
    - if it serves plain http, also add it to `PROXY_IMAGE_HOSTS` in `types.ts`.
 5. **Strip upstream cache-busters** (`?123456`), because the client adds `_t`.
 6. **Set `stream_type: 'hls'` only for a playlist a browser can open**: CORS `*` on the playlist *and* on its segments, and no auth or session token. Otherwise keep the camera on its still.
@@ -249,7 +250,7 @@ Use `public-webcams.ts`, `world-live.ts`, `asia-live.ts` and the `*.generated.ts
 
 ---
 
-## 7. Tests (vitest, `src/lib/cctv/sources/<group>/<name>.test.ts`)
+## 7. Tests (vitest, `src/lib/feeds/cameras/sources/<group>/<name>.test.ts`)
 
 Patterns used across the existing tests:
 
@@ -268,12 +269,12 @@ Patterns used across the existing tests:
     for (const c of cams) { /* id regex, source, https media, inside bounds */ }
   });
   ```
-- **Loader tests with a mocked network.** Use `vi.mock('@/lib/stealthFetch', …)` (`ibi511.load.test.ts`) or `vi.stubGlobal('fetch', …)` (`texas.test.ts`). Use them when the loader has logic of its own: paging, short reads, owner exclusion.
+- **Loader tests with a mocked network.** Use `vi.mock('@/lib/core/net/stealth-fetch', …)` (`ibi511.load.test.ts`) or `vi.stubGlobal('fetch', …)` (`texas.test.ts`). Use them when the loader has logic of its own: paging, short reads, owner exclusion.
 - **Registry test:** `us-511.test.ts` checks that regions and prefixes are unique and that the bounds are sane.
 
 ```bash
-npx vitest run src/lib/cctv/sources/<group>/<name>.test.ts                   # offline
-RUN_LIVE_TESTS=1 npx vitest run src/lib/cctv/sources/<group>/<name>.test.ts  # hits the upstream
+npx vitest run src/lib/feeds/cameras/sources/<group>/<name>.test.ts                   # offline
+RUN_LIVE_TESTS=1 npx vitest run src/lib/feeds/cameras/sources/<group>/<name>.test.ts  # hits the upstream
 npm test                                                                      # everything offline
 ```
 
@@ -285,7 +286,7 @@ npm test                                                                      # 
 
 ```bash
 npx tsc --noEmit
-npx eslint src/lib/cctv/sources/<group>/<name>.ts src/lib/cctv/sources/<group>/<name>.test.ts src/lib/cctv/catalog/feeds.ts
+npx eslint src/lib/feeds/cameras/sources/<group>/<name>.ts src/lib/feeds/cameras/sources/<group>/<name>.test.ts src/lib/feeds/cameras/catalog/feeds.ts
 npm run dev
 curl -s "localhost:3000/api/cctv?region=<region>" | python3 -c "import json,sys;d=json.load(sys.stdin);print({k:v for k,v in d.items() if k!='cameras'});print(len(d.get('cameras',[])))"
 curl -s "localhost:3000/api/cctv?lat=<lat>&lng=<lng>" | head -c 300     # does the viewport box pick the region?
@@ -303,7 +304,7 @@ Then on the map: zoom in, click a camera and check that the still refreshes and 
 - **The CARS GraphQL `views[].url` must be selected through `... on CameraView`.** Selecting it bare gets a 400.
 - **Placeholder images.** Alaska and Arizona serve the same 15,136-byte "no feed" PNG; it looks like the IBI platform default, because SANRAL i-traffic serves it too. i-traffic also serves a 5,939-byte "No live camera feed at this time" JPEG. On 2026-10-12, 33 of 60 sampled i-traffic stills were one of the two (11 of 15 in Gauteng). Status checking is planned for after the DB migration.
 - **"PNG" stills that are JPEG.** `public.carsprogram.org/*.flv.png` is labelled `image/jpeg` but is a PNG. Browsers sniff the format, so it renders fine.
-- **Malformed HTTP/1.1 headers.** undici rejects some hosts that curl and browsers tolerate (its.act.pr.gov). Use `http2Request` (`src/lib/http2.ts`) for those.
+- **Malformed HTTP/1.1 headers.** undici rejects some hosts that curl and browsers tolerate (its.act.pr.gov). Use `http2Request` (`src/lib/core/net/http2.ts`) for those.
 
 ---
 
@@ -395,8 +396,8 @@ Added 2026-10-12 from `docs/inspiration-sources/provenance.md` (all terms pendin
 | `serbia-borders` | `mup-serbia.ts` | Serbian MUP, `www.mup.gov.rs/wps/portal/sr/kamerе/kamerеGP` (Cyrillic `е`; `toggleCamera(...)` calls) | the live ones among 20 streams at 10 placed crossings: 8 on 2026-10-12 (13 of all 32 were live; 5 are at Đala, Vatin and Batrovci, which aren't placed) | HLS only (`kamere.mup.gov.rs:4443`, CORS `*` on playlist and segments) |
 
 - **Houston.** The TxDOT name join (`matchHoustonTranstarCameras`) places 460 of TranStar's 923 listed cameras. The city's layer has 451 sites: 243 are already joined, and 141 more are listed by TranStar and get placed by the fill. The fill only uses ids TranStar still lists, because some sites in the layer have frames a week old. `fetchTexasCameras` drops a `transtar-*` row when the YKM join has already placed the same frame.
-- **Traffic Scotland.** The frame route takes a numeric `sid`, never a URL, and caches for 60 s (`next: { revalidate: 60 }`). Because the still is a relative URL, `lib/vision/frames.ts` has no still for these cameras, as with TxDOT.
-- **ACT Puerto Rico.** The host sends ` Permissions-Policy` with a leading space, so undici's HTTP/1.1 parser throws ("Unexpected whitespace after header value"). `lib/http2.ts` reads the list over HTTP/2 instead. Browsers load the stills fine.
+- **Traffic Scotland.** The frame route takes a numeric `sid`, never a URL, and caches for 60 s (`next: { revalidate: 60 }`). Because the still is a relative URL, `lib/intel/vision/server/frames.ts` has no still for these cameras, as with TxDOT.
+- **ACT Puerto Rico.** The host sends ` Permissions-Policy` with a leading space, so undici's HTTP/1.1 parser throws ("Unexpected whitespace after header value"). `lib/core/net/http2.ts` reads the list over HTTP/2 instead. Browsers load the stills fine.
 - **BIHAMK and MUP have no coordinates.** Crossings are placed from OSM `barrier=border_control` nodes, taken from Overpass, Nominatim and Photon on 2026-10-12. Four BIHAMK city/pass cameras use OSM place points a few hundred metres off. Unplaceable cameras are left out, never guessed.
 - **MUP liveness.** About half the playlists answer 404 at any one time, so the fetcher reads each playlist (6 at a time) and keeps only `#EXTM3U` answers.
 

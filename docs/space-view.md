@@ -45,12 +45,12 @@ The brief: 3D views of Mars, the Moon, the stars and more, and NASA APIs to trac
 
 | Path | What it holds |
 |---|---|
-| `src/lib/space/scene/` | The three.js scene: `space-scene.ts` runs it; `rig.ts` and `zoom-anchor.ts` drive the camera and the wheel; `tiers.ts` fades each scale in and out by distance; `flight-replay.ts` and `craft-model.ts` draw a replay |
+| `src/lib/space/scene/` | The three.js scene: `space-scene.ts` runs it; `camera/rig.ts` and `camera/zoom-anchor.ts` drive the camera and the wheel; `tiers.ts` fades each scale in and out by distance; `craft/flight-replay.ts` and `craft/model.ts` draw a replay |
 | `src/components/panels/space/replay/` | The replay bar and its data hook |
-| `src/lib/space/` | Pure maths and tables: `frames`, `two-body`, `planets-approx`, `flight-history`, `replay-model`, `launches`, `craft-models`, `wiki-topic` |
-| `src/app/api/space/` | The routes; `history/collect.ts` builds a replay |
+| `src/lib/space/` | Pure maths and tables: `frames` and `wiki-topic` at the root; `replay/` (`two-body`, `planets-approx`, `flight-history`, `model`); `craft/` (`launches`, `models`) |
+| `src/app/api/(space)/space/` | The routes; `history/collect.ts` builds a replay |
 | `src/components/map/interaction/hooks/use-zoom-past-globe.ts`, `src/lib/space/globe-match.ts` | The hand-over between map and space; the `GlobeLink` the space view reads and moves the map through |
-| `src/lib/space/fly-path.ts` | The zoom-and-pan arc (van Wijk & Nuij) the flight home follows |
+| `src/lib/space/scene/camera/fly-path.ts` | The zoom-and-pan arc (van Wijk & Nuij) the flight home follows |
 | `tools/build-*.mjs` | The static sky and cosmos files |
 
 ## Data (all keyless)
@@ -65,9 +65,9 @@ The brief: 3D views of Mars, the Moon, the stars and more, and NASA APIs to trac
 | `/api/space/outer` | Horizons: dwarf planets now, interstellar visitors' paths; MPC `Distant.txt` orbits | 24 h |
 | `/api/space/exoplanets` | NASA Exoplanet Archive TAP, `pscomppars`, grouped by host | 24 h |
 | `/api/space/wiki` | Wikipedia REST summary (lead and picture), by title or by search with a word of context | 24 h |
-| `/api/space/history/[id]` | Horizons: one craft's whole ephemeris span on a coarse grid, plus fine stretches of the craft and the body around every encounter, and the body's exact track through long stays. Cached as `space:history:v7:<id>`; bump the version when the `CraftHistory` shape changes | 12 h |
-| `src/lib/space/launches.ts` | Lift-off time, pad and vehicle for each craft, from each craft's Wikipedia infobox; pad coordinates from the pad's article | by hand |
-| `src/lib/space/craft-models.ts`, `public/data/models/` | NASA Science 3D Resources glTF files: 28 loaded from assets.science.nasa.gov (which allows cross-origin loading), and SOHO and STEREO-A copied from the nasa/NASA-3D-Resources repository. Most are Draco-compressed; three's decoder is copied to `public/vendor/draco/` | static |
+| `/api/space/history/[id]` | Horizons: one craft's whole ephemeris span on a coarse grid, plus fine stretches of the craft and the body around every encounter, and the body's exact track through long stays. Kept in `.cache/space-history/v7/<id>.json` (`TAKIP_SPACE_HISTORY_DIR`); bump `VERSION` in `history/store.ts` when the `CraftHistory` shape changes. After each fleet sweep every replayable craft not yet stored is fetched behind map views; any other craft in Horizons' catalogue on its first replay | ended flights once; live ones refetched in the background after 12 h on replay, 7 days otherwise |
+| `src/lib/space/craft/launches.ts` | Lift-off time, pad and vehicle for each craft, from each craft's Wikipedia infobox; pad coordinates from the pad's article | by hand |
+| `src/lib/space/craft/models.ts`, `public/data/models/` | NASA Science 3D Resources glTF files: 28 loaded from assets.science.nasa.gov (which allows cross-origin loading), and SOHO and STEREO-A copied from the nasa/NASA-3D-Resources repository. Most are Draco-compressed; three's decoder is copied to `public/vendor/draco/` | static |
 | `public/data/sky/bright-stars.json` | Yale Bright Star Catalogue (CDS V/50), built by `tools/build-bright-stars.mjs` | static |
 | `public/data/sky/nearby-stars.json` | Gaia DR3 within 100 ly, Hipparcos-2 distances for the bright stars, via the ESA Gaia archive TAP; built by `tools/build-nearby-stars.mjs` | static |
 | `public/data/sky/milky-way-sky.jpg` | NASA SVS Deep Star Maps 2020, starless Milky Way layer; built by `tools/build-milky-way-sky.mjs` | static |
@@ -81,9 +81,9 @@ Horizons answers 502/503 when one client sends more than a couple of requests at
 
 **Fleet and replays**
 
-- **Ended ephemerides**: craft whose Horizons ephemeris has ended are not in the fleet. They are not drawn live, even when the craft still works (Perseverance's ends Feb 2026, MAVEN's Mar 2026; the rovers come from MMGIS instead). They cannot be replayed either (Cassini, Artemis I).
-- **Slow first replay**: the first replay of a craft takes 10–40 s of Horizons calls; after that it is cached.
-- **Cold start**: on a cold server the fleet sweep is partial, and the history route answers 404 "Not in the tracked fleet" for craft the sweep has not reached yet.
+- **Ended ephemerides**: craft whose Horizons ephemeris has ended are not in the fleet. They are not drawn live, even when the craft still works (Perseverance's ends Feb 2026, MAVEN's Mar 2026; the rovers come from MMGIS instead). The history route serves them (Cassini, Artemis I), but nothing in the panel lists them.
+- **Slow first replay**: a craft not stored yet, such as one the warm-up has not reached on a fresh install, takes 10–40 s of Horizons calls.
+- **No writable store on a host**: the Docker image's `/app/.cache` is not writable by its user (nor on a serverless host), so flights stay in memory and every restart refetches them. A deploy needs a writable volume there, or `TAKIP_SPACE_HISTORY_DIR` on one.
 - **Burns**: between samples an orbiter follows a two-body orbit, so burns that fall between them are not seen (orbit insertions, trims). Only the orbit at the moment shown is drawn, not the earlier ones.
 - **Planets in a replay** come from JPL's mean orbital elements between encounters (arcminutes off for Jupiter and Saturn), and from Horizons through each encounter.
 - **Ascent**: the ascent is drawn, not measured.
@@ -91,7 +91,7 @@ Horizons answers 502/503 when one client sends more than a couple of requests at
   - Five whose ephemeris begins before launch, on a back-propagated orbit, are trusted only from an hour after lift-off (TGO from 12 h).
 - **Models**:
   - **No free model**: the European, Japanese, Indian, Korean and UAE craft, Psyche, Lucy, IMAP, ESCAPADE, the smaller NASA missions and the Tesla Roadster stay as dots.
-  - **Europa Clipper**: its model is 36 MB, over the 15 MB cap (`MAX_MODEL_BYTES` in `space-scene.ts`).
+  - **Europa Clipper**: its model is 36 MB, over the 15 MB cap (`MAX_MODEL_BYTES` in `scene/craft/placement.ts`).
   - **Ulysses** looks small because its span is set by its 72 m wire antenna.
   - **Orientation**: only 9 craft are turned (dish to Earth). No craft's real attitude is used.
 
@@ -118,7 +118,6 @@ In order of what most improves what users see:
 
 1. **Replay finished missions.** Horizons keeps finished trajectories, for example Cassini to 2017-09-15, Artemis I, Rosetta, MESSENGER and Galileo; check each one's span first.
    - Keep a hand-made list of past missions with their spans.
-   - Let `/api/space/history/[id]` accept any craft Horizons can place within its span, not only the live fleet. That also ends the cold-start 404.
    - List them in the Space panel under *Past missions*.
 2. **Manoeuvres and orbit history.**
    - Find burns as jumps in orbital energy between neighbouring samples; `history/collect.ts` already has the planet-relative states.
@@ -130,19 +129,16 @@ In order of what most improves what users see:
    - **Ulysses**: size it by its body rather than by the wire antenna.
    - **Dish axes**: look up the high-gain antenna axis for the rest of the NASA models.
 4. **Real attitude.** NAIF publishes attitude kernels (CK) for most NASA missions, keyless. A build-time tool could reduce them to a coarse attitude track per craft, so the model turns as flown instead of pointing its dish at Earth. This is a larger piece of work; start with one craft, such as Juno.
-5. **Faster first replay.**
-   - Warm the history cache during the 6 h fleet sweep, at low priority behind map views.
-   - Or commit static history files for flights whose past no longer changes (Voyager, Pioneer, New Horizons).
-6. **Animated events.** Deployments, engine burns and instrument pointing were floated as a "simulation". NASA's files are mostly static meshes with no named moving parts, so this means editing models craft by craft. Decide the scope before starting.
-7. **Live view.**
+5. **Animated events.** Deployments, engine burns and instrument pointing were floated as a "simulation". NASA's files are mostly static meshes with no named moving parts, so this means editing models craft by craft. Decide the scope before starting.
+6. **Live view.**
    - **Time slider**: a time slider for the whole scene; the replay model can already place the planets for any date.
    - **Textures**: Mercury, Ceres and Vesta from Trek.
    - **Sun channels**: a switch between them.
    - **Asteroids**: close approaches from `cad.api`.
-8. **Deep sky.**
+7. **Deep sky.**
    - **Star motion**: apply proper motion.
    - **ξ UMa**: place it from the original Hipparcos parallax.
    - **Nearby galaxies**: use distances measured without redshift (Cosmicflows-4, or NED-D via CDS) within about 50 million light-years.
    - **Local Group**: give its galaxies images.
    - **Exoplanet payload**: trim it.
-9. **A smoke test in the repo.** The zoom round trip and the replays were checked with headless Chrome scripts kept outside the repo; the round trip takes 96 wheel steps from 1.9 billion light-years back to the map. `tools/preview-smoke.mjs` already drives headless Chrome with no dependencies, so it could gain these two runs: map → Universe → map, and one replay through a flyby.
+8. **A smoke test in the repo.** The zoom round trip and the replays were checked with headless Chrome scripts kept outside the repo; the round trip takes 96 wheel steps from 1.9 billion light-years back to the map. `tools/preview-smoke.mjs` already drives headless Chrome with no dependencies, so it could gain these two runs: map → Universe → map, and one replay through a flyby.

@@ -186,8 +186,8 @@ This runs inside the existing Next process, because that is where the payloads a
   | `flights/route.ts`: the OpenSky, adsb.fi `/mil` (now a fallback) and regional-sweep fetches; `flights/adsb-lol.ts` `getAc` | OpenSky (full `states/all`, **keeping `time_position`/`last_contact`**), adsb.fi, adsb.lol (`/v2/mil` and `/v2/type` batches, recorded as `adsblol`) |
   | `maritime/route.ts`: the socket's `message` handler | aisstream frames |
   | `satellites/celestrak.ts` `downloadDue` | CelesTrak TLE sets, one line per group fetched |
-  | `src/lib/cctv/catalog/refresh.ts` `REGION_FETCHERS` (`archived()`) | Per-region camera lists, on every upstream refresh |
-  | `cachedSource` fetcher (`lib/sourceCache.ts:49`) | Weather events, news/Telegram, markets |
+  | `src/lib/feeds/cameras/catalog/refresh.ts` `REGION_FETCHERS` (`archived()`) | Per-region camera lists, on every upstream refresh |
+  | `cachedSource` fetcher (`@takip/connectors/source-cache`, re-exported by `lib/core/net/source-cache.ts`) | Weather events, news/Telegram, markets |
   | `gdeltEvents.ts` export fetch | GDELT 15-minute exports |
   | `fires`, `earthquakes`, `cloudflare-radar`, `cyber-attacks`, `malware` polls | FIRMS, USGS, Radar, Feodo, URLhaus |
   | `weather-grid` `fetchForecast` | Open-Meteo |
@@ -204,7 +204,7 @@ This runs inside the existing Next process, because that is where the payloads a
   | adsb.fi | 1 request/s on the public API | Now a fallback only |
   | aisstream | 3 connections per account and per IP; bandwidth limits on uncompressed connections | One socket, compressed (the `ws` client negotiates permessage-deflate). Don't run more than three copies with the same key or on the same IP. |
 
-  The API sources are fetched with an honest User-Agent (`src/lib/user-agent.ts`), not `stealthFetch`'s rotating fake identities. The camera sources still use `stealthFetch`.
+  The API sources are fetched with an honest User-Agent (`src/lib/core/net/user-agent.ts`), not `stealthFetch`'s rotating fake identities. The camera sources still use `stealthFetch`.
 - **Nothing is dropped silently.**
   - Lines beyond the queue bound are counted, and the next heartbeat writes a `_recorder` drop line: `{"src":"_recorder","drop":{"src","n","reason"}}`, where `reason` is `queue_full`, `disk` or `write_failed`.
   - Each source writes a heartbeat once a minute, `{"hb":{"n","dropped","paused","off"}}`, which tells "source alive but empty" apart from "recorder down". It describes the minute that just ended.
@@ -354,7 +354,7 @@ npm run ingest -- backfill usgs <from> [to] [min magnitude]   earthquakes since 
     - *Not handled yet:* deleted events are never retracted. The timeline rebuild covers the whole family, which is cheap at 30 days but not after a decades-long backfill.
   - **OpenSky** (`backfill/opensky.ts`): accounts can ask `states/all?time=` up to an hour back; anonymous requests ignore `time`. It steps at the live cadence (90 s) and stops with 1,000 credits left for the live map. *Untested against the live API:* no account is configured yet.
 - **No history offered:** aisstream, adsb.fi, CelesTrak (its GP data has no history) and the camera feeds.
-- **Satellites need no recording for recent replay:** SGP4 runs backwards as well as forwards. `tleAt` falls back to the oldest set after `t` (within 30 days), and `/api/satellites?at=` propagates today's cached sets to any time. Accuracy falls off over days, and objects launched since then show up early.
+- **Satellites need no recording for recent replay:** SGP4 runs backwards as well as forwards. `tleAt` falls back to the oldest set after `t` (within 30 days), and `/api/satellites?at=` propagates today's cached sets to any time. Replay loads those sets once (`?tle=1`) and propagates them in the browser: a worker places every satellite at keyframes a minute or more of replay time apart, and each frame interpolates between them (`src/lib/feeds/satellites/motion.ts`). Accuracy falls off over days, and objects launched since then show up early.
 - **Candidates not built** (terms to verify first):
 
   | Data | Upstream history | Notes |
@@ -466,7 +466,7 @@ The client loads buckets that overlap the visible timeline window and prefetches
   - A busy z7 tile for one hour at L0 is about 0.3–1 MB.
   - The whole world for one day at L2 is about 6–10 MB.
   - For comparison, today's live `/api/flights` sends about 3 MB of JSON per poll.
-- **Client:** decodes into typed arrays. A custom MapLibre layer (`src/lib/replay/track-layer.ts`, using the same projection prelude as `sat-3d`) draws trails over `[T − trail, T]`.
+- **Client:** decodes into typed arrays. A custom MapLibre layer (`src/lib/map/replay/track-layer.ts`, using the same projection prelude as `sat-3d`) draws trails over `[T − trail, T]`.
   - *As built,* positions are interpolated on the CPU, a binary search per entity into a reused `Float32Array`. They're drawn as instanced quads shaped in the fragment shader: planes, ship arrows, and ship dots below zoom 6.
   - Trail vertices carry times as offsets from a per-buffer base, because float32 can't hold epoch seconds.
   - The first version redrew GeoJSON 8 times a second and froze a tab at about 40k points. This one leaves the renderer near idle.
@@ -489,13 +489,14 @@ The client loads buckets that overlap the visible timeline window and prefetches
   - `gen_rtree(lon, lat, t, zband)`.
 - **A tile is one R\*Tree probe for the zoom band,** followed by clipping and MVT encoding.
 - **Heavy layers can be pre-baked** into `tiles/<layer>@<v>.mbtiles` for z0–z10 at import time. The highway planning network, with 626k lines, is the obvious candidate.
-- **This implements the existing `ReferenceStore` seam** in `src/lib/reference/file-store.ts`, so `/api/reference` keeps working.
+- **This implements the existing `ReferenceStore` seam** in `src/lib/feeds/reference/file-store.ts`, so `/api/reference` keeps working.
 
 ### 8.6 Series and choropleths
 
 - **The client fetches a metric's whole series once.** For WDI that is about 15k values, roughly 120 KB.
 - **Yearly and `day` metrics are mapped.** A `day` payload (the weekly COVID-19 series) carries `step: 'day'` and its points' x are fractional years, the point's date; a payload without `step` is yearly. COVID deaths are about 86k points, 1.3 MB of uncompressed JSON.
 - **The server resolves render polities as it writes the response:** a USSR value for 1985 is sent once for each of the 15 successor shapes, tagged `via`.
+- **Projections are metrics of their own.** `<code>.proj` is the publisher's main scenario, `<code>.proj.<scenario>` the others, and `….lo` / `….hi` its published range, so the API's default source (the one with the most points) never serves them in place of the estimates. History reads which exist from the catalogue, joins the chosen scenario per country, keeps where each country's projections start and carries the range into readings (`src/lib/history/projection.ts`). A publisher whose past is itself a model run (CCKP's CMIP6 historical run) is marked from its first year. History's clock runs past today only while projections are shown.
 - **The `admin0` tiles use `promoteId = entity_id`.** Scrubbing calls `setFeatureState` on about 250 features.
 
 ### 8.7 Licence gating and caching

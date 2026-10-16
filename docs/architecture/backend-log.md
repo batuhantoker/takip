@@ -57,8 +57,8 @@ Everything below exists only in the working tree of `ui/shell-reorg`, interleave
    The working file keeps everyone's edits. Dry-run on 2026-10-12: the diff showed exactly the two lines.
 4. **`docs/architecture/`** (the plan) was untracked before this work began. It is the user's; ask whether it goes in this commit.
 5. Leave alone; these belong to other sessions:
-   - CCTV: `src/app/api/cctv/*`, `src/lib/cctv/*`, `docs/data-sources.md`, `docs/cctv-adding-sources.md`, `scratch/*`, `off`
-   - drawing and boundaries: `src/lib/{draw,aoi,aoi-export,boundaries,boundary-store,geoboundaries}*`, `src/components/draw/*`, `src/components/map/*`, `src/app/api/boundaries/*`, `public/data/boundaries/`, `tools/build-boundaries.mjs`
+   - CCTV: `src/app/api/(feeds)/cctv/*`, `src/lib/feeds/cameras/*`, `docs/data-sources.md`, `docs/cctv-adding-sources.md`, `scratch/*`, `off`
+   - drawing and boundaries: `src/lib/{draw,aoi,aoi-export,boundaries,boundary-store,geoboundaries}*`, `src/components/draw/*`, `src/components/map/*`, `src/app/api/(places)/boundaries/*`, `public/data/boundaries/`, `tools/build-boundaries.mjs`
    - other: `docs/space-view.md`
 6. Check `git diff --cached --stat` before committing. A file showing a whole-file rewrite means line endings flipped (§3.3).
 
@@ -159,15 +159,15 @@ tools/    dev.mjs (web + api)  screenshot.mjs (headless Chrome with a session co
 
 ### 1.5 Known gaps (not bugs in what's built; things not done)
 
-- **Nothing is gated yet:** no production route uses `requires()` or `requireEntitlement()`. The server-key AI routes (`src/app/api/ai/*`) still spend Gemini quota for anyone (per-IP limits only).
+- **Nothing is gated yet:** no production route uses `requires()` or `requireEntitlement()`. The server-key AI routes (`src/app/api/(intel)/ai/*`) still spend Gemini quota for anyone (per-IP limits only).
 - **Plan copy:** the Plan section advertises Pro features that don't exist (API access, 10-year replay, 100 workspaces, export).
 - **`/privacy`** still says "no accounts".
 - **No IP for sessions:** `ipAddress` is empty behind the Next rewrite (no `x-forwarded-for` reaches the api).
-- **Spoofable client IP:** `src/lib/ssrf-guard.ts` `getClientIp` trusts `cf-connecting-ip` / `true-client-ip` from any peer.
+- **Spoofable client IP:** `getClientIp` (`@takip/connectors/ssrf-guard`, re-exported by `src/lib/core/net/ssrf-guard.ts`) trusts `cf-connecting-ip` / `true-client-ip` from any peer.
 - **Delete link elsewhere:** opened in a different browser, it answers raw JSON 404.
 - **Cookie cache lag:** revocations (sign-out elsewhere, password reset, ban) take up to 5 min to reach a device still holding the cached session cookie. Server-side revocation is immediate and tested.
 - **Docker untested:** the web image now installs workspace packages; there's no api image or compose service.
-- **Unrelated failing tests:** `src/lib/oi/context.test.ts` and `src/app/api/cctv/route.test.ts`. Don't chase them.
+- **Unrelated failing tests:** `src/lib/ai/research/context.test.ts` and `src/app/api/(feeds)/cctv/route.test.ts`. Don't chase them.
 
 ## 2. How work is done here
 
@@ -202,7 +202,7 @@ tools/    dev.mjs (web + api)  screenshot.mjs (headless Chrome with a session co
 ### 3.1 Better Auth 1.7.7
 
 - **Migrate before constructing.** `betterAuth()` checks the schema at startup, so `createAuth` runs `getMigrations(options)` first. All plugin columns are optional, so migrations on a populated DB are safe (checked on a copy).
-- **`callbackURL` on `signIn.email` makes the client navigate on success.** Sign-in passes none. Verification and reset links carry `/?account=…` landing URLs instead (`src/lib/account-links.ts`), and the account dialog opens itself from them.
+- **`callbackURL` on `signIn.email` makes the client navigate on success.** Sign-in passes none. Verification and reset links carry `/?account=…` landing URLs instead (`src/lib/platform/account/links.ts`), and the account dialog opens itself from them.
 - **Social sign-in options:** `signIn.social` takes `callbackURL` (back to the same map view) and `errorCallbackURL: '/?account=sign-in-failed'`. `onAPIError.errorURL` covers errors before state is known.
 - **`unlinkAccount({ accountId })` wants Better Auth's account row `id`,** not the provider's account id.
 - **A fresh session is required** (signed in within `freshAge`, 1 day) for `list-sessions` and `unlink-account`. The UI shows "sign in again" on `SESSION_NOT_FRESH`.
@@ -251,12 +251,12 @@ Ordered by dependency. Each lists what it owns, so parallel subagents don't coll
 **C. Public `/api/v1` and moving lookups** (§8, §13). *Owns new `apps/api/src/v1/` and the matching legacy route deletions.*
 - **OpenAPI:** `@hono/zod-openapi`, with Scalar docs at `/api/v1/docs`.
 - **First ports** (mechanical, strangler style): geosearch, `geo/reverse`, aircraft, `flight-route`, directions, `region-dossier`, each with server-side caches and per-key upstream limits.
-- **Shared libs:** de-Next-ify them first. Some return `NextResponse` (`src/lib/oi/service.ts`).
+- **Shared libs:** de-Next-ify them first. Some return `NextResponse` (`src/lib/ai/service.ts`).
 - **Done when:** each port passes parity tests against the old route, the browser uses the new path, and the old route is deleted.
 
 **D. Gate legacy features.** *Blocked on §6 decision 1.*
 - Server-key AI behind `ai.hosted`, keeping the bring-your-own-key path free.
-- The `X-OI-Key` header change for OI and MCP (§6 of the plan), with one release accepting both forms.
+- The `X-AI-Key` header change for AI and MCP (§6 of the plan), with one release accepting both forms.
 
 **E. Saved workspaces** (B2, §10). *Owns new `apps/api/src/workspaces/` and `src/components/workspaces/`.*
 - `ws_workspace` table and CRUD with `If-Match`; share slugs (`/w/<slug>?t=`); import from localStorage on first sign-in; autosave (last-writer-wins for autosave, `rev` for explicit saves); `workspaces.max` and `workspaces.share` enforced.
@@ -351,7 +351,7 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
 - **G-lite** (`84d206d`): request ids, pino request logs (dev: one short line each), internal `/metrics` (loopback or `METRICS_ALLOW` only, 404 to forwarded requests), `.github/workflows/ci.yml` gating `docker-publish.yml`. Lint is scoped to `apps packages tools` until the web app's 428 existing errors are cleared.
 - **C, part 1** (`d290a03`, `395e5a1`):
   - `/api/v1` on `OpenAPIHono`; spec at `/api/v1/openapi.json`, Scalar docs at `/api/v1/docs` (script pinned to 1.72.1).
-  - `@takip/connectors` holds `http-json`, `source-cache` and `nominatim`; `src/lib/{httpJson,sourceCache,nominatim}.ts` are shims. `OSIRIS_UA` stays aliased in the shim until the OSIRIS → TAKIP rename is committed.
+  - `@takip/connectors` holds `http-json`, `source-cache` and `nominatim`; `src/lib/core/net/{http-json,source-cache}.ts` and `src/lib/places/nominatim.ts` are shims. `OSIRIS_UA` stays aliased in the shim until the OSIRIS → TAKIP rename is committed.
   - Ported, with parity tests, then deleted from `web`: `geo/search`, `geo/reverse` and `directions`. `/api/geo/reverse` is still called from `page.tsx` and reaches v1 through a `next.config.ts` rewrite.
 - **A** (`87ceaa6`):
   - `Principal` carries `ip`. Client IP comes from the socket peer, and `X-Forwarded-For` is trusted only from `TRUSTED_PROXIES` (default loopback); `CLOUDFLARE_EDGE` is off.
@@ -360,7 +360,7 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
   - Web `getClientIp` trusts one hop by default (`TRUSTED_PROXY_HOPS`, `CLIENT_IP_HEADER`).
 - **D** (`4258b90`):
   - The server-key fallback of `ai/analyze` and `ai/briefing` needs `ai.hosted`; `ai/overview` degrades to its keyless read-out. Bring-your-own-key is free.
-  - `X-OI-Key` carries model keys; `Authorization: Bearer <model key>` works for one more release, with a warning, and never for `tk_` tokens.
+  - `X-AI-Key` carries model keys; `Authorization: Bearer <model key>` works for one more release, with a warning, and never for `tk_` tokens.
   - `getAccess` forwards the client IP to the api.
 - **C, part 2** (`bc31d4c`, `35c6816`): `/api/v1/aircraft` and `/api/v1/flight-route` (with `airports` and `stealth-fetch` moved to `@takip/connectors`), plus rewrites for the legacy paths still used by `bind-flight-clicks.ts`. Failed reverse lookups are sent with `no-store`.
 - **Burst** (`a04ad38`): web callers get 3 s of token-bucket burst, so a Flight Watch panel or a tile fetch fits; keys keep 1 s.
@@ -396,7 +396,7 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
   - The step-up countdown (`retryAfterSeconds`); no ban form on your own page.
   - Verified live (start and stop through Next, the banner on desktop, the audit rows). Keys and Usage returned 404 from a dev server whose route manifest missed the new folders; they need a restart of `npm run dev` before checking.
 - **The four decisions** (the user's answers, 2026-10-12):
-  - **Honest aviation lookups** (`fe2d82a`): adsbdb, hexdb and airplanes.live get `TAKIP_UA` and no `X-Forwarded-For`/`X-Real-IP`. `stealthFetch` itself stays for the CCTV adapters (`src/lib/cctv/*`), `/api/{conflicts,gdelt,weather}` and the `src/lib/stealthFetch.ts` shim.
+  - **Honest aviation lookups** (`fe2d82a`): adsbdb, hexdb and airplanes.live get `TAKIP_UA` and no `X-Forwarded-For`/`X-Real-IP`. `stealthFetch` itself stays for the CCTV adapters (`src/lib/feeds/cameras/*`), `/api/{conflicts,gdelt,weather}` and the `src/lib/core/net/stealth-fetch.ts` shim.
   - **No deletion while paying** (`1f56864`): `POST /api/auth/delete-user` answers 409 `subscription_active` before any email goes out, and `user.deleteUser.beforeDelete` checks again when the link is opened. Active means the resolver's rule, from a provider other than `manual`. The response's `billing_portal` says whether Settings can offer Manage billing.
     - Not in `databaseHooks.user.delete.before`: Better Auth deletes sessions and accounts before that hook runs, outside a transaction, so refusing there locks the user out.
     - The admin plugin's `removeUser` skips `beforeDelete`; nothing calls it over HTTP.
@@ -405,14 +405,14 @@ Committed on `ui/shell-reorg` (the user's choice), not `backend/auth`: the other
 - **E** (`cd37fb6`): saved workspaces.
   - `ws_workspace` (migration 7); `/api/v1/workspaces` CRUD with `If-Match`/`rev`, `POST|DELETE /:id/share`, and `GET /api/v1/w/:slug` (no session, never names the owner).
   - `workspaces.max` and `workspaces.share` enforced; erase and export include workspaces.
-  - Client library `src/lib/workspaces/*`: parts registered with `useWorkspacePart`, autosave (2 s, `If-Match: *`), and a one-time import from this device. UI in `src/components/workspaces/*`; landing `src/app/w/[slug]`.
+  - Client library `src/lib/platform/workspaces/*`: parts registered with `useWorkspacePart`, autosave (2 s, `If-Match: *`), and a one-time import from this device. UI in `src/components/workspaces/*`; landing `src/app/w/[slug]`.
   - **Not mounted yet**: see the shell commit below.
 - **`ads.off`** (`27c35d3`, osiris-98's): an entitlement seeded by migration 6, off for anon and free, on for pro. Workspaces went to migration 7 after it. `f493407` adds "No ads" to the plan copy, shown only when `NEXT_PUBLIC_ADSENSE_CLIENT` is set.
 - **G2a** (`c3571fd`): backups and the mail queue.
   - The `db.backup` job runs at 02:00 UTC (and on the first start each day): `VACUUM INTO` a temp file, fsync, `integrity_check`, rename. It keeps `APP_BACKUP_KEEP` (14) in `APP_BACKUP_DIR` (`data/backups`, gitignored: snapshots hold password hashes).
   - `npm run backup -w @takip/api` takes one on demand; `-- check <file>` verifies one. Runbook: `docs/runbooks/app-db-restore.md`, drilled by hand and as a test.
   - Mail goes through an `email.send` job with its own runner (2 min base delay, 6 attempts). Better Auth's callbacks only enqueue, so responses don't depend on SMTP.
-- **D3** (`fa8a201`): every `/api/osint/*` route needs an account or an API key (`src/lib/recon-gate.ts`).
+- **D3** (`fa8a201`): every `/api/osint/*` route needs an account or an API key (`src/lib/intel/recon/gate.ts`).
   - Per-account limits by family: breach 20/h, people 30/h, scan 30/h, network 15/min, reference 30/min.
   - `me/access` returns `subject`; `getAccess` forwards only `Bearer tk_…`. The plan copy lists only built features (`BUILT` in `plan-highlights.ts`).
 - **F2** (`67c0cd8`):
@@ -435,7 +435,7 @@ The user asked everyone to wrap up. Every backend workstream above has landed; n
   - `page.tsx`: `import WorkspaceHost from '@/components/workspaces/workspace-host';` and `<WorkspaceHost />` right after `<AccountDialog />`.
   - Desktop, `search-spotlight.tsx`: wrap the trigger as `<div data-hud className="absolute top-3 z-[450] flex items-center gap-2 transition-[left] duration-200" style={{ left: AT_LEFT, width: 'min(560px, calc(100vw - var(--shell-left, 0px) - 120px))' }}><div className="flex-1 min-w-0"><SearchTrigger onOpen={() => setShowDesktopSearch(true)} /></div><WorkspaceChip /></div>`.
   - Phone, `mobile-shell.tsx`, after `<AppHeader … isMobile />`: `<div data-hud className="absolute top-4 right-4 z-[210]"><WorkspaceChip align="right" /></div>`.
-- **Register the parts** in `page.tsx`, after `openTool` (`useWorkspacePart` from `@/components/workspaces/use-workspace`; `areasFrom`, `layersOver`, `oneOf` and `storedAreas` from `@/lib/workspaces/adapters`):
+- **Register the parts** in `page.tsx`, after `openTool` (`useWorkspacePart` from `@/components/workspaces/use-workspace`; `areasFrom`, `layersOver`, `oneOf` and `storedAreas` from `@/lib/platform/workspaces/adapters`):
   - `basemap` from `mapStyle`/`mapProjection`;
   - `layers` from `activeLayers` (setter `setActiveLayers(cur => layersOver(cur, saved))`);
   - `viewport` from `mapCenter` and `mapView.zoom` (setter `setFlyToLocation({ …, ts: Date.now() })`);
@@ -475,4 +475,4 @@ Several sessions share one working copy, so `git merge` refuses whenever a merge
 - **Key scopes** exist (`requiresScope`), but no route needs one yet.
 - **Billing open items:** reconciliation can't discover a subscription whose first webhook was lost (adapters should list subscriptions by customer); checkout and portal have no rate limit; the Next rewrite's handling of raw webhook bytes is unverified.
 - **API keys:** a revocation made directly in the DB takes up to 30 s to apply (the API and admin paths are immediate).
-- **CI test gate** fails on two tests outside the backend: `src/app/api/cctv/route.test.ts`, whose `writeSnapshot()` ignores the `…_CCTV_SNAPSHOT=off` env and writes `./off`, and `src/lib/oi/context.test.ts`.
+- **CI test gate** fails on two tests outside the backend: `src/app/api/(feeds)/cctv/route.test.ts`, whose `writeSnapshot()` ignores the `…_CCTV_SNAPSHOT=off` env and writes `./off`, and `src/lib/ai/research/context.test.ts`.

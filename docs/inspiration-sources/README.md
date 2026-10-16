@@ -18,6 +18,8 @@ The goal: every **keyless** data source these projects use, plus their non-UI fe
 | [wm-features.md](wm-features.md) | 38 derived-signal features, ranked by value ÷ effort, with the method in prose and the gap in TAKIP | — | — |
 | [provenance.md](provenance.md) | Provenance's camera, signal, basemap and market sources; its provenance cards; 22 non-UI patterns | 68 | 55 (27 new to TAKIP) |
 | [argus-cameras.md](argus-cameras.md) | Argus camera sources turned into live-adapter leads, and how far OpenCCTV can be widened | — | — |
+| [gods-eye-view.md](gods-eye-view.md) | God's Eye View (MIT, surveyed 2026-10-15): features, about 60 sources and 70 voice/MCP tools, each against TAKIP with port class, effort and value | ~60 | most |
+| [nasa-worldview.md](nasa-worldview.md) | NASA Worldview and GIBS (surveyed 2026-10-15): 1,330 dated imagery layers in 3857, the 25 best for a live map, Esri Wayback, and Worldview's timeline, compare and events features against TAKIP | 1,330 layers | all (CORS `*`) |
 
 The five repos under "To review" in `INSPIRATION.md` are already assessed in `CCTV-handoff.md` §2. Argus is revisited here for its full source list.
 
@@ -25,10 +27,10 @@ The five repos under "To review" in `INSPIRATION.md` are already assessed in `CC
 
 | # | Finding | Evidence | Fix |
 |---|---|---|---|
-| 1 | **Ontario and Alberta 511 cameras are failing.** Both hosts have required a key since 2026-09-24 (ON) and 2026-08-19 (AB). | `src/app/api/cctv/route.ts:179` and `:181`; unkeyed `/api/v2/get/cameras` returns **400** on both | **Fixed 2026-10-13, no key:** both load from the keyless `/List/GetData/Cameras` list behind their own camera pages, as `ibi()` feeds (`platforms/us-511.ts`, `canada/alberta.ts`). The keyed path and its env vars are gone. The other `/api/v2/get/` hosts (GA, IN, LA, PA, WI, AZ, ID, AK) may follow, and the same list is the way round. |
+| 1 | **Ontario and Alberta 511 cameras are failing.** Both hosts have required a key since 2026-09-24 (ON) and 2026-08-19 (AB). | `src/app/api/(feeds)/cctv/route.ts:179` and `:181`; unkeyed `/api/v2/get/cameras` returns **400** on both | **Fixed 2026-10-13, no key:** both load from the keyless `/List/GetData/Cameras` list behind their own camera pages, as `ibi()` feeds (`platforms/us-511.ts`, `canada/alberta.ts`). The keyed path and its env vars are gone. The other `/api/v2/get/` hosts (GA, IN, LA, PA, WI, AZ, ID, AK) may follow, and the same list is the way round. |
 | 2 | **adsb.lol is not empty.** `/v2/mil` and `/v2/type/{types}` work worldwide. | `flights/route.ts:116` says adsb.lol `/v2` always returns an empty `ac[]`; `/v2/mil` returns 200 with 79 kB, `/v2/type/A320` 200 with 479 kB | Use adsb.lol (ODbL) for military and type pulls instead of adsb.fi (non-commercial). Provenance gets about 9.7k aircraft from four paced requests. Pace 2 s and back off on 429. |
 | 3 | **UCDP's API needs a token.** | `gedevents/25.1` returns **401**: "Add header: x-ucdp-access-token" | Free token by email; the bulk CSV downloads are the fallback. |
-| 4 | **The Yahoo Finance terms bar redistribution.** | `/api/markets` and `oi` call the same Yahoo endpoints that World Monitor is retiring for this reason | Plan a replacement before the paid tier ships. |
+| 4 | **The Yahoo Finance terms bar redistribution.** | `/api/markets` and `ai` call the same Yahoo endpoints that World Monitor is retiring for this reason | Plan a replacement before the paid tier ships. |
 | 5 | **OpenSanctions is non-commercial, and its API now returns 401.** | probe | Build the sanctions list from **OFAC SLS** (public domain; includes vessels by IMO) and the EU, UK and UN lists. |
 | 6 | **Caltrans HLS needs a `Referer` header.** | `Referer: https://cwwp2.dot.ca.gov/` | The missing piece for the HLS upgrade in `CCTV-handoff.md` §8.7. |
 | 7 | **Newly gated sources.** | probes | ReliefWeb needs a pre-approved `appname`. IOM DTM needs a free subscription key. WFP HungerMap returned 401, possibly because of our survey User-Agent; re-check. road511 now needs a key too. |
@@ -102,7 +104,7 @@ New to TAKIP unless the "TAKIP" column says otherwise. The detail files have the
 | World Bank WDI | Country × year indicator | `api.worldbank.org/v2/country/{iso}/indicator/{id}?format=json` | CC BY 4.0 | Listed in docs/data-sources.md; for `region-dossier` |
 | Procurement | A tender notice (buyer, country, CPV) | TED v3 `POST api.ted.europa.eu/v3/notices/search`; UK Contracts Finder OCDS; World Bank notices; CanadaBuys CSV | Mostly open | Listed (TED) |
 | USGS MCS + BGS | Mine and refinery share by country and commodity | ScienceBase MCS files | Public domain / BGS terms | New; for `scm-suppliers` |
-| Kalshi | A prediction-market event with prices | `api.elections.kalshi.com/trade-api/v2/events?status=open` | Review | New; sits beside Polymarket and Manifold in `oi` |
+| Kalshi | A prediction-market event with prices | `api.elections.kalshi.com/trade-api/v2/events?status=open` | Review | New; sits beside Polymarket and Manifold in `ai` |
 | Frankfurter | ECB reference FX rates | `api.frankfurter.dev/v1/latest` | ECB, open | New |
 
 ### News
@@ -154,12 +156,12 @@ From `wm-features.md` and `provenance.md`. Effort/value: S/M/L and H/M/L.
 1. **Geographic convergence (S/H):** a 1° cell over 24 h; alert when 3+ independent kinds co-occur. Every input is already fetched.
 2. **Thermal escalation (S/H):** cluster FIRMS detections within 20 km and score each 0.5° cell against its own 7-day history, plus an explosion-like test.
 3. **Chokepoint transit anomalies (S/H):** compare PortWatch transits over 7 days with the previous ~90 days; flag 3 days in a row below 85 %.
-4. **Alert fusion and cooldowns (S/H):** merge within 2 h and 200 km, use per-type dedup windows, and emit only on band crossings. `lib/watch.ts` emits raw enter/leave events.
+4. **Alert fusion and cooldowns (S/H):** merge within 2 h and 200 km, use per-type dedup windows, and emit only on band crossings. `lib/places/areas/watch.ts` emits raw enter/leave events.
 5. **Provenance claims and a licence gate (S/H):** known/unknown/not-applicable claims, four time roles, two confidences; raw values served only from cleared sources. Cheap while the observation format in `docs/architecture/README.md` is still open.
 6. **Freshness and intelligence-gap tracker (S/H):** a staleness budget per source; transport freshness kept apart from content freshness.
 7. **Military air surge and theatre posture (S/H):** per-theatre baselines (2×/3×/4×) and tanker + AWACS + fighter package tests. Licence-clean once finding 2 lands.
 8. **Sanctioned vessels and aircraft on the map (S/H):** diff the OFAC lists and match IMO, MMSI and registration against AIS and ADS-B.
-9. **Event → nearby critical infrastructure (S/H):** assets within 600 km, up to 3 per type. The sweep in `lib/aoi.ts` does most of it.
+9. **Event → nearby critical infrastructure (S/H):** assets within 600 km, up to 3 per type. The sweep in `lib/places/areas/aoi.ts` does most of it.
 10. **Temporal baseline anomaly engine (M/H):** Welford statistics per region × kind, bucketed by weekday and month, with z bands at 1.5/2/3. Needs the raw archive started now; live ADS-B and AIS can't be backfilled.
 
 Also worth taking:

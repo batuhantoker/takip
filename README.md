@@ -87,20 +87,20 @@ Built with Next.js 16 and MapLibre GL, every data point is rendered via WebGL, s
 - **Progressive loading** — data fetched on-demand when layers are activated
 - **Viewport-aware** — only loads relevant data for the visible region
 
-### OI — a prediction engine (bring your own key)
-**OI Assist**: talk to the map (press O). Ask in words, typed or spoken, and OI flies you there, switches the layers on, finds what is live (flights, military aircraft, ships, quakes, fires, weather, news, cameras, satellites), marks it on the globe in cyan with the area it searched, lists it in cards you can click through, reads the markets, opens panels and starts forecasts, all on your own model key.
+### TI — a prediction engine (bring your own key)
+**TI Assist**: talk to the map (press T). Ask in words, typed or spoken, and TI flies you there, switches the layers on, finds what is live (flights, military aircraft, ships, quakes, fires, weather, news, cameras, satellites), marks it on the globe in cyan with the area it searched, lists it in cards you can click through, reads the markets, opens panels and starts forecasts, all on your own model key.
 
-**OI Forecast**: a prediction engine inspired by the community-made [Pythia](https://github.com/jangles-byte/Pythia) and by [MiroFish](https://github.com/666ghj/MiroFish). From Pythia comes the idea of forecasting from the live world TAKIP already watches; from MiroFish, the method: cast the actors who shape an outcome and play them against each other in parallel simulated worlds. Ask a question and OI researches it from sources you can check (news, prices, prediction markets and the live feeds), runs the worlds, and has a report agent weigh the result against the crowd's price and a statistical baseline before it writes a calibrated forecast, every claim linked to its source. The whole run plays out on the globe as it happens.
+**TI Forecast**: a prediction engine inspired by the community-made [Pythia](https://github.com/jangles-byte/Pythia) and by [MiroFish](https://github.com/666ghj/MiroFish). From Pythia comes the idea of forecasting from the live world TAKIP already watches; from MiroFish, the method: cast the actors who shape an outcome and play them against each other in parallel simulated worlds. Ask a question and TI researches it from sources you can check (news, prices, prediction markets and the live feeds), runs the worlds, and has a report agent weigh the result against the crowd's price and a statistical baseline before it writes a calibrated forecast, every claim linked to its source. The whole run plays out on the globe as it happens.
 - **Your own data**: add files (CSV, JSON, Markdown, text, logs, web pages) or paste up to 100,000 characters. The world model reads it once; or have every actor read it in every period, and quote it. The extra input tokens are shown before you run, on your own key.
-- **Your own key**: OpenAI, Anthropic, Google Gemini, OpenRouter, Groq, DeepSeek, xAI, Mistral or Qwen. Kept in your browser, sent per request in the `X-OI-Key` header, never stored on the server.
-- **REST API** under `/api/oi` with live Server-Sent Events, and an **MCP server** at `/api/mcp` so agents such as Hermes, Claude and Cursor can run predictions, steer them and read TAKIP intelligence. Give them the model key in `X-OI-Key`; `Authorization` is reserved for TAKIP API keys. See the in-app docs at `/docs`.
+- **Your own key**: OpenAI, Anthropic, Google Gemini, OpenRouter, Groq, DeepSeek, xAI, Mistral or Qwen. Kept in your browser, sent per request in the `X-AI-Key` header, never stored on the server.
+- **REST API** under `/api/ai` with live Server-Sent Events, and an **MCP server** at `/api/mcp` so agents such as Hermes, Claude and Cursor can run predictions, steer them and read TAKIP intelligence. Give them the model key in `X-AI-Key`; `Authorization` is reserved for TAKIP API keys. See the in-app docs at `/docs`.
 
 ### Live Cameras
 More than 46,000 public cameras from 157 sources, shown as map markers with a preview grid and a viewer. Most are traffic cameras published by road authorities; the rest are public webcams (see [Acknowledgements](#acknowledgements)).
 
 **Texas.** Public TxDOT ITS snapshots are integrated with the existing camera markers, preview grid and viewer. Use `/api/cctv?region=texas` for Texas only; global and Texas location queries include the same source. District inventories are cached independently, with stale data retained during outages. Availability varies by district and camera; these are refreshing JPEG snapshots, not video streams. Source: [TxDOT ITS](https://its.txdot.gov/its/District/DAL/cameras).
 
-Run `npm test` for offline checks or `RUN_LIVE_TESTS=1 npx vitest run src/lib/cctv/sources/us/texas.test.ts` to check the public Texas inventory.
+Run `npm test` for offline checks or `RUN_LIVE_TESTS=1 npx vitest run src/lib/feeds/cameras/sources/us/texas.test.ts` to check the public Texas inventory.
 
 ### RECON Toolkit
 - **Port Scanner** — TCP connect scan with service fingerprinting
@@ -208,7 +208,7 @@ The host port, the Telegram channel list and the other runtime options are docum
 | Key | Action |
 |-----|--------|
 | `S` or `Ctrl/⌘ K` | Search places |
-| `O` | Ask OI |
+| `T` | Ask TI |
 | `D` | Areas: draw and watch |
 | `A` | Live alerts |
 | `I` | Recon |
@@ -225,7 +225,7 @@ The host port, the Telegram channel list and the other runtime options are docum
 
 **Upstream** — TAKIP started as a fork of an MIT-licensed open-source intelligence
 dashboard by [simplifaisoul](https://github.com/simplifaisoul). The map, most of the
-layers, OI and the RECON toolkit come from their work, and their copyright notice is
+layers, TI and the RECON toolkit come from their work, and their copyright notice is
 kept in [LICENSE](LICENSE).
 
 **Public webcams** — the cameras in this layer are open data: each one is broadcast
@@ -240,7 +240,7 @@ unrelated sites with no way to find them.
 TAKIP links every one of them straight through to the operator who runs it, which is
 also how bekijkhet.nu asks to be read.
 
-**OI** — the method behind OI follows [MiroFish](https://github.com/666ghj/MiroFish),
+**TI** — the method behind TI follows [MiroFish](https://github.com/666ghj/MiroFish),
 the open-source swarm-intelligence prediction engine: seed a parallel world from real
 material, populate it with agents, let them interact while variables are injected, and
 hand the simulation to a report agent. TAKIP rebuilds that method natively for its own

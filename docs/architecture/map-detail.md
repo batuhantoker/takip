@@ -6,7 +6,7 @@
 
 | Issue | Evidence | Fix | Effort |
 |---|---|---|---|
-| **The dams layer shows private individuals' names** | ✓ `popupHtml` (`src/lib/reference/view.ts:24`) prints every property. NID `ownerNames` is one of them. 60,297 of 92,602 dams have owner type 1 (Private), and many of those are personal names ("Last, First"). | Show the owner type (codes 1–7) and hide the names of private owners. The same rule then applies to every owner field we add. | S |
+| **The dams layer shows private individuals' names** | ✓ `popupHtml` (`src/lib/feeds/reference/view.ts:24`) prints every property. NID `ownerNames` is one of them. 60,297 of 92,602 dams have owner type 1 (Private), and many of those are personal names ("Last, First"). | Show the owner type (codes 1–7) and hide the names of private owners. The same rule then applies to every owner field we add. | S |
 | **Our basemap use breaks CARTO's terms** | ✓ [Terms](https://carto.com/legal/basemap-terms), updated 2026-09-29: §9.c.3 forbids "proxying or caching the content on the server side", and §3.b requires an API key. `/api/proxy-tiles` caches CARTO tiles for a year, and `src/lib/map/create.ts` sends no key. With ads, "Commercial Use" has a fair-use cap of 1M tiles a month. | **Done 2026-10-13:** OpenFreeMap is the default, CARTO an option in Map options (browser-direct, with `NEXT_PUBLIC_CARTO_API_KEY`), and the proxy is gone. Self-hosting (§2 #6) stays for later. | — |
 | **Esri imagery is used without a key or credit** | ✓ `src/app/page.tsx:72` and `use-basemap.ts:124` call `server.arcgisonline.com` directly, with no "Powered by Esri" credit | A Location Platform key and the credit (2M free tiles, then $0.15 per 1,000), or NASA GIBS | S |
 | **Other terms flagged in passing** | TeleGeography's cable data is "restricted to paying subscribers", and we ship `submarine-cables.json`. OpenSanctions is CC BY-NC, which affects `/api/osint/sanctions`. | Licence decision | — |
@@ -33,7 +33,7 @@ The CARTO tiles use the OpenMapTiles schema, the same one OpenFreeMap uses. Eigh
 
 | # | What the user sees | Source | Licence (commercial) | Size | Effort |
 |---|---|---|---|---|---|
-| 1 | **Done 2026-10-13** (`src/lib/basemap/detail-layers.ts`): peaks with heights, glaciers, rock and sand, named protected areas, **military land** hatched, tints for industry, rail yards and campuses | the tiles in §1 | ODbL data, CC BY style (y) | 0 | S |
+| 1 | **Done 2026-10-13** (`src/lib/map/basemap/detail-layers.ts`): peaks with heights, glaciers, rock and sand, named protected areas, **military land** hatched, tints for industry, rail yards and campuses | the tiles in §1 | ODbL data, CC BY style (y) | 0 | S |
 | 2 | **Done, except road shields:** rail from country zoom, subway and tram, **ferries**, airport codes, military airfields | same | same | 0 | S |
 | 3 | **Done:** points of interest from zoom 14: transport, hospitals, civic buildings, museums and monuments, stadiums, colleges | same | same | 0 | S–M |
 | 4 | **Partly done:** clicking a place name opens its Wikipedia lead (`/api/map/wiki`). Still to do, a **"what is here?" card on any click:** what's under the cursor (road, building height, land use, POI, peak), coordinates, elevation | `queryRenderedFeatures`, the terrarium tiles we already use | ODbL, PD / CC BY (y) | 0 | S–M |
@@ -46,7 +46,7 @@ The CARTO tiles use the OpenMapTiles schema, the same one OpenFreeMap uses. Eigh
 | 11 | Dams and reservoirs worldwide | Global Dam Watch v1.0 | CC BY 4.0 (y), asks that the raw set not be rehosted | 70 MB | S |
 | 12 | EEZs, 12 nm limits, maritime boundaries | Marine Regions | CC BY 4.0 (y), "not for legal or navigational purposes" | 122 MB | S–M |
 | 13 | Refineries, LNG plants, offshore platforms, mine outlines | OGIM v3.0; Maus mining polygons v2 | CC BY 4.0; CC BY-SA 4.0 (y) | subsets | M |
-| 14 | A compliant satellite view, yesterday's Earth, **night lights** | Esri with a key and credit; NASA GIBS VIIRS daily and Black Marble; EOX Sentinel-2 cloudless (terms unresolved, so ask EOX) | GIBS CC0 (y) | remote | S |
+| 14 | A compliant satellite view, yesterday's Earth (done: Satellite Daily, `src/lib/feeds/imagery/gibs.ts`), **night lights** | Esri with a key and credit; NASA GIBS VIIRS daily and Black Marble; EOX Sentinel-2 cloudless (terms unresolved, so ask EOX) | GIBS CC0 (y) | remote | S |
 | 15 | Denser POIs and buildings from zoom 15 | Overture places + buildings PMTiles | CDLA-P 2.0 / ODbL (y) | 18 + 181 GB | M–L |
 
 **Restrictive terms (sort later):**

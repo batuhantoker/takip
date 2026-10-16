@@ -6,7 +6,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 - **Counts.** Keyless: **687 named news feeds**. 364 have the publisher's own RSS/Atom URL, 321 are Google News RSS queries only, and 2 are World Monitor-internal scraper routes. That is **768 distinct public feed URLs** (385 native, 383 Google News). **71 public Telegram channels** (63 `full` set + 8 `tech` set; TAKIP's keyless `t.me/s/` reader can likely read them, but no handle was tested), **91 live-news slots** (47 broadcaster HLS manifests, 31 pinned YouTube videos, 28 YouTube channel embeds; 7 slots empty) and **24 webcam slots** (YouTube videos). Free key: **1** (Telegram MTProto: `TELEGRAM_API_ID` + `TELEGRAM_API_HASH` + a logged-in `TELEGRAM_SESSION`; this is how World Monitor reads Telegram). Paid: **1** (X API v2 user timelines, 64 accounts). The pre-pass chunk lists 396 hosts and every one has no credential env var near it.
 - **Licence.** The manifest has 398 host rows under 396 provider headings. 344 are `terms-review` ("verify before redistribution"). 37 are `reviewed` as headline + summary + timestamp + credit + link-out only. 16 are covered by World Monitor's own licence agreement (Business Insider, Business Wire, GlobeNewswire, PR Newswire, Chainwire, Coinbase, Binance, Fox Business, Handelsblatt, Welt, Telegraph, Interfax ×2, Jin10, Times of India, Wired), and TAKIP cannot inherit that agreement. 1 is US-government (ustr.gov). TAKIP should follow the same rule: store headline, summary, time and link; never full text.
-- **Overlap with TAKIP.** 21 feeds are already in TAKIP (`news`, `conflicts`, `lib/oi/newsroom`, `lib/bulgaria-sources`). 30 come from a host TAKIP already reads but a different feed. 2 are sites TAKIP reads directly while World Monitor uses a Google News query. **634 are new.** Telegram: 4 of 71 handles overlap (OSINTdefender, DDGeopolitics, QudsNen, PressTV). Live video: 5 YouTube channel IDs are shared with `api/live-news`, and 9 more outlets are there under a different URL. `docs/data-sources.md` lists none of these feeds individually. Its "WHO disease outbreak news" row sits next to World Monitor's WHO news RSS.
+- **Overlap with TAKIP.** 21 feeds are already in TAKIP (`news`, `conflicts`, `lib/ai/research/newsroom`, `lib/bulgaria-sources`). 30 come from a host TAKIP already reads but a different feed. 2 are sites TAKIP reads directly while World Monitor uses a Google News query. **634 are new.** Telegram: 4 of 71 handles overlap (OSINTdefender, DDGeopolitics, QudsNen, PressTV). Live video: 5 YouTube channel IDs are shared with `api/live-news`, and 9 more outlets are there under a different URL. `docs/data-sources.md` lists none of these feeds individually. Its "WHO disease outbreak news" row sits next to World Monitor's WHO news RSS.
 - **Credibility tiers.** 388 of the 687 feeds have a declared tier (T1 40 · T2 216 · T3 123 · T4 9). 299 are deliberately undeclared and must not be read as tier 4. 33 feeds carry a state-affiliation flag; 13 of them are rated **high** propaganda risk.
 
 ### Top 10 picks for TAKIP
@@ -25,7 +25,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 
 | Provider | Data (what one record is) | Endpoint pattern | Auth | Method | Licence posture | Geo + time | Cadence | TAKIP overlap | Feeds feature | Probe |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Publisher RSS/Atom (364 feeds with a native URL; table below) | one headline item: title, link, pubDate, summary | publisher feed URL (RSS 2.0 or Atom) | none | poll | mostly terms-review; headline + link-out only | country+ts (by outlet's home country) | WM: per-feed cache 1 h healthy / 5 min if empty; digest 15 min | 21 already in, 30 same host, rest new | news, live-news, region-dossier, country-risk, oi | 8/8 native feeds 200 (10 probes in all, see below) |
+| Publisher RSS/Atom (364 feeds with a native URL; table below) | one headline item: title, link, pubDate, summary | publisher feed URL (RSS 2.0 or Atom) | none | poll | mostly terms-review; headline + link-out only | country+ts (by outlet's home country) | WM: per-feed cache 1 h healthy / 5 min if empty; digest 15 min | 21 already in, 30 same host, rest new | news, live-news, region-dossier, country-risk, ai | 8/8 native feeds 200 (10 probes in all, see below) |
 | Google News RSS search (321 GN-only feeds; 383 GN URLs in all) | one aggregated headline; source name in `<source>` | `https://news.google.com/rss/search?q=<query>&hl=en-US&gl=US&ceid=US:en` (locale triplet varies) | none | poll | Google News terms; headline + link-out | country+ts | same as above; query carries `when:1d…30d` | new (TAKIP uses GDELT, not GN) | news fallback for outlets without RSS | 200 xml 116kB |
 | Telegram public preview | one channel post (text, time, post id, media flag) | `https://t.me/s/<handle>` HTML | none | scrape | Telegram ToS; post text is third-party | none (geo-anchored only via the channel's remit) +ts | TAKIP already polls it | already in (`api/news`, 9 handles; 4 shared with WM) | news, frontlines, conflicts | not probed (TAKIP already uses it) |
 | Telegram MTProto (WM's method) | same post, via API | GramJS user client, `getMessages` per channel | free key (`TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION`) | poll | Telegram API ToS | as above | 60 s sequential cycle | new method | same | not probed |
@@ -76,9 +76,9 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Reuters World | GN `site:reuters.com world when:1d` | 1 | unreviewed | — | new |
 | UNHCR | GN `site:unhcr.org OR UNHCR refugees when:3d` | 1 | unreviewed | — | new |
 | WHO | https://www.who.int/rss-feeds/news-english.xml | 1 | unreviewed | — | new |
-| BBC World · ~GB | https://feeds.bbci.co.uk/news/world/rss.xml | 2 | low | — | already in (conflicts, news, oi/newsroom) |
+| BBC World · ~GB | https://feeds.bbci.co.uk/news/world/rss.xml | 2 | low | — | already in (conflicts, news, ai/research/newsroom) |
 | CNN World | GN `site:cnn.com world news when:1d` | 2 | unreviewed | — | new |
-| Guardian World | https://www.theguardian.com/world/rss | 2 | low | — | already in (news, oi/newsroom) |
+| Guardian World | https://www.theguardian.com/world/rss | 2 | low | — | already in (news, ai/research/newsroom) |
 | CrisisWatch | https://www.crisisgroup.org/rss | 3 | unreviewed | — | new |
 | Trump - Truth Social | https://trumpstruth.org/feed | — | unreviewed | — | new |
 
@@ -114,9 +114,9 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | CBS News · US | https://www.cbsnews.com/latest/rss/main | 2 | unreviewed | — | new |
 | Fox News · US | https://moxie.foxnews.com/google-publisher/us.xml | 2 | unreviewed | — | new |
 | NBC News · US | https://feeds.nbcnews.com/nbcnews/public/news | 2 | unreviewed | — | new |
-| NPR News · US | https://feeds.npr.org/1001/rss.xml | 2 | unreviewed | — | already in (oi/newsroom) |
+| NPR News · US | https://feeds.npr.org/1001/rss.xml | 2 | unreviewed | — | already in (ai/research/newsroom) |
 | PBS NewsHour · US | https://www.pbs.org/newshour/feeds/rss/headlines | 2 | unreviewed | — | new |
-| Politico · US | https://rss.politico.com/politics-news.xml | 2 | unreviewed | — | already in (oi/newsroom) |
+| Politico · US | https://rss.politico.com/politics-news.xml | 2 | unreviewed | — | already in (ai/research/newsroom) |
 | Reuters US · US | GN `site:reuters.com US when:1d` | 1 | unreviewed | — | new |
 | The Hill · US | https://thehill.com/news/feed | 3 | unreviewed | — | same host in TAKIP (other feed) |
 | Wall Street Journal · US | https://feeds.content.dowjones.io/public/rss/RSSUSnews | 1 | unreviewed | — | same host in TAKIP (other feed) |
@@ -161,7 +161,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | ERR News · EE | https://news.err.ee/rss | 2 | low | — | new |
 | El Mundo · ~ES | https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml | 2 | unreviewed | es | new |
 | Yle News · FI | https://yle.fi/rss/news | 1 | **state: Finland** · medium | — | new |
-| France 24 · FR | https://www.france24.com/en/rss<br>https://www.france24.com/fr/rss (fr)<br>https://www.france24.com/es/rss (es)<br>https://www.france24.com/ar/rss (ar) | 2 | **state: France** · medium | ar, es, fr | already in (oi/newsroom) |
+| France 24 · FR | https://www.france24.com/en/rss<br>https://www.france24.com/fr/rss (fr)<br>https://www.france24.com/es/rss (es)<br>https://www.france24.com/ar/rss (ar) | 2 | **state: France** · medium | ar, es, fr | already in (ai/research/newsroom) |
 | Le Monde · FR | https://www.lemonde.fr/en/rss/une.xml<br>https://www.lemonde.fr/rss/une.xml (fr) | 2 | low | fr | new |
 | Telegraph · ~GB | https://www.telegraph.co.uk/rss.xml | 2 | low | — | new |
 | Civil.ge · GE | https://civil.ge/feed/ | 2 | low | — | new |
@@ -276,7 +276,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Sana'a Center · YE | https://sanaacenter.org/feed/ | 2 | low | — | new |
 | Yemen Online · YE | GN `site:yemenonline.info when:14d` | 2 | medium | — | new |
 | Al Arabiya | GN `site:english.alarabiya.net when:2d`<br>https://www.alarabiya.net/tools/mrss/?cat=main (ar) | — | **state: Saudi Arabia** · medium | ar | new |
-| Al Jazeera | https://www.aljazeera.com/xml/rss/all.xml<br>https://www.aljazeera.net/aljazeerarss/a7c186be-1adb-4b11-a982-4783e765316e/4e17ecdc-8fb9-40de-a5d6-d00f72384a51 (ar) | 2 | **state: Qatar** · medium | ar | already in (conflicts, news, oi/newsroom) |
+| Al Jazeera | https://www.aljazeera.com/xml/rss/all.xml<br>https://www.aljazeera.net/aljazeerarss/a7c186be-1adb-4b11-a982-4783e765316e/4e17ecdc-8fb9-40de-a5d6-d00f72384a51 (ar) | 2 | **state: Qatar** · medium | ar | already in (conflicts, news, ai/research/newsroom) |
 | Guardian ME | https://www.theguardian.com/world/middleeast/rss | 2 | unreviewed | — | same host in TAKIP (other feed) |
 
 ### Sub-Saharan Africa & Sahel (34)
@@ -426,7 +426,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | AI Now Institute | GN `"AI Now Institute"` | 3 | unreviewed | — | new |
 | Atlantic Council | https://www.atlanticcouncil.org/feed/ | 3 | unreviewed | — | new |
 | Bellingcat | GN `site:bellingcat.com when:7d` | 3 | low | — | new |
-| Breaking Defense | https://breakingdefense.com/feed/ | 3 | unreviewed | — | already in (oi/newsroom) |
+| Breaking Defense | https://breakingdefense.com/feed/ | 3 | unreviewed | — | already in (ai/research/newsroom) |
 | Brookings | GN `site:brookings.edu when:7d` | 3 | unreviewed | — | new |
 | Brookings Tech | GN `site:brookings.edu technology OR AI when:14d` | 3 | unreviewed | — | new |
 | Carnegie | GN `site:carnegieendowment.org when:7d` | 3 | unreviewed | — | new |
@@ -435,7 +435,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Correctiv | https://correctiv.org/feed/ | 3 | unreviewed | — | new |
 | CSIS | https://www.csis.org/rss.xml<br>GN `site:csis.org when:7d` | 3 | unreviewed | — | new |
 | CSIS Tech | GN `site:csis.org technology OR AI when:14d` | 3 | unreviewed | — | new |
-| Defense News | https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml | 3 | unreviewed | — | already in (oi/newsroom) |
+| Defense News | https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml | 3 | unreviewed | — | already in (ai/research/newsroom) |
 | Defense One | https://www.defenseone.com/rss/all/ | 3 | unreviewed | — | new |
 | EU ISS | GN `site:iss.europa.eu when:7d` | 3 | unreviewed | — | new |
 | Foreign Affairs | https://www.foreignaffairs.com/rss.xml | 3 | unreviewed | — | new |
@@ -459,7 +459,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Stimson Center | https://www.stimson.org/feed/ | 3 | unreviewed | — | new |
 | Task & Purpose | https://taskandpurpose.com/feed/ | 3 | unreviewed | — | new |
 | The Sentry | https://thesentry.org/feed/ | 3 | unreviewed | — | new |
-| The War Zone | https://www.twz.com/feed | 3 | unreviewed | — | already in (oi/newsroom) |
+| The War Zone | https://www.twz.com/feed | 3 | unreviewed | — | already in (ai/research/newsroom) |
 | VSquare | https://vsquare.org/feed/ | 3 | unreviewed | — | new |
 | Wilson Center | GN `site:wilsoncenter.org when:7d` | 3 | unreviewed | — | new |
 | Asia Pacific Tech | GN `("Asia Pacific" tech policy OR "Lowy Institute" technology) when:14d` | — | unreviewed | — | new |
@@ -527,7 +527,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Northern Miner | GN `site:northernminer.com when:7d`<br>https://www.northernminer.com/feed/ | — | unreviewed | — | new |
 | Nuclear Energy | GN `("nuclear energy" OR "nuclear power" OR "nuclear reactor") when:3d`<br>GN `("nuclear energy" OR "nuclear power" OR uranium OR IAEA) when:3d` | — | unreviewed | — | new |
 | Oil & Gas | GN `(oil price OR OPEC OR "natural gas" OR pipeline OR LNG) when:2d`<br>GN `(oil price OR OPEC OR "natural gas" OR "crude oil" OR WTI OR Brent) when:1d` | — | unreviewed | — | new |
-| OilPrice.com | https://oilprice.com/rss/main | — | unreviewed | — | already in (oi/newsroom) |
+| OilPrice.com | https://oilprice.com/rss/main | — | unreviewed | — | already in (ai/research/newsroom) |
 | OPEC & Crude | GN `(OPEC OR "oil price" OR "crude oil" OR WTI OR Brent OR "oil production" OR "oil inventory") when:1d` | — | unreviewed | — | new |
 | OPEC News | GN `(OPEC OR "oil price" OR "crude oil" OR WTI OR Brent OR "oil production") when:1d` | — | unreviewed | — | new |
 | Pipelines & Chokepoints | GN `(pipeline OR Druzhba OR "Nord Stream" OR TurkStream OR "Strait of Hormuz" OR "Bab el-Mandeb" OR "Suez Canal" OR "Power of Siberia") when:2d` | — | unreviewed | — | new |
@@ -570,7 +570,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Chainwire | https://chainwire.org/feed/ | 3 | medium | — | new |
 | GlobeNewswire | https://www.globenewswire.com/RssFeed/subjectcode/22/feedTitle/GlobeNewswire | 3 | medium | — | new |
 | PR Newswire | GN `site:prnewswire.com when:1d` | 3 | medium | — | new |
-| Yahoo Finance | https://finance.yahoo.com/news/rssindex<br>https://finance.yahoo.com/rss/topstories | 4 | unreviewed | — | already in (oi/newsroom) |
+| Yahoo Finance | https://finance.yahoo.com/news/rssindex<br>https://finance.yahoo.com/rss/topstories | 4 | unreviewed | — | already in (ai/research/newsroom) |
 | Arabian Business | GN `site:arabianbusiness.com (Saudi Arabia OR UAE OR GCC) when:7d` | — | unreviewed | — | new |
 | Bank Research | GN `("Goldman Sachs" OR JPMorgan OR "Morgan Stanley") forecast OR outlook when:3d`<br>GN `("Goldman Sachs" OR "JPMorgan" OR "Morgan Stanley") forecast OR outlook when:3d` | — | unreviewed | — | new |
 | Banking Rules | GN `(Basel OR "capital requirements" OR "banking regulation") when:7d` | — | unreviewed | — | new |
@@ -584,14 +584,14 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Central Bank Rates | GN `("central bank" OR "interest rate" OR "rate decision" OR "monetary policy") when:2d` | — | unreviewed | — | new |
 | CNBC Markets | https://www.cnbc.com/id/100003114/device/rss/rss.html | — | unreviewed | — | new |
 | CNBC Tech | https://www.cnbc.com/id/19854910/device/rss/rss.html | — | unreviewed | — | new |
-| CoinDesk | https://www.coindesk.com/arc/outboundfeeds/rss/ | — | unreviewed | — | already in (oi/newsroom) |
-| Cointelegraph | https://cointelegraph.com/rss | — | unreviewed | — | already in (oi/newsroom) |
+| CoinDesk | https://www.coindesk.com/arc/outboundfeeds/rss/ | — | unreviewed | — | already in (ai/research/newsroom) |
+| Cointelegraph | https://cointelegraph.com/rss | — | unreviewed | — | already in (ai/research/newsroom) |
 | Commodity Futures | GN `(COMEX OR NYMEX OR "commodity futures" OR CME commodities) when:2d` | — | unreviewed | — | new |
 | Corporate Bonds | GN `("corporate bond" OR "high yield" OR "investment grade" OR "credit spread") when:3d` | — | unreviewed | — | new |
 | Crypto News | GN `(bitcoin OR ethereum OR crypto OR "digital assets") when:1d` | — | unreviewed | — | new |
 | Crypto Regulation | GN `(crypto regulation OR "digital asset" regulation OR stablecoin regulation) when:7d`<br>GN `(crypto regulation OR "digital asset" regulation OR "stablecoin" regulation) when:7d` | — | unreviewed | — | new |
 | CryptoSlate | https://cryptoslate.com/feed/ | — | unreviewed | — | new |
-| Decrypt | https://decrypt.co/feed | — | unreviewed | — | already in (oi/newsroom) |
+| Decrypt | https://decrypt.co/feed | — | unreviewed | — | already in (ai/research/newsroom) |
 | DeFi News | GN `(DeFi OR "decentralized finance") when:3d`<br>GN `(DeFi OR "decentralized finance" OR DEX OR "yield farming") when:3d` | — | unreviewed | — | new |
 | DL News | GN `site:dlnews.com when:3d` | — | unreviewed | — | new |
 | Dollar Watch | GN `("dollar index" OR DXY OR "US dollar" OR "euro dollar") when:2d` | — | unreviewed | — | new |
@@ -693,7 +693,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Hacker News | https://hnrss.org/frontpage | 4 | unreviewed | — | new |
 | Layoffs News | GN `(layoffs OR "job cuts" OR "workforce reduction") when:3d` | 4 | unreviewed | — | new |
 | TechCrunch Layoffs | https://techcrunch.com/tag/layoffs/feed/ | 4 | unreviewed | — | same host in TAKIP (other feed) |
-| The Verge | https://www.theverge.com/rss/index.xml | 4 | unreviewed | — | already in (oi/newsroom) |
+| The Verge | https://www.theverge.com/rss/index.xml | 4 | unreviewed | — | already in (ai/research/newsroom) |
 | The Verge AI | https://www.theverge.com/rss/ai-artificial-intelligence/index.xml | 4 | unreviewed | — | same host in TAKIP (other feed) |
 | VentureBeat AI | https://venturebeat.com/category/ai/feed/ | 4 | unreviewed | — | new |
 | 20VC Episodes | https://rss.libsyn.com/shows/61840/destinations/240976.xml | — | unreviewed | — | new |
@@ -767,7 +767,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Startups LATAM | GN `(startup Brazil OR startup Mexico OR startup Argentina OR startup Colombia OR startup Chile) when:7d` | — | unreviewed | — | new |
 | Taiwan Tech | GN `(Taiwan startup OR TSMC OR MediaTek OR Foxconn) when:7d` | — | unreviewed | — | new |
 | Tech Newsletters | GN `("Benedict Evans" OR "Pragmatic Engineer" OR Stratechery) tech when:14d` | — | unreviewed | — | new |
-| TechCrunch | https://techcrunch.com/feed/ | — | unreviewed | — | already in (oi/newsroom) |
+| TechCrunch | https://techcrunch.com/feed/ | — | unreviewed | — | already in (ai/research/newsroom) |
 | TechCrunch Startups | https://techcrunch.com/category/startups/feed/ | — | unreviewed | — | same host in TAKIP (other feed) |
 | TechCrunch Venture | https://techcrunch.com/category/venture/feed/ | — | unreviewed | — | same host in TAKIP (other feed) |
 | TechMeme | https://www.techmeme.com/feed.xml | — | unreviewed | — | new |
@@ -816,7 +816,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 | Live Science | https://www.livescience.com/feeds.xml | — | unreviewed | — | new |
 | Nature News | https://www.nature.com/nature.rss | — | unreviewed | — | new |
 | New Scientist | https://www.newscientist.com/feed/home/ | — | unreviewed | — | new |
-| ScienceDaily | https://www.sciencedaily.com/rss/all.xml | — | unreviewed | — | already in (oi/newsroom) |
+| ScienceDaily | https://www.sciencedaily.com/rss/all.xml | — | unreviewed | — | already in (ai/research/newsroom) |
 | Singularity Hub | https://singularityhub.com/feed/ | — | unreviewed | — | new |
 
 ## 3. Telegram channel catalogue
@@ -834,7 +834,7 @@ Source: World Monitor clone @968eac6 (AGPL-3.0) — facts only, no code copied. 
 - World Monitor treats post text as restricted (R4): its panel needs a session and is not publicly cacheable.
 
 **TAKIP method versus World Monitor's.**
-- TAKIP (`src/lib/telegram.ts` and `api/news`) parses the public `t.me/s/<handle>` HTML preview. It is keyless and stateless, but per the brief's rules it is a `scrape`. It sees only the latest page of posts (about 20) and has no history. A channel that disables its web preview cannot be read this way, and none of World Monitor's 71 handles were tested against the preview.
+- TAKIP (`src/lib/intel/alerts/telegram.ts` and `api/news`) parses the public `t.me/s/<handle>` HTML preview. It is keyless and stateless, but per the brief's rules it is a `scrape`. It sees only the latest page of posts (about 20) and has no history. A channel that disables its web preview cannot be read this way, and none of World Monitor's 71 handles were tested against the preview.
 - MTProto gives full history, reliable ids and media flags, but needs a user account and session management.
 - For TAKIP the takeaway is the **handle list and its trust overlay**, which drop straight into the existing `t.me/s/` reader, rather than the transport.
 
