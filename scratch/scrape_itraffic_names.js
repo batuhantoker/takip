@@ -5,7 +5,7 @@
  * the camera list behind www.i-traffic.co.za/cctv: keyless, but it wants a full DataTables body (columns and all;
  * a bare one 302s to /Error) and takes 15–20 s for all ~1,240 rows, too slow for a catalogue region.
  *
- *   node scratch/scrape_itraffic_names.js   -> ../src/lib/cctv/generated/itraffic-names.generated.ts
+ *   node scratch/scrape_itraffic_names.js   -> ../src/lib/feeds/cameras/generated/itraffic-names.generated.ts
  *
  * Rerun when i-traffic.ts logs cameras without a name.
  */
@@ -15,7 +15,7 @@ const path = require('path');
 
 const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
 const LIST = 'https://www.i-traffic.co.za/List/GetData/Cameras';
-const OUT = path.join(__dirname, '..', 'src', 'lib', 'cctv', 'generated', 'itraffic-names.generated.ts');
+const OUT = path.join(__dirname, '..', 'src', 'lib', 'feeds', 'cameras', 'generated', 'itraffic-names.generated.ts');
 const PAGE = 100;
 // SANRAL's server stalls past three parallel pages.
 const WORKERS = 3;

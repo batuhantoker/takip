@@ -4,7 +4,7 @@
  * The weathercam list carries no pairing; each station's detail page has `nearestWeatherStationId`.
  * That is ~815 requests, made one at a time, so the table is generated rather than read live.
  *
- *   node scratch/scrape_digitraffic_pairs.js   -> ../src/lib/cctv/generated/digitraffic-pairs.generated.ts
+ *   node scratch/scrape_digitraffic_pairs.js   -> ../src/lib/feeds/cameras/generated/digitraffic-pairs.generated.ts
  *
  * Pairings change rarely. Rerun when finland.ts logs cameras it has no pairing for.
  */
@@ -14,7 +14,7 @@ const path = require('path');
 
 const BASE = 'https://tie.digitraffic.fi/api/weathercam/v1/stations';
 const HEADERS = { 'User-Agent': 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)', 'Digitraffic-User': 'TAKIP/0.1', 'Accept-Encoding': 'gzip' };
-const OUT = path.join(__dirname, '..', 'src', 'lib', 'cctv', 'generated', 'digitraffic-pairs.generated.ts');
+const OUT = path.join(__dirname, '..', 'src', 'lib', 'feeds', 'cameras', 'generated', 'digitraffic-pairs.generated.ts');
 const GAP_MS = 200;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));

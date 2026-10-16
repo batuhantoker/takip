@@ -1,0 +1,26 @@
+import type { CctvCamera } from '@/lib/feeds/cameras/types';
+import {
+  LATAM_SKYLINE_CAMERAS,
+  AFRICA_SKYLINE_CAMERAS,
+  EUROPE_SKYLINE_CAMERAS,
+} from '@/lib/feeds/cameras/generated/world-skyline.generated';
+
+/**
+ * TAKIP — public live webcams outside Asia.
+ *
+ * Fills the regions TAKIP had no CCTV coverage for at all: Latin America, the
+ * Caribbean, Africa, and the European countries with no traffic-authority feed
+ * of their own. Split by continent so viewport-scoped queries stay meaningful.
+ */
+
+export async function fetchLatamLiveCameras(): Promise<CctvCamera[]> {
+  return LATAM_SKYLINE_CAMERAS;
+}
+
+export async function fetchAfricaLiveCameras(): Promise<CctvCamera[]> {
+  return AFRICA_SKYLINE_CAMERAS;
+}
+
+export async function fetchEuropeLiveCameras(): Promise<CctvCamera[]> {
+  return EUROPE_SKYLINE_CAMERAS;
+}

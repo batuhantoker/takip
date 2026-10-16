@@ -6,7 +6,7 @@
  * tools not to poll it, so this runs once and the names are baked into a generated map.
  *
  *   node scratch/scrape_mlit_river.js harvest   -> mlit-river-harvest.json (resumable)
- *   node scratch/scrape_mlit_river.js emit      -> ../src/lib/cctv/generated/mlit-river-cctv.generated.ts
+ *   node scratch/scrape_mlit_river.js emit      -> ../src/lib/feeds/cameras/generated/mlit-river-cctv.generated.ts
  */
 
 const https = require('https');
@@ -16,7 +16,7 @@ const path = require('path');
 const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
 const HERE = __dirname;
 const HARVEST = path.join(HERE, 'mlit-river-harvest.json');
-const OUT = path.join(HERE, '..', 'src', 'lib', 'cctv', 'generated', 'mlit-river-cctv.generated.ts');
+const OUT = path.join(HERE, '..', 'src', 'lib', 'feeds', 'cameras', 'generated', 'mlit-river-cctv.generated.ts');
 const GJSON = 'https://www.river.go.jp/kawabou/file/gjson/scam';
 const MASTER = 'https://www.river.go.jp/kawabou/file/files/master/obs/scam';
 const PREFS = [102, 103, 104, 105, ...Array.from({ length: 46 }, (_, i) => (i + 2) * 100 + 1)];

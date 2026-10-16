@@ -12,7 +12,7 @@
  *
  *   node scratch/scrape_public_webcams.js harvest   -> public-webcams-harvest.json
  *   node scratch/scrape_public_webcams.js geocode   -> public-webcams-places.json
- *   node scratch/scrape_public_webcams.js emit      -> ../src/lib/cctv/generated/public-webcams.generated.ts
+ *   node scratch/scrape_public_webcams.js emit      -> ../src/lib/feeds/cameras/generated/public-webcams.generated.ts
  *
  * The places file is committed so `emit` is reproducible without hitting
  * Nominatim again.
@@ -30,7 +30,7 @@ const NOMINATIM_UA = 'takip-cctv/0.1 (+https://github.com/batuhantoker/takip)';
 const HERE = __dirname;
 const HARVEST = path.join(HERE, 'public-webcams-harvest.json');
 const PLACES = path.join(HERE, 'public-webcams-places.json');
-const OUT = path.join(HERE, '..', 'src', 'lib', 'cctv', 'generated', 'public-webcams.generated.ts');
+const OUT = path.join(HERE, '..', 'src', 'lib', 'feeds', 'cameras', 'generated', 'public-webcams.generated.ts');
 
 const PAGES = [
   ['wd', 'cams-wd.html'], ['fr', 'cams-fr.html'], ['gr', 'cams-gr.html'],

@@ -10,7 +10,7 @@
  * else the route neighbouring sites use. Sites that are RWIS stations take
  * WYDOT's surveyed RWIS position instead. Sites with no usable reference stay out.
  *
- *   node scratch/scrape_wydot_sites.js   -> ../src/lib/cctv/generated/wydot-sites.generated.ts
+ *   node scratch/scrape_wydot_sites.js   -> ../src/lib/feeds/cameras/generated/wydot-sites.generated.ts
  *
  * Mileposts don't move. Rerun when wydot.ts logs sites it can't place.
  */
@@ -26,7 +26,7 @@ const RWIS = `${AGOL}/RWIS/FeatureServer/0/query`;
 const PLACES = 'https://www2.census.gov/geo/docs/maps-data/data/gazetteer/2024_Gazetteer/2024_gaz_place_56.txt';
 const ROUTE_PAGES = ['I25Cameras', 'I80Cameras', 'I90Cameras', 'NonInterstateCameras'];
 const INTERSTATE_ML = { I25: 'ML25B', I80: 'ML80B', I90: 'ML90B' };
-const OUT = path.join(__dirname, '..', 'src', 'lib', 'cctv', 'generated', 'wydot-sites.generated.ts');
+const OUT = path.join(__dirname, '..', 'src', 'lib', 'feeds', 'cameras', 'generated', 'wydot-sites.generated.ts');
 const WORKERS = 4;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
