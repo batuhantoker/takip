@@ -12,9 +12,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Navigation, ScanSearch, Search, type LucideIcon } from 'lucide-react';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
-import type { OiClient } from '@/lib/oi/client';
-import type { AssistClient } from '@/lib/oi/assist/client';
-import type { Mode } from '@/lib/oi/assist/protocol';
+import type { AiClient } from '@/components/panels/ti-agent/use-ai';
+import type { AssistClient, Auth } from './use-assist';
+import { useLiveVoice } from './use-live-voice';
+import type { Mode } from '@/lib/ai/assist/protocol';
 import type { KeyCardControl } from '../engine/key-card';
 import { ScrollBody } from '@/components/panels/ti-agent/parts/scroll-body';
 import { Composer } from './composer';
@@ -35,7 +36,7 @@ export type TiAssist = AssistClient & {
 
 export interface AssistViewProps {
   assist: TiAssist;
-  oi: OiClient;
+  ai: AiClient;
   ready: boolean;
   onSend: (text: string, mode: Mode) => void;
   onLocate: (lat: number, lng: number, zoom?: number) => void;
@@ -49,9 +50,11 @@ export interface AssistViewProps {
   keyCard: (control: KeyCardControl) => ReactNode;
   /** In the phone drawer, which scrolls as a whole. */
   embedded?: boolean;
+  /** The engine and key, for a live voice conversation (OpenAI only). */
+  auth?: Auth;
 }
 
-const DRAFT = 'takip.oi.assist.draft';
+const DRAFT = 'takip.ai.assist.draft';
 
 function readDraft(): { text: string; mode: Mode } {
   try {
@@ -79,13 +82,14 @@ export function AssistView(p: AssistViewProps) {
     setText('');
   };
   const dictation = useDictation(heard => send(heard));
+  const live = useLiveVoice(assist, p.ready ? p.auth ?? null : null);
 
   useEffect(() => { if (p.autoFocus) input.current?.focus(); }, [p.autoFocus]);
   // A key just arrived for a question that was waiting: put the cursor on it, ready to send.
   useEffect(() => { if (p.ready && text) input.current?.focus(); }, [p.ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const last = assist.entries[assist.entries.length - 1];
-  const lastSize = last ? (last.role === 'oi' ? last.says.length + last.actions.length + last.cards.length + (last.busy ? 0 : 100) : 1) : 0;
+  const lastSize = last ? (last.role === 'ai' ? last.says.length + last.actions.length + last.cards.length + (last.busy ? 0 : 100) : 1) : 0;
   useEffect(() => {
     if (p.embedded) { end.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); return; }
     const el = scroller.current;
@@ -113,7 +117,7 @@ export function AssistView(p: AssistViewProps) {
   ) : (
     <div className="flex flex-col gap-6" aria-live="polite">
       {assist.entries.map(e => (
-        <Turn key={e.id} e={e} oi={p.oi} hands={{ onLocate: p.onLocate, setLayers: assist.setLayers }}
+        <Turn key={e.id} e={e} ai={p.ai} hands={{ onLocate: p.onLocate, setLayers: assist.setLayers }}
           onOpenForecast={p.onOpenForecast} onWorkspace={p.onWorkspace} onRetry={(t, m) => send(t, m)} />
       ))}
     </div>
@@ -121,7 +125,7 @@ export function AssistView(p: AssistViewProps) {
 
   const composer = p.ready ? (
     <Composer ref={input} text={text} onText={setText} mode={mode} onMode={setMode} onSend={() => send(text)}
-      busy={assist.busy} onStop={assist.stop} dictation={dictation} speakOn={p.speakOn} onSpeak={canSpeak() ? p.onSpeak : undefined} />
+      busy={assist.busy} onStop={assist.stop} dictation={dictation} speakOn={p.speakOn} onSpeak={canSpeak() ? p.onSpeak : undefined} live={live} />
   ) : p.keyCard({ adding: addingKey, onAdding: setAddingKey, waiting: text.trim() || undefined });
 
   if (p.embedded) {

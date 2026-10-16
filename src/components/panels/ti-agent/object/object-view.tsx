@@ -11,8 +11,8 @@
 import { ArrowLeft, LocateFixed, Network, X } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
-import { relatedLinks, type Selection } from '@/lib/oi/research';
-import type { RunState } from '@/lib/oi/state';
+import { relatedLinks, type Selection } from '@/lib/ai/workspace/selection';
+import type { RunState } from '@/lib/ai/state';
 import { TypeIcon, accentFor } from '@/components/panels/ti-agent/atoms';
 import { Props } from './parts';
 import type { DescribeCtx, Described } from './describe';

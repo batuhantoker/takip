@@ -10,10 +10,10 @@
  * itself. A yes/no question reads in percent; a quantity in its own units,
  * each as a range.
  */
-import { formatAmount } from '@/lib/oi/forecast';
-import { priceText } from '@/lib/oi/quant';
-import type { RunState } from '@/lib/oi/state';
-import type { ContextItem } from '@/lib/oi/types';
+import { formatAmount } from '@/lib/ai/forecast';
+import { priceText } from '@/lib/ai/quant/series';
+import type { RunState } from '@/lib/ai/state';
+import type { ContextItem } from '@/lib/ai/types';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
 import { ANCHOR, fmtDate, pct } from '@/components/panels/ti-agent/theme';

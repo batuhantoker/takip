@@ -9,8 +9,8 @@
  * record in words, with the band the baseline's figure for this question
  * falls in picked out.
  */
-import { recordSentence } from '@/lib/oi/quant';
-import type { RunState } from '@/lib/oi/state';
+import { recordSentence } from '@/lib/ai/quant/backtest';
+import type { RunState } from '@/lib/ai/state';
 import { ANCHOR } from '@/components/panels/ti-agent/theme';
 
 export function TrackRecord({ s, size = 132 }: { s: RunState; size?: number }) {

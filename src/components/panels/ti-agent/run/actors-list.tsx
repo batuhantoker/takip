@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { LoaderCircle, Users } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { EmptyState } from '@/components/ui/empty-state';
-import { castOf, type RunState } from '@/lib/oi/state';
+import { castOf, type RunState } from '@/lib/ai/state';
 import { Avatar, StanceTag } from '@/components/panels/ti-agent/atoms';
 
 export function ActorsList({ s, selected, onSelect }: { s: RunState; selected: string | null; onSelect: (k: string | null) => void }) {

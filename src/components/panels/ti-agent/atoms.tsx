@@ -11,17 +11,17 @@ import {
 } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
 import { Tag } from '@/components/ui/tag';
-import { pointView } from '@/lib/oi/forecast';
-import { mentions } from '@/lib/oi/objects';
-import type { RunState } from '@/lib/oi/state';
-import type { Frame, LinkKind, Move, WorldPoint } from '@/lib/oi/types';
+import { pointView } from '@/lib/ai/forecast';
+import { mentions } from '@/lib/ai/workspace/objects';
+import type { RunState } from '@/lib/ai/state';
+import type { Frame, LinkKind, Move, WorldPoint } from '@/lib/ai/types';
 import { initials, sentence } from './theme';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';
 
 const ORBIT: CSSProperties = { transformOrigin: '12px 12px' };
 
 /** TI's mark: a gold core in its ring, with a body in orbit that turns while TI is at work. */
-export function OiMark({ size = 16, live = false, className }: { size?: number; live?: boolean; className?: string; strokeWidth?: number }) {
+export function AiMark({ size = 16, live = false, className }: { size?: number; live?: boolean; className?: string; strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden className={cx('shrink-0', className)}>
       <circle cx="12" cy="12" r="8.5" className="stroke-gold" strokeOpacity="0.45" strokeWidth="1.5" />
@@ -34,8 +34,8 @@ export function OiMark({ size = 16, live = false, className }: { size?: number; 
 }
 
 /** The mark as a panel icon: still, or turning while TI works. */
-export const TiGlyph = ({ className }: { className?: string }) => <OiMark className={className} />;
-export const TiGlyphLive = ({ className }: { className?: string }) => <OiMark className={className} live />;
+export const TiGlyph = ({ className }: { className?: string }) => <AiMark className={className} />;
+export const TiGlyphLive = ({ className }: { className?: string }) => <AiMark className={className} live />;
 
 export function Avatar({ name, size = 28, ring }: { name: string; size?: number; ring?: 'selected' | 'thinking' }) {
   return (

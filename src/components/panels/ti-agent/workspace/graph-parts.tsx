@@ -2,7 +2,7 @@
 /** TAKIP TI: the research graph's marks: a node and the legend. */
 import type { CSSProperties, PointerEvent, ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import type { GraphNode, GraphNodeKind } from '@/lib/oi/graph';
+import type { GraphNode, GraphNodeKind } from '@/lib/ai/workspace/graph';
 import { T } from '@/components/panels/ti-agent/theme';
 import { TypeIcon } from '@/components/panels/ti-agent/atoms';
 
@@ -19,10 +19,10 @@ export function GraphNodeMark({ n, refFn, selected, dim, showLabel, thinking, on
   const label = n.kind === 'evidence' ? clip(n.label, 36) : n.label;
   const ring: CSSProperties = { stroke: color, strokeWidth: n.kind === 'evidence' ? 1 : n.kind === 'report' ? 2 : 1.5 };
   return (
-    <g ref={refFn} data-oi-node={n.key} style={{ cursor: 'pointer', opacity: dim ? 0.16 : 1, transition: 'opacity .2s ease-out' }}
+    <g ref={refFn} data-ai-node={n.key} style={{ cursor: 'pointer', opacity: dim ? 0.16 : 1, transition: 'opacity .2s ease-out' }}
       onPointerDown={onDown} onPointerEnter={onEnter} onPointerLeave={onLeave}>
-      <g className="oi-graph-in">
-        {thinking && <circle r={n.radius + 6} className="oi-graph-ping" style={{ fill: 'none', stroke: T.goldDim, strokeWidth: 1.2 }} vectorEffect="non-scaling-stroke" />}
+      <g className="ai-graph-in">
+        {thinking && <circle r={n.radius + 6} className="ai-graph-ping" style={{ fill: 'none', stroke: T.goldDim, strokeWidth: 1.2 }} vectorEffect="non-scaling-stroke" />}
         {selected && <circle r={n.radius + 5} className="fill-none stroke-ink-1" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />}
         {n.kind === 'report' && <circle r={n.radius + 4} style={{ fill: 'none', stroke: color, strokeWidth: 1, opacity: 0.35 }} vectorEffect="non-scaling-stroke" />}
         {/* The actors who play the simulation wear a second, quieter ring. */}

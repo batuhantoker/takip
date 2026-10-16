@@ -2,9 +2,9 @@
 /** TAKIP TI: the pieces an object's view is made of. */
 import type { ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import { moveFor, nodeName } from '@/lib/oi/research';
-import { worldName, type RunState } from '@/lib/oi/state';
-import type { Link, Move } from '@/lib/oi/types';
+import { moveFor, nodeName } from '@/lib/ai/workspace/selection';
+import { worldName, type RunState } from '@/lib/ai/state';
+import type { Link, Move } from '@/lib/ai/types';
 import { TONE_WORD, toneColor } from '../theme';
 import { Avatar, Mentions, PointTag, StanceTag, TypeIcon, accentFor } from '../atoms';
 import { Quotes, Verbatim } from '@/components/panels/ti-agent/parts/quotes';

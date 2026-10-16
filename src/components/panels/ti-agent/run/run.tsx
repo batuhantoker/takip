@@ -9,10 +9,10 @@ import { Button, IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
 import { TextField } from '@/components/ui/field';
 import { Dot } from '@/components/ui/tag';
-import type { OiClient } from '@/lib/oi/client';
-import type { RunState } from '@/lib/oi/state';
+import type { AiClient } from '@/components/panels/ti-agent/use-ai';
+import type { RunState } from '@/lib/ai/state';
 import { KIND_LABEL, plural, took } from '@/components/panels/ti-agent/theme';
-import { OiMark } from '@/components/panels/ti-agent/atoms';
+import { AiMark } from '@/components/panels/ti-agent/atoms';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';
 
 export { Verdict } from './verdict';
@@ -71,7 +71,7 @@ export function StatusLine({ s }: { s: RunState }) {
   );
 }
 
-export function Controls({ s, oi, focus, onFocus, following, onFollow }: { s: RunState; oi: OiClient; focus?: boolean; onFocus?: () => void; following?: boolean; onFollow?: () => void }) {
+export function Controls({ s, ai, focus, onFocus, following, onFollow }: { s: RunState; ai: AiClient; focus?: boolean; onFocus?: () => void; following?: boolean; onFollow?: () => void }) {
   return (
     <div className="flex shrink-0 items-center gap-0.5">
       {following !== undefined && onFollow && (
@@ -79,12 +79,12 @@ export function Controls({ s, oi, focus, onFocus, following, onFollow }: { s: Ru
           label={following ? 'The camera follows the run; move the map to take over' : 'Follow the run with the camera'} />
       )}
       {onFocus && <IconButton size="sm" icon={Crosshair} active={focus} onClick={onFocus} label={focus ? 'Bring the other map layers back' : 'Hide the other map layers'} />}
-      {s.status === 'running' && oi.canSteer && <IconButton size="sm" icon={Square} onClick={() => oi.cancel()} label="Stop the run" />}
+      {s.status === 'running' && ai.canSteer && <IconButton size="sm" icon={Square} onClick={() => ai.cancel()} label="Stop the run" />}
     </div>
   );
 }
 
-export function RunHead({ s, oi, focus, onFocus, following, onFollow }: { s: RunState; oi: OiClient; focus?: boolean; onFocus?: () => void; following?: boolean; onFollow?: () => void }) {
+export function RunHead({ s, ai, focus, onFocus, following, onFollow }: { s: RunState; ai: AiClient; focus?: boolean; onFocus?: () => void; following?: boolean; onFollow?: () => void }) {
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -100,7 +100,7 @@ export function RunHead({ s, oi, focus, onFocus, following, onFollow }: { s: Run
       {s.status !== 'done' && <PhaseRail s={s} />}
       <div className="-my-1 flex min-h-8 items-center gap-2">
         <div className="min-w-0 flex-1"><StatusLine s={s} /></div>
-        <Controls s={s} oi={oi} focus={focus} onFocus={onFocus} following={following} onFollow={onFollow} />
+        <Controls s={s} ai={ai} focus={focus} onFocus={onFocus} following={following} onFollow={onFollow} />
       </div>
     </div>
   );
@@ -110,7 +110,7 @@ export function RunHead({ s, oi, focus, onFocus, following, onFollow }: { s: Run
 export function Connecting({ onCancel }: { onCancel: () => void }) {
   return (
     <section role="status" className="flex flex-col items-center px-6 py-12 text-center">
-      <span className="mb-3 flex size-10 items-center justify-center rounded-full bg-gold-soft"><OiMark size={20} live /></span>
+      <span className="mb-3 flex size-10 items-center justify-center rounded-full bg-gold-soft"><AiMark size={20} live /></span>
       <p className="text-body font-medium text-ink-1">Starting your forecast</p>
       <p className="mt-1 max-w-[260px] text-small text-ink-2">TI researches the question first, then casts the actors. The map draws as it goes.</p>
       <Button variant="ghost" size="sm" className="mt-4" onClick={onCancel} title="It keeps running; open it again from your forecasts">Ask something else</Button>
@@ -119,13 +119,13 @@ export function Connecting({ onCancel }: { onCancel: () => void }) {
 }
 
 /** Steering a live run: something that happens in every world from the next period on. */
-export function InjectBox({ oi, s }: { oi: OiClient; s: RunState }) {
+export function InjectBox({ ai, s }: { ai: AiClient; s: RunState }) {
   const [text, setText] = useState('');
   const [msg, setMsg] = useState('');
   const late = s.phase === 'report';
   const send = async () => {
     if (text.trim().length < 3) return;
-    const err = await oi.inject(text.trim());
+    const err = await ai.inject(text.trim());
     setMsg(err ?? 'Added. It happens in every world in the next period.');
     if (!err) setText('');
     setTimeout(() => setMsg(''), 3500);

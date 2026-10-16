@@ -1,14 +1,19 @@
 'use client';
 /** TAKIP TI Assist: where the reader writes, or speaks, to TI. */
 import { forwardRef } from 'react';
-import { ArrowUp, Check, ChevronDown, Mic, Square, Volume2 } from 'lucide-react';
+import { ArrowUp, AudioLines, Check, ChevronDown, Mic, Square, Volume2 } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { Tooltip } from '@/components/ui/tooltip';
-import type { Mode } from '@/lib/oi/assist/protocol';
+import type { Mode } from '@/lib/ai/assist/protocol';
 import { TextArea } from '@/components/panels/ti-agent/parts/text-area';
+import type { LiveVoice, VoiceState } from './use-live-voice';
+
+const LIVE_WORDS: Record<VoiceState, string> = {
+  idle: '', connecting: 'Connecting…', listening: 'Listening: just talk', thinking: 'TI is working…', speaking: 'TI is speaking', error: '',
+};
 
 export const MODES: { value: Mode; label: string; hint: string }[] = [
   { value: 'auto', label: 'Auto', hint: 'TI decides' },
@@ -59,18 +64,21 @@ export interface ComposerProps {
   dictation: { supported: boolean; listening: boolean; heard: string; error: string; start: () => void; stop: () => void };
   speakOn: boolean;
   onSpeak?: (on: boolean) => void;
+  /** A spoken conversation over OpenAI Realtime, when the engine is OpenAI. */
+  live?: LiveVoice;
 }
 
 export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function Composer(p, ref) {
-  const { dictation } = p;
-  const canSend = Boolean(p.text.trim()) && !dictation.listening;
+  const { dictation, live } = p;
+  const talking = Boolean(live && live.state !== 'idle' && live.state !== 'error');
+  const canSend = Boolean(p.text.trim()) && !dictation.listening && !talking;
   return (
     <div className="flex flex-col gap-2">
       <div className="rounded-card border border-line-strong bg-surface-2 transition-colors duration-150 focus-within:border-accent">
         <TextArea ref={ref} bare maxRows={6} value={dictation.listening ? dictation.heard : p.text} readOnly={dictation.listening}
           onChange={e => p.onText(e.target.value.slice(0, 2000))}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); if (canSend && !p.busy) p.onSend(); } }}
-          placeholder={dictation.listening ? 'Listening…' : p.mode === 'forecast' ? 'What should TI forecast?' : 'Ask TI…'}
+          placeholder={talking ? LIVE_WORDS[live!.state] : dictation.listening ? 'Listening…' : p.mode === 'forecast' ? 'What should TI forecast?' : 'Ask TI…'}
           aria-label="Message to TI" className="px-3 pt-2.5 pb-1" />
         <div className="flex items-center gap-0.5 px-1.5 pb-1.5">
           <ModeMenu mode={p.mode} onMode={p.onMode} />
@@ -79,15 +87,19 @@ export const Composer = forwardRef<HTMLTextAreaElement, ComposerProps>(function 
             <IconButton size="sm" label={p.speakOn ? 'Stop reading replies aloud' : 'Read replies aloud'} icon={Volume2}
               active={p.speakOn} onClick={() => p.onSpeak?.(!p.speakOn)} tooltipSide="top" />
           )}
-          {dictation.supported && (
+          {live?.available && (
+            <IconButton size="sm" label={talking ? 'End the voice conversation' : 'Talk with TI'} icon={AudioLines} active={talking}
+              disabled={p.busy && !talking} onClick={() => (talking ? live.stop() : void live.start())} tooltipSide="top" />
+          )}
+          {dictation.supported && !talking && (
             <IconButton size="sm" label={dictation.listening ? 'Stop listening' : 'Dictate'} icon={Mic} active={dictation.listening}
               disabled={p.busy} onClick={() => (dictation.listening ? dictation.stop() : dictation.start())} tooltipSide="top" />
           )}
           <span className="ml-1"><SendButton busy={p.busy} disabled={!canSend} onSend={p.onSend} onStop={p.onStop} /></span>
         </div>
       </div>
-      <p className={cx('text-meta', dictation.error ? 'text-red' : 'text-ink-3')}>
-        {dictation.error || (dictation.listening ? 'Speak, then pause: TI sends what it heard.' : 'Enter to send · Shift+Enter for a new line')}
+      <p className={cx('text-meta', dictation.error || live?.error ? 'text-red' : 'text-ink-3')}>
+        {live?.error || dictation.error || (talking ? 'Live voice on your OpenAI key, billed by OpenAI per minute. TI hears you, answers aloud and works the map.' : dictation.listening ? 'Speak, then pause: TI sends what it heard.' : 'Enter to send · Shift+Enter for a new line')}
       </p>
     </div>
   );

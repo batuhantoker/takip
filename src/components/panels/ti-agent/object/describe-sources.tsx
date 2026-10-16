@@ -2,8 +2,8 @@
 /** TAKIP TI: what the research and the report show as objects: a source, a scenario, the report, a signpost. */
 import { ArrowUpRight } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import { TYPE_LABEL } from '@/lib/oi/objects';
-import { priceText } from '@/lib/oi/quant';
+import { TYPE_LABEL } from '@/lib/ai/workspace/objects';
+import { priceText } from '@/lib/ai/quant/series';
 import { ago, leanWord, pct, sentence } from '../theme';
 import { Mentions, TypeIcon } from '../atoms';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';

@@ -2,11 +2,11 @@
 /** TAKIP TI: what the simulation's own objects show: a link, an actor, an event, a world. */
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LINK_LABEL, TYPE_LABEL } from '@/lib/oi/objects';
-import { moveFor, nodeName } from '@/lib/oi/research';
-import { evidenceLedger } from '@/lib/oi/sources';
-import { worldName } from '@/lib/oi/state';
-import type { Move } from '@/lib/oi/types';
+import { LINK_LABEL, TYPE_LABEL } from '@/lib/ai/workspace/objects';
+import { moveFor, nodeName } from '@/lib/ai/workspace/selection';
+import { evidenceLedger } from '@/lib/ai/engine/sources';
+import { worldName } from '@/lib/ai/state';
+import type { Move } from '@/lib/ai/types';
 import { TONE_WORD, ago, fmtDate } from '../theme';
 import { Mentions, PointTag, STANCE, TypeIcon } from '../atoms';
 import { PushTag, SourceLink, Verbatim, sourceLabel } from '@/components/panels/ti-agent/parts/quotes';

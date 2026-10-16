@@ -9,9 +9,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { Dot, Tag } from '@/components/ui/tag';
-import { nodeName } from '@/lib/oi/research';
-import type { RunState } from '@/lib/oi/state';
-import type { ContextItem, Link } from '@/lib/oi/types';
+import { nodeName } from '@/lib/ai/workspace/selection';
+import type { RunState } from '@/lib/ai/state';
+import type { ContextItem, Link } from '@/lib/ai/types';
 import { T, ago, pct, toneColor } from '@/components/panels/ti-agent/theme';
 import { SOURCE_KIND, SourceLink, sourceLabel } from '@/components/panels/ti-agent/parts/quotes';
 

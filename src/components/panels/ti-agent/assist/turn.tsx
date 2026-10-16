@@ -2,22 +2,25 @@
 /** TAKIP TI Assist: one turn of the conversation, the reader's or TI's. */
 import { useState } from 'react';
 import {
-  AlertCircle, Cctv, Eraser, Globe2, LayoutDashboard, Layers, List, LoaderCircle, MapPin, MousePointerClick, Navigation, Orbit, PanelRight,
-  RotateCcw, ScanSearch, Search, TrendingUp, type LucideIcon,
+  AlertCircle, BookOpen, Building2, Cctv, Clock, CloudSun, Crosshair, Eraser, FileText, Globe2, Hourglass, LayoutDashboard, Layers, Link2, List, LoaderCircle, MapPin, MousePointerClick, Move3d, Navigation, Orbit, PanelRight,
+  Plane, RotateCcw, Route, Satellite, ScanSearch, Search, TrendingUp, X, type LucideIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
 import { Dot } from '@/components/ui/tag';
-import type { OiClient } from '@/lib/oi/client';
-import type { ActionView, Entry } from '@/lib/oi/assist/client';
-import type { Mode, ToolName } from '@/lib/oi/assist/protocol';
+import type { AiClient } from '@/components/panels/ti-agent/use-ai';
+import type { ActionView, Entry } from './use-assist';
+import type { Mode, ToolName } from '@/lib/ai/assist/protocol';
 import { actionLine, flewTo, layerChange } from './action-words';
 import { Prose } from './prose';
 import { ResultCard, cardWorthShowing } from './result-card';
+import { LiveThinking, ReasoningNote } from './thinking';
 
 const TOOL_ICON: Record<ToolName, LucideIcon> = {
   go_to: Navigation, layers: Layers, find: Search, scan: ScanSearch, camera: Cctv, highlight: MapPin, show: List, markets: TrendingUp,
   open: PanelRight, map_view: Globe2, forecast: Orbit, workspace: LayoutDashboard, select: MousePointerClick, clear: Eraser,
+  move: Move3d, track: Crosshair, untrack: X, aircraft: Plane, weather: CloudSun, pass: Satellite, brief: FileText, route: Route, link: Link2, nearby: Building2, timeline: Clock,
+  chronicle: Hourglass, past_event: BookOpen,
 };
 
 const MODE_WORD: Record<Mode, string> = { auto: '', navigate: 'Navigate', research: 'Research', forecast: 'Forecast' };
@@ -55,8 +58,8 @@ function ActionRow({ a, hands, carded }: { a: ActionView; hands: MapHands; carde
   );
 }
 
-export function Turn({ e, oi, hands, onOpenForecast, onWorkspace, onRetry }: {
-  e: Entry; oi: OiClient; hands: MapHands; onOpenForecast: () => void; onWorkspace?: () => void; onRetry: (text: string, mode: Mode) => void;
+export function Turn({ e, ai, hands, onOpenForecast, onWorkspace, onRetry }: {
+  e: Entry; ai: AiClient; hands: MapHands; onOpenForecast: () => void; onWorkspace?: () => void; onRetry: (text: string, mode: Mode) => void;
 }) {
   if (e.role === 'user') {
     return (
@@ -77,14 +80,15 @@ export function Turn({ e, oi, hands, onOpenForecast, onWorkspace, onRetry }: {
   });
   return (
     <div className="flex flex-col gap-3">
+      {!e.busy && e.reasoning?.length ? <ReasoningNote steps={e.reasoning} /> : null}
       {e.says.map((s, i) => <Prose key={i} text={s} />)}
       {e.actions.length > 0 && (
         <ul aria-label="What TI did" className="flex flex-col border-l border-line pl-3">
           {e.actions.map((a, i) => <ActionRow key={i} a={a} hands={hands} carded={carded[i]} />)}
         </ul>
       )}
-      {cards.map((c, i) => <ResultCard key={i} card={c} oi={oi} onLocate={hands.onLocate} onOpenForecast={onOpenForecast} onWorkspace={onWorkspace} />)}
-      {e.busy && !e.says.length && !e.actions.length && (
+      {cards.map((c, i) => <ResultCard key={i} card={c} ai={ai} onLocate={hands.onLocate} onOpenForecast={onOpenForecast} onWorkspace={onWorkspace} />)}
+      {e.busy && e.live ? <LiveThinking live={e.live} /> : e.busy && !e.says.length && !e.actions.length && (
         <p role="status" className="flex items-center gap-2 text-small text-ink-3"><Dot tone="gold" pulse />Thinking</p>
       )}
       {e.error && (

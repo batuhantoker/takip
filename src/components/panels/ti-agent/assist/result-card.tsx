@@ -1,28 +1,31 @@
 'use client';
 /** TAKIP TI Assist: what TI put on screen: a list to click through, market quotes, or a forecast it started. */
 import { useState } from 'react';
-import { Cctv, List, MapPin, ScanSearch, Search, TrendingUp, type LucideIcon } from 'lucide-react';
+import { Cctv, CloudSun, FileText, Hourglass, Link2, List, MapPin, Plane, Route, Satellite, ScanSearch, Search, TrendingUp, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
 import { ListRow } from '@/components/ui/list-row';
-import type { OiClient } from '@/lib/oi/client';
-import type { Card } from '@/lib/oi/assist/tools';
-import { currentAnswer } from '@/lib/oi/state';
-import { OiMark } from '../atoms';
+import type { AiClient } from '@/components/panels/ti-agent/use-ai';
+import type { Card } from '@/lib/ai/assist/tools';
+import { currentAnswer } from '@/lib/ai/state';
+import { AiMark } from '../atoms';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';
 import { sentence } from '../theme';
 
-const ICON: Record<Card['kind'], LucideIcon> = { find: Search, show: List, markets: TrendingUp, forecast: TrendingUp, place: MapPin, scan: ScanSearch, camera: Cctv };
+const ICON: Record<Card['kind'], LucideIcon> = {
+  find: Search, show: List, markets: TrendingUp, forecast: TrendingUp, place: MapPin, scan: ScanSearch, camera: Cctv,
+  aircraft: Plane, weather: CloudSun, pass: Satellite, brief: FileText, route: Route, link: Link2, history: Hourglass,
+};
 const SHOWN = 6;
 
 /** A place card only repeats the action row that flew there, which has its own Show. */
 export const cardWorthShowing = (c: Card) => !(c.kind === 'place' && c.items.length <= 1);
 
-export function ResultCard({ card, oi, onLocate, onOpenForecast, onWorkspace }: {
-  card: Card; oi: OiClient; onLocate: (lat: number, lng: number, zoom?: number) => void; onOpenForecast: () => void; onWorkspace?: () => void;
+export function ResultCard({ card, ai, onLocate, onOpenForecast, onWorkspace }: {
+  card: Card; ai: AiClient; onLocate: (lat: number, lng: number, zoom?: number) => void; onOpenForecast: () => void; onWorkspace?: () => void;
 }) {
   const [all, setAll] = useState(false);
-  if (card.kind === 'forecast') return <ForecastCard card={card} oi={oi} onOpenForecast={onOpenForecast} onWorkspace={onWorkspace} />;
+  if (card.kind === 'forecast') return <ForecastCard card={card} ai={ai} onOpenForecast={onOpenForecast} onWorkspace={onWorkspace} />;
   const Icon = ICON[card.kind];
   const shown = all ? card.items : card.items.slice(0, SHOWN);
   const zoom = card.kind === 'place' ? undefined : card.kind === 'camera' ? 14 : 8;
@@ -59,21 +62,21 @@ export function ResultCard({ card, oi, onLocate, onOpenForecast, onWorkspace }: 
 }
 
 /** A forecast TI started: it follows the run and opens it in Forecast. */
-function ForecastCard({ card, oi, onOpenForecast, onWorkspace }: { card: Card; oi: OiClient; onOpenForecast: () => void; onWorkspace?: () => void }) {
-  const live = oi.runId === card.runId ? oi.state : null;
+function ForecastCard({ card, ai, onOpenForecast, onWorkspace }: { card: Card; ai: AiClient; onOpenForecast: () => void; onWorkspace?: () => void }) {
+  const live = ai.runId === card.runId ? ai.state : null;
   const answer = live ? sentence(currentAnswer(live)) : '';
   const status = !live ? '' : live.status === 'running' ? live.phaseLabel : live.status === 'done' ? 'Ready' : live.status === 'failed' ? 'Failed' : 'Stopped';
   return (
     <section className="flex flex-col gap-2 rounded-card border border-gold/25 bg-gold-soft p-3">
       <div className="flex items-center gap-2 text-meta">
-        <OiMark size={14} live={live?.status === 'running'} />
+        <AiMark size={14} live={live?.status === 'running'} />
         <span className="font-medium text-gold">Forecast</span>
         {status && <span className="min-w-0 truncate text-ink-3">{status}</span>}
       </div>
       <p className="text-body font-medium text-ink-1">{card.title}</p>
       {answer && <p className="text-title font-medium text-ink-1"><Figures text={answer} /></p>}
       <div className="mt-1 flex items-center gap-1">
-        <Button size="sm" onClick={() => { if (card.runId && oi.runId !== card.runId) void oi.watch(card.runId); onOpenForecast(); }}>Open forecast</Button>
+        <Button size="sm" onClick={() => { if (card.runId && ai.runId !== card.runId) void ai.watch(card.runId); onOpenForecast(); }}>Open forecast</Button>
         {onWorkspace && live && <Button size="sm" variant="ghost" onClick={onWorkspace}>Open the workspace</Button>}
       </div>
     </section>

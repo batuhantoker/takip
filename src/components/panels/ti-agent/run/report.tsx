@@ -10,9 +10,9 @@ import { ArrowDownRight, ArrowUpRight, Check, Download, Link2 } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
-import { toMarkdown } from '@/lib/oi/client';
-import { evidenceLedger } from '@/lib/oi/sources';
-import { latestPoints, worldName, type RunState } from '@/lib/oi/state';
+import { toMarkdown } from '@/lib/ai/client';
+import { evidenceLedger } from '@/lib/ai/engine/sources';
+import { latestPoints, worldName, type RunState } from '@/lib/ai/state';
 import { fmtDate, leanWord, pct } from '@/components/panels/ti-agent/theme';
 import { Avatar, Mentions, PointTag, TypeIcon } from '@/components/panels/ti-agent/atoms';
 import { PushTag, SourceLink, sourceLabel } from '@/components/panels/ti-agent/parts/quotes';
@@ -56,7 +56,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
   const standing = latestPoints(s);
   const name = (id: string) => s.actors.find(a => a.id === id)?.name ?? id;
   const toggle = (k: string) => onSelect(selected === k ? null : k);
-  const url = typeof window !== 'undefined' && runId ? `${window.location.origin}/?oi=${runId}` : '';
+  const url = typeof window !== 'undefined' && runId ? `${window.location.origin}/?ai=${runId}` : '';
   const copy = async () => {
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ }
   };

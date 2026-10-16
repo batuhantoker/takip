@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import type { Selection } from '@/lib/oi/research';
-import type { RunState } from '@/lib/oi/state';
-import type { LinkKind } from '@/lib/oi/types';
+import type { Selection } from '@/lib/ai/workspace/selection';
+import type { RunState } from '@/lib/ai/state';
+import type { LinkKind } from '@/lib/ai/types';
 import type { Pick } from './parts';
 
 /** What an object's view shows: who it is, its facts, and what it links to. */

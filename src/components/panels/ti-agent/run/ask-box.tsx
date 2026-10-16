@@ -5,12 +5,13 @@ import { ArrowUp, MessageSquare } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Select, TextField } from '@/components/ui/field';
-import type { Engine, OiClient } from '@/lib/oi/client';
-import { castOf, type RunState } from '@/lib/oi/state';
+import type { Engine } from '@/lib/ai/client';
+import type { AiClient } from '@/components/panels/ti-agent/use-ai';
+import { castOf, type RunState } from '@/lib/ai/state';
 import { Mentions } from '@/components/panels/ti-agent/atoms';
 
-export function AskBox({ s, oi, engine, keyValue, ready, target, setTarget, onSelect }: {
-  s: RunState; oi: OiClient; engine: Engine; keyValue: string; ready: boolean; target: string; setTarget: (t: string) => void; onSelect: (k: string | null) => void;
+export function AskBox({ s, ai, engine, keyValue, ready, target, setTarget, onSelect }: {
+  s: RunState; ai: AiClient; engine: Engine; keyValue: string; ready: boolean; target: string; setTarget: (t: string) => void; onSelect: (k: string | null) => void;
 }) {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -23,7 +24,7 @@ export function AskBox({ s, oi, engine, keyValue, ready, target, setTarget, onSe
     setBusy(true);
     setLog(l => [...l, { who: 'You', text: m, you: true }]);
     setMessage('');
-    const out = await oi.ask(target, m, engine, keyValue);
+    const out = await ai.ask(target, m, engine, keyValue);
     setLog(l => [...l, { who: targetName, text: out.reply ?? out.error ?? '…', you: false }]);
     setBusy(false);
   };
