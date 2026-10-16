@@ -1,5 +1,6 @@
 import type { Access } from '@takip/core/entitlements';
 import type { ApiKey } from '@/lib/platform/account/api-keys';
+import type { ReportView } from '@/lib/platform/reports/report-view';
 
 /* Response shapes of apps/api/src/admin/routes.ts. */
 
@@ -13,6 +14,8 @@ export type AuditEvent = {
   impersonator: string | null;
   impersonatorEmail: string | null;
   action: string;
+  /** 'user', or what else the action was about ('report', 'source'). */
+  subjectType: string | null;
   subjectId: string | null;
   subjectEmail: string | null;
   data: Record<string, unknown>;
@@ -110,3 +113,22 @@ export type BillingOverview = {
   events: { provider: string; eventId: string; type: string; receivedAt: number; processedAt: number | null; error: string | null }[];
   jobs: { counts: { pending: number; failed: number; done: number }; pending: Job[]; failed: Job[]; recent: Job[] };
 };
+
+export type ReportStatus = 'open' | 'resolved';
+
+export type AdminReport = {
+  id: number;
+  createdAt: number;
+  /** Null for a visitor. */
+  userId: string | null;
+  email: string | null;
+  message: string;
+  view: ReportView;
+  userAgent: string | null;
+  status: ReportStatus;
+  resolvedAt: number | null;
+  resolvedBy: string | null;
+  resolverEmail: string | null;
+};
+
+export type ReportList = { counts: Record<'all' | ReportStatus, number>; total: number; reports: AdminReport[] };

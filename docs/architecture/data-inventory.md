@@ -48,7 +48,7 @@ The sky, cosmos and Milky Way files are not committed yet. Mission notes (71 cra
 | geo | `feature`, `feature_gen` (+ R\*Tree) | Polygons and points with a validity period, pre-generalised per zoom band. |
 | tracks | `trk_segment`, `trk_state` | Movement: one row per entity per time bucket, the points packed in a blob, with a `source_mask` for licence gating. `trk_state` keeps callsign, squawk, destination and status over time. `class` 1 = vessel, 2 = aircraft. |
 | tle | `trk_tle` | Orbital elements per NORAD id and epoch. |
-| app | `auth_*`, `bill_*`, `api_key`, `ws_workspace`, `usage_counter`, `job`, `audit_event`, `admin_unlock` | Accounts and the product, not data we publish. |
+| app | `auth_*`, `bill_*`, `api_key`, `ws_workspace`, `issue_report`, `usage_counter`, `job`, `audit_event`, `admin_unlock` | Accounts and the product, not data we publish. |
 
 ## 3. What we hold
 

@@ -18,7 +18,7 @@ export default function AuditTable({ events, showSubject = true }: { events: Aud
             <th className={TH}>When</th>
             <th className={TH}>Who</th>
             <th className={TH}>What</th>
-            {showSubject && <th className={TH}>User</th>}
+            {showSubject && <th className={TH}>About</th>}
             <th className={TH}>Details</th>
           </tr>
         </thead>
@@ -35,7 +35,9 @@ export default function AuditTable({ events, showSubject = true }: { events: Aud
               <td className={`${TD} font-mono text-[11px] text-accent whitespace-nowrap`}>{e.action}</td>
               {showSubject && (
                 <td className={TD}>
-                  {e.subjectId ? <Link href={`/admin/users/${e.subjectId}`} className="hover:underline">{e.subjectEmail ?? e.subjectId}</Link> : '—'}
+                  {!e.subjectId ? '—'
+                    : e.subjectType === 'user' ? <Link href={`/admin/users/${e.subjectId}`} className="hover:underline">{e.subjectEmail ?? e.subjectId}</Link>
+                    : <span className="text-ink-3">{e.subjectType} {e.subjectId}</span>}
                 </td>
               )}
               <td className={`${TD} text-ink-3 break-words`}>{summary(e.data) || '—'}</td>

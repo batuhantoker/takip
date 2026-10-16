@@ -22,7 +22,7 @@ export const KEY_POLICY_GROUPS = [
 ] as const;
 
 /** Account and meta routes: never gated, so signing in, keys and the console keep working. */
-export const OPEN_GROUPS = ['auth', 'me', 'plans', 'key-policy', 'usage', 'keys', 'account', 'workspaces', 'w', 'openapi.json', 'docs'] as const;
+export const OPEN_GROUPS = ['auth', 'me', 'plans', 'key-policy', 'usage', 'keys', 'account', 'workspaces', 'w', 'reports', 'openapi.json', 'docs'] as const;
 
 export type KeyPolicyView = {
   group: string;

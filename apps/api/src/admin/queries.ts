@@ -89,7 +89,7 @@ export function adminQueries(db: AppDb, access: AccessResolver) {
       return db.prepare(`
         SELECT a.audit_id AS id, a.at, a.actor_type AS actorType, a.actor_id AS actorId, actor.email AS actorEmail,
                a.impersonator, impersonator.email AS impersonatorEmail,
-               a.action, a.subject_id AS subjectId, subject.email AS subjectEmail, a.data
+               a.action, a.subject_type AS subjectType, a.subject_id AS subjectId, subject.email AS subjectEmail, a.data
         FROM audit_event a
         LEFT JOIN auth_user actor ON actor.id = a.actor_id
         LEFT JOIN auth_user impersonator ON impersonator.id = a.impersonator

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, BookOpen, ChartLine, Coffee, Ellipsis, Keyboard, Settings, ShieldCheck } from 'lucide-react';
+import { BarChart3, BookOpen, ChartLine, Coffee, Ellipsis, Keyboard, MessageSquareWarning, Settings, ShieldCheck } from 'lucide-react';
 import { APP_VERSION } from '@/lib/platform/app-version';
 import { IconButton } from '@/components/ui/button';
 import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
@@ -12,6 +12,7 @@ import { DiscordIcon, XIcon } from './brand-icons';
 import { RailButton } from '@/components/shell/sidebar/rail-button';
 import { showShortcuts } from '@/components/shell/keyboard/shortcuts-state';
 import { openSettings } from '@/components/shell/settings/open-settings';
+import { showReportDialog } from '@/components/site/report/report-dialog-state';
 import TokenChart from './token-chart';
 
 const SOCIAL = [
@@ -21,7 +22,7 @@ const SOCIAL = [
 
 /**
  * Everything kept off the main screen: Markets, the token chart, support,
- * Settings, the docs and the community. `rail` is the sidebar's entry; `compact` the phone's.
+ * Settings, the docs, issue reports and the community. `rail` is the sidebar's entry; `compact` the phone's.
  */
 export default function MoreMenu({ compact = false, rail = false, active = false, onOpenMarkets }: {
   compact?: boolean;
@@ -48,6 +49,7 @@ export default function MoreMenu({ compact = false, rail = false, active = false
             <MenuItem icon={BookOpen} href="/docs" onSelect={close}>Docs and API</MenuItem>
             {!compact && <MenuItem icon={Keyboard} kbd="?" onSelect={() => { close(); showShortcuts(); }}>Keyboard shortcuts</MenuItem>}
             <MenuItem icon={ShieldCheck} href="/privacy" onSelect={close}>Privacy</MenuItem>
+            <MenuItem icon={MessageSquareWarning} onSelect={() => { close(); showReportDialog(); }}>Report an issue</MenuItem>
             <MenuDivider />
             <div className="flex items-center gap-0.5 pl-0.5">
               {SOCIAL.map(({ href, label, Icon }) => (

@@ -186,7 +186,9 @@ Everything that opens over the map is a window (`@/components/map/windows`):
 inspect cards, camera players, live TV, the place dossier, the satellite images
 of a place, the watched aircraft, and History events pinned from their popups. Map pins' own popups
 stay anchored to their point; a History event's popup has a Pin beside Close that turns it into a
-window (closed again on leaving History or Replay; not on a phone). A camera window
+window (closed again on leaving History or Replay; not on a phone). A right-click on the map opens a
+menu at the pointer, not a window: Region dossier, Satellite images here and Report an issue here; a
+second right-click straight after still opens the dossier. A camera window
 has a thin `ink-2` line from its nearest edge to the camera's ring on the map.
 
 - **Stacked.** Windows dock in a column at the top-right, below Showing (12 px in, cards
@@ -260,7 +262,7 @@ line saying what goes here, one line saying how, and at most one button.
   `IconButton` (requires a `label`; shows it as the tooltip with an optional
   `kbd`)
 - `segmented.tsx`: `Segmented` (2–5 options, optional counts)
-- `field.tsx`: `TextField`, `SearchField`, `Select`, `Switch`, `Checkbox`
+- `field.tsx`: `TextField`, `TextArea`, `SearchField`, `Select`, `Switch`, `Checkbox`
 - `list-row.tsx`: `ListRow`
 - `tag.tsx`: `Tag` (quiet, outlined, 11 px, tones `neutral` `accent` `red`
   `amber` `green` `blue`), `Dot`

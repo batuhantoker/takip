@@ -16,6 +16,7 @@ import { impersonation } from './impersonation';
 import { keyPolicyRoutes } from './key-policy-routes';
 import { allKeysRoutes } from './keys-routes';
 import { adminQueries } from './queries';
+import { adminReportRoutes } from './reports-routes';
 import type { SourceSwitchboard } from '../replay/sources';
 import { sourcesRoutes } from './sources-routes';
 import { adminUsageRoutes } from './usage-routes';
@@ -86,6 +87,7 @@ export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, 
   app.route('/key-policy', keyPolicyRoutes({ db, policy, usage }));
   app.route('/usage', adminUsageRoutes({ db, usage }));
   app.route('/billing', adminBillingRoutes({ db, provider: billing }));
+  app.route('/reports', adminReportRoutes({ db }));
 
   app.get('/overview', c => c.json({ ...queries.overview(), recent: queries.audit({ limit: 10 }) }));
 

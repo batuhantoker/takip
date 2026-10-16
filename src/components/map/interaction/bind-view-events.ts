@@ -17,7 +17,7 @@ interface ViewEventHandlers {
 
 /** The menu's size, so it opens inside the map near an edge. */
 const MENU_W = 232;
-const MENU_H = 96;
+const MENU_H = 128;
 
 export function bindViewEvents(map: maplibregl.Map, container: HTMLDivElement, { onMouseCoords, onRightClick, onViewStateChange, onMenu }: ViewEventHandlers) {
   // Events

@@ -124,6 +124,22 @@ CREATE TABLE ws_workspace (
 ) STRICT, WITHOUT ROWID;
 CREATE INDEX ws_workspace_owner ON ws_workspace (owner_id, updated_at DESC) WHERE deleted_at IS NULL;
 
+-- ───────────────────────────── issue reports ─────────────────────────────
+
+CREATE TABLE issue_report (
+  report_id    INTEGER PRIMARY KEY,
+  created_at   INTEGER NOT NULL,
+  user_id      TEXT,                            -- auth_user.id; NULL for a visitor
+  message      TEXT NOT NULL,                   -- 10–2000 characters
+  view         TEXT NOT NULL DEFAULT '{}',      -- ReportView JSON: link, camera, mode and time, layers, panel
+  user_agent   TEXT,
+  status       TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','resolved')),
+  resolved_at  INTEGER,
+  resolved_by  TEXT                             -- the admin's auth_user.id
+) STRICT;
+CREATE INDEX issue_report_status ON issue_report (status, report_id);
+CREATE INDEX issue_report_user ON issue_report (user_id) WHERE user_id IS NOT NULL;
+
 -- ───────────────────────────── operations ─────────────────────────────
 
 CREATE TABLE audit_event (

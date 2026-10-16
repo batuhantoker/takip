@@ -7,6 +7,9 @@ import ErrorBoundary from '@/components/ui/error-boundary';
 import AccountButton from '@/components/site/account/account-button';
 import AccountDialog from '@/components/site/account/account-dialog';
 import MapTimeWall from '@/components/site/account/map-time/map-time-wall';
+import ReportDialog from '@/components/site/report/report-dialog';
+import { trackKey, trackedNow } from '@/components/map/inspect/track-request';
+import { reportMode, type ViewInputs } from '@/lib/platform/reports/report-view';
 import LiveFeedModal from '@/components/map/cameras/live-feed-modal';
 import { useLiveFeed } from '@/components/map/cameras/use-live-feed';
 import NavigationBanner from '@/components/panels/route/navigation-banner';
@@ -231,6 +234,15 @@ export default function Dashboard() {
     onLocate: session.handleAiLocate, following: session.aiFollowing, onFollow: session.followAi,
     assist, mode: session.aiMode, onMode: setAiMode, speakOn: aiVoice, onSpeak: setAiVoicePersist, stage: aiStage, onStage: setAiStage,
   };
+  /** What a report attaches about the map; report-dialog.tsx asks on Send. */
+  const reportView = (): ViewInputs => {
+    const followed = trackedNow();
+    return {
+      center: mapCenter, zoom: mapView.zoom, layers: activeLayers, mode: reportMode(replay.session, history.session),
+      space: space.inSpace ? space.focus : null, track: followed && trackKey(followed),
+      baseMap: mapStyle, projection: mapProjection, theme, panel: isMobile ? mobilePanel : activeTool,
+    };
+  };
   const planner = directions.showDirections && (
     <RoutePlanner directions={directions} center={mapCenter ? { lat: mapCenter.lat, lng: mapCenter.lng } : null} onLocate={flyTo}
       onClose={() => { directions.closeDirections(); setActiveTool(t => (t === 'directions' ? null : t)); }} />
@@ -368,6 +380,7 @@ export default function Dashboard() {
 
       <MapTimeWall />
       <AccountDialog map={{ mapStyle, setMapStyle, activeLayers, setActiveLayers, ...terrain }} />
+      <ReportDialog view={reportView} />
       <LiveFeedModal liveFeedUrl={feed.liveFeedUrl} liveFeedName={feed.liveFeedName} liveFeedEmbedAllowed={feed.liveFeedEmbedAllowed} setLiveFeedUrl={feed.setLiveFeedUrl} />
 
       {(dossier.regionDossier || dossier.dossierLoading) && (
