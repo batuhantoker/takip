@@ -16,14 +16,15 @@ export const metadata: Metadata = {
  * Every statement on this page is drawn from the code in this repository, not
  * from a template; when a data flow changes, this page changes with it.
  *
- * Reviewed 2026-10-04 against: src/app/api/geo, src/app/api/osint/*,
- * src/app/api/ai/*, src/app/api/oi/*, src/lib/oi/* (client, service, web,
- * newsroom, markets), src/lib/recon/sanctions.ts, src/lib/recon/sherlock.ts,
- * src/lib/recon/chain-intel.ts, src/app/page.tsx (IP location, storage),
+ * Reviewed 2026-10-04 against: src/app/api/(places)/geo, src/app/api/(intel)/osint/*,
+ * src/app/api/(intel)/ai/*, src/app/api/(ai)/ai/*, src/lib/ai/* (client, service, web,
+ * newsroom, markets), src/lib/intel/recon/sanctions.ts, src/lib/intel/recon/username/*,
+ * src/lib/intel/recon/chain/*, src/app/page.tsx (IP location, storage),
  * src/components/map/world-map.tsx (base map, satellite), src/app/globals.css
- * (fonts), src/components/panels/alerts/alerts-panel.tsx, src/lib/weather/live-clouds.ts,
- * src/lib/markets/donbot.ts, src/components/panels/ti-agent/assist/voice.ts, the CCTV sources, and
- * src/components/shell/ads/* and src/lib/ads/ads.ts, and every localStorage and
+ * (fonts), src/components/panels/alerts/alerts-panel.tsx, src/lib/feeds/weather/clouds/tiles.ts,
+ * src/lib/intel/markets/donbot.ts, src/components/panels/ti-agent/assist/voice.ts, use-live-voice.ts,
+ * src/lib/ai/assist/actions/{nearby,weather}.ts, the CCTV sources, and
+ * src/components/shell/ads/* and src/lib/platform/ads.ts, and every localStorage and
  * sessionStorage key in src/.
  */
 
@@ -215,16 +216,20 @@ export default function PrivacyPage() {
                 not yours. Your key is used for that request and nothing else.
               </>}
               services={[
-                { name: 'The provider you choose', what: 'OpenAI, Anthropic, Google, OpenRouter, Groq, DeepSeek, xAI, Mistral or Alibaba Cloud: your key and your request' },
+                { name: 'The provider you choose', what: 'OpenAI, Anthropic, Google, OpenRouter, Groq, DeepSeek, xAI, Mistral or Alibaba Cloud: your key and your request. With local models, the request goes to a model server the site\u2019s owner runs, and to no one else' },
                 { name: 'News publishers’ feeds, GDELT, Wikipedia', what: 'a few keywords from your question, to find the reporting and background a prediction reads; the articles found are then read from their publishers' },
                 { name: 'Yahoo Finance', what: 'the ticker of a price your question is about, for its price history and its news' },
                 { name: 'Polymarket and Manifold', what: 'a few keywords from your question, to find what prediction markets price it at; and, for the suggestions on the ask form, nothing about you at all' },
                 { name: 'Photon and Nominatim (OpenStreetMap)', what: 'a place name, when you search for one or TI looks one up' },
+                { name: 'OpenStreetMap Overpass', what: 'a point and a kind of place (dams, airports…), when TI looks up what is mapped near it' },
+                { name: 'Open-Meteo', what: 'a point, when TI reads the weather there' },
               ]}>
               <p className="mt-3 text-[13px] leading-relaxed text-ink-2">
                 A prediction has its own link so it can be shared: anyone you give the link to can open it, and it is kept
                 on our server for three hours after it finishes. The microphone in TI Assist uses your browser’s own
                 speech recognition (in Chrome and Edge, a Google or Microsoft service); we only ever receive the words.
+                Talking with TI live (OpenAI engines only) sends your voice straight from your browser to OpenAI on your own
+                key: our server uses the key once to open a short session and keeps neither the key nor the audio.
               </p>
             </Flow>
 
