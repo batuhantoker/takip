@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, type RefObject } from 'react';
-import { alertPinFeatures, type AlertPinFeature, type PinnedReport } from '@/lib/alerts/map-pins';
+import { alertPinFeatures, type AlertPinFeature, type PinnedReport } from '@/lib/intel/alerts/map-pins';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useLiveNewsLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {

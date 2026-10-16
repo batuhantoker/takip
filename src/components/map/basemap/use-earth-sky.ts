@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { createEarthSkyLayer, type EarthSkyLayer, type SkyMark, type StarCatalog } from '@/lib/space/earth-sky-layer';
+import { createEarthSkyLayer, type EarthSkyLayer, type SkyMark, type StarCatalog } from '@/lib/space/globe/sky-layer';
 import { jdFromMs } from '@/lib/space/horizons';
 import { sampleAt } from '@/lib/space/sky';
-import { EARTH_RADIUS_KM } from '@/lib/space/sky-projection';
+import { EARTH_RADIUS_KM } from '@/lib/space/globe/sky-projection';
 import { useSky } from '@/components/panels/space/use-space-data';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 

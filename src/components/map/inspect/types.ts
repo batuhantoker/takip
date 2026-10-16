@@ -1,5 +1,6 @@
-import type { Airport, AircraftDetail } from '@/lib/flights/watch';
+import type { Airport, AircraftDetail } from '@/lib/feeds/aviation/flight-watch';
 import type { ScheduleReply } from '@/lib/map/popups/layer-popups';
+import type { TransitMode } from '@/lib/feeds/transit/modes';
 
 export type FlightLayer = 'fl-commercial' | 'fl-private' | 'fl-jets' | 'fl-military';
 
@@ -39,6 +40,32 @@ export interface ShipTarget {
   flag?: string;
 }
 
+/** A bus, tram or train from /api/transit; `id` is the vehicle key, `feed` the feed's name. */
+export interface TransitTarget {
+  kind: 'transit';
+  id: string;
+  lng: number;
+  lat: number;
+  route?: string;
+  trip?: string;
+  label?: string;
+  plate?: string;
+  operator?: string;
+  feed?: string;
+  license?: string;
+  bearing?: number;
+  speed?: number;
+  status?: number;
+  /** Seconds since the vehicle reported, when it was clicked. */
+  age?: number;
+  mode?: TransitMode;
+  /** Placed from its stops, not GPS: the stop it is at or heading to, and the one it left. */
+  stop?: string;
+  from?: string;
+  estimated?: boolean;
+  scheduled?: boolean;
+}
+
 /** The camera as the map and the player pass it around. */
 export interface CameraInfo {
   id: string;
@@ -62,7 +89,7 @@ export interface CameraTarget {
   camera: CameraInfo;
 }
 
-export type InspectTarget = AircraftTarget | ShipTarget | CameraTarget;
+export type InspectTarget = AircraftTarget | ShipTarget | TransitTarget | CameraTarget;
 
 /** What the map's click handlers use to open and fill the card. */
 export interface InspectSink {

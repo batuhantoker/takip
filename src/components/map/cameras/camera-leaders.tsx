@@ -5,7 +5,7 @@ import { useRings } from '@/components/map/inspect/rings';
 import { useWindows } from '@/components/map/windows';
 import { getArea } from '@/components/map/windows/map-area';
 import type { MapRef } from '@/components/map/types';
-import { globeCamera, inFrontOfGlobe } from '@/lib/map/globe-occlusion';
+import { globeCamera, inFrontOfGlobe } from '@/lib/map/camera/globe-occlusion';
 
 /** Stops short of the selection ring around the camera. */
 const RING = 14;

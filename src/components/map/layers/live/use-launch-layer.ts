@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { padFeatures, type LaunchRow } from '@/lib/space/launch-pins';
+import { padFeatures, type LaunchRow } from '@/lib/space/globe/launch-pins';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useLaunchLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {

@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { SatelliteDetail } from '@/components/map/inspect/cards/satellite-inspect';
-import { satColorFor, type MapPalette } from '@/lib/map/palette';
-import { shownSatellites } from '@/lib/satellites/filter';
-import { parseColor, SAT_MAX_ZOOM, type SatPoint } from '@/lib/satellites/layer';
+import { satColorFor, type MapPalette } from '@/lib/map/style/palette';
+import { shownSatellites } from '@/lib/feeds/satellites/filter';
+import { parseColor, SAT_MAX_ZOOM, type SatPoint } from '@/lib/feeds/satellites/points';
 import type { LayerHookArgs, MapRef, SatelliteLayer, SatelliteRow } from '@/components/map/types';
 
 interface SatelliteLayerArgs extends LayerHookArgs {

@@ -1,10 +1,15 @@
 import { Prec } from '@takip/core/time';
 import * as maplibregl from 'maplibre-gl';
 import type { RefObject } from 'react';
-import { articleTitle, type HistoryDetail, type HistoryExtras, type HistoryFeature, historyPopupHtml, shownIds } from '@/lib/history/popup';
+import { articleTitle, HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryDetail, type HistoryExtras, type HistoryFeature, historyPopupHtml, shownIds } from '@/lib/history/popup';
 import type { ArticleSummary } from '@/lib/history/wiki';
+import { getWikiLanguage } from '@/lib/core/wikipedia/language';
+import { pinStore } from '@/components/map/pinned/pin-store';
 
-/* A history event's popup: drawn at once from the map feature, then filled in as its detail, related events and article land. */
+/*
+ * A history event's popup: drawn at once from the map feature, then filled in as its detail, related events and article land.
+ * Pin moves its content into a window, where it carries on.
+ */
 
 type PopupRef = RefObject<maplibregl.Popup | null>;
 
@@ -14,7 +19,7 @@ const detail = (id: number): Promise<HistoryDetail | null> =>
     .catch(() => null);
 
 const summary = (qs: URLSearchParams): Promise<ArticleSummary | null> =>
-  fetch(`/api/history/wiki?${qs}`)
+  fetch(`/api/history/wiki?${qs}&${new URLSearchParams({ lang: getWikiLanguage() })}`)
     .then(res => (res.ok ? (res.json() as Promise<ArticleSummary>) : null))
     .catch(() => null);
 
@@ -33,32 +38,48 @@ export function openHistoryPopup(map: maplibregl.Map, popupRef: PopupRef, p: His
   popupRef.current?.remove();
   let d: HistoryDetail | null | undefined = known;
   const x: HistoryExtras = {};
-  // setHTML refocuses the first control on every update, which would leave the language select looking picked.
-  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '340px', offset: 12, focusAfterOpen: false }).setLngLat(at).setHTML(historyPopupHtml(p, d, x)).addTo(map);
+  let pinned = false, live = true;
+  // One node for the popup's life, re-rendered in place, so Pin can move it into a window with its listener.
+  const node = document.createElement('div');
+  const html = () => historyPopupHtml(p, d, x, { pin: !pinned && pinStore.enabled(), windowed: pinned });
+  node.innerHTML = html();
+  // The Pin button would otherwise take focus as it opens.
+  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '340px', offset: 12, focusAfterOpen: false }).setLngLat(at).setDOMContent(node).addTo(map);
   popupRef.current = popup;
-  const render = () => { if (popupRef.current === popup) popup.setHTML(historyPopupHtml(p, d, x)); };
+  popup.on('close', () => { if (!pinned) live = false; });
+  const render = () => { if (live) node.innerHTML = html(); };
 
-  popup.getElement().addEventListener('change', e => {
-    const el = (e.target as Element | null)?.closest<HTMLSelectElement>('select[data-history-lang]');
-    if (!el) return;
-    void summary(new URLSearchParams({ title: el.value })).then(w => {
-      if (!w) return;
-      x.wiki = w;
-      x.expanded = false;
-      render();
+  const pin = () => {
+    pinned = true;
+    render();
+    const family = HISTORY_FAMILIES[p.family];
+    pinStore.pin({
+      id: `history:${p.id}`,
+      label: p.title ?? family?.label ?? 'Event',
+      kicker: family?.label ?? 'Event',
+      dot: family?.color ?? HISTORY_FALLBACK_COLOR,
+      at,
+      node,
+      release: () => { live = false; },
     });
-  });
+    if (popupRef.current === popup) popupRef.current = null;
+    popup.remove();
+  };
 
-  popup.getElement().addEventListener('click', e => {
-    const el = (e.target as Element | null)?.closest<HTMLElement>('[data-history-more],[data-history-event]');
+  node.addEventListener('click', e => {
+    const el = (e.target as Element | null)?.closest<HTMLElement>('[data-history-more],[data-history-event],[data-pop-pin]');
     if (!el) return;
+    if (el.hasAttribute('data-pop-pin')) {
+      pin();
+      return;
+    }
     if (el.hasAttribute('data-history-more')) {
       x.expanded = !x.expanded;
       render();
       return;
     }
     void detail(Number(el.dataset.historyEvent)).then(r => {
-      if (!r || popupRef.current !== popup) return;
+      if (!r || !live) return;
       const there: [number, number] | null = typeof r.lon === 'number' && typeof r.lat === 'number' ? [r.lon, r.lat] : null;
       if (there) map.easeTo({ center: there, duration: 600 });
       openHistoryPopup(map, popupRef, r, there ?? at, r);

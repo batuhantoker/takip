@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { fireIncidentFeatures, type FireIncidentRow } from '@/lib/hazards/fire-incidents';
+import { fireIncidentFeatures, type FireIncidentRow } from '@/lib/feeds/hazards/fire-incidents';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useFireIncidentsLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {

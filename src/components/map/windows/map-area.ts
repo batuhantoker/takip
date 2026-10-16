@@ -26,11 +26,13 @@ function read(): MapArea {
   const W = window.innerWidth, H = window.innerHeight;
   const bottom = H - shellBottom;
   let cluster = bottom;
+  let colTop = EDGE;
   for (const el of document.querySelectorAll<HTMLElement>('[data-hud]')) {
     const r = el.getBoundingClientRect();
     if (r.height && r.right > W - 60 && r.top > H / 2) cluster = Math.min(cluster, r.top);
+    if (r.height && el.hasAttribute('data-hud-top')) colTop = Math.max(colTop, r.bottom + GAP);
   }
-  return { left, top: 0, right: W, bottom, colTop: EDGE, colRight: W - EDGE, colBottom: cluster - GAP };
+  return { left, top: 0, right: W, bottom, colTop, colRight: W - EDGE, colBottom: cluster - GAP };
 }
 
 const same = (a: MapArea, b: MapArea) => (Object.keys(a) as (keyof MapArea)[]).every(k => a[k] === b[k]);

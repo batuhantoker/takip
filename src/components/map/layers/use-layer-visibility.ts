@@ -1,8 +1,12 @@
 'use client';
 
 import { useEffect, type RefObject } from 'react';
-import { CCTV_LAYERS } from '@/lib/cameras/map-layers';
-import { shipFilter } from '@/lib/ships/filter';
+import { ALPR_LAYERS } from '@/lib/feeds/cameras/alpr-layers';
+import { CCTV_LAYERS } from '@/lib/feeds/cameras/map-layers';
+import { FIRE_PERIMETER_FILL, FIRE_PERIMETER_LINE } from '@/lib/feeds/hazards/fire-perimeters';
+import { NHC_LAYERS } from '@/lib/feeds/hazards/nhc-forecast';
+import { EMERGENCY_LAYERS } from '@/lib/feeds/aviation/emergency';
+import { shipFilter } from '@/lib/feeds/maritime/ship-filter';
 import type { MapRef, SatelliteLayer, SatelliteRow, WorldMapProps } from '@/components/map/types';
 
 interface LayerVisibilityArgs {
@@ -40,9 +44,11 @@ export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, sat
     setVis(['fl-private'], activeLayers.private && !replayActive);
     setVis(['fl-jets'], activeLayers.jets && !replayActive);
     setVis(['fl-military'], activeLayers.military && !replayActive);
+    setVis(EMERGENCY_LAYERS, !!(activeLayers.flights || activeLayers.private || activeLayers.jets || activeLayers.military) && !replayActive);
     setVis(CCTV_LAYERS, activeLayers.cctv);
-    setVis(['fires-heat'], activeLayers.fires);
-    setVis(['weather-dots','weather-label'], activeLayers.weather);
+    setVis(ALPR_LAYERS, !!activeLayers.alpr);
+    setVis(['fires-heat', FIRE_PERIMETER_FILL, FIRE_PERIMETER_LINE], activeLayers.fires);
+    setVis(['weather-dots','weather-label', ...NHC_LAYERS], activeLayers.weather);
     setVis(['wx-temp-label'], !!activeLayers.wx_temperature);
     setVis(['wx-wind'], !!activeLayers.wx_wind);
     setVis(['infra-dots','infra-label'], activeLayers.infrastructure);

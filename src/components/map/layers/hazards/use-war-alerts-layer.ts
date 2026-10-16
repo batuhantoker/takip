@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { warAlertFeatures, type WarAlertRow } from '@/lib/hazards/war-alerts';
+import { warAlertFeatures, type WarAlertRow } from '@/lib/feeds/hazards/war-alerts';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useWarAlertsLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {

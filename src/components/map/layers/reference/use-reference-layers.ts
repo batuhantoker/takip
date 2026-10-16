@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { attachReferenceLayers, type ReferenceLayers } from '@/lib/reference/map-layers';
+import { attachReferenceLayers, type ReferenceLayers } from '@/lib/feeds/reference/map-layers';
 import type { LayerHookArgs } from '@/components/map/types';
 
-/** The reference datasets (lib/reference), attached once the style has loaded and kept in step with the toggles. */
+/** The reference datasets (lib/feeds/reference), attached once the style has loaded and kept in step with the toggles. */
 export function useReferenceLayers({ mapRef, mapReady, activeLayers }: LayerHookArgs) {
   const layers = useRef<ReferenceLayers | null>(null);
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { outbreakFeatures, type OutbreakRow } from '@/lib/hazards/outbreaks';
+import { outbreakFeatures, type OutbreakRow } from '@/lib/feeds/hazards/outbreaks';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useOutbreaksLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Minus, Navigation2, Plus } from 'lucide-react';
 import { useMapCamera } from './map-controls';
-import type { CameraMove } from '@/lib/map/camera-controls';
+import type { CameraMove } from '@/lib/map/camera/controls';
 import { ClusterButton, ClusterDivider } from './cluster-button';
 
 const ZOOM_IN: CameraMove = { kind: 'zoom', dir: 1 };

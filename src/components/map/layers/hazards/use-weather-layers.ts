@@ -2,29 +2,30 @@
 
 import { useEffect, useMemo, useState, type RefObject } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import { CLOUDS_ATTRIBUTION, CLOUDS_CREDIT, CLOUDS_LAYER, frameTime } from '@/lib/weather/live-clouds';
-import { createCloudLayer } from '@/lib/weather/live-clouds-layer';
-import { EMPTY_FC } from '@/lib/basemap/base-layers';
+import { CLOUDS_ATTRIBUTION, CLOUDS_CREDIT, CLOUDS_LAYER, frameTime } from '@/lib/feeds/weather/clouds/tiles';
+import { createCloudLayer } from '@/lib/feeds/weather/clouds/layer';
+import { EMPTY_FC } from '@/lib/map/basemap/bands/shared';
 import {
-  FIELD_MAX_ZOOM, GFS_ATTRIBUTION, GFS_MAX_ZOOM, RADAR_ATTRIBUTION, RADAR_MAX_ZOOM, WX_ATTRIBUTION,
-  decodeField, fieldFromGrid, fieldTileUrl, installWeatherProtocol, latestRadarTiles, setTemperatureField,
+  FIELD_MAX_ZOOM, GFS_ATTRIBUTION, GFS_MAX_ZOOM, WX_ATTRIBUTION,
+  decodeField, fieldFromGrid, fieldTileUrl, installWeatherProtocol, setTemperatureField,
   type TemperatureField, type WeatherGrid,
-} from '@/lib/weather/weather-field';
-import { PLACE_LABEL_MIN_ZOOM, placeTemperatureLabels, temperatureLabels, type LabelPlace } from '@/lib/weather/temperature-labels';
-import { BASEMAP_SOURCE } from '@/lib/basemap/provider';
-import { useTemperatureUnit } from '@/lib/weather/temperature-unit';
-import { stackGroundRasters } from '@/lib/basemap/ground-rasters';
+} from '@/lib/feeds/weather/weather-field';
+import { PLACE_LABEL_MIN_ZOOM, placeTemperatureLabels, temperatureLabels, type LabelPlace } from '@/lib/feeds/weather/temperature-labels';
+import { BASEMAP_SOURCE } from '@/lib/map/basemap/provider';
+import { useTemperatureUnit } from '@/components/map/layers/use-temperature-unit';
+import { stackGroundRasters } from '@/lib/map/basemap/ground-rasters';
 import type { LayerHookArgs, MapRef, WorldMapProps } from '@/components/map/types';
 
-export function useWeatherGridLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
+/** The Open-Meteo wind arrows, standing in while the GFS streaks are not drawn. */
+export function useWeatherGridLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs, arrows = true) {
   useEffect(() => {
     if (!mapReady) return;
     const grid: WeatherGrid | null = data.weather_grid ?? null;
     const hour = grid ? `${grid.time.slice(11, 16)} UTC` : '';
-    setGeo('wx-points', grid && activeLayers.wx_wind
+    setGeo('wx-points', grid && activeLayers.wx_wind && arrows
       ? grid.points.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { ...p, hour } }))
       : []);
-  }, [mapReady, data.weather_grid, activeLayers.wx_wind, setGeo]);
+  }, [mapReady, data.weather_grid, activeLayers.wx_wind, arrows, setGeo]);
 }
 
 /** The 0.25° GFS field while the temperature layer is on; null until it loads, or if the route never answers. */
@@ -62,7 +63,7 @@ interface WeatherRasterArgs {
 
 export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapStyle, cloudLayerRef }: WeatherRasterArgs) {
   // Live Clouds — NOAA's satellite mosaic, hung at cloud altitude over the
-  // ground; see lib/weather/live-clouds-layer. Under the night shade and every marker.
+  // ground; see lib/feeds/weather/clouds/layer. Under the night shade and every marker.
   // On the map they also sit under the place names, as on any weather map, so
   // a storm never hides a city's name; on SAT they go above the imagery, which
   // covers those names anyway. Nothing is fetched until the layer is first
@@ -93,7 +94,7 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
   }, [mapReady, activeLayers.live_clouds, mapStyle, mapRef, cloudLayerRef]);
 
   // Temperature field — GFS at 0.25° once it loads, the Open-Meteo grid until then
-  // or if it never does; painted client-side either way (lib/weather/weather-field).
+  // or if it never does; painted client-side either way (lib/feeds/weather/weather-field).
   const gfs = useGfsField(!!activeLayers.wx_temperature);
   const grid: WeatherGrid | null = data.weather_grid ?? null;
   const field = useMemo(() => gfs ?? (grid ? fieldFromGrid(grid) : null), [gfs, grid]);
@@ -171,37 +172,4 @@ export function useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapSty
     map.on('sourcedata', onData);
     return () => { clearTimeout(timer); map.off('moveend', schedule); map.off('sourcedata', onData); };
   }, [mapReady, activeLayers.wx_temperature, field, gfs, unit, mapStyle, mapRef]);
-
-  // Precipitation radar — RainViewer's latest frame, where ground radar exists.
-  useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
-    const map = mapRef.current;
-    if (!activeLayers.wx_radar) {
-      if (map.getLayer('wx-radar')) map.removeLayer('wx-radar');
-      return;
-    }
-    const ctrl = new AbortController();
-    const load = async () => {
-      try {
-        const tiles = await latestRadarTiles(ctrl.signal);
-        if (!tiles || ctrl.signal.aborted) return;
-        const source = map.getSource('wx-radar') as maplibregl.RasterTileSource | undefined;
-        if (!source) {
-          map.addSource('wx-radar', { type: 'raster', tiles: [tiles], tileSize: 256, maxzoom: RADAR_MAX_ZOOM, attribution: RADAR_ATTRIBUTION });
-        } else if (source.tiles?.[0] !== tiles) {
-          source.setTiles([tiles]);
-        }
-        if (!map.getLayer('wx-radar')) {
-          map.addLayer({ id: 'wx-radar', type: 'raster', source: 'wx-radar', paint: { 'raster-opacity': 0.75, 'raster-fade-duration': 0 } }, 'day-night-fill');
-        }
-        stackGroundRasters(map);
-      } catch (e) {
-        if (!ctrl.signal.aborted) console.warn('[TAKIP] Radar frame lookup failed:', e instanceof Error ? e.message : e);
-      }
-    };
-    load();
-    // RainViewer publishes a frame every 10 minutes.
-    const refresh = setInterval(load, 5 * 60_000);
-    return () => { ctrl.abort(); clearInterval(refresh); };
-  }, [mapReady, activeLayers.wx_radar, mapStyle, mapRef]);
 }

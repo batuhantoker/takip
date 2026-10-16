@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { Map as MlMap } from 'maplibre-gl';
-import { createMapCameraControls, type CameraMove } from '@/lib/map/camera-controls';
+import { createMapCameraControls, type CameraMove } from '@/lib/map/camera/controls';
 
 type Camera = {
   map: MlMap;

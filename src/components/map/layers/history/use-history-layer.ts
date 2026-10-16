@@ -3,8 +3,8 @@
 import { type RefObject, useEffect, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryFeature } from '@/lib/history/popup';
-import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/tokens';
-import type { ReplayClock } from '@/lib/replay/clock';
+import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/style/tokens';
+import type { ReplayClock } from '@/lib/map/replay/clock';
 import type { MapRef } from '@/components/map/types';
 import { openHistoryPopup } from './history-popup';
 
@@ -183,6 +183,13 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, popupRef
     const tick = () => {
       timer = undefined;
       const t = timeline.clock.time() / 1000;
+      // Past today only projected country values stand; no event happens there.
+      if (t * 1000 > Date.now()) {
+        if (loaded) (map.getSource(SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData(EMPTY);
+        loaded = null;
+        generation++;
+        return;
+      }
       const hold = holdFor(timeline.clock.speed());
       load(t, hold);
       // Filters only need to move when the time has moved a tenth of the hold.

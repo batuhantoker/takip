@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { airportDelayFeatures, type AirportDelayRow } from '@/lib/hazards/airport-delays';
+import { airportDelayFeatures, type AirportDelayRow } from '@/lib/feeds/aviation/airport-delays';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useAirportDelaysLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {

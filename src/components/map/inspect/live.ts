@@ -27,6 +27,8 @@ export interface LiveFlight {
   registration?: string;
   grounded?: boolean;
   squawk?: string;
+  /** ADS-B emergency status, when not `none`. */
+  emergency?: string;
 }
 
 export interface LiveShip {

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef } from 'react';
 import { lodForZoom } from '@takip/core/tracks';
-import { chunkUrls, lodBucketS, type ReplaySession, type ReplayTrack } from '@/lib/replay/session';
-import { BRIDGE_S, createReplayTrackLayer, HOLD_S, type ReplayEntity, TRAIL_S } from '@/lib/replay/track-layer';
-import { SHIP_CLASSES, SHIP_FALLBACK_COLOR, SHIPS_UNDERWAY, UNDERWAY_KNOTS } from '@/lib/ships/filter';
+import { chunkUrls, lodBucketS, type ReplaySession, type ReplayTrack } from '@/lib/map/replay/session';
+import { BRIDGE_S, createReplayTrackLayer, HOLD_S, type ReplayEntity, TRAIL_S } from '@/lib/map/replay/track-layer';
+import { SHIP_CLASSES, SHIP_FALLBACK_COLOR, SHIPS_UNDERWAY, UNDERWAY_KNOTS } from '@/lib/feeds/maritime/ship-filter';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 /* Ships and aircraft at the replay clock's time, through one WebGL layer, in the live layers' colours. */

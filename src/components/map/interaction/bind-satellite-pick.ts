@@ -1,17 +1,17 @@
 import type * as maplibregl from 'maplibre-gl';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { SatelliteDetail } from '@/components/map/inspect/cards/satellite-inspect';
-import { satColorFor, type MapPalette } from '@/lib/map/palette';
-import type { OiGlobe } from '@/lib/oi/globe';
-import { globeCamera, inFrontOfGlobe } from '@/lib/map/globe-occlusion';
-import { displayElevation, parseColor } from '@/lib/satellites/layer';
+import { satColorFor, type MapPalette } from '@/lib/map/style/palette';
+import type { AiGlobe } from '@/lib/ai/globe/attach';
+import { globeCamera, inFrontOfGlobe } from '@/lib/map/camera/globe-occlusion';
+import { displayElevation, parseColor } from '@/lib/feeds/satellites/points';
 import { touchSlop } from '@/lib/map/touch-targets';
 import { hitsClickableLayer } from '@/lib/map/clickable-layers';
 import type { SatelliteLayer, SatelliteRow } from '@/components/map/types';
 
 interface SatellitePickArgs {
   satLayerRef: RefObject<SatelliteLayer | null>;
-  oiGlobeRef: RefObject<OiGlobe | null>;
+  aiGlobeRef: RefObject<AiGlobe | null>;
   satRowsRef: RefObject<SatelliteRow[]>;
   satPickedRef: RefObject<number | null>;
   satSelectedIdRef: RefObject<string | null>;
@@ -44,7 +44,7 @@ function visibleTo(map: maplibregl.Map, rows: SatelliteRow[]) {
   };
 }
 
-export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, oiGlobeRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, popupRef, paletteRef, setSelectedSat, onEmpty, onHover }: SatellitePickArgs) {
+export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, aiGlobeRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, popupRef, paletteRef, setSelectedSat, onEmpty, onHover }: SatellitePickArgs) {
   // ── Satellites (SatNOGS powered) ──
   // Satellites are picked on the GPU: the pick pass runs the same vertex
   // shader as the visible one, so the target is always exactly where the
@@ -55,13 +55,19 @@ export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, oiGlobeRef
     // Defer to any layer that has its own click handler, so a camera or an
     // aircraft under the cursor is not stolen by a satellite behind it.
     if (hitsClickableLayer(map, e.point, touchSlop(e))) return;
-    // An OI arc or point is picked on the GPU too, and it is in front: the click is OI's.
-    if (oiGlobeRef.current?.hit(e.point)) return;
+    // An AI arc or point is picked on the GPU too, and it is in front: the click is AI's.
+    if (aiGlobeRef.current?.hit(e.point)) return;
     const idx = layer ? layer.pick(e.point.x, e.point.y, visibleTo(map, satRowsRef.current)) : null;
-    const p = idx == null ? null : satRowsRef.current[idx];
     // Open map; with satellites off this still runs, so the map hears every empty click.
-    if (idx == null || !p || !layer) { onEmpty(); return; }
+    if (idx == null || !satRowsRef.current[idx] || !layer) { onEmpty(); return; }
+    select(idx);
+  });
 
+  /** Selects the satellite at this index of the catalogue: ring, readout and orbit. */
+  function select(idx: number) {
+    const layer = satLayerRef.current;
+    const p = satRowsRef.current[idx];
+    if (!layer || !p) return;
     // The readout is a panel, not a MapLibre popup: a popup can only anchor
     // to a ground coordinate, and these markers are drawn at altitude. Any
     // other layer's popup is still welcome to the screen, but not on top of
@@ -99,7 +105,7 @@ export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, oiGlobeRef
         // rather than sitting on 'plotting' forever.
         .catch(() => { if (!stale()) mark('unavailable'); });
     }
-  });
+  }
 
   // The cursor should say a satellite is clickable, like every other layer.
   // Picking re-renders the entire catalogue and reads back from the GPU.
@@ -131,5 +137,5 @@ export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, oiGlobeRef
     });
   });
 
-  return () => cancelAnimationFrame(hoverFrame);
+  return { select, cancel: () => cancelAnimationFrame(hoverFrame) };
 }

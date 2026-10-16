@@ -1,10 +1,19 @@
 import type * as maplibregl from 'maplibre-gl';
+import { alprTip } from '@/lib/feeds/cameras/alpr-describe';
+import { ALPR_PICK_LAYERS } from '@/lib/feeds/cameras/alpr-layers';
 import { FLIGHT_LAYER_LABEL } from '@/components/map/inspect/live';
 import type { FlightLayer } from '@/components/map/inspect/types';
 import { STILL_KNOTS } from '@/lib/map/course';
-import { toFeet } from '@/lib/flights/watch';
+import { toFeet } from '@/lib/feeds/aviation/flight-watch';
+import { windText } from '@/lib/feeds/aviation-weather/popups';
 import { htmlEsc } from '@/lib/map/popups/kit';
-import { SHIP_CLASSES } from '@/lib/ships/filter';
+import { firePerimeterTip } from '@/lib/feeds/hazards/fire-perimeters';
+import { EMERGENCY_PICK } from '@/lib/feeds/aviation/emergency';
+import { nhcTip } from '@/lib/feeds/hazards/nhc-forecast';
+import { SHIP_CLASSES } from '@/lib/feeds/maritime/ship-filter';
+import { flowTip, trafficTip } from '@/lib/feeds/traffic/describe';
+import { TRAFFIC_FLOW_LAYER, TRAFFIC_LAYER } from '@/lib/feeds/traffic/map-layers';
+import { transitTipMeta, transitTitle } from '@/lib/feeds/transit/describe';
 import type { SatelliteRow } from '@/components/map/types';
 
 const DELAY_MS = 150;
@@ -19,6 +28,7 @@ const join = (parts: (string | null | false | undefined)[]) => parts.filter(Bool
 
 /** Layers that get a tooltip, in the order they win when stacked. */
 const DESCRIBE: Record<string, (p: Props, layer: string) => Tip | null> = {
+  [EMERGENCY_PICK]: p => { const t = flight(p, String(p.layer)); return { ...t, meta: join([`<span class="tk-fg-red">${htmlEsc(String(p.declared))}</span>`, t.meta]) }; },
   'fl-military': flight, 'fl-jets': flight, 'fl-private': flight, 'fl-commercial': flight,
   'cctv-clusters': p => ({ key: `cluster:${p.cluster_id}`, name: `${Number(p.point_count).toLocaleString()} cameras`, meta: 'Click to zoom in' }),
   'cctv-dots': p => ({ key: `camera:${p.id}`, name: String(p.name || 'Camera'), meta: htmlEsc(join(['Camera', [p.city, p.country].filter(Boolean).join(', '), p.offline === true && 'Off air'])) }),
@@ -28,7 +38,17 @@ const DESCRIBE: Record<string, (p: Props, layer: string) => Tip | null> = {
     const depth = n(p.depth);
     return { key: `quake:${p.id}`, name: m == null ? 'Earthquake' : `Magnitude ${m.toFixed(1)}`, meta: join([htmlEsc(String(p.place || '')), depth == null ? null : mono(`${Math.round(depth)} km deep`)]) };
   },
+  'airport-wx-dots': p => ({ key: `metar:${p.id}`, name: String(p.id || 'Station'), meta: join([p.cat ? mono(String(p.cat)) : 'No flight category', htmlEsc(windText(p) ?? '')]) }),
+  'nhc-points': (p, layer) => { const t = nhcTip(p, layer); return { ...t, meta: htmlEsc(t.meta) }; },
+  'nhc-cone-fill': (p, layer) => { const t = nhcTip(p, layer); return { ...t, meta: htmlEsc(t.meta) }; },
+  'fire-perimeter-fill': p => { const t = firePerimeterTip(p); return { ...t, meta: htmlEsc(t.meta) }; },
+  'sigmet-fill': p => ({ key: `sigmet:${p.id}`, name: String(p.title || 'SIGMET'), meta: htmlEsc(join([p.firName ? `${p.firName} FIR` : null, 'SIGMET'])) }),
   'ship-arrows': ship, 'ship-dots': ship,
+  'transit-icons': transit, 'transit-dots': transit,
+  [TRAFFIC_LAYER]: p => { const t = trafficTip(p); return { ...t, meta: htmlEsc(t.meta) }; },
+  [TRAFFIC_FLOW_LAYER]: p => { const t = flowTip(p); return { ...t, meta: htmlEsc(t.meta) }; },
+  ...Object.fromEntries(ALPR_PICK_LAYERS.map(id => [id, (p: Props) => { const t = alprTip(p); return t && { ...t, meta: htmlEsc(t.meta) }; }])),
+  'transit-city-dots': p => ({ key: `transit-city:${p.name}`, name: String(p.name || 'City'), meta: htmlEsc(join([String(p.modes || 'Live transit'), 'Click to zoom in'])) }),
 };
 const LAYERS = Object.keys(DESCRIBE);
 
@@ -52,6 +72,10 @@ function ship(p: Props): Tip {
   };
 }
 
+function transit(p: Props): Tip {
+  return { key: `transit:${p.key}`, name: transitTitle(p), meta: transitTipMeta(p, mono) };
+}
+
 const satTip = (s: SatelliteRow): Tip => ({
   key: `satellite:${s.noradId ?? s.name}`,
   name: s.name,
@@ -59,7 +83,7 @@ const satTip = (s: SatelliteRow): Tip => ({
 });
 
 /**
- * A small label after a short hover on a ship, aircraft, satellite, camera, quake or alert pin.
+ * A small label after a short hover on a ship, aircraft, bus, satellite, camera, quake or alert pin.
  * One element, moved once per animation frame; nothing in React re-renders.
  */
 export function bindHoverTip(map: maplibregl.Map, inspected: (key: string) => boolean, paused: () => boolean = () => false) {

@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import type * as maplibregl from 'maplibre-gl';
-import { BASEMAP_SOURCE, tilejsonFor, useBasemapProvider } from '@/lib/basemap/provider';
+import { BASEMAP_SOURCE, getBasemapProvider, subscribeBasemapProvider, tilejsonFor } from '@/lib/map/basemap/provider';
 import type { MapRef } from '@/components/map/types';
+
+export const useBasemapProvider = () => useSyncExternalStore(subscribeBasemapProvider, getBasemapProvider, () => 'openfreemap' as const);
 
 /** Points the style's vector source at the chosen provider; layers and overlays stay put. */
 export function useBasemapProviderSource({ mapRef, mapReady }: { mapRef: MapRef; mapReady: boolean }) {

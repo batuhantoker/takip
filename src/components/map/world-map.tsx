@@ -2,28 +2,29 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import { installTerrainTileProtocol } from '@/lib/map/terrain/tiles';
-import { createCloudLayer } from '@/lib/weather/live-clouds-layer';
-import { attachOi, type OiGlobe } from '@/lib/oi/globe';
-import { createSatelliteLayer } from '@/lib/satellites/layer';
-import { MAP_DEFAULTS, type MapPalette } from '@/lib/map/palette';
+import { createCloudLayer } from '@/lib/feeds/weather/clouds/layer';
+import type { AiGlobe } from '@/lib/ai/globe/attach';
+import { MAP_DEFAULTS, type MapPalette } from '@/lib/map/style/palette';
 import { InspectHost } from '@/components/map/inspect/inspect-host';
+import { TrackNotice } from '@/components/map/inspect/parts/track-notice';
+import { useTrackRequests } from '@/components/map/inspect/use-track-requests';
+import { MapMenu, type MapMenuAt } from '@/components/map/menu/map-menu';
+import { SatelliteImages, type ImageryTarget } from '@/components/map/imagery/satellite-images';
+import { CountryChartWindow } from '@/components/map/country-chart/country-chart-window';
 import { SelectionRings } from '@/components/map/inspect/selection-rings';
+import { PinnedWindows } from '@/components/map/pinned/pinned-windows';
 import { findFlight } from '@/components/map/inspect/live';
-import type { SatelliteDetail } from '@/components/map/inspect/cards/satellite-inspect';
 import type { InspectSink } from '@/components/map/inspect/types';
 import { inspectId, useInspect } from '@/components/map/inspect/use-inspect';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { WindowLayer, windowStore } from '@/components/map/windows';
-import type { WatchedFlight } from '@/lib/flights/watch';
+import type { WatchedFlight } from '@/lib/feeds/aviation/flight-watch';
 import { CameraLeaders } from '@/components/map/cameras/camera-leaders';
 import CctvPreviews, { type PreviewCamera } from '@/components/map/cameras/cctv-previews';
 import MapControls from '@/components/map/controls/map-controls';
 import LiveNewsPreviews, { type PreviewFeed } from '@/components/map/cameras/live-news-previews';
-import { attachTerrain } from '@/lib/map/terrain/terrain';
-import { applyMapProjection } from '@/lib/map/projection';
-import type { AlertPinFeature } from '@/lib/alerts/map-pins';
-import { addBaseLayers } from '@/lib/basemap/base-layers';
+import type { AlertPinFeature } from '@/lib/intel/alerts/map-pins';
+import { addBaseLayers } from '@/lib/map/basemap/base-layers';
 import { createMap } from '@/lib/map/create';
 import { bindAlertPins } from '@/components/map/interaction/bind-alert-pins';
 import { bindCctvAndQuakeClicks, bindFeaturePopups } from '@/components/map/interaction/bind-feature-popups';
@@ -32,15 +33,17 @@ import { bindHoverTip } from '@/components/map/interaction/bind-hover-tip';
 import { bindTouchTargets } from '@/lib/map/touch-targets';
 import { bindSatellitePick } from '@/components/map/interaction/bind-satellite-pick';
 import { bindViewEvents } from '@/components/map/interaction/bind-view-events';
-import type { SatelliteRow, WorldMapProps } from './types';
+import type { WorldMapProps } from './types';
 import { useBasemapStyle, useDayNight } from '@/components/map/basemap/use-basemap';
 import { useBasemapDetail } from '@/components/map/basemap/use-basemap-detail';
 import { useBasemapProviderSource } from '@/components/map/basemap/use-basemap-provider';
+import { useProjectionTerrain } from '@/components/map/basemap/use-projection-terrain';
 import { useDemoSpin, useFlyTo, useMapCenter } from '@/components/map/interaction/hooks/use-camera';
 import { useZoomPastGlobe } from '@/components/map/interaction/hooks/use-zoom-past-globe';
 import { useDrawing } from '@/components/map/interaction/hooks/use-drawing';
 import { useConflictZones, useEarthquakeLayer, useIncidentLayers } from '@/components/map/layers/hazards/use-event-layers';
 import { useFlightLayers } from '@/components/map/layers/live/use-flight-layers';
+import { useTransitLayer } from '@/components/map/layers/live/use-transit-layer';
 import { useHikingLayer, useHikingPick } from '@/components/map/layers/reference/use-hiking-layer';
 import { usePlacePick } from '@/components/map/interaction/hooks/use-place-pick';
 import { useAuroraLayer } from '@/components/map/layers/hazards/use-aurora-layer';
@@ -50,28 +53,40 @@ import { useLaunchLayer } from '@/components/map/layers/live/use-launch-layer';
 import { useEarthSky } from '@/components/map/basemap/use-earth-sky';
 import { useWarAlertsLayer } from '@/components/map/layers/hazards/use-war-alerts-layer';
 import { useFireIncidentsLayer } from '@/components/map/layers/hazards/use-fire-incidents-layer';
+import { useFirePerimetersLayer } from '@/components/map/layers/hazards/use-fire-perimeters-layer';
+import { useNhcForecastLayer } from '@/components/map/layers/hazards/use-nhc-forecast-layer';
 import { useAirportDelaysLayer } from '@/components/map/layers/hazards/use-airport-delays-layer';
+import { useAviationWeatherLayer } from '@/components/map/layers/live/use-aviation-weather-layer';
 import { useChokepointFlowLayer } from '@/components/map/layers/hazards/use-chokepoint-flow-layer';
 import { useOutbreaksLayer } from '@/components/map/layers/hazards/use-outbreaks-layer';
+import { useTrafficLayer } from '@/components/map/layers/live/use-traffic-layer';
 import { useLayerVisibility } from '@/components/map/layers/use-layer-visibility';
 import { useReplayLayer } from '@/components/map/layers/history/use-replay-layer';
 import { useChoroplethLayer } from '@/components/map/layers/history/use-choropleth-layer';
 import { useHistoryLayer } from '@/components/map/layers/history/use-history-layer';
 import { useWarLayers } from '@/components/map/layers/history/use-war-layers';
 import { useWorldBordersLayer } from '@/components/map/layers/history/use-world-borders-layer';
+import { useOhmDetailLayer } from '@/components/map/layers/history/use-ohm-detail-layer';
 import { usePaleoLayer } from '@/components/map/layers/history/use-paleo-layer';
 import { useMapPalette } from '@/components/map/basemap/use-map-palette';
 import { useDirections, useUserLocation } from '@/components/map/layers/overlays/use-navigation';
 import { useCyberLayers, useSdkLinks } from '@/components/map/layers/live/use-network-layers';
 import { useAlertPins, useLiveNewsLayer } from '@/components/map/layers/live/use-news-layers';
-import { useOiHighlights } from '@/components/map/layers/overlays/use-ti-highlights';
+import { useAiHighlights } from '@/components/map/layers/overlays/use-ti-highlights';
+import { useAiGlobe } from '@/components/map/layers/overlays/use-ai-globe';
 import { useArcgisLayers, useDrawnPolygons } from '@/components/map/layers/overlays/use-overlay-layers';
 import { useBalloonLayer, useCctvLayer, useInfrastructureLayer, useMaritimeLayers, useNaturalEventLayers, useRadiationLayer } from '@/components/map/layers/live/use-point-layers';
 import { useReconLayers } from '@/components/map/layers/overlays/use-recon-layers';
 import { useReferenceLayers } from '@/components/map/layers/reference/use-reference-layers';
 import { useRegionPick } from '@/components/map/interaction/hooks/use-region-pick';
 import { useSatelliteDismiss, useSatelliteLayer } from '@/components/map/layers/live/use-satellite-layer';
+import { useSatelliteMotion } from '@/components/map/layers/live/use-satellite-motion';
+import { useSatelliteSelection } from '@/components/map/layers/live/use-satellite-selection';
 import { useWeatherGridLayer, useWeatherRasters } from '@/components/map/layers/hazards/use-weather-layers';
+import { useGibsImagery } from '@/components/map/layers/live/use-gibs-imagery';
+import { useRadarLayer } from '@/components/map/layers/hazards/use-radar-layer';
+import { useLightningLayer } from '@/components/map/layers/hazards/use-lightning-layer';
+import { useWindLayer } from '@/components/map/layers/hazards/use-wind-layer';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './map-popup.css';
 
@@ -79,7 +94,7 @@ import './map-popup.css';
 const NO_FAMILIES: readonly string[] = [];
 const QUAKES: readonly string[] = ['hazard'];
 
-function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, onGlobeLink, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, onOiGlobe, onOiSelect, onOiHover, onOiFollow, oiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], imageryRequest = null, drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, onGlobeLink, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, onAiGlobe, onAiSelect, onAiHover, onAiFollow, aiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -89,8 +104,6 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   const openAlertPinRef = useRef<((id: string) => void) | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  // Do not replay an earlier explicit zoom request after theme/retry remounts.
-  const lastTerrainFocus = useRef(terrainFocus);
   const wasNavigating = useRef(false);
   /**
    * What the map's own layers draw with, mirrored out of the `--map-*` custom
@@ -105,44 +118,20 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useEffect(() => { onReadyRef.current = onReady; }, [onReady]);
   const prevDrawnPolygonsRef = useRef<string[]>([]);
   const prevArcgisLayersRef = useRef<string[]>([]);
-  const satLayerRef = useRef<ReturnType<typeof createSatelliteLayer> | null>(null);
   const cloudLayerRef = useRef<ReturnType<typeof createCloudLayer> | null>(null);
-  const onOiGlobeRef = useRef(onOiGlobe);
-  const onOiSelectRef = useRef(onOiSelect);
-  const onOiHoverRef = useRef(onOiHover);
-  const onOiFollowRef = useRef(onOiFollow);
-  const oiGlobeRef = useRef<OiGlobe | null>(null);
-  useEffect(() => {
-    onOiGlobeRef.current = onOiGlobe;
-    onOiSelectRef.current = onOiSelect;
-    onOiHoverRef.current = onOiHover;
-    onOiFollowRef.current = onOiFollow;
-  }, [onOiGlobe, onOiSelect, onOiHover, onOiFollow]);
-  // pick() returns an index into the array last handed to setPoints, so the
-  // matching catalogue rows are kept in the same order to resolve it.
-  const satRowsRef = useRef<SatelliteRow[]>([]);
-  /** Index of the selected satellite in the array last handed to setPoints. */
-  const satPickedRef = useRef<number | null>(null);
-  /** The selection's NORAD id. The index moves whenever the catalogue is
-   *  re-polled and re-filtered; the id does not, so it is what identifies the
-   *  selection across a refresh and what discards a late orbit reply. */
-  const satSelectedIdRef = useRef<string | null>(null);
-  /** When the catalogue positions were propagated for, so an orbit can be drawn
-   *  around the marker rather than around the moment it was clicked. */
-  const satEpochRef = useRef<number | null>(null);
-  const [selectedSat, setSelectedSat] = useState<SatelliteDetail | null>(null);
-
-  /** Drops the selection: the ring, the orbit track and the readout together.
-   *  Leaving any one of them behind is what made a closed popup look like a
-   *  still-selected satellite. */
-  const clearSat = useCallback(() => {
-    if (satPickedRef.current === null && satSelectedIdRef.current === null) return;
-    satPickedRef.current = null;
-    satSelectedIdRef.current = null;
-    satLayerRef.current?.setSelected(null);
-    satLayerRef.current?.setOrbit(null);
-    setSelectedSat(null);
-  }, []);
+  const aiGlobeRef = useRef<AiGlobe | null>(null);
+  const {
+    satLayerRef, satRowsRef, satSelectRef, satPickedRef, satSelectedIdRef, satEpochRef,
+    selectedSat, setSelectedSat, clearSat,
+  } = useSatelliteSelection();
+  const [mapMenu, setMapMenu] = useState<MapMenuAt | null>(null);
+  const [imagery, setImagery] = useState<{ target: ImageryTarget; key: string } | null>(null);
+  // An Areas row asks through a prop; take each new ask as it renders.
+  const [seenImageryRequest, setSeenImageryRequest] = useState(imageryRequest);
+  if (imageryRequest !== seenImageryRequest) {
+    setSeenImageryRequest(imageryRequest);
+    if (imageryRequest) setImagery({ target: { shape: imageryRequest.shape, name: imageryRequest.name }, key: `area-${imageryRequest.seq}` });
+  }
 
   /* Each aircraft and ship gets a window; the satellite's sits beside them. */
   const onInspectOpenRef = useRef(onInspectOpen);
@@ -209,7 +198,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
       if (process.env.NODE_ENV === 'development') (window as any).__takipMap = map;
     });
 
-    bindViewEvents(map, container, { onMouseCoords, onRightClick, onViewStateChange });
+    bindViewEvents(map, container, { onMouseCoords, onRightClick, onViewStateChange, onMenu: setMapMenu });
 
     // ── POPUP HELPER ──
     // While a draw tool owns the map, a click on a camera or ship is a vertex or a region, not a selection.
@@ -240,7 +229,8 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
     // What already has a window gets no tooltip.
     const hoverTip = bindHoverTip(map, key => !!windowStore.find(key)
       || inspectRef.current.targets.some(t => inspectId(t) === key) || (!!satSelectedIdRef.current && key === `satellite:${satSelectedIdRef.current}`), drawing);
-    const cancelSatHover = bindSatellitePick(map, { satLayerRef, oiGlobeRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, popupRef, paletteRef, setSelectedSat, onEmpty, onHover: row => hoverTip.setSatellite(row) });
+    const satPick = bindSatellitePick(map, { satLayerRef, aiGlobeRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, popupRef, paletteRef, setSelectedSat, onEmpty, onHover: row => hoverTip.setSatellite(row) });
+    satSelectRef.current = satPick.select;
     bindFeaturePopups(map, popup, entityClick, sink);
     bindAlertPins(map, popup, popupRef, alertPinsRef, openAlertPinRef);
 
@@ -260,7 +250,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
 
     return () => {
       sizeToContainer.disconnect();
-      cancelSatHover();
+      satPick.cancel();
       hoverTip.dispose();
       unbindTouch();
       map.remove();
@@ -285,12 +275,13 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   const layerArgs = { mapRef, mapReady, data, activeLayers, setGeo };
 
   useFlightLayers(layerArgs);
-  useMapPalette({ mapRef, mapReady, theme, palette, setPalette, oiGlobeRef });
+  useMapPalette({ mapRef, mapReady, theme, palette, setPalette, aiGlobeRef });
 
   // ── DECOUPLED LAYER RENDERERS (Performance Optimized) ──
 
   useEarthquakeLayer(layerArgs);
   useSatelliteLayer({ ...layerArgs, palette, satLayerRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, setSelectedSat, clearSat });
+  useSatelliteMotion({ mapRef, replay, satLayerRef, satRowsRef, satPickedRef, satSelectedIdRef, satEpochRef, paletteRef, setSelectedSat, clearSat });
   useIncidentLayers(layerArgs);
   useCyberLayers(layerArgs);
   useCctvLayer(layerArgs);
@@ -306,18 +297,26 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useRadiationLayer(layerArgs);
   useWarAlertsLayer(layerArgs);
   useFireIncidentsLayer(layerArgs);
+  useFirePerimetersLayer(layerArgs);
+  useNhcForecastLayer(layerArgs);
+  useTrackRequests({ mapRef, mapReady, data, satRowsRef, flightSelectRef, sink: inspect.sink, selectSatellite: satSelectRef });
   useAirportDelaysLayer(layerArgs);
+  useAviationWeatherLayer({ mapRef, mapReady, activeLayers, replayActive: !!replay || !!history });
   useChokepointFlowLayer(layerArgs);
   useOutbreaksLayer(layerArgs);
-  useWeatherGridLayer(layerArgs);
+  useTrafficLayer({ mapRef, mapReady, activeLayers, replayActive: !!replay || !!history });
+  const windStreaks = useWindLayer({ mapRef, mapReady, activeLayers, mapStyle });
+  useWeatherGridLayer(layerArgs, !windStreaks);
   useSdkLinks(layerArgs);
   useLiveNewsLayer(layerArgs);
   useAlertPins({ ...layerArgs, alertPinsRef, alertPinIds });
   useConflictZones(layerArgs);
   useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, satRowsRef, satLayerRef, replayActive: !!replay || !!history });
+  useTransitLayer({ mapRef, mapReady, activeLayers, replayActive: !!replay || !!history });
   useReplayLayer({ mapRef, mapReady, replay, activeLayers });
   useChoroplethLayer({ mapRef, mapReady, history, mapStyle });
   useWorldBordersLayer({ mapRef, mapReady, history, popupRef });
+  useOhmDetailLayer({ mapRef, mapReady, history });
   useWarLayers({ mapRef, mapReady, history, popupRef });
   usePaleoLayer({ mapRef, mapReady, history, mapStyle });
   const eventFamilies = useMemo(() => (history ? historyFamilies : replay && activeLayers.earthquakes ? QUAKES : NO_FAMILIES),
@@ -326,89 +325,23 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useReconLayers({ ...layerArgs, sweepData, scanTargets });
   useReferenceLayers(layerArgs);
 
-  // Projection changes are independent of terrain. Toggling elevation must not
-  // zoom, tilt, or reposition the camera the user has already chosen.
-  useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
-    const map = mapRef.current;
-    try {
-      const projectionChanged = applyMapProjection(map, projection, terrainEnabled);
-      const configureSky = projectionChanged || !containerRef.current?.dataset.mapProjection;
-      if (containerRef.current) containerRef.current.dataset.mapProjection = projection;
-      if (projection === 'globe') {
-        // The overview globe's resting tilt, which used to be the initial
-        // pitch. Only on a real projection change, so toggling terrain never
-        // re-tilts a camera the user has already placed.
-        if (configureSky && map.getPitch() < 0.5) map.easeTo({ pitch: 20, duration: 1200 });
-        try {
-          if (configureSky) map.setSky({
-            'sky-color': '#04040A',
-            'sky-horizon-blend': 0.5,
-            'horizon-color': '#0a0a1a',
-            'horizon-fog-blend': 0.3,
-            'fog-color': '#04040A',
-            'fog-ground-blend': 0.9,
-          });
-        } catch (e) { console.warn('[TAKIP] Suppressed error:', e instanceof Error ? e.message : e); }
-      } else {
-        if (map.getPitch() > 0.5) map.easeTo({ pitch: 0, duration: 350 });
-      }
-    } catch (e) {
-      console.warn('Projection switch failed:', e);
-    }
-  }, [mapReady, projection, terrainEnabled]);
-
-  // Terrain loads only at regional zooms; globe overview stays inexpensive.
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !terrainEnabled) return;
-    const map = mapRef.current;
-    installTerrainTileProtocol(maplibregl.addProtocol);
-    const dispose = attachTerrain(map, status => onTerrainStatusChange?.(status));
-    return () => {
-      // The map constructor effect removes the entire map first on unmount.
-      if (mapRef.current === map) dispose();
-    };
-  }, [mapReady, terrainEnabled, terrainRetry, onTerrainStatusChange]);
-
-  // A user-requested close-up keeps the current location and avoids a fly-out arc.
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || !terrainFocus || !terrainEnabled || lastTerrainFocus.current === terrainFocus) return;
-    lastTerrainFocus.current = terrainFocus;
-    const map = mapRef.current;
-    map.easeTo({ zoom: Math.max(10.5, map.getZoom()), pitch: 45, duration: 650 });
-  }, [mapReady, terrainFocus, terrainEnabled]);
+  useProjectionTerrain({ mapRef, mapReady, containerRef, projection, terrainEnabled, terrainRetry, terrainFocus, onTerrainStatusChange });
 
   useFlyTo({ mapRef, mapReady, flyToLocation, openAlertPinRef });
   useBasemapStyle({ mapRef, mapReady, activeLayers, mapStyle });
   useBasemapProviderSource({ mapRef, mapReady });
   useBasemapDetail({ mapRef, mapReady });
   useWeatherRasters({ mapRef, mapReady, data, activeLayers, mapStyle, cloudLayerRef });
+  useGibsImagery({ mapRef, mapReady, activeLayers, mapStyle, history: history ?? null, replay: replay ?? null });
+  useRadarLayer({ mapRef, mapReady, activeLayers, mapStyle, replay: replay ?? null });
+  useLightningLayer({ mapRef, mapReady, activeLayers, mapStyle, replay: replay ?? null });
   useHikingLayer({ mapRef, mapReady, activeLayers, mapStyle });
-  useHikingPick({ mapRef, mapReady, activeLayers, popupRef, drawModeRef, oiGlobeRef, satPickedRef });
-  usePlacePick({ mapRef, mapReady, popupRef, drawModeRef, oiGlobeRef, satPickedRef });
+  useHikingPick({ mapRef, mapReady, activeLayers, popupRef, drawModeRef, aiGlobeRef, satPickedRef });
+  usePlacePick({ mapRef, mapReady, popupRef, drawModeRef, aiGlobeRef, satPickedRef });
 
-  // TAKIP OI — a prediction drawn as it happens: actors, the events of the
-  // simulated worlds and arcs through the sky (see lib/oi/globe). The page feeds it
-  // run state directly, so the map does not re-render on every event; the
-  // layer re-adds itself after a style change.
-  useEffect(() => {
-    if (!mapReady || !mapRef.current) return;
-    const globe = attachOi(mapRef.current, {
-      onSelect: key => onOiSelectRef.current?.(key),
-      onHover: hover => onOiHoverRef.current?.(hover),
-      onFollowChange: following => onOiFollowRef.current?.(following),
-    });
-    globe.setColors({ support: paletteRef.current.oiSupport, oppose: paletteRef.current.oiOppose, neutral: paletteRef.current.oiNeutral });
-    oiGlobeRef.current = globe;
-    onOiGlobeRef.current?.(globe);
-    return () => {
-      oiGlobeRef.current = null;
-      onOiGlobeRef.current?.(null);
-      globe.destroy();
-    };
-  }, [mapReady]);
+  useAiGlobe({ mapRef, mapReady, aiGlobeRef, paletteRef, onAiGlobe, onAiSelect, onAiHover, onAiFollow });
 
-  useOiHighlights({ mapRef, mapReady, oiHighlight });
+  useAiHighlights({ mapRef, mapReady, aiHighlight });
   useDrawnPolygons({ mapRef, mapReady, drawnPolygons, prevDrawnPolygonsRef });
   useDirections({ mapRef, mapReady, route });
   useUserLocation({ mapRef, mapReady, userLocation, followUser, onFollowInterrupt, navigating });
@@ -461,6 +394,16 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
           onClose={inspect.close} onCloseAll={inspect.closeAll} onCloseSat={clearSat} onSelectFlight={selectWatched} />
       )}
       {mapReady && <SelectionRings mapRef={mapRef} />}
+      {mapReady && <TrackNotice />}
+      {mapMenu && (
+        <MapMenu at={mapMenu} onClose={() => setMapMenu(null)}
+          onDossier={at => onRightClick?.({ lat: at.lat, lng: at.lng })} onImagery={at => setImagery({ target: { lat: at.lat, lng: at.lng }, key: `${at.lat},${at.lng}` })} />
+      )}
+      {mapReady && imagery && (
+        <SatelliteImages key={imagery.key} target={imagery.target} mapRef={mapRef} onClose={() => setImagery(null)} />
+      )}
+      {mapReady && history && <CountryChartWindow session={history} />}
+      {mapReady && <PinnedWindows mapRef={mapRef} mode={history ? 'history' : replay ? 'replay' : 'live'} />}
       {mapReady && <CameraLeaders mapRef={mapRef} />}
       <WindowLayer />
       {mapReady && <MapControls mapRef={mapRef} onInteract={onFollowInterrupt} replayActive={!!replay} onReplayToggle={onReplayToggle} />}

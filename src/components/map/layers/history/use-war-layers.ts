@@ -4,8 +4,8 @@ import { type RefObject, useEffect } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { HistorySession } from '@/lib/history/session';
 import { ALIGNMENTS, WAR_LAYERS, type WarFeature, warPopupHtml } from '@/lib/history/war-layers';
-import { MAP_INK, labelPaint } from '@/lib/map/tokens';
-import { hatchImage } from '@/lib/map/hatch';
+import { MAP_INK, labelPaint } from '@/lib/map/style/tokens';
+import { hatchImage } from '@/lib/map/style/hatch';
 import type { MapRef } from '@/components/map/types';
 import { hideModernBorders } from './modern-borders';
 

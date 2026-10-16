@@ -2,12 +2,12 @@
 
 import { useEffect, useRef, type RefObject } from 'react';
 import type * as maplibregl from 'maplibre-gl';
-import { HIKING_ATTRIBUTION, HIKING_LAYER, HIKING_MAX_ZOOM, HIKING_TILES } from '@/lib/hiking/overlay';
-import type { OiGlobe } from '@/lib/oi/globe';
+import { HIKING_ATTRIBUTION, HIKING_LAYER, HIKING_MAX_ZOOM, HIKING_TILES } from '@/lib/feeds/hiking/overlay';
+import type { AiGlobe } from '@/lib/ai/globe/attach';
 import { touchSlop } from '@/lib/map/touch-targets';
 import { hitsClickableLayer } from '@/lib/map/clickable-layers';
 import { attachHikingPick, type HikingPick } from './hiking-pick';
-import { stackGroundRasters } from '@/lib/basemap/ground-rasters';
+import { stackGroundRasters } from '@/lib/map/basemap/ground-rasters';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 interface HikingLayerArgs {
@@ -17,7 +17,7 @@ interface HikingLayerArgs {
   mapStyle: string;
 }
 
-/** Waymarked Trails' hiking routes (lib/hiking/overlay), on the ground under the weather. */
+/** Waymarked Trails' hiking routes (lib/feeds/hiking/overlay), on the ground under the weather. */
 export function useHikingLayer({ mapRef, mapReady, activeLayers, mapStyle }: HikingLayerArgs) {
   useEffect(() => {
     if (!mapReady || !mapRef.current) return;
@@ -43,12 +43,12 @@ interface HikingPickArgs {
   activeLayers: WorldMapProps['activeLayers'];
   popupRef: RefObject<maplibregl.Popup | null>;
   drawModeRef: RefObject<WorldMapProps['drawMode']>;
-  oiGlobeRef: RefObject<OiGlobe | null>;
+  aiGlobeRef: RefObject<AiGlobe | null>;
   satPickedRef: RefObject<number | null>;
 }
 
 /** Click a trail for its details and a highlight; see ./hiking-pick. */
-export function useHikingPick({ mapRef, mapReady, activeLayers, popupRef, drawModeRef, oiGlobeRef, satPickedRef }: HikingPickArgs) {
+export function useHikingPick({ mapRef, mapReady, activeLayers, popupRef, drawModeRef, aiGlobeRef, satPickedRef }: HikingPickArgs) {
   const pick = useRef<HikingPick | null>(null);
 
   useEffect(() => {
@@ -57,14 +57,14 @@ export function useHikingPick({ mapRef, mapReady, activeLayers, popupRef, drawMo
     const attached = attachHikingPick(map, {
       popupRef,
       // Bound after bindSatellitePick, whose handler has already run for this click and set satPickedRef.
-      claimed: e => drawModeRef.current != null || hitsClickableLayer(map, e.point, touchSlop(e)) || !!oiGlobeRef.current?.hit(e.point) || satPickedRef.current != null,
+      claimed: e => drawModeRef.current != null || hitsClickableLayer(map, e.point, touchSlop(e)) || !!aiGlobeRef.current?.hit(e.point) || satPickedRef.current != null,
     });
     pick.current = attached;
     return () => {
       attached.destroy();
       pick.current = null;
     };
-  }, [mapRef, mapReady, popupRef, drawModeRef, oiGlobeRef, satPickedRef]);
+  }, [mapRef, mapReady, popupRef, drawModeRef, aiGlobeRef, satPickedRef]);
 
   useEffect(() => {
     if (mapReady) pick.current?.setActive(!!activeLayers.hiking_routes);

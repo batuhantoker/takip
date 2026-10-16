@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Ship } from 'lucide-react';
 import { PanelSection } from '@/components/ui/panel';
 import { Property, PropertyList } from '@/components/ui/property-list';
@@ -7,7 +8,7 @@ import { Stat } from '@/components/ui/stat';
 import { Tag } from '@/components/ui/tag';
 import type { MapRef } from '@/components/map/types';
 import { course } from '@/lib/map/course';
-import { SHIP_CLASSES, UNDERWAY_KNOTS } from '@/lib/ships/filter';
+import { SHIP_CLASSES, UNDERWAY_KNOTS } from '@/lib/feeds/maritime/ship-filter';
 import { ago, bearing, compass, num } from '@/components/map/inspect/format';
 import { InspectCard, SourceLinks, StatRow, WhereRow } from '@/components/map/inspect/parts/inspect-card';
 import { MoveActions } from '@/components/map/inspect/parts/inspect-actions';
@@ -16,11 +17,13 @@ import type { ShipTarget } from '@/components/map/inspect/types';
 import { useAge, useFollow } from '@/components/map/inspect/use-follow';
 import { describePlace, usePlaceName } from '@/components/map/inspect/use-place-name';
 
-export function ShipInspect({ target, live, mapRef, onClose }: {
+export function ShipInspect({ target, live, mapRef, onClose, nearby }: {
   target: ShipTarget;
   live: LiveShip | null;
   mapRef: MapRef;
   onClose: () => void;
+  /** The aircraft and ships around it. */
+  nearby?: ReactNode;
 }) {
   const lat = live?.lat ?? target.lat;
   const lng = live?.lng ?? target.lng;
@@ -47,7 +50,7 @@ export function ShipInspect({ target, live, mapRef, onClose }: {
         {!live && <Tag tone="amber">No recent position</Tag>}
       </>}
       onClose={onClose}
-      headerActions={<MoveActions mapRef={mapRef} lat={lat} lng={lng} zoom={11} following={following} onFollow={setFollowing} />}
+      headerActions={<MoveActions mapRef={mapRef} lat={lat} lng={lng} zoom={11} following={following} onFollow={setFollowing} share={{ kind: 'ship', id: target.id }} />}
       footer={<span>{live ? `AIS · ${ago(age)}` : 'Not in the latest AIS update'}</span>}
     >
       <StatRow>
@@ -64,6 +67,7 @@ export function ShipInspect({ target, live, mapRef, onClose }: {
       <PanelSection title="Where">
         <WhereRow lat={lat} lng={lng} place={describePlace(place, 'In the ')} />
       </PanelSection>
+      {nearby}
       <PanelSection title="Open in">
         <SourceLinks links={[
           { href: `https://www.marinetraffic.com/en/ais/details/ships/mmsi:${mmsi}`, label: 'MarineTraffic' },

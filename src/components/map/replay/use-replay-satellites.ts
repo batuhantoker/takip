@@ -1,16 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { ActiveLayers } from '@/lib/layers/defaults';
-import type { ReplaySession } from '@/lib/replay/session';
+import type { ActiveLayers } from '@/lib/map/layers/defaults';
+import type { ReplaySession } from '@/lib/map/replay/session';
 
-/** The route answers in whole minutes, so a smaller move fetches the same positions. */
-const STEP_MS = 60_000;
-/** Each answer propagates every catalogued object, so playback asks at most this often. */
-const PLAYING_EVERY_MS = 3_000;
-const SEEK_SETTLE_MS = 250;
-
-/** Satellites where they were at the replay clock's time, and the live set again once replay closes. */
+/**
+ * The satellite catalogue for replay, with its element sets, loaded once: use-satellite-motion moves it
+ * with the clock from there. The live set again once replay closes.
+ */
 export function useReplaySatellites({ replay, activeLayers, fetchEndpoint }: {
   replay: ReplaySession | null;
   activeLayers: ActiveLayers;
@@ -24,41 +21,15 @@ export function useReplaySatellites({ replay, activeLayers, fetchEndpoint }: {
     if (!enabled) return;
     const load = (url: string) => {
       const mine = ++seq.current;
-      // A slow answer for an earlier time must not land over a newer one.
+      // A slow answer must not land over a newer one: live over replay's, or replay's over live.
       void fetchEndpoint(url, d => (mine === seq.current ? { ...d, satellites_at: d.timestamp } : {}));
     };
     if (!replay) {
-      if (shownReplay.current) load('/api/satellites');
+      if (shownReplay.current) load('/api/satellites?tle=1');
       shownReplay.current = false;
       return;
     }
     shownReplay.current = true;
-    const { clock } = replay;
-    let lastT = -Infinity;
-    let lastWall = 0;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const request = () => {
-      clearTimeout(timer);
-      timer = undefined;
-      lastT = clock.time();
-      lastWall = Date.now();
-      load(`/api/satellites?at=${Math.round(lastT / STEP_MS) * (STEP_MS / 1000)}`);
-    };
-    const onChange = () => {
-      if (Math.abs(clock.time() - lastT) < STEP_MS) return;
-      // Paused, every change is a seek: wait for the scrubber to settle rather than the playback throttle.
-      if (!clock.playing()) {
-        clearTimeout(timer);
-        timer = setTimeout(request, SEEK_SETTLE_MS);
-        return;
-      }
-      timer ??= setTimeout(request, Math.max(0, PLAYING_EVERY_MS - (Date.now() - lastWall)));
-    };
-    request();
-    const off = clock.subscribe(onChange);
-    return () => {
-      off();
-      clearTimeout(timer);
-    };
+    load(`/api/satellites?tle=1&at=${Math.round(replay.clock.time() / 1000)}`);
   }, [replay, enabled, fetchEndpoint]);
 }

@@ -2,9 +2,9 @@
 
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type * as maplibregl from 'maplibre-gl';
-import { boundaryTitle, levelForZoom, resolvePick, type Boundary, type BoundaryLevel, type PickResult, type SubLevel } from '@/lib/areas/boundaries';
-import { createBoundarySession, loadCountries } from '@/lib/areas/boundary-store';
-import { measureArea, type DrawResult } from '@/lib/areas/draw';
+import { boundaryTitle, levelForZoom, resolvePick, type Boundary, type BoundaryLevel, type PickResult, type SubLevel } from '@/lib/places/areas/boundaries';
+import { createBoundarySession, loadCountries } from '@/lib/places/areas/boundary-store';
+import { measureArea, type DrawResult } from '@/lib/places/areas/draw';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 interface RegionPickArgs {

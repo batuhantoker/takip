@@ -2,8 +2,8 @@
 
 import { type KeyboardEvent, type PointerEvent, useLayoutEffect, useRef, useState } from 'react';
 import { cx } from '@/components/ui/class-names';
-import type { CoverageSpan } from '@/lib/replay/session';
-import type { Tick } from '@/lib/replay/timeline-ticks';
+import type { CoverageSpan } from '@/lib/map/replay/session';
+import type { Tick } from '@/lib/map/replay/timeline-ticks';
 
 /**
  * Where no source recorded anything, within the span the coverage describes. One quiet source while
@@ -57,16 +57,18 @@ export type TimelineScrubberProps = {
   format: (t: number) => string;
   ticksFor: (max: number) => Tick[];
   gaps?: Span[];
-  /** From here to `hi` the record is still provisional. */
+  /** From here to `hi` the values are not final records: provisional, or projected. */
   provisionalFrom?: number;
   /** What the hover readout adds over a gap or the provisional stretch. */
   notes?: { gap?: string; provisional?: string };
   bands?: Band[];
+  /** When the track runs past today: a "Today" line here, and a quiet zone after it. */
+  today?: number;
 };
 
 /** The track both timelines share: ticks, the played stretch, a handle to drag, the time under the pointer, and arrow keys. */
 export default function TimelineScrubber({
-  label, lo, hi, time, step, onSeek, onTogglePlay, format, ticksFor, gaps = [], provisionalFrom, notes, bands,
+  label, lo, hi, time, step, onSeek, onTogglePlay, format, ticksFor, gaps = [], provisionalFrom, notes, bands, today,
 }: TimelineScrubberProps) {
   const root = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -154,6 +156,14 @@ export default function TimelineScrubber({
       onKeyDown={onKeyDown}
       className="group relative h-11 min-w-[120px] flex-1 cursor-pointer touch-none outline-none select-none"
     >
+      {today !== undefined && today > lo && today < hi && (
+        <div aria-hidden className="pointer-events-none absolute top-0 right-0 bottom-[17px]" style={{ left: pct(today) }}>
+          <div className="absolute inset-0 rounded-r-[3px] bg-ink-1/[0.04]" />
+          <span className="absolute top-[5px] left-0 h-[18px] w-px bg-ink-3" />
+          <span className={cx('absolute -top-[3px] text-meta leading-[14px] whitespace-nowrap text-ink-3', (1 - frac(today)) * width < 44 ? 'right-full pr-1' : 'left-1')}>Today</span>
+        </div>
+      )}
+
       <div className="absolute inset-x-0 top-[13px] h-1 overflow-hidden rounded-full bg-surface-3">
         {gaps.map(g => (
           <div key={g.from} className="absolute inset-y-0 bg-[repeating-linear-gradient(135deg,var(--ink-4)_0_1.5px,transparent_1.5px_4px)]"

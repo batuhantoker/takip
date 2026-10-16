@@ -4,28 +4,29 @@ import { useReducer, useState } from 'react';
 import { SEAL_DELAY_MS } from '@takip/core/tracks';
 import { cx } from '@/components/ui/class-names';
 import { Dot } from '@/components/ui/tag';
-import type { ReplaySession } from '@/lib/replay/session';
-import { formatTime, HISTORY_START, parseJump } from '@/lib/replay/time-input';
+import type { ReplaySession } from '@/lib/map/replay/session';
+import { formatTime, HISTORY_START, parseJump } from '@/lib/map/replay/time-input';
 import { type GoToExample, GoToPopover } from './go-to-popover';
-import { BackToLive, ChoiceMenu, PlayButton, TimeReadout } from './timeline-controls';
+import { BackToLive, ChoiceMenu, JumpButton, PlayButton, TimeReadout } from './timeline-controls';
 import { TimelineDock } from './timeline-dock';
 import TimelineScrubber, { coverageGaps } from './timeline-scrubber';
-import { calendarTicks } from '@/lib/replay/timeline-ticks';
+import { calendarTicks } from '@/lib/map/replay/timeline-ticks';
 import { useReplayTick } from './use-replay';
 import { useRemembered } from './use-remembered';
 import { useTimelineKeys } from './use-timeline-keys';
 
 const DAY_MS = 86_400_000;
 const YEAR_MS = 365.25 * DAY_MS;
-/** Simulated seconds per second. */
+/** Simulated seconds per second, and what a jump of JUMP_S seconds of playback covers at each. */
 const SPEEDS = [
-  { value: 1, label: 'Real time' },
-  { value: 60, label: '1 min / s' },
-  { value: 3600, label: '1 hour / s' },
-  { value: 86_400, label: '1 day / s' },
-  { value: 30 * 86_400, label: '1 month / s' },
-  { value: 365 * 86_400, label: '1 year / s' },
+  { value: 1, label: 'Real time', jump: '10 s' },
+  { value: 60, label: '1 min / s', jump: '10 min' },
+  { value: 3600, label: '1 hour / s', jump: '10 hours' },
+  { value: 86_400, label: '1 day / s', jump: '10 days' },
+  { value: 30 * 86_400, label: '1 month / s', jump: '10 months' },
+  { value: 365 * 86_400, label: '1 year / s', jump: '10 years' },
 ];
+const JUMP_S = 10;
 /** How much history the track spans, ending now. */
 const RANGES = [
   { id: 'day', label: 'Last 24 hours', ms: DAY_MS },
@@ -109,7 +110,14 @@ export default function TimelineBar({ session, onExit }: { session: ReplaySessio
     clock.seek(t);
     rerender();
   };
-  useTimelineKeys(toggle, () => setGoTo(true));
+  const jump = (dir: -1 | 1) => {
+    const t = Math.min(Date.now(), clock.time() + dir * JUMP_S * clock.speed() * 1000);
+    clock.seek(t);
+    if (t < lo) setRangeId(rangeFor(t, hi));
+    rerender();
+  };
+  const jumpSpan = SPEEDS.find(s => s.value === clock.speed())?.jump ?? `${JUMP_S} s of playback`;
+  useTimelineKeys(toggle, () => setGoTo(true), jump);
 
   const go = (text: string) => {
     const t = parseJump(text);
@@ -124,7 +132,11 @@ export default function TimelineBar({ session, onExit }: { session: ReplaySessio
   // The strip under an open panel has room for the status; the bar shows it only when wide, or when it's an error.
   return (
     <TimelineDock label="Replay timeline" status={<><Dot tone={error ? 'red' : 'muted'} />Replay · {status.charAt(0).toLowerCase() + status.slice(1)}</>}>
-      <PlayButton playing={clock.playing()} onToggle={toggle} />
+      <div className="flex shrink-0 items-center gap-1">
+        <JumpButton dir={-1} span={jumpSpan} onJump={jump} />
+        <PlayButton playing={clock.playing()} onToggle={toggle} />
+        <JumpButton dir={1} span={jumpSpan} onJump={jump} />
+      </div>
       <TimeReadout className={span <= 2 * DAY_MS ? 'w-[124px]' : 'w-[154px]'} primary={primary} secondary={secondary} />
       <ChoiceMenu label="Speed" value={clock.speed()} groups={[{ options: SPEEDS }]} onChange={x => { clock.setSpeed(x); rerender(); }} />
       <TimelineScrubber label="Replay time" lo={lo} hi={hi} time={time} step={clock.speed() * 1000}

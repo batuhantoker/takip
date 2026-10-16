@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { arrivalBeacons } from '@/lib/cyber/malware-intel';
+import { arrivalBeacons } from '@/lib/intel/cyber/malware/intel';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useCyberLayers({ mapRef, mapReady, data, activeLayers, setGeo }: LayerHookArgs) {

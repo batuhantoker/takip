@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { layoutTile, tileHeight, tilesOverlap, type TileGeometry } from '@/lib/cameras/tile-layout';
+import { layoutTile, tileHeight, tilesOverlap, type TileGeometry } from '@/lib/feeds/cameras/tile-layout';
 import type { Map as MlMap } from 'maplibre-gl';
 
 /**
@@ -17,7 +17,7 @@ import type { Map as MlMap } from 'maplibre-gl';
  * players over the whole planet, which is not what the layer is for.
  *
  * The tile, the connector, and the placement rules are the camera previews'
- * exactly — same component shape, same lib/cameras/tile-layout — because they mean
+ * exactly — same component shape, same lib/feeds/cameras/tile-layout — because they mean
  * the same thing to an operator and should not read as two features.
  *
  * What differs is the media. A camera tile is an image or a short clip; these

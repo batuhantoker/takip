@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Eye, EyeOff, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PanelSection } from '@/components/ui/panel';
@@ -8,7 +9,8 @@ import { Stat } from '@/components/ui/stat';
 import { Tag } from '@/components/ui/tag';
 import type { MapRef } from '@/components/map/types';
 import { course } from '@/lib/map/course';
-import { toFeet } from '@/lib/flights/watch';
+import { toFeet } from '@/lib/feeds/aviation/flight-watch';
+import { emergencyOf } from '@/lib/feeds/aviation/emergency';
 import { ago, bearing, compass, num } from '@/components/map/inspect/format';
 import { InspectCard, Note, SourceLinks, StatRow, WhereRow } from '@/components/map/inspect/parts/inspect-card';
 import { MoveActions } from '@/components/map/inspect/parts/inspect-actions';
@@ -18,9 +20,7 @@ import type { AircraftTarget } from '@/components/map/inspect/types';
 import { useAge, useFollow } from '@/components/map/inspect/use-follow';
 import { describePlace, usePlaceName } from '@/components/map/inspect/use-place-name';
 
-const EMERGENCY: Record<string, string> = { '7500': 'Hijack code', '7600': 'Radio failure', '7700': 'Emergency' };
-
-export function AircraftInspect({ target, live, mapRef, watching, onWatch, onUnwatch, onClose }: {
+export function AircraftInspect({ target, live, mapRef, watching, onWatch, onUnwatch, onClose, nearby }: {
   target: AircraftTarget;
   /** The aircraft in the latest feed, or null once it has dropped out. */
   live: LiveFlight | null;
@@ -29,6 +29,8 @@ export function AircraftInspect({ target, live, mapRef, watching, onWatch, onUnw
   onWatch: () => void;
   onUnwatch: () => void;
   onClose: () => void;
+  /** The aircraft and ships around it. */
+  nearby?: ReactNode;
 }) {
   const lat = live?.lat ?? target.lat;
   const lng = live?.lng ?? target.lng;
@@ -43,7 +45,7 @@ export function AircraftInspect({ target, live, mapRef, watching, onWatch, onUnw
   const subtitle = target.airframe === 'loading' && !model ? 'Identifying the aircraft…'
     : [model || 'Type unknown', airframe?.operator].filter(Boolean).join(' · ');
   const squawk = live?.squawk ? String(live.squawk) : null;
-  const emergency = squawk ? EMERGENCY[squawk] : undefined;
+  const emergency = emergencyOf(live);
   const cs = encodeURIComponent(target.callsign.replace(/\s+/g, ''));
 
   const altM = num(live?.alt ?? target.alt);
@@ -60,11 +62,11 @@ export function AircraftInspect({ target, live, mapRef, watching, onWatch, onUnw
       tags={<>
         <Tag>{FLIGHT_LAYER_LABEL[target.layer]}</Tag>
         {onGround && <Tag>On the ground</Tag>}
-        {emergency && <Tag tone="red">{emergency} · {squawk}</Tag>}
+        {emergency && <Tag tone="red">{squawk && /^7[567]00$/.test(squawk) ? `${emergency} · ${squawk}` : emergency}</Tag>}
         {!live && <Tag tone="amber">Out of range</Tag>}
       </>}
       onClose={onClose}
-      headerActions={<MoveActions mapRef={mapRef} lat={lat} lng={lng} zoom={8} following={following} onFollow={setFollowing} />}
+      headerActions={<MoveActions mapRef={mapRef} lat={lat} lng={lng} zoom={8} following={following} onFollow={setFollowing} share={target.icao24 ? { kind: 'aircraft', id: target.icao24 } : undefined} />}
       footer={<>
         {target.icao24 && (watching
           ? <Button size="sm" icon={EyeOff} onClick={onUnwatch}>Stop watching</Button>
@@ -91,6 +93,7 @@ export function AircraftInspect({ target, live, mapRef, watching, onWatch, onUnw
       <PanelSection title="Where">
         <WhereRow lat={lat} lng={lng} place={describePlace(place)} />
       </PanelSection>
+      {nearby}
       <PanelSection title="Open in">
         <SourceLinks links={[
           !!cs && { href: `https://www.flightaware.com/live/flight/${cs}`, label: 'FlightAware' },
