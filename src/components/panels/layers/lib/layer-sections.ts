@@ -1,4 +1,4 @@
-import { REFERENCE_GROUPS } from '@/lib/reference/catalog';
+import { REFERENCE_GROUPS } from '@/lib/feeds/reference/catalog';
 import type { LayerGroupDef } from '@/components/panels/layers/layer-groups';
 import { filterLayerGroups } from './layer-search';
 import { sentenceCase } from './sentence-case';
@@ -24,6 +24,7 @@ interface SectionDef {
 const SECTIONS: SectionDef[] = [
   { id: 'air', title: 'Air', groups: ['AVIATION'] },
   { id: 'sea', title: 'Sea', groups: ['MARITIME', 'SDK'], flat: true },
+  { id: 'land', title: 'Land', groups: ['TRANSIT', 'ROADS'] },
   { id: 'space', title: 'Space', groups: ['SPACE'] },
   { id: 'weather', title: 'Weather & hazards', groups: ['WEATHER', 'HAZARD'] },
   { id: 'conflict', title: 'Conflict & cyber', groups: ['THREAT', 'NETWORK', 'NETINTEL'] },

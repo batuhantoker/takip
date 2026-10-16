@@ -5,9 +5,9 @@ import { Check, Circle, Earth, Pentagon, Spline, Square, Undo2, X, type LucideIc
 import { Button, IconButton } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { DOCK_WIDTH, NAV_WIDTH } from '@/components/shell/sidebar/dock';
-import type { DrawMode, DrawProgress, RegionProgress } from '@/lib/areas/draw';
-import { LEVELS, type BoundaryLevel } from '@/lib/areas/boundaries';
-import { formatArea, formatDistance } from '@/lib/geo';
+import type { DrawMode, DrawProgress, RegionProgress } from '@/lib/places/areas/draw';
+import { LEVELS, type BoundaryLevel } from '@/lib/places/areas/boundaries';
+import { formatArea, formatDistance } from '@/lib/core/geodesic';
 import { Figure } from '@/components/ui/figure';
 
 /**

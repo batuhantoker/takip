@@ -5,7 +5,7 @@ import { CornerDownLeft, Search } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
 import { fieldBox, fieldInput } from '@/components/ui/field-shell';
 import { Kbd } from '@/components/ui/kbd';
-import type { FunctionCode, Suggestion } from '@/lib/markets/markets';
+import type { FunctionCode, Suggestion } from '@/lib/intel/markets/markets';
 import { sectionTitle } from '@/components/panels/markets/markets-format';
 
 /** Find a security or jump to a section: a ticker, a name, a section code or its number. */

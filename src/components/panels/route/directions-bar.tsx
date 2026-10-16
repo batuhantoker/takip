@@ -5,7 +5,7 @@ import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { Button, IconButton } from '@/components/ui/button';
 import { Panel } from '@/components/ui/panel';
 import { Segmented, type SegmentedOption } from '@/components/ui/segmented';
-import { nextManeuver, viaRoad, type Place, type RouteResult } from '@/lib/route/plan';
+import { nextManeuver, viaRoad, type Place, type RouteResult } from '@/lib/places/route/plan';
 import { useRoutePlanner, type RoutePlannerCallbacks } from './use-route-planner';
 import PlaceInput from '@/components/panels/route/parts/place-input';
 import DirectionsActions, { LiveMark } from '@/components/panels/route/parts/directions-header';
@@ -16,8 +16,8 @@ import { EndMark, RailRow, StartMark, StopMark } from '@/components/panels/route
 
 export {
   formatDistance, haversine, nextManeuver, elevationPath, arrivalTime, segmentBetween, formatDuration, viaRoad,
-} from '@/lib/route/plan';
-export type { RouteStep, RouteResult, LiveLocation } from '@/lib/route/plan';
+} from '@/lib/places/route/plan';
+export type { RouteStep, RouteResult, LiveLocation } from '@/lib/places/route/plan';
 
 /**
  * Turn-by-turn routing over /api/v1/directions (Valhalla + OSRM): a start, any

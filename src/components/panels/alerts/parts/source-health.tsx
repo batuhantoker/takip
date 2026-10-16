@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Popover } from '@/components/ui/popover';
 import { Dot, type DotTone } from '@/components/ui/tag';
-import type { SourceHealth as Source } from '@/lib/alerts/live-alerts';
+import type { SourceHealth as Source } from '@/lib/intel/alerts/live-alerts';
 import { ago } from '@/components/panels/alerts/format';
 
 function state(s: Source, now: number): { tone: DotTone; text: ReactNode } {

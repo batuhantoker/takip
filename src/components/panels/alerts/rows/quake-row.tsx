@@ -3,7 +3,7 @@
 import { ExternalLink, MapPin } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { Property, PropertyList } from '@/components/ui/property-list';
-import type { LocateOptions, QuakeAlert } from '@/lib/alerts/live-alerts';
+import type { LocateOptions, QuakeAlert } from '@/lib/intel/alerts/live-alerts';
 import { AlertRow, Meta } from './alert-row';
 import { fullDate, magnitude, position, toneLabel, toneOf } from '@/components/panels/alerts/format';
 import { openLink } from './row-parts';

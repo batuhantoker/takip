@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import TimelineScrubber from '@/components/map/replay/timeline-scrubber';
-import { calendarTicks } from '@/lib/replay/timeline-ticks';
+import { calendarTicks } from '@/lib/map/replay/timeline-ticks';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { Tooltip } from '@/components/ui/tooltip';
-import { formatTime } from '@/lib/replay/time-input';
-import type { HistoryEvent } from '@/lib/space/flight-history';
+import { formatTime } from '@/lib/map/replay/time-input';
+import type { HistoryEvent } from '@/lib/space/replay/flight-history';
 import { jdFromMs, msFromJd } from '@/lib/space/horizons';
-import { replayDate } from '@/lib/space/replay-format';
+import { replayDate } from '@/lib/space/replay/format';
 
 /** "6 Aug 2012", and "6 Aug 2012 05:17" when the flight is short enough for the hour to matter. */
 export const flightDate = (jd: number, withTime = false) =>

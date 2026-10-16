@@ -6,7 +6,7 @@ import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import type { RecentPlace } from '@/lib/places/recent-places';
-import type { Place } from '@/lib/route/plan';
+import type { Place } from '@/lib/places/route/plan';
 import { distanceText, kindIcon } from '@/components/shell/search/places';
 
 /** One of each kind of thing the fields take; picking one fills the destination, or the start once that is set. */

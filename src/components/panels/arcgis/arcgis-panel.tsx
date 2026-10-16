@@ -6,7 +6,7 @@ import { Panel } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Dot } from '@/components/ui/tag';
-import { toBboxParam, type ArcGISResult, type ImportedLayer } from '@/lib/layers/arcgis';
+import { toBboxParam, type ArcGISResult, type ImportedLayer } from '@/lib/map/layers/arcgis';
 import ArcGISImportedLayers from './arcgis-imported-layers';
 import ArcGISSearchResults from './arcgis-search-results';
 import { nextLayerColor } from './arcgis-palette';

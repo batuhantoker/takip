@@ -6,7 +6,7 @@ import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
 import { TABS, toolById } from '@/components/panels/recon/recon-tools';
-import { flatSuggestions, suggestTools, type Suggestion } from '@/lib/recon/suggest-tools';
+import { flatSuggestions, suggestTools, type Suggestion } from '@/lib/intel/recon/suggest-tools';
 
 /** Recon's front door: one field that works out what was typed and offers the tools that fit, Enter running the best. */
 export function ReconSearch({ id, query, setQuery, onRun, onOpen, autoFocus }: {

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { Circle, Earth, Pentagon, Spline, Square, type LucideIcon } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Tooltip } from '@/components/ui/tooltip';
-import type { DrawMode } from '@/lib/areas/draw';
+import type { DrawMode } from '@/lib/places/areas/draw';
 import { SHAPE_NAME } from '@/components/panels/areas/area-view';
 
 // One line each at panel width; the pill over the map takes it from there.

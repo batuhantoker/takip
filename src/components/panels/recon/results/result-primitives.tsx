@@ -5,7 +5,7 @@ import { AlertTriangle, Check, Copy } from 'lucide-react';
 import { cx, isNumeric, type Tone } from '@/components/ui/class-names';
 import { Tag } from '@/components/ui/tag';
 import { Button } from '@/components/ui/button';
-import type { ReconData } from '@/lib/recon/lookup';
+import type { ReconData } from '@/lib/intel/recon/lookup';
 
 export interface ToolResultProps { r: ReconData; query: string }
 

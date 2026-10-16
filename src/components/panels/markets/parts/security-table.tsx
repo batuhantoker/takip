@@ -6,7 +6,7 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import {
   formatMove, formatNet, formatPrice, formatVolume, monthChange, netChange, rangePosition, tradeTime,
   type MarketQuote as Quote, type SortKey,
-} from '@/lib/markets/markets';
+} from '@/lib/intel/markets/markets';
 import { moveTone, regionLabel } from '@/components/panels/markets/markets-format';
 
 /** A month of closes as one thin path, coloured by the month's direction. */

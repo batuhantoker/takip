@@ -9,7 +9,7 @@ import { Tag } from '@/components/ui/tag';
 import {
   arrivalTime, elevationPath, formatDistance, formatDuration, segmentBetween, viaRoad,
   type nextManeuver, type Place, type RouteResult,
-} from '@/lib/route/plan';
+} from '@/lib/places/route/plan';
 import { StepIcon } from './route-marks';
 
 const mono = 'font-mono tabular-nums';

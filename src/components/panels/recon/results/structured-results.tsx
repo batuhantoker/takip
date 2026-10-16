@@ -1,7 +1,7 @@
 'use client';
 
 import ChainBrief from './chain-brief';
-import type { ReconData } from '@/lib/recon/lookup';
+import type { ReconData } from '@/lib/intel/recon/lookup';
 import { renderFallback } from './result-primitives';
 import { ScannerResult, VulnResult, ShodanResult, BgpResult, MacResult } from './network-results';
 import { DnsResult, WhoisResult, CertsResult, SslResult } from './domain-results';

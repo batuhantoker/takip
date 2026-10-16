@@ -4,7 +4,7 @@ import { Tv } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
-import { BUILTIN_FEEDS } from '@/lib/alerts/live-alerts';
+import { BUILTIN_FEEDS } from '@/lib/intel/alerts/live-alerts';
 
 const REGIONS: [string, string][] = [
   ['americas', 'Americas'], ['europe', 'Europe'], ['middleeast', 'Middle East'], ['asia', 'Asia Pacific'], ['africa', 'Africa'],

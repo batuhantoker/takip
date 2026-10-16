@@ -4,10 +4,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   validateQuery, splitNdjson, pushHistory, parseHistory,
   HISTORY_KEY, type SearchType, type Category, type HistoryEntry,
-} from '@/lib/recon/fingerprint';
-import { toRow, type Row, type Source, type Phase } from '@/lib/recon/fingerprint-rows';
-import { lookupError, SIGN_IN_REQUIRED } from '@/lib/recon/lookup';
-import type { Identity } from '@/lib/recon/people/correlate';
+} from '@/lib/intel/recon/fingerprint/search';
+import { toRow, type Row, type Source, type Phase } from '@/lib/intel/recon/fingerprint/rows';
+import { lookupError, SIGN_IN_REQUIRED } from '@/lib/intel/recon/lookup';
+import type { Identity } from '@/lib/intel/recon/people/correlate';
 
 /** Where a username search is: sweeping sites, re-testing hits, or reading the profiles found. */
 export type Stage = 'sweep' | 'verifying' | 'profiles';

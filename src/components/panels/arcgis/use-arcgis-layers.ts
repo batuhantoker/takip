@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { ImportedLayer } from '@/lib/layers/arcgis';
+import type { ImportedLayer } from '@/lib/map/layers/arcgis';
 import type { ArcGISPanelProps } from './arcgis-panel';
 import { nextLayerColor } from './arcgis-palette';
 

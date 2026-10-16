@@ -1,7 +1,7 @@
 import type { DotTone } from '@/components/ui/tag';
 import type { Tone } from '@/components/ui/class-names';
-import type { RowStatus } from '@/lib/recon/fingerprint-rows';
-import type { MatchTier } from '@/lib/recon/people/correlate';
+import type { RowStatus } from '@/lib/intel/recon/fingerprint/rows';
+import type { MatchTier } from '@/lib/intel/recon/people/correlate';
 
 /** Token tone and a sentence-case label for each sweep verdict (the lib keeps hex colours we don't use here). */
 export const STATUS_DISPLAY: Record<RowStatus, { label: string; tone: DotTone }> = {

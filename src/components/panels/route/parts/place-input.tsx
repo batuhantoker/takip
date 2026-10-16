@@ -7,7 +7,7 @@ import { cx } from '@/components/ui/class-names';
 import { fieldBox, fieldInput } from '@/components/ui/field-shell';
 import { ListRow } from '@/components/ui/list-row';
 import type { RecentPlace } from '@/lib/places/recent-places';
-import type { Place } from '@/lib/route/plan';
+import type { Place } from '@/lib/places/route/plan';
 import { distanceText, kindIcon } from '@/components/shell/search/places';
 
 interface GeoHit {

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { Dot } from '@/components/ui/tag';
-import { relativeTime, type HistoryEntry } from '@/lib/recon/fingerprint';
+import { relativeTime, type HistoryEntry } from '@/lib/intel/recon/fingerprint/search';
 import type { FingerprintState } from './use-fingerprint-search';
 import { plain } from '@/components/panels/recon/results/result-primitives';
 

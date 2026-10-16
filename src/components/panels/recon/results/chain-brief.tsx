@@ -6,7 +6,7 @@ import { Button, IconButton } from '@/components/ui/button';
 import { PanelSection } from '@/components/ui/panel';
 import { Segmented } from '@/components/ui/segmented';
 import { Stat } from '@/components/ui/stat';
-import { hostedAiNotice } from '@/lib/ai/hosted';
+import { hostedAiNotice } from '@/lib/intel/ai/hosted';
 import { ErrorNote } from '@/components/panels/recon/parts/error-note';
 import { CveList, ExploitList, SanctionedWallets, usd } from './chain-brief-sections';
 

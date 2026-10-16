@@ -2,7 +2,7 @@
 
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Select } from '@/components/ui/field';
-import { FUNCTIONS, type FunctionCode } from '@/lib/markets/markets';
+import { FUNCTIONS, type FunctionCode } from '@/lib/intel/markets/markets';
 import { sectionTitle } from '@/components/panels/markets/markets-format';
 
 /** Which section of the markets is on screen: a menu docked, a row of tabs in full screen. */

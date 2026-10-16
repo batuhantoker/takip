@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { toShape, queryArea, type DrawMode, type DrawnShape, type DrawProgress, type DrawResult } from '@/lib/areas/draw';
-import { selectInArea } from '@/lib/areas/aoi';
-import { diffSweep, appendEvents, type WatchBaseline, type WatchEvent } from '@/lib/areas/watch';
-import { STORAGE_KEY, serializeShapes, deserializeShapes, shapesToGeoJSON, downloadFile } from '@/lib/areas/aoi-export';
+import { toShape, queryArea, type DrawMode, type DrawnShape, type DrawProgress, type DrawResult } from '@/lib/places/areas/draw';
+import { selectInArea } from '@/lib/places/areas/aoi';
+import { diffSweep, appendEvents, type WatchBaseline, type WatchEvent } from '@/lib/places/areas/watch';
+import { STORAGE_KEY, serializeShapes, deserializeShapes, shapesToGeoJSON, downloadFile } from '@/lib/places/areas/aoi-export';
+import type { ImageryRequest } from '@/components/map/types';
 
 export type DrawAction = 'undo' | 'finish' | 'cancel';
 
@@ -23,6 +24,7 @@ export function useAreas(dataRef: RefObject<unknown>, dataVersion: number) {
   const [watched, setWatched] = useState<Set<string>>(new Set());
   const [watchEvents, setWatchEvents] = useState<WatchEvent[]>([]);
   const watchBaselines = useRef<Record<string, WatchBaseline>>({});
+  const [imageryRequest, setImageryRequest] = useState<ImageryRequest | null>(null);
 
   const sendDraw = useCallback((action: DrawAction) => {
     setDrawCommand(c => ({ action, seq: (c?.seq ?? 0) + 1 }));
@@ -79,6 +81,11 @@ export function useAreas(dataRef: RefObject<unknown>, dataVersion: number) {
     stopDrawing();
   }, [stopDrawing]);
 
+  const showImagery = useCallback((shape: DrawnShape) => {
+    const area = queryArea(shape);
+    if (area) setImageryRequest(r => ({ shape: area, name: shape.name, seq: (r?.seq ?? 0) + 1 }));
+  }, []);
+
   const exportGeoJSON = useCallback(() => {
     downloadFile(
       `takip-aoi-${new Date().toISOString().slice(0, 10)}.geojson`,
@@ -90,7 +97,7 @@ export function useAreas(dataRef: RefObject<unknown>, dataVersion: number) {
   return {
     drawMode, setDrawMode, drawProgress, setDrawProgress, drawCommand, sendDraw, stopDrawing,
     drawnPolygons, setDrawnPolygons, selectedPolygon, setSelectedPolygon,
-    watched, watchEvents, toggleWatch, handleDrawComplete, exportGeoJSON,
+    watched, watchEvents, toggleWatch, handleDrawComplete, exportGeoJSON, imageryRequest, showImagery,
   };
 }
 

@@ -7,7 +7,7 @@ import { cx } from '@/components/ui/class-names';
 import {
   cumulativeDistances, stepPositions, computeProgress, shouldAnnounce, announcementText,
   type NavStep, type NavFix, type NavProgress,
-} from '@/lib/route/navigation';
+} from '@/lib/places/route/navigation';
 import { ManeuverIcon } from './route-marks';
 
 /** Turn-by-turn guidance, driven by the device's own position feed. */

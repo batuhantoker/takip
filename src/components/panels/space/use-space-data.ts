@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { ExoplanetPayload } from '@/lib/space/exoplanets';
-import type { FleetPayload } from '@/lib/space/fleet';
-import type { OuterPayload } from '@/lib/space/outer';
+import type { ExoplanetPayload } from '@/lib/space/deep/exoplanets';
+import type { FleetPayload } from '@/lib/space/craft/fleet';
+import type { OuterPayload } from '@/lib/space/deep/outer';
 import type { SkyPayload } from '@/lib/space/sky';
-import type { SunFrame } from '@/lib/space/sun';
-import type { SurfacePayload } from '@/lib/space/surface';
+import type { SunFrame } from '@/lib/space/bodies/sun';
+import type { SurfacePayload } from '@/lib/space/bodies/surface';
 
 /**
  * One fetch per endpoint, shared by every component that asks: the Earth sky

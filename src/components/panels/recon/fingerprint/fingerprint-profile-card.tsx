@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Tag } from '@/components/ui/tag';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import { bareUrl, type Row } from '@/lib/recon/fingerprint-rows';
+import { bareUrl, type Row } from '@/lib/intel/recon/fingerprint/rows';
 import { StatusPill, PlatformTile } from './fingerprint-parts';
 import { MATCH_DISPLAY } from './fingerprint-status';
 

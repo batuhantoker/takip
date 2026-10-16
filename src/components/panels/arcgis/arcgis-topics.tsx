@@ -4,7 +4,7 @@ import { Building2, LifeBuoy, Shield, Waypoints, Zap } from 'lucide-react';
 import type { IconType } from '@/components/ui/class-names';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
-import { CATEGORIES } from '@/lib/layers/arcgis';
+import { CATEGORIES } from '@/lib/map/layers/arcgis';
 
 const ABOUT: Record<string, { label: string; icon: IconType; blurb: string }> = {
   pipeline: { label: 'Pipelines', icon: Waypoints, blurb: 'Oil, gas and product lines' },

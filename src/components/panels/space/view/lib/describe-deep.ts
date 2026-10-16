@@ -1,11 +1,11 @@
 import { C_KM_S, LY_KM, norm, sub } from '@/lib/space/astro';
-import { DEEP_FEATURES } from '@/lib/space/deep-features';
-import type { ExoHost, PlanetRow } from '@/lib/space/exoplanets';
+import { DEEP_FEATURES } from '@/lib/space/deep/features';
+import type { ExoHost, PlanetRow } from '@/lib/space/deep/exoplanets';
 import { angleBetween, bodyDirection } from '@/lib/space/frames';
 import { distance, lightTime, speed } from '@/lib/space/format';
 import { jdFromMs, type Vec3 } from '@/lib/space/horizons';
-import { absoluteMag, spectralClass, starLy, temperatureK } from '@/lib/space/nearby-stars';
-import { VISITORS } from '@/lib/space/outer';
+import { absoluteMag, spectralClass, starLy, temperatureK } from '@/lib/space/deep/nearby-stars';
+import { VISITORS } from '@/lib/space/deep/outer';
 import type { SpaceSelection } from '@/lib/space/selection';
 import type { SpaceScene } from '@/lib/space/scene/space-scene';
 
@@ -14,7 +14,7 @@ import type { SpaceScene } from '@/lib/space/scene/space-scene';
 export interface CardData {
   title: string;
   subtitle: string;
-  /** The thing's marker colour in the scene (lib/space/scene/deep-hud.ts), so the card's dot is the dot on screen. */
+  /** The thing's marker colour in the scene (lib/space/scene/hud/deep-targets.ts), so the card's dot is the dot on screen. */
   color: string;
   fields: [string, string][];
   /** What it is: one or two plain sentences. */

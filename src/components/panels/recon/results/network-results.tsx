@@ -4,7 +4,7 @@ import { ExternalLink } from 'lucide-react';
 import { PanelSection } from '@/components/ui/panel';
 import { ResultRow, PortRow, SEVERITY_TONE, Target, Verdict, known, plain, renderFallback, renderFallbackExcluding, type ToolResultProps } from './result-primitives';
 import { CveLine } from './cve-line';
-import { serviceName } from '@/lib/recon/ports';
+import { serviceName } from '@/lib/intel/recon/network/ports';
 
 /** A live connect scan: which of the common ports answered, and how long the sweep took. */
 export function ScannerResult({ r, query }: ToolResultProps) {

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { PanelSection } from '@/components/ui/panel';
 import { Tag } from '@/components/ui/tag';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import type { ReconData } from '@/lib/recon/lookup';
+import type { ReconData } from '@/lib/intel/recon/lookup';
 import { SEVERITY_TONE, Verdict, known, plain } from './result-primitives';
 
 export function SweepProgress({ progress }: { progress: { current: number; total: number } }) {

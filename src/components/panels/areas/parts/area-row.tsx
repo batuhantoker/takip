@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, type ComponentProps } from 'react';
-import { Bell, BellRing, Check, Copy, Crosshair, MoreHorizontal, PenLine, Trash2 } from 'lucide-react';
+import { Bell, BellRing, Check, Copy, Crosshair, MoreHorizontal, PenLine, Satellite, Trash2 } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 import { ListRow } from '@/components/ui/list-row';
-import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
+import { MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
-import { queryArea, type DrawnShape } from '@/lib/areas/draw';
+import { queryArea, type DrawnShape } from '@/lib/places/areas/draw';
 import { measures } from '@/components/panels/areas/area-view';
 import { Figure } from '@/components/ui/figure';
 
-/** One drawn shape: its colour on the map, name, size, a bell to watch it and a menu for the rest. */
-export default function AreaRow({ shape, selected, watched, onSelect, onToggleWatch, onRename, onDelete, onShow }: {
+/** One drawn shape: its colour on the map, name, size, a bell to watch it, a bin to delete it and a menu for the rest. */
+export default function AreaRow({ shape, selected, watched, onSelect, onToggleWatch, onRename, onDelete, onShow, onImagery }: {
   shape: DrawnShape;
   selected: boolean;
   watched: boolean;
@@ -21,6 +21,7 @@ export default function AreaRow({ shape, selected, watched, onSelect, onToggleWa
   onRename: (name: string) => void;
   onDelete: () => void;
   onShow: () => void;
+  onImagery?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(shape.name);
@@ -81,15 +82,15 @@ export default function AreaRow({ shape, selected, watched, onSelect, onToggleWa
           <IconButton size="sm" icon={watched ? WatchingBell : Bell} active={watched} onClick={onToggleWatch}
             label={watched ? 'Stop watching' : 'Watch for things entering or leaving'} />
         )}
+        <IconButton size="sm" icon={Trash2} label={`Delete ${shape.name}`} onClick={onDelete} />
         <Popover role="menu" label={`${shape.name} options`} placement="bottom" align="end" className="w-52 p-1"
           trigger={<IconButton size="sm" icon={MoreHorizontal} label="More" />}>
           {close => (
             <>
               <MenuItem icon={Crosshair} onSelect={() => { onShow(); close(); }}>Show on map</MenuItem>
+              {onImagery && queryArea(shape) && <MenuItem icon={Satellite} onSelect={() => { onImagery(); close(); }}>Satellite images</MenuItem>}
               <MenuItem icon={PenLine} onSelect={() => { setDraft(shape.name); setEditing(true); close(); }}>Rename</MenuItem>
               <MenuItem icon={copied ? Check : Copy} onSelect={copy} hint={copied ? 'Copied' : undefined}>Copy as GeoJSON</MenuItem>
-              <MenuDivider />
-              <MenuItem icon={Trash2} danger onSelect={() => { close(); onDelete(); }}>Delete</MenuItem>
             </>
           )}
         </Popover>

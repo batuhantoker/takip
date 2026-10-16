@@ -7,11 +7,11 @@ import { TextField } from '@/components/ui/field';
 import {
   DONBOT_ORIGIN, DONBOT_ANALYZER, DONBOT_CHAINS, DONBOT_SANDBOX,
   cleanQuery, donbotFrameUrl, parseDonbotMessage, type DonbotResult,
-} from '@/lib/markets/donbot';
+} from '@/lib/intel/markets/donbot';
 
 /**
  * DonBot, in Markets and in Recon: DigitalDon's token analyzer,
- * embedded without its script. See lib/markets/donbot for what crosses the boundary and why.
+ * embedded without its script. See lib/intel/markets/donbot for what crosses the boundary and why.
  */
 
 const INITIAL_HEIGHT = 420;

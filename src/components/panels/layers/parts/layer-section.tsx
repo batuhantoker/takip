@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { primary, type LayerDef } from '@/components/panels/layers/layer-groups';
 import { LayerRow, layerName, SubFilters } from './layer-row';
 import { TemperatureUnitToggle } from './temperature-unit-toggle';
+import { RadarLoopControl } from './radar-loop-control';
+import { WindTimeNote } from './wind-time-note';
 import { groupTitle, type LayerSection as Section } from '@/components/panels/layers/lib/layer-sections';
 import { sourceFor } from '@/components/panels/layers/lib/layer-sources';
 import { Disclosure } from '@/components/ui/disclosure';
@@ -70,6 +72,8 @@ export default function LayerSection({ section, open, onOpenChange, activeLayers
                   <SubFilters parentName={layerName(layer)} layers={subs} activeLayers={activeLayers} parentOn={layerOn} countOf={countOf} onToggle={onToggle} />
                 )}
                 {layer.key === 'wx_temperature' && (layerOn || searching) && <TemperatureUnitToggle />}
+                {layer.key === 'wx_radar' && layerOn && <RadarLoopControl />}
+                {layer.key === 'wx_wind' && layerOn && <WindTimeNote />}
               </div>
             );
           })}

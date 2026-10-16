@@ -6,8 +6,8 @@ import {
   parseCommand, parseWatchlist, sortQuotes, suggest, toggleWatch,
   WATCHLIST_KEY,
   type FunctionCode, type MarketQuote as Quote, type SortKey, type Suggestion,
-} from '@/lib/markets/markets';
-import { FEED_SECTIONS, SECTION_OF } from '@/lib/markets/terminal';
+} from '@/lib/intel/markets/markets';
+import { FEED_SECTIONS, SECTION_OF } from '@/lib/intel/markets/terminal';
 
 export interface MarketBreadth { up: number; down: number; flat: number; total: number; best: Quote[]; worst: Quote[] }
 

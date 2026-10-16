@@ -5,7 +5,7 @@ import { CloudOff, SearchX } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
 import { LY_KM } from '@/lib/space/astro';
-import type { ExoHost, ExoplanetPayload } from '@/lib/space/exoplanets';
+import type { ExoHost, ExoplanetPayload } from '@/lib/space/deep/exoplanets';
 import { requestWorld } from '@/lib/space/world-events';
 import { DistanceCell } from './distance-cell';
 

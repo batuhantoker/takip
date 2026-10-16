@@ -2,7 +2,7 @@
 
 import { ExternalLink } from 'lucide-react';
 import { Tag } from '@/components/ui/tag';
-import { quoteOf, type NewsAlert } from '@/lib/alerts/live-alerts';
+import { quoteOf, type NewsAlert } from '@/lib/intel/alerts/live-alerts';
 import { AlertRow, Meta } from './alert-row';
 import { Figure } from '@/components/ui/figure';
 import { fullDate, stamp, toneOf } from '@/components/panels/alerts/format';

@@ -3,7 +3,7 @@
 import { useId, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { cx, TRANSITION } from '@/components/ui/class-names';
-import type { ArcGISResult } from '@/lib/layers/arcgis';
+import type { ArcGISResult } from '@/lib/map/layers/arcgis';
 
 /** A word for the geometry when the title names it outright; ArcGIS search does not say, and tags guess wrong too often. */
 function geometryWord(title: string): string | null {

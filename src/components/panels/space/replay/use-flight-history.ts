@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { CraftHistory } from '@/lib/space/flight-history';
+import type { CraftHistory } from '@/lib/space/replay/flight-history';
 
 /** One spacecraft's whole flight, fetched once per craft; the first time Horizons is asked, it takes a while. */
 const cache = new Map<number, Promise<CraftHistory>>();

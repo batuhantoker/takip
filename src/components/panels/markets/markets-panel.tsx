@@ -7,7 +7,7 @@ import { IconButton } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
 import { useEscape } from '@/components/ui/use-escape';
-import { longName } from '@/lib/markets/markets';
+import { longName } from '@/lib/intel/markets/markets';
 import AiOverview from '@/components/panels/alerts/ai-overview';
 import DonBotScan from './donbot-scan';
 import CommandLine from '@/components/panels/markets/parts/command-line';

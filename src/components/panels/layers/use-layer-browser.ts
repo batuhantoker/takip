@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { SHIP_CLASSES } from '@/lib/ships/filter';
+import { SHIP_CLASSES } from '@/lib/feeds/maritime/ship-filter';
 import { LAYER_GROUPS, primary, type LayerDef, type LayerGroupDef } from './layer-groups';
 import { layerCount } from '@/components/panels/layers/lib/layer-count';
 import { layerName } from '@/components/panels/layers/parts/layer-row';

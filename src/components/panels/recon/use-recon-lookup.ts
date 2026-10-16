@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { authClient } from '@/lib/account/auth-client';
-import { lookupError, lookupUrl, needsSignIn, parseLeaks, runSweep, SIGN_IN_REQUIRED } from '@/lib/recon/lookup';
+import { authClient } from '@/components/site/account/auth-client';
+import { lookupError, lookupUrl, needsSignIn, parseLeaks, runSweep, SIGN_IN_REQUIRED } from '@/lib/intel/recon/lookup';
 import { plainError } from './lookup-errors';
 
 export interface HistoryEntry { tool: string; query: string; at: number }

@@ -5,7 +5,7 @@ import { Check, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
-import type { ImportedLayer } from '@/lib/layers/arcgis';
+import type { ImportedLayer } from '@/lib/map/layers/arcgis';
 import { layerSwatches } from './arcgis-palette';
 
 // The kit has no slider yet: a native range, drawn as a thin track filled with the accent up to the value.

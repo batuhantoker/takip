@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import type { HistorySession } from '@/lib/history/session';
-import { CHAPTERS } from '@/lib/paleo/story';
+import { CHAPTERS } from '@/lib/history/paleo/story';
 import { HistoryCard } from './history-card';
 
 const age = (ma: number) => (ma === 0 ? 'Now' : `${ma.toLocaleString('en')} Ma`);
