@@ -21,8 +21,8 @@ In order. "(you)" marks the user's own steps.
 
 
 ### 1.3 Record around the clock, with cleanup
-Replay has tracks only for 11–12 Oct 2026: nothing has been sealed since, because `npm run dev` doesn't start the worker. Raw files still land (~0.5 GB a day, ships ~400 MB of it) and nothing deletes them.
-1. (you) Start the recorder: `npm start -w @takip/ingest`. Decide whether `npm run dev` (`tools/dev.mjs`) should start it too.
+The recorder runs around the clock on the NUC since 2026-10-18 ([`runbooks/nuc.md`](runbooks/nuc.md)); the Mac's `npm run dev` doesn't start it. Raw files land at ~0.5 GB a day (ships ~400 MB of it) and nothing deletes them.
+1. (you) Decide whether `npm run dev` (`tools/dev.mjs`) should start the recorder too. Two recorders share one OpenSky client.
 2. (you) `npm run plan -- grant <your email> pro`. Replay looks back by plan (`replay.lookback_days`: anon 1, free 7, pro 3650), so signed out it hides your own recordings.
 3. Complete the Docker setup so TAKIP runs on a NUC, a cloud server or any machine left on. `docker-compose.yml` runs only the web app, nginx and `intel` today:
    - an api image (a tsup bundle or `tsx`), and an `api` service with `API_INTERNAL_URL=http://api:4100` at web build time;
@@ -123,7 +123,7 @@ Chosen by the user on 2026-10-15. Details are in [`inspiration-sources/gods-eye-
 ## 3. Decisions waiting on the user
 
 1. **The new name:** BT:TBD see 1.0. "Takip" is an everyday Turkish word (crowded search results, hard to get a domain), and in Turkish it can also mean following a person. `https://takip.example` is the placeholder.
-2. **Where it runs and how the phone reaches it:**  BT:TBD a NUC, a cloud server, or the Mac left on; reached privately (Tailscale, your devices only) or at a public address. A public address needs the hosting and security work in §5 first.
+2. **A fixed address for the NUC:** it runs there since 2026-10-18 ([`runbooks/nuc.md`](runbooks/nuc.md)) at a Cloudflare quick-tunnel link that changes on every restart. Once §3.1's domain is bought on Cloudflare, move it to a named tunnel on that domain. Anyone with the link can use it, so the §5 hosting and security work applies.
 3. **How long to keep data, and a disk budget.** BT:TBD, I am not sure, for now just record we will get there can geProposed: fine track detail (L0) 3 months, L1 90 days, L2 forever. How long raw files are kept is open.
 4. **History:** whether the plan lookback limit applies to History at all (recommended: no, for personal use); and GDELT history as one entry per story per day, or news intensity per country (`architecture/gdelt.md`).
 5. **Cameras as their own product:** later.

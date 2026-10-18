@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
         loaders: [`${__dirname}/tools/maplibre-url-loader.cjs`],
         as: '*.js',
       },
+      '*.js': {
+        condition: { path: /satellite\.js\/dist\/index\.js$/ },
+        loaders: [`${__dirname}/tools/satellite-js-loader.cjs`],
+      },
     },
   },
   /* Standalone output exists for the Docker image — the Dockerfile copies

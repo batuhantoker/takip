@@ -15,6 +15,7 @@
 | [`data-sources.md`](data-sources.md) | Candidate public data sources, and how to choose one |
 | [`inspiration-sources/`](inspiration-sources/README.md) | Sources and features surveyed in World Monitor, Provenance, Argus, God's Eye View and NASA Worldview |
 | [`runbooks/app-db-restore.md`](runbooks/app-db-restore.md) | Restoring `app.db` from a snapshot |
+| [`runbooks/nuc.md`](runbooks/nuc.md) | The NUC deployment: services, link, updating |
 | [`privacy-draft.md`](privacy-draft.md) | Draft privacy text for accounts; not live |
 | [`../data/reference/README.md`](../data/reference/README.md) | The reference map data files |
 
