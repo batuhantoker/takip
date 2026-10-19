@@ -1,0 +1,19 @@
+{
+  "Automatic ({language})": "自動（{language}）",
+  "Automatic follows the country you open TAKIP from. The page reloads to switch.": "自動では TAKIP を開いた国に合わせます。切り替えるとページが再読み込みされます。",
+  "Dock every window you moved or resized": "移動やサイズ変更をしたウィンドウをすべて元に戻す",
+  "Done": "完了",
+  "Ghost tints the panels and the map violet.": "Ghost はパネルと地図を紫色に染めます。",
+  "History popups show this Wikipedia's article when there is one, else the one the data names.": "歴史のポップアップは、この言語のウィキペディアに記事があればそれを、なければデータが示す記事を表示します。",
+  "Language": "言語",
+  "Reset": "リセット",
+  "Show TAKIP in": "TAKIP の表示言語",
+  "Temperature": "気温",
+  "Temperature unit": "気温の単位",
+  "Theme": "テーマ",
+  "Units": "単位",
+  "Weather labels and readings": "天気のラベルと測定値",
+  "Wikipedia": "ウィキペディア",
+  "Window places": "ウィンドウの位置",
+  "Windows": "ウィンドウ"
+}

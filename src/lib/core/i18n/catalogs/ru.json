@@ -1,0 +1,19 @@
+{
+  "Automatic ({language})": "Автоматически ({language})",
+  "Automatic follows the country you open TAKIP from. The page reloads to switch.": "Автоматический выбор следует за страной, из которой вы открываете TAKIP. Для смены страница перезагрузится.",
+  "Dock every window you moved or resized": "Вернуть на место все окна, которые вы перемещали или меняли в размере",
+  "Done": "Готово",
+  "Ghost tints the panels and the map violet.": "Ghost окрашивает панели и карту в фиолетовый.",
+  "History popups show this Wikipedia's article when there is one, else the one the data names.": "Всплывающие окна истории показывают статью из этой Википедии, если она есть, иначе ту, что указана в данных.",
+  "Language": "Язык",
+  "Reset": "Сбросить",
+  "Show TAKIP in": "Язык TAKIP",
+  "Temperature": "Температура",
+  "Temperature unit": "Единица температуры",
+  "Theme": "Тема",
+  "Units": "Единицы",
+  "Weather labels and readings": "Подписи и показания погоды",
+  "Wikipedia": "Википедия",
+  "Window places": "Положение окон",
+  "Windows": "Окна"
+}

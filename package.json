@@ -18,7 +18,8 @@
     "plan": "npm run plan -w @takip/api --",
     "admin": "npm run admin -w @takip/api --",
     "ingest": "npm run ingest -w @takip/ingest --",
-    "import": "tsx tools/import/cli.ts"
+    "import": "tsx tools/import/cli.ts",
+    "i18n": "tsx tools/i18n/cli.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -1,0 +1,19 @@
+{
+  "Automatic ({language})": "Otomatik ({language})",
+  "Automatic follows the country you open TAKIP from. The page reloads to switch.": "Otomatik, TAKIP'i açtığınız ülkeyi izler. Değiştirmek için sayfa yeniden yüklenir.",
+  "Dock every window you moved or resized": "Taşıdığınız veya boyutlandırdığınız her pencereyi yerine yerleştirin",
+  "Done": "Tamam",
+  "Ghost tints the panels and the map violet.": "Ghost panelleri ve haritayı mora boyar.",
+  "History popups show this Wikipedia's article when there is one, else the one the data names.": "Tarih açılır pencereleri, varsa bu Vikipedi'deki maddeyi, yoksa verinin belirttiği maddeyi gösterir.",
+  "Language": "Dil",
+  "Reset": "Sıfırla",
+  "Show TAKIP in": "TAKIP'i şu dilde göster",
+  "Temperature": "Sıcaklık",
+  "Temperature unit": "Sıcaklık birimi",
+  "Theme": "Tema",
+  "Units": "Birimler",
+  "Weather labels and readings": "Hava durumu etiketleri ve ölçümler",
+  "Wikipedia": "Vikipedi",
+  "Window places": "Pencere konumları",
+  "Windows": "Pencereler"
+}

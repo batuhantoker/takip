@@ -1,0 +1,19 @@
+{
+  "Automatic ({language})": "Automático ({language})",
+  "Automatic follows the country you open TAKIP from. The page reloads to switch.": "El modo automático sigue el país desde el que abres TAKIP. La página se recarga para cambiar.",
+  "Dock every window you moved or resized": "Vuelve a acoplar las ventanas que moviste o redimensionaste",
+  "Done": "Hecho",
+  "Ghost tints the panels and the map violet.": "Ghost tiñe de violeta los paneles y el mapa.",
+  "History popups show this Wikipedia's article when there is one, else the one the data names.": "Las ventanas de Historia muestran el artículo de esta Wikipedia cuando existe; si no, el que indican los datos.",
+  "Language": "Idioma",
+  "Reset": "Restablecer",
+  "Show TAKIP in": "Mostrar TAKIP en",
+  "Temperature": "Temperatura",
+  "Temperature unit": "Unidad de temperatura",
+  "Theme": "Tema",
+  "Units": "Unidades",
+  "Weather labels and readings": "Etiquetas y lecturas del tiempo",
+  "Wikipedia": "Wikipedia",
+  "Window places": "Posición de las ventanas",
+  "Windows": "Ventanas"
+}

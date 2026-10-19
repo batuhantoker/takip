@@ -1,0 +1,19 @@
+{
+  "Automatic ({language})": "تلقائي ({language})",
+  "Automatic follows the country you open TAKIP from. The page reloads to switch.": "يتبع الوضع التلقائي البلد الذي تفتح منه TAKIP. تُعاد تحميل الصفحة للتبديل.",
+  "Dock every window you moved or resized": "أعد تثبيت كل نافذة نقلتها أو غيّرت حجمها",
+  "Done": "تم",
+  "Ghost tints the panels and the map violet.": "يلوّن Ghost اللوحات والخريطة باللون البنفسجي.",
+  "History popups show this Wikipedia's article when there is one, else the one the data names.": "تعرض نوافذ التاريخ مقالة ويكيبيديا هذه إن وُجدت، وإلا فالمقالة التي تذكرها البيانات.",
+  "Language": "اللغة",
+  "Reset": "إعادة تعيين",
+  "Show TAKIP in": "اعرض TAKIP بـ",
+  "Temperature": "درجة الحرارة",
+  "Temperature unit": "وحدة درجة الحرارة",
+  "Theme": "السمة",
+  "Units": "الوحدات",
+  "Weather labels and readings": "تسميات الطقس وقراءاته",
+  "Wikipedia": "ويكيبيديا",
+  "Window places": "مواضع النوافذ",
+  "Windows": "النوافذ"
+}

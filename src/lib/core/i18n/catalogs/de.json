@@ -1,0 +1,19 @@
+{
+  "Automatic ({language})": "Automatisch ({language})",
+  "Automatic follows the country you open TAKIP from. The page reloads to switch.": "Automatisch richtet sich nach dem Land, aus dem du TAKIP öffnest. Zum Wechseln lädt die Seite neu.",
+  "Dock every window you moved or resized": "Alle verschobenen oder in der Größe geänderten Fenster wieder andocken",
+  "Done": "Fertig",
+  "Ghost tints the panels and the map violet.": "Ghost färbt Panels und Karte violett.",
+  "History popups show this Wikipedia's article when there is one, else the one the data names.": "Geschichts-Pop-ups zeigen den Artikel dieser Wikipedia, wenn es einen gibt, sonst den aus den Daten.",
+  "Language": "Sprache",
+  "Reset": "Zurücksetzen",
+  "Show TAKIP in": "TAKIP anzeigen auf",
+  "Temperature": "Temperatur",
+  "Temperature unit": "Temperatureinheit",
+  "Theme": "Design",
+  "Units": "Einheiten",
+  "Weather labels and readings": "Wetterbeschriftungen und Messwerte",
+  "Wikipedia": "Wikipedia",
+  "Window places": "Fensterpositionen",
+  "Windows": "Fenster"
+}

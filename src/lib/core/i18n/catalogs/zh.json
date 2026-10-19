@@ -1,0 +1,19 @@
+{
+  "Automatic ({language})": "自动（{language}）",
+  "Automatic follows the country you open TAKIP from. The page reloads to switch.": "自动模式根据你打开 TAKIP 时所在的国家选择语言。切换时页面会重新加载。",
+  "Dock every window you moved or resized": "将你移动或调整过大小的窗口全部复位",
+  "Done": "完成",
+  "Ghost tints the panels and the map violet.": "Ghost 会把面板和地图染成紫色。",
+  "History popups show this Wikipedia's article when there is one, else the one the data names.": "历史弹窗会显示该语言维基百科的条目（如有），否则显示数据指定的条目。",
+  "Language": "语言",
+  "Reset": "重置",
+  "Show TAKIP in": "TAKIP 显示语言",
+  "Temperature": "温度",
+  "Temperature unit": "温度单位",
+  "Theme": "主题",
+  "Units": "单位",
+  "Weather labels and readings": "天气标签和读数",
+  "Wikipedia": "维基百科",
+  "Window places": "窗口位置",
+  "Windows": "窗口"
+}
