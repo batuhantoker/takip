@@ -5,6 +5,7 @@ import { shipCategory, type ShipCategory } from '@takip/core/vessel';
 import { VesselRegistry, readRegistry, registryPath, writeRegistry } from '@/lib/feeds/maritime/vessel-registry';
 import { CHOKEPOINTS, PORTS } from '@/lib/feeds/maritime/ports';
 import { countNear, parseNear, type NearQuery } from '@/lib/feeds/maritime/ships-near';
+import { parseSince, SHIP_STALE_MS as STALE_MS, shipsSince } from '@/lib/feeds/maritime/ship-delta';
 
 /**
  * TAKIP — Maritime Intelligence
@@ -258,14 +259,14 @@ async function fetchVesselApiFallback() {
    watching. The window sits well under the 10s the client polls at, so
    nothing reaches the map staler than it already was. */
 const SNAPSHOT_TTL_MS = 5_000;
-/** A ship not heard from for this long is dropped. */
-const STALE_MS = 10 * 60_000;
 
 const globalForSnapshot = globalThis as unknown as {
-  maritimeSnapshot?: { body: string; builtAt: number };
+  maritimeSnapshot?: Snapshot & { builtAt: number };
 };
 
-function buildSnapshot(now: number): string {
+type Snapshot = { body: string; ships: Ship[]; ports: unknown[]; chokepoints: unknown[] };
+
+function buildSnapshot(now: number): Snapshot {
   // Clean up stale ships (older than 10 minutes)
   for (const [mmsi, ship] of shipsCache.entries()) {
     if (now - ship.timestamp > STALE_MS) {
@@ -336,7 +337,7 @@ function buildSnapshot(now: number): string {
     };
   });
 
-  return JSON.stringify({
+  const body = JSON.stringify({
     ports: dynamicPorts,
     chokepoints: dynamicChokepoints,
     ships: ships,
@@ -344,6 +345,21 @@ function buildSnapshot(now: number): string {
     total_chokepoints: dynamicChokepoints.length,
     total_ships: ships.length,
     timestamp: new Date(now).toISOString(),
+  });
+  return { body, ships, ports: dynamicPorts, chokepoints: dynamicChokepoints };
+}
+
+/** `?since=` from a map that already holds the ships: only those heard after it, cut from the same snapshot. */
+function deltaBody(s: Snapshot & { builtAt: number }, since: number): string {
+  return JSON.stringify({
+    ports: s.ports,
+    chokepoints: s.chokepoints,
+    ships: shipsSince(s.ships, since),
+    total_ports: s.ports.length,
+    total_chokepoints: s.chokepoints.length,
+    total_ships: s.ships.length,
+    timestamp: new Date(s.builtAt).toISOString(),
+    delta: true,
   });
 }
 
@@ -373,8 +389,13 @@ export async function GET(request?: Request) {
 
   const snapshot = cached && now - cached.builtAt < SNAPSHOT_TTL_MS
     ? cached
-    : { body: buildSnapshot(now), builtAt: now };
+    : { ...buildSnapshot(now), builtAt: now };
   globalForSnapshot.maritimeSnapshot = snapshot;
+
+  const since = request ? parseSince(new URL(request.url).searchParams.get('since'), snapshot.builtAt) : null;
+  if (since != null) {
+    return new NextResponse(deltaBody(snapshot, since), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' } });
+  }
 
   const maxAgeSeconds = Math.floor(SNAPSHOT_TTL_MS / 1000);
 

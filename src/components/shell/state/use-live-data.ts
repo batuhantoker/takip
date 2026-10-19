@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, type Dispatch, type RefObject, type Set
 import { loadCameraCatalog, mergeCameraCatalog } from '@/lib/feeds/cameras/camera-catalog';
 import { newsTransform } from '@/lib/intel/alerts/news-transform';
 import { noteFeed, noteFeedFailure } from '@/lib/core/feed-log';
+import { createShipBook, type ShipReply, type ShipRow } from '@/lib/feeds/maritime/ship-delta';
 import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import type { BackendStatus, LiveData } from './types';
 
@@ -122,6 +123,9 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
 
   // ── LAYER-AWARE DATA LOADING — only fetch when layer is toggled ON ──
   const layerFetchedRef = useRef<Set<string>>(new Set());
+  // Ships come whole once, then as the changes since the last reply (lib/feeds/maritime/ship-delta.ts).
+  const shipBookRef = useRef(createShipBook<ShipRow>());
+  const shipsFrom = useCallback((d: ShipReply & { ports?: unknown; chokepoints?: unknown }) => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: shipBookRef.current.apply(d) }), []);
   useEffect(() => {
     if (!activeLayers.cctv) return;
     return loadCameraCatalog(cameras => {
@@ -159,7 +163,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     }
     // Maritime
     if (activeLayers.maritime && !layerFetchedRef.current.has('maritime')) {
-      fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships }));
+      fetchEndpoint(shipBookRef.current.url(), shipsFrom);
       layerFetchedRef.current.add('maritime');
     }
     // Balloons
@@ -329,11 +333,19 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       const vesselGapMs = () => ((dataRef.current.maritime_ships?.length ?? 0) > 0 ? 10_000 : 300_000);
       const pollMaritime = () => {
         if (stopped) return;
-        fetchEndpoint('/api/maritime', d => ({ maritime_ports: d.ports, maritime_chokepoints: d.chokepoints, maritime_ships: d.ships }));
+        // A background tab asks for nothing, and catches up the moment it is shown again.
+        fetchEndpoint(shipBookRef.current.url(), shipsFrom, undefined, { skipWhenHidden: true });
         vesselTimer = setTimeout(pollMaritime, vesselGapMs());
       };
-      vesselTimer = setTimeout(pollMaritime, vesselGapMs());
-      stopFns.push(() => { stopped = true; clearTimeout(vesselTimer); });
+      const onShown = () => {
+        if (document.hidden || stopped) return;
+        clearTimeout(vesselTimer);
+        pollMaritime();
+      };
+      // The first ships may not have landed yet, so the first refresh doesn't wait the empty-feed five minutes.
+      vesselTimer = setTimeout(pollMaritime, 10_000);
+      document.addEventListener('visibilitychange', onShown);
+      stopFns.push(() => { stopped = true; clearTimeout(vesselTimer); document.removeEventListener('visibilitychange', onShown); });
     }
     if ((activeLayers as any).cyber_attacks) {
       intervals.push(setInterval(() => {
@@ -343,7 +355,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       }, 300000)); // 5m — a blocklist turns over in hours, not seconds
     }
     return () => { intervals.forEach(clearInterval); stopFns.forEach(stop => stop()); };
-  }, [activeLayers, fetchEndpoint]);
+  }, [activeLayers, fetchEndpoint, shipsFrom]);
 
   // CCTV: loaded once on layer toggle via layerFetchedRef (no viewport polling)
 

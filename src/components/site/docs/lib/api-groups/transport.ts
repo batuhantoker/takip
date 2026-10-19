@@ -60,6 +60,7 @@ export const TRANSPORT: ApiGroup = {
       params: [
         { name: 'near', desc: '`lat,lng`: instead of every ship, only `{ near: { km, total, underway, types }, timestamp }` for the ships around that point.', example: '51.9,4.48' },
         { name: 'km', desc: 'The radius for `near`, 10 by default and at most 100.' },
+        { name: 'since', desc: 'Milliseconds since the epoch, usually the last reply\'s `timestamp`: only the ships heard after it, with `delta: true`. A time older than 10 minutes, the window ships are kept for, gets every ship.', example: '1792440429613' },
       ],
       returns: ['ports', 'chokepoints', 'ships', 'total_ports', 'total_chokepoints', 'total_ships', 'timestamp'],
       env: ['AIS_API_KEY'],
