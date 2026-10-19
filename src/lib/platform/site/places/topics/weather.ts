@@ -106,7 +106,7 @@ export const WEATHER: PlaceTopic<WeatherData, StationNow[]> = {
     return `${s.charAt(0).toLocaleUpperCase()}${s.slice(1)}.`;
   },
 
-  open: (place, { data }) => ({ layers: ['wx_radar', ...(data.lightning ? ['wx_lightning'] : []), 'weather', 'airport_weather'], zoom: 8 }),
+  open: (place, { data }) => ({ layers: ['wx_radar', ...(data.lightning ? ['wx_lightning'] : []), 'weather', 'airport_weather', 'wx_temperature', 'wx_wind'], zoom: 8 }),
 
   live: (place, { data }, t) => metarNow(data.stations.slice(0, 3), place.cc, t),
 };
