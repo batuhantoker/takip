@@ -43,6 +43,10 @@ cd ~/takip && systemctl --user stop takip-web takip-ingest && git pull --ff-only
 - The api runs migrations on start. Take an `app.db` snapshot before a risky update (`npm run backup -w @takip/api`).
 - The IP location database (`data/geoip/dbip-city-lite.mmdb`, DB-IP Lite, ~130 MB) isn't in git. DB-IP publishes a new one each month: `npm run geoip -w @takip/api`, then restart `takip-api`.
 
+## Pictures for the public pages
+
+The `/map/…` pages lead with pictures of the map kept in `.cache/site-shots/`, outside git. Take them on the Mac against the dev server (`nice npx tsx tools/site/shots.ts`) and copy them over: `rsync -a .cache/site-shots/ user@nuc:takip/.cache/site-shots/`. Without them the pages show a sketch of the world instead.
+
 ## Known limits
 
 - **The api runs with `NODE_ENV=development`.** Production refuses to start without `SMTP_URL` and `MAIL_FROM`, so until mail is set up, verification and reset links go to `journalctl --user -u takip-api`. Better Auth's sign-in rate limiter is also off outside production.

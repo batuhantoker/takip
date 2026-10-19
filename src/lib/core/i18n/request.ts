@@ -1,6 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { loadCatalog } from './catalog';
-import { LOCALE_COOKIE, isLocale, type Locale } from './locales';
+import { LOCALE_COOKIE, PATH_LOCALE_HEADER, isLocale, type Locale } from './locales';
 import { edgeCountry, pickLocale } from './pick-locale';
 import { createTranslator, type Translate } from './translator';
 
@@ -12,13 +12,14 @@ export type RequestLocale = {
   automatic: Locale;
 };
 
-/** The language for this request. Reading cookies and headers makes the page dynamic. */
+/** The language for this request: the URL's (public pages), else the visitor's pick, else their country and browser. Reading cookies and headers makes the page dynamic. */
 export async function requestLocale(): Promise<RequestLocale> {
   const [jar, h] = await Promise.all([cookies(), headers()]);
   const saved = jar.get(LOCALE_COOKIE)?.value;
   const automatic = pickLocale({ country: edgeCountry(h), acceptLanguage: h.get('accept-language') });
   const chosen = isLocale(saved) ? saved : null;
-  return { locale: chosen ?? automatic, chosen, automatic };
+  const fromPath = h.get(PATH_LOCALE_HEADER);
+  return { locale: isLocale(fromPath) ? fromPath : chosen ?? automatic, chosen, automatic };
 }
 
 /** A translator for server components and generateMetadata. */

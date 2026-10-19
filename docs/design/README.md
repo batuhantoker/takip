@@ -336,7 +336,10 @@ TAKIP speaks English (the source), Turkish, Spanish, Portuguese (Brazil),
 French, German, Russian, Arabic, Simplified Chinese and Japanese. The language
 follows the country a visitor opens it from; the browser chooses among a
 multilingual country's languages; a pick in Settings → General overrides it and
-is remembered. URLs are the same in every language.
+is remembered. The map has one URL in every language. The public reading pages
+(`/about`, `/map/…`) have one per language, `/tr/map/earthquakes`, so search
+engines can index each; on those pages the URL sets the language (decided with the
+user on 2026-10-19).
 
 - Every word a person reads goes through the translator: `const t = useT()` in
   components, `await getT()` in server components and metadata, and `t` from

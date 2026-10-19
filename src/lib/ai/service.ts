@@ -8,6 +8,7 @@
  */
 import { NextResponse } from 'next/server';
 import { getClientIp, isRateLimited } from '@/lib/core/net/ssrf-guard';
+import { publicOrigin } from '@/lib/platform/site/origin';
 import { DEPTHS, estimateCalls, SEED_MAX, type SeedScope } from './depths';
 import { askRun } from './engine/ask';
 import { replyLocale } from './prompts/language';
@@ -40,17 +41,11 @@ export function disabledResponse() {
   return fail(503, 'TI is switched off on this server.');
 }
 
-const HOST = /^[a-z0-9.-]+(?::\d{1,5})?$/i;
-
 /** This site's public origin, for watch links. */
 export function siteOrigin(req: Request): string {
   const configured = process.env.AI_PUBLIC_ORIGIN || process.env.OI_PUBLIC_ORIGIN;
   if (configured && /^https?:\/\/[a-z0-9.-]+(?::\d+)?$/i.test(configured)) return configured;
-  const host = (req.headers.get('x-forwarded-host') || req.headers.get('host') || '').split(',')[0].trim();
-  if (!HOST.test(host)) return 'https://takip.example';
-  const local = /^(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(host);
-  const proto = req.headers.get('x-forwarded-proto')?.split(',')[0].trim() || (local ? 'http' : 'https');
-  return `${proto === 'http' ? 'http' : 'https'}://${host}`;
+  return publicOrigin(req.headers);
 }
 
 /** A JSON body, capped in size. Null when it is missing, too big or not an object. */

@@ -1,0 +1,33 @@
+import { NextResponse, type NextRequest } from 'next/server';
+import { PATH_LOCALE_HEADER } from '@/lib/core/i18n/locales';
+import { splitLocalePath } from '@/lib/platform/site/locale-path';
+
+/*
+ * The public reading pages carry their language in the URL (/tr/map/earthquakes); there is one set of
+ * routes, so /tr/… is rewritten to /… and the language travels in a request header that requestLocale()
+ * puts first. The unprefixed pages are English, whatever the visitor's cookie says.
+ */
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const prefix = /^\/([a-z]{2})(?:\/|$)/.exec(pathname)?.[1];
+  // A bare /tr opens that language's index of the map.
+  if (prefix && prefix !== 'en' && /^\/[a-z]{2}\/?$/.test(pathname)) {
+    return NextResponse.redirect(new URL(`/${prefix}/map`, request.url), 308);
+  }
+  if (prefix === 'en') return NextResponse.redirect(new URL(pathname.slice(3) || '/', request.url), 308);
+
+  const split = splitLocalePath(pathname);
+  const headers = new Headers(request.headers);
+  // Only this proxy sets the header; a client's own copy is dropped.
+  headers.delete(PATH_LOCALE_HEADER);
+  if (!split) return NextResponse.next({ request: { headers } });
+  headers.set(PATH_LOCALE_HEADER, split.locale);
+  if (split.path === pathname) return NextResponse.next({ request: { headers } });
+  const url = request.nextUrl.clone();
+  url.pathname = split.path;
+  return NextResponse.rewrite(url, { request: { headers } });
+}
+
+export const config = {
+  matcher: ['/', '/map/:path*', '/about', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)/:path*'],
+};

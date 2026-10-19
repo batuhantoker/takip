@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart3, BookOpen, ChartLine, Coffee, Ellipsis, Keyboard, MessageSquareWarning, Settings, ShieldCheck } from 'lucide-react';
+import { BarChart3, BookOpen, ChartLine, Coffee, Ellipsis, Info, Keyboard, MessageSquareWarning, Settings, ShieldCheck } from 'lucide-react';
 import { APP_VERSION } from '@/lib/platform/app-version';
+import { localePath } from '@/lib/platform/site/locale-path';
 import { IconButton } from '@/components/ui/button';
 import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
@@ -49,6 +50,7 @@ export default function MoreMenu({ compact = false, rail = false, active = false
             <MenuItem icon={Coffee} href="https://ko-fi.com/M8D41ZYW4Z" external onSelect={close}>{t('Support on Ko-fi')}</MenuItem>
             <MenuDivider />
             <MenuItem icon={Settings} onSelect={() => { close(); openSettings(); }}>{t('Settings')}</MenuItem>
+            <MenuItem icon={Info} href={localePath(t.locale, '/about')} onSelect={close}>{t('About TAKIP')}</MenuItem>
             <MenuItem icon={BookOpen} href="/docs" onSelect={close}>{t('Docs and API')}</MenuItem>
             {!compact && <MenuItem icon={Keyboard} kbd="?" onSelect={() => { close(); showShortcuts(); }}>{t('Keyboard shortcuts')}</MenuItem>}
             <MenuItem icon={ShieldCheck} href="/privacy" onSelect={close}>{t('Privacy')}</MenuItem>

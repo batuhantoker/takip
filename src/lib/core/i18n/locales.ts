@@ -6,6 +6,9 @@ export const DEFAULT_LOCALE: Locale = 'en';
 /** Set only by an explicit pick in Settings; without it the language follows the visitor's country. */
 export const LOCALE_COOKIE = 'takip-lang';
 
+/** Set by src/proxy.ts on the public reading pages, whose language is in their URL (/tr/map/…); it wins over the cookie. */
+export const PATH_LOCALE_HEADER = 'x-takip-path-locale';
+
 export const isLocale = (v: unknown): v is Locale => typeof v === 'string' && (LOCALES as readonly string[]).includes(v);
 
 /** Each language in itself, for the picker. */

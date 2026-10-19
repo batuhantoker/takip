@@ -24,6 +24,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `workspaces/` | Saved workspaces: state, session, autosave, API client | components/workspaces |
 | `reports/` | Issue reports: the view snapshot a report carries, its summary for the console, the API client | site/report, site/admin; app page |
 | `sdk/` | Polybolos client and Lattice adapter | nothing in the app imports it |
+| `site/` | Public pages and search: the site's address (`SITE_URL` or the request), its copy and JSON-LD, the page catalogue (`catalog/`, one file per section) and its copy in nine languages (`translations/`, through `copy.ts` and `text.ts`), what a shared map link previews as (`share-view.ts`), map links that keep the base layers, the live lines (`live/`, over loopback to the app's own routes), per-language URLs and metadata (`locale-path.ts`, `meta.ts`, used by `src/proxy.ts`), the pictures of the map (`shots.ts`, taken by `tools/site/shots.ts`), share-card fonts and the world outline for preview cards | site/pages, panels/layers (coverage test); app page, map, about, og, robots, sitemap, layout; lib ai (`publicOrigin`) |
 | `ads.ts`, `app-version.ts`, `visitor.ts`, `usage-actions.ts` | AdSense slots, the build version, the browser's visitor id and the action counter for usage statistics | shell/ads, site pages; shell/more; site/account (map time); panels and shell (`countAction`) |
 
 ## map
@@ -37,7 +38,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `replay/` | Replay of recorded tracks: clock, sessions, time input, timeline ticks, track maths and layer; `followClock` for dated layers | map/replay, map/layers, panels/history, panels/space, shell/showing |
 | `splash/` | The opening globe and its hand-off to the map; `draw/` | shell/splash |
 | `style/` | The map's paint: `tokens.ts` (`MAP_INK`, `SERIES_INK`), the palette and its CSS pin, hatch patterns, the style studio | map/* components, panels/layers, panels/markets, shell/map-look, shell/showing; lib map/basemap, feeds/*, history |
-| root modules | `create.ts`, projection, clickable layers, touch targets, course; `view-link.ts` (a view as a link path) | map/* components, shell/mobile; lib map/basemap, platform/reports |
+| root modules | `create.ts`, projection, clickable layers, touch targets, course; `view-link.ts` (a view as a link path); `view-mode-link.ts` (`?view=` History, deep time, Space or Replay, and `?panel=`) | map/* components, shell/mobile; lib map/basemap, platform/reports |
 
 ## feeds
 
@@ -86,8 +87,8 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 |---|---|---|---|
 | `panels/` | One folder per sidebar tab, entry `<tab>-panel.tsx` | ui; lib ai, space, history, intel/recon, intel/alerts, places, intel/markets, map/layers | shell, app pages |
 | `map/` | World map, basemap, layers, interaction, inspect, cameras, imagery, replay, windows, controls, dossier, country chart, menu | ui, shell, site/report; lib map, history, feeds/*, space, ai | app pages, panels, shell |
-| `shell/` | The frame: sidebar, status bar, mobile, keyboard, splash, map look, state (feed polling), search, showing, settings, ads, layout (what the person shows or hides and where: model, store, the map's corner slots) | ui, panels, site, map; lib map, map/layers, history | app pages, panels, site, map |
-| `site/` | Pages off the map: docs (and the API catalogue), kit, admin, account, the issue report dialog | ui, shell; lib platform/account, platform/ads, platform/reports | app pages, workspaces, shell/more, map/menu |
+| `shell/` | The frame: the map page itself (`dashboard.tsx`; `app/page.tsx` only adds metadata; `state/use-view-mode-link.ts` opens what a `?view=`/`?panel=` link names), sidebar, status bar, mobile, keyboard, splash, map look, state (feed polling), search, showing, settings, ads, layout (what the person shows or hides and where: model, store, the map's corner slots) | ui, panels, site, map; lib map, map/layers, history | app pages, panels, site, map |
+| `site/` | Pages off the map: docs (and the API catalogue), kit, admin, account, the issue report dialog, and the public reading pages (`pages/`: the layer article, the site frame, the share-preview card, the map page's hidden intro) | ui, shell; lib platform/account, platform/ads, platform/reports, platform/site | app pages, workspaces, shell/more, map/menu |
 | `ui/` | The kit, flat; imports nothing else in the app | — | every group |
 | `workspaces/` | Workspace host, chip, dialogs, shared links | site, ui; lib platform/workspaces | `app/w/[slug]` |
 

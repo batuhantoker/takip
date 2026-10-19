@@ -1,0 +1,81 @@
+import type { LayerPage } from './types';
+
+export const CAMERAS: LayerPage[] = [
+  {
+    slug: 'live-cameras',
+    section: 'cameras',
+    layers: ['cctv', 'cctv_previews'],
+    title: 'Live cameras around the world: traffic and city webcams',
+    description: 'About 100,000 public traffic and city cameras on one live map, from road authorities, cities and webcam networks in dozens of countries. Click to watch.',
+    heading: 'Live cameras',
+    lede: 'Road authorities, cities and webcam networks publish their cameras. TAKIP gathers about 100,000 of them onto one map, so you can look at a place as it is now.',
+    shows: [
+      'A pin per camera, with live preview tiles over them as you zoom in.',
+      'Click one to open a player: live video where the source streams it, otherwise its latest still image, refreshing.',
+      'Cameras that are listed but not streaming stay on the map, faded and marked off air.',
+    ],
+    sources: [
+      { name: 'Road authorities', detail: 'Highway cameras from US state transport departments and 511 services, and from road authorities across Europe, Canada, Japan, Korea, Taiwan, Australia and New Zealand.' },
+      { name: 'Cities', detail: 'City traffic cameras, such as Istanbul’s, Seoul’s and Calgary’s.' },
+      { name: 'Webcam networks', detail: 'Public webcams from networks such as CamStreamer and PhenoCam, and webcams listed on OpenStreetMap.' },
+    ],
+    freshness: 'The camera list is rebuilt every 30 minutes; each image updates as often as its source does.',
+    limits: [
+      'Many sources publish still images that update every minute or few, not video.',
+      'Coverage follows who publishes: the US, Japan and Canada have the most, and many countries have none.',
+      'Cameras go dark for maintenance or policy reasons; those are marked off air rather than removed.',
+    ],
+    view: { lat: 48, lon: 10, zoom: 4 },
+    spots: [
+      { label: 'Istanbul', view: { lat: 41.04, lon: 28.99, zoom: 11 }, note: 'City traffic on both sides of the Bosphorus.' },
+      { label: 'Tokyo', view: { lat: 35.68, lon: 139.76, zoom: 10 } },
+      { label: 'The Alps', view: { lat: 46.6, lon: 8, zoom: 8 }, note: 'Mountain passes and valleys.' },
+      { label: 'Seattle', view: { lat: 47.6, lon: -122.33, zoom: 10 } },
+    ],
+    related: ['live-news', 'plate-readers', 'live-transit', 'earthquakes'],
+  },
+  {
+    slug: 'plate-readers',
+    section: 'cameras',
+    layers: ['alpr'],
+    title: 'ALPR map: licence-plate reader cameras in the US and Canada',
+    description: 'Automated licence-plate readers, Flock and others, mapped by volunteers on OpenStreetMap through DeFlock across the US and Canada, with where each one points.',
+    heading: 'Licence-plate readers (ALPR)',
+    lede: 'Automated licence-plate reader cameras, such as Flock Safety’s, mapped by volunteers on OpenStreetMap through DeFlock, with the direction each one faces.',
+    shows: [
+      'Dots from zoom 3, details from zoom 9 and view cones from zoom 13.',
+      'Click one for its operator, maker, the way it faces, what it is mounted on and when it was mapped.',
+    ],
+    sources: [{ name: 'DeFlock', detail: 'Hourly map tiles of the ALPR cameras tagged on OpenStreetMap.' }],
+    freshness: 'DeFlock rebuilds its tiles from OpenStreetMap every hour.',
+    limits: [
+      'Volunteers map what they find, so many readers are not on the map yet.',
+      'The cone’s width and reach are typical values, not measured for each camera.',
+      'The US and Canada only.',
+    ],
+    view: { lat: 39, lon: -98, zoom: 3.8 },
+    related: ['live-cameras', 'live-transit'],
+  },
+  {
+    slug: 'live-news',
+    section: 'cameras',
+    layers: ['live_news'],
+    title: 'Live news streams on a map: world TV channels',
+    description: 'Live news channels from around the world, pinned to their newsrooms on a map: open a stream and watch it while you follow events on the same map.',
+    heading: 'Live news streams',
+    lede: 'Around sixteen international news channels that stream live, pinned where they broadcast from, so you can watch the news beside the map it is about.',
+    shows: [
+      'A pin at each channel’s newsroom.',
+      'Click one to open the stream in a player, or on the channel’s own site where it can’t be embedded.',
+    ],
+    sources: [{ name: 'YouTube and Rumble', detail: 'The channels’ own live streams.' }],
+    freshness: 'The list of channels changes rarely; a stream is live whenever its channel is broadcasting.',
+    limits: [
+      'Not every channel is live all the time.',
+      'Pins mark the newsroom, not the story.',
+      'Channels reflect their owners’ views, and state broadcasters are among them.',
+    ],
+    view: { lat: 35, lon: 20, zoom: 2 },
+    related: ['world-news-map', 'live-cameras'],
+  },
+];

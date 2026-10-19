@@ -16,7 +16,7 @@ In order. "(you)" marks the user's own steps.
    - The shortlist was screened over RDAP on 2026-10-15: Rasat, Terrarum, Piri, Seyir, Armillary, or keep TAKIP with `takipmap.com`.
    - The user wants "digital world twin" in the name. Twin names screened the same day: TwinAtlas, EarthTwin, MirrorEarth, GlobeTwin, Imago Mundi, and İkiz Dünya (`ikizdunya.com` is the only free twin `.com`). Every literal twin `.com` is taken.
    - The API covers about 40 endings, so `.live`, `.world` and `.earth` rest on RDAP.
-3. Rename: the brand geometry (`tools/brand`), `SITE_URL`, and the rebrand leftovers in §4.
+3. Rename: the brand geometry (`tools/brand`), the `SITE_URL` environment variable, and the rebrand leftovers in §4.
 
 
 
@@ -67,7 +67,7 @@ Needs 1.3.
 - Delete `src/app/api/region-dossier/` and `apps/api/src/v1/testing/legacy.ts`. Turn the parity cases into contract tests, move the old unit tests to `v1/region-dossier/{place,wikidata}.test.ts`, and update `src/components/site/docs/api-catalog.ts`.
 
 **Make CI green.**
-- `src/lib/ai/research/context.test.ts` "carries on without a source that fails" fails: the one failure in `npm test` (checked 2026-10-13; 3,353 pass).
+- `src/lib/ai/research/context.test.ts` "carries on without a source that fails" fails: the one failure in `npm test` (checked 2026-10-19; 4,236 pass). `gatherContext` drops news older than a day by `Date.now()`, and the test's news is dated 2026-10-02; pass `now` through, as `selectContext` takes it.
 - Lint is scoped to `apps packages tools`. Widen it as the web app's lint errors are cleared.
 
 **Finish the src/lib reorganisation** ([`architecture/code-map.md`](architecture/code-map.md), Pending).
@@ -111,6 +111,17 @@ Chosen by the user on 2026-10-15. Details are in [`inspiration-sources/gods-eye-
    - **More imagery:** Esri Wayback (2014 on; paid use needs an Esri account) and Black Marble night lights.
 3. **Map looks:** night vision, thermal, noir and snow, opt-in and on the map only (design rule added 2026-10-15). Later.
 
+### 1.7 Being found
+Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages under `/map` (layers, History and deep time, the Space view, Replay and the tools), an `/about` page, and a generated robots.txt and sitemap, each page in ten languages at its own URL (`/tr/map/…`) and leading with a picture of the map ([`architecture/public-pages.md`](architecture/public-pages.md)). Links open History at a year, deep time, Space at a body, Replay or a panel (`?view=…`, `?panel=…`). City, country and time-range pages and guides: being built by another session (2026-10-19); `/embed/<slug>`, a minimal live map for the pages: likewise.
+1. (you) Once the domain is bought (1.0): set `SITE_URL`, verify the domain in Google Search Console and Bing Webmaster Tools, and submit `/sitemap.xml`. Nothing can rank on the rotating tunnel link.
+2. More History pages, one per era people search for (the Cold War, 1492, the Mongol Empire, the British Empire at its height), and a `&layer=` parameter so a link can open History with a border layer on, such as World War II in Europe.
+3. Camera pages per city (`/cameras/<city>`), since "live cam <city>" is a big search. Group the catalogue by `city` and `country` (mixed names and codes today) on the server, and index only cities with enough working cameras.
+4. Earthquake pages (`/quakes/<usgs id>`), only if they add what USGS's own page lacks (cameras, flights and ships near the epicentre); otherwise they are thin copies.
+5. Embeds: `/embed/<layer>` for blogs and news sites, which earns links back.
+6. Share cards in Arabic: Satori can't lay out Arabic, so `/og` draws them in English.
+7. Outreach: Show HN, r/MapPorn, r/space, r/aurora, r/OSINT, and short screen recordings of the globe. Measure with the referrers in Admin → Analytics and Search Console's queries.
+8. (you) Visitors from search get the anonymous 15 minutes a day of map time. Decide whether a first visit should get more.
+
 ### 1.8 Languages
 Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/README.md`, Language).
 1. Mirror the shell for Arabic: replace left/right with logical properties (`ps-`, `ms-`, `start-`), then set `dir="rtl"`. Until then Arabic runs right to left inside left-to-right panels.
@@ -146,7 +157,9 @@ The fix-it pass (1.2) adds to this list.
 - Key docs disagree with the code (`.env.example`, README, `self-hosting.md`, `api-catalog.ts`, `docs-client.tsx`): they say the AIS and OpenSky keys are unused (both are read); FIRMS and N2YO keys are listed but never read; Etherscan and Helius keys are read but change nothing; the Gemini bring-your-own-key option has no UI.
 - Static data presented as live: conflict zones, ports and chokepoints.
 - Region dossier: a failed data.police.uk lookup reads as "no data", and missing `lat`/`lng` isn't refused (kept for parity).
-- Rebrand leftovers: the `SITE_URL` placeholder, the `@simplifaisoul` handles in `src/app/layout.tsx`, the upstream Ko-fi link in `more-menu.tsx`, Discord.
+- Rebrand leftovers: the upstream Ko-fi link, Discord and X (`@soulsimplifai`) in `more-menu.tsx`.
+- Global Incidents (`global_incidents`) reads the GDACS feed (`api/(intel)/gdelt/route.ts`), but `use-sdk-entities.ts` labels it "GDELT Project".
+- Active Fires adds NASA EONET volcanoes to the FIRMS hotspots with made-up readings (brightness 500 K, FRP 100 MW, `api/(feeds)/fires/route.ts`), and the popup presents them as heat detected by satellite. `/map/wildfires` says so until this is fixed.
 
 ## 5. Parked until the release decision
 
@@ -215,7 +228,7 @@ Measured locally on 11 Oct 2026 (one dev server, one tab):
 - **Positioning against World Monitor** (free and paid tiers already); the survey is in [`inspiration-sources/`](inspiration-sources/README.md). Use "Palantir alternative" only as a comparison, never in the name or logo.
 - Scan git history for secrets (gitleaks) and rotate the AIS, Cloudflare and OpenSky keys that were pasted into chat sessions.
 - Rewrite the README; add CONTRIBUTING, CODE_OF_CONDUCT, a security contact and issue templates.
-- Domain, landing page, X and Discord; a public roadmap (this file) and a changelog.
+- Domain, X and Discord; a public roadmap (this file) and a changelog.
 - Never import other people's camera snapshots; keep the privacy blocklist.
 
 ## 6. Parked
