@@ -8,7 +8,7 @@ export const maxDuration = 60;
 // Known vulnerabilities — resolves the host, reads Shodan InternetDB's recorded
 // CVEs for it, and enriches each with CVSS, EPSS and CISA KEV. Keyless.
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'scan');
+  const denied = await reconGate(req, 'scan', { probe: true });
   if (denied) return denied;
 
   const { searchParams } = new URL(req.url);

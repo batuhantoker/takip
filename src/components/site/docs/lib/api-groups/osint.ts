@@ -8,7 +8,7 @@ export const OSINT: ApiGroup = {
   id: 'osint',
   title: msg('OSINT tools'),
   blurb:
-    'The lookup tools behind the RECON panel — keyless, with no scanner backend to run. Every route takes a single subject and returns a normalised result, so they compose well in scripts. Each needs an account: call it signed in, or with an API key, whose calls count against its daily quota; without one it answers 401 `sign_in_required`. Limits are per account: 20 breach lookups (leaks, Hudson Rock) an hour, 30 people searches (phone, email, GitHub, username, profile search) an hour, 30 scans an hour (port scan, subnet sweep, vulnerabilities), 30 CVE lookups a minute, and 15 of the other lookups a minute.',
+    'The lookup tools behind the RECON panel — keyless, with no scanner backend to run. Every route takes a single subject and returns a normalised result, so they compose well in scripts. Each needs an account: call it signed in, or with an API key, whose calls count against its daily quota; without one it answers 401 `sign_in_required`. Limits are per account: 20 breach lookups (leaks, Hudson Rock) an hour, 30 people searches (phone, email, GitHub, username, profile search) an hour, 30 scans an hour (port scan, subnet sweep, vulnerabilities; these, TLS and the username sweep reach the target from TAKIP’s server, so they need a plan with `recon.scan`, Pro, and answer 403 `entitlement_required` otherwise), 30 CVE lookups a minute, and 15 of the other lookups a minute.',
   endpoints: [
     {
       path: '/api/osint/dns',

@@ -16,11 +16,11 @@ const newAccount = () => ({ type: 'user', id: `u${++accounts}` }) as const;
 const get = (path: string, headers: Record<string, string> = {}) =>
   new Request(`http://localhost${path}`, { headers: { 'x-forwarded-for': nextIp(), ...headers } });
 
-function apiAnswers(subject: { type: 'user'; id: string } | null | Error) {
+function apiAnswers(subject: { type: 'user'; id: string } | null | Error, entitlements: Record<string, unknown> = { 'recon.scan': true }) {
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
     if (!ACCESS.test(String(input))) throw new Error(`unexpected fetch: ${String(input)}`);
     if (subject instanceof Error) throw subject;
-    return Response.json({ plan: { id: subject ? 'free' : 'anon', name: '' }, entitlements: {}, subscription: null, subject });
+    return Response.json({ plan: { id: subject ? 'free' : 'anon', name: '' }, entitlements, subscription: null, subject });
   });
 }
 
@@ -63,6 +63,18 @@ describe('the port scanner', () => {
     vi.restoreAllMocks();
     apiAnswers(newAccount());
     expect((await portscan(get('/api/osint/portscan'))).status).not.toBe(401);
+  });
+});
+
+describe('probes sent from the server', () => {
+  it('need a plan with recon.scan', async () => {
+    for (const [route, path] of [[portscan, '/api/osint/portscan'], [sweep, '/api/osint/sweep']] as const) {
+      apiAnswers(newAccount(), {});
+      const res = await route(get(path));
+      expect(res.status, path).toBe(403);
+      expect(await res.json()).toMatchObject({ error: 'entitlement_required', entitlement: 'recon.scan' });
+      vi.restoreAllMocks();
+    }
   });
 });
 

@@ -33,6 +33,7 @@ export const CATALOGUE = {
   'export.enabled': bool,
   'ai.hosted': bool,
   'ai.assistant': { ...bool, hint: 'The TI assistant tab' },
+  'recon.scan': { ...bool, hint: 'Recon probes sent from the server: port scans, TLS, vulnerability checks, IP and username sweeps' },
   'ads.off': bool,
   'data.licence_tier': { type: 'enum', values: licenceTiers, fallback: 'anon' },
 } as const;

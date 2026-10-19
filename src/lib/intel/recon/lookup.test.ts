@@ -7,6 +7,10 @@ describe('lookupError', () => {
     expect(lookupError({ error: 'rate_limited', retry_after: 150 }, 'Lookup failed')).toBe('Limit reached. Try again in 3 min.');
   });
 
+  it('says a probe is part of Pro when the plan lacks it', () => {
+    expect(lookupError({ error: 'entitlement_required' }, 'Lookup failed')).toBe('This probe runs from TAKIP’s server, so it is part of Pro.');
+  });
+
   it('keeps any other error, and falls back without one', () => {
     expect(lookupError({ error: 'sign_in_required' }, 'Lookup failed')).toBe('sign_in_required');
     expect(lookupError({}, 'Lookup failed')).toBe('Lookup failed');

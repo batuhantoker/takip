@@ -1,4 +1,4 @@
-import { requireAccount } from '@/lib/platform/account/access-server';
+import { entitlementRequired, requireAccount } from '@/lib/platform/account/access-server';
 import { createAccountLimiter } from '@/lib/platform/account/limiter';
 
 const MINUTE = 60_000;
@@ -16,10 +16,14 @@ export type ReconFamily = keyof typeof RECON_LIMITS;
 
 const limiter = createAccountLimiter(RECON_LIMITS);
 
-/** For every OSINT and recon route: a response refusing the caller, or null to carry on. */
-export async function reconGate(request: Request, family: ReconFamily): Promise<Response | null> {
+/**
+ * For every OSINT and recon route: a response refusing the caller, or null to carry on. A `probe`
+ * reaches the target from this server's own address, so it also needs the plan's `recon.scan`.
+ */
+export async function reconGate(request: Request, family: ReconFamily, { probe = false } = {}): Promise<Response | null> {
   const access = await requireAccount(request);
   if (access instanceof Response) return access;
+  if (probe && !access.entitlements['recon.scan']) return entitlementRequired('recon.scan');
   const wait = limiter.take(family, access.subject.id);
   if (!wait) return null;
   return Response.json({ error: 'rate_limited', retry_after: wait }, { status: 429, headers: { 'Retry-After': String(wait) } });

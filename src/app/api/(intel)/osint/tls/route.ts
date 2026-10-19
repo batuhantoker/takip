@@ -6,7 +6,7 @@ import { inspectTls } from '@/lib/intel/recon/network/tls';
 // TLS inspection — opens a real handshake to the host and reports the
 // negotiated protocol, cipher and leaf certificate. Keyless.
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'network');
+  const denied = await reconGate(req, 'network', { probe: true });
   if (denied) return denied;
 
   const { searchParams } = new URL(req.url);

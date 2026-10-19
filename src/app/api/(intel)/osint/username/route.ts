@@ -18,7 +18,7 @@ import { reconGate } from '@/lib/intel/recon/gate';
 export const maxDuration = 60;
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'people');
+  const denied = await reconGate(req, 'people', { probe: true });
   if (denied) return denied;
   const { searchParams } = new URL(req.url);
   const username = (searchParams.get('username') || '').trim();

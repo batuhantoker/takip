@@ -390,6 +390,11 @@ const MIGRATIONS: string[] = [
   ) STRICT, WITHOUT ROWID;
   CREATE INDEX IF NOT EXISTS page_read_day ON page_read (day);
   `,
+  // Recon probes sent from this server (port scan, TLS, vulnerability check, IP and username sweeps): Pro only.
+  `
+  INSERT OR IGNORE INTO bill_plan_entitlement (plan_id, key, value) VALUES
+    ('anon', 'recon.scan', 'false'), ('free', 'recon.scan', 'false'), ('pro', 'recon.scan', 'true');
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

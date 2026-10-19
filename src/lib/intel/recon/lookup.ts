@@ -24,6 +24,7 @@ export function lookupError(body: { error?: string; retry_after?: number }, fall
       ? t('Limit reached. Try again in {n} s.', { n: seconds })
       : t('Limit reached. Try again in {n} min.', { n: Math.ceil(seconds / 60) });
   }
+  if (body.error === 'entitlement_required') return t('This probe runs from TAKIP’s server, so it is part of Pro.');
   return body.error || fallback;
 }
 

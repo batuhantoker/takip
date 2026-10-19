@@ -53,6 +53,11 @@ export async function requireEntitlement(request: Request, key: BoolEntitlement)
   const access = await resolve(request);
   if (access instanceof Response) return access;
   if (access.entitlements[key]) return null;
+  return entitlementRequired(key);
+}
+
+/** 403 for a plan without `key`, with the upgrade hint. */
+export function entitlementRequired(key: BoolEntitlement): Response {
   return Response.json({ error: 'entitlement_required', entitlement: key, upgrade_url: '/pricing' }, { status: 403 });
 }
 

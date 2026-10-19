@@ -88,6 +88,8 @@ function authOptions(db: AppDb, env: AuthEnv, email: EmailSender, { billingPorta
       twoFactor({ issuer: APP_NAME, allowPasswordless: true, schema: { twoFactor: { modelName: 'auth_two_factor' } } }),
       deletion.plugin,
     ],
+    // Better Auth limits only when NODE_ENV=production, and the NUC's api runs in development until mail is set up.
+    rateLimit: { enabled: process.env.NODE_ENV !== 'test' },
     advanced: {
       cookiePrefix: 'takip',
       // Set per request by access/client-ip.ts, which alone knows the socket peer and which proxies to believe.

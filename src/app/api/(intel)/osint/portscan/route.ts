@@ -8,7 +8,7 @@ export const maxDuration = 30;
 // Live TCP-connect scan of the common ports. validateHost (inside scanPorts)
 // keeps it off private and reserved ranges. Keyless; only scan hosts you may test.
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'scan');
+  const denied = await reconGate(req, 'scan', { probe: true });
   if (denied) return denied;
 
   const { searchParams } = new URL(req.url);

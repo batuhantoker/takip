@@ -32,7 +32,7 @@ function checkRateLimit(requesterIp: string): boolean {
 }
 
 export async function GET(req: Request) {
-  const denied = await reconGate(req, 'scan');
+  const denied = await reconGate(req, 'scan', { probe: true });
   if (denied) return denied;
   const { searchParams } = new URL(req.url);
 

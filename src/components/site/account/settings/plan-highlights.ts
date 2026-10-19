@@ -25,6 +25,7 @@ const BUILT: (keyof Entitlements)[] = [
   'replay.lookback_days', 'replay.window_hours',
   'web.rps',
   'ai.hosted',
+  'recon.scan',
   'ads.off',
 ];
 
@@ -47,6 +48,7 @@ const HIGHLIGHTS: ((e: Entitlements, t: Translate) => string | null)[] = [
   (e, t) => (e['workspaces.share'] ? t('Share workspaces by link') : null),
   (e, t) => (e['export.enabled'] ? t('Data export') : null),
   (e, t) => (e['ai.hosted'] ? t('Hosted AI, no key of your own needed') : null),
+  (e, t) => (e['recon.scan'] ? t('Port scans, TLS checks and sweeps in Recon') : null),
   (e, t) => (AD_CLIENT && e['ads.off'] ? t('No ads') : null),
 ];
 
