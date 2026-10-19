@@ -7,6 +7,27 @@
 /** `since`: the first day the section has data for (map minutes, API counters or ingest runs); minutes start the day the tick shipped. */
 export type AnalyticsRange = { today: string; since: string | null };
 
+/** An address an account or visitor used the map from, placed with the DB-IP Lite city database (null where it has no answer). */
+export type Place = {
+  ip: string;
+  /** ISO 3166-1 alpha-2. */
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  firstSeenAt: number;
+  lastSeenAt: number;
+  /** Map minutes booked from this address. */
+  minutes: number;
+};
+
+/** The latest place, as table rows show it. */
+export type PlaceBrief = { ip: string; country: string | null; region: string | null; city: string | null };
+
+/** Counts of named actions (packages/core/src/usage.ts USAGE_ACTIONS), e.g. 'search.run', 'route.plan', 'recon.email'. */
+export type ActionUse = { action: string; count: number; users: number; visitors: number };
+
 export type AudienceDay = {
   day: string;
   signups: number;
@@ -43,10 +64,15 @@ export type AnalyticsAudience = AnalyticsRange & {
   devices: { kind: 'browser' | 'os' | 'device'; name: string; sessions: number }[];
   /** Weekly sign-up cohorts (week starts Monday, UTC): share of the cohort active in week +0…+7; null where that week hasn't happened. */
   cohorts: { week: string; size: number; retained: (number | null)[] }[];
+  /** Accounts by the countries they used the map from in the range (place_seen); one account can be in several. */
+  countries: { country: string; users: number }[];
 };
 
 export type FeatureUse = {
-  /** 'view:map|space|history|replay|wall', 'panel:<tool>|none', 'layer:<key>', 'window:camera|feed|dossier|search', 'device:desktop|mobile'. */
+  /**
+   * 'view:map|space|history|replay|wall', 'panel:<tool>|none', 'layer:<key>', 'section:air|sea|land|space|weather|conflict|cameras|reference'
+   * (the Layers sections with a layer on), 'window:camera|feed|dossier|search', 'device:desktop|mobile'.
+   */
   feature: string;
   minutes: number;
   /** Distinct accounts and visitor-days that spent time there. */
@@ -67,6 +93,10 @@ export type AnalyticsEngagement = AnalyticsRange & {
   topUsers: { userId: string; email: string; name: string; minutes: number; activeDays: number; lastDay: string; topFeature: string | null }[];
   /** Subjects that reached their plan's daily map limit (spent a minute on 'view:wall'). */
   wall: { day: string; users: number; visitors: number }[];
+  /** Actions in the range, busiest first; `visitors` counts visitor ids and daily visitor hashes. */
+  actions: ActionUse[];
+  /** Actions per day for the 8 busiest. */
+  actionDays: { day: string; counts: Record<string, number> }[];
 };
 
 export type AnalyticsApi = AnalyticsRange & {
@@ -163,6 +193,8 @@ export type UserActivitySummary = {
   lastSeenAt: number | null;
   lastUserAgent: string | null;
   lastIp: string | null;
+  /** Where lastIp is, when it can be placed. */
+  lastPlace: Omit<PlaceBrief, 'ip'> | null;
   /** Active (not revoked, not expired) API keys, and workspaces not deleted. */
   keys: number;
   workspaces: number;
@@ -194,12 +226,16 @@ export type UserAnalytics = AnalyticsRange & {
     /** Every key they have had, with its traffic in the range. */
     keys: { keyId: string; prefix: string | null; name: string | null; requests: number; denied: number; bytes: number; lastUsedAt: number | null; revokedAt: number | null }[];
   };
-  /** Newest first, at most 200; kept for the activity retention (90 days by default). */
-  signIns: { at: number; ipAddress: string | null; userAgent: string | null; impersonatedBy: string | null; impersonatorEmail: string | null }[];
+  /** Newest first, at most 200; kept for the activity retention (90 days by default). The place is looked up from the address when read. */
+  signIns: { at: number; ipAddress: string | null; userAgent: string | null; impersonatedBy: string | null; impersonatorEmail: string | null; place: Omit<PlaceBrief, 'ip'> | null }[];
   workspaces: { id: string; name: string; visibility: string; createdAt: number; updatedAt: number; deletedAt: number | null }[];
   reports: { id: number; createdAt: number; status: string; message: string }[];
   /** Browsers (visitor ids) this account signed in on, with the minutes they spent there signed out, over everything kept. */
   browsers: (VisitorProfile & { minutes: number; activeDays: number })[];
+  /** Addresses the account used the map from, most recent first. */
+  places: Place[];
+  /** Their actions in the range, with on how many days. */
+  actions: { action: string; count: number; days: number }[];
 };
 
 /*
@@ -218,6 +254,8 @@ export type VisitorProfile = {
   /** The account last signed in from this browser. */
   user: { id: string; email: string; name: string } | null;
   linkedAt: number | null;
+  /** The address it last used the map from, and where that is. */
+  place: PlaceBrief | null;
 };
 
 /** GET /api/admin/analytics/visitors?days=: browsers over the range. */
@@ -241,6 +279,11 @@ export type AnalyticsVisitors = AnalyticsRange & {
   landings: { landing: string; visitors: number }[];
   campaigns: { source: string; visitors: number; signedIn: number }[];
   devices: { kind: 'browser' | 'os' | 'device'; name: string; visitors: number }[];
+  /** Visitors active in the range by where they used the map from (place_seen); one visitor can be in several. */
+  countries: { country: string; visitors: number; signedIn: number }[];
+  cities: { country: string; region: string | null; city: string; visitors: number }[];
+  /** One point per placed visitor (latest place), for a map; at most 2000. */
+  points: { latitude: number; longitude: number; visitors: number }[];
   /** Weekly first-seen cohorts (Monday UTC), last 8: share with signed-out minutes in week +0…+7, null for unmeasured weeks. */
   cohorts: { week: string; size: number; retained: (number | null)[] }[];
 };
@@ -263,4 +306,7 @@ export type VisitorAnalytics = AnalyticsRange & {
   daily: { day: string; minutes: number; views: Record<string, number> }[];
   features: { feature: string; minutes: number; days: number }[];
   hours: { dow: number; hour: number; minutes: number }[];
+  /** Every address this browser used, most recent first. */
+  places: Place[];
+  actions: { action: string; count: number; days: number }[];
 };

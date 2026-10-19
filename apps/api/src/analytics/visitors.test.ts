@@ -110,7 +110,7 @@ describe('the visitors table', () => {
     expect(visitors.map(v => v.visitorId)).toEqual([GAMMA, BETA, ALPHA, OLD]);
     expect(visitors[2]).toEqual({
       visitorId: ALPHA, firstSeenAt: NOW - 10 * DAY_MS, lastSeenAt: NOW - 60_000, userAgent: MAC, referrer: 'news.example.com', landing: '/?utm_source=hn',
-      linkedAt: NOW - 60_000, user: { id: beaId, email: BEA.email, name: 'Bea' },
+      linkedAt: NOW - 60_000, user: { id: beaId, email: BEA.email, name: 'Bea' }, place: null,
       minutes: 8, activeDays: 2, topPanel: 'panel:layers', topLayer: 'layer:flights', hitWall: false,
     });
     expect(visitors[1]).toMatchObject({ minutes: 2, activeDays: 1, topPanel: null, topLayer: 'layer:wx_radar', hitWall: true, user: null });
@@ -166,7 +166,7 @@ describe("one browser's activity", () => {
     const a = await get<{ browsers: Record<string, unknown>[] }>(`/users/${beaId}`);
     expect(a.browsers).toEqual([{
       visitorId: ALPHA, firstSeenAt: NOW - 10 * DAY_MS, lastSeenAt: NOW - 60_000, userAgent: MAC, referrer: 'news.example.com', landing: '/?utm_source=hn',
-      linkedAt: NOW - 60_000, user: { id: beaId, email: BEA.email, name: 'Bea' }, minutes: 8, activeDays: 2,
+      linkedAt: NOW - 60_000, user: { id: beaId, email: BEA.email, name: 'Bea' }, place: null, minutes: 8, activeDays: 2,
     }]);
   });
 });

@@ -8,6 +8,7 @@ import { countLayersOn } from '@/components/shell/sidebar/nav-items';
 import { formatPosition } from '@/components/shell/status-bar/use-cursor-readout';
 import { trackKey, trackedNow } from '@/components/map/inspect/track-request';
 import { viewPath } from '@/lib/map/view-link';
+import { countAction } from '@/lib/platform/usage-actions';
 
 interface SharePanelProps {
   /** Where the map is looking; use-startup.ts reads lat, lon and zoom back from the link. */
@@ -35,6 +36,7 @@ export default function SharePanel({ center, zoom, activeLayers }: SharePanelPro
 
   const copy = async () => {
     const link = url();
+    countAction('link.share');
     try {
       await navigator.clipboard.writeText(link);
     } catch {

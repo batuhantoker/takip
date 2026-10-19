@@ -23,7 +23,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `workspaces/` | Saved workspaces: state, session, autosave, API client | components/workspaces |
 | `reports/` | Issue reports: the view snapshot a report carries, its summary for the console, the API client | site/report, site/admin; app page |
 | `sdk/` | Polybolos client and Lattice adapter | nothing in the app imports it |
-| `ads.ts`, `app-version.ts`, `visitor.ts` | AdSense slots, the build version, the browser's visitor id for usage statistics | shell/ads, site pages; shell/more; site/account (map time) |
+| `ads.ts`, `app-version.ts`, `visitor.ts`, `usage-actions.ts` | AdSense slots, the build version, the browser's visitor id and the action counter for usage statistics | shell/ads, site pages; shell/more; site/account (map time); panels and shell (`countAction`) |
 
 ## map
 

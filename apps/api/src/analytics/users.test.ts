@@ -82,7 +82,7 @@ describe('the Users table', () => {
     expect(users[2]).toMatchObject({ plan: 'free' });
     expect(users[2].activity).toEqual({
       minutes: 8, activeDays: 2, lastActiveDay: isoDay(TODAY), topPanel: 'panel:layers', topLayer: 'layer:flights',
-      apiRequests: 5, apiDenied: 0, signIns: 1, lastSeenAt: NOW - 60_000, lastUserAgent: IPHONE, lastIp: '203.0.113.9', keys: 1, workspaces: 1,
+      apiRequests: 5, apiDenied: 0, signIns: 1, lastSeenAt: NOW - 60_000, lastUserAgent: IPHONE, lastIp: '203.0.113.9', lastPlace: null, keys: 1, workspaces: 1,
     });
     // Bea's minutes and sign-in fall outside the range; her session is newer than that sign-in, so it names her device.
     expect(users[1].activity).toMatchObject({ minutes: 0, activeDays: 0, lastActiveDay: isoDay(TODAY - 40), apiRequests: 20, apiDenied: 2, signIns: 0, topPanel: null, keys: 0 });

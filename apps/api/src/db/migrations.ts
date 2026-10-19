@@ -330,6 +330,35 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (visitor_id, day, hour)
   ) STRICT, WITHOUT ROWID;
   `,
+  // Where accounts and visitors use the map from: each address, its place in the DB-IP Lite city database, and
+  // when it was seen. And the actions they take (packages/core usage.ts), counted per day: names only.
+  `
+  CREATE TABLE IF NOT EXISTS place_seen (
+    subject_type   TEXT NOT NULL CHECK (subject_type IN ('user','visitor')),
+    subject_id     TEXT NOT NULL,
+    ip             TEXT NOT NULL,
+    country        TEXT,
+    region         TEXT,
+    city           TEXT,
+    latitude       REAL,
+    longitude      REAL,
+    first_seen_at  INTEGER NOT NULL,
+    last_seen_at   INTEGER NOT NULL,
+    minutes        INTEGER NOT NULL,
+    PRIMARY KEY (subject_type, subject_id, ip)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS place_seen_last ON place_seen (last_seen_at);
+  CREATE INDEX IF NOT EXISTS place_seen_country ON place_seen (country, last_seen_at);
+  CREATE TABLE IF NOT EXISTS action_count (
+    day           INTEGER NOT NULL,
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('anon','user','visitor')),
+    subject_id    TEXT NOT NULL,
+    action        TEXT NOT NULL,
+    count         INTEGER NOT NULL,
+    PRIMARY KEY (day, subject_type, subject_id, action)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS action_count_subject ON action_count (subject_type, subject_id, day);
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

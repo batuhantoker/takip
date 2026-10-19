@@ -28,6 +28,10 @@ export const notAdmin = (r: Range, col: string) => (r.excludeAdmins ? `AND ${col
 export const subjectNotAdmin = (r: Range) =>
   r.excludeAdmins ? "AND NOT (subject_type = 'user' AND subject_id IN (SELECT id FROM auth_user WHERE role = 'admin'))" : '';
 
+/** `alias` (a visitor row) is not linked to an admin's account; empty when admins are counted. */
+export const visitorNotAdmin = (r: Range, alias = 'v') =>
+  r.excludeAdmins ? `AND (${alias}.user_id IS NULL OR ${alias}.user_id NOT IN (SELECT id FROM auth_user WHERE role = 'admin'))` : '';
+
 /** The first day the map's minute tick recorded anything, or null before it ever has. */
 export function minutesSince(db: AppDb): string | null {
   const day = db.prepare('SELECT min(day) FROM (SELECT min(day) AS day FROM map_time UNION ALL SELECT min(day) FROM feature_time)').pluck().get() as number | null;

@@ -9,13 +9,18 @@ import { count, minutes, sum } from '../lib/format';
 import { ink } from '../lib/series';
 import { Pair } from './section-frame';
 
+/** Sections and actions arrived in a later release than map minutes, so their history starts later. */
+export const SECTIONS_NOTE = 'The Layers panel’s sections (Air, Sea, Weather…), counted from the release that added them.';
+
 export const reach = (f: FeatureUse) => `${count(f.users)} accounts · ${count(f.visitors)} visitor-days`;
 
 const rowsOf = (features: FeatureUse[]) => features.map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: reach(f) }));
 
-/** Panels (with a small multiple per panel over the range), layers, windows and devices. */
+/** Panels (with a small multiple per panel over the range), the Layers sections people follow, layers, windows and devices. */
 export function FeatureCards({ e, panels, layers, devices }: { e: AnalyticsEngagement; panels: FeatureUse[]; layers: FeatureUse[]; devices: FeatureUse[] }) {
-  const windows = e.features.filter(f => splitFeature(f.feature).kind === 'window').sort((a, b) => b.minutes - a.minutes);
+  const ofKind = (kind: string) => e.features.filter(f => splitFeature(f.feature).kind === kind).sort((a, b) => b.minutes - a.minutes);
+  const windows = ofKind('window');
+  const sections = ofKind('section');
   const daily = [...new Set(e.featureDays.flatMap(d => Object.keys(d.minutes)))]
     .filter(f => f.startsWith('panel:'))
     .map(f => ({ feature: f, values: e.featureDays.map(d => d.minutes[f] ?? 0) }))
@@ -47,23 +52,27 @@ export function FeatureCards({ e, panels, layers, devices }: { e: AnalyticsEngag
       </Pair>
 
       <Pair>
+        <ChartCard title="Sections followed" note={`${SECTIONS_NOTE} Minutes with any layer of the section on, and who followed it.`}>
+          <BarList format={minutes} share={false} rows={rowsOf(sections)} empty="No section time in this range yet." />
+        </ChartCard>
         <ChartCard title="Layers" note="Minutes each data layer was on the map">
           <BarList format={minutes} share={false} limit={12} rows={rowsOf(layers)} empty="No layer time in this range yet." />
         </ChartCard>
-        <div className="flex flex-col gap-4">
-          <ChartCard title="Windows" note="Camera players, live feeds, dossiers and search open over the map">
-            <BarList format={minutes} share={false} rows={rowsOf(windows)} empty="No windows opened in this range." />
-          </ChartCard>
-          <ChartCard title="Devices" note="Map minutes on desktop and on phones">
-            {devices.length ? (
-              <Meter
-                format={minutes}
-                total={sum(devices.map(d => d.minutes))}
-                parts={['device:desktop', 'device:mobile'].map((f, i) => ({ label: featureLabel(f), value: devices.find(d => d.feature === f)?.minutes ?? 0, color: ink(i) }))}
-              />
-            ) : <Muted>No map time in this range yet.</Muted>}
-          </ChartCard>
-        </div>
+      </Pair>
+
+      <Pair>
+        <ChartCard title="Windows" note="Camera players, live feeds, dossiers and search open over the map">
+          <BarList format={minutes} share={false} rows={rowsOf(windows)} empty="No windows opened in this range." />
+        </ChartCard>
+        <ChartCard title="Devices" note="Map minutes on desktop and on phones">
+          {devices.length ? (
+            <Meter
+              format={minutes}
+              total={sum(devices.map(d => d.minutes))}
+              parts={['device:desktop', 'device:mobile'].map((f, i) => ({ label: featureLabel(f), value: devices.find(d => d.feature === f)?.minutes ?? 0, color: ink(i) }))}
+            />
+          ) : <Muted>No map time in this range yet.</Muted>}
+        </ChartCard>
       </Pair>
     </>
   );

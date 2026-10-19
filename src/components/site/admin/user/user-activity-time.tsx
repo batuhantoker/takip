@@ -8,6 +8,7 @@ import type { UserAnalytics } from '@/components/site/admin/analytics/analytics-
 import { featureLabel, splitFeature, VIEW_ORDER } from '@/components/site/admin/analytics/lib/features';
 import { count, minutes, shortDay, sum } from '@/components/site/admin/analytics/lib/format';
 import { ink } from '@/components/site/admin/analytics/lib/series';
+import { SECTIONS_NOTE } from '@/components/site/admin/analytics/parts/feature-cards';
 import { Pair } from '@/components/site/admin/analytics/parts/section-frame';
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -21,7 +22,7 @@ export type ActivityTime = Pick<UserAnalytics, 'features' | 'hours'> & { daily: 
 const rows = (features: Feature[]) =>
   features.map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: `on ${count(f.days)} day${f.days === 1 ? '' : 's'}` }));
 
-/** Where one account's or browser's map minutes went: by day and view, by panel, layer, window and device, and by weekday and hour. */
+/** Where one account's or browser's map minutes went: by day and view, by panel, Layers section, layer, window and device, and by weekday and hour. */
 export default function UserActivityTime({ u, who = 'This account' }: { u: ActivityTime; who?: string }) {
   const of = (kind: string) => u.features.filter(f => splitFeature(f.feature).kind === kind).sort((a, b) => b.minutes - a.minutes);
   const views = of('view');
@@ -54,18 +55,14 @@ export default function UserActivityTime({ u, who = 'This account' }: { u: Activ
         <ChartCard title="Panels" note="Time with each sidebar panel open">
           <BarList format={minutes} share={false} limit={10} rows={rows(of('panel'))} empty="No panel time in this range." />
         </ChartCard>
-        <ChartCard title="Layers" note="Minutes each data layer was on their map">
-          <BarList format={minutes} share={false} limit={10} rows={rows(of('layer'))} empty="No layer time in this range." />
+        <ChartCard title="Sections followed" note={SECTIONS_NOTE}>
+          <BarList format={minutes} share={false} rows={rows(of('section'))} empty="No section time in this range." />
         </ChartCard>
       </Pair>
 
       <Pair>
-        <ChartCard
-          title="When they use the map"
-          note="Their map minutes by weekday and hour (UTC)"
-          table={{ columns: ['Weekday and hour (UTC)', 'Minutes'], rows: [...u.hours].sort((x, y) => y.minutes - x.minutes).map(h => [`${DAY_NAMES[h.dow]} ${String(h.hour).padStart(2, '0')}:00`, h.minutes]) }}
-        >
-          {u.hours.length ? <Heatmap cells={u.hours} /> : <Muted>{NONE}</Muted>}
+        <ChartCard title="Layers" note="Minutes each data layer was on their map">
+          <BarList format={minutes} share={false} limit={10} rows={rows(of('layer'))} empty="No layer time in this range." />
         </ChartCard>
         <div className="flex flex-col gap-4">
           <ChartCard title="Windows" note="Camera players, live feeds, dossiers and search over the map">
@@ -82,6 +79,14 @@ export default function UserActivityTime({ u, who = 'This account' }: { u: Activ
           </ChartCard>
         </div>
       </Pair>
+
+      <ChartCard
+        title="When they use the map"
+        note="Their map minutes by weekday and hour (UTC)"
+        table={{ columns: ['Weekday and hour (UTC)', 'Minutes'], rows: [...u.hours].sort((x, y) => y.minutes - x.minutes).map(h => [`${DAY_NAMES[h.dow]} ${String(h.hour).padStart(2, '0')}:00`, h.minutes]) }}
+      >
+        {u.hours.length ? <Heatmap cells={u.hours} /> : <Muted>{NONE}</Muted>}
+      </ChartCard>
     </>
   );
 }

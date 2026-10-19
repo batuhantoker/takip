@@ -7,6 +7,7 @@ import { layerCount } from '@/components/panels/layers/lib/layer-count';
 import { layerName } from '@/components/panels/layers/parts/layer-row';
 import { filterSections, groupSections, type LayerSection } from '@/components/panels/layers/lib/layer-sections';
 import type { OnMapItem } from '@/components/panels/layers/parts/layers-on-map';
+import { countAction } from '@/lib/platform/usage-actions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the page's live data and layer state are untyped
 type Loose = any;
@@ -103,6 +104,7 @@ export function useLayerBrowser({ data, activeLayers, setActiveLayers, capabilit
     .map(l => ({ key: l.key, label: layerName(l), count: countOf(l) }));
 
   const setMany = useCallback((keys: string[], on: boolean) => {
+    countAction(on ? 'layer.on' : 'layer.off');
     if (on) beforeTurnOn?.(keys.filter(k => !activeLayers[k]));
     setActiveLayers((prev: Record<string, boolean>) => ({ ...prev, ...Object.fromEntries(keys.map(k => [k, on])) }));
   }, [activeLayers, beforeTurnOn, setActiveLayers]);

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
 import type { LiveLocation, Place, RouteResult } from '@/lib/places/route/plan';
+import { countAction } from '@/lib/platform/usage-actions';
 
 export interface RoutePlannerCallbacks {
   onRoute: (route: (RouteResult & {
@@ -80,6 +81,7 @@ export function useRoutePlanner(
         setRoutes(all);
         setChosen(0);
         setRoute(all[0]);
+        countAction('route.plan');
         onRoute({ ...all[0], from: a, to: b, alternates: all.slice(1).map((r) => r.geometry) });
       }
     } catch {

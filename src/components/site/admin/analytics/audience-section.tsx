@@ -10,6 +10,7 @@ import type { AnalyticsAudience } from './analytics-types';
 import { count, minutes, pct, shortDay, sinceIndex, sum, weekDelta } from './lib/format';
 import { ink, NEUTRAL } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
+import { DbIpCredit, PlaceLabel } from './parts/place-label';
 import { CollectingNote, Pair, SectionFrame, SectionHeading, Tiles } from './parts/section-frame';
 
 const PROVIDERS: Record<string, string> = { credential: 'Email and password', google: 'Google', github: 'GitHub', apple: 'Apple', microsoft: 'Microsoft', passkey: 'Passkey' };
@@ -69,14 +70,23 @@ function Audience({ a }: { a: AnalyticsAudience }) {
         </ChartCard>
       </Pair>
 
-      <Pair>
+      <div className="grid gap-4 lg:grid-cols-3">
         <ChartCard title="Sign-in methods" note="Accounts with each method linked; one account can have several">
           <BarList format={count} total={totals.users} rows={a.providers.map(p => ({ key: p.provider, label: PROVIDERS[p.provider] ?? p.provider, value: p.users }))} />
         </ChartCard>
         <ChartCard title="Plans" note="Paid, granted or free, as each account resolves today">
           <BarList format={count} rows={a.plans.map(p => ({ key: p.plan, label: p.plan, value: p.users }))} />
         </ChartCard>
-      </Pair>
+        <ChartCard title="Countries" note="Where accounts used the map from in the range; one account can be in several">
+          <BarList
+            format={count}
+            share={false}
+            rows={a.countries.map(c => ({ key: c.country, label: <PlaceLabel place={{ country: c.country }} />, value: c.users }))}
+            empty="No placed map time in this range yet."
+          />
+          {a.countries.length > 0 && <DbIpCredit />}
+        </ChartCard>
+      </div>
 
       <SectionHeading>Devices</SectionHeading>
       <p className="-mt-3 text-[12px] text-ink-3">From the browsers of sessions started in the range.</p>

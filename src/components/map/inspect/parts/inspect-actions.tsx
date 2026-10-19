@@ -5,6 +5,7 @@ import { Check, Link2, LocateFixed, ZoomIn } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import type { MapRef } from '@/components/map/types';
 import { trackLink, type TrackTarget } from '@/components/map/inspect/track-request';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /** Follow, Zoom to, and a link that opens the map following this, as header icon buttons. */
 export function MoveActions({ mapRef, lat, lng, zoom, following, onFollow, share }: {
@@ -30,6 +31,7 @@ export function MoveActions({ mapRef, lat, lng, zoom, following, onFollow, share
     // The address bar carries the layers on now (use-layer-persistence.ts).
     const layers = new URLSearchParams(window.location.search).get('layers');
     const link = trackLink(window.location.origin, share, { lat, lng, zoom }, layers);
+    countAction('link.share');
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);

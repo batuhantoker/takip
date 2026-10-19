@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { HISTORY_FAMILIES } from '@/lib/history/popup';
 import { createHistorySession, type HistorySession } from '@/lib/history/session';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /** History opens on the eve of the First World War, a month a second. */
 const START = Date.UTC(1914, 5, 28);
@@ -43,6 +44,7 @@ export function useHistory() {
 
   const open = useCallback(() => {
     if (current.current) return;
+    countAction('history.open');
     const s = createHistorySession(resumeAt.current);
     restoreFamilies(s);
     current.current = s;

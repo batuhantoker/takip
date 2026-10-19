@@ -52,6 +52,8 @@ const schema = z
     // Replay data platform (docs/architecture/replay-database.md §4.1). Relative paths mean the repo root.
     TAKIP_DATA_DIR: z.string().default('data').transform(p => resolve(repoRoot, p)),
     TAKIP_ARCHIVE_DIR: z.string().optional().transform(p => (p ? resolve(repoRoot, p) : undefined)),
+    // DB-IP Lite city database (npm run geoip -w @takip/api); defaults to data/geoip/dbip-city-lite.mmdb.
+    GEOIP_PATH: z.string().optional().transform(p => (p ? resolve(repoRoot, p) : undefined)),
     // Peers whose X-Forwarded-For is believed (IPs or CIDR ranges). Loopback covers the Next rewrite in development.
     TRUSTED_PROXIES: z.string().default(LOOPBACK).refine(isProxyList, 'comma-separated IPs or CIDR ranges'),
     // Cloudflare is the edge: believe cf-connecting-ip from a trusted peer.

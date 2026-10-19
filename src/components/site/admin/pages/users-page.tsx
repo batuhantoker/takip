@@ -6,6 +6,7 @@ import { useAdminData } from '@/components/site/admin/admin-api';
 import { Button, ErrorText, Input, Muted, PageTitle, Select } from '@/components/site/admin/parts/admin-parts';
 import type { UserList } from '@/components/site/admin/admin-types';
 import type { UserSort } from '@/components/site/admin/analytics/analytics-types';
+import { DbIpCredit } from '@/components/site/admin/analytics/parts/place-label';
 import UsersTable from '@/components/site/admin/tables/users-table';
 
 const PAGE = 50;
@@ -59,6 +60,7 @@ export default function UsersPage() {
             <Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Previous</Button>
             <Button disabled={offset + PAGE >= data.total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
           </div>
+          {data.users.some(u => u.activity.lastPlace) && <div className="mt-2"><DbIpCredit /></div>}
         </>
       )}
       {!data && !error && <Muted>Loading…</Muted>}

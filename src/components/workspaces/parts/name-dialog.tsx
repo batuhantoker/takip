@@ -6,6 +6,7 @@ import { Field, FormError, Submit } from '@/components/site/account/form-parts';
 import DialogFrame, { Hint } from './dialog-frame';
 import { describeWorkspaceFailure } from '@/components/workspaces/messages';
 import { useWorkspace } from '@/components/workspaces/use-workspace';
+import { countAction } from '@/lib/platform/usage-actions';
 
 const COPY = {
   'save-as': { title: 'Save as', hint: 'Saves what the map shows now as a new workspace, and switches to it.', submit: 'Save' },
@@ -28,6 +29,7 @@ export default function NameDialog({ mode, onClose }: { mode: keyof typeof COPY;
     const failure = await workspaceSession().saveAs(name);
     setBusy(false);
     if (failure) return setError(describeWorkspaceFailure(failure));
+    countAction('workspace.save');
     onClose();
   };
 

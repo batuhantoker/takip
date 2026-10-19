@@ -1,5 +1,6 @@
 import { isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
+import { actionUse } from './actions';
 import { eachDay, minutesSince, notAdmin, subjectNotAdmin, type Range } from './range';
 
 const TOP_PER_PREFIX = 8;
@@ -67,5 +68,5 @@ export function engagement(db: AppDb, r: Range) {
     if (entry) entry[row.type === 'user' ? 'users' : 'visitors'] = row.n;
   }
 
-  return { today: isoDay(r.today), days: r.days, since: minutesSince(db), features, featureDays, hours, sessionLength, topUsers, wall };
+  return { today: isoDay(r.today), days: r.days, since: minutesSince(db), features, featureDays, hours, sessionLength, topUsers, wall, ...actionUse(db, r) };
 }

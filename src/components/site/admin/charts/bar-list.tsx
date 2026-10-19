@@ -7,14 +7,17 @@ import { NEUTRAL } from '@/components/site/admin/analytics/lib/series';
 
 export type BarRow = { key: string; label: ReactNode; value: number; detail?: ReactNode; href?: string; color?: string };
 
-/** Ranked horizontal bars, labelled with the value and its share of `total` (the rows' sum by default). */
-export function BarList({ rows, format = compact, total, limit = 8, empty = 'No data yet.', share = true }: {
-  rows: BarRow[]; format?: (n: number) => string; total?: number; limit?: number; empty?: string; share?: boolean;
+/**
+ * Ranked horizontal bars, labelled with the value and its share of `total` (the rows' sum by default).
+ * `max` sets the full-length bar, so several lists can share one scale.
+ */
+export function BarList({ rows, format = compact, total, max: scale, limit = 8, empty = 'No data yet.', share = true }: {
+  rows: BarRow[]; format?: (n: number) => string; total?: number; max?: number; limit?: number; empty?: string; share?: boolean;
 }) {
   const [all, setAll] = useState(false);
   if (!rows.length) return <p className="text-[12px] text-ink-3">{empty}</p>;
   const whole = total ?? rows.reduce((s, r) => s + r.value, 0);
-  const max = Math.max(1, ...rows.map(r => r.value));
+  const max = Math.max(1, scale ?? 0, ...rows.map(r => r.value));
   const shown = all ? rows : rows.slice(0, limit);
   return (
     <div className="flex flex-col gap-2.5">

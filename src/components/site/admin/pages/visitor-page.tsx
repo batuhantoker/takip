@@ -9,9 +9,12 @@ import type { VisitorAnalytics } from '@/components/site/admin/analytics/analyti
 import { DIRECT_ARRIVAL, featureLabel, splitFeature } from '@/components/site/admin/analytics/lib/features';
 import { count, longDay, minutes, pct, shortDay } from '@/components/site/admin/analytics/lib/format';
 import { useAnalyticsData } from '@/components/site/admin/analytics/lib/use-analytics-data';
-import { CollectingNote, SectionFrame, Tiles } from '@/components/site/admin/analytics/parts/section-frame';
+import { DbIpCredit, PlaceLabel } from '@/components/site/admin/analytics/parts/place-label';
+import { CollectingNote, Pair, SectionFrame, Tiles } from '@/components/site/admin/analytics/parts/section-frame';
 import { shortVisitor } from '@/components/site/admin/tables/visitors-table';
+import UserActions from '@/components/site/admin/user/user-actions';
 import UserActivityTime from '@/components/site/admin/user/user-activity-time';
+import UserPlaces from '@/components/site/admin/user/user-places';
 
 const RANGES = [7, 30, 90] as const;
 
@@ -58,6 +61,8 @@ function Visitor({ v }: { v: VisitorAnalytics }) {
             {describeDevice(visitor.userAgent)}
             {visitor.userAgent && <span className="block break-all font-mono text-[11px] text-ink-3">{visitor.userAgent}</span>}
           </dd>
+          <dt className="text-ink-3">Last place</dt>
+          <dd>{visitor.place ? <PlaceLabel place={visitor.place} ip={visitor.place.ip} /> : <span className="text-ink-3">Not placed yet</span>}</dd>
           <dt className="text-ink-3">Arrived from</dt><dd className={visitor.referrer ? '' : 'text-ink-3'}>{visitor.referrer ?? DIRECT_ARRIVAL}</dd>
           <dt className="text-ink-3">Landed on</dt><dd className="break-all font-mono text-[11px]">{visitor.landing ?? '—'}</dd>
           <dt className="text-ink-3">Account</dt>
@@ -70,6 +75,7 @@ function Visitor({ v }: { v: VisitorAnalytics }) {
             ) : <span className="text-ink-3">Never signed in on this browser</span>}
           </dd>
         </dl>
+        {visitor.place && <DbIpCredit />}
       </Card>
 
       <CollectingNote since={v.since} first={v.daily[0]?.day} />
@@ -86,6 +92,10 @@ function Visitor({ v }: { v: VisitorAnalytics }) {
         <StatTile label="Most used layer" value={layer ? featureLabel(layer.feature) : 'none'} sub={layer ? `${minutes(layer.minutes)} on ${count(layer.days)} days` : 'No layer time in the range'} />
       </Tiles>
       <UserActivityTime u={v} who="This visitor" />
+      <Pair>
+        <UserPlaces places={v.places} who="this browser" />
+        <UserActions actions={v.actions} />
+      </Pair>
     </>
   );
 }

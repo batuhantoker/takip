@@ -6,6 +6,7 @@ import { Popover } from '@/components/ui/popover';
 import { cx, FOCUS_RING, TRANSITION, type IconType } from '@/components/ui/class-names';
 import type { MapStyle } from '@/components/shell/state/types';
 import StyleStudio from '@/components/shell/map-look/style-studio';
+import { countAction } from '@/lib/platform/usage-actions';
 import { ClusterButton } from './cluster-button';
 
 // One real tile of the Alps from each look, so the choice is a picture rather than a word.
@@ -50,7 +51,7 @@ export function BaseMapPicker({ mapStyle, setMapStyle, labelledBy }: {
 }) {
   return (
     <div role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : 'Base map'} className="grid grid-cols-3 gap-2">
-      {STYLES.map(s => <Swatch key={s.id} style={s} on={s.id === mapStyle} onPick={() => setMapStyle(s.id)} />)}
+      {STYLES.map(s => <Swatch key={s.id} style={s} on={s.id === mapStyle} onPick={() => { countAction('basemap.change'); setMapStyle(s.id); }} />)}
     </div>
   );
 }

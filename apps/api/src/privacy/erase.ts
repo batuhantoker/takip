@@ -19,7 +19,11 @@ const OWNED: readonly { table: string; where: string }[] = [
   { table: 'feature_time', where: "subject_type = 'user' AND subject_id = @id" },
   { table: 'user_hour', where: 'user_id = @id' },
   { table: 'sign_in', where: 'user_id = @id OR impersonated_by = @id' },
+  { table: 'place_seen', where: "subject_type = 'user' AND subject_id = @id" },
+  { table: 'action_count', where: "subject_type = 'user' AND subject_id = @id" },
   // The browsers they signed in on, and what was booked to those browsers while signed out.
+  { table: 'place_seen', where: "subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)" },
+  { table: 'action_count', where: "subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)" },
   { table: 'visitor_day', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
   { table: 'visitor_feature', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
   { table: 'visitor_hour', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
@@ -79,7 +83,7 @@ export function eraseUser(db: AppDb, user: { id: string; email: string }, actor:
     const removed: Record<string, number> = {};
     for (const { table, where } of OWNED) {
       const { changes } = db.prepare(`DELETE FROM ${table} WHERE ${where}`).run({ id: user.id, email });
-      if (changes) removed[table] = changes;
+      if (changes) removed[table] = (removed[table] ?? 0) + changes;
     }
     let pseudonymised = 0;
     for (const row of audited.all({ id: user.id, email }) as { id: number; data: string }[]) {

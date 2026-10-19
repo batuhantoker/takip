@@ -25,6 +25,7 @@ import { useHistoryTick } from './use-history';
 import WarLegend from '@/components/panels/history/legends/war-legend';
 import WorldBordersLegend from '@/components/panels/history/legends/world-borders-legend';
 import { WORLD_BORDERS } from '@/lib/history/world-borders';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /** The geological periods inside the deep range, oldest first, for the strip under the track. */
 function periodBands(lo: number, hi: number): Band[] {
@@ -94,6 +95,7 @@ export default function HistoryTimelineBar({ session, onExit, compact }: { sessi
       session.setDeep(false);
       session.clock.seek(t);
     } else return false;
+    countAction('history.jump');
     rerender();
     return true;
   };

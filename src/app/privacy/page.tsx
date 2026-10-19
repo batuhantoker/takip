@@ -97,12 +97,12 @@ const STORED: { what: string; detail: string }[] = [
   { what: 'How the map looks', detail: 'Your Style Studio colours, which layers are switched on, and the last city the map opened on.' },
   { what: 'Your market watchlist and recent fingerprint searches', detail: 'So they are there next time. The search list can be cleared from the search panel.' },
   { what: 'When you last waved off the ad blocker note', detail: 'So it asks at most once a day.' },
-  { what: 'A random visitor id', detail: 'Sent with the map’s once-a-minute usage count (see What we measure). It is not your name or address; clearing this site’s data replaces it with a new one.' },
+  { what: 'A random visitor id', detail: 'Sent with the map’s once-a-minute usage count (see What we measure). It is a random number, not your name; clearing this site’s data replaces it with a new one.' },
 ];
 
 const PROMISES: { icon: ReactNode; title: string; body: string }[] = [
   { icon: <UserRound className="h-4 w-4" />, title: 'An account is optional', body: 'The map opens without one. An account keeps your email and sign-in details, and you can download or delete everything it holds from Account settings.' },
-  { icon: <Activity className="h-4 w-4" />, title: 'Usage data, to make TAKIP better', body: 'We count how long the map is open and which tools and layers get used, to improve TAKIP and build better tools. It stays on our server, with no analytics company involved. The free plans show a few Google ads, and Google sets its own cookies for them; Pro has none.' },
+  { icon: <Activity className="h-4 w-4" />, title: 'Usage data, to make TAKIP better', body: 'We count how long the map is open, which tools and layers get used and where it is used from, to improve TAKIP and build better tools. It stays on our server, with no analytics company involved. The free plans show a few Google ads, and Google sets its own cookies for them; Pro has none.' },
   { icon: <HardDrive className="h-4 w-4" />, title: 'Your things stay with you', body: 'Your settings, history and keys are kept in your own browser, where you can see them and clear them. Not on our servers.' },
   { icon: <KeyRound className="h-4 w-4" />, title: 'Your AI key is yours', body: 'Used only for the request you make, passed straight to the provider you chose, and never stored on our servers or written to a log.' },
 ];
@@ -139,8 +139,8 @@ export default function PrivacyPage() {
               'When you look something up, the question goes to the service that holds the answer, and only for that lookup.',
               'Your preferences and history live in your browser. Clearing this site’s data in your browser removes all of it.',
               'Features that use AI run on the key and provider you choose, and we pass your request straight through.',
-              'We do not keep a record of what you search. Signed out, your address is used only in memory and as a daily scrambled count, to keep usage fair for everyone.',
-              'We count map time and which tools and layers are in use, per account or per browser, to see what helps and improve it. What we measure below says exactly what.',
+              'We do not keep a record of what you search, look up or type. We do keep the address you use the map from, and the town it points to, to see where TAKIP is used.',
+              'We count map time, which tools and layers are in use and which actions people take (a search, a route), per account or per browser, to see what helps and improve it. What we measure below says exactly what.',
               'If you report an issue, we keep your message, a snapshot of your map view and your browser’s details, tied to your account if you are signed in. Deleting the account deletes its reports.',
               'The site reaches you through Cloudflare, which carries the connection between your browser and our server, as it does for much of the web.',
               'The free plans show a few ads from Google, never on the map. Google may use cookies to choose and measure them. Pro shows none.',
@@ -168,9 +168,11 @@ export default function PrivacyPage() {
         <Section id="usage" title="What we measure, and why"
           intro="We use this to see which tools people rely on and which go unused, so we can improve TAKIP and build better tools. It stays on our own server: it is not shared with the ad network or with any analytics company.">
           <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-ink-2">
-            <li><span className="text-ink-1">Map time.</span> While the map is open and on screen, it tells our server once a minute. That minute counts toward the day’s map time, and is noted against the view (map, space, history or replay), the open panel, the data layers switched on, any open window such as a camera, and whether it is a phone. Not where you look on the map, what you search or what you type.</li>
-            <li><span className="text-ink-1">Signed out,</span> those minutes are tied to the random visitor id this browser keeps, along with the browser’s name, the site that first sent you here and the page you landed on. Clearing this site’s data starts a new id.</li>
-            <li><span className="text-ink-1">Signed in,</span> they are tied to your account, and the browser’s visitor id is linked to it. Each sign-in is recorded with its time, address and browser.</li>
+            <li><span className="text-ink-1">Map time.</span> While the map is open and on screen, it tells our server once a minute. That minute counts toward the day’s map time, and is noted against the view (map, space, history or replay), the open panel, the data layers switched on and their sections (air, sea and so on), any open window such as a camera, and whether it is a phone. Not where you look on the map, what you search or what you type.</li>
+            <li><span className="text-ink-1">Actions.</span> We count what people do by name: a search run, a route planned, a camera opened, a recon lookup by kind (email, domain…). Never the words, places, addresses or names themselves.</li>
+            <li><span className="text-ink-1">Signed out,</span> those minutes are tied to the random visitor id this browser keeps, along with the browser’s name, the site that first sent you here, the page you landed on, and the address you connect from with the town and country it points to. Clearing this site’s data starts a new id.</li>
+            <li><span className="text-ink-1">Signed in,</span> they are tied to your account, with the addresses you use the map from and where they point to, and the browser’s visitor id is linked to it. Each sign-in is recorded with its time, address and browser.</li>
+            <li><span className="text-ink-1">Where an address points to</span> is looked up on our own server in a copy of DB-IP’s free database, so the address isn’t sent anywhere for it. It is a rough guess, usually the right country and a nearby town.</li>
             <li><span className="text-ink-1">How long:</span> all of this, sign-ins included, is kept for 90 days and then deleted. Counts of API requests, which plan limits rely on, are kept for up to 400 days (35 for visitors).</li>
             <li><span className="text-ink-1">Yours to take or delete:</span> your account’s download includes all of it, and deleting the account deletes it, with the browsers linked to it.</li>
           </ul>
@@ -182,12 +184,13 @@ export default function PrivacyPage() {
             <Flow icon={<MapIcon className="h-4 w-4" />} title="Opening the map"
               summary={<>
                 So the map can open over your part of the world, our server asks an IP location service roughly where your
-                connection is. It is a city-level guess, it is not stored, and if it cannot tell, the map opens on a
-                well-covered city instead. The map itself (its tiles, the satellite view when you switch to it, and the
+                connection is. It is a city-level guess used only to place the map (the place we keep for usage counts is
+                looked up separately, see What we measure), and if it cannot tell, the map opens on a well-covered city instead. The map itself (its tiles, the satellite view when you switch to it, and the
                 typefaces) loads from the services that draw it, as with any website that shows a map.
               </>}
               services={[
                 { name: 'ipapi.co, then freeipapi.com, then ip-api.com', what: 'your connection’s IP address, asked from our server, to place the map' },
+                { name: 'DB-IP (db-ip.com)', what: 'nothing is sent: a copy of its IP-to-town database on our server places the address the map is used from (IP geolocation by DB-IP, CC BY 4.0)' },
                 { name: 'OpenFreeMap (tiles.openfreemap.org)', what: 'the map tiles, map symbols and label typefaces for the part of the world in view' },
                 { name: 'CARTO (basemaps.cartocdn.com)', what: 'the map tiles instead, only if you pick CARTO as the base map' },
                 { name: 'Esri (server.arcgisonline.com)', what: 'satellite imagery, only when you switch to the satellite view' },

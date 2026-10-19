@@ -7,6 +7,7 @@ import { MAX_MESSAGE, MIN_MESSAGE, sendReport, type SendFailure } from '@/lib/pl
 import { Button } from '@/components/ui/button';
 import { TextArea } from '@/components/ui/field';
 import { Modal } from '@/components/ui/modal';
+import { countAction } from '@/lib/platform/usage-actions';
 import { closeReportDialog, useReportDialog, type ReportRequest } from './report-dialog-state';
 
 const TOO_SHORT = `Add a little more: at least ${MIN_MESSAGE} characters.`;
@@ -67,6 +68,7 @@ function ReportForm({ request, view }: { request: ReportRequest; view: () => Vie
     setSending(false);
     if (failed) setFailure(failureText(failed));
     else setSent(true);
+    if (!failed) countAction('report.send');
   };
 
   if (sent) {

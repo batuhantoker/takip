@@ -53,7 +53,7 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   app.use('/api/v1/*', keyPolicyGate(policy, usage, { site, enforce: enforceKeyPolicy }));
   app.use('/api/v1/*', rateLimit(usage, { enforce: enforceLimits }), meter(usage));
   app.route('/api/v1', accessRoutes(access, policy));
-  app.route('/api/v1', mapTimeRoutes(mapTime));
+  app.route('/api/v1', mapTimeRoutes(mapTime, { cloudflare: trust.cloudflare }));
   app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', keyRoutes(keys));
   app.route('/api/v1', privacyRoutes({ db, auth, usage }));

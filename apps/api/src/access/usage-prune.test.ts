@@ -77,6 +77,8 @@ describe('pruning usage_counter', () => {
         t.db.prepare(`INSERT INTO ${table}`).run(`v${age}`, day(age));
       }
       t.db.prepare("INSERT INTO sign_in (user_id, at) VALUES ('u1', ?)").run(at(age));
+      t.db.prepare("INSERT INTO action_count (day, subject_type, subject_id, action, count) VALUES (?, 'user', 'u1', 'search.run', 1)").run(day(age));
+      t.db.prepare("INSERT INTO place_seen (subject_type, subject_id, ip, first_seen_at, last_seen_at, minutes) VALUES ('visitor', ?, '203.0.113.5', ?, ?, 1)").run(`v${age}`, at(age), at(age));
     }
     schedulePruneUsage(t.jobs.queue, Date.now());
     await runner().runDue();
@@ -84,11 +86,12 @@ describe('pruning usage_counter', () => {
     for (const table of ['map_time', 'feature_time']) {
       for (const type of ['anon', 'user']) expect(ages(`SELECT day FROM ${table} WHERE subject_type = '${type}' ORDER BY day DESC`), `${table} ${type}`).toEqual([0, 90]);
     }
-    for (const table of ['activity_hour', 'user_hour', 'visitor_day', 'visitor_feature', 'visitor_hour']) {
+    for (const table of ['activity_hour', 'user_hour', 'visitor_day', 'visitor_feature', 'visitor_hour', 'action_count']) {
       expect(ages(`SELECT day FROM ${table} ORDER BY day DESC`), table).toEqual([0, 90]);
     }
     expect(t.db.prepare('SELECT visitor_id FROM visitor ORDER BY visitor_id').pluck().all()).toEqual(['v0', 'v90']);
     expect((t.db.prepare('SELECT at FROM sign_in ORDER BY at DESC').pluck().all() as number[]).map(ms => TODAY - ms / DAY_MS)).toEqual([0, 90]);
+    expect(t.db.prepare('SELECT subject_id FROM place_seen ORDER BY subject_id').pluck().all()).toEqual(['v0', 'v90']);
   });
 
   it('takes its activity window from the configuration', async () => {

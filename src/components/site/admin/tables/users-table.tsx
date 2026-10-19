@@ -6,6 +6,7 @@ import type { UserList } from '@/components/site/admin/admin-types';
 import type { UserSort } from '@/components/site/admin/analytics/analytics-types';
 import { featureLabel } from '@/components/site/admin/analytics/lib/features';
 import { compact, count, minutes, shortDay } from '@/components/site/admin/analytics/lib/format';
+import { placeShort } from '@/components/site/admin/analytics/lib/place';
 
 const NUM = 'text-right font-mono tabular-nums';
 const SUB = 'block text-[11px] text-ink-3';
@@ -86,6 +87,7 @@ export default function UsersTable({ list, onSort }: { list: UserList; onSort: (
                     <span className="text-ink-2" title={when(a.lastSeenAt)}>{timeAgo(new Date(a.lastSeenAt))}</span>
                     <span className={SUB}>{describeDevice(a.lastUserAgent)}</span>
                     {a.lastIp && <span className="block font-mono text-[11px] text-ink-3">{a.lastIp}</span>}
+                    {a.lastPlace && <span className={SUB}>{placeShort(a.lastPlace)}</span>}
                   </>
                 ) : <span className="text-ink-3">not seen</span>}
               </td>

@@ -8,6 +8,7 @@ import {
 import { toRow, type Row, type Source, type Phase } from '@/lib/intel/recon/fingerprint/rows';
 import { lookupError, SIGN_IN_REQUIRED } from '@/lib/intel/recon/lookup';
 import type { Identity } from '@/lib/intel/recon/people/correlate';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /** Where a username search is: sweeping sites, re-testing hits, or reading the profiles found. */
 export type Stage = 'sweep' | 'verifying' | 'profiles';
@@ -86,6 +87,7 @@ export function useFingerprintSearch() {
       return;
     }
 
+    countAction(`recon.${type}` as const);
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;

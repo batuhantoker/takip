@@ -80,6 +80,8 @@ scanner_backend_backup.js
 /data/traffic/
 /data/cold/
 /data/media/
+# DB-IP Lite city database for IP locations (npm run geoip -w @takip/api)
+/data/geoip/
 /data/tiles/
 
 # Local checkouts of third-party tools; not part of this app

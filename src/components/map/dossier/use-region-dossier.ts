@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /** The region dossier a double right-click on the map asks for. */
 export function useRegionDossier() {
@@ -8,6 +9,7 @@ export function useRegionDossier() {
   const [dossierLoading, setDossierLoading] = useState(false);
 
   const openDossier = useCallback(async (coords: { lat: number; lng: number }) => {
+    countAction('dossier.open');
     setDossierLoading(true); setRegionDossier(null);
     try {
       const res = await fetch(`/api/region-dossier?lat=${coords.lat}&lng=${coords.lng}`);

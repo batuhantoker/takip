@@ -2,6 +2,7 @@
 
 import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { cx } from '@/components/ui/class-names';
+import { countAction } from '@/lib/platform/usage-actions';
 import DirectionsBar from './directions-bar';
 import type { Directions } from './use-directions';
 
@@ -35,6 +36,7 @@ export default function RoutePlanner({ directions: d, center, onLocate, onClose 
         onFollowChange={d.setFollowUser}
         onActiveSegment={(seg) => d.setActiveRoute((r) => (r ? { ...r, activeSegment: seg } : r))}
         onStartNavigation={(r, label) => {
+          countAction('route.navigate');
           d.setNavSession({ route: r, label, key: Date.now() });
           d.setFollowUser(true);
         }}

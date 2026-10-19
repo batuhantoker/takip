@@ -1,13 +1,16 @@
 import { DAY_MS, isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
+import { noLocator, type IpLocator } from '../geoip/ip-location';
+import { subjectActions } from './actions';
+import { latestPlaces, placeOfIp, placesOf } from './places';
 import { dayStartMs, eachDay, round1, type Range } from './range';
 import { PROFILE_COLUMNS, toProfile, type ProfileRow } from './visitor-list';
 
 const SIGN_INS = 200;
 const REPORTS = 100;
 
-/** Everything one account did (GET /api/admin/analytics/users/:id), or null when there's no such account. */
-export function userAnalytics(db: AppDb, userId: string, r: Range) {
+/** Everything one account did (GET /api/admin/analytics/users/:id), or null when there's no such account. Sign-ins are placed with `locate`. */
+export function userAnalytics(db: AppDb, userId: string, r: Range, locate: IpLocator = noLocator) {
   if (!db.prepare('SELECT 1 FROM auth_user WHERE id = ?').get(userId)) return null;
   const all = <T>(sql: string, ...params: unknown[]) => db.prepare(sql).all(...params) as T[];
   const get = <T>(sql: string, ...params: unknown[]) => db.prepare(sql).get(...params) as T;
@@ -76,7 +79,8 @@ export function userAnalytics(db: AppDb, userId: string, r: Range) {
   const signIns = all<{ at: number; ipAddress: string | null; userAgent: string | null; impersonatedBy: string | null; impersonatorEmail: string | null }>(`
     SELECT s.at, s.ip_address AS ipAddress, s.user_agent AS userAgent, s.impersonated_by AS impersonatedBy, i.email AS impersonatorEmail
     FROM sign_in s LEFT JOIN auth_user i ON i.id = s.impersonated_by
-    WHERE s.user_id = ? ORDER BY s.at DESC, s.sign_in_id DESC LIMIT ${SIGN_INS}`, userId);
+    WHERE s.user_id = ? ORDER BY s.at DESC, s.sign_in_id DESC LIMIT ${SIGN_INS}`, userId)
+    .map(row => ({ ...row, place: placeOfIp(locate, row.ipAddress) }));
   const workspaces = all<{ id: string; name: string; visibility: string; createdAt: number; updatedAt: number; deletedAt: number | null }>(`
     SELECT workspace_id AS id, name, visibility, created_at AS createdAt, updated_at AS updatedAt, deleted_at AS deletedAt
     FROM ws_workspace WHERE owner_id = ? ORDER BY deleted_at IS NOT NULL, updated_at DESC`, userId);
@@ -87,8 +91,8 @@ export function userAnalytics(db: AppDb, userId: string, r: Range) {
   const browsers = all<ProfileRow & { minutes: number; activeDays: number }>(`
     SELECT ${PROFILE_COLUMNS}, coalesce(sum(d.minutes), 0) AS minutes, count(CASE WHEN d.minutes > 0 THEN 1 END) AS activeDays
     FROM visitor v LEFT JOIN auth_user u ON u.id = v.user_id LEFT JOIN visitor_day d ON d.visitor_id = v.visitor_id
-    WHERE v.user_id = ? GROUP BY v.visitor_id ORDER BY v.last_seen_at DESC, v.visitor_id`, userId)
-    .map(({ minutes, activeDays, ...row }) => ({ ...toProfile(row), minutes, activeDays }));
+    WHERE v.user_id = ? GROUP BY v.visitor_id ORDER BY v.last_seen_at DESC, v.visitor_id`, userId);
+  const browserPlaces = latestPlaces(db, 'visitor', browsers.map(b => b.visitorId));
 
   return {
     today: isoDay(r.today),
@@ -102,6 +106,8 @@ export function userAnalytics(db: AppDb, userId: string, r: Range) {
     signIns,
     workspaces,
     reports,
-    browsers,
+    browsers: browsers.map(({ minutes, activeDays, ...row }) => ({ ...toProfile(row, browserPlaces.get(row.visitorId) ?? null), minutes, activeDays })),
+    places: placesOf(db, 'user', userId),
+    actions: subjectActions(db, 'user', userId, r),
   };
 }

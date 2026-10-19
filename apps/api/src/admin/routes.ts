@@ -102,7 +102,7 @@ export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, 
     // Counters reach the table every 10 s; flushing first includes the last few seconds.
     usage.flush();
     const now = Date.now();
-    return c.json(userList(db, access, parsed.data, rangeOf({ days: parsed.data.days, admins: 'include' }, now), now));
+    return c.json(userList(db, access, parsed.data, rangeOf({ days: parsed.data.days, admins: 'include' }, now), now, analytics?.locate));
   });
 
   app.get('/users/:id', c => {

@@ -10,6 +10,7 @@ import { featureLabel, featureLongLabel, splitFeature, VIEW_ORDER } from './lib/
 import { count, minutes, pct, shortDay, sum } from './lib/format';
 import { ink } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
+import { ActionCards } from './parts/action-cards';
 import { FeatureCards, reach } from './parts/feature-cards';
 import { CollectingNote, Pair, SectionFrame, Tiles } from './parts/section-frame';
 import { TopUsersTable } from './parts/top-users-table';
@@ -67,6 +68,7 @@ function Engagement({ e }: { e: AnalyticsEngagement }) {
       </Pair>
 
       <FeatureCards e={e} panels={panels} layers={layers} devices={devices} />
+      <ActionCards e={e} />
 
       <ChartCard
         title="When people use the map"

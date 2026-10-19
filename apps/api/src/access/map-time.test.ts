@@ -194,3 +194,53 @@ describe('visitors across days', () => {
     expect(await call('GET')).toMatchObject({ used: 1 });
   });
 });
+
+describe('sections, actions and places', () => {
+  const ID = 'visitor-0123456789abcdef';
+  const post = (path: string, body: object, { jar, peer = '203.0.113.5' }: { jar?: Jar; peer?: string } = {}) =>
+    t.app.request(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(jar && { cookie: jar.get() }) },
+      body: JSON.stringify(body),
+    }, from(peer));
+  const actions = () => t.db.prepare('SELECT subject_type AS type, action, count FROM action_count ORDER BY subject_type, action').all();
+
+  it('books the Layers sections in use like any feature', async () => {
+    await post('/api/v1/me/time', { features: ['section:air', 'section:sea', 'section:cooking', 'layer:flights'] });
+    expect(t.db.prepare("SELECT feature FROM feature_time WHERE feature LIKE 'section:%' ORDER BY feature").pluck().all()).toEqual(['section:air', 'section:sea']);
+  });
+
+  it('counts actions on every tick, for the account, else the visitor id, else the day\'s address hash', async () => {
+    await post('/api/v1/me/time', { actions: { 'search.run': 2, 'route.plan': 1, 'made.up': 3, 'ti.ask': -1, 'alert.open': 1.5 } });
+    await post('/api/v1/me/time', { actions: { 'search.run': 1 }, visitor: { id: ID } });
+    const jar = await t.signUpVerified();
+    await post('/api/v1/me/time', { actions: { 'camera.open': 9999 } }, { jar });
+    expect(actions()).toEqual([
+      { type: 'anon', action: 'route.plan', count: 1 },
+      { type: 'anon', action: 'search.run', count: 2 },
+      { type: 'user', action: 'camera.open', count: 500 },
+      { type: 'visitor', action: 'search.run', count: 1 },
+    ]);
+  });
+
+  it('takes the actions a closing page still holds, without a minute', async () => {
+    const res = await post('/api/v1/me/actions', { actions: { 'layer.on': 3 }, visitor: { id: ID } });
+    expect(res.status).toBe(204);
+    expect(actions()).toEqual([{ type: 'visitor', action: 'layer.on', count: 3 }]);
+    expect(t.db.prepare('SELECT count(*) FROM map_time').pluck().get()).toBe(0);
+  });
+
+  it('notes the address each booked minute came from, for the visitor and for the account', async () => {
+    await post('/api/v1/me/time', { visitor: { id: ID } });
+    await post('/api/v1/me/time', { visitor: { id: ID } });
+    later(MINUTE);
+    await post('/api/v1/me/time', { visitor: { id: ID } }, { peer: '198.51.100.7' });
+    const jar = await t.signUpVerified();
+    await post('/api/v1/me/time', {}, { jar });
+    expect(t.db.prepare('SELECT subject_type AS type, ip, minutes FROM place_seen ORDER BY subject_type, ip').all()).toEqual([
+      { type: 'user', ip: '203.0.113.5', minutes: 1 },
+      { type: 'visitor', ip: '198.51.100.7', minutes: 1 },
+      { type: 'visitor', ip: '203.0.113.5', minutes: 1 },
+    ]);
+  });
+});

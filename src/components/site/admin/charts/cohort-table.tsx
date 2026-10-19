@@ -22,7 +22,8 @@ export function CohortTable({ cohorts, cohortLabel = 'Signed up (week of)', size
               <td className={`${TD} whitespace-nowrap text-ink-2`}>{shortDay(c.week)}</td>
               <td className={`${TD} text-right font-mono tabular-nums`}>{c.size.toLocaleString('en')}</td>
               {Array.from({ length: weeks }, (_, i) => {
-                const share = c.retained[i];
+                // A week nobody joined in has no share to show.
+                const share = c.size ? c.retained[i] : null;
                 if (share == null) return <td key={i} className={TD} />;
                 return (
                   <td key={i} className="border-b border-line p-[2px]">

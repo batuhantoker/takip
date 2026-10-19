@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /** The live news feed open in the viewer, if any. */
 export function useLiveFeed() {
@@ -9,6 +10,7 @@ export function useLiveFeed() {
   const [liveFeedEmbedAllowed, setLiveFeedEmbedAllowed] = useState(true);
 
   const openFeed = useCallback((url: string, name: string, embedAllowed = true) => {
+    countAction('feed.open');
     setLiveFeedUrl(url);
     setLiveFeedName(name);
     setLiveFeedEmbedAllowed(embedAllowed);

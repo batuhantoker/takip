@@ -6,6 +6,7 @@ import { Button, ErrorText, Input, Muted } from '@/components/site/admin/parts/a
 import VisitorsTable from '@/components/site/admin/tables/visitors-table';
 import type { VisitorList, VisitorSort } from '../analytics-types';
 import { count } from '../lib/format';
+import { DbIpCredit } from './place-label';
 
 const PAGE = 50;
 
@@ -55,6 +56,7 @@ export default function VisitorsList({ days }: { days: number }) {
             <Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Previous</Button>
             <Button disabled={offset + PAGE >= data.total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
           </div>
+          {data.visitors.some(v => v.place) && <DbIpCredit />}
         </>
       )}
       {!data && !error && <Muted>Loading…</Muted>}

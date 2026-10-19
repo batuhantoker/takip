@@ -1,8 +1,8 @@
 import { DAY_MS, isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
-import { dayStartMs, eachDay, round1, weekStart, type Range } from './range';
+import { visitorPlaces } from './places';
+import { dayStartMs, eachDay, round1, visitorNotAdmin, weekStart, type Range } from './range';
 import { parseUserAgent } from './user-agent';
-import { visitorNotAdmin } from './visitor-list';
 
 const COHORT_WEEKS = 8;
 const TOP = 25;
@@ -57,7 +57,7 @@ export function visitors(db: AppDb, r: Range) {
     source, visitors: rows.length, signedIn: rows.filter(a => a.linked).length,
   }));
 
-  return { today: isoDay(r.today), since: firstSeen == null ? null : isoDay(Math.floor(firstSeen / DAY_MS)), daily, totals, referrers, landings, campaigns, devices: devices(), cohorts: cohorts() };
+  return { today: isoDay(r.today), since: firstSeen == null ? null : isoDay(Math.floor(firstSeen / DAY_MS)), daily, totals, referrers, landings, campaigns, devices: devices(), cohorts: cohorts(), ...visitorPlaces(db, r) };
 
   /** One per browser active in the range. */
   function devices() {

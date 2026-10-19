@@ -67,6 +67,13 @@ export function accountExport(db: AppDb, userId: string, { access, currentSessio
       .map((row): Json => ({ ...row, day: isoDay(row.day as number) })),
     signIns: all('SELECT at, ip_address AS ipAddress, user_agent AS userAgent, impersonated_by AS impersonatedBy FROM sign_in WHERE user_id = ? ORDER BY at', userId)
       .map(row => times(row, 'at')),
+    places: all(`
+      SELECT ip, country, region, city, first_seen_at AS firstSeenAt, last_seen_at AS lastSeenAt, minutes FROM place_seen
+      WHERE (subject_type = 'user' AND subject_id = ?) OR (subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id = ?))
+      ORDER BY first_seen_at`, userId, userId)
+      .map(row => times(row, 'firstSeenAt', 'lastSeenAt')),
+    actions: all("SELECT day, action, count FROM action_count WHERE subject_type = 'user' AND subject_id = ? ORDER BY day, action", userId)
+      .map((row): Json => ({ ...row, day: isoDay(row.day as number) })),
     browsers: all(`
       SELECT visitor_id AS visitorId, first_seen_at AS firstSeenAt, last_seen_at AS lastSeenAt, user_agent AS userAgent, referrer, landing
       FROM visitor WHERE user_id = ? ORDER BY first_seen_at`, userId)

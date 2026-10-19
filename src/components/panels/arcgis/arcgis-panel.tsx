@@ -10,6 +10,7 @@ import { toBboxParam, type ArcGISResult, type ImportedLayer } from '@/lib/map/la
 import ArcGISImportedLayers from './arcgis-imported-layers';
 import ArcGISSearchResults from './arcgis-search-results';
 import { nextLayerColor } from './arcgis-palette';
+import { countAction } from '@/lib/platform/usage-actions';
 
 type Bounds = { west: number; south: number; east: number; north: number };
 
@@ -91,6 +92,7 @@ export default function ArcGISPanel({ onImportLayer, onRemoveLayer, onUpdateLaye
       const params = new URLSearchParams({ service: result.url });
       if (bboxParam) params.set('bbox', bboxParam);
       const geojson = await getJson(params, 'That layer didn’t load. Its service may be down or private.');
+      countAction('arcgis.add');
       onImportLayer({ id: result.id, title: result.title, url: result.url, geojson, color: nextLayerColor(importedLayers.map(l => l.color)), opacity: 0.8 });
       setHealth(h => ({ ...h, state: 'ok' }));
     } catch (err: any) {

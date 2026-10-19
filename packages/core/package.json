@@ -10,6 +10,7 @@
     "./time": "./src/time.ts",
     "./tracks": "./src/tracks.ts",
     "./trk": "./src/trk.ts",
+    "./usage": "./src/usage.ts",
     "./vessel": "./src/vessel.ts"
   }
 }

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "plan": "tsx src/cli/plan.ts",
     "admin": "tsx src/cli/admin.ts",
-    "backup": "tsx src/cli/backup.ts"
+    "backup": "tsx src/cli/backup.ts",
+    "geoip": "tsx src/cli/geoip.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
@@ -26,6 +27,7 @@
     "better-auth": "^1.7.7",
     "better-sqlite3": "^13.0.3",
     "hono": "^4.13.13",
+    "maxmind": "^5.0.7",
     "nodemailer": "10.0.11",
     "pino": "^10.3.1",
     "prom-client": "^15.1.3",

@@ -16,6 +16,7 @@ import { feedMarks } from '@/lib/core/feed-log';
 import { asksForForecast, type AssistContext, type AssistMessage, type Call, type Mode, type ToolName } from '@/lib/ai/assist/protocol';
 import { runCall, type Card, type Depth, type Outcome, type Site } from '@/lib/ai/assist/tools';
 import { hasContent, loadChats, removeChat, titleOf, upsertChat } from './chat-store';
+import { countAction } from '@/lib/platform/usage-actions';
 
 export interface ActionView {
   tool: ToolName;
@@ -148,6 +149,7 @@ export function useAssist(deps: AssistDeps) {
   const send = useCallback(async (text: string, mode: Mode, auth: Auth) => {
     const said = text.trim();
     if (!said || abort.current) return;
+    countAction('ti.ask');
     const ctrl = new AbortController();
     abort.current = ctrl;
     setBusy(true);

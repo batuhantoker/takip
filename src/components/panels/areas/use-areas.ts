@@ -6,6 +6,7 @@ import { selectInArea } from '@/lib/places/areas/aoi';
 import { diffSweep, appendEvents, type WatchBaseline, type WatchEvent } from '@/lib/places/areas/watch';
 import { STORAGE_KEY, serializeShapes, deserializeShapes, shapesToGeoJSON, downloadFile } from '@/lib/places/areas/aoi-export';
 import type { ImageryRequest } from '@/components/map/types';
+import { countAction } from '@/lib/platform/usage-actions';
 
 export type DrawAction = 'undo' | 'finish' | 'cancel';
 
@@ -76,6 +77,7 @@ export function useAreas(dataRef: RefObject<unknown>, dataVersion: number) {
   }, []);
 
   const handleDrawComplete = useCallback((result: DrawResult) => {
+    countAction('area.draw');
     setDrawnPolygons(prev => [toShape(result, prev, prev.length), ...prev]);
     // One shape per arming: staying armed is how the click that dismisses the first makes a second.
     stopDrawing();

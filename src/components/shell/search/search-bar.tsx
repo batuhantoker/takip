@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Kbd } from '@/components/ui/kbd';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { forgetRecent, loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
+import { countAction } from '@/lib/platform/usage-actions';
 import { Key, PlaceRow, type PlaceLike } from './places';
 import { groupHits, type Hit } from './search-groups';
 import { useGeoSearch, ZOOM_BY_KIND } from './use-geo-search';
@@ -117,6 +118,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
 
   const go = (h: Hit) => {
     if (h.kind === 'current') { void locate(); return; }
+    countAction('search.pick');
     onLocate(h.lat, h.lng, h.zoom);
     remember(h);
     type('');

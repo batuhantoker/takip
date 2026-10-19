@@ -3,9 +3,14 @@
 import { useCallback, useState } from 'react';
 import { authClient } from '@/components/site/account/auth-client';
 import { lookupError, lookupUrl, needsSignIn, parseLeaks, runSweep, SIGN_IN_REQUIRED } from '@/lib/intel/recon/lookup';
+import { countAction } from '@/lib/platform/usage-actions';
+import type { UsageAction } from '@takip/core/usage';
 import { plainError } from './lookup-errors';
 
 export interface HistoryEntry { tool: string; query: string; at: number }
+
+// Usage statistics count the kind of lookup, never its target; tools not named here count as recon.other.
+const RECON_ACTION: Record<string, UsageAction> = { bgp: 'recon.ip', shodan: 'recon.ip', scanner: 'recon.ip', sweep: 'recon.ip', vuln: 'recon.cve', dns: 'recon.domain', whois: 'recon.domain', certs: 'recon.domain', ssl: 'recon.domain', subdomains: 'recon.domain', headers: 'recon.domain', tech: 'recon.domain', username: 'recon.username', github: 'recon.username', phone: 'recon.phone', leaks: 'recon.email', crypto: 'recon.wallet', donbot: 'recon.wallet' };
 export type ChainView = 'brief' | 'wallet';
 
 const RECENT_KEY = 'takip.recon.recent';
@@ -82,6 +87,7 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
     const q = raw.trim();
     if (!q || loading) return;
     if (needsSignIn(tool, signedIn)) { clearResults(); setError(SIGN_IN_REQUIRED); setResultTool(tool); return; }
+    countAction(RECON_ACTION[tool] ?? 'recon.other');
     setLoading(true);
     setError('');
     setResults(null);

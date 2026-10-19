@@ -5,6 +5,7 @@ import { Badge, TABLE, TD, TH, when } from '@/components/site/admin/parts/admin-
 import type { VisitorList, VisitorSort } from '@/components/site/admin/analytics/analytics-types';
 import { DIRECT_ARRIVAL, featureLabel } from '@/components/site/admin/analytics/lib/features';
 import { count, minutes } from '@/components/site/admin/analytics/lib/format';
+import { PlaceLabel } from '@/components/site/admin/analytics/parts/place-label';
 
 const NUM = 'text-right font-mono tabular-nums';
 const SUB = 'block text-[11px] text-ink-3';
@@ -36,6 +37,7 @@ export default function VisitorsTable({ list, onSort }: { list: VisitorList; onS
           {head('Active days', 'activeDays', 'text-right')}
           {head('Spends time in', null)}
           {head('Device', null)}
+          {head('Last place', null)}
           {head('Arrived from', null)}
           {head('Account', null)}
         </tr>
@@ -62,6 +64,7 @@ export default function VisitorsTable({ list, onSort }: { list: VisitorList; onS
               ) : <span className="text-ink-3">nothing yet</span>}
             </td>
             <td className={`${TD} whitespace-nowrap text-ink-2`}>{describeDevice(v.userAgent)}</td>
+            <td className={`${TD} max-w-56`}>{v.place ? <PlaceLabel place={v.place} ip={v.place.ip} short /> : <span className="text-ink-3">not placed</span>}</td>
             <td className={`${TD} max-w-56`}>
               <span className={v.referrer ? 'text-ink-2' : 'text-ink-3'}>{v.referrer ?? DIRECT_ARRIVAL}</span>
               {v.landing && <span className="block truncate font-mono text-[11px] text-ink-3" title={v.landing}>{v.landing}</span>}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { createReplaySession, type ReplaySession } from '@/lib/map/replay/session';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /** Replay opens an hour back, playing at a minute per second, so there is movement at once. */
 const START_BACK_MS = 60 * 60_000;
@@ -16,6 +17,7 @@ export function useReplay() {
       current.current.dispose();
       current.current = null;
     } else {
+      countAction('replay.start');
       current.current = createReplaySession(Date.now() - START_BACK_MS);
       current.current.clock.play();
     }

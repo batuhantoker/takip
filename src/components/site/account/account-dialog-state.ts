@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type { SettingsTab } from '@/components/shell/settings/lib/tabs';
+import { countAction } from '@/lib/platform/usage-actions';
 
 export type View =
   | { kind: 'sign-in'; notice?: string }
@@ -17,6 +18,7 @@ let current: View | null = null;
 const listeners = new Set<() => void>();
 
 export function showAccountDialog(view: View | null) {
+  if (view?.kind === 'sign-up') countAction('account.sign_up_open'); else if (view?.kind === 'sign-in') countAction('account.sign_in_open');
   current = view;
   listeners.forEach(listener => listener());
 }

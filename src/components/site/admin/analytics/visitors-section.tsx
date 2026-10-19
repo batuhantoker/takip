@@ -4,12 +4,15 @@ import { CohortTable } from '@/components/site/admin/charts/cohort-table';
 import { StackedBars } from '@/components/site/admin/charts/stacked-bars';
 import { StatTile } from '@/components/site/admin/charts/stat-tile';
 import { TimeSeries } from '@/components/site/admin/charts/time-series';
+import { WorldDots } from '@/components/site/admin/charts/world-dots';
 import { Muted } from '@/components/site/admin/parts/admin-parts';
 import type { AnalyticsVisitors } from './analytics-types';
 import { DIRECT_ARRIVAL } from './lib/features';
 import { count, longDay, minutes, pct, shortDay, sinceIndex, sum, weekDelta } from './lib/format';
+import { placeText } from './lib/place';
 import { ink, NEUTRAL } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
+import { DbIpCredit, PlaceLabel } from './parts/place-label';
 import { Pair, SectionFrame, SectionHeading, Tiles } from './parts/section-frame';
 import VisitorsList from './parts/visitors-list';
 
@@ -99,6 +102,35 @@ function Visitors({ v }: { v: AnalyticsVisitors }) {
       <ChartCard title="Landing pages" note="Where the first visit landed; only campaign and share parameters are kept">
         <BarList format={count} limit={10} rows={v.landings.map(l => ({ key: l.landing, label: <span className="font-mono text-[12px]">{l.landing}</span>, value: l.visitors }))} empty="No new visitors in this range." />
       </ChartCard>
+
+      <SectionHeading>Where they are</SectionHeading>
+      <p className="-mt-3 text-[12px] text-ink-3">Where visitors active in the range used the map from, placed from their address; one visitor can be in several places.</p>
+      <Pair>
+        <ChartCard title="Countries" table={v.countries.length ? { columns: ['Country', 'Visitors', 'Signed in later'], rows: v.countries.map(c => [placeText({ country: c.country }), c.visitors, c.signedIn]) } : null}>
+          <BarList
+            format={count}
+            rows={v.countries.map(c => ({ key: c.country, label: <PlaceLabel place={{ country: c.country }} />, value: c.visitors, detail: conversion(c.visitors, c.signedIn) }))}
+            empty="No placed visitors in this range."
+          />
+        </ChartCard>
+        <ChartCard title="Cities" table={v.cities.length ? { columns: ['City', 'Visitors'], rows: v.cities.map(c => [placeText(c), c.visitors]) } : null}>
+          <BarList format={count} limit={10} rows={v.cities.map(c => ({ key: `${c.country}|${c.region}|${c.city}`, label: <PlaceLabel place={c} />, value: c.visitors }))} empty="No placed visitors in this range." />
+        </ChartCard>
+      </Pair>
+      <ChartCard
+        title="On the map"
+        note="One dot per place, sized by how many visitors were last seen there"
+        table={v.points.length ? { columns: ['Latitude', 'Longitude', 'Visitors'], rows: [...v.points].sort((a, b) => b.visitors - a.visitors).map(p => [p.latitude.toFixed(2), p.longitude.toFixed(2), p.visitors]) } : null}
+      >
+        {v.points.length ? (
+          <WorldDots
+            label={`Where ${count(sum(v.points.map(p => p.visitors)))} visitors were last seen`}
+            format={n => `${count(n)} visitor${n === 1 ? '' : 's'}`}
+            points={v.points.map(p => ({ latitude: p.latitude, longitude: p.longitude, value: p.visitors }))}
+          />
+        ) : <Muted>No placed visitors in this range.</Muted>}
+      </ChartCard>
+      <DbIpCredit />
 
       <SectionHeading>Devices</SectionHeading>
       <div className="grid gap-4 lg:grid-cols-3">

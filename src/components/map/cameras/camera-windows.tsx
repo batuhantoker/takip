@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { FloatingWindow, playingIds, useWindows, windowStore } from '@/components/map/windows';
 import { useRing } from '@/components/map/inspect/rings';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { countAction } from '@/lib/platform/usage-actions';
 import CameraViewer from './camera-viewer';
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- cameras arrive untyped from every source */
@@ -27,6 +28,7 @@ export default function CameraWindows({ camera, onClose, onLocate }: {
     setNamed(camera);
     if (camera?.id != null && !open.some(c => c.id === camera.id)) setOpen([...open, camera]);
   }
+  useEffect(() => { if (camera?.id != null) countAction('camera.open'); }, [camera]);
   // Named again while open: bring it forward.
   useEffect(() => { if (camera?.id != null) windowStore.expand(windowId(camera)); }, [camera]);
 

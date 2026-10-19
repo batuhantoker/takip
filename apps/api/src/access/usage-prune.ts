@@ -10,7 +10,7 @@ const RUN_HOUR_MS = 4 * 60 * 60_000;
 
 /**
  * Days kept. API counts (usage_counter): `days` for accounts and their keys, `anonDays` for visitors' daily hashes.
- * User activity (map time and what it went on, visitor ids, sign-ins): `activityDays` for everyone.
+ * User activity (map time and what it went on, visitor ids, places, actions, sign-ins): `activityDays` for everyone.
  */
 export type UsageRetention = { days: number; anonDays: number; activityDays: number };
 export const DEFAULT_RETENTION: UsageRetention = { days: 400, anonDays: 35, activityDays: 90 };
@@ -20,7 +20,7 @@ export function schedulePruneUsage(queue: JobQueue, runAt: number) {
   return queue.enqueue(PRUNE_USAGE_JOB, {}, { runAt, dedupeKey: `${PRUNE_USAGE_JOB}@${utcDay(runAt)}` });
 }
 
-const ACTIVITY_TABLES = ['map_time', 'feature_time', 'activity_hour', 'user_hour', 'visitor_day', 'visitor_feature', 'visitor_hour'] as const;
+const ACTIVITY_TABLES = ['map_time', 'feature_time', 'activity_hour', 'user_hour', 'visitor_day', 'visitor_feature', 'visitor_hour', 'action_count'] as const;
 
 /** Deletes the days older than the retention; returns how many rows went. */
 export function pruneUsage(db: AppDb, { days, anonDays, activityDays }: UsageRetention, now: number) {
@@ -31,6 +31,7 @@ export function pruneUsage(db: AppDb, { days, anonDays, activityDays }: UsageRet
   let activity = 0;
   for (const table of ACTIVITY_TABLES) activity += db.prepare(`DELETE FROM ${table} WHERE day < ?`).run(from).changes;
   activity += db.prepare('DELETE FROM visitor WHERE last_seen_at < ?').run(from * DAY_MS).changes;
+  activity += db.prepare('DELETE FROM place_seen WHERE last_seen_at < ?').run(from * DAY_MS).changes;
   activity += db.prepare('DELETE FROM sign_in WHERE at < ?').run(from * DAY_MS).changes;
   return { anon, accounts, activity };
 }

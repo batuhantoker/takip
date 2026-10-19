@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GlobeView } from '@/lib/space/globe-match';
 import { onWorldRequest } from '@/lib/space/world-events';
 import type { SpaceFocus } from '@/lib/space/worlds';
+import { countAction } from '@/lib/platform/usage-actions';
 import type { SpaceRequest } from './space-shell';
 
 /**
@@ -21,6 +22,7 @@ export function useSpaceMode(mapEntry: () => SpaceRequest['entry'] | undefined) 
 
   const go = useCallback((req: Omit<SpaceRequest, 'ts' | 'entry'>) => {
     if (req.via === 'zoom' && inSpaceRef.current) return;
+    countAction(inSpaceRef.current ? 'space.focus' : 'space.enter');
     setRequest({ ...req, entry: inSpaceRef.current ? undefined : entryRef.current(), ts: Date.now() });
     setFocus(req.focus);
     setInSpace(true);

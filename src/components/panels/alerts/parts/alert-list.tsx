@@ -11,6 +11,7 @@ import QuakeRow from '@/components/panels/alerts/rows/quake-row';
 import StatementRow from '@/components/panels/alerts/rows/statement-row';
 import type { AlertEntry, AlertGroup, AlertTab } from '@/components/panels/alerts/hooks/use-alert-list';
 import WarningRow from '@/components/panels/alerts/rows/warning-row';
+import { countAction } from '@/lib/platform/usage-actions';
 
 type Locate = (lat: number, lng: number, options?: LocateOptions) => void;
 
@@ -86,6 +87,7 @@ export default function AlertList({ tab, groups, loading, filtersActive, now, op
 
   const select = (entry: AlertEntry) => {
     if (openKey === entry.key) { setOpenKey(null); return; }
+    countAction('alert.open');
     setOpenKey(entry.key);
     const target = entry.kind === 'item' ? targetOf(entry.item) : null;
     if (target) onLocate(...target);

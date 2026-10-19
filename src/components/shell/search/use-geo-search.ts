@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { countAction } from '@/lib/platform/usage-actions';
 import type { Hit } from './search-groups';
 
 /** How close to fly for each kind /api/v1/geo/search returns. */
@@ -44,6 +45,7 @@ export function useGeoSearch(center: { lat: number; lng: number } | null) {
        land after the one for "Paris". */
     setLoading(true);
     timerRef.current = setTimeout(async () => {
+      countAction('search.run');
       abortRef.current?.abort();
       const ctrl = new AbortController();
       abortRef.current = ctrl;

@@ -1,64 +1,24 @@
 import { createHmac, randomBytes } from 'node:crypto';
 import { Hono } from 'hono';
 import type { AppDb } from '../db/app-db';
+import { noLocator, type IpLocator } from '../geoip/ip-location';
+import { activityBook, type ActionSubject } from './activity-book';
 import { addressBlock } from './client-ip';
+import { edgeCountry, parseActions, parseFeatures, parseVisitor, type ActionCounts, type VisitorTick } from './map-time-input';
 import type { AccessEnv } from './middleware';
 import type { Principal } from './principal';
 import { DAY_MS, utcDay } from './usage';
 
 // Two tabs ticking each minute still count one minute.
 const MIN_TICK_GAP_MS = 50_000;
-const MAX_FEATURES = 48;
 
 /** `limit` 0 means no limit. `resetsAt` is the next UTC midnight. */
 export type MapTimeState = { limit: number; used: number; remaining: number; blocked: boolean; resetsAt: string };
 
 type Row = { minutes: number; lastTickAt: number };
 
-// What the web app may report with a tick. Layer keys are many and change with the app, so only their shape is checked.
-const FEATURES: Record<string, ReadonlySet<string> | RegExp> = {
-  view: new Set(['map', 'space', 'history', 'replay']),
-  panel: new Set(['none', 'layers', 'ai', 'draw', 'alerts', 'history', 'recon', 'directions', 'space', 'arcgis', 'markets', 'intel', 'search']),
-  window: new Set(['camera', 'feed', 'dossier', 'search']),
-  device: new Set(['desktop', 'mobile']),
-  layer: /^[a-z][a-z0-9_]{0,39}$/,
-};
-
-/** A browser's own id and how it first arrived, from the tick body; the user agent comes from the request. */
-export type VisitorTick = { id: string; userAgent: string | null; referrer: string | null; landing: string | null };
-
-const VISITOR_ID = /^[A-Za-z0-9_-]{16,64}$/;
-const HOST = /^[a-z0-9.-]{1,200}$/i;
-// Landing pages can carry one-time tokens (password reset links), so only campaign and share parameters stay.
-const KEPT_PARAM = /^(utm_[a-z]+|ref|source|w)$/;
-
-/** The `visitor` part of a tick body, or null when it has no usable id. */
-export function parseVisitor(input: unknown, userAgent: string | null | undefined): VisitorTick | null {
-  const v = input as { id?: unknown; referrer?: unknown; landing?: unknown } | null;
-  if (!v || typeof v.id !== 'string' || !VISITOR_ID.test(v.id)) return null;
-  const referrer = typeof v.referrer === 'string' && HOST.test(v.referrer) ? v.referrer.toLowerCase() : null;
-  let landing: string | null = null;
-  if (typeof v.landing === 'string' && v.landing.startsWith('/') && v.landing.length <= 2000) {
-    const url = new URL(v.landing, 'http://local');
-    const kept = [...url.searchParams].filter(([name]) => KEPT_PARAM.test(name)).slice(0, 8);
-    landing = (url.pathname + (kept.length ? `?${new URLSearchParams(kept)}` : '')).slice(0, 300);
-  }
-  return { id: v.id, userAgent: userAgent?.slice(0, 400) || null, referrer, landing };
-}
-
-/** The known `kind:name` features in a tick body, deduplicated; anything else is dropped. */
-export function parseFeatures(input: unknown): string[] {
-  if (!Array.isArray(input)) return [];
-  const out = new Set<string>();
-  for (const item of input) {
-    if (typeof item !== 'string' || out.size >= MAX_FEATURES) continue;
-    const [kind, name, extra] = item.split(':');
-    const allowed = FEATURES[kind];
-    if (extra !== undefined || !name || !allowed) continue;
-    if (allowed instanceof RegExp ? allowed.test(name) : allowed.has(name)) out.add(item);
-  }
-  return [...out];
-}
+/** What a tick reports besides itself: features in use, the browser's visitor id, actions since the last tick, Cloudflare's country. */
+export type TickReport = { features?: readonly string[]; visitor?: VisitorTick | null; actions?: ActionCounts; edgeCountry?: string | null };
 
 /**
  * Minutes of map a day against the plan's `map.minutes_per_day`, per account or per anonymous address block.
@@ -70,9 +30,10 @@ export function parseFeatures(input: unknown): string[] {
  *
  * A tick may also name the browser's visitor id. Signed out, its minutes are booked to that id as well, with their
  * own one-a-minute check, since several visitors can share an address block; signed in, the id is linked to the
- * account. The limit stays on the address block: an id the browser can clear can't buy more time.
+ * account. The limit stays on the address block: an id the browser can clear can't buy more time. Each booked
+ * minute also notes the address it came from (activity-book.ts), and actions are counted on every tick.
  */
-export function createMapTime(db: AppDb, { now = () => Date.now(), salt = randomBytes(16) as Buffer | string } = {}) {
+export function createMapTime(db: AppDb, { now = () => Date.now(), salt = randomBytes(16) as Buffer | string, locate = noLocator as IpLocator } = {}) {
   const read = db.prepare('SELECT minutes, last_tick_at AS lastTickAt FROM map_time WHERE day = ? AND subject_type = ? AND subject_id = ?');
   const tick = db.prepare(`
     INSERT INTO map_time (day, subject_type, subject_id, minutes, last_tick_at) VALUES (?, ?, ?, 1, ?)
@@ -105,6 +66,7 @@ export function createMapTime(db: AppDb, { now = () => Date.now(), salt = random
   const visitorHour = db.prepare(`
     INSERT INTO visitor_hour (visitor_id, day, hour, minutes) VALUES (?, ?, ?, 1)
     ON CONFLICT (visitor_id, day, hour) DO UPDATE SET minutes = minutes + 1`);
+  const extra = activityBook(db, locate);
 
   const subjectOf = (p: Exclude<Principal, { kind: 'key' }>, day: number) =>
     p.kind === 'anon'
@@ -121,51 +83,86 @@ export function createMapTime(db: AppDb, { now = () => Date.now(), salt = random
     for (const name of walled ? ['view:wall'] : features) feature.run(day, subject.type, subject.id, name);
   });
 
+  /** True when this tick booked the visitor's minute (or wall tick) rather than being a second tab's. */
   const bookVisitor = db.transaction((day: number, at: number, visitor: VisitorTick, userId: string | null, walled: boolean, features: readonly string[]) => {
     seen.run({ ...visitor, at, userId });
-    if (userId) return;
+    if (userId) return false;
     const last = readVisitorDay.get(visitor.id, day) as number | undefined;
-    if (last !== undefined && at - last < MIN_TICK_GAP_MS) return;
+    if (last !== undefined && at - last < MIN_TICK_GAP_MS) return false;
     visitorTick.run({ id: visitor.id, day, add: walled ? 0 : 1, at });
     if (!walled) visitorHour.run(visitor.id, day, new Date(at).getUTCHours());
     for (const name of walled ? ['view:wall'] : features) visitorFeature.run(visitor.id, day, name);
+    return true;
   });
 
+  /** Who an action belongs to: the account, else the browser's visitor id, else the day's address-block hash. */
+  const actionSubject = (p: Exclude<Principal, { kind: 'key' }>, day: number, visitor: VisitorTick | null): ActionSubject =>
+    p.kind === 'user' ? { type: 'user', id: p.userId } : visitor ? { type: 'visitor', id: visitor.id } : (subjectOf(p, day) as ActionSubject);
+
   /** The caller's minutes today; with `count`, this call is a tick and adds a minute unless one was just added. */
-  function state(principal: Principal, limit: number, { count = false, features = [] as readonly string[], visitor = null as VisitorTick | null } = {}): MapTimeState {
+  function state(principal: Principal, limit: number, { count = false, report = {} as TickReport } = {}): MapTimeState {
     const at = now();
     const day = utcDay(at);
     const resetsAt = new Date((day + 1) * DAY_MS).toISOString();
     if (principal.kind === 'key') return { limit: 0, used: 0, remaining: 0, blocked: false, resetsAt };
+    const { features = [], visitor = null, actions = [], edgeCountry: country = null } = report;
     const subject = subjectOf(principal, day);
     const row = read.get(day, subject.type, subject.id) as Row | undefined;
     let used = row?.minutes ?? 0;
     const walled = limit > 0 && used >= limit;
-    if (count && visitor) bookVisitor(day, at, visitor, principal.kind === 'user' ? principal.userId : null, walled, features);
-    if (count && (!row || at - row.lastTickAt >= MIN_TICK_GAP_MS)) {
-      book(day, at, subject, walled, features);
-      if (!walled) used += 1;
+    if (count) {
+      if (visitor && bookVisitor(day, at, visitor, principal.kind === 'user' ? principal.userId : null, walled, features)) {
+        extra.place({ type: 'visitor', id: visitor.id }, principal.ip, at, walled ? 0 : 1, country);
+      }
+      if (!row || at - row.lastTickAt >= MIN_TICK_GAP_MS) {
+        book(day, at, subject, walled, features);
+        if (principal.kind === 'user') extra.place({ type: 'user', id: principal.userId }, principal.ip, at, walled ? 0 : 1, country);
+        if (!walled) used += 1;
+      }
     }
+    if (actions.length) extra.actions(actionSubject(principal, day, visitor), day, actions);
     if (limit === 0) return { limit: 0, used, remaining: 0, blocked: false, resetsAt };
     return { limit, used, remaining: Math.max(0, limit - used), blocked: used >= limit, resetsAt };
   }
 
-  return { state };
+  /** Actions alone, from the page's flush as it's hidden or closed. */
+  function countActions(principal: Principal, visitor: VisitorTick | null, actions: ActionCounts) {
+    if (principal.kind === 'key' || !actions.length) return;
+    const day = utcDay(now());
+    extra.actions(actionSubject(principal, day, visitor), day, actions);
+  }
+
+  return { state, countActions };
 }
 
 export type MapTime = ReturnType<typeof createMapTime>;
 
-/** Mounted at /api/v1: GET reads the caller's map time today, POST is the web app's once-a-minute tick ({ features, visitor } optional). */
-export function mapTimeRoutes(mapTime: MapTime) {
+type TickBody = { features?: unknown; visitor?: unknown; actions?: unknown } | null;
+
+/**
+ * Mounted at /api/v1: GET /me/time reads the caller's map time today, POST is the web app's once-a-minute tick
+ * ({ features, visitor, actions } all optional), and POST /me/actions takes the actions a closing page still holds.
+ * `cloudflare`: Cloudflare is the trusted edge, so its CF-IPCountry header can place an address the database can't.
+ */
+export function mapTimeRoutes(mapTime: MapTime, { cloudflare = false } = {}) {
   const app = new Hono<AccessEnv>();
   const NO_STORE = { 'Cache-Control': 'private, no-store' };
   const limitOf = (c: { var: AccessEnv['Variables'] }) => c.var.access.entitlements['map.minutes_per_day'];
   app.get('/me/time', c => c.json(mapTime.state(c.var.principal, limitOf(c)), 200, NO_STORE));
   app.post('/me/time', async c => {
-    const body = (await c.req.json().catch(() => null)) as { features?: unknown; visitor?: unknown } | null;
-    const features = parseFeatures(body?.features);
-    const visitor = parseVisitor(body?.visitor, c.req.header('user-agent'));
-    return c.json(mapTime.state(c.var.principal, limitOf(c), { count: true, features, visitor }), 200, NO_STORE);
+    const body = (await c.req.json().catch(() => null)) as TickBody;
+    const report: TickReport = {
+      features: parseFeatures(body?.features),
+      visitor: parseVisitor(body?.visitor, c.req.header('user-agent')),
+      actions: parseActions(body?.actions),
+      edgeCountry: edgeCountry(c.req.header('cf-ipcountry'), cloudflare),
+    };
+    return c.json(mapTime.state(c.var.principal, limitOf(c), { count: true, report }), 200, NO_STORE);
+  });
+  app.post('/me/actions', async c => {
+    const body = (await c.req.json().catch(() => null)) as TickBody;
+    mapTime.countActions(c.var.principal, parseVisitor(body?.visitor, c.req.header('user-agent')), parseActions(body?.actions));
+    return c.body(null, 204);
   });
   return app;
 }

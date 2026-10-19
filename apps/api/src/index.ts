@@ -26,6 +26,7 @@ import { openSourceSwitchboard } from './replay/sources';
 import { loadEnv, loadEnvFiles } from './env';
 import { createLogger } from './obs/logger';
 import { createMetrics } from './obs/metrics';
+import { openIpLocator } from './geoip/ip-location';
 
 loadEnvFiles();
 const env = loadEnv();
@@ -42,8 +43,9 @@ const replay = openReplayData(env.TAKIP_DATA_DIR);
 const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive') });
 const usage = createUsage(db, { logger });
 const keys = createApiKeys(db, { logger });
+const locate = openIpLocator(env.GEOIP_PATH ?? join(env.TAKIP_DATA_DIR, 'geoip', 'dbip-city-lite.mmdb'), logger);
 // A stable salt keeps visitors' map minutes across restarts.
-const mapTime = createMapTime(db, env.BETTER_AUTH_SECRET ? { salt: env.BETTER_AUTH_SECRET } : {});
+const mapTime = createMapTime(db, { locate, ...(env.BETTER_AUTH_SECRET ? { salt: env.BETTER_AUTH_SECRET } : {}) });
 const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
@@ -66,6 +68,7 @@ const stopMail = mail.start();
 const metrics = createMetrics({ defaults: true });
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 const analytics = {
+  locate,
   startedAt: Date.now() - process.uptime() * 1000,
   dirs: {
     root: repoRoot,

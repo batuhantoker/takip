@@ -41,6 +41,7 @@ cd ~/takip && systemctl --user stop takip-web takip-ingest && git pull --ff-only
 - It takes about three minutes, and the site is down meanwhile. The web app is stopped because the build rewrites the `.next` it serves from; the recorder, because both are memory-hungry on 7.5 GB. `takip-tunnel` keeps running, so the link stays the same.
 - If the build sits at "Creating an optimized production build" with no CPU use, a client bundle has pulled in something Turbopack can't compile. `next build --experimental-build-mode=compile --debug-build-paths 'app/page.tsx'` compiles one page, which makes it quick to narrow down (satellite.js 7's WASM module was the first such case, handled in `tools/satellite-js-loader.cjs`).
 - The api runs migrations on start. Take an `app.db` snapshot before a risky update (`npm run backup -w @takip/api`).
+- The IP location database (`data/geoip/dbip-city-lite.mmdb`, DB-IP Lite, ~130 MB) isn't in git. DB-IP publishes a new one each month: `npm run geoip -w @takip/api`, then restart `takip-api`.
 
 ## Known limits
 

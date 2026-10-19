@@ -13,6 +13,7 @@ import { yearLabel } from '@/lib/map/replay/timeline-ticks';
 import { FAMILY_TEXT, type Moment, MOMENTS, type Place } from '@/components/panels/history/lib/history-content';
 import { HistoryCard } from './history-card';
 import { ToggleRow } from './toggle-row';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /** `onArrive` runs once the camera gets there. */
 export type FlyTo = (place: Place, onArrive?: () => void) => void;
@@ -41,6 +42,7 @@ export function BordersSection({ session, onFlyTo }: { session: HistorySession; 
   const colouring = session.countries.state().status !== 'off';
   // The war from its first month to its last, a month a second, with its battles on; the borders already show the annexations.
   const play = (war: WarLayer) => {
+    countAction('history.jump');
     session.setLayer(war.code, true);
     session.setFamily('conflict', true);
     session.clock.pause();
@@ -52,6 +54,7 @@ export function BordersSection({ session, onFlyTo }: { session: HistorySession; 
     else start();
   };
   const playWorld = () => {
+    countAction('history.jump');
     const w = WORLD_BORDERS;
     session.setLayer(w.code, true);
     session.clock.pause();
@@ -104,6 +107,7 @@ function MomentRow({ moment, onGo }: { moment: Moment; onGo: () => void }) {
 /** Moments worth starting from: the clock and the map go there together. */
 export function MomentsSection({ session, onFlyTo }: { session: HistorySession; onFlyTo?: FlyTo }) {
   const go = (m: Moment) => {
+    countAction('history.jump');
     m.families?.forEach(f => session.setFamily(f, true));
     session.clock.seek(m.at);
     if (m.speed) session.clock.setSpeed(m.speed);

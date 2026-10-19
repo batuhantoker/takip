@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorOf, headersFor, HISTORY_CAP, loadHistory, runToken, saveHistory, saveRunToken, setUrlRun, type Engine, type HistoryEntry, type StartInput } from '@/lib/ai/client';
 import { applyEvent, currentAnswer, currentProbability, initialState, type RunState } from '@/lib/ai/state';
 import type { Stamped } from '@/lib/ai/types';
+import { countAction } from '@/lib/platform/usage-actions';
 
 /**
  * The run the visitor is watching, followed over Server-Sent Events and folded
@@ -100,6 +101,7 @@ export function useAi() {
   }, [close, flush]);
 
   const start = useCallback(async (input: StartInput, engine: Engine, key: string): Promise<string | null> => {
+    countAction('ti.ask');
     setError('');
     let res: Response;
     try {
@@ -143,6 +145,7 @@ export function useAi() {
 
   const ask = useCallback(async (target: string, message: string, engine: Engine, key: string): Promise<{ reply?: string; error?: string }> => {
     if (!runId) return { error: 'No run.' };
+    countAction('ti.ask');
     const res = await fetch(`/api/ai/runs/${runId}/ask`, {
       method: 'POST',
       headers: headersFor(engine, key),

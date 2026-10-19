@@ -7,11 +7,13 @@ import type { UserAnalytics } from '@/components/site/admin/analytics/analytics-
 import { featureLabel, splitFeature } from '@/components/site/admin/analytics/lib/features';
 import { bytes, compact, count, longDay, minutes, pct, shortDay, sum } from '@/components/site/admin/analytics/lib/format';
 import { useAnalyticsData } from '@/components/site/admin/analytics/lib/use-analytics-data';
-import { CollectingNote, SectionFrame, Tiles } from '@/components/site/admin/analytics/parts/section-frame';
+import { CollectingNote, Pair, SectionFrame, Tiles } from '@/components/site/admin/analytics/parts/section-frame';
+import UserActions from './user-actions';
 import UserActivityApi from './user-activity-api';
 import UserActivityTime from './user-activity-time';
 import UserBelongings from './user-belongings';
 import UserBrowsers from './user-browsers';
+import UserPlaces from './user-places';
 import UserSignIns from './user-sign-ins';
 
 const RANGES = [7, 30, 90] as const;
@@ -68,6 +70,10 @@ function Activity({ u }: { u: UserAnalytics }) {
         <StatTile label="API data served" value={bytes(totals.apiBytes)} sub={`${count(u.api.keys.length)} API key${u.api.keys.length === 1 ? '' : 's'} on record`} />
       </Tiles>
       <UserActivityTime u={u} />
+      <Pair>
+        <UserPlaces places={u.places} />
+        <UserActions actions={u.actions} />
+      </Pair>
       <UserActivityApi u={u} />
       <UserSignIns signIns={u.signIns} total={sum(u.daily.map(d => d.signIns))} />
       <UserBrowsers browsers={u.browsers} />

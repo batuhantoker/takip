@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { AppDb } from '../db/app-db';
-import { rangeQuery, type Range } from './range';
+import { latestPlaces, type PlaceBrief } from './places';
+import { rangeQuery, visitorNotAdmin, type Range } from './range';
 
 /* Visitors are browsers that keep a random id and send it with the map's minute tick (access/map-time.ts). */
 
@@ -14,14 +15,12 @@ export type ProfileRow = {
   linkedAt: number | null; userId: string | null; userEmail: string | null; userName: string | null;
 };
 
-export const toProfile = ({ userId, userEmail, userName, ...rest }: ProfileRow) => ({
+/** `place` is the browser's latest address (places.ts latestPlaces). */
+export const toProfile = ({ userId, userEmail, userName, ...rest }: ProfileRow, place: PlaceBrief | null = null) => ({
   ...rest,
   user: userId && userEmail ? { id: userId, email: userEmail, name: userName ?? '' } : null,
+  place,
 });
-
-/** `v` is not linked to an admin's account; empty when admins are counted. */
-export const visitorNotAdmin = (r: Range, alias = 'v') =>
-  r.excludeAdmins ? `AND (${alias}.user_id IS NULL OR ${alias}.user_id NOT IN (SELECT id FROM auth_user WHERE role = 'admin'))` : '';
 
 export const VISITOR_SORTS = ['lastSeen', 'firstSeen', 'minutes', 'activeDays'] as const;
 export type VisitorSort = (typeof VISITOR_SORTS)[number];
@@ -60,6 +59,7 @@ export function visitorList(db: AppDb, query: z.infer<typeof visitorsQuery>, r: 
     ORDER BY ${ORDER[query.sort]} LIMIT @limit OFFSET @offset`).all(params) as (ProfileRow & { minutes: number; activeDays: number })[];
 
   const ids = JSON.stringify(rows.map(row => row.visitorId));
+  const places = latestPlaces(db, 'visitor', rows.map(row => row.visitorId));
   const top = new Map<string, { panel: string | null; layer: string | null; wall: boolean }>();
   for (const row of db.prepare(`
     SELECT visitor_id AS id, feature FROM visitor_feature
@@ -78,7 +78,7 @@ export function visitorList(db: AppDb, query: z.infer<typeof visitorsQuery>, r: 
     days: r.days,
     sort: query.sort,
     visitors: rows.map(({ minutes, activeDays, ...row }) => ({
-      ...toProfile(row),
+      ...toProfile(row, places.get(row.visitorId) ?? null),
       minutes,
       activeDays,
       topPanel: top.get(row.visitorId)?.panel ?? null,

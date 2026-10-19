@@ -10,6 +10,7 @@ import { showAccountDialog } from '@/components/site/account/account-dialog-stat
 import { FormError, INPUT } from '@/components/site/account/form-parts';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';
 import DialogFrame, { Hint } from './dialog-frame';
+import { countAction } from '@/lib/platform/usage-actions';
 import { describeWorkspaceFailure } from '@/components/workspaces/messages';
 import { useWorkspace } from '@/components/workspaces/use-workspace';
 import { showWorkspaceDialog } from '@/components/workspaces/workspace-dialog-state';
@@ -64,6 +65,7 @@ export default function ShareDialog({ onClose }: { onClose: () => void }) {
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
+      countAction('workspace.share');
       setCopied(true);
     } catch {
       setError('Copying was blocked. Select the link and copy it yourself.');

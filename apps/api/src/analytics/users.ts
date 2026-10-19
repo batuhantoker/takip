@@ -3,6 +3,8 @@ import type { AccessResolver } from '../access/resolver';
 import { isoDay } from '../access/usage';
 import { toUser, USER_COLUMNS, type RawUser } from '../admin/queries';
 import type { AppDb } from '../db/app-db';
+import { noLocator, type IpLocator } from '../geoip/ip-location';
+import { placeOfIp } from './places';
 import { dayStartMs, rangeQuery, type Range } from './range';
 
 export const USER_SORTS = ['joined', 'minutes', 'lastActive', 'api', 'signIns'] as const;
@@ -27,8 +29,8 @@ const ORDER: Record<UserSort, string> = {
 
 type Aggregates = { minutes: number; activeDays: number; lastActiveDay: number | null; apiRequests: number; apiDenied: number; signIns: number };
 
-/** The Users table (GET /api/admin/users): each account with what it did over the range, sorted and paged in SQL. */
-export function userList(db: AppDb, access: AccessResolver, query: z.infer<typeof usersQuery>, r: Range, now: number) {
+/** The Users table (GET /api/admin/users): each account with what it did over the range, sorted and paged in SQL; `locate` places lastIp. */
+export function userList(db: AppDb, access: AccessResolver, query: z.infer<typeof usersQuery>, r: Range, now: number, locate: IpLocator = noLocator) {
   const params = { first: r.first, from: dayStartMs(r.first), q: query.q, like: `%${query.q}%`, limit: query.limit, offset: query.offset };
   const where = "WHERE (@q = '' OR u.email LIKE @like OR u.name LIKE @like)";
   const total = db.prepare(`SELECT count(*) FROM auth_user u ${where}`).pluck().get(params) as number;
@@ -49,7 +51,7 @@ export function userList(db: AppDb, access: AccessResolver, query: z.infer<typeo
     ${where}
     ORDER BY ${ORDER[query.sort]} LIMIT @limit OFFSET @offset`).all(params) as (RawUser & Aggregates)[];
 
-  const extra = pageDetails(db, rows.map(row => row.id), r, now);
+  const extra = pageDetails(db, rows.map(row => row.id), r, now, locate);
   return {
     total,
     days: r.days,
@@ -71,7 +73,7 @@ export function userList(db: AppDb, access: AccessResolver, query: z.infer<typeo
 }
 
 /** What only the listed rows need: top features, when and where they were last seen, keys and workspaces. */
-function pageDetails(db: AppDb, ids: string[], r: Range, now: number) {
+function pageDetails(db: AppDb, ids: string[], r: Range, now: number, locate: IpLocator) {
   const json = JSON.stringify(ids);
   const all = <T>(sql: string, ...params: unknown[]) => db.prepare(sql).all(...params) as T[];
   const byId = <T extends { id: string }>(rows: T[]) => new Map(rows.map(row => [row.id, row]));
@@ -121,6 +123,7 @@ function pageDetails(db: AppDb, ids: string[], r: Range, now: number) {
       lastSeenAt: seen.length ? Math.max(...seen) : null,
       lastUserAgent: device?.ua ?? null,
       lastIp: device?.ip ?? null,
+      lastPlace: placeOfIp(locate, device?.ip ?? null),
       keys: keys.get(id)?.n ?? 0,
       workspaces: workspaces.get(id)?.n ?? 0,
     };
