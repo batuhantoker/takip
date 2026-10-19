@@ -8,11 +8,13 @@ import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { FormError, INPUT } from '@/components/site/account/form-parts';
 import { SmallButton } from '@/components/site/account/settings/settings-parts';
 import { describeWorkspaceFailure } from '@/components/workspaces/messages';
+import { useT } from '@/components/ui/use-t';
 
 type Mode = 'idle' | 'renaming' | 'deleting';
 
 /** One workspace in Open: open it, rename it, or delete it. */
 export default function WorkspaceRow({ workspace, isCurrent, onOpened }: { workspace: WorkspaceSummary; isCurrent: boolean; onOpened: () => void }) {
+  const t = useT();
   const [mode, setMode] = useState<Mode>('idle');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export default function WorkspaceRow({ workspace, isCurrent, onOpened }: { works
     setError(null);
     const failure = await action();
     setBusy(false);
-    if (failure) return setError(describeWorkspaceFailure(failure));
+    if (failure) return setError(describeWorkspaceFailure(failure, t));
     setMode('idle');
     then?.();
   };
@@ -37,9 +39,9 @@ export default function WorkspaceRow({ workspace, isCurrent, onOpened }: { works
     <div className="flex flex-col gap-1.5 py-1.5 border-b border-line last:border-b-0">
       {mode === 'renaming' ? (
         <form onSubmit={rename} className="flex items-center gap-2">
-          <input name="name" defaultValue={workspace.name} maxLength={80} required autoFocus aria-label="New name" className={`${INPUT} flex-1 min-w-0`} />
-          <SmallButton onClick={() => setMode('idle')}>Cancel</SmallButton>
-          <SmallButton type="submit" disabled={busy}>Rename</SmallButton>
+          <input name="name" defaultValue={workspace.name} maxLength={80} required autoFocus aria-label={t('New name')} className={`${INPUT} flex-1 min-w-0`} />
+          <SmallButton onClick={() => setMode('idle')}>{t('Cancel')}</SmallButton>
+          <SmallButton type="submit" disabled={busy}>{t('Rename')}</SmallButton>
         </form>
       ) : (
         <div className="flex items-center gap-2 min-h-8">
@@ -47,14 +49,14 @@ export default function WorkspaceRow({ workspace, isCurrent, onOpened }: { works
             className="flex flex-col min-w-0 flex-1 text-left disabled:cursor-default group">
             <span className="flex items-center gap-1.5 text-[13px] text-ink-1 group-enabled:group-hover:text-ink-1 truncate">
               <span className="truncate">{workspace.name}</span>
-              {workspace.shareSlug && <Link2 className="w-3 h-3 shrink-0 text-ink-3" aria-label="Shared" />}
+              {workspace.shareSlug && <Link2 className="w-3 h-3 shrink-0 text-ink-3" aria-label={t('Shared')} />}
             </span>
-            <span className="text-[11px] text-ink-3">{isCurrent ? 'Open now · ' : ''}Saved {timeAgo(new Date(workspace.updatedAt))}</span>
+            <span className="text-[11px] text-ink-3">{isCurrent ? `${t('Open now')} · ` : ''}{t('Saved {when}', { when: timeAgo(new Date(workspace.updatedAt), undefined, t) })}</span>
           </button>
           {mode === 'idle' && (
             <>
-              <SmallButton onClick={() => setMode('renaming')}>Rename</SmallButton>
-              <SmallButton onClick={() => setMode('deleting')}>Delete…</SmallButton>
+              <SmallButton onClick={() => setMode('renaming')}>{t('Rename')}</SmallButton>
+              <SmallButton onClick={() => setMode('deleting')}>{t('Delete…')}</SmallButton>
             </>
           )}
         </div>
@@ -62,10 +64,10 @@ export default function WorkspaceRow({ workspace, isCurrent, onOpened }: { works
       {mode === 'deleting' && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex-1 min-w-[10rem] text-[13px] text-ink-1">
-            Delete it{workspace.shareSlug ? '? Its share link stops working.' : '?'}
+            {workspace.shareSlug ? t('Delete it? Its share link stops working.') : t('Delete it?')}
           </span>
-          <SmallButton onClick={() => setMode('idle')}>Cancel</SmallButton>
-          <SmallButton danger disabled={busy} onClick={() => run(() => workspaceSession().remove(workspace.id))}>Delete</SmallButton>
+          <SmallButton onClick={() => setMode('idle')}>{t('Cancel')}</SmallButton>
+          <SmallButton danger disabled={busy} onClick={() => run(() => workspaceSession().remove(workspace.id))}>{t('Delete')}</SmallButton>
         </div>
       )}
       <FormError message={error} />

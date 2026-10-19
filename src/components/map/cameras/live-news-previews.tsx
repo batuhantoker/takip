@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { useT } from '@/components/ui/use-t';
 import { layoutTile, tileHeight, tilesOverlap, type TileGeometry } from '@/lib/feeds/cameras/tile-layout';
 import type { Map as MlMap } from 'maplibre-gl';
 
@@ -153,6 +154,7 @@ function Tile({ feed, onOpen, onFail }: {
   onOpen: (feed: PreviewFeed) => void;
   onFail: (id: string) => void;
 }) {
+  const t = useT();
   const fail = useCallback(() => onFail(feed.id), [onFail, feed.id]);
   const { ref, handshake } = useYouTubeError(feed.id, fail);
 
@@ -174,11 +176,11 @@ function Tile({ feed, onOpen, onFail }: {
             needs its own target rather than a wrapping button. */}
         <button
           onClick={() => onOpen(feed)}
-          title={`Open ${feed.name}`}
-          aria-label={`Open ${feed.name}`}
+          title={t('Open {name}', { name: feed.name })}
+          aria-label={t('Open {name}', { name: feed.name })}
           className="absolute top-1.5 right-1.5 z-10 inline-flex h-5 items-center rounded-[4px] bg-black/75 px-1.5 text-[11px] font-medium text-ink-1 hover:bg-black/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          Open
+          {t('Open')}
         </button>
       </div>
 

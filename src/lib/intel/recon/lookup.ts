@@ -1,4 +1,8 @@
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
 import { ipToNumber, numberToIp, calculateSubnetStart, classifyDevice, assessRisk, batchFetch, ShodanInternetDBResponse, SweepDevice } from './network/sweep';
+
+const english = createTranslator(DEFAULT_LOCALE, {});
 
 // Lookup routes answer with unvalidated JSON of many shapes.
 export type ReconData = any;
@@ -12,11 +16,14 @@ export const BROWSER_PROBE_TABS: ReadonlySet<string> = new Set(['leaks', 'shodan
 /** True when the tab has to offer sign-in itself instead of running its probes. */
 export const needsSignIn = (tab: string, signedIn: boolean) => !signedIn && BROWSER_PROBE_TABS.has(tab);
 
-const wait = (seconds: number) => (seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`);
-
 /** The message for a refused lookup, with a per-account limit put in words. */
-export function lookupError(body: { error?: string; retry_after?: number }, fallback: string): string {
-  if (body.error === 'rate_limited' && body.retry_after) return `Limit reached. Try again in ${wait(body.retry_after)}.`;
+export function lookupError(body: { error?: string; retry_after?: number }, fallback: string, t: Translate = english): string {
+  if (body.error === 'rate_limited' && body.retry_after) {
+    const seconds = body.retry_after;
+    return seconds < 60
+      ? t('Limit reached. Try again in {n} s.', { n: seconds })
+      : t('Limit reached. Try again in {n} min.', { n: Math.ceil(seconds / 60) });
+  }
   return body.error || fallback;
 }
 
@@ -67,10 +74,10 @@ export function parseLeaks(data: ReconData, query: string) {
   };
 }
 
-export async function runSweep(query: string, cidr: number, totalHosts: number, onProgress: (done: number) => void) {
+export async function runSweep(query: string, cidr: number, totalHosts: number, onProgress: (done: number) => void, t: Translate = english) {
   const t0 = Date.now();
   const res = await fetch(`/api/osint/sweep?ip=${encodeURIComponent(query)}&cidr=${cidr}`);
-  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(lookupError(e, `Sweep failed (${res.status})`)); }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(lookupError(e, `Sweep failed (${res.status})`, t)); }
   const initData = await res.json();
 
   const ipParts = initData.target_ip.split('.').map(Number) as [number, number, number, number];

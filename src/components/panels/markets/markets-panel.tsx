@@ -7,6 +7,8 @@ import { IconButton } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
 import { useEscape } from '@/components/ui/use-escape';
+import { useT } from '@/components/ui/use-t';
+import type { Translate } from '@/lib/core/i18n/translator';
 import { longName } from '@/lib/intel/markets/markets';
 import AiOverview from '@/components/panels/alerts/ai-overview';
 import DonBotScan from './donbot-scan';
@@ -42,6 +44,7 @@ interface MarketsPanelProps {
 }
 
 export default function MarketsPanel({ data, spaceWeather, onClose }: MarketsPanelProps) {
+  const t = useT();
   const [maximized, setMaximized] = useState(false);
 
   const now = useNow(30_000);
@@ -52,10 +55,12 @@ export default function MarketsPanel({ data, spaceWeather, onClose }: MarketsPan
   // Full screen covers the map, so Escape gets out of it, unloading the chart first: the nearer thing to dismiss.
   useEscape(() => (m.selected ? m.setSelected(null) : setMaximized(false)), maximized);
 
-  const updatedAgo = markets.timestamp ? ago(Date.parse(markets.timestamp), now) : null;
+  const updatedAgo = markets.timestamp ? ago(Date.parse(markets.timestamp), now, t) : null;
   const subtitle = allQuotes.length
-    ? `${allQuotes.length} instruments${updatedAgo ? ` · updated ${updatedAgo}` : ''}`
-    : m.feedLoaded ? 'Prices are unavailable right now' : 'Loading prices…';
+    ? (updatedAgo
+      ? t('{n, plural, one {# instrument} other {# instruments}} · updated {ago}', { n: allQuotes.length, ago: updatedAgo })
+      : t('{n, plural, one {# instrument} other {# instruments}}', { n: allQuotes.length }))
+    : m.feedLoaded ? t('Prices are unavailable right now') : t('Loading prices…');
 
   const find = (
     <CommandLine command={m.command} setCommand={m.setCommand} pick={m.pick} setPick={m.setPick}
@@ -74,12 +79,12 @@ export default function MarketsPanel({ data, spaceWeather, onClose }: MarketsPan
     : m.rowCount > 0 ? (
       <SecurityTable groups={m.groups} selected={chartSymbol} watchlist={m.watchlist} sort={m.sort} onSort={m.onSort} onOpen={m.open} onStar={m.star} now={now} />
     ) : current?.section === 'watch' ? (
-      <EmptyState icon={Star} title="Nothing on your watchlist yet" body="Star a row in any section and it stays here, in this browser." />
+      <EmptyState icon={Star} title={t('Nothing on your watchlist yet')} body={t('Star a row in any section and it stays here, in this browser.')} />
     ) : m.feedLoaded ? (
-      <EmptyState icon={CloudOff} title="Prices are unavailable" body="The feed did not answer. It tries again on its own." />
-    ) : <p className="py-6 text-center text-small text-ink-3">Loading prices…</p>;
+      <EmptyState icon={CloudOff} title={t('Prices are unavailable')} body={t('The feed did not answer. It tries again on its own.')} />
+    ) : <p className="py-6 text-center text-small text-ink-3">{t('Loading prices…')}</p>;
 
-  const title = current ? sectionTitle(current.code) : 'How to search';
+  const title = current ? sectionTitle(current.code, t) : t('How to search');
   const content = (
     <section aria-label={title}>
       <div className="mb-2 flex min-h-7 items-center gap-3">
@@ -125,16 +130,16 @@ export default function MarketsPanel({ data, spaceWeather, onClose }: MarketsPan
   if (!onClose) return <div className="text-ink-2">{stack}</div>;
 
   return (
-    <Panel title="Markets" subtitle={subtitle} onClose={onClose} footer={<MarketsFooter spaceWeather={spaceWeather} />}
-      actions={<IconButton icon={Maximize2} label="Full screen" onClick={() => setMaximized(true)} />}>
+    <Panel title={t('Markets')} subtitle={subtitle} onClose={onClose} footer={<MarketsFooter spaceWeather={spaceWeather} />}
+      actions={<IconButton icon={Maximize2} label={t('Full screen')} onClick={() => setMaximized(true)} />}>
       {stack}
     </Panel>
   );
 }
 
-function ago(at: number, now: number): string {
+function ago(at: number, now: number, t: Translate): string {
   const min = Math.round((now - at) / 60_000);
-  if (!Number.isFinite(min) || min < 1) return 'just now';
-  if (min < 60) return `${min} min ago`;
-  return `${Math.round(min / 60)} h ago`;
+  if (!Number.isFinite(min) || min < 1) return t('just now');
+  if (min < 60) return t('{n} min ago', { n: min });
+  return t('{n} h ago', { n: Math.round(min / 60) });
 }

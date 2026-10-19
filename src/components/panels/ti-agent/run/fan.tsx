@@ -13,10 +13,12 @@ import { useEffect, useRef, useState } from 'react';
 import { priceText } from '@/lib/ai/quant/series';
 import type { RunState } from '@/lib/ai/state';
 import { WORLD_COLORS } from '@/components/panels/ti-agent/theme';
+import { useT } from '@/components/ui/use-t';
 
 const DAY = 86_400_000;
 
 export function PriceFan({ s, height = 156 }: { s: RunState; height?: number }) {
+  const t = useT();
   const box = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(0);
   useEffect(() => {
@@ -50,13 +52,13 @@ export function PriceFan({ s, height = 156 }: { s: RunState; height?: number }) 
   const y = (v: number) => Tp + (1 - (v - lo) / (hi - lo)) * (height - Tp - B);
   const line = (pts: { date: string; v: number }[]) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.date).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
   const money = (v: number) => priceText(v, q.currency);
-  const short = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const short = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(t.intl, { day: 'numeric', month: 'short', timeZone: 'UTC' });
 
   return (
     <div>
       <div ref={box} className="relative w-full" style={{ height }}>
         {w > 0 && (
-          <svg width={w} height={height} className="absolute inset-0 overflow-visible" role="img" aria-label={`${q.symbol}: the market's cone of paths to ${q.fan[q.fan.length - 1].date}, and each simulated world's course`}>
+          <svg width={w} height={height} className="absolute inset-0 overflow-visible" role="img" aria-label={t("{symbol}: the market's cone of paths to {date}, and each simulated world's course", { symbol: q.symbol, date: q.fan[q.fan.length - 1].date })}>
             {s.periods.map(p => <line key={p.index} x1={x(p.end)} x2={x(p.end)} y1={Tp} y2={height - B} className="stroke-line-strong" strokeDasharray="2 4" />)}
             <path d={`${line(band.map(b => ({ date: b.date, v: b.p90 })))} ${band.slice().reverse().map(b => `L${x(b.date).toFixed(1)},${y(b.p10).toFixed(1)}`).join(' ')} Z`}
               className="fill-ink-1/[0.06]" />
@@ -71,7 +73,7 @@ export function PriceFan({ s, height = 156 }: { s: RunState; height?: number }) 
               <g key={wd.world}>
                 <path d={line(wd.path)} fill="none" strokeWidth={1.5} strokeLinejoin="round" style={{ stroke: wd.color }} />
                 {wd.path.slice(1).map((p, i) => p.hit
-                  ? <rect key={i} x={x(p.date) - 4} y={y(level!) - 4} width={8} height={8} transform={`rotate(45 ${x(p.date)} ${y(level!)})`} style={{ fill: wd.color }}><title>{`World ${wd.world} reached ${money(level!)}`}</title></rect>
+                  ? <rect key={i} x={x(p.date) - 4} y={y(level!) - 4} width={8} height={8} transform={`rotate(45 ${x(p.date)} ${y(level!)})`} style={{ fill: wd.color }}><title>{t('World {w} reached {price}', { w: wd.world, price: money(level!) })}</title></rect>
                   : <circle key={i} cx={x(p.date)} cy={y(p.v)} r={2.4} style={{ fill: wd.color }} />)}
                 {wd.path.length > 1 && (
                   <text x={x(wd.path[wd.path.length - 1].date) + 6} y={y(wd.path[wd.path.length - 1].v) + 3} className="stroke-surface-1 font-mono" style={{ fontSize: 11, fill: wd.color, strokeWidth: 3, paintOrder: 'stroke' }}>
@@ -87,8 +89,8 @@ export function PriceFan({ s, height = 156 }: { s: RunState; height?: number }) 
         )}
       </div>
       <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-meta text-ink-3">
-        <span><span className="mr-1 inline-block h-2 w-2.5 rounded-sm bg-ink-1/20 align-middle" />80% of the market&apos;s own paths</span>
-        {worlds.map(wd => <span key={wd.world}><span className="mr-1 inline-block h-0.5 w-2.5 align-middle" style={{ background: wd.color }} />World {wd.world}</span>)}
+        <span><span className="mr-1 inline-block h-2 w-2.5 rounded-sm bg-ink-1/20 align-middle" />{t("80% of the market's own paths")}</span>
+        {worlds.map(wd => <span key={wd.world}><span className="mr-1 inline-block h-0.5 w-2.5 align-middle" style={{ background: wd.color }} />{t('World {w}', { w: wd.world })}</span>)}
       </p>
     </div>
   );

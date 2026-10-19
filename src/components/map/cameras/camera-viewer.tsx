@@ -12,6 +12,7 @@ import { useEscape } from '@/components/ui/use-escape';
 import { WindowFoldButton, WindowSizeButton } from '@/components/map/windows';
 import { useBottomBar } from '@/components/shell/mobile/use-bottom-bar';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { useT } from '@/components/ui/use-t';
 import { showAccountDialog } from '@/components/site/account/account-dialog-state';
 import { authClient } from '@/components/site/account/auth-client';
 import CameraVision from './camera-vision';
@@ -29,6 +30,7 @@ interface CameraViewerProps {
 }
 
 export default function CameraViewer({ camera, onClose, onLocate, windowed = false, playing = true, onPlay }: CameraViewerProps) {
+  const t = useT();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -201,11 +203,11 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
   if (!camera) return null;
 
   const still = !!watchLiveUrl || streamType === 'jpg';
-  const status = view === 'offline' ? (gone ? 'Removed by the publisher' : 'Off air at the source')
-    : view === 'external' ? 'Plays on the publisher’s site'
-    : watchLiveUrl ? 'Still image here · live video at the source'
-    : streamType === 'jpg' ? 'Still image · refreshes every 5 s'
-    : 'Live video';
+  const status = view === 'offline' ? (gone ? t('Removed by the publisher') : t('Off air at the source'))
+    : view === 'external' ? t('Plays on the publisher’s site')
+    : watchLiveUrl ? t('Still image here · live video at the source')
+    : streamType === 'jpg' ? t('Still image · refreshes every 5 s')
+    : t('Live video');
   // A withdrawn camera's page is a 404, so it gets no link.
   const sourceHref: string | undefined = gone ? undefined
     : camera.external_url || camera.feed_url || (streamType === 'iframe' ? camera.stream_url : undefined);
@@ -214,7 +216,7 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
   return (
     <div
       role="dialog"
-      aria-label={`Camera: ${camera.name}`}
+      aria-label={t('Camera: {name}', { name: camera.name })}
       className={cx(
         'flex flex-col overflow-hidden border-line bg-surface-1 shadow-float',
         windowed ? 'rounded-float border' : cx('fixed z-[500]', ENTER),
@@ -231,47 +233,47 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
           <h3 className="truncate text-[13px]/[18px] font-medium text-ink-1" title={camera.name}>{camera.name}</h3>
           <p className="truncate text-[11px]/[14px] text-ink-3">{status}</p>
         </div>
-        {streamType === 'jpg' && !externalOnly && <IconButton label="Refresh the picture" icon={RefreshCw} size="sm" onClick={refresh} />}
+        {streamType === 'jpg' && !externalOnly && <IconButton label={t('Refresh the picture')} icon={RefreshCw} size="sm" onClick={refresh} />}
         {onLocate && Number.isFinite(camera.lat) && Number.isFinite(camera.lng) && (
-          <IconButton label="Show on the map" icon={MapPin} size="sm" onClick={() => onLocate(camera.lat, camera.lng)} />
+          <IconButton label={t('Show on the map')} icon={MapPin} size="sm" onClick={() => onLocate(camera.lat, camera.lng)} />
         )}
-        {sourceHref && <IconButton label="Open at the source" icon={ExternalLink} size="sm" onClick={() => window.open(sourceHref, '_blank', 'noopener,noreferrer')} />}
+        {sourceHref && <IconButton label={t('Open at the source')} icon={ExternalLink} size="sm" onClick={() => window.open(sourceHref, '_blank', 'noopener,noreferrer')} />}
         {windowed ? <><WindowSizeButton size="sm" /><WindowFoldButton size="sm" /></> : (
-          <IconButton label={fullscreen ? 'Exit full screen' : 'Full screen'} icon={fullscreen ? Minimize2 : Maximize2} size="sm" className="hidden md:inline-flex" onClick={() => setFullscreen(f => !f)} />
+          <IconButton label={fullscreen ? t('Exit full screen') : t('Full screen')} icon={fullscreen ? Minimize2 : Maximize2} size="sm" className="hidden md:inline-flex" onClick={() => setFullscreen(f => !f)} />
         )}
-        <IconButton label="Close" kbd="Esc" icon={X} size={isMobile ? 'md' : 'sm'} onClick={onClose} tooltipSide="left" className={isMobile ? 'size-11!' : undefined} />
+        <IconButton label={t('Close')} kbd="Esc" icon={X} size={isMobile ? 'md' : 'sm'} onClick={onClose} tooltipSide="left" className={isMobile ? 'size-11!' : undefined} />
       </header>
 
       <div className={cx('relative bg-black', fullscreen ? 'min-h-0 flex-1' : 'aspect-video')}>
         {playing && loading && !error && !externalOnly && (
-          <Overlay><Spinner /><p className="text-[12px] text-ink-2">Loading the picture…</p></Overlay>
+          <Overlay><Spinner /><p className="text-[12px] text-ink-2">{t('Loading the picture…')}</p></Overlay>
         )}
 
         {!playing ? (
           <Overlay>
-            <p className="text-[12px] text-ink-2">Paused while other pictures play</p>
-            <Button size="sm" icon={PlayCircle} onClick={onPlay}>Play</Button>
+            <p className="text-[12px] text-ink-2">{t('Paused while other pictures play')}</p>
+            <Button size="sm" icon={PlayCircle} onClick={onPlay}>{t('Play')}</Button>
           </Overlay>
         ) : view === 'resolving' ? (
-          <Overlay><Spinner /><p className="text-[12px] text-ink-2">Finding a direct feed…</p></Overlay>
+          <Overlay><Spinner /><p className="text-[12px] text-ink-2">{t('Finding a direct feed…')}</p></Overlay>
         ) : view === 'offline' && gone ? (
           <Overlay>
             <CameraOff aria-hidden className="size-5 text-ink-3" strokeWidth={1.75} />
-            <p className="text-[13px] font-medium text-ink-1">This camera has been removed</p>
-            <p className="text-[12px] text-ink-3">The publisher no longer lists it.</p>
+            <p className="text-[13px] font-medium text-ink-1">{t('This camera has been removed')}</p>
+            <p className="text-[12px] text-ink-3">{t('The publisher no longer lists it.')}</p>
           </Overlay>
         ) : view === 'offline' ? (
-          <SignInOverlay>The publisher has the feed switched off right now.</SignInOverlay>
+          <SignInOverlay>{t('The publisher has the feed switched off right now.')}</SignInOverlay>
         ) : view === 'external' ? (
           <Overlay>
-            <p className="text-[13px] font-medium text-ink-1">This feed only plays on the publisher’s site</p>
+            <p className="text-[13px] font-medium text-ink-1">{t('This feed only plays on the publisher’s site')}</p>
             {externalFeedUrl && (
-              <Button size="sm" icon={ExternalLink} onClick={() => window.open(externalFeedUrl, '_blank', 'noopener,noreferrer')}>Open the feed</Button>
+              <Button size="sm" icon={ExternalLink} onClick={() => window.open(externalFeedUrl, '_blank', 'noopener,noreferrer')}>{t('Open the feed')}</Button>
             )}
           </Overlay>
         ) : error ? (
-          <SignInOverlay action={<Button size="sm" icon={RefreshCw} onClick={() => { setError(false); setRetryCount(c => c + 1); }}>Try again</Button>}>
-            The camera may be offline or restricted.
+          <SignInOverlay action={<Button size="sm" icon={RefreshCw} onClick={() => { setError(false); setRetryCount(c => c + 1); }}>{t('Try again')}</Button>}>
+            {t('The camera may be offline or restricted.')}
           </SignInOverlay>
         ) : streamType === 'hls' ? (
           <video ref={videoRef} className={cx('h-full w-full', fit)} autoPlay muted playsInline />
@@ -293,7 +295,7 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
         {playing && !error && !loading && !externalOnly && (
           <span className="absolute top-2 left-2 z-20 inline-flex h-5 items-center gap-1.5 rounded-[4px] bg-black/70 px-1.5 text-[11px] font-medium text-ink-1">
             <Dot tone={still ? 'neutral' : 'green'} pulse={!still} />
-            {still ? 'Still' : 'Live'}
+            {still ? t('Still') : t('Live')}
           </span>
         )}
 
@@ -301,14 +303,14 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
         {watchLiveUrl && !error && !externalOnly && (
           <Button size="sm" icon={PlayCircle} className="absolute right-2 bottom-2 z-30"
             onClick={() => window.open(watchLiveUrl, '_blank', 'noopener,noreferrer')}>
-            Watch live at the source
+            {t('Watch live at the source')}
           </Button>
         )}
       </div>
 
       {road && (
-        <p className="border-t border-line px-3 py-2 text-[11px]/[14px] text-ink-2" title={`Measured at ${road.station ?? 'the paired station'} (${road.source}), not read from the picture`}>
-          {roadConditionLine(road)}
+        <p className="border-t border-line px-3 py-2 text-[11px]/[14px] text-ink-2" title={road.station ? t('Measured at {station} ({source}), not read from the picture', { station: road.station, source: road.source }) : t('Measured at the paired station ({source}), not read from the picture', { source: road.source })}>
+          {roadConditionLine(road, undefined, t)}
         </p>
       )}
     </div>
@@ -321,15 +323,16 @@ function Overlay({ children }: { children: React.ReactNode }) {
 
 // A deliberate joke: no plan fixes a dead camera, so the second line gives the real reason.
 function SignInOverlay({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
+  const t = useT();
   const signedIn = Boolean(authClient.useSession().data);
   return (
     <Overlay>
-      <p className="text-[13px] font-medium text-ink-1">Please sign in or upgrade your account to view (faster)!</p>
+      <p className="text-[13px] font-medium text-ink-1">{t('Please sign in or upgrade your account to view (faster)!')}</p>
       <p className="text-[12px] text-ink-3">{children}</p>
       {(!signedIn || action) && (
         <div className="flex gap-2">
           {!signedIn && (
-            <Button size="sm" variant="primary" icon={LogIn} onClick={() => showAccountDialog({ kind: 'sign-in', notice: 'It won’t bring that camera back, but it saves your areas, keys and workspaces.' })}>Sign in</Button>
+            <Button size="sm" variant="primary" icon={LogIn} onClick={() => showAccountDialog({ kind: 'sign-in', notice: t('It won’t bring that camera back, but it saves your areas, keys and workspaces.') })}>{t('Sign in')}</Button>
           )}
           {action}
         </div>

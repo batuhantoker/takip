@@ -9,6 +9,7 @@ import { Dot } from '@/components/ui/tag';
 import { useEscape } from '@/components/ui/use-escape';
 import { useBottomBar } from '@/components/shell/mobile/use-bottom-bar';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { useT } from '@/components/ui/use-t';
 
 /** Extracts a watchable YouTube URL from embed/channel URLs */
 function getYouTubeWatchUrl(url: string): string {
@@ -26,6 +27,7 @@ export default function LiveFeedModal({ liveFeedUrl, liveFeedName, liveFeedEmbed
   liveFeedEmbedAllowed: boolean;
   setLiveFeedUrl: Dispatch<SetStateAction<string | null>>;
 }) {
+  const t = useT();
   const isMobile = useIsMobile();
   const bar = useBottomBar(isMobile);
   const { list } = useWindows();
@@ -40,7 +42,7 @@ export default function LiveFeedModal({ liveFeedUrl, liveFeedName, liveFeedEmbed
   if (isMobile) {
     return <div className={cx('fixed inset-x-0 z-[500]', ENTER)} style={{ bottom: bar }}>{player}</div>;
   }
-  return <FloatingWindow id={ID} kind="live" label={`Live: ${liveFeedName}`} onClose={close}>{player}</FloatingWindow>;
+  return <FloatingWindow id={ID} kind="live" label={t('Live: {name}', { name: liveFeedName })} onClose={close}>{player}</FloatingWindow>;
 }
 
 function LivePlayer({ url, name, embed, onClose, playing, windowed }: {
@@ -51,9 +53,10 @@ function LivePlayer({ url, name, embed, onClose, playing, windowed }: {
   playing: boolean;
   windowed: boolean;
 }) {
+  const t = useT();
   const watch = getYouTubeWatchUrl(url);
   return (
-    <section aria-label={`Live: ${name}`}
+    <section aria-label={t('Live: {name}', { name })}
       className={cx('flex flex-col overflow-hidden border-line bg-surface-1 shadow-float', windowed ? 'rounded-float border' : 'rounded-t-float border-t')}>
       <header className="flex items-center gap-1 py-2 pr-2 pl-3">
         <div className="min-w-0 flex-1">
@@ -61,22 +64,22 @@ function LivePlayer({ url, name, embed, onClose, playing, windowed }: {
             <Dot tone="red" pulse={playing && embed} />
             <span className="truncate">{name}</span>
           </h3>
-          <p className="truncate text-[11px]/[14px] text-ink-3">{embed ? 'Live stream' : 'Plays on YouTube only'}</p>
+          <p className="truncate text-[11px]/[14px] text-ink-3">{embed ? t('Live stream') : t('Plays on YouTube only')}</p>
         </div>
-        <IconButton label="Open on YouTube" icon={ExternalLink} size="sm" onClick={() => window.open(watch, '_blank', 'noopener,noreferrer')} />
+        <IconButton label={t('Open on YouTube')} icon={ExternalLink} size="sm" onClick={() => window.open(watch, '_blank', 'noopener,noreferrer')} />
         {windowed && <><WindowSizeButton size="sm" /><WindowFoldButton size="sm" /></>}
-        <IconButton label="Close" kbd="Esc" icon={X} size={windowed ? 'sm' : 'md'} onClick={onClose} tooltipSide="left" className={windowed ? undefined : 'size-11!'} />
+        <IconButton label={t('Close')} kbd="Esc" icon={X} size={windowed ? 'sm' : 'md'} onClick={onClose} tooltipSide="left" className={windowed ? undefined : 'size-11!'} />
       </header>
       <div className="relative aspect-video bg-black">
         {!embed ? (
           <Overlay>
-            <p className="text-[13px] font-medium text-ink-1">{name} does not allow playing here</p>
-            <Button size="sm" icon={ExternalLink} onClick={() => window.open(watch, '_blank', 'noopener,noreferrer')}>Watch on YouTube</Button>
+            <p className="text-[13px] font-medium text-ink-1">{t('{name} does not allow playing here', { name })}</p>
+            <Button size="sm" icon={ExternalLink} onClick={() => window.open(watch, '_blank', 'noopener,noreferrer')}>{t('Watch on YouTube')}</Button>
           </Overlay>
         ) : !playing ? (
           <Overlay>
-            <p className="text-[12px] text-ink-2">Paused while other pictures play</p>
-            <Button size="sm" icon={PlayCircle} onClick={() => windowStore.focus(ID)}>Play</Button>
+            <p className="text-[12px] text-ink-2">{t('Paused while other pictures play')}</p>
+            <Button size="sm" icon={PlayCircle} onClick={() => windowStore.focus(ID)}>{t('Play')}</Button>
           </Overlay>
         ) : (
           <iframe src={url} title={name} className="absolute inset-0 h-full w-full border-0" allow="autoplay; encrypted-media" allowFullScreen />
@@ -84,7 +87,7 @@ function LivePlayer({ url, name, embed, onClose, playing, windowed }: {
       </div>
       {embed && (
         <p className="border-t border-line px-3 py-2 text-[11px]/[14px] text-ink-3">
-          If it says the video is unavailable, open it on YouTube.
+          {t('If it says the video is unavailable, open it on YouTube.')}
         </p>
       )}
     </section>

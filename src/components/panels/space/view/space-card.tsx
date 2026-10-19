@@ -7,6 +7,7 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Panel } from '@/components/ui/panel';
 import { Property, PropertyList } from '@/components/ui/property-list';
 import { Tag } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
 import type { FleetPayload } from '@/lib/space/craft/fleet';
 import type { SpaceSelection } from '@/lib/space/selection';
 import type { SkyPayload } from '@/lib/space/sky';
@@ -25,10 +26,11 @@ const LINK = cx('inline-flex h-7 min-w-0 items-center gap-1.5 rounded-control px
 
 /** Wikipedia's picture: it fades in once loaded, and a broken one leaves no empty frame behind. */
 function WikiImage({ wiki, image }: { wiki: WikiSummary; image: NonNullable<WikiSummary['image']> }) {
+  const t = useT();
   const [ok, setOk] = useState<boolean | null>(null);
   if (ok === false) return null;
   return (
-    <a href={wiki.url} target="_blank" rel="noopener noreferrer" title={`${wiki.title} on Wikipedia`}
+    <a href={wiki.url} target="_blank" rel="noopener noreferrer" title={t('{title} on Wikipedia', { title: wiki.title })}
       className={cx('mb-4 block overflow-hidden rounded-card border border-line bg-surface-2', FOCUS_RING)}>
       {/* eslint-disable-next-line @next/next/no-img-element -- Wikimedia thumbnails, sized by the API */}
       <img src={image.src} alt={wiki.title} loading="lazy" onLoad={() => setOk(true)} onError={() => setOk(false)}
@@ -49,12 +51,13 @@ export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene,
   /** Plays back the craft's whole flight. */
   onReplay?: () => void;
 }) {
-  const card = describeNear(selection, now, sky, fleet, surfaces) ?? describeDeep(selection, scene, now);
+  const t = useT();
+  const card = describeNear(selection, now, sky, fleet, surfaces, t) ?? describeDeep(selection, scene, now, t);
   const wiki = useWiki(card ? wikiTopic(selection, card.title) : null);
   if (!card) return null;
   const footer = (onReplay || card.link) ? (
     <>
-      {onReplay && <Button variant="primary" size="sm" icon={History} onClick={onReplay}>Watch the flight</Button>}
+      {onReplay && <Button variant="primary" size="sm" icon={History} onClick={onReplay}>{t('Watch the flight')}</Button>}
       {card.link && (
         <a href={card.link.href} target="_blank" rel="noopener noreferrer" className={cx(LINK, onReplay ? 'ml-auto' : '-ml-2.5')}>
           <span className="min-w-0 truncate">{card.link.label}</span>
@@ -73,10 +76,10 @@ export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene,
           <span className="truncate">{card.subtitle}</span>
         </span>
       )}
-      actions={<IconButton label="Fly here" icon={Navigation} onClick={onFly} />}
+      actions={<IconButton label={t('Fly here')} icon={Navigation} onClick={onFly} />}
       footer={footer}>
       {wiki?.image && <WikiImage key={wiki.image.src} wiki={wiki} image={wiki.image} />}
-      {card.illustration && <div className="mb-3"><Tag>Illustration</Tag></div>}
+      {card.illustration && <div className="mb-3"><Tag>{t('Illustration')}</Tag></div>}
       {card.fields.length > 0 && (
         <PropertyList>
           {card.fields.map(([label, value]) => <Property key={label} label={fieldLabel(label)} value={value} />)}
@@ -88,7 +91,7 @@ export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene,
         <div className="mt-4 border-t border-line pt-3">
           <p className="line-clamp-4 text-small text-ink-2" title={wiki.extract}>{wiki.extract}</p>
           <a href={wiki.url} target="_blank" rel="noopener noreferrer" className={cx('mt-1.5 inline-flex items-center gap-1 rounded-[4px] text-meta text-ink-3 hover:text-ink-1', FOCUS_RING)}>
-            More on Wikipedia <ExternalLink aria-hidden className="size-3" strokeWidth={1.75} />
+            {t('More on Wikipedia')} <ExternalLink aria-hidden className="size-3" strokeWidth={1.75} />
           </a>
         </div>
       )}

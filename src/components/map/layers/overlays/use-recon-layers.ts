@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
+import { t } from '@/lib/core/i18n/active';
 import { applyMapProjection } from '@/lib/map/projection';
 import type { LayerHookArgs, WorldMapProps } from '@/components/map/types';
 
@@ -52,7 +53,7 @@ export function useReconLayers({ mapRef, mapReady, setGeo, sweepData, scanTarget
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [dLng, dLat] },
         properties: {
-          ip: d.ip, device_type: d.device_type, device_icon: d.device_icon,
+          ip: d.ip, device_type: t(d.device_type), device_icon: d.device_icon,
           color: d.device_color, risk_level: d.risk_level,
           ports: JSON.stringify(d.ports), hostnames: JSON.stringify(d.hostnames),
           vulns: JSON.stringify(d.vulns), cpes: JSON.stringify(d.cpes), tags: JSON.stringify(d.tags),

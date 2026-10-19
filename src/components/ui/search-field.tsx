@@ -5,6 +5,7 @@ import { Search, X } from 'lucide-react';
 import { cx, FOCUS_RING } from './class-names';
 import { fieldBox, fieldInput, type FieldSize } from './field-shell';
 import { Kbd } from './kbd';
+import { useT } from './use-t';
 
 export type SearchFieldProps = Omit<ComponentProps<'input'>, 'size' | 'value' | 'onChange' | 'type' | 'className'> & {
   value: string;
@@ -18,7 +19,9 @@ export type SearchFieldProps = Omit<ComponentProps<'input'>, 'size' | 'value' | 
 };
 
 /** Search with a clear button. Escape clears, and a second Escape leaves the field. */
-export function SearchField({ value, onChange, label, kbd, size = 'md', className, placeholder = 'Search', onKeyDown, onFocus, onBlur, id, ...rest }: SearchFieldProps) {
+export function SearchField({ value, onChange, label, kbd, size = 'md', className, placeholder: placeholderProp, onKeyDown, onFocus, onBlur, id, ...rest }: SearchFieldProps) {
+  const t = useT();
+  const placeholder = placeholderProp ?? t('Search');
   const auto = useId();
   const input = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
@@ -48,7 +51,7 @@ export function SearchField({ value, onChange, label, kbd, size = 'md', classNam
       {value ? (
         <button
           type="button"
-          aria-label="Clear search"
+          aria-label={t('Clear search')}
           onClick={() => { onChange(''); input.current?.focus(); }}
           className={cx('-mr-1 flex size-5 shrink-0 items-center justify-center rounded text-ink-3 hover:bg-surface-3 hover:text-ink-1', FOCUS_RING)}
         >

@@ -5,6 +5,7 @@ import { X, ZoomIn } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { useT } from '@/components/ui/use-t';
 import { useRing } from '@/components/map/inspect/rings';
 import type { MapRef } from '@/components/map/types';
 import { FloatingWindow, useWindowControls, WindowFoldButton } from '@/components/map/windows';
@@ -52,6 +53,7 @@ function PinnedWindow({ pin, mapRef }: { pin: Pin; mapRef: MapRef }) {
 
 /** The kicker over the content's own title; folded, the title stands in for both. */
 function PinHeader({ pin, onZoom, onClose }: { pin: Pin; onZoom: () => void; onClose: () => void }) {
+  const t = useT();
   const folded = !!useWindowControls()?.collapsed;
   return (
     <header className="flex h-10 shrink-0 items-center gap-1.5 pr-1.5 pl-4">
@@ -59,9 +61,9 @@ function PinHeader({ pin, onZoom, onClose }: { pin: Pin; onZoom: () => void; onC
       <span className={cx('min-w-0 flex-1 truncate text-meta font-medium', folded ? 'text-ink-1' : 'text-ink-3')} title={folded ? pin.label : undefined}>
         {folded ? pin.label : pin.kicker}
       </span>
-      <IconButton label="Zoom to" icon={ZoomIn} size="sm" onClick={onZoom} />
+      <IconButton label={t('Zoom to')} icon={ZoomIn} size="sm" onClick={onZoom} />
       <WindowFoldButton size="sm" />
-      <IconButton label="Close" kbd="Esc" icon={X} size="sm" onClick={onClose} />
+      <IconButton label={t('Close')} kbd="Esc" icon={X} size="sm" onClick={onClose} />
     </header>
   );
 }

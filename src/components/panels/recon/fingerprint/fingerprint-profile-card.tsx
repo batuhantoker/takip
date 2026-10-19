@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Tag } from '@/components/ui/tag';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 import { bareUrl, type Row } from '@/lib/intel/recon/fingerprint/rows';
 import { StatusPill, PlatformTile } from './fingerprint-parts';
 import { MATCH_DISPLAY } from './fingerprint-status';
@@ -21,15 +22,17 @@ export function ProfileAvatar({ row, small }: { row: Row; small?: boolean }) {
 }
 
 export function MatchTag({ row }: { row: Row }) {
+  const t = useT();
   // Unconnected is the default; saying it on every card says nothing.
   if (!row.match || row.match.tier === 'unknown' || (row.status !== 'verified' && row.status !== 'verifying')) return null;
   const d = MATCH_DISPLAY[row.match.tier];
-  return <Tag tone={d.tone}>{d.label}</Tag>;
+  return <Tag tone={d.tone}>{t(d.label)}</Tag>;
 }
 
 export function ProfileCard({ row, query, live }: { row: Row; query: string; live: boolean }) {
+  const t = useT();
   const p = row.profile;
-  const details = [p?.location, p?.joined && `joined ${p.joined.slice(0, 4)}`].filter(Boolean).join(' · ');
+  const details = [p?.location, p?.joined && t('joined {year}', { year: p.joined.slice(0, 4) })].filter(Boolean).join(' · ');
   const tie = row.match && row.match.tier !== 'unknown' ? row.match.reasons[0] : undefined;
   const why = [tie, row.status !== 'verified' ? row.reason : undefined].filter(Boolean);
 

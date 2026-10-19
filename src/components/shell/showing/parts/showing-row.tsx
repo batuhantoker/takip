@@ -3,6 +3,7 @@
 import { useId } from 'react';
 import { cx, isNumeric, TRANSITION } from '@/components/ui/class-names';
 import { Switch } from '@/components/ui/switch';
+import { useT } from '@/components/ui/use-t';
 import type { ShownRow } from '@/components/shell/showing/lib/held-rows';
 import { ShowingSwatch } from './showing-swatch';
 
@@ -24,6 +25,7 @@ export function ShowingRow({ row, tall, onSwitch, onOpen }: {
   /** For rows with no switch: opens the panel that holds them. */
   onOpen?: () => void;
 }) {
+  const t = useT();
   const id = useId();
   const size = tall ? 'min-h-10' : 'min-h-8';
   const name = cx('min-w-0 flex-1 truncate text-left text-body', row.on ? 'text-ink-1' : 'text-ink-3');
@@ -36,7 +38,7 @@ export function ShowingRow({ row, tall, onSwitch, onOpen }: {
           ? <button type="button" onClick={onOpen} className={cx(name, STRETCH, 'outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent')}>{row.label}</button>
           : <span className={name}>{row.label}</span>}
         <Meta text={row.meta} />
-        {row.value !== undefined && <span className="shrink-0 font-mono text-small text-ink-2 tabular-nums">{row.value.toLocaleString('en-US')}</span>}
+        {row.value !== undefined && <span className="shrink-0 font-mono text-small text-ink-2 tabular-nums">{row.value.toLocaleString(t.intl)}</span>}
       </li>
     );
   }

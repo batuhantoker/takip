@@ -1,14 +1,15 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useT } from '@/components/ui/use-t';
 import { CATEGORIES, type Category } from '@/lib/intel/recon/fingerprint/search';
 import type { FingerprintState } from './use-fingerprint-search';
 import { STATUS_META, TIER_RANK, type Row } from '@/lib/intel/recon/fingerprint/rows';
 import { FingerprintSearchBar } from './fingerprint-search-bar';
 import { FingerprintHistory } from './fingerprint-history';
 import { FingerprintUsernameResults } from './fingerprint-username-results';
-import { plain } from '@/components/panels/recon/results/result-primitives';
 import { FingerprintSourceResults } from './fingerprint-source-results';
+import { SEARCH_TYPE_LABEL } from './fingerprint-status';
 
 export { useFingerprintSearch } from './use-fingerprint-search';
 export type { FingerprintState } from './use-fingerprint-search';
@@ -20,6 +21,7 @@ const tied = (r: Row) => (r.status === 'verified' || r.status === 'verifying') &
  * results streamed in as each source answers. Every source is public.
  */
 export default function FingerprintSearch({ fp, isFullScreen, autoFocus }: { fp: FingerprintState; isFullScreen: boolean; autoFocus?: boolean }) {
+  const t = useT();
   const running = fp.phase === 'running';
   const shownType = fp.searched?.type;
 
@@ -69,7 +71,7 @@ export default function FingerprintSearch({ fp, isFullScreen, autoFocus }: { fp:
     <div className="flex flex-col gap-5">
       <FingerprintSearchBar fp={fp} running={running} />
       <p className="min-w-0 truncate text-small text-ink-2">
-        {plain(fp.searched.type)} <span className="font-medium text-ink-1">{fp.searched.query}</span>
+        {t(SEARCH_TYPE_LABEL[fp.searched.type])} <span className="font-medium text-ink-1">{fp.searched.query}</span>
       </p>
       {shownType === 'username'
         ? <FingerprintUsernameResults fp={fp} isFullScreen={isFullScreen} running={running} all={all} counts={counts} categoryCounts={categoryCounts} visible={visible} />

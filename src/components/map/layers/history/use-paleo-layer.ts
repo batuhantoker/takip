@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
+import { activeIntl, t } from '@/lib/core/i18n/active';
 import { maAt } from '@/lib/history/paleo/deep-time';
 import { motionAt, trailTo } from '@/lib/history/paleo/motion';
 import { loadPlateModel, type Pin, type PlateModel } from '@/lib/history/paleo/reconstruct';
@@ -63,8 +64,9 @@ export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
       for (const p of places) {
         const m = motionAt(model!, p.pin, ma);
         if (!m) continue;
-        const speed = m.cmPerYear >= 0.05 ? `${m.cmPerYear.toFixed(m.cmPerYear < 10 ? 1 : 0)} cm/yr` : 'still';
-        features.push({ type: 'Feature', properties: { k: 'place', name: p.name, speed, cm: m.cmPerYear, bearing: m.bearing }, geometry: { type: 'Point', coordinates: m.at } });
+        const digits = m.cmPerYear < 10 ? 1 : 0;
+        const speed = m.cmPerYear >= 0.05 ? t('{cm} cm/yr', { cm: m.cmPerYear.toLocaleString(activeIntl(), { minimumFractionDigits: digits, maximumFractionDigits: digits }) }) : t('still');
+        features.push({ type: 'Feature', properties: { k: 'place', name: t(p.name), speed, cm: m.cmPerYear, bearing: m.bearing }, geometry: { type: 'Point', coordinates: m.at } });
         const path = trailTo(model!, p.pin, ma, TRAIL_MA, TRAIL_STEP_MA);
         if (path.length > 1) trails.push({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: path } });
       }
@@ -78,7 +80,7 @@ export function usePaleoLayer({ mapRef, mapReady, history, mapStyle }: {
         const at = model!.where(pin, ma);
         if (!at) return;
         const o = isCurrent ? 1 : 1 - 0.6 * (age / linger(ch.ma));
-        features.push({ type: 'Feature', properties: { k: 'pin', i, title: ch.title, o, current: isCurrent }, geometry: { type: 'Point', coordinates: at } });
+        features.push({ type: 'Feature', properties: { k: 'pin', i, title: t(ch.title), o, current: isCurrent }, geometry: { type: 'Point', coordinates: at } });
       });
       return { marks: { type: 'FeatureCollection', features }, trails: { type: 'FeatureCollection', features: trails } };
     };

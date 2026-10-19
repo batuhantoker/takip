@@ -1,3 +1,4 @@
+import { msg } from '@/lib/core/i18n/translator';
 import { BLOCS, type AlertKind, type Bloc } from './digest';
 
 export interface SourceHealth { handle: string; name: string; lean: string; bloc: Bloc; kind?: 'telegram' | 'wire'; count: number; latest: string | null }
@@ -284,10 +285,10 @@ export function compactCount(n: number): string {
 }
 
 export const BUCKETS = [
-  { max: 3_600_000, label: 'LAST HOUR' },
-  { max: 6 * 3_600_000, label: '1–6 HOURS AGO' },
-  { max: 24 * 3_600_000, label: '6–24 HOURS AGO' },
-  { max: Infinity, label: 'OLDER' },
+  { max: 3_600_000, label: msg('LAST HOUR') },
+  { max: 6 * 3_600_000, label: msg('1–6 HOURS AGO') },
+  { max: 24 * 3_600_000, label: msg('6–24 HOURS AGO') },
+  { max: Infinity, label: msg('OLDER') },
 ];
 
 /** The quote after the speaker label; in full, the whole post body after it. */

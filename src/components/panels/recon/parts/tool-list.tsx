@@ -5,9 +5,10 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
+import { useT } from '@/components/ui/use-t';
 import { GROUPS, matchTools, toolById, type ToolDef } from '@/components/panels/recon/recon-tools';
 
-const icon = (t: ToolDef) => <t.icon aria-hidden className="size-4" strokeWidth={1.75} />;
+const icon = (tool: ToolDef) => <tool.icon aria-hidden className="size-4" strokeWidth={1.75} />;
 // ink-3 so the names carry the list and the descriptions recede.
 const blurb = (text: string) => <span className="text-ink-3">{text}</span>;
 
@@ -20,29 +21,31 @@ export function ToolList({ filter = '', setFilter, activeTool, onPick, onSelfTra
   onSelfTrack: () => void;
   selfTracking: boolean;
 }) {
-  const matched = matchTools(filter);
+  const t = useT();
+  const matched = matchTools(filter, undefined, t);
   const sweep = toolById('sweep')!;
   const q = filter.trim().toLowerCase();
-  const showSweep = !q || matchTools(filter, [sweep]).length > 0;
-  const showSelfTrack = !q || ['location', 'ip', 'self', 'track', 'me', 'my', 'own'].some(w => w.includes(q) || q.includes(w));
+  const showSweep = !q || matchTools(filter, [sweep], t).length > 0;
+  const selfWords = ['location', 'ip', 'self', 'track', 'me', 'my', 'own', ...t('Find my own location').toLowerCase().split(/\s+/)];
+  const showSelfTrack = !q || selfWords.some(w => w.includes(q) || q.includes(w));
   const showOnMap = showSweep || showSelfTrack;
 
   return (
     <div className="flex flex-col">
-      {setFilter && <SearchField value={filter} onChange={setFilter} placeholder="Filter tools" label="Filter recon tools" />}
+      {setFilter && <SearchField value={filter} onChange={setFilter} placeholder={t('Filter tools')} label={t('Filter recon tools')} />}
 
       {matched.length === 0 && !showOnMap ? (
-        <EmptyState icon={SearchX} title="No tool matches" className="py-8"
-          body={<>Nothing matches “{filter}”. Try a plainer word, like “domain” or “email”.</>} />
+        <EmptyState icon={SearchX} title={t('No tool matches')} className="py-8"
+          body={t('Nothing matches “{filter}”. Try a plainer word, like “domain” or “email”.', { filter })} />
       ) : (
         GROUPS.map(group => {
-          const tools = matched.filter(t => t.group === group.id && t.id !== 'sweep');
+          const tools = matched.filter(tool => tool.group === group.id && tool.id !== 'sweep');
           if (!tools.length) return null;
           return (
-            <PanelSection key={group.id} title={group.label}>
-              {tools.map(t => (
-                <ListRow key={t.id} leading={icon(t)} title={t.label} subtitle={blurb(t.blurb)}
-                  selected={activeTool === t.id} onClick={() => onPick(t.id)} />
+            <PanelSection key={group.id} title={t(group.label)}>
+              {tools.map(tool => (
+                <ListRow key={tool.id} leading={icon(tool)} title={t(tool.label)} subtitle={blurb(t(tool.blurb))}
+                  selected={activeTool === tool.id} onClick={() => onPick(tool.id)} />
               ))}
             </PanelSection>
           );
@@ -50,16 +53,16 @@ export function ToolList({ filter = '', setFilter, activeTool, onPick, onSelfTra
       )}
 
       {showOnMap && (
-        <PanelSection title="On the map">
+        <PanelSection title={t('On the map')}>
           {showSweep && (
-            <ListRow leading={icon(sweep)} title={sweep.label} subtitle={blurb(sweep.blurb)}
+            <ListRow leading={icon(sweep)} title={t(sweep.label)} subtitle={blurb(t(sweep.blurb))}
               selected={activeTool === 'sweep'} onClick={() => onPick('sweep')} />
           )}
           {showSelfTrack && (
             <ListRow
               leading={<LocateFixed aria-hidden className={selfTracking ? 'size-4 animate-spin motion-reduce:animate-none' : 'size-4'} strokeWidth={1.75} />}
-              title="Find my own location" subtitle={blurb('Your public IP’s rough location, placed on the map')}
-              trailing={selfTracking ? 'Locating…' : undefined} onClick={onSelfTrack} />
+              title={t('Find my own location')} subtitle={blurb(t('Your public IP’s rough location, placed on the map'))}
+              trailing={selfTracking ? t('Locating…') : undefined} onClick={onSelfTrack} />
           )}
         </PanelSection>
       )}

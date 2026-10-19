@@ -1,3 +1,4 @@
+import { msg } from '@/lib/core/i18n/translator';
 import type { FlightLayer } from './types';
 
 /** Where each flight layer's aircraft live in the feed. */
@@ -9,10 +10,10 @@ export const FLIGHT_BUCKETS: Record<FlightLayer, string> = {
 };
 
 export const FLIGHT_LAYER_LABEL: Record<FlightLayer, string> = {
-  'fl-commercial': 'Commercial',
-  'fl-private': 'Private',
-  'fl-jets': 'Business jet',
-  'fl-military': 'Military',
+  'fl-commercial': msg('Commercial'),
+  'fl-private': msg('Private'),
+  'fl-jets': msg('Business jet'),
+  'fl-military': msg('Military'),
 };
 
 export interface LiveFlight {

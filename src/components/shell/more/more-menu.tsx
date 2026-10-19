@@ -8,6 +8,8 @@ import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { DiscordIcon, XIcon } from './brand-icons';
 import { RailButton } from '@/components/shell/sidebar/rail-button';
 import { showShortcuts } from '@/components/shell/keyboard/shortcuts-state';
@@ -16,8 +18,8 @@ import { showReportDialog } from '@/components/site/report/report-dialog-state';
 import TokenChart from './token-chart';
 
 const SOCIAL = [
-  { href: 'https://discord.gg/EPaFD5FFKf', label: 'TAKIP on Discord', Icon: DiscordIcon },
-  { href: 'https://x.com/soulsimplifai', label: 'TAKIP on X', Icon: XIcon },
+  { href: 'https://discord.gg/EPaFD5FFKf', label: msg('TAKIP on Discord'), Icon: DiscordIcon },
+  { href: 'https://x.com/soulsimplifai', label: msg('TAKIP on X'), Icon: XIcon },
 ];
 
 /**
@@ -31,30 +33,31 @@ export default function MoreMenu({ compact = false, rail = false, active = false
   active?: boolean;
   onOpenMarkets: () => void;
 }) {
+  const t = useT();
   const [tokenOpen, setTokenOpen] = useState(false);
   const trigger = rail
-    ? <RailButton glyph={<Ellipsis className="size-[18px]" strokeWidth={1.75} />} label="More" active={active} />
-    : <IconButton label="More" icon={Ellipsis} tooltipSide="bottom" />;
+    ? <RailButton glyph={<Ellipsis className="size-[18px]" strokeWidth={1.75} />} label={t('rail|More')} active={active} />
+    : <IconButton label={t('More')} icon={Ellipsis} tooltipSide="bottom" />;
 
   return (
     <>
-      <Popover role="menu" label="More" placement={rail ? 'right' : 'bottom'} align="end" className="w-64 p-1" trigger={trigger}>
+      <Popover role="menu" label={t('More')} placement={rail ? 'right' : 'bottom'} align="end" className="w-64 p-1" trigger={trigger}>
         {close => (
           <>
-            <MenuItem icon={BarChart3} kbd={compact ? undefined : 'M'} onSelect={() => { close(); onOpenMarkets(); }}>Markets</MenuItem>
-            <MenuItem icon={ChartLine} onSelect={() => { close(); setTokenOpen(true); }}>$TAKIP chart</MenuItem>
-            <MenuItem icon={Coffee} href="https://ko-fi.com/M8D41ZYW4Z" external onSelect={close}>Support on Ko-fi</MenuItem>
+            <MenuItem icon={BarChart3} kbd={compact ? undefined : 'M'} onSelect={() => { close(); onOpenMarkets(); }}>{t('Markets')}</MenuItem>
+            <MenuItem icon={ChartLine} onSelect={() => { close(); setTokenOpen(true); }}>{t('$TAKIP chart')}</MenuItem>
+            <MenuItem icon={Coffee} href="https://ko-fi.com/M8D41ZYW4Z" external onSelect={close}>{t('Support on Ko-fi')}</MenuItem>
             <MenuDivider />
-            <MenuItem icon={Settings} onSelect={() => { close(); openSettings(); }}>Settings</MenuItem>
-            <MenuItem icon={BookOpen} href="/docs" onSelect={close}>Docs and API</MenuItem>
-            {!compact && <MenuItem icon={Keyboard} kbd="?" onSelect={() => { close(); showShortcuts(); }}>Keyboard shortcuts</MenuItem>}
-            <MenuItem icon={ShieldCheck} href="/privacy" onSelect={close}>Privacy</MenuItem>
-            <MenuItem icon={MessageSquareWarning} onSelect={() => { close(); showReportDialog(); }}>Report an issue</MenuItem>
+            <MenuItem icon={Settings} onSelect={() => { close(); openSettings(); }}>{t('Settings')}</MenuItem>
+            <MenuItem icon={BookOpen} href="/docs" onSelect={close}>{t('Docs and API')}</MenuItem>
+            {!compact && <MenuItem icon={Keyboard} kbd="?" onSelect={() => { close(); showShortcuts(); }}>{t('Keyboard shortcuts')}</MenuItem>}
+            <MenuItem icon={ShieldCheck} href="/privacy" onSelect={close}>{t('Privacy')}</MenuItem>
+            <MenuItem icon={MessageSquareWarning} onSelect={() => { close(); showReportDialog(); }}>{t('Report an issue')}</MenuItem>
             <MenuDivider />
             <div className="flex items-center gap-0.5 pl-0.5">
               {SOCIAL.map(({ href, label, Icon }) => (
-                <Tooltip key={href} label={label} side="top">
-                  <a role="menuitem" href={href} target="_blank" rel="noopener noreferrer" aria-label={label} onClick={close}
+                <Tooltip key={href} label={t(label)} side="top">
+                  <a role="menuitem" href={href} target="_blank" rel="noopener noreferrer" aria-label={t(label)} onClick={close}
                     className={cx('flex size-8 items-center justify-center rounded-control text-ink-2 hover:bg-surface-2 hover:text-ink-1', FOCUS_RING, TRANSITION)}>
                     <Icon className="size-4" />
                   </a>

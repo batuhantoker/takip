@@ -22,6 +22,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Network } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { buildGraph, createLayout, edgePath, fitView, litSet, FLOW_X, type GraphEdge, type GraphNodeKind, type LayoutMode, type View } from '@/lib/ai/workspace/graph';
 import { brief } from '@/lib/ai/workspace/selection';
 import type { RunState } from '@/lib/ai/state';
@@ -31,13 +33,14 @@ import { FILTER_W, GraphFilters, GraphTip, GraphToolbar } from './graph-controls
 import { GraphLegend, GraphNodeMark } from './graph-parts';
 
 const BASE_OPACITY: Record<GraphEdge['kind'], number> = { relation: 0.85, move: 0.7, evidence: 0.5, cite: 0.6 };
-const COLUMN_LABEL: Record<GraphNodeKind, string> = { evidence: 'Sources', actor: 'Actors', report: 'Prediction' };
+const COLUMN_LABEL: Record<GraphNodeKind, string> = { evidence: msg('Sources'), actor: msg('Actors'), report: msg('Prediction') };
 /** A quote's thread: dotted, so it reads apart from the arcs. */
 const CITE_DASH = '1.5 3.5';
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 export function GraphView({ s, selected, onSelect }: { s: RunState; selected: string | null; onSelect: (key: string | null) => void }) {
+  const t = useT();
   const [hideNodes, setHideNodes] = useState<ReadonlySet<GraphNodeKind>>(new Set());
   const [hideEdges, setHideEdges] = useState<ReadonlySet<LinkKind>>(new Set());
   const [isolate, setIsolate] = useState(false);
@@ -100,8 +103,8 @@ export function GraphView({ s, selected, onSelect }: { s: RunState; selected: st
       const p = edgePath(a, b, e.curve);
       edgeEls.current.get(e.key)?.setAttribute('d', p.d);
       hitEls.current.get(e.key)?.setAttribute('d', p.d);
-      const t = labelEls.current.get(e.key);
-      if (t) { t.setAttribute('x', p.mx.toFixed(1)); t.setAttribute('y', p.my.toFixed(1)); }
+      const text = labelEls.current.get(e.key);
+      if (text) { text.setAttribute('x', p.mx.toFixed(1)); text.setAttribute('y', p.my.toFixed(1)); }
     }
   }, [layout]);
 
@@ -124,8 +127,8 @@ export function GraphView({ s, selected, onSelect }: { s: RunState; selected: st
         target.x += left;
         target.y += 20;
         const v = view.current;
-        const t = 0.14;
-        const next = { x: v.x + (target.x - v.x) * t, y: v.y + (target.y - v.y) * t, k: v.k + (target.k - v.k) * t };
+        const ease = 0.14;
+        const next = { x: v.x + (target.x - v.x) * ease, y: v.y + (target.y - v.y) * ease, k: v.k + (target.k - v.k) * ease };
         easing = Math.abs(next.x - v.x) + Math.abs(next.y - v.y) + Math.abs(next.k - v.k) * 200 > 0.15;
         view.current = next;
       }
@@ -198,11 +201,11 @@ export function GraphView({ s, selected, onSelect }: { s: RunState; selected: st
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    const t = tip.current, r = box.current?.getBoundingClientRect();
-    if (t && r) {
+    const el = tip.current, r = box.current?.getBoundingClientRect();
+    if (el && r) {
       const x = e.clientX - r.left, y = e.clientY - r.top;
-      t.style.left = `${Math.max(8, Math.min(x + 14, r.width - 280))}px`;
-      t.style.top = `${Math.max(8, Math.min(y + 16, r.height - 80))}px`;
+      el.style.left = `${Math.max(8, Math.min(x + 14, r.width - 280))}px`;
+      el.style.top = `${Math.max(8, Math.min(y + 16, r.height - 80))}px`;
     }
     const d = drag.current;
     if (!d) return;
@@ -250,7 +253,7 @@ export function GraphView({ s, selected, onSelect }: { s: RunState; selected: st
 
   const active = hover ?? selected;
   const lit = useMemo(() => litSet(graph, active), [graph, active]);
-  const hoverBrief = hover ? brief(s, hover) : null;
+  const hoverBrief = hover ? brief(s, hover, t) : null;
   // The actors deciding a move right now, in any world.
   const deciding = useMemo(() => new Set(Object.keys(s.thinking).map(k => `a:${k.slice(k.indexOf(':') + 1)}`)), [s.thinking]);
 
@@ -276,13 +279,13 @@ export function GraphView({ s, selected, onSelect }: { s: RunState; selected: st
   return (
     <div ref={box} className="relative h-full w-full overflow-hidden bg-surface-0 select-none"
       style={{ backgroundImage: 'radial-gradient(var(--line-strong) 1px, transparent 1.2px)', backgroundSize: '22px 22px' }}>
-      <svg ref={svg} className="absolute inset-0 w-full h-full touch-none cursor-grab active:cursor-grabbing" role="img" aria-label="Research graph"
+      <svg ref={svg} className="absolute inset-0 w-full h-full touch-none cursor-grab active:cursor-grabbing" role="img" aria-label={t('Research graph')}
         onPointerDown={e => onPointerDown(e, null)} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
         <g ref={world}>
           {mode === 'flow' && (Object.keys(FLOW_X) as GraphNodeKind[]).filter(k => !hideNodes.has(k) && nodeCounts[k] > 0).map(k => (
             <text key={k} ref={columnRef(k)} x={FLOW_X[k]} textAnchor="middle" className="fill-ink-3"
               style={{ fontSize: 'calc(12px * var(--ls, 1))', fontWeight: 500, pointerEvents: 'none' }}>
-              {COLUMN_LABEL[k]}
+              {t(COLUMN_LABEL[k])}
             </text>
           ))}
           {/* Edges first, under the nodes; each has a wide invisible twin that takes the clicks. */}
@@ -359,8 +362,8 @@ export function GraphView({ s, selected, onSelect }: { s: RunState; selected: st
 
       {full.nodes.length === 0 && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <EmptyState icon={Network} title={s.status === 'running' ? 'The graph is building' : 'Nothing to graph'}
-            body={s.status === 'running' ? 'Actors and sources appear here as the world is mapped.' : 'This run has no actors or sources to draw.'} />
+          <EmptyState icon={Network} title={s.status === 'running' ? t('The graph is building') : t('Nothing to graph')}
+            body={s.status === 'running' ? t('Actors and sources appear here as the world is mapped.') : t('This run has no actors or sources to draw.')} />
         </div>
       )}
 

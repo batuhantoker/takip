@@ -1,18 +1,19 @@
 import type { Map as MapLibreMap } from 'maplibre-gl';
+import { msg } from '@/lib/core/i18n/translator';
 
 type Filter = NonNullable<Parameters<MapLibreMap['setFilter']>[1]>;
 
 /** Vessel classes the maritime route assigns (see shipCategory there), in panel order. */
 export const SHIP_CLASSES = [
-  { key: 'ships_cargo', type: 'cargo', label: 'Cargo', color: '#5FB3C4' },
-  { key: 'ships_tanker', type: 'tanker', label: 'Tankers', color: '#D49A4E' },
-  { key: 'ships_passenger', type: 'passenger', label: 'Passenger / Ferries', color: '#A08FE3' },
-  { key: 'ships_fishing', type: 'fishing', label: 'Fishing', color: '#9DBA78' },
-  { key: 'ships_military', type: 'military', label: 'Military / Law', color: '#E5534B' },
-  { key: 'ships_service', type: 'service', label: 'Tugs / Service', color: '#D8C26A' },
-  { key: 'ships_leisure', type: 'leisure', label: 'Sailing / Leisure', color: '#D99AB4' },
+  { key: 'ships_cargo', type: 'cargo', label: msg('Cargo'), color: '#5FB3C4' },
+  { key: 'ships_tanker', type: 'tanker', label: msg('Tankers'), color: '#D49A4E' },
+  { key: 'ships_passenger', type: 'passenger', label: msg('Passenger / Ferries'), color: '#A08FE3' },
+  { key: 'ships_fishing', type: 'fishing', label: msg('Fishing'), color: '#9DBA78' },
+  { key: 'ships_military', type: 'military', label: msg('Military / Law'), color: '#E5534B' },
+  { key: 'ships_service', type: 'service', label: msg('Tugs / Service'), color: '#D8C26A' },
+  { key: 'ships_leisure', type: 'leisure', label: msg('Sailing / Leisure'), color: '#D99AB4' },
   // Ships whose static report has not arrived yet carry no type at all.
-  { key: 'ships_other', type: 'other', label: 'Other / Unidentified', color: '#7F8B96' },
+  { key: 'ships_other', type: 'other', label: msg('Other / Unidentified'), color: '#7F8B96' },
 ] as const;
 
 export const SHIPS_UNDERWAY = 'ships_underway';

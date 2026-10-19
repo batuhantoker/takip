@@ -1,4 +1,5 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as MlMap } from 'maplibre-gl';
+import { t } from '@/lib/core/i18n/active';
 import { mul, type Mat3 } from '../frames';
 import { jdFromMs } from '../horizons';
 import { cameraPosition, EARTH_RADIUS_KM, equatorialOfDateToGlobe, hiddenByGlobe, j2000ToGlobe, j2000ToLocalSky, raDecVector, starColor, toScreen } from './sky-projection';
@@ -422,7 +423,7 @@ export function createEarthSkyLayer(id: string) {
         data.push(...pos, size, r, g, bl, kind, ...light);
         const at = toScreen(matrix, pos, w, h);
         const behind = hiddenByGlobe(cam, Number.isFinite(mk.dist) ? [pos[0] - cam[0], pos[1] - cam[1], pos[2] - cam[2]] : dir, Number.isFinite(mk.dist) ? Math.hypot(pos[0] - cam[0], pos[1] - cam[1], pos[2] - cam[2]) : Infinity);
-        if (at && !behind) placed.push({ key: `b:${mk.name}`, text: mk.name, color: mk.color, size: 10, at: [at[0] + size / 2 + 3, at[1] - 5], opacity: alpha });
+        if (at && !behind) placed.push({ key: `b:${mk.name}`, text: t(mk.name), color: mk.color, size: 10, at: [at[0] + size / 2 + 3, at[1] - 5], opacity: alpha });
       }
       if (data.length) {
         gl.useProgram(programs.mark);

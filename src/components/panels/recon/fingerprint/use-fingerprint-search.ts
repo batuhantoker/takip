@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import {
   validateQuery, splitNdjson, pushHistory, parseHistory,
   HISTORY_KEY, type SearchType, type Category, type HistoryEntry,
@@ -19,6 +21,7 @@ export type Stage = 'sweep' | 'verifying' | 'profiles';
  * sweep that is still streaming.
  */
 export function useFingerprintSearch() {
+  const t = useT();
   const [mode, setMode] = useState<SearchType>('username');
   const [query, setQuery] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -81,7 +84,7 @@ export function useFingerprintSearch() {
 
   const run = useCallback(async (type: SearchType, raw: string) => {
     const q = raw.trim();
-    const invalid = validateQuery(type, q);
+    const invalid = validateQuery(type, q, t);
     if (invalid) {
       setError(invalid);
       return;
@@ -119,12 +122,12 @@ export function useFingerprintSearch() {
     const getJson = async (url: string) => {
       const res = await fetch(url, { signal: ctrl.signal });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(lookupError(data, `HTTP ${res.status}`));
+      if (!res.ok) throw new Error(lookupError(data, `HTTP ${res.status}`, t));
       return data;
     };
     const settle = (id: string, patch: Partial<Source>) =>
       setSources(prev => prev.map(s => (s.id === id ? { ...s, ...patch } : s)));
-    const message = (e: unknown) => (e instanceof Error ? e.message : 'Lookup failed');
+    const message = (e: unknown) => (e instanceof Error ? e.message : t('Lookup failed'));
     const signInRefused = (e: unknown) => message(e) === SIGN_IN_REQUIRED;
     // A refusal isn't a search: nothing is logged, and the bar offers sign-in.
     const refuse = () => {
@@ -145,7 +148,7 @@ export function useFingerprintSearch() {
         });
         if (!res.ok || !res.body) {
           const body = await res.json().catch(() => ({}));
-          throw new Error(lookupError(body, `Search failed (${res.status})`));
+          throw new Error(lookupError(body, t('Search failed ({status})', { status: String(res.status) }), t));
         }
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -194,7 +197,7 @@ export function useFingerprintSearch() {
               completed = true;
               finish('done', (ev.found || []).length);
             } else if (ev.type === 'error') {
-              throw new Error(ev.error || 'Search failed');
+              throw new Error(ev.error || t('Search failed'));
             }
           }
           if (checked) {
@@ -202,7 +205,7 @@ export function useFingerprintSearch() {
           }
           if (Object.keys(added).length) setRows(p => ({ ...p, ...added }));
         }
-        if (!completed) throw new Error('The connection closed before the sweep finished.');
+        if (!completed) throw new Error(t('The connection closed before the sweep finished.'));
       } catch (e) {
         if (ctrl.signal.aborted) {
           finish('stopped', hits);
@@ -219,14 +222,14 @@ export function useFingerprintSearch() {
     /* ── email and phone: a few sources in parallel, each answering on its own ── */
     const plan: { id: string; label: string; via: string; url: string }[] = type === 'email'
       ? [
-          { id: 'profile', label: 'Accounts and mail', via: 'Gravatar, GitHub, keys.openpgp.org, DNS', url: `/api/osint/email?email=${encodeURIComponent(q)}` },
-          { id: 'breach', label: 'Breaches', via: 'XposedOrNot', url: `/api/osint/leaks?email=${encodeURIComponent(q)}` },
-          { id: 'stealer', label: 'Infostealer logs', via: 'Hudson Rock', url: `/api/osint/hudsonrock?type=email&query=${encodeURIComponent(q)}` },
+          { id: 'profile', label: msg('Accounts and mail'), via: 'Gravatar, GitHub, keys.openpgp.org, DNS', url: `/api/osint/email?email=${encodeURIComponent(q)}` },
+          { id: 'breach', label: msg('Breaches'), via: 'XposedOrNot', url: `/api/osint/leaks?email=${encodeURIComponent(q)}` },
+          { id: 'stealer', label: msg('Infostealer logs'), via: 'Hudson Rock', url: `/api/osint/hudsonrock?type=email&query=${encodeURIComponent(q)}` },
         ]
       : [
-          { id: 'number', label: 'Phone number', via: 'libphonenumber', url: `/api/osint/phone?number=${encodeURIComponent(q)}` },
+          { id: 'number', label: msg('Phone number'), via: 'libphonenumber', url: `/api/osint/phone?number=${encodeURIComponent(q)}` },
           // Hudson Rock matches the login string exactly, so send one spelling: digits and a leading +.
-          { id: 'stealer', label: 'Infostealer logs', via: 'Hudson Rock', url: `/api/osint/hudsonrock?type=phone&query=${encodeURIComponent(q.replace(/[^\d+]/g, ''))}` },
+          { id: 'stealer', label: msg('Infostealer logs'), via: 'Hudson Rock', url: `/api/osint/hudsonrock?type=phone&query=${encodeURIComponent(q.replace(/[^\d+]/g, ''))}` },
         ];
     setSources(plan.map(({ id, label, via }) => ({ id, label, via, state: 'pending' })));
 
@@ -237,13 +240,13 @@ export function useFingerprintSearch() {
     if (ctrl.signal.aborted) return finish('stopped', 0);
     if (outcomes.some(o => o.status === 'rejected' && signInRefused(o.reason))) return refuse();
     if (outcomes.every(o => o.status === 'rejected')) {
-      setError('Every source failed to answer.');
+      setError(t('Every source failed to answer.'));
       return finish('fail', 0);
     }
     const first = outcomes[type === 'email' ? 1 : 0];
     const data = first.status === 'fulfilled' ? first.value : null;
     finish('done', type === 'email' ? (data?.breaches || []).length : data?.valid ? 1 : 0);
-  }, [record]);
+  }, [record, t]);
 
   return {
     mode, setMode, query, setQuery, phase, error, setError, searched, rows, progress,

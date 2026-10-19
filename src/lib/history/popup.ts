@@ -1,4 +1,7 @@
 import { Prec } from '@takip/core/time';
+import { activeIntl, t } from '@/lib/core/i18n/active';
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, msg, type Vars } from '@/lib/core/i18n/translator';
 import { htmlEsc, pop, type PopRow, urlSafe } from '@/lib/map/popups/kit';
 import { languageName } from '@/lib/core/wikipedia/language';
 import { articleRef, articleUrl } from '@/lib/core/wikipedia/refs';
@@ -8,62 +11,65 @@ import type { ArticleSummary } from './wiki';
 
 /** One calm categorical colour per family, from the design tokens; the History panel's toggles read these too. */
 export const HISTORY_FAMILIES: Record<string, { color: string; label: string; magnitude?: string }> = {
-  conflict: { color: '#E5534B', label: 'Conflict', magnitude: 'Deaths' },
-  terror: { color: '#D98A4E', label: 'Attack', magnitude: 'Killed' },
-  territorial: { color: '#9B8AFB', label: 'Territory' },
-  heritage: { color: '#5B9CF5', label: 'Heritage' },
-  hazard: { color: '#D8C26A', label: 'Natural hazards', magnitude: 'Magnitude' },
-  politics: { color: '#D99AB4', label: 'Politics' },
-  nuclear: { color: '#A9C46A', label: 'Nuclear explosions', magnitude: 'Yield (kt)' },
-  disaster: { color: '#5BAE9A', label: 'Disasters', magnitude: 'Places hit' },
+  conflict: { color: '#E5534B', label: msg('Conflict'), magnitude: msg('Deaths') },
+  terror: { color: '#D98A4E', label: msg('Attack'), magnitude: msg('Killed') },
+  territorial: { color: '#9B8AFB', label: msg('Territory') },
+  heritage: { color: '#5B9CF5', label: msg('Heritage') },
+  hazard: { color: '#D8C26A', label: msg('Natural hazards'), magnitude: msg('Magnitude') },
+  politics: { color: '#D99AB4', label: msg('Politics') },
+  nuclear: { color: '#A9C46A', label: msg('Nuclear explosions'), magnitude: msg('Yield (kt)') },
+  disaster: { color: '#5BAE9A', label: msg('Disasters'), magnitude: msg('Places hit') },
 };
 export const HISTORY_FALLBACK_COLOR = '#7F8B96';
 
 export const KINDS: Record<string, string> = {
-  war: 'War',
-  'war.interstate': 'Interstate war',
-  'war.civil': 'Civil war',
-  'war.world': 'World war',
-  'war.independence': 'War of independence',
-  'conflict.armed': 'Armed conflict',
-  'conflict.rebellion': 'Rebellion',
-  'conflict.massacre': 'Massacre',
-  'conflict.genocide': 'Genocide',
-  battle: 'Battle',
-  'claim.territorial': 'Territorial claim',
-  'change.territorial': 'Territorial change',
-  'attack.terror': 'Terrorist attack',
-  'status.in_danger': 'World Heritage in danger',
-  'hazard.quake': 'Earthquake',
-  'battle.siege': 'Siege',
-  'hazard.tsunami': 'Tsunami',
-  'hazard.volcano': 'Volcanic eruption',
-  'politics.treaty': 'Treaty',
-  'politics.coup': 'Coup',
-  'politics.revolution': 'Revolution',
-  'politics.assassination': 'Assassination',
-  'nuclear.test': 'Nuclear test',
-  'nuclear.combat': 'Nuclear attack',
-  'disaster.flood': 'Flood',
-  'disaster.storm': 'Storm',
-  'disaster.temperature': 'Extreme temperature',
-  'disaster.drought': 'Drought',
-  'disaster.quake': 'Earthquake',
-  'disaster.landslide': 'Landslide',
-  'disaster.mass_movement': 'Landslide (dry)',
-  'disaster.volcano': 'Volcanic activity',
+  war: msg('War'),
+  'war.interstate': msg('Interstate war'),
+  'war.civil': msg('Civil war'),
+  'war.world': msg('World war'),
+  'war.independence': msg('War of independence'),
+  'conflict.armed': msg('Armed conflict'),
+  'conflict.rebellion': msg('Rebellion'),
+  'conflict.massacre': msg('Massacre'),
+  'conflict.genocide': msg('Genocide'),
+  battle: msg('Battle'),
+  'claim.territorial': msg('Territorial claim'),
+  'change.territorial': msg('Territorial change'),
+  'attack.terror': msg('Terrorist attack'),
+  'status.in_danger': msg('World Heritage in danger'),
+  'hazard.quake': msg('Earthquake'),
+  'battle.siege': msg('Siege'),
+  'hazard.tsunami': msg('Tsunami'),
+  'hazard.volcano': msg('Volcanic eruption'),
+  'politics.treaty': msg('Treaty'),
+  'politics.coup': msg('Coup'),
+  'politics.revolution': msg('Revolution'),
+  'politics.assassination': msg('Assassination'),
+  'nuclear.test': msg('Nuclear test'),
+  'nuclear.combat': msg('Nuclear attack'),
+  'disaster.flood': msg('Flood'),
+  'disaster.storm': msg('Storm'),
+  'disaster.temperature': msg('Extreme temperature'),
+  'disaster.drought': msg('Drought'),
+  'disaster.quake': msg('Earthquake'),
+  'disaster.landslide': msg('Landslide'),
+  'disaster.mass_movement': msg('Landslide (dry)'),
+  'disaster.volcano': msg('Volcanic activity'),
 };
 
+const kindName = (kind: string) => (KINDS[kind] ? t(KINDS[kind]) : kind);
+
 const PLACEMENT: Record<number, string> = {
-  3: 'Placed at the area, not an exact site.',
-  4: 'Placed approximately by the source.',
-  5: 'Placed at the country: the source names no closer place.',
+  3: msg('Placed at the area, not an exact site.'),
+  4: msg('Placed approximately by the source.'),
+  5: msg('Placed at the country: the source names no closer place.'),
 };
 
 /** An importer that placed the event itself says how in attrs.placed_at; a disaster's magnitude counts the places it hit. */
 function placement(p: HistoryFeature, magnitude: number | null | undefined, d?: HistoryDetail | null) {
-  if (typeof d?.attrs.placed_at === 'string') return `Placed at the ${d.attrs.placed_at}.`;
-  return p.family === 'disaster' && (magnitude ?? 1) > 1 ? 'Placed at the middle of the places it hit.' : PLACEMENT[p.geoPrec];
+  if (typeof d?.attrs.placed_at === 'string') return t('Placed at the {place}.', { place: d.attrs.placed_at });
+  if (p.family === 'disaster' && (magnitude ?? 1) > 1) return t('Placed at the middle of the places it hit.');
+  return PLACEMENT[p.geoPrec] && t(PLACEMENT[p.geoPrec]);
 }
 
 /** Feature properties as the history route sends them; times are epoch seconds. */
@@ -123,58 +129,76 @@ export function shownIds(d: HistoryDetail): number[] {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+/** TI's history tools read these helpers too, and the model gets them in English. */
+type Say = (source: string, vars?: Vars) => string;
+const EN = createTranslator(DEFAULT_LOCALE, {});
+
+const dayFormats = new Map<string, Intl.DateTimeFormat>();
+/** English keeps its own month table: en-GB's short September is "Sept". */
+function dayMonth(intl: string, y: number, month: number, day?: number, date?: Date): string {
+  if (intl === 'en' || y <= 0) {
+    const year = y > 0 ? String(y) : `${1 - y} BCE`;
+    return day ? `${day} ${MONTHS[month]} ${year}` : `${MONTHS[month]} ${year}`;
+  }
+  const key = `${intl}|${day ? 'd' : 'm'}`;
+  let f = dayFormats.get(key);
+  if (!f) dayFormats.set(key, (f = new Intl.DateTimeFormat(intl, { ...(day && { day: 'numeric' }), month: 'short', year: 'numeric', timeZone: 'UTC' })));
+  return f.format(date ?? Date.UTC(y, month, day ?? 1));
+}
+
 /** A time at its precision: "1910s", "1916", "Jul 1916", "1 Jul 1916"; years before 1 are BCE. */
-export function formatAt(s: number, prec: number): string {
+export function formatAt(s: number, prec: number, t: Say = EN, intl = 'en'): string {
   const d = new Date(s * 1000);
   const y = d.getUTCFullYear();
-  const year = y > 0 ? String(y) : `${1 - y} BCE`;
-  if (prec === Prec.century) return y > 0 ? `${Math.floor((y - 1) / 100) + 1}th century` : year;
-  if (prec === Prec.decade) return y > 0 ? `${Math.floor(y / 10) * 10}s` : year;
+  const year = y > 0 ? String(y) : t('{year} BCE', { year: String(1 - y) });
+  if (prec === Prec.century) return y > 0 ? t('{n}th century', { n: String(Math.floor((y - 1) / 100) + 1) }) : year;
+  if (prec === Prec.decade) return y > 0 ? t('{decade}s', { decade: String(Math.floor(y / 10) * 10) }) : year;
   if (prec <= Prec.year) return year;
-  if (prec === Prec.month) return `${MONTHS[d.getUTCMonth()]} ${year}`;
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${year}`;
+  if (y <= 0) return prec === Prec.month ? `${MONTHS[d.getUTCMonth()]} ${year}` : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${year}`;
+  return dayMonth(intl, y, d.getUTCMonth(), prec === Prec.month ? undefined : d.getUTCDate(), d);
 }
 
 /** GTD eventids are YYYYMMDD and a number within the day; a 00 month or day means the source did not know it. */
-export function gtdIdDay(id: string): string | null {
+export function gtdIdDay(id: string, intl = 'en'): string | null {
   const m = id.trim().match(/^(\d{4})(\d{2})(\d{2})\d{4}$/);
   if (!m) return null;
   const [y, mo, d] = [m[1], Number(m[2]), Number(m[3])];
   if (!mo || mo > 12) return y;
-  return d ? `${d} ${MONTHS[mo - 1]} ${y}` : `${MONTHS[mo - 1]} ${y}`;
+  return dayMonth(intl, Number(y), mo - 1, d || undefined);
 }
 
 /** "4 attacks on 11 Sep 2001", from GTD's own list of related eventids. */
 export function gtdRelatedLine(related: unknown): string | null {
   if (typeof related !== 'string') return null;
-  const ids = related.split(',').map(t => t.trim()).filter(t => /^\d{12}$/.test(t)).sort();
+  const ids = related.split(',').map(id => id.trim()).filter(id => /^\d{12}$/.test(id)).sort();
   if (ids.length < 2) return null;
-  const days = [...new Set(ids.map(gtdIdDay).filter((d): d is string => !!d))];
-  const span = days.length === 1 ? `on ${days[0]}` : `from ${days[0]} to ${days[days.length - 1]}`;
-  return `${ids.length} attacks ${span}`;
+  const days = [...new Set(ids.map(id => gtdIdDay(id, activeIntl())).filter((d): d is string => !!d))];
+  return days.length === 1
+    ? t('{n, plural, one {# attack on {day}} other {# attacks on {day}}}', { n: ids.length, day: days[0] })
+    : t('{n, plural, one {# attack from {from} to {to}} other {# attacks from {from} to {to}}}', { n: ids.length, from: days[0], to: days[days.length - 1] });
 }
 
-export function when(p: HistoryFeature, d?: HistoryDetail | null): string {
-  const start = formatAt(d?.tStart ?? p.t0, p.prec);
-  if (p.ongoing) return `since ${start}`;
+export function when(p: HistoryFeature, d?: HistoryDetail | null, t: Say = EN, intl = 'en'): string {
+  const start = formatAt(d?.tStart ?? p.t0, p.prec, t, intl);
+  if (p.ongoing) return t('since {date}', { date: start });
   if (!d || d.tEnd === null) return start;
-  const end = formatAt(d.tEnd, d.endPrec ?? p.prec);
+  const end = formatAt(d.tEnd, d.endPrec ?? p.prec, t, intl);
   return end === start ? start : `${start} – ${end}`;
 }
 
 const SKIP = new Set(['url', 'wiki', 'place', 'placed_at', 'net', 'ids', 'status', 'sig', 't_raw', 'crit', 'dyads', 'eventid', 'alt_names', 'phase', 'specificity', 'vicinity', 'doubtterr', 'multiple', 'added_by_compiler']);
 
 /** The attrs a reader can use: scalars and lists of strings, plus belligerents as "a vs b". */
-export function facts(attrs: Record<string, unknown>): [string, string][] {
+export function facts(attrs: Record<string, unknown>, t: Say = EN): [string, string][] {
   const out: [string, string][] = [];
   for (const [k, v] of Object.entries(attrs)) {
     if (SKIP.has(k) || v === null || v === '' || v === false) continue;
     let text: string | null = null;
-    if (typeof v === 'string' || typeof v === 'number' || v === true) text = v === true ? 'yes' : String(v);
+    if (typeof v === 'string' || typeof v === 'number' || v === true) text = v === true ? t('yes') : String(v);
     else if (Array.isArray(v) && v.every(x => typeof x === 'string')) text = v.join(', ');
     else if (k === 'belligerents' && typeof v === 'object') {
       const b = v as { left?: string[]; right?: string[] };
-      text = `${(b.left ?? []).join(', ')} vs ${(b.right ?? []).join(', ')}`;
+      text = t('{left} vs {right}', { left: (b.left ?? []).join(', '), right: (b.right ?? []).join(', ') });
     }
     if (!text) continue;
     const label = k.replace(/_/g, ' ');
@@ -185,10 +209,10 @@ export function facts(attrs: Record<string, unknown>): [string, string][] {
 }
 
 const text = (v: unknown) => (typeof v === 'string' && v.trim() && v !== 'Unknown' ? v.trim() : null);
-const count = (n: number) => Math.round(n).toLocaleString('en-US');
+const count = (n: number) => Math.round(n).toLocaleString(activeIntl());
 
 /** GTD's success: the attack took place (the bomb went off, the plane was taken), whatever it was meant to achieve. */
-const GTD_OUTCOME: Record<number, string> = { 1: 'Carried out', 0: 'Failed or foiled' };
+const GTD_OUTCOME: Record<number, string> = { 1: msg('Carried out'), 0: msg('Failed or foiled') };
 
 /** A GTD row in words; its coded columns read as raw numbers otherwise. */
 function attackRows(a: Record<string, unknown>): PopRow[] {
@@ -196,17 +220,18 @@ function attackRows(a: Record<string, unknown>): PopRow[] {
   const uniq = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string => !!x))].join(', ');
   const where = [text(a.city), text(a.provstate), text(a.region)].filter((x, i, xs): x is string => !!x && xs.indexOf(x) === i);
   const attack = list<string>(a.attack);
-  const claimed = a.claimed === 1 ? ['Yes', ...list<string>(a.claimmode).map(m => m.toLowerCase())].join(', ') : a.claimed === 0 ? 'No' : null;
+  const claimed = a.claimed === 1 ? [t('Yes'), ...list<string>(a.claimmode).map(m => m.toLowerCase())].join(', ') : a.claimed === 0 ? t('No') : null;
+  const outcome = typeof a.success === 'number' ? GTD_OUTCOME[a.success] : undefined;
   return [
-    { label: 'Wounded', value: typeof a.nwound === 'number' ? count(a.nwound) : null, mono: true },
-    { label: 'Where', value: where.join(', ') },
-    { label: 'Attack', value: attack.length > 1 ? attack.join(', ') : null },
-    { label: 'Target', value: uniq(list<{ type?: string }>(a.targets).map(t => text(t.type))) },
+    { label: t('Wounded'), value: typeof a.nwound === 'number' ? count(a.nwound) : null, mono: true },
+    { label: t('Where'), value: where.join(', ') },
+    { label: t('Attack'), value: attack.length > 1 ? attack.join(', ') : null },
+    { label: t('Target'), value: uniq(list<{ type?: string }>(a.targets).map(x => text(x.type))) },
     // GTD spells some types out: "Vehicle (not to include vehicle-borne explosives, …)".
-    { label: 'Weapon', value: uniq(list<{ type?: string }>(a.weapons).map(w => text(w.type)?.replace(/\s*\(.*\)$/, '') ?? null)) },
-    { label: 'Outcome', value: typeof a.success === 'number' ? GTD_OUTCOME[a.success] : null },
-    { label: 'Suicide attack', value: a.suicide === 1 ? 'Yes' : null },
-    { label: 'Claimed', value: claimed },
+    { label: t('Weapon'), value: uniq(list<{ type?: string }>(a.weapons).map(w => text(w.type)?.replace(/\s*\(.*\)$/, '') ?? null)) },
+    { label: t('Outcome'), value: outcome ? t(outcome) : null },
+    { label: t('Suicide attack'), value: a.suicide === 1 ? t('Yes') : null },
+    { label: t('Claimed'), value: claimed },
   ];
 }
 
@@ -215,11 +240,11 @@ const TEASER = 220;
 /** GTD summaries open with the date ("09/11/2001: "), which When already shows. */
 export function summaryHtml(summary: string, expanded: boolean): string {
   const s = summary.replace(/^[\d/]+:\s*/, '');
-  const para = (t: string) => `<p class="tk-pop-text">${htmlEsc(t)}</p>`;
+  const para = (chunk: string) => `<p class="tk-pop-text">${htmlEsc(chunk)}</p>`;
   if (s.length <= TEASER + 40) return para(s);
-  if (expanded) return `${para(s)}<button type="button" class="tk-pop-more" data-history-more>Show less</button>`;
+  if (expanded) return `${para(s)}<button type="button" class="tk-pop-more" data-history-more>${htmlEsc(t('Show less'))}</button>`;
   const cut = s.slice(0, TEASER).replace(/\s+\S*$/, '');
-  return `${para(`${cut}…`)}<button type="button" class="tk-pop-more" data-history-more>Read more</button>`;
+  return `${para(`${cut}…`)}<button type="button" class="tk-pop-more" data-history-more>${htmlEsc(t('Read more'))}</button>`;
 }
 
 function wikiHtml(w: ArticleSummary): string {
@@ -233,11 +258,11 @@ function wikiHtml(w: ArticleSummary): string {
 function eventRow(r: HistoryDetail): string {
   const fam = HISTORY_FAMILIES[r.family];
   const mag = typeof r.magnitude === 'number' && fam?.magnitude
-    ? fam.magnitude === 'Killed' ? `${count(r.magnitude)} killed` : `${fam.magnitude} ${r.family === 'hazard' ? r.magnitude.toFixed(1) : count(r.magnitude)}`
+    ? fam.magnitude === 'Killed' ? t('{n} killed', { n: count(r.magnitude) }) : `${t(fam.magnitude)} ${r.family === 'hazard' ? r.magnitude.toFixed(1) : count(r.magnitude)}`
     : null;
-  const meta = [formatAt(r.tStart, r.prec), mag].filter(Boolean).join(' · ');
+  const meta = [formatAt(r.tStart, r.prec, t, activeIntl()), mag].filter(Boolean).join(' · ');
   return `<button type="button" class="tk-pop-route tk-pop-related" data-history-event="${r.id}">
-    <span class="tk-pop-route-name">${htmlEsc(r.title ?? KINDS[r.kind] ?? r.kind)}</span>
+    <span class="tk-pop-route-name">${htmlEsc(r.title ?? kindName(r.kind))}</span>
     <span class="tk-pop-list-meta">${htmlEsc(meta)}</span>
   </button>`;
 }
@@ -248,19 +273,19 @@ function linkedSection(label: string, ids: number[], x: HistoryExtras, line: str
   const head = `<div class="tk-pop-label">${label}${ids.length > 1 ? ` · ${count(ids.length)}` : ''}</div>`;
   const rows = (x.related ?? []).filter(r => ids.includes(r.id));
   if (!rows.length) {
-    const status = ids.length && x.related === undefined ? 'Loading…' : line;
+    const status = ids.length && x.related === undefined ? t('Loading…') : line;
     return status ? `${head}<div class="tk-pop-note">${htmlEsc(status)}</div>` : '';
   }
   const list = rows.sort((a, b) => a.tStart - b.tStart || a.id - b.id).map(eventRow).join('');
   const more = ids.length - rows.length;
-  return `${head}<div class="tk-pop-related-list">${list}</div>${more > 0 ? `<div class="tk-pop-note">and ${count(more)} more</div>` : ''}`;
+  return `${head}<div class="tk-pop-related-list">${list}</div>${more > 0 ? `<div class="tk-pop-note">${htmlEsc(t('and {n} more', { n: count(more) }))}</div>` : ''}`;
 }
 
 function linkedHtml(p: HistoryFeature, d: HistoryDetail, x: HistoryExtras): string {
   const g = linkedIds(d);
-  return linkedSection('Part of', g.partOf, x)
-    + linkedSection('Includes', g.parts, x)
-    + linkedSection(`Related ${p.family === 'terror' ? 'attacks' : 'events'}`, g.related, x, gtdRelatedLine(d.attrs.related));
+  return linkedSection(htmlEsc(t('Part of')), g.partOf, x)
+    + linkedSection(htmlEsc(t('Includes')), g.parts, x)
+    + linkedSection(htmlEsc(p.family === 'terror' ? t('Related attacks') : t('Related events')), g.related, x, gtdRelatedLine(d.attrs.related));
 }
 
 /** `pin` offers the Pin button; `windowed` leaves the kicker to the window's header. */
@@ -268,8 +293,8 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
   const family = HISTORY_FAMILIES[p.family];
   const attack = p.kind === 'attack.terror';
   const rows: PopRow[] = [
-    { label: 'When', value: when(p, d) },
-    { label: 'Kind', value: KINDS[p.kind] ?? p.kind },
+    { label: t('When'), value: when(p, d, t, activeIntl()) },
+    { label: t('Kind'), value: kindName(p.kind) },
   ];
   // Map features drop null properties, so a missing magnitude arrives as undefined.
   const magnitude = d?.magnitude ?? p.magnitude;
@@ -277,9 +302,9 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
     // A source's estimate with stated bounds reads as the estimate and its range.
     const range = d?.attrs.magnitude_range;
     const span = Array.isArray(range) && range.length === 2 && range.every(n => typeof n === 'number') ? ` (${count(range[0])}–${count(range[1])})` : '';
-    rows.push({ label: family.magnitude, value: (p.family === 'hazard' ? magnitude.toFixed(1) : count(magnitude)) + span, mono: true });
+    rows.push({ label: t(family.magnitude), value: (p.family === 'hazard' ? magnitude.toFixed(1) : count(magnitude)) + span, mono: true });
   }
-  if (d) rows.push(...(attack ? attackRows(d.attrs) : facts(d.attrs).map(([label, value]) => ({ label, value }))));
+  if (d) rows.push(...(attack ? attackRows(d.attrs) : facts(d.attrs, t).map(([label, value]) => ({ label, value }))));
   const summary = (attack ? text(d?.attrs.summary) : null) ?? (x.wiki?.extract.trim() || null);
   // Facts first: the picture and summary would push the death toll below the popup's fold.
   const story = [x.wiki ? wikiHtml(x.wiki) : '', summary ? summaryHtml(summary, !!x.expanded) : ''].join('');
@@ -288,17 +313,17 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
   // The stored title links at once; the summary, when it lands, carries the canonical URL.
   const article = x.wiki?.url ?? (stored ? articleUrl(stored) : url && isWikipedia(url) ? url : null);
   const lang = x.wiki?.lang ?? (stored ? articleRef(stored).lang : 'en');
-  const wikipedia = lang === 'en' ? 'Wikipedia' : `${languageName(lang)} Wikipedia`;
+  const wikipedia = lang === 'en' ? 'Wikipedia' : t('{language} Wikipedia', { language: languageName(lang, activeIntl()) });
   const link = url && !isWikipedia(url) ? url : null;
-  const source = d?.source ? (d.source.attribution ?? d.source.name) : d === undefined ? 'Loading details…' : null;
+  const source = d?.source ? (d.source.attribution ?? d.source.name) : d === undefined ? t('Loading details…') : null;
   return pop({
-    kicker: view.windowed ? undefined : family?.label ?? 'Event',
+    kicker: view.windowed ? undefined : family ? t(family.label) : t('Event'),
     dot: family?.color ?? HISTORY_FALLBACK_COLOR,
-    title: p.title ?? KINDS[p.kind] ?? p.kind,
+    title: p.title ?? kindName(p.kind),
     rows,
     foot: `${story ? `<div class="tk-pop-body">${story}</div>` : ''}${d ? linkedHtml(p, d, x) : ''}` || undefined,
-    note: [placement(p, magnitude, d), source, x.wiki ? `· From ${wikipedia}, CC BY-SA` : null].filter(Boolean).join(' ') || undefined,
-    links: [article ? { href: article, label: wikipedia } : null, link ? { href: link, label: 'Source page' } : null],
+    note: [placement(p, magnitude, d), source, x.wiki ? `· ${t('From {source}, CC BY-SA', { source: wikipedia })}` : null].filter(Boolean).join(' ') || undefined,
+    links: [article ? { href: article, label: wikipedia } : null, link ? { href: link, label: t('Source page') } : null],
     wide: attack,
     pin: view.pin,
   });

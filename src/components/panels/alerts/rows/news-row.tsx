@@ -6,11 +6,12 @@ import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { Tag } from '@/components/ui/tag';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useT } from '@/components/ui/use-t';
 import { BLOCS } from '@/lib/intel/alerts/digest';
 import type { AlertItem, LocateOptions, NewsAlert } from '@/lib/intel/alerts/live-alerts';
 import { htmlToText } from '@/lib/intel/alerts/telegram';
 import { AlertRow, Meta } from './alert-row';
-import { compact, placeName, plural, toneLabel, toneOf } from '@/components/panels/alerts/format';
+import { compact, placeName, toneLabel, toneOf } from '@/components/panels/alerts/format';
 import { Carriers, openLink } from './row-parts';
 
 export const newsTarget = (n: NewsAlert): [number, number, LocateOptions] | null =>
@@ -24,6 +25,7 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
   onSelect: () => void;
   onLocate: (lat: number, lng: number, options?: LocateOptions) => void;
 }) {
+  const t = useT();
   const target = newsTarget(item);
   const where = item.place?.name ?? (item.anchor ? placeName(item.anchor) : null);
   const MediaIcon = item.media?.kind === 'video' ? Video : ImageIcon;
@@ -40,17 +42,17 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
       selected={selected}
       onSelect={onSelect}
       meta={<>
-        {item.flag && <Tag tone="red">Breaking</Tag>}
+        {item.flag && <Tag tone="red">{t('Breaking')}</Tag>}
         <Meta parts={[
           item.source_name,
           where,
-          elsewhere > 0 && `also on ${plural(elsewhere, 'channel')}`,
+          elsewhere > 0 && t('{n, plural, one {also on # channel} other {also on # channels}}', { n: elsewhere }),
         ]} />
-        {item.media && <MediaIcon aria-label={item.media.kind === 'video' ? 'Has video' : 'Has a photo'} className="size-3.5 shrink-0 text-ink-3" strokeWidth={1.75} />}
+        {item.media && <MediaIcon aria-label={item.media.kind === 'video' ? t('Has video') : t('Has a photo')} className="size-3.5 shrink-0 text-ink-3" strokeWidth={1.75} />}
       </>}
       actions={<>
-        {target && <IconButton size="sm" label={`Show ${item.place!.name} on the map`} icon={MapPin} onClick={() => onLocate(...target)} />}
-        {item.link && <IconButton size="sm" label="Open the post" icon={ExternalLink} onClick={() => openLink(item.link!)} />}
+        {target && <IconButton size="sm" label={t('Show {place} on the map', { place: item.place!.name })} icon={MapPin} onClick={() => onLocate(...target)} />}
+        {item.link && <IconButton size="sm" label={t('Open the post')} icon={ExternalLink} onClick={() => openLink(item.link!)} />}
       </>}
     >
       <NewsDetail item={item} similar={similar} now={now} onLocate={onLocate} />
@@ -61,6 +63,7 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
 function NewsDetail({ item, similar, now, onLocate }: {
   item: NewsAlert; similar: AlertItem[]; now: number; onLocate: (lat: number, lng: number, options?: LocateOptions) => void;
 }) {
+  const t = useT();
   const [full, setFull] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
   const target = newsTarget(item);
@@ -73,8 +76,8 @@ function NewsDetail({ item, similar, now, onLocate }: {
   }, [item.summary, item.title]);
   const long = summary.length > 420;
   const provenance = [
-    item.bloc ? `${BLOCS[item.bloc].label} channel` : item.lean,
-    item.views != null ? `${compact(item.views)} ${item.views === 1 ? 'view' : 'views'}` : null,
+    item.bloc ? t('{side} channel', { side: t(BLOCS[item.bloc].label) }) : item.lean,
+    item.views != null ? t('{n, plural, one {{count} view} other {{count} views}}', { n: item.views, count: compact(item.views, t) }) : null,
   ].filter(Boolean).join(' · ');
   const copies = similar.filter((s): s is NewsAlert => s.kind === 'news');
 
@@ -90,7 +93,7 @@ function NewsDetail({ item, similar, now, onLocate }: {
           <img src={thumb} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setMediaFailed(true)} className="max-h-52 w-full object-cover" />
           {item.media?.kind === 'video' && (
             <span className="absolute bottom-2 left-2 inline-flex items-center gap-1.5 rounded-control bg-surface-1 px-2 py-1 text-small text-ink-1">
-              <Play aria-hidden className="size-3.5" strokeWidth={1.75} /> Watch on Telegram{item.media.duration ? ` · ${item.media.duration}` : ''}
+              <Play aria-hidden className="size-3.5" strokeWidth={1.75} /> {t('Watch on Telegram')}{item.media.duration ? ` · ${item.media.duration}` : ''}
             </span>
           )}
         </a>
@@ -101,7 +104,7 @@ function NewsDetail({ item, similar, now, onLocate }: {
           <p className={cx('text-small break-words whitespace-pre-line text-ink-2', long && !full && 'line-clamp-6')}>{summary}</p>
           {long && (
             <button type="button" onClick={() => setFull(f => !f)} className={cx('mt-1 rounded-control text-small text-accent hover:underline', FOCUS_RING)}>
-              {full ? 'Show less' : 'Read all'}
+              {full ? t('Show less') : t('Read all')}
             </button>
           )}
         </div>
@@ -109,30 +112,31 @@ function NewsDetail({ item, similar, now, onLocate }: {
 
       {item.forwarded_from && (
         <p className="text-small text-ink-3">
-          Forwarded from{' '}
-          {item.forwarded_from.url
-            ? <a href={item.forwarded_from.url} target="_blank" rel="noopener noreferrer" className="text-ink-2 hover:text-accent">{item.forwarded_from.name}</a>
-            : <span className="text-ink-2">{item.forwarded_from.name}</span>}
+          {t.rich('Forwarded from {source}', {
+            source: item.forwarded_from.url
+              ? <a href={item.forwarded_from.url} target="_blank" rel="noopener noreferrer" className="text-ink-2 hover:text-accent">{item.forwarded_from.name}</a>
+              : <span className="text-ink-2">{item.forwarded_from.name}</span>,
+          })}
         </p>
       )}
 
       {provenance && <p className="text-meta text-ink-3">{provenance}</p>}
 
       <div className="flex flex-wrap gap-2">
-        {target && <Button size="sm" icon={MapPin} onClick={() => onLocate(...target)}>Show {item.place!.name}</Button>}
-        {item.link && <Button size="sm" variant={target ? 'ghost' : 'secondary'} icon={ExternalLink} onClick={() => openLink(item.link!)}>Open post</Button>}
+        {target && <Button size="sm" icon={MapPin} onClick={() => onLocate(...target)}>{t('Show {place}', { place: item.place!.name })}</Button>}
+        {item.link && <Button size="sm" variant={target ? 'ghost' : 'secondary'} icon={ExternalLink} onClick={() => openLink(item.link!)}>{t('Open post')}</Button>}
         {!target && item.coords && (
-          <Tooltip label="The post names no town, so this is the middle of the country it mentions">
+          <Tooltip label={t('The post names no town, so this is the middle of the country it mentions')}>
             <Button size="sm" variant="ghost" icon={MapPin} className={item.link ? undefined : '-ml-2'} onClick={() => onLocate(item.coords![0], item.coords![1])}>
-              Roughly {item.anchor ? placeName(item.anchor) : 'here'}
+              {item.anchor ? t('Roughly {place}', { place: placeName(item.anchor) }) : t('Roughly here')}
             </Button>
           </Tooltip>
         )}
-        {item.reply_to && <Button size="sm" variant="ghost" icon={CornerDownRight} onClick={() => openLink(item.reply_to!)}>In reply to</Button>}
+        {item.reply_to && <Button size="sm" variant="ghost" icon={CornerDownRight} onClick={() => openLink(item.reply_to!)}>{t('In reply to')}</Button>}
       </div>
 
-      <Carriers title="Also carried by" now={now} rows={item.carriers.map(c => ({ key: c.source, name: c.source_name, note: c.lean, ts: c.published, link: c.link }))} />
-      <Carriers title="Same headline from" now={now} rows={copies.map(c => ({ key: c.id, name: c.source_name, note: c.lean, ts: c.ts, link: c.link }))} />
+      <Carriers title={t('Also carried by')} now={now} rows={item.carriers.map(c => ({ key: c.source, name: c.source_name, note: c.lean, ts: c.published, link: c.link }))} />
+      <Carriers title={t('Same headline from')} now={now} rows={copies.map(c => ({ key: c.id, name: c.source_name, note: c.lean, ts: c.ts, link: c.link }))} />
     </div>
   );
 }

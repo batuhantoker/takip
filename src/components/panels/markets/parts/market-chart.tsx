@@ -9,6 +9,7 @@ import { CircleAlert, LoaderCircle, X } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
 import { Segmented } from '@/components/ui/segmented';
+import { useT } from '@/components/ui/use-t';
 import { MAP_INK } from '@/lib/map/style/tokens';
 
 interface Candle {
@@ -58,9 +59,9 @@ const palette = () => ({
 });
 
 /** Prices here span FX pairs to Bitcoin — pick the precision from the value. */
-function priceFormat(v: number): string {
+function priceFormat(v: number, intl: string): string {
   const abs = Math.abs(v);
-  if (abs >= 1000) return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  if (abs >= 1000) return v.toLocaleString(intl, { maximumFractionDigits: 0 });
   if (abs >= 1) return v.toFixed(2);
   return v.toFixed(4);
 }
@@ -73,6 +74,7 @@ function formatVolume(v: number): string {
 }
 
 export default function MarketChart({ symbol, name, onClose, large = false }: MarketChartProps) {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -213,7 +215,7 @@ export default function MarketChart({ symbol, name, onClose, large = false }: Ma
             {rangeChange >= 0 ? '+' : '−'}{Math.abs(rangeChange).toFixed(2)}% <span className="text-ink-3">{range}</span>
           </span>
         )}
-        <IconButton size="sm" icon={X} label="Close the chart" onClick={onClose} className={rangeChange === null ? 'ml-auto' : undefined} />
+        <IconButton size="sm" icon={X} label={t('Close the chart')} onClick={onClose} className={rangeChange === null ? 'ml-auto' : undefined} />
       </div>
 
       <div className="px-3 pt-2 pb-3">
@@ -221,10 +223,10 @@ export default function MarketChart({ symbol, name, onClose, large = false }: Ma
         <div className={cx(mono, 'mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-meta text-ink-3')}>
           {shown ? (
             <>
-              <span>O <span className="text-ink-2">{priceFormat(shown.open)}</span></span>
-              <span>H <span className="text-ink-2">{priceFormat(shown.high)}</span></span>
-              <span>L <span className="text-ink-2">{priceFormat(shown.low)}</span></span>
-              <span>C <span className="text-ink-1">{priceFormat(shown.close)}</span></span>
+              <span>O <span className="text-ink-2">{priceFormat(shown.open, t.intl)}</span></span>
+              <span>H <span className="text-ink-2">{priceFormat(shown.high, t.intl)}</span></span>
+              <span>L <span className="text-ink-2">{priceFormat(shown.low, t.intl)}</span></span>
+              <span>C <span className="text-ink-1">{priceFormat(shown.close, t.intl)}</span></span>
               {shown.volume > 0 && <span>V <span className="text-ink-2">{formatVolume(shown.volume)}</span></span>}
             </>
           ) : <span>—</span>}
@@ -236,17 +238,17 @@ export default function MarketChart({ symbol, name, onClose, large = false }: Ma
           {status !== 'ready' && (
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-surface-2/80 text-small text-ink-3">
               {status === 'loading'
-                ? <><LoaderCircle aria-hidden className="size-3.5 animate-spin motion-reduce:animate-none" strokeWidth={1.75} /> Loading {range}</>
-                : <><CircleAlert aria-hidden className="size-3.5" strokeWidth={1.75} /> No {range} data for {symbol}</>}
+                ? <><LoaderCircle aria-hidden className="size-3.5 animate-spin motion-reduce:animate-none" strokeWidth={1.75} /> {t('Loading {range}', { range })}</>
+                : <><CircleAlert aria-hidden className="size-3.5" strokeWidth={1.75} /> {t('No {range} data for {symbol}', { range, symbol })}</>}
             </div>
           )}
         </div>
 
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
           <span className={cx(mono, 'text-meta text-ink-3')}>
-            {high !== null && low !== null && <>High <span className="text-ink-2">{priceFormat(high)}</span> · low <span className="text-ink-2">{priceFormat(low)}</span></>}
+            {high !== null && low !== null && t.rich('High {high} · low {low}', { high: <span className="text-ink-2">{priceFormat(high, t.intl)}</span>, low: <span className="text-ink-2">{priceFormat(low, t.intl)}</span> })}
           </span>
-          <Segmented<Range> label="Range" size="sm" value={range} onChange={setRange} options={RANGES.map(r => ({ value: r, label: <span className="font-mono">{r}</span> }))} />
+          <Segmented<Range> label={t('Range')} size="sm" value={range} onChange={setRange} options={RANGES.map(r => ({ value: r, label: <span className="font-mono">{r}</span> }))} />
         </div>
       </div>
     </div>

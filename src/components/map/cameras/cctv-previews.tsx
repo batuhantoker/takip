@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Maximize2 } from 'lucide-react';
+import { useT } from '@/components/ui/use-t';
 import { freshen, previewMedia, refreshInterval, VIDEO_KINDS, type PreviewKind } from '@/lib/feeds/cameras/preview';
 import { layoutTile, tileHeight, tilesOverlap, type TileGeometry } from '@/lib/feeds/cameras/tile-layout';
 import type { Map as MlMap } from 'maplibre-gl';
@@ -185,6 +186,7 @@ function VideoMedia({ cam: camera, onReady, onFail }: MediaProps) {
 }
 
 function Tile({ cam: camera, onOpen }: { cam: PreviewCamera; onOpen: (cam: PreviewCamera) => void }) {
+  const t = useT();
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -201,7 +203,7 @@ function Tile({ cam: camera, onOpen }: { cam: PreviewCamera; onOpen: (cam: Previ
   return (
     <button
       onClick={() => onOpen(camera)}
-      title={`${camera.name} · open the player`}
+      title={t('{name} · open the player', { name: camera.name })}
       className="cctv-tile group block w-full overflow-hidden rounded-card border border-line-strong bg-surface-1 text-left shadow-float transition-colors hover:border-ink-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       style={{ width: TILE_W }}
     >
@@ -214,12 +216,12 @@ function Tile({ cam: camera, onOpen }: { cam: PreviewCamera; onOpen: (cam: Previ
 
         {video && loaded && (
           <span className="pointer-events-none absolute top-1.5 left-1.5 inline-flex h-4 items-center gap-1 rounded-[4px] bg-black/70 px-1 text-[11px] leading-none font-medium text-ink-1">
-            <span className="size-1.5 rounded-full bg-green" /> Live
+            <span className="size-1.5 rounded-full bg-green" /> {t('Live')}
           </span>
         )}
 
         {!loaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-surface-2 text-[11px] text-ink-3">Loading…</div>
+          <div className="absolute inset-0 flex items-center justify-center bg-surface-2 text-[11px] text-ink-3">{t('Loading…')}</div>
         )}
       </div>
 

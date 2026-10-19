@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const SDK: ApiGroup = {
   id: 'sdk',
-  title: 'Polybolos SDK',
+  title: msg('Polybolos SDK'),
   blurb:
     'Push entities from an external platform into the Common Operating Picture, and stream the merged picture back out.',
   endpoints: [

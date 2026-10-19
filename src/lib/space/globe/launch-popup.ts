@@ -1,3 +1,4 @@
+import { t } from '@/lib/core/i18n/active';
 import { htmlEsc, pop } from '@/lib/map/popups/kit';
 
 type Props = NonNullable<GeoJSON.GeoJsonProperties>;
@@ -13,20 +14,20 @@ export function launchPopupHtml(p: Props): string {
   } catch { /* keep the popup without the list */ }
   const webcast = p.webcast_live === true || p.webcast_live === 'true';
   return pop({
-    kicker: 'Launch',
+    kicker: t('Launch'),
     dot: launchColor(p.status),
     meta: p.status_name ? String(p.status_name) : undefined,
     title: p.name,
     subtitle: [p.pad, p.location].filter(Boolean).join(' · ') || undefined,
     rows: [
-      { label: 'No earlier than', value: p.when, mono: true },
-      { label: 'Provider', value: p.provider || null },
-      webcast && { label: 'Webcast', value: 'Live now', tone: 'green' },
+      { label: t('No earlier than'), value: p.when, mono: true },
+      { label: t('Provider'), value: p.provider || null },
+      webcast && { label: t('Webcast'), value: t('Live now'), tone: 'green' },
     ],
     body: later.length
-      ? `<div class="tk-pop-label">Also from this pad</div>${later.map(l => `<div><span class="tk-mono">${htmlEsc(l.when)}</span> · ${htmlEsc(l.name)}</div>`).join('')}`
+      ? `<div class="tk-pop-label">${htmlEsc(t('Also from this pad'))}</div>${later.map(l => `<div><span class="tk-mono">${htmlEsc(l.when)}</span> · ${htmlEsc(l.name)}</div>`).join('')}`
       : undefined,
-    note: 'Dates slip: “no earlier than” is the soonest it could go.',
+    note: t('Dates slip: “no earlier than” is the soonest it could go.'),
     links: [{ href: p.url, label: 'Launch Library 2' }],
   });
 }

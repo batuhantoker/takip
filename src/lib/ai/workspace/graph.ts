@@ -19,6 +19,7 @@
  */
 import type { RunState } from '../state';
 import type { LinkKind, Tone } from '../types';
+import { msg } from '@/lib/core/i18n/translator';
 
 /** The report's node: the end of every thread. */
 export const REPORT_KEY = 'r:report';
@@ -80,7 +81,7 @@ export function buildGraph(s: RunState, filter: GraphFilter = {}): Graph {
   for (const a of s.actors) add(`a:${a.id}`, 'actor', a.kind, a.name, a.lat, a.lng, Boolean(a.persona));
   const cited = new Set(s.links.filter(l => l.from.startsWith('c:') || l.to.startsWith('c:')).flatMap(l => [l.from, l.to]));
   for (const c of s.context) if (cited.has(`c:${c.id}`)) add(`c:${c.id}`, 'evidence', c.kind, c.title, c.lat, c.lng);
-  if (s.report && s.links.some(l => l.from === REPORT_KEY)) add(REPORT_KEY, 'report', 'report', 'Report', null, null);
+  if (s.report && s.links.some(l => l.from === REPORT_KEY)) add(REPORT_KEY, 'report', 'report', msg('Report'), null, null);
 
   const edges: GraphEdge[] = [];
   const perPair = new Map<string, number>();

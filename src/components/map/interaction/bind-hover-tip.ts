@@ -1,4 +1,5 @@
 import type * as maplibregl from 'maplibre-gl';
+import { activeIntl, t } from '@/lib/core/i18n/active';
 import { alprTip } from '@/lib/feeds/cameras/alpr-describe';
 import { ALPR_PICK_LAYERS } from '@/lib/feeds/cameras/alpr-layers';
 import { FLIGHT_LAYER_LABEL } from '@/components/map/inspect/live';
@@ -28,27 +29,27 @@ const join = (parts: (string | null | false | undefined)[]) => parts.filter(Bool
 
 /** Layers that get a tooltip, in the order they win when stacked. */
 const DESCRIBE: Record<string, (p: Props, layer: string) => Tip | null> = {
-  [EMERGENCY_PICK]: p => { const t = flight(p, String(p.layer)); return { ...t, meta: join([`<span class="tk-fg-red">${htmlEsc(String(p.declared))}</span>`, t.meta]) }; },
+  [EMERGENCY_PICK]: p => { const tip = flight(p, String(p.layer)); return { ...tip, meta: join([`<span class="tk-fg-red">${htmlEsc(String(p.declared))}</span>`, tip.meta]) }; },
   'fl-military': flight, 'fl-jets': flight, 'fl-private': flight, 'fl-commercial': flight,
-  'cctv-clusters': p => ({ key: `cluster:${p.cluster_id}`, name: `${Number(p.point_count).toLocaleString()} cameras`, meta: 'Click to zoom in' }),
-  'cctv-dots': p => ({ key: `camera:${p.id}`, name: String(p.name || 'Camera'), meta: htmlEsc(join(['Camera', [p.city, p.country].filter(Boolean).join(', '), p.offline === true && 'Off air'])) }),
-  'alert-pin-dots': p => ({ key: `alert:${p.id}`, name: String(p.title || 'Report'), meta: htmlEsc(join([p.kind === 'rocket' ? 'Rocket alert' : p.kind === 'event' ? 'Event' : 'News', String(p.place_name || '')])) }),
+  'cctv-clusters': p => ({ key: `cluster:${p.cluster_id}`, name: t('{n, plural, one {# camera} other {# cameras}}', { n: Number(p.point_count) }), meta: t('Click to zoom in') }),
+  'cctv-dots': p => ({ key: `camera:${p.id}`, name: String(p.name || t('Camera')), meta: htmlEsc(join([t('Camera'), [p.city, p.country].filter(Boolean).join(', '), p.offline === true && t('Off air')])) }),
+  'alert-pin-dots': p => ({ key: `alert:${p.id}`, name: String(p.title || t('Report')), meta: htmlEsc(join([p.kind === 'rocket' ? t('Rocket alert') : p.kind === 'event' ? t('Event') : t('News'), String(p.place_name || '')])) }),
   'eq-circles': p => {
     const m = n(p.magnitude);
     const depth = n(p.depth);
-    return { key: `quake:${p.id}`, name: m == null ? 'Earthquake' : `Magnitude ${m.toFixed(1)}`, meta: join([htmlEsc(String(p.place || '')), depth == null ? null : mono(`${Math.round(depth)} km deep`)]) };
+    return { key: `quake:${p.id}`, name: m == null ? t('Earthquake') : t('Magnitude {m}', { m: m.toFixed(1) }), meta: join([htmlEsc(String(p.place || '')), depth == null ? null : mono(t('{n} km deep', { n: Math.round(depth) }))]) };
   },
-  'airport-wx-dots': p => ({ key: `metar:${p.id}`, name: String(p.id || 'Station'), meta: join([p.cat ? mono(String(p.cat)) : 'No flight category', htmlEsc(windText(p) ?? '')]) }),
-  'nhc-points': (p, layer) => { const t = nhcTip(p, layer); return { ...t, meta: htmlEsc(t.meta) }; },
-  'nhc-cone-fill': (p, layer) => { const t = nhcTip(p, layer); return { ...t, meta: htmlEsc(t.meta) }; },
-  'fire-perimeter-fill': p => { const t = firePerimeterTip(p); return { ...t, meta: htmlEsc(t.meta) }; },
+  'airport-wx-dots': p => ({ key: `metar:${p.id}`, name: String(p.id || t('Station')), meta: join([p.cat ? mono(String(p.cat)) : t('No flight category'), htmlEsc(windText(p) ?? '')]) }),
+  'nhc-points': (p, layer) => { const tip = nhcTip(p, layer); return { ...tip, meta: htmlEsc(tip.meta) }; },
+  'nhc-cone-fill': (p, layer) => { const tip = nhcTip(p, layer); return { ...tip, meta: htmlEsc(tip.meta) }; },
+  'fire-perimeter-fill': p => { const tip = firePerimeterTip(p); return { ...tip, meta: htmlEsc(tip.meta) }; },
   'sigmet-fill': p => ({ key: `sigmet:${p.id}`, name: String(p.title || 'SIGMET'), meta: htmlEsc(join([p.firName ? `${p.firName} FIR` : null, 'SIGMET'])) }),
   'ship-arrows': ship, 'ship-dots': ship,
   'transit-icons': transit, 'transit-dots': transit,
-  [TRAFFIC_LAYER]: p => { const t = trafficTip(p); return { ...t, meta: htmlEsc(t.meta) }; },
-  [TRAFFIC_FLOW_LAYER]: p => { const t = flowTip(p); return { ...t, meta: htmlEsc(t.meta) }; },
-  ...Object.fromEntries(ALPR_PICK_LAYERS.map(id => [id, (p: Props) => { const t = alprTip(p); return t && { ...t, meta: htmlEsc(t.meta) }; }])),
-  'transit-city-dots': p => ({ key: `transit-city:${p.name}`, name: String(p.name || 'City'), meta: htmlEsc(join([String(p.modes || 'Live transit'), 'Click to zoom in'])) }),
+  [TRAFFIC_LAYER]: p => { const tip = trafficTip(p); return { ...tip, meta: htmlEsc(tip.meta) }; },
+  [TRAFFIC_FLOW_LAYER]: p => { const tip = flowTip(p); return { ...tip, meta: htmlEsc(tip.meta) }; },
+  ...Object.fromEntries(ALPR_PICK_LAYERS.map(id => [id, (p: Props) => { const tip = alprTip(p); return tip && { ...tip, meta: htmlEsc(tip.meta) }; }])),
+  'transit-city-dots': p => ({ key: `transit-city:${p.name}`, name: String(p.name || t('City')), meta: htmlEsc(join([String(p.modes || t('Live transit')), t('Click to zoom in')])) }),
 };
 const LAYERS = Object.keys(DESCRIBE);
 
@@ -57,8 +58,8 @@ function flight(p: Props, layer: string): Tip {
   const id = String(p.icao24 || p.callsign || '');
   return {
     key: `aircraft:${id}`,
-    name: String(p.callsign || '').trim() || id.toUpperCase() || 'Aircraft',
-    meta: join([FLIGHT_LAYER_LABEL[layer as FlightLayer], alt == null ? null : alt < 30 && (kt ?? 0) < 50 ? 'on the ground' : mono(`${toFeet(alt).toLocaleString()} ft`), kt == null || kt < 1 ? null : mono(`${Math.round(kt)} kt`)]),
+    name: String(p.callsign || '').trim() || id.toUpperCase() || t('Aircraft'),
+    meta: join([FLIGHT_LAYER_LABEL[layer as FlightLayer] && t(FLIGHT_LAYER_LABEL[layer as FlightLayer]), alt == null ? null : alt < 30 && (kt ?? 0) < 50 ? t('on the ground') : mono(`${toFeet(alt).toLocaleString(activeIntl())} ft`), kt == null || kt < 1 ? null : mono(`${Math.round(kt)} kt`)]),
   };
 }
 
@@ -67,8 +68,8 @@ function ship(p: Props): Tip {
   const name = String(p.name || '').trim();
   return {
     key: `ship:${p.mmsi}`,
-    name: name && name !== String(p.mmsi) ? name : 'Unnamed vessel',
-    meta: join([htmlEsc(SHIP_CLASSES.find(c => c.type === p.type)?.label ?? 'Vessel'), kn == null ? null : kn < STILL_KNOTS ? 'stopped' : mono(`${kn.toFixed(1)} kn`)]),
+    name: name && name !== String(p.mmsi) ? name : t('Unnamed vessel'),
+    meta: join([htmlEsc(t(SHIP_CLASSES.find(c => c.type === p.type)?.label ?? 'Vessel')), kn == null ? null : kn < STILL_KNOTS ? t('stopped') : mono(`${kn.toFixed(1)} kn`)]),
   };
 }
 
@@ -79,7 +80,7 @@ function transit(p: Props): Tip {
 const satTip = (s: SatelliteRow): Tip => ({
   key: `satellite:${s.noradId ?? s.name}`,
   name: s.name,
-  meta: join([s.mission && s.mission !== 'Unknown' ? htmlEsc(s.mission) : 'Satellite', mono(`${Math.round(s.alt).toLocaleString()} km`)]),
+  meta: join([s.mission && s.mission !== 'Unknown' ? htmlEsc(s.mission) : t('Satellite'), mono(`${Math.round(s.alt).toLocaleString(activeIntl())} km`)]),
 });
 
 /**

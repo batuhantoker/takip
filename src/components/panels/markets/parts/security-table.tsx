@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { ArrowDown, ArrowUp, Star } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 import {
   formatMove, formatNet, formatPrice, formatVolume, monthChange, netChange, rangePosition, tradeTime,
   type MarketQuote as Quote, type SortKey,
@@ -66,28 +67,29 @@ export default function SecurityTable({ groups, selected, watchlist, sort, onSor
   onStar: (symbol: string) => void;
   now: number;
 }) {
+  const t = useT();
   return (
     <div className="@container">
       <table className="w-full border-collapse text-small">
         <thead className="sticky top-0 z-10 bg-surface-1">
           <tr className="border-b border-line text-left text-meta text-ink-3">
-            <th scope="col" className="w-7"><span className="sr-only">Watch</span></th>
-            <SortHeader label="Name" k="name" sort={sort} onSort={onSort} className="py-2" />
-            <th scope="col" className="pr-2 text-right font-medium">Last</th>
-            <th scope="col" className="hidden pr-2 text-right font-medium @2xl:table-cell">Net</th>
-            <SortHeader label="Change" k="move" sort={sort} onSort={onSort} className="pr-2 text-right" />
-            <SortHeader label="Month" k="month" sort={sort} onSort={onSort} className="hidden pr-1 text-right @min-[20rem]:table-cell" />
-            <th scope="col" className="hidden px-2 text-center font-medium @2xl:table-cell">Day range</th>
-            <th scope="col" className="hidden px-2 text-center font-medium @3xl:table-cell">52 weeks</th>
-            <th scope="col" className="hidden pr-2 pl-3 text-right font-medium @4xl:table-cell">Volume</th>
-            <th scope="col" className="hidden pr-1 pl-3 text-right font-medium @3xl:table-cell">Time</th>
+            <th scope="col" className="w-7"><span className="sr-only">{t('Watch')}</span></th>
+            <SortHeader label={t('Name')} k="name" sort={sort} onSort={onSort} className="py-2" />
+            <th scope="col" className="pr-2 text-right font-medium">{t('Last')}</th>
+            <th scope="col" className="hidden pr-2 text-right font-medium @2xl:table-cell">{t('Net')}</th>
+            <SortHeader label={t('% change')} k="move" sort={sort} onSort={onSort} className="pr-2 text-right" />
+            <SortHeader label={t('Month')} k="month" sort={sort} onSort={onSort} className="hidden pr-1 text-right @min-[20rem]:table-cell" />
+            <th scope="col" className="hidden px-2 text-center font-medium @2xl:table-cell">{t('Day range')}</th>
+            <th scope="col" className="hidden px-2 text-center font-medium @3xl:table-cell">{t('52 weeks')}</th>
+            <th scope="col" className="hidden pr-2 pl-3 text-right font-medium @4xl:table-cell">{t('Volume')}</th>
+            <th scope="col" className="hidden pr-1 pl-3 text-right font-medium @3xl:table-cell">{t('Time')}</th>
           </tr>
         </thead>
         {groups.map((g, gi) => (
           <tbody key={g.label ?? gi}>
             {g.label && (
               <tr>
-                <th colSpan={10} scope="colgroup" className="pt-4 pb-1.5 pl-1 text-left text-meta font-medium text-ink-3">{regionLabel(g.label)}</th>
+                <th colSpan={10} scope="colgroup" className="pt-4 pb-1.5 pl-1 text-left text-meta font-medium text-ink-3">{regionLabel(g.label, t)}</th>
               </tr>
             )}
             {g.rows.map(q => {
@@ -100,7 +102,7 @@ export default function SecurityTable({ groups, selected, watchlist, sort, onSor
                   className={cx('h-9 cursor-pointer border-b border-line last:border-b-0', active ? 'bg-surface-3' : 'hover:bg-surface-2', TRANSITION)}>
                   <td className="w-7 text-center">
                     <button type="button" onClick={e => { e.stopPropagation(); onStar(q.symbol); }}
-                      aria-label={starred ? `Remove ${q.name} from your watchlist` : `Add ${q.name} to your watchlist`} aria-pressed={starred}
+                      aria-label={starred ? t('Remove {name} from your watchlist', { name: q.name }) : t('Add {name} to your watchlist', { name: q.name })} aria-pressed={starred}
                       className={cx('inline-flex size-6 items-center justify-center rounded-[4px] align-middle hover:bg-surface-3', starred ? 'text-ink-1' : 'text-ink-4 hover:text-ink-2', FOCUS_RING, TRANSITION)}>
                       <Star aria-hidden className="size-3.5" strokeWidth={1.75} fill={starred ? 'currentColor' : 'none'} />
                     </button>
@@ -113,17 +115,17 @@ export default function SecurityTable({ groups, selected, watchlist, sort, onSor
                       <span className="hidden truncate text-meta text-ink-3 @md:inline">{q.description && q.description !== q.name ? q.description : q.symbol}</span>
                     </button>
                   </td>
-                  <td className={cx(NUM, 'pr-2 text-ink-1')}>{formatPrice(q)}</td>
-                  <td className={cx(NUM, 'hidden pr-2 @2xl:table-cell', moveTone(net))}>{formatNet(q, net)}</td>
+                  <td className={cx(NUM, 'pr-2 text-ink-1')}>{formatPrice(q, q.price, t.intl)}</td>
+                  <td className={cx(NUM, 'hidden pr-2 @2xl:table-cell', moveTone(net))}>{formatNet(q, net, t.intl)}</td>
                   <td className={cx(NUM, 'pr-2', moveTone(q.change_percent))}>{formatMove(q.change_percent)}</td>
-                  <td className="hidden pr-1 text-right whitespace-nowrap @min-[20rem]:table-cell" title={`One month ${formatMove(month)}`}><Spark points={q.spark} /></td>
+                  <td className="hidden pr-1 text-right whitespace-nowrap @min-[20rem]:table-cell" title={t('One month {move}', { move: formatMove(month) })}><Spark points={q.spark} /></td>
                   <td className="hidden px-2 text-center @2xl:table-cell">
                     <RangeBar pos={rangePosition(q.price, q.day_low, q.day_high)}
-                      title={q.day_low != null && q.day_high != null ? `Today ${formatPrice(q, q.day_low)} to ${formatPrice(q, q.day_high)}` : 'No day range'} />
+                      title={q.day_low != null && q.day_high != null ? t('Today {low} to {high}', { low: formatPrice(q, q.day_low, t.intl), high: formatPrice(q, q.day_high, t.intl) }) : t('No day range')} />
                   </td>
                   <td className="hidden px-2 text-center @3xl:table-cell">
                     <RangeBar pos={rangePosition(q.price, q.low_52w, q.high_52w)}
-                      title={q.low_52w != null && q.high_52w != null ? `52 weeks ${formatPrice(q, q.low_52w)} to ${formatPrice(q, q.high_52w)}` : 'No 52-week range'} />
+                      title={q.low_52w != null && q.high_52w != null ? t('52 weeks {low} to {high}', { low: formatPrice(q, q.low_52w, t.intl), high: formatPrice(q, q.high_52w, t.intl) }) : t('No 52-week range')} />
                   </td>
                   <td className={cx(NUM, 'hidden pr-2 pl-3 text-ink-2 @4xl:table-cell')}>{formatVolume(q.volume)}</td>
                   <td className={cx(NUM, 'hidden pr-1 pl-3 @3xl:table-cell', q.market_open ? 'text-ink-1' : 'text-ink-3')}>{tradeTime(q.time, now)}</td>

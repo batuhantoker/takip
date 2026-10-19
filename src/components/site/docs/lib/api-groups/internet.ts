@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const INTERNET: ApiGroup = {
   id: 'internet',
-  title: 'Internet and services',
+  title: msg('Internet and services'),
   blurb: 'Connectivity outages, attack origins, and the status pages of major vendors.',
   endpoints: [
     {

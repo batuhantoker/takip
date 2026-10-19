@@ -1,3 +1,8 @@
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
+
+const ENGLISH = createTranslator(DEFAULT_LOCALE, {});
+
 export interface RouteStep {
   instruction: string;
   distance: number;
@@ -117,9 +122,9 @@ export function elevationPath(
 }
 
 /** Wall-clock arrival time for a trip of `seconds` starting now. */
-export function arrivalTime(seconds: number, now: Date = new Date()): string {
+export function arrivalTime(seconds: number, now: Date = new Date(), locale?: string): string {
   const at = new Date(now.getTime() + seconds * 1000);
-  return at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return at.toLocaleTimeString(locale ?? [], { hour: '2-digit', minute: '2-digit' });
 }
 
 /**
@@ -145,12 +150,12 @@ export function segmentBetween(
   return coords.slice(Math.min(a, b), Math.max(a, b) + 1);
 }
 
-export function formatDuration(s: number): string {
+export function formatDuration(s: number, t: Translate = ENGLISH): string {
   const total = Math.max(1, Math.round(s / 60));
-  if (total < 60) return `${total} min`;
+  if (total < 60) return t('{n} min', { n: total });
   const h = Math.floor(total / 60);
   const m = total % 60;
-  return m ? `${h} hr ${m} min` : `${h} hr`;
+  return m ? t('{h} hr {m} min', { h, m }) : t('{h} hr', { h });
 }
 
 /** The road the route spends most of its distance on — the "via" line. */

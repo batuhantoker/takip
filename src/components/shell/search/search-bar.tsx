@@ -6,6 +6,8 @@ import { Button, IconButton } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Kbd } from '@/components/ui/kbd';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { forgetRecent, loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
 import { noteDeviceLocation } from '@/lib/platform/device-location';
 import { countAction } from '@/lib/platform/usage-actions';
@@ -31,7 +33,7 @@ interface SearchBarProps {
 }
 
 const TRY_COORDS = '35.6586, 139.7454';
-const TRY = ['Eiffel Tower', '10 Downing Street', TRY_COORDS];
+const TRY = [msg('Eiffel Tower'), '10 Downing Street', TRY_COORDS];
 
 /**
  * A place, an address, a landmark or a pair of coordinates, and the map flies
@@ -40,6 +42,7 @@ const TRY = ['Eiffel Tower', '10 Downing Street', TRY_COORDS];
  * Shift+Enter routes, Esc clears and then closes.
  */
 export default function SearchBar({ onLocate, center = null, open = true, onOpen, onClose, onDirections, embedded = false, upward = false }: SearchBarProps) {
+  const t = useT();
   const { value, results, loading, answered, search } = useGeoSearch(center);
   const [selected, setSelected] = useState(0);
   const [recent, setRecent] = useState<RecentPlace[]>(() => (typeof window === 'undefined' ? [] : loadRecent()));
@@ -82,7 +85,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
   }, [open, onClose, embedded]);
 
   const typing = value.trim().length > 0;
-  const you: Hit = { label: 'Your location', context: locateNote || 'Fly to where you are', lat: 0, lng: 0, kind: 'current', zoom: 14 };
+  const you: Hit = { label: t('Your location'), context: locateNote || t('Fly to where you are'), lat: 0, lng: 0, kind: 'current', zoom: 14 };
   const recentHits: Hit[] = recent.map(r => ({ ...r, zoom: ZOOM_BY_KIND[r.kind ?? ''] ?? 13, recent: true }));
   const sections = typing ? groupHits(results) : [{ title: '', items: [you] }, ...(recent.length ? [{ title: 'Recent', items: recentHits }] : [])];
   const items = sections.flatMap(s => s.items);
@@ -114,9 +117,9 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
         return;
       }
     } catch { /* fall through to the note */ }
-    setLocateNote('Location unavailable: allow it in the browser, or search instead');
+    setLocateNote(t('Location unavailable: allow it in the browser, or search instead'));
     setLocating(false);
-  }, [onLocate, onClose]);
+  }, [onLocate, onClose, t]);
 
   const remember = (h: Hit) => setRecent(rememberPlace({ label: h.label, context: h.context, lat: h.lat, lng: h.lng, kind: h.kind }));
 
@@ -170,8 +173,8 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
           onKeyDown={onKeyDown}
           onFocus={() => { setFocused(true); onOpen?.(); }}
           onBlur={() => setFocused(false)}
-          placeholder="Search places, addresses, coordinates"
-          aria-label="Search places"
+          placeholder={t('Search places, addresses, coordinates')}
+          aria-label={t('Search places')}
           role="combobox"
           aria-expanded={showing && items.length > 0}
           aria-controls={listId}
@@ -180,9 +183,9 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
           autoComplete="off"
           spellCheck={false}
         />
-        {loading && <LoaderCircle aria-label="Searching" className="size-4 shrink-0 animate-spin text-ink-3 motion-reduce:animate-none" strokeWidth={1.75} />}
+        {loading && <LoaderCircle aria-label={t('Searching')} className="size-4 shrink-0 animate-spin text-ink-3 motion-reduce:animate-none" strokeWidth={1.75} />}
         {value ? (
-          <button type="button" onClick={() => { type(''); inputRef.current?.focus(); }} aria-label="Clear the search"
+          <button type="button" onClick={() => { type(''); inputRef.current?.focus(); }} aria-label={t('Clear the search')}
             className={cx('-mr-1 flex size-6 shrink-0 items-center justify-center rounded-control text-ink-3 hover:bg-surface-3 hover:text-ink-1', FOCUS_RING)}>
             <X aria-hidden className="size-3.5" strokeWidth={2} />
           </button>
@@ -192,14 +195,14 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
       {showing && (
         <>
           <div className={cx('min-h-0 overflow-y-auto styled-scrollbar', embedded ? 'pt-3' : cx('border-line p-1.5', upward ? 'border-b' : 'border-t'))}>
-            <div id={listId} role="listbox" aria-label={typing ? 'Places found' : 'Suggestions'}>
+            <div id={listId} role="listbox" aria-label={typing ? t('Places found') : t('Suggestions')}>
               {sections.map(s => (
-                <div key={s.title || 'top'} role="group" aria-label={s.title || undefined} className="not-first:mt-2">
+                <div key={s.title || 'top'} role="group" aria-label={s.title ? t(s.title) : undefined} className="not-first:mt-2">
                   {s.title && (
                     <div className="flex h-7 items-center justify-between px-2">
-                      <span className="text-meta font-medium text-ink-3">{s.title}</span>
+                      <span className="text-meta font-medium text-ink-3">{t(s.title)}</span>
                       {!typing && s.title === 'Recent' && (
-                        <Button variant="ghost" size="sm" className="-mr-1.5 h-6" onClick={() => { forgetRecent(); setRecent([]); setSelected(0); }}>Clear</Button>
+                        <Button variant="ghost" size="sm" className="-mr-1.5 h-6" onClick={() => { forgetRecent(); setRecent([]); setSelected(0); }}>{t('Clear')}</Button>
                       )}
                     </div>
                   )}
@@ -209,10 +212,10 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
                       <PlaceRow key={`${h.kind}-${h.label}-${h.lat}-${i}`} id={`${listId}-${i}`} place={h} query={typing ? value : ''} on={i === active}
                         onPick={() => go(h)} onHover={() => setSelected(i)} from={center} kindOverride={h.recent ? 'recent' : undefined}
                         trailing={h.kind === 'current'
-                          ? (locating ? <LoaderCircle aria-label="Finding you" className="mr-1 size-4 animate-spin text-ink-3" strokeWidth={1.75} /> : undefined)
+                          ? (locating ? <LoaderCircle aria-label={t('Finding you')} className="mr-1 size-4 animate-spin text-ink-3" strokeWidth={1.75} /> : undefined)
                           : onDirections && (
                             <span className={cx(embedded || i === active ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100 focus-within:opacity-100')}>
-                              <IconButton label={`Directions to ${h.label}`} kbd="⇧↵" icon={Route} size="sm" tooltipSide="left" onClick={() => directions(h)} />
+                              <IconButton label={t('Directions to {place}', { place: h.label })} kbd="⇧↵" icon={Route} size="sm" tooltipSide="left" onClick={() => directions(h)} />
                             </span>
                           )} />
                     );
@@ -223,20 +226,23 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
 
             {!typing && recent.length === 0 && (
               <p className="mt-1 px-2 pb-1 text-small text-ink-3">
-                Try{' '}
-                {TRY.map((t, i) => (
-                  <span key={t}>
-                    {i > 0 && <span aria-hidden className="text-ink-4"> · </span>}
-                    <button type="button" onClick={() => { type(t); inputRef.current?.focus(); }}
-                      className={cx('rounded-[3px] text-ink-2 underline decoration-ink-4 underline-offset-2 hover:text-ink-1', t === TRY_COORDS && 'font-mono tabular-nums', FOCUS_RING)}>{t}</button>
-                  </span>
-                ))}
+                {t('Try')}{' '}
+                {TRY.map((example, i) => {
+                  const text = example === TRY_COORDS ? example : t(example);
+                  return (
+                    <span key={example}>
+                      {i > 0 && <span aria-hidden className="text-ink-4"> · </span>}
+                      <button type="button" onClick={() => { type(text); inputRef.current?.focus(); }}
+                        className={cx('rounded-[3px] text-ink-2 underline decoration-ink-4 underline-offset-2 hover:text-ink-1', example === TRY_COORDS && 'font-mono tabular-nums', FOCUS_RING)}>{text}</button>
+                    </span>
+                  );
+                })}
               </p>
             )}
 
             {noResults && (
               <div role="status">
-                <EmptyState icon={SearchX} title={`No places match “${value.trim()}”`} body="Try a city, a street, a landmark, or coordinates such as 48.8584, 2.2945." className="py-6" />
+                <EmptyState icon={SearchX} title={t('No places match “{query}”', { query: value.trim() })} body={t('Try a city, a street, a landmark, or coordinates such as {example}.', { example: '48.8584, 2.2945' })} className="py-6" />
               </div>
             )}
 
@@ -255,9 +261,9 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
           <div className={cx('flex shrink-0 items-center gap-3 text-meta text-ink-3', embedded ? 'pt-2' : cx('h-8 border-line px-3', upward ? 'border-b' : 'border-t'))}>
             {!embedded && (
               <span className="flex items-center gap-3">
-                <span className="flex items-center gap-1"><Key>↑</Key><Key>↓</Key> move</span>
-                <span className="flex items-center gap-1"><Key>↵</Key> go</span>
-                {onDirections && <span className="flex items-center gap-1"><Key>⇧</Key><Key>↵</Key> directions</span>}
+                <span className="flex items-center gap-1"><Key>↑</Key><Key>↓</Key> {t('move')}</span>
+                <span className="flex items-center gap-1"><Key>↵</Key> {t('go')}</span>
+                {onDirections && <span className="flex items-center gap-1"><Key>⇧</Key><Key>↵</Key> {t('directions')}</span>}
               </span>
             )}
             <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="ml-auto hover:text-ink-1">© OpenStreetMap</a>

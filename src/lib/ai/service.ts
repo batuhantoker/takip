@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { getClientIp, isRateLimited } from '@/lib/core/net/ssrf-guard';
 import { DEPTHS, estimateCalls, SEED_MAX, type SeedScope } from './depths';
 import { askRun } from './engine/ask';
+import { replyLocale } from './prompts/language';
 import { PROVIDERS, isPlausibleKey, isPlausibleModel, isProviderId, providerInfo, type ProviderId } from './providers/catalog';
 import { ProviderError } from './providers/errors';
 import { readerLocal } from './providers/local';
@@ -17,6 +18,7 @@ import { createChat, type ChatFn } from './providers/chat';
 import { LIMITS, startRun, type Run, type StartDeps } from './runs';
 import { oneOf, text } from './parse/values';
 import type { Depth } from './types';
+import type { Locale } from '@/lib/core/i18n/locales';
 
 export const AI_VERSION = '1.0.0';
 
@@ -72,6 +74,8 @@ export interface Credentials {
   model?: string;
   /** A local model address the reader chose (X-AI-Base), where the server allows one. */
   base?: string;
+  /** The language the reader reads (X-AI-Lang), for what TI writes to them. */
+  lang?: Locale;
 }
 
 /** Deprecated for one release: a model key in Authorization: Bearer. Never a TAKIP API key (`tk_`), which shares the header. */
@@ -104,6 +108,7 @@ export function credentials(req: Request, body: Record<string, unknown> = {}): C
     key: key || undefined,
     model: modelRaw || undefined,
     ...(local ? { base: local.url } : {}),
+    lang: replyLocale(h('lang')),
   };
 }
 
@@ -141,6 +146,7 @@ export function startPrediction(args: PredictArgs, creds: Credentials, ip: strin
     model: creds.model || info.defaultModel,
     key: creds.key ?? '',
     base: creds.base,
+    lang: creds.lang,
     ip,
   }, deps);
 }
@@ -157,7 +163,7 @@ export async function askPrediction(run: Run, targetRaw: unknown, messageRaw: un
   if (!creds.key && providerInfo(provider).needsKey) return { ok: false, status: 401, error: 'Asking uses your own key again, in the X-AI-Key header.' };
   const model = creds.model || (provider === run.state.provider ? run.state.model : providerInfo(provider).defaultModel);
   try {
-    const { reply } = await askRun(run.state, target, message, chat ?? createChat(provider, creds.key ?? '', model, undefined, creds.base), signal);
+    const { reply } = await askRun(run.state, target, message, chat ?? createChat(provider, creds.key ?? '', model, undefined, creds.base), signal, creds.lang);
     return { ok: true, reply, target };
   } catch (err) {
     if (err instanceof ProviderError) {

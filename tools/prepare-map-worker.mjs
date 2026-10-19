@@ -24,3 +24,8 @@ for (const entry of await readdir(vendor, { withFileTypes: true })) {
     console.log(`prepare-map-worker: pruned stale maplibre ${entry.name}`);
   }
 }
+
+// Shapes and orders Arabic and Hebrew labels; MapLibre fetches it only once such text is on screen.
+const rtl = new URL('public/vendor/rtl-text/', root);
+await mkdir(rtl, { recursive: true });
+await copyFile(new URL('node_modules/@mapbox/mapbox-gl-rtl-text/dist/mapbox-gl-rtl-text.js', root), new URL('mapbox-gl-rtl-text.js', rtl));

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, LoaderCircle, Search, ShieldCheck, X } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
+import { useT } from '@/components/ui/use-t';
 import {
   DONBOT_ORIGIN, DONBOT_ANALYZER, DONBOT_CHAINS, DONBOT_SANDBOX,
   cleanQuery, donbotFrameUrl, parseDonbotMessage, type DonbotResult,
@@ -22,6 +23,7 @@ export default function DonBotScan({ initial = null, onScan }: {
   /** Told of every scan run and every close, so a host can hand it back as `initial`. */
   onScan?: (query: string | null) => void;
 } = {}) {
+  const t = useT();
   const [input, setInput] = useState(initial ?? '');
   /** What the frame is showing; null means no frame at all. */
   const [query, setQuery] = useState<string | null>(initial);
@@ -66,14 +68,14 @@ export default function DonBotScan({ initial = null, onScan }: {
         <TextField
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Ticker, name or contract address"
-          aria-label="Token to analyse"
+          placeholder={t('Ticker, name or contract address')}
+          aria-label={t('Token to analyse')}
           autoComplete="off"
           spellCheck={false}
           className="min-w-0 flex-1"
           leading={<Search aria-hidden className="size-4" strokeWidth={1.75} />}
         />
-        <Button type="submit" variant="primary" disabled={!cleanQuery(input)}>Analyse</Button>
+        <Button type="submit" variant="primary" disabled={!cleanQuery(input)}>{t('Analyse')}</Button>
       </form>
 
       <p className="text-meta text-ink-3">{DONBOT_CHAINS.join(' · ')}</p>
@@ -81,14 +83,12 @@ export default function DonBotScan({ initial = null, onScan }: {
       {!query && (
         <div className="rounded-card border border-line bg-surface-2 p-3">
           <p className="text-small text-ink-2">
-            A signal score out of 100, entry and exit zones, and the holder cluster map for any token:
-            top wallets, the ones linked by funding, and snipers, bundles and fresh wallets flagged.
+            {t('A signal score out of 100, entry and exit zones, and the holder cluster map for any token: top wallets, the ones linked by funding, and snipers, bundles and fresh wallets flagged.')}
           </p>
           <p className="mt-2 flex items-start gap-2 text-meta text-ink-3">
             <ShieldCheck aria-hidden className="mt-px size-3.5 shrink-0" strokeWidth={1.75} />
             <span>
-              Nothing loads until you analyse a token. DonBot then runs sealed in its own frame: none of its
-              code runs on TAKIP, and it isn’t told which site you’re on.
+              {t('Nothing loads until you analyse a token. DonBot then runs sealed in its own frame: none of its code runs on TAKIP, and it isn’t told which site you’re on.')}
             </span>
           </p>
         </div>
@@ -100,26 +100,27 @@ export default function DonBotScan({ initial = null, onScan }: {
             <div className="min-w-0 truncate text-small">
               {result ? (
                 <span title={result.thesis}>
-                  <span className="font-mono font-medium text-ink-1">${result.symbol}</span>
-                  <span className="text-ink-3"> · signal </span>
-                  <span className="font-mono font-medium text-ink-1 tabular-nums">{result.score}/100</span>
+                  <span className="text-ink-3">{t.rich('{symbol} · signal {score}', {
+                    symbol: <span className="font-mono font-medium text-ink-1">${result.symbol}</span>,
+                    score: <span className="font-mono font-medium text-ink-1 tabular-nums">{result.score}/100</span>,
+                  })}</span>
                   {result.thesis && <span className="text-ink-2"> · {result.thesis}</span>}
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5 text-ink-3">
                   {!loaded && <LoaderCircle aria-hidden className="size-3.5 animate-spin motion-reduce:animate-none" strokeWidth={1.75} />}
-                  {loaded ? `Analysing “${query}”…` : 'Loading DonBot…'}
+                  {loaded ? t('Analysing “{query}”…', { query }) : t('Loading DonBot…')}
                 </span>
               )}
             </div>
-            <IconButton size="sm" icon={X} label="Close DonBot" onClick={close} />
+            <IconButton size="sm" icon={X} label={t('Close DonBot')} onClick={close} />
           </div>
 
           <iframe
             key={query}
             ref={frame}
             src={donbotFrameUrl(query)}
-            title="DonBot token analysis by DigitalDon"
+            title={t('DonBot token analysis by DigitalDon')}
             sandbox={DONBOT_SANDBOX}
             referrerPolicy="no-referrer"
             allow="fullscreen"
@@ -130,7 +131,7 @@ export default function DonBotScan({ initial = null, onScan }: {
           />
 
           <div className="flex items-center justify-between text-meta text-ink-3">
-            <span>{result ? 'Not financial advice.' : ''}</span>
+            <span>{result ? t('Not financial advice.') : ''}</span>
             <a href={DONBOT_ANALYZER} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-ink-1">
               DonBot by DigitalDon <ExternalLink aria-hidden className="size-3" strokeWidth={1.75} />
             </a>

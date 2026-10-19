@@ -1,3 +1,4 @@
+import { t } from '@/lib/core/i18n/active';
 import { pop, sentence } from '@/lib/map/popups/kit';
 import { ALPR_COLOR } from './alpr-layers';
 
@@ -31,8 +32,8 @@ export function alprTip(p: Props): { key: string; name: string; meta: string } |
   const facing = alprFacing(p);
   return {
     key: `alpr:${p.osmId}`,
-    name: text(p.operator) ?? 'Licence-plate reader',
-    meta: [text(p.brand) ?? 'Plate reader', facing && `facing ${facing}`].filter(Boolean).join(' · '),
+    name: text(p.operator) ?? t('Licence-plate reader'),
+    meta: [text(p.brand) ?? t('Plate reader'), facing && t('facing {facing}', { facing })].filter(Boolean).join(' · '),
   };
 }
 
@@ -42,21 +43,24 @@ export function alprPopupHtml(p: Props): string {
   const osmType = p.osmType === 'way' ? 'way' : 'node';
   const facing = alprFacing(p);
   return pop({
-    kicker: 'Licence-plate reader',
+    kicker: t('Licence-plate reader'),
     dot: ALPR_COLOR,
     // The last OSM edit, not a survey date.
-    meta: edited ? `edited ${edited}` : undefined,
-    title: operator ?? text(p.brand) ?? 'ALPR camera',
-    subtitle: operator ? undefined : 'Operator not mapped',
+    meta: edited ? t('edited {date}', { date: edited }) : undefined,
+    title: operator ?? text(p.brand) ?? t('ALPR camera'),
+    subtitle: operator ? undefined : t('Operator not mapped'),
     rows: [
-      { label: 'Maker', value: operator ? text(p.brand) : undefined },
-      { label: 'Facing', value: facing },
-      { label: 'Mounted on', value: text(p.mountType) && sentence(p.mountType) },
-      { label: 'Watching', value: text(p.surveillanceZone) && sentence(p.surveillanceZone) },
-      { label: 'Since', value: text(p.startDate), mono: true },
-      { label: 'Ref', value: text(p.ref), mono: true },
+      { label: t('Maker'), value: operator ? text(p.brand) : undefined },
+      { label: t('Facing'), value: facing },
+      { label: t('Mounted on'), value: text(p.mountType) && sentence(p.mountType) },
+      { label: t('Watching'), value: text(p.surveillanceZone) && sentence(p.surveillanceZone) },
+      { label: t('Since'), value: text(p.startDate), mono: true },
+      { label: t('Ref'), value: text(p.ref), mono: true },
     ],
-    note: `Mapped by volunteers on OpenStreetMap; it may be out of date.${facing ? ' The cone shows the mapped direction; its width and reach are typical for these cameras, not measured.' : ''}`,
+    note: [
+      t('Mapped by volunteers on OpenStreetMap; it may be out of date.'),
+      facing && t('The cone shows the mapped direction; its width and reach are typical for these cameras, not measured.'),
+    ].filter(Boolean).join(' '),
     links: [{ href: `https://www.openstreetmap.org/${osmType}/${encodeURIComponent(String(p.osmId))}`, label: 'OpenStreetMap' }],
   });
 }

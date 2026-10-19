@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import { useT } from '@/components/ui/use-t';
 import { countAction } from '@/lib/platform/usage-actions';
 import type { Hit } from './search-groups';
 
@@ -16,6 +17,7 @@ const parseCoords = (s: string): { lat: number; lng: number } | null => {
 
 /** What was typed, and the places it matches; coordinates answer at once, words after a short pause. */
 export function useGeoSearch(center: { lat: number; lng: number } | null) {
+  const t = useT();
   const [value, setValue] = useState('');
   const [results, setResults] = useState<Hit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export function useGeoSearch(center: { lat: number; lng: number } | null) {
     if (coords) {
       abortRef.current?.abort();
       setLoading(false);
-      setResults([{ label: `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`, context: 'Coordinates', ...coords, kind: 'coordinate', zoom: 15 }]);
+      setResults([{ label: `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`, context: t('Coordinates'), ...coords, kind: 'coordinate', zoom: 15 }]);
       setAnswered(q);
       return;
     }
@@ -65,7 +67,7 @@ export function useGeoSearch(center: { lat: number; lng: number } | null) {
       setAnswered(q);
       setLoading(false);
     }, 380);
-  }, [center]);
+  }, [center, t]);
 
   return { value, results, loading, answered, search };
 }

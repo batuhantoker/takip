@@ -13,6 +13,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 |---|---|---|
 | `net/` | HTTP helpers: `http-json`, `source-cache`, `stealth-fetch`, `ssrf-guard`, `http2`, `fetch-pool`, `remote-zip`, `user-agent` (most re-export `@takip/connectors`) | almost every API route; lib feeds/cameras, intel/recon, intel/cyber, feeds/traffic, ai; tools/transit, tools/traffic, tools/import |
 | `wikipedia/` | Everything Wikipedia that isn't tied to one tab: the server client (`client.ts`), `WikiSummary` and `trimExtract` (`summary.ts`), stored article refs such as "fr:Titre" (`refs.ts`), the reader's Wikipedia and language names (`language.ts`) | api/map, api/history, api/space; map/layers, map/interaction, panels/space, shell/settings; lib history, places/labels, ai |
+| `i18n/` | The UI's languages: which one a visitor gets (`pick-locale.ts`, `country-languages.ts`, `request.ts`), the message format (`message.ts`), translators (`translator.ts`, browser-only `active.ts`) and one catalog per language (`catalogs/`); `tools/i18n` checks and merges them | app/layout, every translated component through `components/ui/use-t`; lib map, wikipedia |
 | `geodesic.ts` | Geodesic maths | places/areas, feeds/cameras, feeds/hazards, intel/vision, ai; panels/areas, shell/search |
 
 ## platform

@@ -7,13 +7,14 @@ import type { HistorySession } from '@/lib/history/session';
 import { atMa, formatMa, maAt, parseDeepJump, PERIODS, periodAt } from '@/lib/history/paleo/deep-time';
 import { formatTime, parseJump } from '@/lib/map/replay/time-input';
 import { GoToPopover } from '@/components/map/replay/go-to-popover';
-import { BackToLive, ChoiceMenu, PlayButton, TimeReadout } from '@/components/map/replay/timeline-controls';
+import { BackToLive, type ChoiceGroup, ChoiceMenu, PlayButton, TimeReadout } from '@/components/map/replay/timeline-controls';
 import { TimelineDock, TimelineRow } from '@/components/map/replay/timeline-dock';
 import TimelineScrubber, { type Band } from '@/components/map/replay/timeline-scrubber';
 import { calendarTicks, deepTicks } from '@/lib/map/replay/timeline-ticks';
 import { useRemembered } from '@/components/map/replay/use-remembered';
 import { useTimelineKeys } from '@/components/map/replay/use-timeline-keys';
 import { Dot } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
 import CountryLegend from '@/components/panels/history/legends/country-legend';
 import DeepTimeCard from '@/components/panels/history/legends/deep-time-card';
 import { ago } from '@/components/panels/history/lib/format-date';
@@ -36,7 +37,7 @@ function periodBands(lo: number, hi: number): Band[] {
 }
 
 /** The age in display type; a paused clock drops a trailing ".0", so a chapter reads "1,800 Ma". */
-const displayMa = (ma: number, playing: boolean) => (playing ? formatMa(ma) : formatMa(ma).replace(/\.0+ /, ' '));
+const displayMa = (ma: number, playing: boolean, intl: string) => (playing ? formatMa(ma, intl) : formatMa(ma, intl).replace(/[.,]0+ /, ' '));
 
 /**
  * In place of the status bar while History is on: play, the date, speed, the track, its range, "Go to" and the way back to live.
@@ -44,6 +45,7 @@ const displayMa = (ma: number, playing: boolean) => (playing ? formatMa(ma) : fo
  * `compact` is the phone's two rows, without the range: Go to and seeking earlier widen it.
  */
 export default function HistoryTimelineBar({ session, onExit, compact }: { session: HistorySession; onExit: () => void; compact?: boolean }) {
+  const t = useT();
   useHistoryTick(session);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   const [rangeId, setRangeId] = useRemembered<RangeId>('takip.history.range', '1900', RANGES.map(r => r.id));
@@ -75,25 +77,25 @@ export default function HistoryTimelineBar({ session, onExit, compact }: { sessi
     else clock.play();
     rerender();
   };
-  const seek = (t: number) => {
+  const seek = (to: number) => {
     hold();
-    clock.seek(t);
+    clock.seek(to);
     rerender();
   };
   useTimelineKeys(toggle, () => setGoTo(true));
 
   const go = (text: string) => {
-    const age = parseDeepJump(text);
-    const t = age === undefined ? parseJump(text) : undefined;
+    const age = parseDeepJump(text, t);
+    const at = age === undefined ? parseJump(text) : undefined;
     if (age !== undefined) {
       session.setDeep(true);
       session.story.hold();
       session.deepClock.seek(atMa(age));
-    } else if (t !== undefined) {
-      if (projection && t > projectionEnd(projection)) return `The projections end in ${projection.to}.`;
-      if (!projection && t > openedAt) return 'History stops at today. To look ahead, colour countries by a metric with UN projections, such as median age.';
+    } else if (at !== undefined) {
+      if (projection && at > projectionEnd(projection)) return t('The projections end in {year}.', { year: String(projection.to) });
+      if (!projection && at > openedAt) return t('History stops at today. To look ahead, colour countries by a metric with UN projections, such as median age.');
       session.setDeep(false);
-      session.clock.seek(t);
+      session.clock.seek(at);
     } else return false;
     countAction('history.jump');
     rerender();
@@ -115,8 +117,10 @@ export default function HistoryTimelineBar({ session, onExit, compact }: { sessi
   };
 
   const formatAt = deep
-    ? (t: number) => `${formatMa(maAt(t))} · ${periodAt(maAt(t)).name}`
-    : (t: number) => formatTime(t, hi - lo);
+    ? (x: number) => `${formatMa(maAt(x), t.intl)} · ${t(periodAt(maAt(x)).name)}`
+    : (x: number) => formatTime(x, hi - lo, t);
+  const translated = <V,>(groups: ChoiceGroup<V>[]) =>
+    groups.map(g => ({ label: g.label && t(g.label), options: g.options.map(o => ({ ...o, label: t(o.label) })) }));
 
   let above = null;
   if (deep) above = <DeepTimeCard session={session} />;
@@ -127,34 +131,34 @@ export default function HistoryTimelineBar({ session, onExit, compact }: { sessi
   const play = <PlayButton playing={playing} onToggle={toggle} />;
   const readout = (
     <TimeReadout className={compact ? undefined : 'w-[154px]'}
-      primary={deep ? displayMa(ma, clock.playing()) : formatTime(time, Number.POSITIVE_INFINITY)}
-      secondary={deep ? <><Swatch color={period.color} />{period.name}</> : projectedAt(projection, time) ? <span title={projection!.label}>{allProjectedAt(projection, time) ? projection!.short : 'Some countries projected'}</span> : ago(time, openedAt)} />
+      primary={deep ? displayMa(ma, clock.playing(), t.intl) : formatTime(time, Number.POSITIVE_INFINITY, t)}
+      secondary={deep ? <><Swatch color={period.color} />{t(period.name)}</> : projectedAt(projection, time) ? <span title={projection!.label}>{allProjectedAt(projection, time) ? projection!.short : t('Some countries projected')}</span> : ago(time, openedAt, t.intl)} />
   );
   const speed = (
-    <ChoiceMenu label="Speed" value={clock.speed()} display={storyRunning ? 'Story pace' : speedLabel(clock.speed(), deep)}
-      groups={[{ options: deep ? DEEP_SPEEDS : SPEEDS }]} className={compact ? 'max-w-32' : undefined}
+    <ChoiceMenu label={t('Speed')} value={clock.speed()} display={storyRunning ? t('Story pace') : speedLabel(clock.speed(), deep, t)}
+      groups={translated([{ options: deep ? DEEP_SPEEDS : SPEEDS }])} className={compact ? 'max-w-32' : undefined}
       onChange={x => { hold(); clock.setSpeed(x); rerender(); }} />
   );
   const scrubber = (
-    <TimelineScrubber label={deep ? 'Age' : 'Date'} lo={lo} hi={hi} time={time} step={clock.speed() * 1000}
+    <TimelineScrubber label={deep ? t('Age') : t('Date')} lo={lo} hi={hi} time={time} step={clock.speed() * 1000}
       onSeek={seek} onTogglePlay={toggle} format={formatAt}
-      ticksFor={max => (deep ? deepTicks(lo, hi, max) : calendarTicks(lo, hi, max))}
+      ticksFor={max => (deep ? deepTicks(lo, hi, max, t) : calendarTicks(lo, hi, max, t))}
       bands={deep ? periodBands(lo, hi) : undefined}
       today={projection ? openedAt : undefined}
       provisionalFrom={projection ? msAt(projection.from) : undefined}
       notes={projection ? { provisional: projection.simulated ? projection.short : projection.label } : undefined} />
   );
   const goToButton = (
-    <GoToPopover open={goTo} onOpenChange={setGoTo} onGo={go} title="Go to a date or age"
+    <GoToPopover open={goTo} onOpenChange={setGoTo} onGo={go} title={t('Go to a date or age')}
       placeholder={projection ? '1916, 1939-09-01, 2050, 250 Ma' : '1916, 1939-09-01, 500 BCE, 250 Ma'}
-      hint="Try a year, a date such as 1939-09-01, or an age such as 250 Ma or Jurassic."
-      examples={GO_TO_EXAMPLES} />
+      hint={t('Try a year, a date such as 1939-09-01, or an age such as 250 Ma or Jurassic.')}
+      examples={GO_TO_EXAMPLES.map(x => ({ ...x, label: t(x.label) }))} />
   );
   const exit = <BackToLive onExit={onExit} />;
 
   return (
-    <TimelineDock label={deep ? 'Deep time timeline' : 'History timeline'} above={above} compact={compact}
-      status={<><Dot tone="muted" />{deep ? 'Deep time' : 'History'} · live layers paused</>}>
+    <TimelineDock label={deep ? t('Deep time timeline') : t('History timeline')} above={above} compact={compact}
+      status={<><Dot tone="muted" />{deep ? t('Deep time · live layers paused') : t('History · live layers paused')}</>}>
       {compact ? (
         <>
           <TimelineRow>{play}<div className="min-w-0 flex-1 overflow-hidden">{readout}</div>{goToButton}{exit}</TimelineRow>
@@ -167,7 +171,7 @@ export default function HistoryTimelineBar({ session, onExit, compact }: { sessi
           {speed}
           {scrubber}
           <div className="flex shrink-0 items-center gap-1">
-            <ChoiceMenu label="Range" value={deep ? deepRange.id : range.id} groups={RANGE_GROUPS} onChange={pickRange} />
+            <ChoiceMenu label={t('Range')} value={deep ? deepRange.id : range.id} groups={translated(RANGE_GROUPS)} onChange={pickRange} />
             {goToButton}
             <span className="mx-1 h-5 w-px bg-line" aria-hidden />
             {exit}

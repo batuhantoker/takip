@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorOf, headersFor } from '@/lib/ai/client';
+import { t } from '@/lib/core/i18n/active';
 import { REALTIME_CALLS, callIn, heardIn, saidIn, voiceInstructions } from '@/lib/ai/assist/live-voice';
 import { TOOL_NAMES, type Call, type ToolName } from '@/lib/ai/assist/protocol';
 import type { AssistClient, Auth } from './use-assist';
@@ -79,7 +80,7 @@ export function useLiveVoice(assist: AssistClient, auth: Auth | null) {
         setState(s => (s === 'speaking' ? 'listening' : s));
         return;
       case 'error': {
-        const msg = (e.error as { message?: string } | undefined)?.message ?? 'Live voice error';
+        const msg = (e.error as { message?: string } | undefined)?.message ?? t('Live voice error');
         // Asking for a response while one is still running is harmless; the turn goes on.
         if (/active response/i.test(msg)) return;
         setError(msg);
@@ -146,7 +147,7 @@ export function useLiveVoice(assist: AssistClient, auth: Auth | null) {
       dc.addEventListener('message', ev => { try { onEvent(JSON.parse(String(ev.data))); } catch { /* not an event */ } });
       dc.addEventListener('open', () => setState('listening'));
       dc.addEventListener('close', () => { if (live.current?.dc === dc) stop(); });
-      pc.addEventListener('connectionstatechange', () => { if (pc?.connectionState === 'failed') { setError('The voice connection dropped.'); stop(); setState('error'); } });
+      pc.addEventListener('connectionstatechange', () => { if (pc?.connectionState === 'failed') { setError(t('The voice connection dropped.')); stop(); setState('error'); } });
       live.current = { pc, dc, mic, audio };
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -156,7 +157,7 @@ export function useLiveVoice(assist: AssistClient, auth: Auth | null) {
     } catch (err) {
       if (!live.current) { mic?.getTracks().forEach(t => t.stop()); pc?.close(); }
       teardown();
-      setError(err instanceof Error ? (err.name === 'NotAllowedError' ? 'Microphone permission was refused.' : err.message) : 'Live voice could not start.');
+      setError(err instanceof Error ? (err.name === 'NotAllowedError' ? t('Microphone permission was refused.') : err.message) : t('Live voice could not start.'));
       setState('error');
     }
   }, [onEvent, stop, teardown]);

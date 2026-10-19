@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { t } from '@/lib/core/i18n/active';
 import { arrivalBeacons } from '@/lib/intel/cyber/malware/intel';
 import type { LayerHookArgs } from '@/components/map/types';
 
@@ -34,19 +35,19 @@ export function useCyberLayers({ mapRef, mapReady, data, activeLayers, setGeo }:
   // Malware Threats
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('malware-nodes', activeLayers.malware && data.malware_threats ? data.malware_threats.map((t: any) => ({
+    setGeo('malware-nodes', activeLayers.malware && data.malware_threats ? data.malware_threats.map((m: any) => ({
       type: 'Feature',
-      geometry: { type: 'Point', coordinates: [t.lng, t.lat] },
+      geometry: { type: 'Point', coordinates: [m.lng, m.lat] },
       properties: {
-        ip: t.ip, malware: t.malware, status: t.status, threat_type: t.threat_type,
-        country: t.country, city: t.city, port: t.port,
-        asn: t.asn, as_name: t.as_name,
+        ip: m.ip, malware: m.malware, status: m.status, threat_type: m.threat_type,
+        country: m.country, city: m.city, port: m.port,
+        asn: m.asn, as_name: m.as_name,
         // How many live malicious URLs this host serves — the dot is sized by
         // it, so a box distributing forty payloads reads bigger than one.
-        url_count: t.url_count ?? 1,
-        first_seen: t.first_seen, last_seen: t.last_seen,
-        reference: t.reference, reporter: t.reporter,
-        detected_at: t.detected_at ?? 0,
+        url_count: m.url_count ?? 1,
+        first_seen: m.first_seen, last_seen: m.last_seen,
+        reference: m.reference, reporter: m.reporter,
+        detected_at: m.detected_at ?? 0,
       },
     })) : []);
   }, [mapReady, data.malware_threats, activeLayers.malware, setGeo]);
@@ -154,7 +155,7 @@ export function useSdkLinks({ mapReady, data, activeLayers, setGeo }: LayerHookA
           geometry: cable.geometry, // Raw topographic paths exactly from Submarine Map
           properties: {
             domain: 'SEA',
-            fromName: cable.properties?.name || 'Submarine Cable',
+            fromName: cable.properties?.name || t('Submarine Cable'),
             toName: cable.properties?.landing_points || '',
             source: 'Global Subsea Cable Network',
             url: 'https://www.submarinecablemap.com/',

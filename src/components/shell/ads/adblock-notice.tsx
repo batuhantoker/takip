@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Heart, X } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, ENTER } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 import { ADBLOCK_SNOOZE_KEY, ADBLOCK_SNOOZE_MS, adblockSnoozed } from '@/lib/platform/ads';
 
 /** Long enough for the splash and a first look around. */
@@ -25,6 +26,7 @@ function snooze() {
 
 /** A friendly ask, at most once a day; nothing is held back if they say no. */
 export default function AdblockNotice() {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -44,18 +46,17 @@ export default function AdblockNotice() {
       <div className="flex items-start gap-3">
         <Heart className="mt-0.5 size-4 shrink-0 text-ink-3" strokeWidth={1.75} aria-hidden />
         <div className="min-w-0 flex-1">
-          <h2 id="adblock-title" className="text-body font-semibold text-ink-1">A small favour, if you don&apos;t mind</h2>
+          <h2 id="adblock-title" className="text-body font-semibold text-ink-1">{t("A small favour, if you don't mind")}</h2>
           <p className="mt-1 text-small text-ink-2">
-            Fair enough, ad blockers make most of the web nicer. TAKIP is free thanks to a few quiet ads, kept well away
-            from the map. If you&apos;d like to help keep it that way, you could let them through here.
+            {t("Fair enough, ad blockers make most of the web nicer. TAKIP is free thanks to a few quiet ads, kept well away from the map. If you'd like to help keep it that way, you could let them through here.")}
           </p>
-          <p className="mt-1.5 text-meta text-ink-3">Most blockers have a &ldquo;pause on this site&rdquo; option in their menu. Everything works either way, and thanks for being here.</p>
+          <p className="mt-1.5 text-meta text-ink-3">{t('Most blockers have a “pause on this site” option in their menu. Everything works either way, and thanks for being here.')}</p>
           <div className="mt-3 flex items-center gap-2">
-            <Button size="sm" onClick={() => { snooze(); location.reload(); }}>Done, reload</Button>
-            <Button size="sm" variant="ghost" onClick={dismiss}>Maybe later</Button>
+            <Button size="sm" onClick={() => { snooze(); location.reload(); }}>{t('Done, reload')}</Button>
+            <Button size="sm" variant="ghost" onClick={dismiss}>{t('Maybe later')}</Button>
           </div>
         </div>
-        <IconButton label="Dismiss" icon={X} size="sm" onClick={dismiss} className="-mt-1 -mr-1" />
+        <IconButton label={t('Dismiss')} icon={X} size="sm" onClick={dismiss} className="-mt-1 -mr-1" />
       </div>
     </div>
   );

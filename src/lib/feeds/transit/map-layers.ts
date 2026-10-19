@@ -1,4 +1,5 @@
 import type * as maplibregl from 'maplibre-gl';
+import { t } from '@/lib/core/i18n/active';
 import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/style/tokens';
 import { modesText, type TransitCities, type TransitMode } from './modes';
 import { TRANSIT_MIN_ZOOM, type TransitResponse } from './view';
@@ -131,12 +132,12 @@ let hidden = '';
 
 /** Draws the tracked vehicles where their glide has them, and hides their copies in the live layer. */
 export function setTransitTracked(map: maplibregl.Map, tracked: { key: string; at: [number, number]; bearing: number | null; mode?: TransitMode; estimated?: boolean }[]) {
-  setTransitData(map, tracked.map(t => ({
-    type: 'Feature', geometry: { type: 'Point', coordinates: t.at },
-    properties: Object.fromEntries(Object.entries({ key: t.key, bearing: t.bearing, mode: t.mode, estimated: t.estimated || null }).filter(([, x]) => x != null)),
+  setTransitData(map, tracked.map(v => ({
+    type: 'Feature', geometry: { type: 'Point', coordinates: v.at },
+    properties: Object.fromEntries(Object.entries({ key: v.key, bearing: v.bearing, mode: v.mode, estimated: v.estimated || null }).filter(([, x]) => x != null)),
   })), TRANSIT_TRACKED_SOURCE);
   // Called every animation frame; a new filter re-lays out every vehicle, so only when the set changes.
-  const keys = tracked.map(t => t.key);
+  const keys = tracked.map(v => v.key);
   if (keys.join('\n') === hidden) return;
   hidden = keys.join('\n');
   const hide: maplibregl.FilterSpecification | null = keys.length ? ['!', ['in', ['get', 'key'], ['literal', keys]]] : null;
@@ -152,14 +153,14 @@ export function setTransitData(map: maplibregl.Map, features: GeoJSON.Feature[],
 }
 
 export function setTransitTrails(map: maplibregl.Map, trails: [number, number][][]) {
-  setTransitData(map, trails.filter(t => t.length > 1).map(coordinates => ({ type: 'Feature', geometry: { type: 'LineString', coordinates }, properties: {} })), TRANSIT_TRAIL_SOURCE);
+  setTransitData(map, trails.filter(trail => trail.length > 1).map(coordinates => ({ type: 'Feature', geometry: { type: 'LineString', coordinates }, properties: {} })), TRANSIT_TRAIL_SOURCE);
 }
 
 export function transitCityFeatures({ cities }: TransitCities): GeoJSON.Feature<GeoJSON.Point>[] {
   return cities.map(c => ({
     type: 'Feature',
     geometry: { type: 'Point', coordinates: c.at },
-    properties: { name: c.name, cc: c.cc, modes: modesText(c.modes), vehicles: c.vehicles, operators: c.operators.join(' · ') },
+    properties: { name: c.name, cc: c.cc, modes: modesText(c.modes, t), vehicles: c.vehicles, operators: c.operators.join(' · ') },
   }));
 }
 

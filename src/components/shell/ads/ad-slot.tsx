@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AD_CLIENT } from '@/lib/platform/ads';
+import { useT } from '@/components/ui/use-t';
 import { useAds } from './ads-provider';
 
 declare global {
@@ -24,6 +25,7 @@ export default function AdSlot({ slot, variant, visible = true, className = '' }
   visible?: boolean;
   className?: string;
 }) {
+  const t = useT();
   const { on, blocked } = useAds();
   // Responsive units can't size inside display:none, so the first request waits until it's shown.
   const [shown, setShown] = useState(visible);
@@ -31,9 +33,9 @@ export default function AdSlot({ slot, variant, visible = true, className = '' }
 
   if (!on || blocked || !slot || !AD_CLIENT || !shown) return null;
   return (
-    <aside aria-label="Advertisement"
+    <aside aria-label={t('Advertisement')}
       className={`${visible ? '' : 'hidden'} [&:has(ins[data-ad-status=unfilled])]:hidden ${className}`}>
-      <p className="mb-1.5 text-meta text-ink-3">Advertisement</p>
+      <p className="mb-1.5 text-meta text-ink-3">{t('Advertisement')}</p>
       <AdUnit client={AD_CLIENT} slot={slot} variant={variant} />
     </aside>
   );

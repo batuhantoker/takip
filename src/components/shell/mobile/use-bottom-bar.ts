@@ -7,7 +7,7 @@ export function useBottomBar(active: boolean): number {
   const [height, setHeight] = useState(56);
   useEffect(() => {
     if (!active) return;
-    const nav = document.querySelector<HTMLElement>('nav[aria-label="Tools"]');
+    const nav = document.querySelector<HTMLElement>('nav[data-bottom-bar]');
     if (!nav) return;
     const measure = () => setHeight(Math.max(0, Math.round(window.innerHeight - nav.getBoundingClientRect().top)));
     measure();

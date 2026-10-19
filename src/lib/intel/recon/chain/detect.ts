@@ -64,6 +64,8 @@ export interface RiskFactor {
   weight: number;
   /** The observation that triggered it — always states the evidence. */
   detail: string;
+  /** The numbers and names in `detail`, so a client can say it in the reader's language. */
+  vars?: Record<string, string | number>;
 }
 
 export interface WalletIntel {

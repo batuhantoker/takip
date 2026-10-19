@@ -11,6 +11,7 @@
 import { ArrowLeft, LocateFixed, Network, X } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 import { relatedLinks, type Selection } from '@/lib/ai/workspace/selection';
 import type { RunState } from '@/lib/ai/state';
 import { TypeIcon, accentFor } from '@/components/panels/ti-agent/atoms';
@@ -48,16 +49,17 @@ function describe(sel: Selection, ctx: DescribeCtx): Described {
 }
 
 export function ObjectView({ s, sel, onSelect, onLocate, onAsk, onGraph, variant = 'card', onBack }: ObjectViewProps) {
-  const d = describe(sel, { s, onSelect, onAsk });
+  const t = useT();
+  const d = describe(sel, { s, t, onSelect, onAsk });
   const lit = relatedLinks(s, sel.key).size;
   const actions = (
     <>
-      {d.locate && <IconButton size="sm" label="Show on the map" icon={LocateFixed} onClick={() => onLocate(d.locate!.lat, d.locate!.lng, d.locate!.zoom)} />}
-      {onGraph && d.inGraph && <IconButton size="sm" label="Show in the graph" icon={Network} onClick={onGraph} />}
-      {variant === 'card' && <IconButton size="sm" label="Close" icon={X} onClick={() => onSelect(null)} />}
+      {d.locate && <IconButton size="sm" label={t('Show on the map')} icon={LocateFixed} onClick={() => onLocate(d.locate!.lat, d.locate!.lng, d.locate!.zoom)} />}
+      {onGraph && d.inGraph && <IconButton size="sm" label={t('Show in the graph')} icon={Network} onClick={onGraph} />}
+      {variant === 'card' && <IconButton size="sm" label={t('Close')} icon={X} onClick={() => onSelect(null)} />}
     </>
   );
-  const meta = [d.type, d.subtype, lit > 1 ? `${lit} links` : ''].filter(Boolean).join(' · ');
+  const meta = [d.type, d.subtype, lit > 1 ? t('{n} links', { n: lit }) : ''].filter(Boolean).join(' · ');
   const content = (
     <div className="flex flex-col gap-5">
       <div className="flex items-start gap-3">
@@ -79,7 +81,7 @@ export function ObjectView({ s, sel, onSelect, onLocate, onAsk, onGraph, variant
     return (
       <div className="flex h-full min-h-0 flex-col" aria-label={`${d.type}: ${typeof d.title === 'string' ? d.title : ''}`}>
         <div className="flex h-12 shrink-0 items-center gap-1 px-2">
-          {onBack && <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={onBack}>Back to lists</Button>}
+          {onBack && <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={onBack}>{t('Back to lists')}</Button>}
           <span className="ml-auto flex items-center gap-0.5">{actions}</span>
         </div>
         <ScrollBody className="pt-1">{content}</ScrollBody>

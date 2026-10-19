@@ -11,6 +11,7 @@
 import { canSeeImages, providerInfo } from '../providers/catalog';
 import { createChat, type ChatFn, type ChatRequest, type Delta } from '../providers/chat';
 import { ProviderError } from '../providers/errors';
+import { languageNote } from '../prompts/language';
 import type { Credentials } from '../service';
 import { parseStep, sanitizeContext, sanitizeMessages, systemPrompt, userPrompt, type AssistMessage, type Step } from './protocol';
 
@@ -54,7 +55,7 @@ export async function assistStep(body: Record<string, unknown>, creds: Credentia
     const call = chat ?? createChat(creds.provider, creds.key ?? '', model, undefined, creds.base);
     const seen = canSeeImages(creds.provider, model) ? await framesFor(last) : { images: [], note: '' };
     const out = await call({
-      system: systemPrompt(), user: userPrompt(messages, context) + seen.note, json: true, maxTokens: 1400, temperature: 0.3, timeoutMs: 45_000, signal, onDelta,
+      system: systemPrompt() + languageNote(creds.lang), user: userPrompt(messages, context) + seen.note, json: true, maxTokens: 1400, temperature: 0.3, timeoutMs: 45_000, signal, onDelta,
       ...(seen.images.length ? { images: seen.images } : {}),
     });
     return { ok: true, step: parseStep(out.text), usage: { input: out.input, output: out.output } };

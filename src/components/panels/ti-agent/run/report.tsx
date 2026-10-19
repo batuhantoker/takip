@@ -10,23 +10,25 @@ import { ArrowDownRight, ArrowUpRight, Check, Download, Link2 } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 import { toMarkdown } from '@/lib/ai/client';
 import { evidenceLedger } from '@/lib/ai/engine/sources';
-import { latestPoints, worldName, type RunState } from '@/lib/ai/state';
-import { fmtDate, leanWord, pct } from '@/components/panels/ti-agent/theme';
+import { latestPoints, type RunState } from '@/lib/ai/state';
+import { fmtDate, pct, toward } from '@/components/panels/ti-agent/theme';
 import { Avatar, Mentions, PointTag, TypeIcon } from '@/components/panels/ti-agent/atoms';
 import { PushTag, SourceLink, sourceLabel } from '@/components/panels/ti-agent/parts/quotes';
 import { Anchors, hasAnchors } from './anchors';
 
 /** How sure the report is: one to three bars, and the word. */
 function Confidence({ level }: { level: 'low' | 'medium' | 'high' }) {
+  const t = useT();
   const n = level === 'high' ? 3 : level === 'medium' ? 2 : 1;
   return (
     <span className="inline-flex items-center gap-2 text-meta font-medium text-ink-2">
       <span className="inline-flex items-end gap-0.5" aria-hidden>
         {[0, 1, 2].map(i => <span key={i} className={cx('w-[3px] rounded-[1px]', i < n ? 'bg-gold' : 'bg-surface-3')} style={{ height: 6 + i * 3 }} />)}
       </span>
-      {level[0].toUpperCase() + level.slice(1)} confidence
+      {level === 'high' ? t('High confidence') : level === 'medium' ? t('Medium confidence') : t('Low confidence')}
     </span>
   );
 }
@@ -42,12 +44,13 @@ function Chip({ on, onClick, title, children }: { on: boolean; onClick: () => vo
 }
 
 /** The engine's "YES" and "NO", as a person would write them in a sentence. */
-const plainCase = (t: string) => t.replace(/\bYES\b/g, 'yes').replace(/\bNO\b/g, 'no');
+const plainCase = (text: string) => text.replace(/\bYES\b/g, 'yes').replace(/\bNO\b/g, 'no');
 
 /** A row that opens what it is about. */
 const ROW = cx('-mx-2 flex w-[calc(100%+16px)] items-start gap-2.5 rounded-control px-2 py-2 text-left disabled:cursor-default', FOCUS_RING, TRANSITION);
 
 export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runId: string | null; selected: string | null; onSelect: (k: string | null) => void }) {
+  const t = useT();
   const r = s.report!;
   const frame = s.frame;
   const [copied, setCopied] = useState(false);
@@ -70,19 +73,22 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
   };
 
   return (
-    <section className="flex flex-col" aria-label="Prediction">
+    <section className="flex flex-col" aria-label={t('Prediction')}>
       <div>
         <div className="mb-2 flex items-center gap-2">
           <Confidence level={r.confidence} />
           <div className="-mr-2 ml-auto flex items-center">
-            <Button variant="ghost" size="sm" icon={copied ? Check : Link2} onClick={copy} title="Copy a link that replays this run">{copied ? 'Copied' : 'Copy link'}</Button>
-            <Button variant="ghost" size="sm" icon={Download} onClick={download} title="Download the prediction as Markdown">Export</Button>
+            <Button variant="ghost" size="sm" icon={copied ? Check : Link2} onClick={copy} title={t('Copy a link that replays this run')}>{copied ? t('Copied') : t('Copy link')}</Button>
+            <Button variant="ghost" size="sm" icon={Download} onClick={download} title={t('Download the prediction as Markdown')}>{t('Export')}</Button>
           </div>
         </div>
         <h3 className="text-title font-semibold text-ink-1">{r.headline}</h3>
         {frame?.kind === 'binary' && !hasAnchors(s) && (
-          <p className="mt-1 text-meta text-ink-3" title="The simulated worlds pooled, and the report's calibrated figure">
-            Worlds pooled <span className="font-mono text-ink-2 tabular-nums">{pct(r.swarm)}</span> · calibrated <span className="font-mono text-ink-1 tabular-nums">{pct(r.probability)}</span>
+          <p className="mt-1 text-meta text-ink-3" title={t("The simulated worlds pooled, and the report's calibrated figure")}>
+            {t.rich('Worlds pooled {pooled} · calibrated {calibrated}', {
+              pooled: <span className="font-mono text-ink-2 tabular-nums">{pct(r.swarm)}</span>,
+              calibrated: <span className="font-mono text-ink-1 tabular-nums">{pct(r.probability)}</span>,
+            })}
           </p>
         )}
         {r.deviation && <p className="mt-2 text-small text-ink-3 italic">{r.deviation}</p>}
@@ -92,13 +98,13 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
       <div className="mt-6"><Anchors s={s} selected={selected} onSelect={onSelect} /></div>
 
       {r.path.length > 0 && (
-        <PanelSection title="How it unfolds" hint={r.path.length}>
+        <PanelSection title={t('How it unfolds')} hint={r.path.length}>
           <ol className="relative flex flex-col gap-4 pl-5">
             <span aria-hidden className="absolute top-2 bottom-2 left-[3px] w-px bg-line-strong" />
             {r.path.map((p, i) => (
               <li key={i} className="relative">
                 <span aria-hidden className={cx('absolute top-[5px] -left-5 size-[7px] rounded-full', i === r.path.length - 1 ? 'bg-gold' : 'bg-surface-1 ring-1 ring-ink-3')} />
-                <span className="block font-mono text-meta text-ink-3 tabular-nums">{fmtDate(p.date)}</span>
+                <span className="block font-mono text-meta text-ink-3 tabular-nums">{fmtDate(p.date, t)}</span>
                 <span className="mt-0.5 block text-body font-medium text-ink-1"><Mentions text={p.title} s={s} onSelect={onSelect} /></span>
                 {p.detail && <span className="mt-0.5 block text-small text-ink-2"><Mentions text={p.detail} s={s} onSelect={onSelect} /></span>}
                 {p.actors.length > 0 && (
@@ -113,7 +119,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
       )}
 
       {r.actorMoves.length > 0 && (
-        <PanelSection title="What each actor does" hint={r.actorMoves.length}>
+        <PanelSection title={t('What each actor does')} hint={r.actorMoves.length}>
           {r.actorMoves.map(m => {
             const key = `a:${m.actor}`;
             return (
@@ -130,7 +136,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
       )}
 
       {r.worlds.length > 0 && (
-        <PanelSection title="How each world ended" hint={r.worlds.length}>
+        <PanelSection title={t('How each world ended')} hint={r.worlds.length}>
           <div className="flex flex-col gap-2">
             {r.worlds.map(w => {
               const key = `w:${w.world}`;
@@ -141,7 +147,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
                   className={cx('rounded-card border p-3 text-left', on ? 'border-line-strong bg-surface-3' : 'border-line hover:bg-surface-2', FOCUS_RING, TRANSITION)}>
                   <span className="flex items-center gap-2">
                     <TypeIcon k={key} className="size-3.5 shrink-0 text-gold" />
-                    <span className="text-small font-medium text-ink-2">{worldName(w.world)}</span>
+                    <span className="text-small font-medium text-ink-2">{t('World {w}', { w: w.world })}</span>
                     {point && <span className="ml-auto"><PointTag point={point} frame={frame} /></span>}
                   </span>
                   <span className="mt-1.5 block text-body font-medium text-ink-1 first-letter:uppercase">{plainCase(w.outcome)}</span>
@@ -154,7 +160,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
       )}
 
       {r.drivers.length > 0 && (
-        <PanelSection title="Drivers" hint={r.drivers.length}>
+        <PanelSection title={t('Drivers')} hint={r.drivers.length}>
           {r.drivers.map((d, i) => {
             const actorKey = d.actor ? `a:${d.actor}` : null;
             const Icon = d.push === 'yes' ? ArrowUpRight : ArrowDownRight;
@@ -163,7 +169,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
                 <button type="button" disabled={!actorKey} onClick={() => actorKey && toggle(actorKey)} className={cx(ROW, 'enabled:hover:bg-surface-2')}>
                   <Icon aria-hidden className="mt-0.5 size-3.5 shrink-0 text-ink-3" strokeWidth={2} />
                   <span className="min-w-0 flex-1 text-small text-ink-1">{d.text}</span>
-                  <span className="mt-px shrink-0 text-meta text-ink-3">Toward {leanWord(frame, d.push, d.favors)}</span>
+                  <span className="mt-px shrink-0 text-meta text-ink-3">{toward(t, frame, d.push, d.favors)}</span>
                 </button>
                 {(d.sources?.length ?? 0) > 0 && (
                   <div className="mb-1.5 ml-6 flex flex-wrap gap-1">
@@ -173,7 +179,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
                       return (
                         <Chip key={id} on={key === selected} onClick={() => toggle(key)} title={c?.title ?? id}>
                           <TypeIcon k={key} subtype={c?.kind} className="size-3 shrink-0" />
-                          <span className="truncate">{sourceLabel(c, id)}</span>
+                          <span className="truncate">{sourceLabel(c, id, t)}</span>
                           <span className="font-mono text-ink-3">[{id}]</span>
                         </Chip>
                       );
@@ -187,8 +193,8 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
       )}
 
       {ledger.length > 0 && (
-        <PanelSection title="Evidence that moved the actors" hint={ledger.length}
-          action={ledger.length > 6 ? <Button variant="ghost" size="sm" onClick={() => setShowAll(v => !v)}>{showAll ? 'Show fewer' : `Show all ${ledger.length}`}</Button> : undefined}>
+        <PanelSection title={t('Evidence that moved the actors')} hint={ledger.length}
+          action={ledger.length > 6 ? <Button variant="ghost" size="sm" onClick={() => setShowAll(v => !v)}>{showAll ? t('Show fewer') : t('Show all {n}', { n: ledger.length })}</Button> : undefined}>
           {ledger.slice(0, showAll ? undefined : 6).map(row => {
             const c = s.context.find(x => x.id === row.source);
             const key = `c:${row.source}`;
@@ -201,9 +207,9 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
                   <span className="line-clamp-2 text-small text-ink-1">{c?.kind === 'data' && c.id !== 'data' ? `“${c.title}”` : c?.title ?? row.source}</span>
                   <span className="mt-1 flex items-center gap-1.5 text-meta text-ink-3">
                     <TypeIcon k={key} subtype={c?.kind} className="size-3 shrink-0" />
-                    <span className="truncate">{sourceLabel(c, row.source)}</span>
+                    <span className="truncate">{sourceLabel(c, row.source, t)}</span>
                     <span className="shrink-0 font-mono">[{row.source}]</span>
-                    <span className="shrink-0">· quoted <span className="font-mono tabular-nums">{row.quoted}</span>× by <span className="font-mono tabular-nums">{row.actors.length}</span></span>
+                    <span className="shrink-0">· {t.rich('quoted {times}× by {actors}', { times: <span className="font-mono tabular-nums">{row.quoted}</span>, actors: <span className="font-mono tabular-nums">{row.actors.length}</span> })}</span>
                   </span>
                 </button>
                 <span className="mt-0.5 flex shrink-0 items-center gap-2">
@@ -217,7 +223,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
       )}
 
       {r.scenarios.length > 0 && (
-        <PanelSection title="Scenarios" hint={r.scenarios.length}>
+        <PanelSection title={t('Scenarios')} hint={r.scenarios.length}>
           <div className="flex flex-col gap-1">
             {r.scenarios.map((sc, i) => {
               const key = `s:${i}`;
@@ -242,14 +248,14 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
       )}
 
       {r.signposts.length > 0 && (
-        <PanelSection title="Signposts to watch" hint={r.signposts.length}>
+        <PanelSection title={t('Signposts to watch')} hint={r.signposts.length}>
           {r.signposts.map((sp, i) => {
             const key = `p:${i}`;
             return (
               <button key={i} type="button" onClick={() => toggle(key)} className={cx(ROW, selected === key ? 'bg-surface-3' : 'hover:bg-surface-2')}>
                 <span aria-hidden className="mt-[6px] size-1.5 shrink-0 rotate-45 bg-ink-3" />
                 <span className="min-w-0 flex-1 text-small text-ink-1">{sp.text}{sp.place && <span className="text-ink-3"> · {sp.place}</span>}</span>
-                <span className="mt-px shrink-0 text-meta text-ink-3">Toward {leanWord(frame, sp.means, sp.favors)}</span>
+                <span className="mt-px shrink-0 text-meta text-ink-3">{toward(t, frame, sp.means, sp.favors)}</span>
               </button>
             );
           })}
@@ -257,12 +263,12 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
       )}
 
       {r.dissent && (
-        <PanelSection title="Dissent">
+        <PanelSection title={t('Dissent')}>
           <blockquote className="border-l-2 border-line-strong pl-3 text-small text-ink-2"><Mentions text={r.dissent} s={s} onSelect={onSelect} /></blockquote>
         </PanelSection>
       )}
       {r.caveats.length > 0 && (
-        <PanelSection title="Caveats">
+        <PanelSection title={t('Caveats')}>
           <ul className="flex flex-col gap-1.5">
             {r.caveats.map((c, i) => <li key={i} className="flex gap-2 text-small text-ink-2"><span aria-hidden className="mt-[7px] size-1 shrink-0 rounded-full bg-ink-4" />{c}</li>)}
           </ul>

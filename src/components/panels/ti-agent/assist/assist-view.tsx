@@ -12,6 +12,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Navigation, ScanSearch, Search, type LucideIcon } from 'lucide-react';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import type { AiClient } from '@/components/panels/ti-agent/use-ai';
 import type { AssistClient, Auth } from './use-assist';
 import { useLiveVoice } from './use-live-voice';
@@ -24,9 +26,9 @@ import { canSpeak, useDictation } from './voice';
 
 /** Three things worth trying first: go somewhere, find what is live, and make sense of the view. */
 const SUGGESTIONS: { icon: LucideIcon; text: string; mode: Mode }[] = [
-  { icon: Navigation, text: 'Show the ships in the Strait of Hormuz', mode: 'navigate' },
-  { icon: Search, text: 'Military aircraft near the Baltic Sea', mode: 'research' },
-  { icon: ScanSearch, text: 'What am I looking at?', mode: 'research' },
+  { icon: Navigation, text: msg('Show the ships in the Strait of Hormuz'), mode: 'navigate' },
+  { icon: Search, text: msg('Military aircraft near the Baltic Sea'), mode: 'research' },
+  { icon: ScanSearch, text: msg('What am I looking at?'), mode: 'research' },
 ];
 
 export type TiAssist = AssistClient & {
@@ -66,6 +68,7 @@ function readDraft(): { text: string; mode: Mode } {
 
 export function AssistView(p: AssistViewProps) {
   const { assist } = p;
+  const t = useT();
   const [draft] = useState(readDraft);
   const [text, setText] = useState(draft.text);
   const [mode, setMode] = useState<Mode>(draft.mode);
@@ -76,9 +79,9 @@ export function AssistView(p: AssistViewProps) {
   const scroller = useRef<HTMLDivElement>(null);
   const end = useRef<HTMLDivElement>(null);
 
-  const send = (t: string, m: Mode = mode) => {
-    if (!t.trim() || !p.ready || assist.busy) return;
-    p.onSend(t.trim(), m);
+  const send = (said: string, m: Mode = mode) => {
+    if (!said.trim() || !p.ready || assist.busy) return;
+    p.onSend(said.trim(), m);
     setText('');
   };
   const dictation = useDictation(heard => send(heard));
@@ -97,20 +100,20 @@ export function AssistView(p: AssistViewProps) {
   }, [assist.entries.length, lastSize, p.embedded]);
 
   // Without a key a suggestion waits in the box while the key goes in.
-  const tryIt = (t: string, m: Mode) => {
-    if (p.ready) send(t, m);
-    else { setText(t); setMode(m); setAddingKey(true); }
+  const tryIt = (said: string, m: Mode) => {
+    if (p.ready) send(said, m);
+    else { setText(said); setMode(m); setAddingKey(true); }
   };
 
   const body = assist.entries.length === 0 ? (
     <div>
       <p className="text-body leading-5 text-ink-2">
-        Ask about anything on the map. TI can fly there, switch on the right layers and mark what it finds.
+        {t('Ask about anything on the map. TI can fly there, switch on the right layers and mark what it finds.')}
       </p>
-      <PanelSection title="Try asking">
+      <PanelSection title={t('Try asking')}>
         {SUGGESTIONS.map(s => {
           const Icon = s.icon;
-          return <ListRow key={s.text} leading={<Icon aria-hidden className="size-4" strokeWidth={1.75} />} title={s.text} onClick={() => tryIt(s.text, s.mode)} />;
+          return <ListRow key={s.text} leading={<Icon aria-hidden className="size-4" strokeWidth={1.75} />} title={t(s.text)} onClick={() => tryIt(t(s.text), s.mode)} />;
         })}
       </PanelSection>
     </div>
@@ -118,7 +121,7 @@ export function AssistView(p: AssistViewProps) {
     <div className="flex flex-col gap-6" aria-live="polite">
       {assist.entries.map(e => (
         <Turn key={e.id} e={e} ai={p.ai} hands={{ onLocate: p.onLocate, setLayers: assist.setLayers }}
-          onOpenForecast={p.onOpenForecast} onWorkspace={p.onWorkspace} onRetry={(t, m) => send(t, m)} />
+          onOpenForecast={p.onOpenForecast} onWorkspace={p.onWorkspace} onRetry={(said, m) => send(said, m)} />
       ))}
     </div>
   );

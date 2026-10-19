@@ -216,10 +216,10 @@ export function priceDecimals(q: Pick<MarketQuote, 'symbol' | 'price' | 'group'>
   return 2;
 }
 
-export function formatPrice(q: Pick<MarketQuote, 'symbol' | 'price' | 'group'>, value = q.price): string {
+export function formatPrice(q: Pick<MarketQuote, 'symbol' | 'price' | 'group'>, value = q.price, intl = 'en-US'): string {
   if (!Number.isFinite(value)) return '—';
   const digits = priceDecimals(q);
-  return value.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return value.toLocaleString(intl, { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 /** Net change on the day: from the previous close when there is one, else backed out of the percentage. */
@@ -230,10 +230,10 @@ export function netChange(q: Pick<MarketQuote, 'price' | 'change_percent' | 'pre
 }
 
 /** "+12.50", "−0.0040" — signed, with a real minus, at the quote's precision. */
-export function formatNet(q: Pick<MarketQuote, 'symbol' | 'price' | 'group'>, net: number | null): string {
+export function formatNet(q: Pick<MarketQuote, 'symbol' | 'price' | 'group'>, net: number | null, intl = 'en-US'): string {
   if (net == null || !Number.isFinite(net)) return '—';
-  const text = formatPrice(q, Math.abs(net));
-  if (Number(text.replace(/,/g, '')) === 0) return text;
+  const text = formatPrice(q, Math.abs(net), intl);
+  if (Number(Math.abs(net).toFixed(priceDecimals(q))) === 0) return text;
   return `${net > 0 ? '+' : '−'}${text}`;
 }
 

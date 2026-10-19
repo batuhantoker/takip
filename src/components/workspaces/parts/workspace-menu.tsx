@@ -9,6 +9,7 @@ import { MENU_ITEM } from '@/components/ui/menu-styles';
 import { describeWorkspaceFailure, SIGN_IN_TO_SAVE } from '@/components/workspaces/messages';
 import { useWorkspace } from '@/components/workspaces/use-workspace';
 import { showWorkspaceDialog, type WorkspaceDialog } from '@/components/workspaces/workspace-dialog-state';
+import { useT } from '@/components/ui/use-t';
 
 const PANEL = 'absolute top-full mt-2 z-[1000] w-64 max-w-[calc(100vw-24px)] rounded-float bg-surface-1 border border-line shadow-float p-1';
 const RECENT = 5;
@@ -31,6 +32,7 @@ function Item({ icon, label, detail, onClick, disabled, expanded }: {
 const Divider = () => <div className="my-1 h-px bg-line" />;
 
 export default function WorkspaceMenu({ id, align, signedIn, onDone }: { id: string; align: 'left' | 'right'; signedIn: boolean; onDone: () => void }) {
+  const t = useT();
   const { current, shared, list, problem, status } = useWorkspace();
   const [opening, setOpening] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export default function WorkspaceMenu({ id, align, signedIn, onDone }: { id: str
   };
   const act = async (action: () => Promise<{ error: string; status: number } | null>) => {
     const failure = await action();
-    if (failure) setNote(describeWorkspaceFailure(failure));
+    if (failure) setNote(describeWorkspaceFailure(failure, t));
     else onDone();
   };
   const toggleOpen = () => {
@@ -51,11 +53,11 @@ export default function WorkspaceMenu({ id, align, signedIn, onDone }: { id: str
   };
   const importDevice = async () => {
     const result = await session.importDevice();
-    setNote('id' in result ? `Saved as “${result.name}”. Find it under Open.` : describeWorkspaceFailure(result));
+    setNote('id' in result ? t('Saved as “{name}”. Find it under Open.', { name: result.name }) : describeWorkspaceFailure(result, t));
   };
 
   const others = (list ?? []).filter(w => w.id !== current?.id).slice(0, RECENT);
-  const message = note ?? (problem && !shared ? describeWorkspaceFailure(problem) : null);
+  const message = note ?? (problem && !shared ? describeWorkspaceFailure(problem, t) : null);
 
   return (
     <motion.div
@@ -71,27 +73,27 @@ export default function WorkspaceMenu({ id, align, signedIn, onDone }: { id: str
 
       {shared ? (
         <>
-          <div className="px-2.5 py-2 text-[11px] text-ink-3">Someone shared this view with you. Changes here aren&apos;t saved.</div>
+          <div className="px-2.5 py-2 text-[11px] text-ink-3">{t("Someone shared this view with you. Changes here aren't saved.")}</div>
           {signedIn
-            ? <Item icon={<CopyPlus />} label="Save a copy…" onClick={() => dialog({ kind: 'name', mode: 'copy' })} />
-            : <Item icon={<LogIn />} label="Sign in to save a copy" onClick={() => { onDone(); showAccountDialog({ kind: 'sign-in', notice: SIGN_IN_TO_SAVE }); }} />}
-          <Item icon={<ArrowLeft />} label={current ? `Back to “${current.name}”` : 'Back to my view'} onClick={() => act(async () => { await session.leaveShared(); return null; })} />
+            ? <Item icon={<CopyPlus />} label={t('Save a copy…')} onClick={() => dialog({ kind: 'name', mode: 'copy' })} />
+            : <Item icon={<LogIn />} label={t('Sign in to save a copy')} onClick={() => { onDone(); showAccountDialog({ kind: 'sign-in', notice: t(SIGN_IN_TO_SAVE) }); }} />}
+          <Item icon={<ArrowLeft />} label={current ? t('Back to “{name}”', { name: current.name }) : t('Back to my view')} onClick={() => act(async () => { await session.leaveShared(); return null; })} />
         </>
       ) : (
         <>
-          <Item icon={<Save />} label="Save" detail={current ? (status === 'saved' ? 'Saved; changes save as you go' : undefined) : 'Name this view to keep it'}
+          <Item icon={<Save />} label={t('Save')} detail={current ? (status === 'saved' ? t('Saved; changes save as you go') : undefined) : t('Name this view to keep it')}
             onClick={() => (current ? act(session.save) : dialog({ kind: 'name', mode: 'save-as' }))} />
-          <Item icon={<CopyPlus />} label="Save as…" onClick={() => dialog({ kind: 'name', mode: 'save-as' })} />
-          <Item icon={<Link2 />} label="Share link…" detail={current?.shareSlug ? 'Shared by link' : undefined} onClick={() => dialog({ kind: 'share' })} />
+          <Item icon={<CopyPlus />} label={t('Save as…')} onClick={() => dialog({ kind: 'name', mode: 'save-as' })} />
+          <Item icon={<Link2 />} label={t('Share link…')} detail={current?.shareSlug ? t('Shared by link') : undefined} onClick={() => dialog({ kind: 'share' })} />
         </>
       )}
 
       {signedIn && (
         <>
-          <Item icon={<FolderOpen />} label="Open" expanded={opening} onClick={toggleOpen} />
+          <Item icon={<FolderOpen />} label={t('Open')} expanded={opening} onClick={toggleOpen} />
           {opening && (
-            <div role="group" aria-label="Workspaces" className="ml-6 border-l border-line">
-              {list === null && <div className="px-2.5 py-1.5 text-[11px] text-ink-3">Loading…</div>}
+            <div role="group" aria-label={t('Workspaces')} className="ml-6 border-l border-line">
+              {list === null && <div className="px-2.5 py-1.5 text-[11px] text-ink-3">{t('Loading…')}</div>}
               {others.map(w => (
                 <button key={w.id} type="button" role="menuitem" onClick={() => act(() => session.open(w.id))} className={MENU_ITEM}>
                   <span className="text-[13px] text-ink-1 truncate">{w.name}</span>
@@ -99,19 +101,19 @@ export default function WorkspaceMenu({ id, align, signedIn, onDone }: { id: str
               ))}
               {(list?.length ?? 0) > 0 && (
                 <button type="button" role="menuitem" onClick={() => dialog({ kind: 'open' })} className={MENU_ITEM}>
-                  <span className="text-[11px] text-ink-2">All workspaces…</span>
+                  <span className="text-[11px] text-ink-2">{t('All workspaces…')}</span>
                 </button>
               )}
               <button type="button" role="menuitem" onClick={() => dialog({ kind: 'name', mode: 'new' })} className={MENU_ITEM}>
                 <Plus className="w-3 h-3 shrink-0 text-ink-3" aria-hidden />
-                <span className="text-[13px] text-ink-1">New workspace…</span>
+                <span className="text-[13px] text-ink-1">{t('New workspace…')}</span>
               </button>
             </div>
           )}
           {!shared && (
             <>
               <Divider />
-              <Item icon={<HardDriveUpload />} label="Import from this device" detail="Layers, areas, places and watchlist saved here" onClick={importDevice} />
+              <Item icon={<HardDriveUpload />} label={t('Import from this device')} detail={t('Layers, areas, places and watchlist saved here')} onClick={importDevice} />
             </>
           )}
         </>

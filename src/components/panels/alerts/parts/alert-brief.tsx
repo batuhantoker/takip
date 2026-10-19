@@ -3,18 +3,20 @@
 import { RefreshCw } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
 import type { AlertBrief, AlertThread } from '@/lib/intel/alerts/digest';
-import { ago, magnitude, plural } from '@/components/panels/alerts/format';
+import { ago, magnitude } from '@/components/panels/alerts/format';
 import { TiGlyph } from '@/components/panels/ti-agent/atoms';
 import { Spinner } from '@/components/panels/alerts/rows/row-parts';
 import type { Overview } from '@/components/panels/alerts/hooks/use-overview';
 
-const authorship = (by: string) => (by === 'gemini' ? 'Written by Gemini 2.0 Flash.' : 'Written by rules, without an AI model.');
+const authorship = (by: string, t: Translate) => (by === 'gemini' ? t('Written by Gemini 2.0 Flash.') : t('Written by rules, without an AI model.'));
 
 const SIDES: Record<AlertThread['perspective'], string> = {
-  cross: 'carried by both sides',
-  single: 'one side only',
-  mixed: 'mixed sourcing',
+  cross: msg('carried by both sides'),
+  single: msg('one side only'),
+  mixed: msg('mixed sourcing'),
 };
 
 /** TI's read of the feed: prose first, then the stories it found, then where it came from. */
@@ -24,23 +26,24 @@ export function BriefCard({ overview, now, activeThreadId, onThreadSelect }: {
   activeThreadId?: string | null;
   onThreadSelect?: (id: string | null) => void;
 }) {
+  const t = useT();
   const { loading, result, error, stale, generate, notice } = overview;
   const brief = result?.brief;
 
   return (
-    <section aria-label="Brief" aria-busy={loading} className="rounded-card border border-line bg-surface-2 p-3">
+    <section aria-label={t('Brief')} aria-busy={loading} className="rounded-card border border-line bg-surface-2 p-3">
       <header className="-mt-1 -mr-1 mb-2 flex items-center gap-2">
         <TiGlyph className="size-3.5" />
         <span className="min-w-0 flex-1 truncate text-meta font-medium text-ink-2">
-          {loading ? 'Reading the feed…' : result ? `Brief · ${ago(result.generatedAt, now)}` : 'Brief'}
+          {loading ? t('Reading the feed…') : result ? `${t('Brief')} · ${ago(result.generatedAt, now, t)}` : t('Brief')}
         </span>
-        <IconButton size="sm" label="Write it again" icon={loading ? Spinner : RefreshCw} disabled={loading} onClick={generate} />
+        <IconButton size="sm" label={t('Write it again')} icon={loading ? Spinner : RefreshCw} disabled={loading} onClick={generate} />
       </header>
 
       {stale && !loading && (
         <p className="mb-2 flex items-center gap-2 text-small text-ink-2">
-          New alerts have come in since.
-          <button type="button" onClick={generate} className={cx('text-accent hover:underline', FOCUS_RING)}>Update</button>
+          {t('New alerts have come in since.')}
+          <button type="button" onClick={generate} className={cx('text-accent hover:underline', FOCUS_RING)}>{t('Update')}</button>
         </p>
       )}
 
@@ -55,7 +58,7 @@ export function BriefCard({ overview, now, activeThreadId, onThreadSelect }: {
       {error && (
         <div className="flex flex-col items-start gap-2">
           <p className="text-small text-ink-2">{error}</p>
-          <Button size="sm" onClick={generate}>Try again</Button>
+          <Button size="sm" onClick={generate}>{t('Try again')}</Button>
         </div>
       )}
 
@@ -63,7 +66,7 @@ export function BriefCard({ overview, now, activeThreadId, onThreadSelect }: {
       {result && !brief && (
         <>
           <PlainBrief text={result.overview} highlights={result.highlights} />
-          <p className="mt-3 text-meta text-ink-3">{authorship(result.generatedBy)}</p>
+          <p className="mt-3 text-meta text-ink-3">{authorship(result.generatedBy, t)}</p>
         </>
       )}
       {notice && <p className="mt-1 text-meta text-ink-3">{notice}</p>}
@@ -91,30 +94,34 @@ function AlertsBrief({ result, brief, now, activeThreadId, onThreadSelect }: {
   activeThreadId?: string | null;
   onThreadSelect?: (id: string | null) => void;
 }) {
+  const t = useT();
   const prose = result.generatedBy === 'gemini' ? result.overview : brief.bottomLine;
   const quake = /quake/i.test(prose) ? null : brief.seismic?.strongest;
   const c = brief.coverage;
+  const newest = c.newest ? ago(c.newest, now, t) : '';
+  const quakeVars = quake && { magnitude: <span className="font-mono text-ink-1 tabular-nums">{magnitude(quake)}</span>, place: quake.place };
   return (
     <>
       <p className="text-body whitespace-pre-line text-ink-1">{prose}</p>
 
       {brief.threads.length > 0 && (
         <div className="mt-3">
-          <p className="mb-1 text-meta font-medium text-ink-3">Stories{onThreadSelect && ' · pick one to filter the list'}</p>
+          <p className="mb-1 text-meta font-medium text-ink-3">{t('Stories')}{onThreadSelect && ` · ${t('pick one to filter the list')}`}</p>
           <ul className="-mx-2 flex flex-col">
-            {brief.threads.map(t => {
-              const on = activeThreadId === t.id;
+            {brief.threads.map(th => {
+              const on = activeThreadId === th.id;
               return (
-                <li key={t.id}>
-                  <button type="button" disabled={!onThreadSelect} aria-pressed={on} onClick={() => onThreadSelect?.(on ? null : t.id)}
+                <li key={th.id}>
+                  <button type="button" disabled={!onThreadSelect} aria-pressed={on} onClick={() => onThreadSelect?.(on ? null : th.id)}
                     className={cx('flex min-h-8 w-full items-baseline gap-2 rounded-control px-2 py-1.5 text-left', on ? 'bg-surface-3' : 'enabled:hover:bg-surface-3', FOCUS_RING, TRANSITION)}>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-small font-medium text-ink-1">{t.label}</span>
+                      <span className="block truncate text-small font-medium text-ink-1">{th.label}</span>
                       <span className="block truncate text-meta text-ink-3">
-                        {SIDES[t.perspective]} · {plural(t.sources.length, 'channel')}{t.breaking > 0 ? ` · ${t.breaking} breaking` : ''}
+                        {t(SIDES[th.perspective])} · {t('{n, plural, one {# channel} other {# channels}}', { n: th.sources.length })}
+                        {th.breaking > 0 ? ` · ${t('{n} breaking', { n: th.breaking })}` : ''}
                       </span>
                     </span>
-                    <span className="shrink-0 font-mono text-meta text-ink-2 tabular-nums">{t.count}</span>
+                    <span className="shrink-0 font-mono text-meta text-ink-2 tabular-nums">{th.count}</span>
                   </button>
                 </li>
               );
@@ -123,17 +130,23 @@ function AlertsBrief({ result, brief, now, activeThreadId, onThreadSelect }: {
         </div>
       )}
 
-      {quake && (
+      {quake && quakeVars && (
         <p className="mt-3 text-small text-ink-2">
-          Strongest earthquake: <span className="font-mono text-ink-1 tabular-nums">{magnitude(quake)}</span>, {quake.place}
-          {quake.tsunami && ', with a tsunami flag'}.
+          {quake.tsunami
+            ? t.rich('Strongest earthquake: {magnitude}, {place}, with a tsunami flag.', quakeVars)
+            : t.rich('Strongest earthquake: {magnitude}, {place}.', quakeVars)}
         </p>
       )}
 
       <p className="mt-3 text-meta text-ink-3">
-        From {plural(c.reports, 'report')} on {plural(c.channels, 'channel')}
-        {c.corroborated > 0 && `, ${c.corroborated} cross-posted`}
-        {c.newest && `, newest ${ago(c.newest, now)}`}. Stories are grouped by keyword and not verified. {authorship(result.generatedBy)}
+        {t('From {reports, plural, one {# report} other {# reports}} on {channels, plural, one {# channel} other {# channels}}{crossPosted, select, yes {, {corroborated} cross-posted} other {}}{fresh, select, yes {, newest {newest}} other {}}.', {
+          reports: c.reports,
+          channels: c.channels,
+          crossPosted: c.corroborated > 0 ? 'yes' : 'no',
+          corroborated: c.corroborated,
+          fresh: newest ? 'yes' : 'no',
+          newest,
+        })} {t('Stories are grouped by keyword and not verified.')} {authorship(result.generatedBy, t)}
       </p>
     </>
   );

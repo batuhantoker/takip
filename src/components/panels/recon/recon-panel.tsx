@@ -5,6 +5,7 @@ import { Maximize2 } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { Panel } from '@/components/ui/panel';
 import { useEscape } from '@/components/ui/use-escape';
+import { useT } from '@/components/ui/use-t';
 import DonBotScan from '@/components/panels/markets/donbot-scan';
 import { toolById } from './recon-tools';
 import { useReconLookup } from './use-recon-lookup';
@@ -27,6 +28,7 @@ interface OsintPanelProps {
 }
 
 function OsintPanelInner({ isMobile, onClose, onSweepVisualize, onScanGeolocate }: OsintPanelProps) {
+  const t = useT();
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [railFilter, setRailFilter] = useState('');
@@ -93,11 +95,11 @@ function OsintPanelInner({ isMobile, onClose, onSweepVisualize, onScanGeolocate 
             isp: geo.isp || 'Unknown', org: geo.org || 'Unknown', as: geo.as || 'Unknown', type: 'self_track',
           });
         } else {
-          setSelfTrackError('Couldn’t work out your location from your IP.');
+          setSelfTrackError(t('Couldn’t work out your location from your IP.'));
         }
       })
-      .catch(() => { setSelfTracking(false); setSelfTrackError('Couldn’t reach the location service. Check your connection and try again.'); });
-  }, [onScanGeolocate]);
+      .catch(() => { setSelfTracking(false); setSelfTrackError(t('Couldn’t reach the location service. Check your connection and try again.')); });
+  }, [onScanGeolocate, t]);
 
   const listProps = { activeTool, onPick: (id: string) => openTool(id), onSelfTrack: handleSelfTrack, selfTracking };
   // Said once, before anything is typed; hidden while a lookup's own sign-in notice is showing.
@@ -144,11 +146,11 @@ function OsintPanelInner({ isMobile, onClose, onSweepVisualize, onScanGeolocate 
 
   return (
     <Panel
-      title="Recon"
-      subtitle="Look up an IP, domain, username or phone number"
+      title={t('Recon')}
+      subtitle={t('Look up an IP, domain, username or phone number')}
       onClose={onClose}
       closeOnEscape={false}
-      actions={<IconButton label="Open full screen" icon={Maximize2} onClick={() => setIsFullScreen(true)} />}
+      actions={<IconButton label={t('Open full screen')} icon={Maximize2} onClick={() => setIsFullScreen(true)} />}
       footer={askToSignIn ? <SignInFooter /> : undefined}
     >
       {body}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { Translate } from '@/lib/core/i18n/translator';
 import { geocodeCell } from '@/lib/places/pointer-place';
 import { seaName } from './format';
 
@@ -40,8 +41,13 @@ export function usePlaceName(lat: number | null, lng: number | null): Place | nu
   return cache.get(key) ?? last;
 }
 
+/** The place's name, with a sea's in the reader's language. */
+export const placeName = (t: Translate, place: Place) => (place.sea ? t(place.name) : place.name);
+
 /** "Near Hoboken, New Jersey" on land, "Over the North Atlantic Ocean" at sea. */
-export function describePlace(place: Place | null, atSea = 'Over the '): string | null {
+export function describePlace(t: Translate, place: Place | null, atSea: 'over' | 'in' | 'near' = 'over'): string | null {
   if (!place) return null;
-  return place.sea ? `${atSea}${place.name}` : `Near ${place.name}`;
+  if (!place.sea) return t('Near {place}', { place: place.name });
+  const sea = t(place.name);
+  return atSea === 'in' ? t('In the {sea}', { sea }) : atSea === 'near' ? t('Near the {sea}', { sea }) : t('Over the {sea}', { sea });
 }

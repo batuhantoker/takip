@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { cx, TRANSITION } from '@/components/ui/class-names';
 import { Dot, type DotTone } from '@/components/ui/tag';
 import { Figure } from '@/components/ui/figure';
+import { useT } from '@/components/ui/use-t';
 import { fullDate, stamp } from '@/components/panels/alerts/format';
 
 /**
@@ -25,6 +26,7 @@ export function AlertRow({ tone, toneLabel, title, meta, ts, now, selected, onSe
   /** The open row's detail. */
   children?: ReactNode;
 }) {
+  const t = useT();
   return (
     <li className={cx(
       'group/row relative -mx-2 flex gap-3 rounded-control px-2 py-2',
@@ -33,7 +35,7 @@ export function AlertRow({ tone, toneLabel, title, meta, ts, now, selected, onSe
     )}>
       {/* Same 16 px leading slot as ListRow, so titles line up with every other panel's rows. */}
       <span className="flex h-[18px] w-4 shrink-0 items-center justify-center">
-        <Dot tone={tone} label={toneLabel} />
+        <Dot tone={tone} label={toneLabel && t(toneLabel)} />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-start gap-3">
@@ -50,8 +52,8 @@ export function AlertRow({ tone, toneLabel, title, meta, ts, now, selected, onSe
           >
             {title}
           </button>
-          <time dateTime={new Date(ts).toISOString()} title={fullDate(ts)} className="shrink-0 pt-px text-meta text-ink-3">
-            <Figure>{stamp(ts, now)}</Figure>
+          <time dateTime={new Date(ts).toISOString()} title={fullDate(ts, t)} className="shrink-0 pt-px text-meta text-ink-3">
+            <Figure>{stamp(ts, now, t)}</Figure>
           </time>
         </div>
         {meta && <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-small text-ink-3">{meta}</div>}

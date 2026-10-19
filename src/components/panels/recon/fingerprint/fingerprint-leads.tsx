@@ -2,6 +2,7 @@
 
 import { AtSign, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/components/ui/use-t';
 import type { FingerprintState } from './use-fingerprint-search';
 
 export interface Lead {
@@ -12,6 +13,7 @@ export interface Lead {
 
 /** Handles and addresses the results point at, each one click from its own search. Never run on their own: each search counts against the hourly limit. */
 export function SearchNext({ fp, leads, limit = 6 }: { fp: FingerprintState; leads: Lead[]; limit?: number }) {
+  const t = useT();
   const seen = new Set<string>();
   const unique = leads.filter(l => {
     const key = `${l.type}:${l.value.toLowerCase()}`;
@@ -23,11 +25,11 @@ export function SearchNext({ fp, leads, limit = 6 }: { fp: FingerprintState; lea
 
   return (
     <div className="mt-3 flex flex-col gap-1.5">
-      <p className="text-meta text-ink-3">Search next</p>
+      <p className="text-meta text-ink-3">{t('Search next')}</p>
       <div className="flex flex-wrap gap-1.5">
         {unique.map(l => (
           <Button key={`${l.type}:${l.value}`} variant="secondary" size="sm" icon={l.type === 'email' ? Mail : AtSign}
-            title={`Suggested by ${l.from.join(', ')}`} disabled={fp.phase === 'running'} onClick={() => fp.run(l.type, l.value)}>
+            title={t('Suggested by {sources}', { sources: l.from.join(', ') })} disabled={fp.phase === 'running'} onClick={() => fp.run(l.type, l.value)}>
             {l.value}
           </Button>
         ))}

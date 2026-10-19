@@ -5,23 +5,34 @@
  * off: fires", "Flew to Hormuz (26.57, 56.25), zoom 7"); the conversation
  * shows "Switched on Ships · Switched off Fires" and "Flew to Hormuz".
  */
+import { msg, type Translate } from '@/lib/core/i18n/translator';
 import type { ActionView } from './use-assist';
 
 /** Short names for the map layers TI can switch, as the Layers panel would say them. */
 const LAYER_NAME: Record<string, string> = {
-  flights: 'Airliners', private: 'Private planes', jets: 'Business jets', military: 'Military aircraft', maritime: 'Ships',
-  satellites: 'Satellites', cctv: 'Cameras', alpr: 'Plate readers', traffic: 'Road traffic', live_news: 'Live news', earthquakes: 'Earthquakes', fires: 'Fires', weather: 'Weather warnings',
-  radiation: 'Radiation', infrastructure: 'Infrastructure', global_incidents: 'Disaster alerts', alert_pins: 'News pins', war_alerts: 'Air-raid alerts',
-  airport_delays: 'Airport delays', chokepoint_flow: 'Chokepoint traffic', outbreaks: 'Outbreaks', day_night: 'Day and night', cables: 'Undersea cables',
-  live_clouds: 'Clouds', wx_temperature: 'Temperature', wx_wind: 'Wind', wx_radar: 'Rain radar', wx_lightning: 'Lightning', hiking_routes: 'Hiking routes', transit: 'Buses and trains', terrain_3d: '3D terrain',
-  cyber_attacks: 'Cyber attacks', gdelt_events: 'GDELT events', cf_outages: 'Internet outages', malware: 'Malware servers', balloons: 'Balloons',
-  launches: 'Rocket launches', aurora: 'Aurora', service_status: 'Service status', gps_jamming: 'GPS interference',
-  airport_weather: 'Airport weather', sigmets: 'Hazard airspace',
+  flights: msg('Airliners'), private: msg('Private planes'), jets: msg('Business jets'), military: msg('Military aircraft'), maritime: msg('Ships'),
+  satellites: msg('Satellites'), cctv: msg('Cameras'), alpr: msg('Plate readers'), traffic: msg('Road traffic'), live_news: msg('Live news'), earthquakes: msg('Earthquakes'), fires: msg('Fires'), weather: msg('Weather warnings'),
+  radiation: msg('Radiation'), infrastructure: msg('Infrastructure'), global_incidents: msg('Disaster alerts'), alert_pins: msg('News pins'), war_alerts: msg('Air-raid alerts'),
+  airport_delays: msg('Airport delays'), chokepoint_flow: msg('Chokepoint traffic'), outbreaks: msg('Outbreaks'), day_night: msg('Day and night'), cables: msg('Undersea cables'),
+  live_clouds: msg('Clouds'), wx_temperature: msg('Temperature'), wx_wind: msg('Wind'), wx_radar: msg('Rain radar'), wx_lightning: msg('Lightning'), hiking_routes: msg('Hiking routes'), transit: msg('Buses and trains'), terrain_3d: msg('3D terrain'),
+  cyber_attacks: msg('Cyber attacks'), gdelt_events: msg('GDELT events'), cf_outages: msg('Internet outages'), malware: msg('Malware servers'), balloons: msg('Balloons'),
+  launches: msg('Rocket launches'), aurora: msg('Aurora'), service_status: msg('Service status'), gps_jamming: msg('GPS interference'),
+  airport_weather: msg('Airport weather'), sigmets: msg('Hazard airspace'),
 };
 
-const PANEL_NAME: Record<string, string> = { markets: 'Markets', alerts: 'Alerts', intel: 'Recon', layers: 'Layers', directions: 'Route', forecast: 'Forecast', workspace: 'the workspace' };
+const PANEL_NAME: Record<string, string> = {
+  markets: msg('Markets'), alerts: msg('Alerts'), intel: msg('Recon'), layers: msg('Layers'), directions: msg('Route'), forecast: msg('Forecast'), workspace: msg('the workspace'),
+};
 
-export const layerName = (k: string) => LAYER_NAME[k] ?? cap(k.replace(/_/g, ' '));
+/** The workspace's centre views, as the reader knows them. */
+const VIEW_NAME: Record<string, string> = { globe: msg('globe'), graph: msg('graph'), timeline: msg('timeline'), table: msg('table') };
+
+/** The pieces of a map_view result ("globe, satellite basemap"). */
+const MAP_VIEW_WORD: Record<string, string> = {
+  globe: msg('globe'), 'flat map': msg('flat map'), 'dark basemap': msg('dark basemap'), 'satellite basemap': msg('satellite basemap'),
+};
+
+export const layerName = (k: string, t: Translate) => (LAYER_NAME[k] ? t(LAYER_NAME[k]) : cap(k.replace(/_/g, ' ')));
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
 const arg = (a: ActionView, k: string) => (typeof a.args[k] === 'string' || typeof a.args[k] === 'number' ? String(a.args[k]) : '');
@@ -41,77 +52,115 @@ export function flewTo(a: ActionView): { name: string; lat: number; lng: number;
  * One line for an action: what it is doing while it runs, what it did once done.
  * `carded`: a result card under the turn already shows what it found, so the line only names the act.
  */
-export function actionLine(a: ActionView, carded = false): string {
+export function actionLine(a: ActionView, carded: boolean, t: Translate): string {
   const done = a.status === 'ok';
-  if (a.status === 'error') return cap(a.summary || 'That did not work');
+  const names = (keys: string[]) => keys.map(k => layerName(k, t)).join(', ');
+  if (a.status === 'error') return cap(a.summary || t('That did not work'));
   switch (a.tool) {
     case 'go_to': {
       const at = flewTo(a);
-      if (at) return `Flew to ${at.name}`;
-      return `Flying to ${arg(a, 'place') || [arg(a, 'lat'), arg(a, 'lng')].filter(Boolean).join(', ') || 'a place'}`;
+      if (at) return t('Flew to {place}', { place: at.name });
+      const where = arg(a, 'place') || [arg(a, 'lat'), arg(a, 'lng')].filter(Boolean).join(', ');
+      return where ? t('Flying to {place}', { place: where }) : t('Flying to a place');
     }
     case 'layers': {
       const { on, off } = layerChange(a);
       return [
-        on.length ? `${done ? 'Switched' : 'Switching'} on ${on.map(layerName).join(', ')}` : '',
-        off.length ? `${done ? 'Switched' : 'Switching'} off ${off.map(layerName).join(', ')}` : '',
-      ].filter(Boolean).join(' · ') || 'Layers';
+        on.length ? (done ? t('Switched on {layers}', { layers: names(on) }) : t('Switching on {layers}', { layers: names(on) })) : '',
+        off.length ? (done ? t('Switched off {layers}', { layers: names(off) }) : t('Switching off {layers}', { layers: names(off) })) : '',
+      ].filter(Boolean).join(' · ') || t('Layers');
     }
-    case 'open': return a.args.close === true ? `${done ? 'Closed' : 'Closing'} ${PANEL_NAME[arg(a, 'panel')] ?? arg(a, 'panel')}` : `${done ? 'Opened' : 'Opening'} ${PANEL_NAME[arg(a, 'panel')] ?? arg(a, 'panel')}`;
-    case 'move': return done && a.summary ? a.summary.replace(/^Camera: /, 'Camera ') : 'Moving the camera';
-    case 'untrack': return done ? 'Stopped following' : 'Stopping the follow';
+    case 'open': {
+      const panel = PANEL_NAME[arg(a, 'panel')] ? t(PANEL_NAME[arg(a, 'panel')]) : arg(a, 'panel');
+      if (a.args.close === true) return done ? t('Closed {panel}', { panel }) : t('Closing {panel}', { panel });
+      return done ? t('Opened {panel}', { panel }) : t('Opening {panel}', { panel });
+    }
+    case 'move': return done && a.summary ? a.summary.replace(/^Camera: /, 'Camera ') : t('Moving the camera');
+    case 'untrack': return done ? t('Stopped following') : t('Stopping the follow');
     case 'track': if (done && a.summary) return a.summary.replace(/ \((aircraft|ship|satellite) [^)]*\).*$/, ''); break;
-    case 'link': return done ? 'Made a link to this view' : 'Making a link';
-    case 'timeline': return done && a.summary ? a.summary : arg(a, 'mode') === 'live' ? 'Going back to live' : `Opening ${arg(a, 'mode') === 'history' ? 'History' : 'Replay'}${arg(a, 'at') ? ` at ${arg(a, 'at')}` : ''}`;
-    case 'map_view': return done && a.summary ? `Switched to the ${a.summary}` : 'Changing the map';
-    case 'forecast': return done ? (carded ? 'Started a forecast' : `Started a forecast: ${arg(a, 'question')}`) : `Starting a forecast: ${arg(a, 'question')}`;
-    case 'workspace': return a.args.open === false ? 'Closed the workspace' : `${done ? 'Opened' : 'Opening'} the workspace${arg(a, 'view') ? ` on the ${arg(a, 'view')}` : ''}`;
-    case 'clear': return done ? 'Cleared the marks' : 'Clearing the marks';
+    case 'link': return done ? t('Made a link to this view') : t('Making a link');
+    case 'timeline': {
+      if (done && a.summary) return a.summary;
+      if (arg(a, 'mode') === 'live') return t('Going back to live');
+      const time = arg(a, 'at');
+      if (arg(a, 'mode') === 'history') return time ? t('Opening History at {time}', { time }) : t('Opening History');
+      return time ? t('Opening Replay at {time}', { time }) : t('Opening Replay');
+    }
+    case 'map_view': {
+      if (!done || !a.summary) return t('Changing the map');
+      const view = a.summary.split(', ').map(w => (MAP_VIEW_WORD[w] ? t(MAP_VIEW_WORD[w]) : w)).join(', ');
+      return t('Switched to the {view}', { view });
+    }
+    case 'forecast': {
+      const question = arg(a, 'question');
+      if (!done) return t('Starting a forecast: {question}', { question });
+      return carded ? t('Started a forecast') : t('Started a forecast: {question}', { question });
+    }
+    case 'workspace': {
+      if (a.args.open === false) return t('Closed the workspace');
+      const view = arg(a, 'view') ? (VIEW_NAME[arg(a, 'view')] ? t(VIEW_NAME[arg(a, 'view')]) : arg(a, 'view')) : '';
+      if (done) return view ? t('Opened the workspace on the {view}', { view }) : t('Opened the workspace');
+      return view ? t('Opening the workspace on the {view}', { view }) : t('Opening the workspace');
+    }
+    case 'clear': return done ? t('Cleared the marks') : t('Clearing the marks');
   }
-  const searched = list(a.args.layers).length ? list(a.args.layers).map(layerName).join(', ') : arg(a, 'layer') ? layerName(arg(a, 'layer')) : 'the map';
-  const what = `${searched}${arg(a, 'text') ? ` “${arg(a, 'text')}”` : ''}${arg(a, 'near') ? ` near ${arg(a, 'near')}` : ''}${arg(a, 'region') ? ` in ${arg(a, 'region')}` : ''}`;
-  const plane = arg(a, 'callsign') || arg(a, 'registration') || arg(a, 'id') || 'an aircraft';
-  const at = arg(a, 'place') || arg(a, 'near') || 'a place';
-  const lens = arg(a, 'near') ? `a camera near ${arg(a, 'near')}` : 'a camera';
-  const record = `the record${arg(a, 'place') ? ` for ${arg(a, 'place')}` : ''}${arg(a, 'from') ? `, ${arg(a, 'from')}${arg(a, 'to') ? `–${arg(a, 'to')}` : ''}` : ''}`;
+  let what = list(a.args.layers).length ? names(list(a.args.layers)) : arg(a, 'layer') ? layerName(arg(a, 'layer'), t) : t('the map');
+  if (arg(a, 'text')) what = t('{what} “{text}”', { what, text: arg(a, 'text') });
+  if (arg(a, 'near')) what = t('{what} near {place}', { what, place: arg(a, 'near') });
+  if (arg(a, 'region')) what = t('{what} in {region}', { what, region: arg(a, 'region') });
+  const plane = arg(a, 'callsign') || arg(a, 'registration') || arg(a, 'id') || t('an aircraft');
+  const place = arg(a, 'place') || arg(a, 'near') || t('a place');
+  const camera = arg(a, 'near') ? t('a camera near {place}', { place: arg(a, 'near') }) : t('a camera');
+  const span = arg(a, 'from') ? `${arg(a, 'from')}${arg(a, 'to') ? `–${arg(a, 'to')}` : ''}` : '';
+  const recordOf = arg(a, 'place') ? t('the record for {place}', { place: arg(a, 'place') }) : t('the record');
+  const record = span ? `${recordOf}, ${span}` : recordOf;
+  const from = arg(a, 'from') || t('here');
+  const to = arg(a, 'to') || t('there');
+  const kind = arg(a, 'kind').replace(/_/g, ' ');
+  const title = arg(a, 'title');
+  const symbols = list(a.args.symbols).join(', ');
   if (done && carded) {
     switch (a.tool) {
-      case 'find': return `Searched ${what}`;
-      case 'scan': return 'Read what is in view';
-      case 'camera': return `Looked through ${lens}`;
-      case 'show': return `Listed ${arg(a, 'title') || 'results'}`;
-      case 'markets': return `Read ${list(a.args.symbols).join(', ') || 'the markets'}`;
-      case 'aircraft': return `Looked up ${plane}`;
-      case 'weather': return `Read the weather at ${at}`;
-      case 'pass': return a.args.overhead === true ? `Read the sky over ${at}` : `Worked out passes over ${at}`;
-      case 'brief': return `Briefed ${at}`;
-      case 'route': return `Routed ${arg(a, 'from') || 'here'} to ${arg(a, 'to') || 'there'}`;
-      case 'nearby': return `Looked up ${arg(a, 'kind').replace(/_/g, ' ')} near ${at}`;
-      case 'chronicle': return `Read ${record}`;
-      case 'past_event': return 'Looked up the event';
+      case 'find': return t('Searched {what}', { what });
+      case 'scan': return t('Read what is in view');
+      case 'camera': return t('Looked through {camera}', { camera });
+      case 'show': return title ? t('Listed {title}', { title }) : t('Listed results');
+      case 'markets': return symbols ? t('Read {symbols}', { symbols }) : t('Read the markets');
+      case 'aircraft': return t('Looked up {plane}', { plane });
+      case 'weather': return t('Read the weather at {place}', { place });
+      case 'pass': return a.args.overhead === true ? t('Read the sky over {place}', { place }) : t('Worked out passes over {place}', { place });
+      case 'brief': return t('Briefed {place}', { place });
+      case 'route': return t('Routed {from} to {to}', { from, to });
+      case 'nearby': return t('Looked up {kind} near {place}', { kind, place });
+      case 'chronicle': return t('Read {record}', { record });
+      case 'past_event': return t('Looked up the event');
     }
   }
   if (done && a.summary) return cap(a.summary);
   switch (a.tool) {
-    case 'find': return `Finding ${what}`;
-    case 'scan': return 'Reading what is in view';
-    case 'camera': return `Looking through ${lens}`;
+    case 'find': return t('Finding {what}', { what });
+    case 'scan': return t('Reading what is in view');
+    case 'camera': return t('Looking through {camera}', { camera });
     case 'highlight': {
       const n = Array.isArray(a.args.points) ? a.args.points.length : 0;
-      return `Marking ${n} place${n === 1 ? '' : 's'}`;
+      return t('{n, plural, one {Marking # place} other {Marking # places}}', { n });
     }
-    case 'show': return `Listing ${arg(a, 'title') || 'results'}`;
-    case 'markets': return `Reading ${list(a.args.symbols).join(', ') || 'the markets'}`;
-    case 'select': return `Opening ${arg(a, 'name')}`;
-    case 'track': return `Finding ${arg(a, 'text') || arg(a, 'id') || (arg(a, 'nearest_to') ? `the nearest aircraft to ${arg(a, 'nearest_to')}` : 'it')} to follow`;
-    case 'aircraft': return `Looking up ${plane}`;
-    case 'weather': return `Reading the weather at ${at}`;
-    case 'pass': return a.args.overhead === true ? `Reading the sky over ${at}` : `Working out passes over ${at}`;
-    case 'brief': return `Briefing ${at}`;
-    case 'route': return `Routing ${arg(a, 'from') || 'here'} to ${arg(a, 'to') || 'there'}`;
-    case 'nearby': return `Looking up ${arg(a, 'kind').replace(/_/g, ' ')} near ${at}`;
-    case 'chronicle': return `Reading ${record}`;
-    case 'past_event': return `Looking up event ${arg(a, 'id')}`;
+    case 'show': return title ? t('Listing {title}', { title }) : t('Listing results');
+    case 'markets': return symbols ? t('Reading {symbols}', { symbols }) : t('Reading the markets');
+    case 'select': return t('Opening {name}', { name: arg(a, 'name') });
+    case 'track': {
+      const target = arg(a, 'text') || arg(a, 'id');
+      if (target) return t('Finding {target} to follow', { target });
+      return arg(a, 'nearest_to') ? t('Finding the nearest aircraft to {place} to follow', { place: arg(a, 'nearest_to') }) : t('Finding it to follow');
+    }
+    case 'aircraft': return t('Looking up {plane}', { plane });
+    case 'weather': return t('Reading the weather at {place}', { place });
+    case 'pass': return a.args.overhead === true ? t('Reading the sky over {place}', { place }) : t('Working out passes over {place}', { place });
+    case 'brief': return t('Briefing {place}', { place });
+    case 'route': return t('Routing {from} to {to}', { from, to });
+    case 'nearby': return t('Looking up {kind} near {place}', { kind, place });
+    case 'chronicle': return t('Reading {record}', { record });
+    case 'past_event': return t('Looking up event {id}', { id: arg(a, 'id') });
     default: return cap(a.summary || '');
   }
 }

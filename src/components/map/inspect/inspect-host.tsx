@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import FlightWatchPanel from '@/components/map/inspect/flight-watch/flight-watch-panel';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { useT } from '@/components/ui/use-t';
 import { useFlightWatch } from '@/components/map/inspect/flight-watch/use-flight-watch';
 import { useWatchedAirports } from '@/components/map/layers/live/use-flight-layers';
 import { FloatingWindow } from '@/components/map/windows';
@@ -37,6 +38,7 @@ export function InspectHost({ mapRef, data, targets, sat, onClose, onCloseAll, o
   onCloseSat: () => void;
   onSelectFlight: (flight: WatchedFlight, telem: FlightTelemetry | undefined) => void;
 }) {
+  const t = useT();
   const watch = useFlightWatch(data);
   const isMobile = useIsMobile();
   useWatchedAirports({ mapRef, mapReady: true, aircraftAirports: watch.aircraftAirports });
@@ -68,7 +70,7 @@ export function InspectHost({ mapRef, data, targets, sat, onClose, onCloseAll, o
         </FloatingWindow>
       )}
       {watch.watchedFlights.length > 0 && (
-        <FloatingWindow id="watch" kind="watch" label="Watched aircraft" closable={false} onClose={keep}>
+        <FloatingWindow id="watch" kind="watch" label={t('Watched aircraft')} closable={false} onClose={keep}>
           <FlightWatchPanel
             watched={watch.watchedFlights}
             telemetry={watch.watchTelemetry}
@@ -92,6 +94,7 @@ function TargetCard({ target, data, mapRef, watch, onClose, sheet }: {
   onClose: () => void;
   sheet?: boolean;
 }) {
+  const t = useT();
   const id = inspectId(target);
   const liveFlight = useMemo(
     () => (target.kind === 'aircraft' ? findFlight(data, target.icao24)?.flight ?? null : null),
@@ -119,7 +122,7 @@ function TargetCard({ target, data, mapRef, watch, onClose, sheet }: {
         nearby={<ContactsSection data={data} subject={{ kind: 'aircraft', id: target.icao24, lat: (liveFlight ?? target).lat, lng: (liveFlight ?? target).lng }} />} />
     );
   } else if (target.kind === 'ship') {
-    label = target.name || 'Vessel';
+    label = target.name || t('Vessel');
     card = (
       <ShipInspect target={target} live={liveShip} mapRef={mapRef} onClose={onClose}
         nearby={<ContactsSection data={data} subject={{ kind: 'ship', id: target.mmsi, lat: (liveShip ?? target).lat, lng: (liveShip ?? target).lng }} />} />

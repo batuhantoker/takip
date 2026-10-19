@@ -7,7 +7,11 @@
  * CSV export and the search-history log.
  */
 
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
 import { isValidUsername } from '../username/scan';
+
+const english = createTranslator(DEFAULT_LOCALE, {});
 
 export type SearchType = 'username' | 'email' | 'phone';
 
@@ -17,18 +21,18 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_CHARS = /^\+?[\d\s().-]+$/;
 
 /** Returns why a query cannot be searched as `type`, or null if it can. */
-export function validateQuery(type: SearchType, raw: string): string | null {
+export function validateQuery(type: SearchType, raw: string, t: Translate = english): string | null {
   const q = raw.trim();
-  if (!q) return 'Enter something to search for.';
+  if (!q) return t('Enter something to search for.');
   if (type === 'username') {
-    return isValidUsername(q) ? null : 'Usernames may use letters, digits and . _ - @ (max 64).';
+    return isValidUsername(q) ? null : t('Usernames may use letters, digits and . _ - @ (max {n}).', { n: 64 });
   }
   if (type === 'email') {
-    return EMAIL.test(q) ? null : 'That does not look like an email address.';
+    return EMAIL.test(q) ? null : t('That does not look like an email address.');
   }
   const digits = q.replace(/\D/g, '');
   if (!PHONE_CHARS.test(q) || digits.length < 7 || digits.length > 15) {
-    return 'Phone numbers need 7–15 digits, ideally with a +country code.';
+    return t('Phone numbers need 7–15 digits, ideally with a +country code.');
   }
   return null;
 }
@@ -170,12 +174,12 @@ export function parseHistory(raw: string | null): HistoryEntry[] {
   }
 }
 
-export function relativeTime(at: number, now = Date.now()): string {
+export function relativeTime(at: number, now = Date.now(), t: Translate = english): string {
   const s = Math.max(0, Math.round((now - at) / 1000));
-  if (s < 45) return 'just now';
+  if (s < 45) return t('just now');
   const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return t('{n}m ago', { n: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
+  if (h < 24) return t('{n}h ago', { n: h });
+  return t('{n}d ago', { n: Math.round(h / 24) });
 }

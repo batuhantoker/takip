@@ -48,6 +48,7 @@ import { simulationClock } from './clock';
 import { parseCast, parseMove, parseStep } from '../parse/simulation';
 import { parseReport } from '../parse/report';
 import { parseWorld } from '../parse/world';
+import { languageNote } from '../prompts/language';
 import { anchorsBlock, reportPrompt, worldOutcome } from '../prompts/report';
 import { castPrompt, researchPrompt, worldPrompt } from '../prompts/world';
 import { feedBlock, worldBrief } from '../prompts/shared';
@@ -58,6 +59,7 @@ import { parsePlan, researchWeb, type Research, type ResearchPlan } from '../res
 import type { ContextItem, Depth, Frame, Link, Move, AiEvent, Period, Quant, RoundStat, SimEvent, WorldPoint } from '../types';
 import { FatalError, Session, errorText } from './session';
 import { pooled } from './aggregate';
+import type { Locale } from '@/lib/core/i18n/locales';
 
 /** The worlds' names, in order. */
 const WORLDS = ['A', 'B', 'C', 'D', 'E'];
@@ -69,6 +71,8 @@ export interface EngineInput {
   seedScope?: SeedScope;
   depth: Depth;
   useFeeds: boolean;
+  /** The reader's language: the report is written in it; the simulation stays in English. */
+  lang?: Locale;
 }
 
 export interface EngineDeps {
@@ -391,7 +395,7 @@ export async function runEngine(input: EngineInput, deps: EngineDeps): Promise<v
   const anchors = anchorsBlock(frame, finalQuant, sources.filter(c => c.kind === 'odds'), lastStat);
   const report = parseReport(
     await s.json({
-      user: reportPrompt({ frame, brief, periods, worlds: summaries, rounds: stats, injects: injected, evidence, data, citable, moves, anchors, simulated: priced ?? undefined, today }),
+      user: reportPrompt({ frame, brief, periods, worlds: summaries, rounds: stats, injects: injected, evidence, data, citable, moves, anchors, simulated: priced ?? undefined, today }) + languageNote(input.lang),
       maxTokens: 4000, temperature: 0.3, timeoutMs: 180_000,
     }),
     swarm, actorIds, frame, new Set(texts.keys()), new Set(worlds),

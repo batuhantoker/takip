@@ -13,14 +13,16 @@ import { Check, ChevronDown, CornerDownLeft } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { SearchField } from '@/components/ui/search-field';
 import { Tag } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
 import { isPlausibleModel, type ProviderId } from '@/lib/ai/providers/catalog';
 import { isReasoning, modelHint, organizeModels, type ModelOption } from '@/lib/ai/providers/models';
 
 function Tags({ reasoning, isDefault }: { reasoning: boolean; isDefault: boolean }) {
+  const t = useT();
   return (
     <>
-      {reasoning && <Tag>Reasoning</Tag>}
-      {isDefault && <Tag>Default</Tag>}
+      {reasoning && <Tag>{t('Reasoning')}</Tag>}
+      {isDefault && <Tag>{t('Default')}</Tag>}
     </>
   );
 }
@@ -35,6 +37,7 @@ export function ModelPicker({ provider, models, value, onChange, suggested, defa
   /** The list came from the key itself, not the known names. */
   listed: boolean;
 }) {
+  const t = useT();
   const id = useId();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -95,7 +98,7 @@ export function ModelPicker({ provider, models, value, onChange, suggested, defa
           </span>
           {(m.hint || m.name !== m.id) && (
             <span className="block truncate text-meta text-ink-3">
-              {m.hint}{m.hint && m.name !== m.id ? ' · ' : ''}{m.name !== m.id && <span className="font-mono">{m.id}</span>}
+              {m.hint ? t(m.hint) : ''}{m.hint && m.name !== m.id ? ' · ' : ''}{m.name !== m.id && <span className="font-mono">{m.id}</span>}
             </span>
           )}
         </span>
@@ -113,7 +116,7 @@ export function ModelPicker({ provider, models, value, onChange, suggested, defa
             <span className="truncate text-body text-ink-1">{currentName && currentName !== value ? currentName : value}</span>
             <Tags reasoning={current.reasoning} isDefault={current.isDefault} />
           </span>
-          {current.hint && <span className="block truncate text-meta text-ink-3">{current.hint}</span>}
+          {current.hint && <span className="block truncate text-meta text-ink-3">{t(current.hint)}</span>}
         </span>
         <ChevronDown aria-hidden className={cx('size-4 shrink-0 text-ink-3 transition-transform duration-150', open && 'rotate-180')} strokeWidth={1.75} />
       </button>
@@ -121,12 +124,12 @@ export function ModelPicker({ provider, models, value, onChange, suggested, defa
       {open && (
         <div className="flex flex-col gap-1.5">
           <SearchField value={query} onChange={v => { setQuery(v); setActive(0); }} onKeyDown={onKey} size="sm" autoFocus
-            placeholder="Search models" aria-controls={`${id}-list`} spellCheck={false} autoComplete="off" />
-          <div ref={list} id={`${id}-list`} role="listbox" aria-label="Models" className="styled-scrollbar -mx-1 max-h-[248px] overflow-y-auto px-1">
+            placeholder={t('Search models')} aria-controls={`${id}-list`} spellCheck={false} autoComplete="off" />
+          <div ref={list} id={`${id}-list`} role="listbox" aria-label={t('Models')} className="styled-scrollbar -mx-1 max-h-[248px] overflow-y-auto px-1">
             {groups.map(g => (
-              <div key={g.key} role="group" aria-label={g.label}>
+              <div key={g.key} role="group" aria-label={t(g.label)}>
                 <div className="sticky top-0 z-[1] flex items-center gap-2 bg-surface-1 px-2 pt-2 pb-1 text-meta font-medium text-ink-3">
-                  <span className="flex-1">{g.label}</span>
+                  <span className="flex-1">{t(g.label)}</span>
                   <span className="font-mono tabular-nums">{g.models.length}</span>
                 </div>
                 {g.models.map(row)}
@@ -136,17 +139,17 @@ export function ModelPicker({ provider, models, value, onChange, suggested, defa
               <button type="button" data-active={at === flat.length} onClick={() => pick(custom)} onPointerMove={() => setActive(flat.length)}
                 className={cx('flex w-full items-center gap-2 rounded-control px-2 py-2 text-left text-body text-ink-2', at === flat.length && 'bg-surface-2')}>
                 <CornerDownLeft aria-hidden className="size-3.5 shrink-0 text-ink-3" strokeWidth={1.75} />
-                <span>Use <span className="font-mono text-ink-1">{custom}</span> as typed</span>
+                <span>{t.rich('Use {model} as typed', { model: <span className="font-mono text-ink-1">{custom}</span> })}</span>
               </button>
             )}
-            {!count && <p className="px-2 py-4 text-center text-small text-ink-3">No model matches.</p>}
+            {!count && <p className="px-2 py-4 text-center text-small text-ink-3">{t('No model matches.')}</p>}
           </div>
           {(hidden > 0 || snapshots || (listed && provider === 'openai')) && (
             <div className="flex items-start gap-3 text-meta text-ink-3">
-              {listed && provider === 'openai' && <span className="min-w-0 flex-1">Pro, Codex and Deep Research models run only on OpenAI&apos;s Responses API, so they are not listed.</span>}
+              {listed && provider === 'openai' && <span className="min-w-0 flex-1">{t("Pro, Codex and Deep Research models run only on OpenAI's Responses API, so they are not listed.")}</span>}
               {(hidden > 0 || snapshots) && (
                 <button type="button" onClick={() => { setSnapshots(v => !v); setActive(0); }} className={cx('ml-auto shrink-0 rounded-control font-medium text-ink-2 hover:text-ink-1', FOCUS_RING)}>
-                  {snapshots ? 'Hide dated versions' : `Show ${hidden} dated`}
+                  {snapshots ? t('Hide dated versions') : t('Show {n} dated', { n: hidden })}
                 </button>
               )}
             </div>

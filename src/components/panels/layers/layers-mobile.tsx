@@ -5,6 +5,8 @@ import { SearchX } from 'lucide-react';
 import TerrainStatusNote from '@/components/map/controls/terrain-status-note';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchField } from '@/components/ui/search-field';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import type { TerrainStatus } from '@/lib/map/terrain/terrain';
 import { LAYER_GROUPS } from './layer-groups';
 import LayerSection from '@/components/panels/layers/parts/layer-section';
@@ -36,24 +38,25 @@ const isTerrain = (key: string) => key === 'terrain_elevation' || key === 'terra
 const NO_CAPABILITIES: Record<string, boolean> = {};
 
 function LayerPanel({ data, activeLayers, setActiveLayers, theme = 'core', setTheme, capabilities = NO_CAPABILITIES, terrainStatus = 'idle', onTerrainRetry, onTerrainFocus, on3DModeSelected }: LayerPanelProps) {
+  const t = useT();
   // Display settings sit under map options on a desktop; a phone has only this list.
   const display = useMemo<Section[]>(() => LAYER_GROUPS
     .filter(g => g.label === 'DISPLAY')
-    .map(g => ({ id: 'display', title: 'Display', groups: [g], subheadings: false })), []);
+    .map(g => ({ id: 'display', title: msg('Display'), groups: [g], subheadings: false })), []);
   const beforeTurnOn = useCallback((keys: string[]) => { if (keys.some(isTerrain)) on3DModeSelected?.(); }, [on3DModeSelected]);
   const b = useLayerBrowser({ data, activeLayers, setActiveLayers, capabilities, extraGroups: display, beforeTurnOn });
 
   return (
     <div className="flex flex-col gap-5 pb-2 text-ink-2">
       {/* iOS zooms into inputs under 16 px. */}
-      <SearchField value={b.query} onChange={b.setQuery} placeholder={`Search ${b.layerTotal} layers`} autoComplete="off" spellCheck={false}
+      <SearchField value={b.query} onChange={b.setQuery} placeholder={t('Search {n} layers', { n: b.layerTotal })} autoComplete="off" spellCheck={false}
         className="h-10 [&_input]:text-base" />
       {!b.searching && <div><LayersOnMap items={b.onMap} undo={b.undo} onTurnOff={b.turnOff} onUndo={b.restore} /></div>}
       {b.shown.length === 0 ? (
-        <EmptyState icon={SearchX} title={`No layers match “${b.query.trim()}”`} body="Search matches layer names and their sources, such as ships, quakes or ADS-B." />
+        <EmptyState icon={SearchX} title={t('No layers match “{query}”', { query: b.query.trim() })} body={t('Search matches layer names and their sources, such as ships, quakes or ADS-B.')} />
       ) : (
         <div>
-          {b.searching && <p role="status" className="mb-1 text-meta text-ink-3">{b.matchCount === 1 ? '1 layer matches' : `${b.matchCount} layers match`}</p>}
+          {b.searching && <p role="status" className="mb-1 text-meta text-ink-3">{t('{n, plural, one {# layer matches} other {# layers match}}', { n: b.matchCount })}</p>}
           <div>
             {b.shown.map(section => (
               <LayerSection

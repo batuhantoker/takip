@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const SURVEILLANCE: ApiGroup = {
   id: 'surveillance',
-  title: 'Surveillance and infrastructure',
+  title: msg('Surveillance and infrastructure'),
   blurb: 'Camera networks, fixed infrastructure, reference datasets, and stream and feature proxies.',
   endpoints: [
     {

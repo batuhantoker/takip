@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useT } from '@/components/ui/use-t';
 import { SHIP_CLASSES } from '@/lib/feeds/maritime/ship-filter';
 import { LAYER_GROUPS, primary, type LayerDef, type LayerGroupDef } from './layer-groups';
 import { layerCount } from '@/components/panels/layers/lib/layer-count';
@@ -42,6 +43,7 @@ export function useLayerBrowser({ data, activeLayers, setActiveLayers, capabilit
   /** Runs before any layer turns on, with the keys about to turn on. */
   beforeTurnOn?: (keys: string[]) => void;
 }) {
+  const t = useT();
   const [query, setQuery] = useState('');
 
   const sections = useMemo(() => {
@@ -61,7 +63,7 @@ export function useLayerBrowser({ data, activeLayers, setActiveLayers, capabilit
     });
   }, []);
   const searching = query.trim().length > 0;
-  const shown = useMemo(() => filterSections(sections, query), [sections, query]);
+  const shown = useMemo(() => filterSections(sections, query, t), [sections, query, t]);
 
   // Results open in full; folding one lasts only as long as that query.
   const [folded, setFolded] = useState<{ query: string; ids: Set<string> }>({ query: '', ids: new Set() });
@@ -101,7 +103,7 @@ export function useLayerBrowser({ data, activeLayers, setActiveLayers, capabilit
   const onMap: OnMapItem[] = sections
     .flatMap(s => s.groups.flatMap(g => primary(g.layers)))
     .filter(l => activeLayers[l.key])
-    .map(l => ({ key: l.key, label: layerName(l), count: countOf(l) }));
+    .map(l => ({ key: l.key, label: layerName(l, t), count: countOf(l) }));
 
   const setMany = useCallback((keys: string[], on: boolean) => {
     countAction(on ? 'layer.on' : 'layer.off');
@@ -114,14 +116,17 @@ export function useLayerBrowser({ data, activeLayers, setActiveLayers, capabilit
   const [undo, setUndo] = useState<LayerUndo | null>(null);
   useEffect(() => {
     if (!undo) return;
-    const t = setTimeout(() => setUndo(null), UNDO_FOR_MS);
-    return () => clearTimeout(t);
+    const id = setTimeout(() => setUndo(null), UNDO_FOR_MS);
+    return () => clearTimeout(id);
   }, [undo]);
   const turnOff = useCallback((gone: OnMapItem[]) => {
     if (!gone.length) return;
     setMany(gone.map(i => i.key), false);
-    setUndo({ keys: gone.map(i => i.key), text: gone.length === 1 ? `${gone[0].label} turned off` : `${gone.length} layers turned off` });
-  }, [setMany]);
+    setUndo({
+      keys: gone.map(i => i.key),
+      text: gone.length === 1 ? t('{layer} turned off', { layer: gone[0].label }) : t('{n, plural, one {# layer turned off} other {# layers turned off}}', { n: gone.length }),
+    });
+  }, [setMany, t]);
   const restore = useCallback(() => {
     if (undo) setMany(undo.keys, true);
     setUndo(null);

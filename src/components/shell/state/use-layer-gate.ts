@@ -6,6 +6,7 @@ import { closedLayerKeys, layerSection, sectionTitle, withoutClosed } from '@/co
 import { askForAccount, useSignedIn } from '@/components/site/account/plan-gate';
 import { useAccess } from '@/components/site/account/use-access';
 import type { ActiveLayers } from '@/lib/map/layers/defaults';
+import { useT } from '@/components/ui/use-t';
 
 const NONE: ReadonlySet<string> = new Set();
 // StrictMode runs updaters twice; one prompt per attempt.
@@ -19,14 +20,16 @@ const byPerson = () => typeof navigator !== 'undefined' && navigator.userActivat
  * on, and keep their stored choice for when the plan opens them. Switching one on asks for an account.
  */
 export function useLayerGate(chosen: ActiveLayers, setChosen: Dispatch<SetStateAction<ActiveLayers>>) {
+  const translate = useT();
   const access = useAccess();
   const signedIn = useSignedIn();
   const closed = useMemo(() => (access ? closedLayerKeys(access.entitlements) : NONE), [access]);
-  const gate = useRef({ closed, signedIn, promptedAt: 0 });
+  const gate = useRef({ closed, signedIn, t: translate, promptedAt: 0 });
   useEffect(() => {
     gate.current.closed = closed;
     gate.current.signedIn = signedIn;
-  }, [closed, signedIn]);
+    gate.current.t = translate;
+  }, [closed, signedIn, translate]);
 
   const activeLayers = useMemo(() => withoutClosed(chosen, closed), [chosen, closed]);
 
@@ -39,11 +42,12 @@ export function useLayerGate(chosen: ActiveLayers, setChosen: Dispatch<SetStateA
     if (tried.length && byPerson() && Date.now() - gate.current.promptedAt > PROMPT_GAP_MS) {
       gate.current.promptedAt = Date.now();
       const section = layerSection(tried[0]) as MapLayerSection;
-      const { signedIn: member } = gate.current;
+      const { signedIn: member, t } = gate.current;
+      const title = t(sectionTitle(section));
       // After this render: opening the dialog sets another component's state.
       queueMicrotask(() => askForAccount({
-        visitor: `Create a free account to see ${sectionTitle(section)} layers.`,
-        member: `${sectionTitle(section)} layers aren't in your plan.`,
+        visitor: t('Create a free account to see {section} layers.', { section: title }),
+        member: t("{section} layers aren't in your plan.", { section: title }),
       }, member));
     }
     return { ...value, ...Object.fromEntries([...shut].filter(key => key in prev).map(key => [key, prev[key as keyof ActiveLayers]])) };

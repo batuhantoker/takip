@@ -2,16 +2,18 @@
 
 import { cx } from '@/components/ui/class-names';
 import { Tag } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
 import type { Row, RowStatus } from '@/lib/intel/recon/fingerprint/rows';
 import { STATUS_DISPLAY } from './fingerprint-status';
 
 /** `live` is false once a search has ended: a hit still awaiting calibration then never got it. Found is what the list is, so it goes unmarked. */
 export function StatusPill({ status, live }: { status: RowStatus; live: boolean }) {
+  const t = useT();
   if (status === 'verified') return null;
   const d = STATUS_DISPLAY[status];
   const pending = status === 'verifying';
   const tone = d.tone === 'muted' ? 'neutral' : d.tone === 'gold' ? 'amber' : d.tone;
-  return <Tag tone={tone}>{pending && !live ? 'Unverified' : d.label}</Tag>;
+  return <Tag tone={tone}>{pending && !live ? t('Unverified') : t(d.label)}</Tag>;
 }
 
 /** The platform initial, kept calm: a neutral square, not a colour per category. */

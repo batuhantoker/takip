@@ -4,6 +4,8 @@
  * and the reading is under 2 hours old. Surface words are passed through as the operator gives them.
  */
 
+import { createTranslator, type Vars } from '@/lib/core/i18n/translator';
+
 export interface RoadCondition {
   /** The operator's own surface word, e.g. "Wet", "Moist", "Dry". */
   surface: string;
@@ -26,15 +28,18 @@ export function admitRoadCondition(r: RoadCondition | null | undefined, now = Da
   return r;
 }
 
+type Say = (source: string, vars?: Vars) => string;
+const english: Say = createTranslator('en', {});
+
 /** One line for the viewer: "Road wet · surface 7.5 °C · air 7.2 °C · station 3.2 km away · 12 min ago". */
-export function roadConditionLine(r: RoadCondition, now = Date.now()): string {
+export function roadConditionLine(r: RoadCondition, now = Date.now(), t: Say = english): string {
   const mins = Math.max(0, Math.round((now - Date.parse(r.observed_at)) / 60_000));
   return [
-    `Road ${r.surface.toLowerCase()}`,
-    r.road_temp != null ? `surface ${r.road_temp.toFixed(1)} °C` : null,
-    r.air_temp != null ? `air ${r.air_temp.toFixed(1)} °C` : null,
-    r.distance_km != null && r.distance_km >= 1 ? `station ${r.distance_km.toFixed(1)} km away` : null,
-    mins < 60 ? `${mins} min ago` : `${Math.floor(mins / 60)} h ${mins % 60} min ago`,
+    t('Road {surface}', { surface: r.surface.toLowerCase() }),
+    r.road_temp != null ? t('surface {temp} °C', { temp: r.road_temp.toFixed(1) }) : null,
+    r.air_temp != null ? t('air {temp} °C', { temp: r.air_temp.toFixed(1) }) : null,
+    r.distance_km != null && r.distance_km >= 1 ? t('station {km} km away', { km: r.distance_km.toFixed(1) }) : null,
+    mins < 60 ? t('{n} min ago', { n: mins }) : t('{h} h {m} min ago', { h: Math.floor(mins / 60), m: mins % 60 }),
   ].filter(Boolean).join(' · ');
 }
 

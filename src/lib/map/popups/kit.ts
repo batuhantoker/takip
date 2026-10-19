@@ -5,6 +5,9 @@
  * `body` is trusted HTML the caller has already escaped.
  */
 
+import { t } from '@/lib/core/i18n/active';
+import { msg } from '@/lib/core/i18n/translator';
+
 export type PopTone = 'red' | 'amber' | 'green' | 'blue' | 'violet' | 'neutral';
 
 export interface PopRow {
@@ -52,7 +55,7 @@ export function pop(spec: PopSpec): string {
   const rows = (spec.rows ?? []).filter((r): r is PopRow => !!r && r.value != null && r.value !== '');
   const links = (spec.links ?? []).filter((l): l is { href: unknown; label: string } => !!l);
   return `<div class="tk-pop${spec.wide ? ' tk-pop-wide' : ''}${head ? '' : ' tk-pop-nohead'}${spec.pin ? ' tk-pop-pinnable' : ''}">
-  ${spec.pin ? `<button type="button" class="tk-pop-pin" data-pop-pin aria-label="Pin as a window" title="Pin as a window">${PIN_ICON}</button>` : ''}
+  ${spec.pin ? `<button type="button" class="tk-pop-pin" data-pop-pin aria-label="${htmlEsc(t('Pin as a window'))}" title="${htmlEsc(t('Pin as a window'))}">${PIN_ICON}</button>` : ''}
   ${head}
   <div class="tk-pop-title">${htmlEsc(spec.title)}</div>
   ${spec.subtitle ? `<div class="tk-pop-sub">${htmlEsc(spec.subtitle)}</div>` : ''}
@@ -70,7 +73,18 @@ export const popCoords = (lat: number, lng: number, digits = 3) =>
 
 /** "LOW" → "Low", "disrupted" → "Disrupted", "Active Conflict Zone" stays as written. */
 export const sentence = (s: unknown): string => {
-  const t = String(s ?? '').trim().replace(/_/g, ' ');
-  const base = t === t.toUpperCase() ? t.toLowerCase() : t;
+  const text = String(s ?? '').trim().replace(/_/g, ' ');
+  const base = text === text.toUpperCase() ? text.toLowerCase() : text;
   return base.charAt(0).toUpperCase() + base.slice(1);
+};
+
+const LEVELS: Record<string, string> = {
+  low: msg('Low'), minor: msg('Minor'), moderate: msg('Moderate'), medium: msg('Medium'), elevated: msg('Elevated'),
+  high: msg('High'), severe: msg('Severe'), critical: msg('Critical'), extreme: msg('Extreme'),
+};
+
+/** A feed's level word ("HIGH", "severe") in the reader's language; anything else as `sentence` writes it. */
+export const levelWord = (s: unknown): string => {
+  const key = String(s ?? '').trim().toLowerCase();
+  return Object.hasOwn(LEVELS, key) ? t(LEVELS[key]) : sentence(s);
 };

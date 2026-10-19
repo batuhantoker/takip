@@ -1,3 +1,5 @@
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, msg, type Translate } from '@/lib/core/i18n/translator';
 import { type CountryPick, VIEW_GROUPS } from './view';
 import { baseCode, isProjectionCode } from '../projection';
 import type { CatalogueMetric } from '../series';
@@ -7,47 +9,47 @@ import type { CatalogueMetric } from '../series';
  * ("Health: Mortality"), OWID and WPP topics are slugs ("mental_health"); both land in the same groups.
  */
 
-/** A catalogue metric, with the last year its projections reach when it has any. */
-export type Indicator = CatalogueMetric & { projectedTo?: number };
+/** A catalogue metric, with the last year its projections reach when it has any; `bare` is a curated label without its years. */
+export type Indicator = CatalogueMetric & { projectedTo?: number; bare?: string };
 export type IndicatorSection = { label: string | null; metrics: Indicator[] };
 export type IndicatorGroup = { id: string; title: string; count: number; sections: IndicatorSection[] };
 
 export const SUGGESTED = 'suggested';
-const OTHER = 'Other';
+const OTHER = msg('Other');
 
 /** [topic prefix, group, section]. The first match wins; without a section, the topic's next part is one. */
 const RULES: [string, string, string?][] = [
-  ['Health: Population: Structure', 'People', 'Population structure'],
-  ['Health: Population: Dynamics', 'People', 'Population dynamics'],
-  ['Health: Population', 'People', 'Population'],
-  ['Health: Universal Health Coverage', 'Health', 'Universal health coverage'],
-  ['Social Protection & Labor: Migration', 'People', 'Migration'],
-  ['Environment: Density & urbanization', 'People', 'Density & urbanization'],
-  ['Public Sector: Conflict & fragility', 'Conflict', 'Conflict & fragility'],
-  ['Public Sector: Defense & arms trade', 'Conflict', 'Defense & arms trade'],
-  ['Policy & institutions', 'Politics and government', 'Governance indicators'],
-  ['Health', 'Health'],
-  ['Economic Policy & Debt', 'Economy'],
-  ['Poverty', 'Poverty and inequality'],
-  ['Social Protection & Labor', 'Work and social protection'],
-  ['Private Sector & Trade', 'Trade and business'],
-  ['Trade', 'Trade and business'],
-  ['Financial Sector', 'Finance'],
-  ['Public Sector', 'Politics and government'],
-  ['Education', 'Education'],
-  ['Gender', 'Gender'],
-  ['Infrastructure', 'Technology and infrastructure'],
-  ['Environment', 'Environment and energy'],
-  ['health', 'Health'],
-  ['mental_health', 'Health', 'Mental health'],
-  ['population', 'People'],
-  ['people', 'People'],
-  ['conflict', 'Conflict'],
-  ['territorial', 'Conflict', 'Territorial claims'],
-  ['politics', 'Politics and government'],
-  ['economy', 'Economy'],
-  ['education', 'Education'],
-  ['environment', 'Environment and energy'],
+  ['Health: Population: Structure', msg('People'), msg('Population structure')],
+  ['Health: Population: Dynamics', msg('People'), msg('Population dynamics')],
+  ['Health: Population', msg('People'), msg('Population')],
+  ['Health: Universal Health Coverage', msg('Health'), msg('Universal health coverage')],
+  ['Social Protection & Labor: Migration', msg('People'), msg('Migration')],
+  ['Environment: Density & urbanization', msg('People'), msg('Density & urbanization')],
+  ['Public Sector: Conflict & fragility', msg('Conflict'), msg('Conflict & fragility')],
+  ['Public Sector: Defense & arms trade', msg('Conflict'), msg('Defense & arms trade')],
+  ['Policy & institutions', msg('Politics and government'), msg('Governance indicators')],
+  ['Health', msg('Health')],
+  ['Economic Policy & Debt', msg('Economy')],
+  ['Poverty', msg('Poverty and inequality')],
+  ['Social Protection & Labor', msg('Work and social protection')],
+  ['Private Sector & Trade', msg('Trade and business')],
+  ['Trade', msg('Trade and business')],
+  ['Financial Sector', msg('Finance')],
+  ['Public Sector', msg('Politics and government')],
+  ['Education', msg('Education')],
+  ['Gender', msg('Gender')],
+  ['Infrastructure', msg('Technology and infrastructure')],
+  ['Environment', msg('Environment and energy')],
+  ['health', msg('Health')],
+  ['mental_health', msg('Health'), msg('Mental health')],
+  ['population', msg('People')],
+  ['people', msg('People')],
+  ['conflict', msg('Conflict')],
+  ['territorial', msg('Conflict'), msg('Territorial claims')],
+  ['politics', msg('Politics and government')],
+  ['economy', msg('Economy')],
+  ['education', msg('Education')],
+  ['environment', msg('Environment and energy')],
 ];
 
 const ORDER = ['Health', 'People', 'Conflict', 'Politics and government', 'Economy', 'Poverty and inequality', 'Work and social protection',
@@ -75,8 +77,10 @@ function rank(title: string) {
   return i < 0 ? ORDER.length : i;
 }
 
-/** Every metric in a group, groups in a fixed order; inside one, the untitled section first, then by name. */
-export function groupIndicators(metrics: readonly Indicator[]): IndicatorGroup[] {
+const EN = createTranslator(DEFAULT_LOCALE, {});
+
+/** Every metric in a group, groups in a fixed order; inside one, the untitled section first, then by name. Titles are in `t`'s language, ids in English. */
+export function groupIndicators(metrics: readonly Indicator[], t: Translate = EN): IndicatorGroup[] {
   const groups = new Map<string, Map<string | null, Indicator[]>>();
   for (const m of metrics) {
     const { group, section } = placeOf(m.topic);
@@ -90,36 +94,45 @@ export function groupIndicators(metrics: readonly Indicator[]): IndicatorGroup[]
     .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b, 'en'))
     .map(([title, sections]) => ({
       id: title,
-      title,
+      title: t(title),
       count: [...sections.values()].reduce((n, list) => n + list.length, 0),
       sections: [...sections]
         .sort(([a], [b]) => (a === null ? -1 : b === null ? 1 : a.localeCompare(b, 'en')))
-        .map(([label, list]) => ({ label, metrics: list.sort(byName) })),
+        .map(([label, list]) => ({ label: label === null ? null : t(label), metrics: list.sort(byName) })),
     }));
 }
 
-const pickLabel = (v: (typeof VIEW_GROUPS)[number]['views'][number]) => (v.projectedTo ? `${v.label}, projected to ${v.projectedTo}` : v.label);
+type View = (typeof VIEW_GROUPS)[number]['views'][number];
+
+const yearText = (y: number, t: Translate) => (y > 0 ? (y < 1000 ? t('{year} CE', { year: String(y) }) : String(y)) : t('{year} BCE', { year: 1 - y }));
+
+/** "Life expectancy, since 1543": the label with the years it starts from, as the legend shows it. */
+const sinceLabel = (v: View, t: Translate) => (v.since === undefined ? t(v.label) : t('{label}, since {year}', { label: t(v.label), year: yearText(v.since, t) }));
+const pickLabel = (v: View, t: Translate) => (v.projectedTo ? t('{label}, projected to {year}', { label: sinceLabel(v, t), year: yearText(v.projectedTo, t) }) : sinceLabel(v, t));
 
 /** Offered beside "Pick an indicator" before anything is picked: series most countries have, reaching today. */
 export const STARTERS = ['wpp:LEx', 'wdi:NY.GDP.PCAP.KD', 'wpp:TPopulation1July'];
 
-/** The picker's label for a curated pick, null for any other code. `short` leaves out "projected to", as the legend does. */
-export function curatedLabel(code: string, short = false): string | null {
+/**
+ * The picker's label for a curated pick, null for any other code. `short` leaves out "projected to", as the legend
+ * does; `dated: false` leaves out every year, for where the years are shown beside it.
+ */
+export function curatedLabel(code: string, short = false, t: Translate = EN, dated = true): string | null {
   const v = VIEW_GROUPS.flatMap(g => g.views).find(x => x.code === code);
-  return v ? (short ? v.label : pickLabel(v)) : null;
+  if (!v) return null;
+  if (!dated) return t(v.label);
+  return short ? sinceLabel(v, t) : pickLabel(v, t);
 }
-
-const yearText = (y: number) => (y > 0 ? (y < 1000 ? `${y} CE` : String(y)) : `${(1 - y).toLocaleString('en')} BCE`);
 
 /**
  * The years an indicator covers, "1960–2024"; early years say CE or BCE so "1–2022" isn't misread. Projections
  * past the last estimate are named as such: "1950–2023, projected to 2100".
  */
-export function yearSpan([first, last]: readonly [number, number], projectedTo?: number): string {
+export function yearSpan([first, last]: readonly [number, number], projectedTo?: number, t: Translate = EN): string {
   const a = Math.floor(first);
   const b = Math.floor(last);
-  const span = a === b ? yearText(a) : `${yearText(a)}–${yearText(b)}`;
-  return projectedTo !== undefined && projectedTo > b ? `${span}, projected to ${yearText(projectedTo)}` : span;
+  const span = a === b ? yearText(a, t) : `${yearText(a, t)}–${yearText(b, t)}`;
+  return projectedTo !== undefined && projectedTo > b ? t('{label}, projected to {year}', { label: span, year: yearText(projectedTo, t) }) : span;
 }
 
 /** A label without its ", since 1543" or ", projected to 2100", for where the years are shown beside it. */
@@ -136,20 +149,21 @@ export function withProjections(all: readonly CatalogueMetric[]): Indicator[] {
   return all.filter(m => !isProjectionCode(m.code)).map(m => (reach.has(m.code) ? { ...m, projectedTo: reach.get(m.code) } : m));
 }
 
-/** A pick's name: its curated label, else the metric's own name once loaded, else its code. */
-export const nameOf = (p: CountryPick, short = false) => curatedLabel(p.code, short) ?? (p.status === 'ready' ? p.data.metric.name : p.code);
+/** A pick's name: its curated label, else the metric's own name once loaded, else its code. `dated: false` drops its years. */
+export const nameOf = (p: CountryPick, short = false, t: Translate = EN, dated = true) => curatedLabel(p.code, short, t, dated)
+  ?? (p.status === 'ready' ? (dated ? p.data.metric.name : undated(p.data.metric.name)) : p.code);
 
 /** The curated picks under their own headings and labels, leaving out any the catalogue doesn't carry. */
-export function suggestedGroup(metrics: readonly Indicator[]): IndicatorGroup {
+export function suggestedGroup(metrics: readonly Indicator[], t: Translate = EN): IndicatorGroup {
   const byCode = new Map(metrics.map(m => [m.code, m]));
   const sections = VIEW_GROUPS.map(g => ({
-    label: g.label,
+    label: t(g.label),
     metrics: g.views.flatMap(v => {
       const m = byCode.get(v.code);
-      return m ? [{ ...m, name: pickLabel(v) }] : [];
+      return m ? [{ ...m, name: pickLabel(v, t), bare: t(v.label) }] : [];
     }),
   })).filter(s => s.metrics.length);
-  return { id: SUGGESTED, title: 'Suggested', count: sections.reduce((n, s) => n + s.metrics.length, 0), sections };
+  return { id: SUGGESTED, title: t('Suggested'), count: sections.reduce((n, s) => n + s.metrics.length, 0), sections };
 }
 
 /** Groups cut down to the metrics matching every word of `query`, in their name, code, group or section. */

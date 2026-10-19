@@ -1,9 +1,10 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 import { ACCOUNT } from './osint';
 
 export const RECON_SCAN: ApiGroup = {
   id: 'recon-scan',
-  title: 'Recon scanners',
+  title: msg('Recon scanners'),
   blurb: 'Active and web-facing probes the web tier runs itself, keylessly. Each needs an account, like the rest of the OSINT toolkit. Port scans and vulnerability checks share the 30-an-hour scan allowance with the subnet sweep; TLS, headers, tech and subdomains count as ordinary lookups. Targets are validated against private and reserved ranges before any connection.',
   endpoints: [
     {

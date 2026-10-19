@@ -1,4 +1,5 @@
 /* The popup for a labelled place on the base map, with its Wikipedia lead once looked up. */
+import { t } from '@/lib/core/i18n/active';
 import { htmlEsc, pop, urlSafe } from '@/lib/map/popups/kit';
 import { normalizeTitle } from './wiki';
 import type { WikiSummary } from '@/lib/core/wikipedia/summary';
@@ -15,8 +16,8 @@ export type WikiState = { state: 'loading' } | { state: 'found'; summary: WikiSu
 const searchUrl = (name: string) => `https://en.wikipedia.org/w/index.php?${new URLSearchParams({ search: name })}`;
 
 function wikiBlock(place: PlaceInfo, wiki: WikiState): string {
-  if (wiki.state === 'loading') return `<div class="tk-pop-note">Looking up Wikipedia…</div>`;
-  if (wiki.state === 'none') return `<div class="tk-pop-note">No English Wikipedia article found for this place.</div>`;
+  if (wiki.state === 'loading') return `<div class="tk-pop-note">${htmlEsc(t('Looking up Wikipedia…'))}</div>`;
+  if (wiki.state === 'none') return `<div class="tk-pop-note">${htmlEsc(t('No English Wikipedia article found for this place.'))}</div>`;
   const s = wiki.summary;
   const img = s.image
     ? `<img src="${urlSafe(s.image.src)}" alt="" style="float:right;width:72px;height:72px;object-fit:cover;border-radius:6px;margin:0 0 6px 10px;" />`
@@ -24,7 +25,7 @@ function wikiBlock(place: PlaceInfo, wiki: WikiState): string {
   // A nearby article matched on a shared word: say which one, so a wrong match is visible.
   const article = normalizeTitle(s.title) === normalizeTitle(place.name)
     ? ''
-    : `<div class="tk-pop-item-title">Wikipedia: ${htmlEsc(s.title)}</div>`;
+    : `<div class="tk-pop-item-title">${htmlEsc(t('Wikipedia: {title}', { title: s.title }))}</div>`;
   return `${img}${article}
     ${s.description ? `<div class="tk-pop-list-meta">${htmlEsc(s.description)}</div>` : ''}
     <div style="margin-top:6px;color:var(--ink-1);">${htmlEsc(s.extract)}</div>
@@ -33,12 +34,12 @@ function wikiBlock(place: PlaceInfo, wiki: WikiState): string {
 
 export function placePopupHtml(place: PlaceInfo, wiki: WikiState): string {
   return pop({
-    kicker: [place.kind, place.detail].filter(Boolean).join(' · ') || 'Place',
+    kicker: [place.kind, place.detail].filter(Boolean).join(' · ') || t('Place'),
     title: place.name,
     body: wikiBlock(place, wiki),
     links: wiki.state === 'found'
       ? [{ href: wiki.summary.url, label: 'Wikipedia' }]
-      : wiki.state === 'none' ? [{ href: searchUrl(place.name), label: 'Search Wikipedia' }] : [],
+      : wiki.state === 'none' ? [{ href: searchUrl(place.name), label: t('Search Wikipedia') }] : [],
     note: wiki.state === 'found' ? 'Wikipedia · CC BY-SA' : undefined,
   });
 }

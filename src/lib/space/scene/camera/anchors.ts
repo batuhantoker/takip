@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { msg } from '@/lib/core/i18n/translator';
 import { AU_KM, LY_KM } from '@/lib/space/astro';
 import { DEEP_FEATURES } from '@/lib/space/deep/features';
 import { GALACTIC_CENTRE_KM } from '@/lib/space/deep/galaxy';
@@ -56,13 +57,13 @@ export function anchorState(scene: SpaceScene, anchor: Anchor, jd: number): Anch
 export function anchorName(scene: SpaceScene): string {
   const a = scene.anchor;
   switch (a.kind) {
-    case 'system': return scene.sunKm < 2_000 * AU_KM ? 'Solar system' : 'Sun';
-    case 'galaxy': return 'Milky Way';
+    case 'system': return scene.sunKm < 2_000 * AU_KM ? msg('Solar system') : msg('Sun');
+    case 'galaxy': return msg('Milky Way');
     case 'body': return SKY_BODIES.find(b => b.key === a.key)!.name;
-    case 'craft': return scene.fleet.find(c => c.id === a.id)?.name ?? 'Spacecraft';
-    case 'star': return scene.nearby.catalog()?.names[a.index] ?? scene.nearby.catalog()?.ids[a.index] ?? 'Star';
+    case 'craft': return scene.fleet.find(c => c.id === a.id)?.name ?? msg('Spacecraft');
+    case 'star': return scene.nearby.catalog()?.names[a.index] ?? scene.nearby.catalog()?.ids[a.index] ?? msg('Star');
     case 'exohost': return a.name;
-    case 'outer': return scene.outer.bodies().find(b => b.key === a.key)?.name ?? 'Outer solar system';
-    case 'feature': return DEEP_FEATURES[a.id]?.name ?? 'Deep space';
+    case 'outer': return scene.outer.bodies().find(b => b.key === a.key)?.name ?? msg('Outer solar system');
+    case 'feature': return DEEP_FEATURES[a.id]?.name ?? msg('Deep space');
   }
 }

@@ -1,3 +1,5 @@
+import { msg } from '@/lib/core/i18n/translator';
+
 /**
  * ISS streams that are live, playable and embeddable. Most "24/7 ISS" streams
  * fail one of the three (NASA's own ids are unplayable, several mirrors refuse
@@ -12,9 +14,9 @@ export interface IssFeed {
 }
 
 export const ISS_FEEDS: IssFeed[] = [
-  { id: 'sen-4k', label: '4K Earth', detail: 'Sen’s 4K cameras on the station', videoId: 'fO9e9jnhYK8' },
-  { id: 'iss-earth', label: 'Earth view', detail: 'External camera looking straight down', videoId: 'tj4knR4r1UU' },
-  { id: 'iss-overview', label: 'Overview', detail: 'Wide external camera', videoId: 'OKQEMp2555A' },
+  { id: 'sen-4k', label: msg('4K Earth'), detail: msg('Sen’s 4K cameras on the station'), videoId: 'fO9e9jnhYK8' },
+  { id: 'iss-earth', label: msg('Earth view'), detail: msg('External camera looking straight down'), videoId: 'tj4knR4r1UU' },
+  { id: 'iss-overview', label: msg('Overview'), detail: msg('Wide external camera'), videoId: 'OKQEMp2555A' },
 ];
 
 /** About where the station flies; the only "location" these cameras have. */

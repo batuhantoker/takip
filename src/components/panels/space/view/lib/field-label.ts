@@ -5,7 +5,7 @@ const KEEP: Record<string, string> = {
 
 /** "FROM EARTH" → "From Earth", "RA / DEC" → "RA / Dec": the cards' labels arrive in capitals. */
 export function fieldLabel(text: string): string {
-  if (/[a-z]/.test(text)) return text;
+  if (text !== text.toUpperCase()) return text;
   const words = text.toLowerCase().replace(/\b[a-z]+\b/g, w => KEEP[w] ?? w);
   return words.charAt(0).toUpperCase() + words.slice(1);
 }

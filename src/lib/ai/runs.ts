@@ -24,6 +24,7 @@ import { pointView } from './forecast';
 import { worldOutcome } from './prompts/report';
 import { text } from './parse/values';
 import type { ContextItem, Depth, AiEvent, Stamped } from './types';
+import type { Locale } from '@/lib/core/i18n/locales';
 
 export const LIMITS = {
   /** Runs one address may have going at once. */
@@ -76,6 +77,8 @@ export interface StartInput {
   key: string;
   /** A local model address the reader chose. */
   base?: string;
+  /** The reader's language, for the report. */
+  lang?: Locale;
   ip: string;
 }
 
@@ -161,7 +164,7 @@ export function startRun(input: StartInput, deps: StartDeps = {}): StartResult {
   const deadline = setTimeout(() => run.abort.abort(new Error('The run took too long and was stopped.')), LIMITS.deadlineMs);
 
   void runEngine(
-    { question: input.question, seed: input.seed, seedScope: input.seedScope, depth: input.depth, useFeeds: input.useFeeds },
+    { question: input.question, seed: input.seed, seedScope: input.seedScope, depth: input.depth, useFeeds: input.useFeeds, lang: input.lang },
     {
       chat,
       concurrency: deps.concurrency ?? providerInfo(input.provider).concurrency,

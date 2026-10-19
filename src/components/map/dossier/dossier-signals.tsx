@@ -4,6 +4,7 @@ import { PanelSection } from '@/components/ui/panel';
 import { Stat } from '@/components/ui/stat';
 import { Tag } from '@/components/ui/tag';
 import type { Tone } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 
 interface Advisory { issuer: string; country?: string; level: number; label: string; change: string | null; updated_at: string | null; url: string }
 interface StreetCrime { month: string; total: number; top: { category: string; label: string; count: number }[] }
@@ -11,7 +12,7 @@ interface Displacement { year: number; refugees_from: number; asylum_seekers_fro
 
 const LEVEL_TONE: Tone[] = ['green', 'amber', 'amber', 'red', 'red'];
 
-const fmt = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n));
+const fmt = (n: number, locale: string) => new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: n >= 1e6 ? 1 : 0 }).format(n);
 
 /** Travel advice and displacement for the clicked country, and which sources did not answer. */
 export default function DossierSignals({ advice, displacement, crime, unavailable }: {
@@ -20,12 +21,13 @@ export default function DossierSignals({ advice, displacement, crime, unavailabl
   crime?: StreetCrime | null;
   unavailable?: string[];
 }) {
+  const t = useT();
   const fled = displacement ? displacement.refugees_from + displacement.asylum_seekers_from : 0;
   const hosted = displacement ? displacement.refugees_hosted + displacement.asylum_seekers_hosted : 0;
   return (
     <>
       {!!advice?.length && (
-        <PanelSection title="Travel advice">
+        <PanelSection title={t('Travel advice')}>
           <div className="flex flex-col gap-3">
             {advice.map(a => (
               <div key={`${a.issuer}:${a.country ?? ''}`} className="flex flex-col gap-1">
@@ -43,21 +45,21 @@ export default function DossierSignals({ advice, displacement, crime, unavailabl
         </PanelSection>
       )}
       {displacement && (fled > 0 || hosted > 0 || displacement.idps > 0) && (
-        <PanelSection title="Displacement" hint={`UNHCR ${displacement.year}`}>
+        <PanelSection title={t('Displacement')} hint={`UNHCR ${displacement.year}`}>
           <div className="grid grid-cols-3 gap-4">
-            <Stat size="sm" label="Fled abroad" value={fmt(fled)} />
-            <Stat size="sm" label="Displaced inside" value={fmt(displacement.idps)} />
-            <Stat size="sm" label="Sheltering here" value={fmt(hosted)} />
+            <Stat size="sm" label={t('Fled abroad')} value={fmt(fled, t.intl)} />
+            <Stat size="sm" label={t('Displaced inside')} value={fmt(displacement.idps, t.intl)} />
+            <Stat size="sm" label={t('Sheltering here')} value={fmt(hosted, t.intl)} />
           </div>
         </PanelSection>
       )}
       {crime && (
-        <PanelSection title="Street crime within a mile" hint={`${crime.month} · data.police.uk`}>
-          <div className="text-body text-ink-1"><span className="font-mono tabular-nums">{crime.total.toLocaleString()}</span> reported</div>
-          <div className="mt-0.5 text-small text-ink-3">{crime.top.slice(0, 3).map(t => `${t.label} ${t.count}`).join(' · ')}</div>
+        <PanelSection title={t('Street crime within a mile')} hint={`${crime.month} · data.police.uk`}>
+          <div className="text-body text-ink-1">{t.rich('{n} reported', { n: <span className="font-mono tabular-nums">{crime.total.toLocaleString(t.intl)}</span> })}</div>
+          <div className="mt-0.5 text-small text-ink-3">{crime.top.slice(0, 3).map(c => `${c.label} ${c.count}`).join(' · ')}</div>
         </PanelSection>
       )}
-      {!!unavailable?.length && <p className="mt-4 text-meta text-ink-3">No answer from {unavailable.join(' or ')}.</p>}
+      {!!unavailable?.length && <p className="mt-4 text-meta text-ink-3">{t('No answer from {sources}.', { sources: new Intl.ListFormat(t.intl, { type: 'disjunction' }).format(unavailable) })}</p>}
     </>
   );
 }

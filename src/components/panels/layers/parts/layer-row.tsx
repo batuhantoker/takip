@@ -4,12 +4,14 @@ import { useId } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cx, TRANSITION } from '@/components/ui/class-names';
 import { Switch } from '@/components/ui/switch';
+import { useT } from '@/components/ui/use-t';
+import type { Translate } from '@/lib/core/i18n/translator';
 import type { LayerDef } from '@/components/panels/layers/layer-groups';
 import { legendFor } from '@/components/panels/layers/lib/layer-legend';
 import { LayerSwatch } from './layer-swatch';
-import { sentenceCase } from '@/components/panels/layers/lib/sentence-case';
+import { inSentence, localLabel } from '@/components/panels/layers/lib/sentence-case';
 
-export const layerName = (layer: LayerDef) => sentenceCase(layer.label);
+export const layerName = (layer: LayerDef, t: Translate) => localLabel(layer.label, t);
 
 /** One layer: its key, its name and source, how many things it draws, and the switch. The whole row toggles. */
 export function LayerRow({ layer, on, count, detail, compact, onToggle }: {
@@ -21,8 +23,9 @@ export function LayerRow({ layer, on, count, detail, compact, onToggle }: {
   compact?: boolean;
   onToggle: () => void;
 }) {
+  const t = useT();
   const id = useId();
-  const name = layerName(layer);
+  const name = layerName(layer, t);
   return (
     <div className={cx(
       'group/row relative -mx-2 flex items-center gap-3 rounded-control px-2 hover:bg-surface-2',
@@ -42,7 +45,7 @@ export function LayerRow({ layer, on, count, detail, compact, onToggle }: {
       </div>
       {count !== null && (
         <span className={cx('shrink-0 font-mono text-small tabular-nums', on ? 'text-ink-2' : 'text-ink-3')}>
-          {count.toLocaleString('en-US')}
+          {count.toLocaleString(t.intl)}
         </span>
       )}
       <Switch id={id} hideLabel label={name} checked={on} onChange={onToggle} className="relative z-[1]" />
@@ -63,6 +66,7 @@ export function SubFilters({ parentName, layers, activeLayers, parentOn, countOf
   countOf?: (layer: LayerDef) => number | null;
   onToggle: (key: string) => void;
 }) {
+  const t = useT();
   if (!layers.length) return null;
   const row = (l: LayerDef) => {
     const on = !!activeLayers[l.key];
@@ -74,18 +78,18 @@ export function SubFilters({ parentName, layers, activeLayers, parentOn, countOf
         <Checkbox
           checked={on}
           onChange={() => onToggle(l.key)}
-          description={l.description}
+          description={l.description && t(l.description)}
           className="min-w-0 flex-1"
           label={(
             <span className="flex min-w-0 items-center gap-1.5 text-small text-ink-2">
               {swatch && <LayerSwatch layerKey={l.key} on={parentOn && on} className="-mx-1" />}
-              <span className="truncate">{layerName(l)}</span>
+              <span className="truncate">{layerName(l, t)}</span>
             </span>
           )}
         />
         {count !== null && (
           <span className={cx('shrink-0 font-mono text-small tabular-nums', parentOn && on ? 'text-ink-2' : 'text-ink-3')}>
-            {count.toLocaleString('en-US')}
+            {count.toLocaleString(t.intl)}
           </span>
         )}
       </div>
@@ -96,9 +100,9 @@ export function SubFilters({ parentName, layers, activeLayers, parentOn, countOf
   const typed = layers.filter(l => legendFor(l.key));
   return (
     <div className={cx('mb-2 ml-2 flex flex-col gap-1 border-l border-line py-1 pl-[19px]', !parentOn && 'opacity-60')}>
-      {!parentOn && <p className="pb-1 text-meta text-ink-3">Applies once {parentName.toLowerCase()} is on</p>}
+      {!parentOn && <p className="pb-1 text-meta text-ink-3">{t('Applies once {layer} is on', { layer: inSentence(parentName, t) })}</p>}
       {plain.map(row)}
-      {plain.length > 0 && typed.length > 0 && <p className="pt-2 text-meta font-medium text-ink-3">By type</p>}
+      {plain.length > 0 && typed.length > 0 && <p className="pt-2 text-meta font-medium text-ink-3">{t('By type')}</p>}
       {typed.map(row)}
     </div>
   );

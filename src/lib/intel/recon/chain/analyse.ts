@@ -72,6 +72,7 @@ function buildFactors(
       severity: 'critical',
       weight: 100,
       detail: `Listed on the US OFAC SDN list as: ${sanctionHits.slice(0, 3).map(e => e.name).join('; ')}`,
+      vars: { names: sanctionHits.slice(0, 3).map(e => e.name).join('; ') },
     });
   }
 
@@ -82,6 +83,7 @@ function buildFactors(
       severity: 'low',
       weight: 10,
       detail: `First activity ${activity.age_days} day(s) ago.`,
+      vars: { n: activity.age_days },
     });
   }
 
@@ -92,6 +94,7 @@ function buildFactors(
       severity: 'info',
       weight: 5,
       detail: `No activity for ${activity.dormant_days} days.`,
+      vars: { n: activity.dormant_days },
     });
   }
 
@@ -102,6 +105,7 @@ function buildFactors(
       severity: 'info',
       weight: 5,
       detail: `${raw.tx_count.toLocaleString()} transactions — consistent with an exchange, service or pooled wallet rather than a personal one.`,
+      vars: { n: raw.tx_count },
     });
   }
 
@@ -114,6 +118,7 @@ function buildFactors(
       severity: 'medium',
       weight: 20,
       detail: `${counterparties.length} distinct counterparties across ${raw.transactions.length} sampled transactions — a distribution pattern also seen in mixing and payout scripts.`,
+      vars: { counterparties: counterparties.length, sampled: raw.transactions.length },
     });
   }
 
@@ -125,6 +130,7 @@ function buildFactors(
       severity: 'low',
       weight: 8,
       detail: `${failed} of ${raw.transactions.length} sampled transactions failed.`,
+      vars: { failed, sampled: raw.transactions.length },
     });
   }
 
@@ -135,6 +141,7 @@ function buildFactors(
       severity: 'medium',
       weight: 15,
       detail: `Received ${raw.flow.total_in.toFixed(4)} ${meta.symbol} but retains ${raw.balance.toFixed(4)} — funds were forwarded on rather than held.`,
+      vars: { received: raw.flow.total_in.toFixed(4), symbol: meta.symbol, kept: raw.balance.toFixed(4) },
     });
   }
 

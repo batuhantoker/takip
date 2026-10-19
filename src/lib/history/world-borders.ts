@@ -1,3 +1,5 @@
+import { activeIntl, t } from '@/lib/core/i18n/active';
+import { msg, type Vars } from '@/lib/core/i18n/translator';
 import { htmlEsc, pop, urlSafe } from '@/lib/map/popups/kit';
 import { MAP_INK } from '@/lib/map/style/tokens';
 import { yearLabel } from '@/lib/map/replay/timeline-ticks';
@@ -27,13 +29,13 @@ export function yearStart(year: number) {
 export const clockYear = (t: number) => new Date(t).getUTCFullYear();
 
 /** "500 BCE", "1914". */
-export const clockYearLabel = (y: number) => yearLabel(y > 0 ? y : y - 1);
+export const clockYearLabel = (y: number, say?: (source: string, vars?: Vars) => string) => yearLabel(y > 0 ? y : y - 1, say);
 
 const YEAR_S = 365.2425 * 86_400;
 
 export const WORLD_BORDERS = {
   code: 'world-borders',
-  label: 'World borders',
+  label: msg('World borders'),
   /** Play runs from classical Greece to the last year. */
   playYears: `500 BCE–${LAST_YEAR}`,
   start: yearStart(bce(500)),
@@ -80,10 +82,10 @@ export type WorldBorderFeature = {
 
 /** "1914", "1924 – 1935", or "since 2006" for borders still standing at the data's end; t1 starts the year after. */
 export function yearsSpan(t0: number, t1: number | null): string {
-  const first = clockYearLabel(clockYear(t0 * 1000));
+  const first = clockYearLabel(clockYear(t0 * 1000), t);
   // Map features drop null properties, so an open end can arrive as undefined.
-  if (t1 == null) return `since ${first}`;
-  const last = clockYearLabel(clockYear(t1 * 1000) - 1);
+  if (t1 == null) return t('since {date}', { date: first });
+  const last = clockYearLabel(clockYear(t1 * 1000) - 1, t);
   return last === first ? first : `${first} – ${last}`;
 }
 
@@ -110,15 +112,15 @@ export function worldBorderPopupHtml(p: WorldBorderFeature, x: BorderExtras = {}
   const extract = w?.extract.trim();
   const story = w ? articleHtml(w) + (extract ? summaryHtml(extract, !!x.expanded) : '') : '';
   return pop({
-    kicker: whole ? `Part of ${whole}` : 'Polity',
+    kicker: whole ? t('Part of {name}', { name: whole }) : t('Polity'),
     dot: powerColor(p.subject ?? p.name),
     title: p.name,
-    rows: [{ label: 'These borders', value: yearsSpan(p.t0, p.t1) }],
+    rows: [{ label: t('These borders'), value: yearsSpan(p.t0, p.t1) }],
     foot: story ? `<div class="tk-pop-body">${story}</div>` : undefined,
     links: [
       w || p.wiki
-        ? { href: w?.url ?? p.wiki, label: lang === 'en' ? 'Wikipedia' : `${languageName(lang)} Wikipedia` }
-        : { href: `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(p.name)}`, label: 'Search Wikipedia' },
+        ? { href: w?.url ?? p.wiki, label: lang === 'en' ? 'Wikipedia' : t('{language} Wikipedia', { language: languageName(lang, activeIntl()) }) }
+        : { href: `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(p.name)}`, label: t('Search Wikipedia') },
       /^Q\d+$/.test(p.wikidata ?? '') && { href: `https://www.wikidata.org/wiki/${p.wikidata}`, label: 'Wikidata' },
     ],
   });

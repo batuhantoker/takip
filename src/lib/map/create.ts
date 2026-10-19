@@ -7,6 +7,8 @@ export function createMap(container: HTMLDivElement): maplibregl.Map | undefined
   const styleUrl = '/dark-matter-style.json';
 
   maplibregl.setWorkerUrl(`/vendor/maplibre/${maplibregl.getVersion()}/maplibre-gl-worker.mjs`);
+  // Arabic and Hebrew names need shaping; the plugin loads only once such a label is on screen.
+  if (maplibregl.getRTLTextPluginStatus() === 'unavailable') void maplibregl.setRTLTextPlugin('/vendor/rtl-text/mapbox-gl-rtl-text.js', true);
   /* Open on the whole globe, turned to the viewer's side of it. The UTC
      offset is a free, instant stand-in for longitude (15° an hour), so the
      fly-in to their city after the splash is a dive, not a spin round the

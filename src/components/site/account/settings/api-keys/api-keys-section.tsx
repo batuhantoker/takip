@@ -2,26 +2,28 @@
 
 import { useEffect, useState } from 'react';
 import { useAccess } from '@/components/site/account/use-access';
-import { isExpired, listApiKeys, type ApiKey, type NewApiKey } from '@/lib/platform/account/api-keys';
+import { isExpired, listApiKeys, type ApiKey, type ApiKeyFailure, type NewApiKey } from '@/lib/platform/account/api-keys';
 import { FormError, Notice } from '@/components/site/account/form-parts';
-import { describeKeyFailure, keyCount } from './api-key-messages';
+import { describeKeyFailure, keyLimit } from './api-key-messages';
 import ApiKeyRow from './api-key-row';
 import NewApiKeyForm from './new-api-key-form';
 import NewApiKeyNotice from './new-api-key-notice';
 import { Section, SmallButton } from '@/components/site/account/settings/settings-parts';
+import { useT } from '@/components/ui/use-t';
 
 type Step = { kind: 'idle' } | { kind: 'form' } | { kind: 'created'; key: NewApiKey };
 
 const MUTED = 'text-small text-ink-3';
 
 export default function ApiKeysSection() {
+  const t = useT();
   const access = useAccess();
   const [keys, setKeys] = useState<ApiKey[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<ApiKeyFailure | null>(null);
   const [step, setStep] = useState<Step>({ kind: 'idle' });
 
-  const show = ({ data, failure }: Awaited<ReturnType<typeof listApiKeys>>) => {
-    setError(failure ? describeKeyFailure(failure) : null);
+  const show = ({ data, failure: failed }: Awaited<ReturnType<typeof listApiKeys>>) => {
+    setFailure(failed ?? null);
     if (data) setKeys(data.keys);
   };
 
@@ -42,27 +44,28 @@ export default function ApiKeysSection() {
   const active = keys?.filter(key => !isExpired(key)).length ?? 0;
 
   return (
-    <Section title="API keys">
+    <Section title={t('API keys')}>
       <p className={`${MUTED} leading-relaxed`}>
-        Let your own scripts and tools use the API. Send a key in an <span className="font-mono">Authorization: Bearer</span> header, never in a
-        link.{' '}
-        <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="text-accent hover:underline">API reference</a>
+        {t.rich('Let your own scripts and tools use the API. Send a key in an {header} header, never in a link.', {
+          header: <span className="font-mono">Authorization: Bearer</span>,
+        })}{' '}
+        <a href="/api/v1/docs" target="_blank" rel="noreferrer" className="text-accent hover:underline">{t('API reference')}</a>
       </p>
-      {allowed === 0 && <Notice>Your plan doesn&apos;t include API access.</Notice>}
-      <FormError message={error} />
+      {allowed === 0 && <Notice>{t("Your plan doesn't include API access.")}</Notice>}
+      <FormError message={failure && describeKeyFailure(failure, t)} />
       {step.kind === 'created' && <NewApiKeyNotice created={step.key} onDone={() => setStep({ kind: 'idle' })} />}
 
       {keys === null || allowed === null ? (
-        !error && <p className={MUTED}>Loading…</p>
+        !failure && <p className={MUTED}>{t('Loading…')}</p>
       ) : keys.length ? (
         keys.map(key => <ApiKeyRow key={key.id} apiKey={key} onRevoked={reload} />)
       ) : (
-        allowed > 0 && <p className={MUTED}>No keys yet.</p>
+        allowed > 0 && <p className={MUTED}>{t('No keys yet.')}</p>
       )}
 
       {keys !== null && allowed !== null && allowed > 0 && step.kind !== 'created' && (
         active >= allowed ? (
-          <p className={MUTED}>Your plan allows {keyCount(allowed)}. Revoke one to create another.</p>
+          <p className={MUTED}>{keyLimit(allowed, t)}</p>
         ) : step.kind === 'form' ? (
           <NewApiKeyForm
             onCancel={() => setStep({ kind: 'idle' })}
@@ -72,7 +75,7 @@ export default function ApiKeysSection() {
             }}
           />
         ) : (
-          <SmallButton className="self-start" onClick={() => setStep({ kind: 'form' })}>Create key…</SmallButton>
+          <SmallButton className="self-start" onClick={() => setStep({ kind: 'form' })}>{t('Create key…')}</SmallButton>
         )
       )}
     </Section>

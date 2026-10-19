@@ -3,6 +3,7 @@
 import { authClient } from '@/components/site/account/auth-client';
 import { showAccountDialog } from '../account-dialog-state';
 import { Notice, TextButton } from '../form-parts';
+import { useT } from '@/components/ui/use-t';
 import ApiKeysSection from '@/components/site/account/settings/api-keys/api-keys-section';
 import DeleteAccountSection from '@/components/site/account/settings/parts/delete-account-section';
 import DevicesSection from '@/components/site/account/settings/parts/devices-section';
@@ -13,15 +14,16 @@ import TwoFactorSection from '@/components/site/account/settings/parts/two-facto
 import YourDataSection from '@/components/site/account/settings/parts/your-data-section';
 
 export default function AccountSettings({ notice }: { notice?: string }) {
+  const t = useT();
   const { data, isPending } = authClient.useSession();
 
-  if (isPending) return <p className="p-4 text-small text-ink-3">Loading…</p>;
+  if (isPending) return <p className="p-4 text-small text-ink-3">{t('Loading…')}</p>;
   if (!data) {
     return (
       <div className="p-4">
         <Notice>
-          {notice ?? 'You are signed out.'}{' '}
-          <TextButton onClick={() => showAccountDialog({ kind: 'sign-in' })}>Sign in</TextButton>
+          {notice ?? t('You are signed out.')}{' '}
+          <TextButton onClick={() => showAccountDialog({ kind: 'sign-in' })}>{t('Sign in')}</TextButton>
         </Notice>
       </div>
     );

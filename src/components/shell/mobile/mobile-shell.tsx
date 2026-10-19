@@ -15,6 +15,7 @@ import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import { onWorldRequest } from '@/lib/space/world-events';
 import type { TerrainStatus } from '@/lib/map/terrain/terrain';
 import { useShown } from '@/components/shell/layout/use-page-layout';
+import { useT } from '@/components/ui/use-t';
 import AppHeader from './app-header';
 import SharePanel from './share-panel';
 import MobileNav from './mobile-nav';
@@ -52,6 +53,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
   onSweep: (data: any) => void;
   history: { session: HistorySession | null; open: () => void; exit: () => void };
 }) {
+  const t = useT();
   const flyAndClose = (lat: number, lng: number, zoom?: number) => {
     setFlyToLocation({ lat, lng, zoom, ts: Date.now() });
     setMobilePanel(null);
@@ -65,7 +67,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
   };
   // A spacecraft picked in the Space sheet flies the space view to it; the sheet would hide it.
   useEffect(() => onWorldRequest(() => setMobilePanel(p => (p === 'space' ? null : p))), [setMobilePanel]);
-  const subtitle = mobilePanel === 'layers' && tracked > 0 ? `${tracked.toLocaleString('en-US')} tracked on the map`
+  const subtitle = mobilePanel === 'layers' && tracked > 0 ? t('{n} tracked on the map', { n: tracked })
     : mobilePanel === 'history' && history.session ? <WhereInTime session={history.session} />
       : undefined;
 

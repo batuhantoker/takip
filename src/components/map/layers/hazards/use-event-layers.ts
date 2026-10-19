@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { t } from '@/lib/core/i18n/active';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useEarthquakeLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
@@ -56,7 +57,7 @@ export function useConflictZones({ mapReady, setGeo }: Pick<LayerHookArgs, 'mapR
           properties: { 
             label: z.label, 
             severity: z.severity, 
-            description: `${z.description}${z.eventCount > 0 ? ` [${z.eventCount} live events detected]` : ''}`,
+            description: `${z.description}${z.eventCount > 0 ? ` [${t('{n, plural, one {# live event detected} other {# live events detected}}', { n: z.eventCount })}]` : ''}`,
             sourceUrl: z.sourceUrl,
             eventCount: z.eventCount,
           },
@@ -69,9 +70,9 @@ export function useConflictZones({ mapReady, setGeo }: Pick<LayerHookArgs, 'mapR
             type: 'Feature' as const,
             geometry: { type: 'Point' as const, coordinates: [e.lng, e.lat] },
             properties: { 
-              label: (e.title || 'CONFLICT EVENT').substring(0, 60).toUpperCase(),
+              label: (e.title || t('CONFLICT EVENT')).substring(0, 60).toUpperCase(),
               severity: 'war',
-              description: e.title || 'Live conflict event detected by GDELT.',
+              description: e.title || t('Live conflict event detected by GDELT.'),
               sourceUrl: e.url || '',
             },
           }));
@@ -80,12 +81,12 @@ export function useConflictZones({ mapReady, setGeo }: Pick<LayerHookArgs, 'mapR
       } catch (e) {
         // Fallback: if API fails, use minimal known zones
         const FALLBACK_ZONES = [
-          { label: 'UKRAINE WAR', severity: 'war', lat: 48.5, lng: 31.2, description: 'Ongoing Russian invasion of Ukraine.', sourceUrl: 'https://liveuamap.com/' },
-          { label: 'GAZA CONFLICT', severity: 'war', lat: 31.35, lng: 34.35, description: 'Active military operations in Gaza.', sourceUrl: 'https://israelpalestine.liveuamap.com/' },
-          { label: 'SUDAN CIVIL WAR', severity: 'war', lat: 15.0, lng: 30.0, description: 'SAF vs RSF armed conflict.', sourceUrl: 'https://sudan.liveuamap.com/' },
-          { label: 'YEMEN WAR', severity: 'war', lat: 15.5, lng: 48.0, description: 'Houthi operations and Red Sea threats.', sourceUrl: 'https://yemen.liveuamap.com/' },
-          { label: 'MYANMAR CONFLICT', severity: 'war', lat: 19.5, lng: 96.5, description: 'Military junta vs opposition forces.', sourceUrl: 'https://myanmar.liveuamap.com/' },
-          { label: 'SYRIA', severity: 'high', lat: 35.0, lng: 38.5, description: 'Ongoing civil conflict.', sourceUrl: 'https://syria.liveuamap.com/' },
+          { label: t('UKRAINE WAR'), severity: 'war', lat: 48.5, lng: 31.2, description: t('Ongoing Russian invasion of Ukraine.'), sourceUrl: 'https://liveuamap.com/' },
+          { label: t('GAZA CONFLICT'), severity: 'war', lat: 31.35, lng: 34.35, description: t('Active military operations in Gaza.'), sourceUrl: 'https://israelpalestine.liveuamap.com/' },
+          { label: t('SUDAN CIVIL WAR'), severity: 'war', lat: 15.0, lng: 30.0, description: t('SAF vs RSF armed conflict.'), sourceUrl: 'https://sudan.liveuamap.com/' },
+          { label: t('YEMEN WAR'), severity: 'war', lat: 15.5, lng: 48.0, description: t('Houthi operations and Red Sea threats.'), sourceUrl: 'https://yemen.liveuamap.com/' },
+          { label: t('MYANMAR CONFLICT'), severity: 'war', lat: 19.5, lng: 96.5, description: t('Military junta vs opposition forces.'), sourceUrl: 'https://myanmar.liveuamap.com/' },
+          { label: t('SYRIA'), severity: 'high', lat: 35.0, lng: 38.5, description: t('Ongoing civil conflict.'), sourceUrl: 'https://syria.liveuamap.com/' },
         ];
         const fallbackFeatures = FALLBACK_ZONES.map(z => ({
           type: 'Feature' as const,

@@ -12,6 +12,8 @@
  * where almost everything fails on a pair of numeric comparisons.
  */
 
+import { msg } from '@/lib/core/i18n/translator';
+
 export interface AoiEntity {
   id: string;
   label: string;
@@ -59,27 +61,27 @@ interface LayerSpec {
  * adding a layer here is the only step needed to make it selectable.
  */
 export const AOI_LAYERS: LayerSpec[] = [
-  { key: 'commercial_flights', label: 'Commercial aircraft', color: '#00E5FF', labelFields: ['callsign', 'icao24'],
+  { key: 'commercial_flights', label: msg('Commercial aircraft'), color: '#00E5FF', labelFields: ['callsign', 'icao24'],
     detail: e => [e.model, e.alt ? `${e.alt} m` : null].filter(Boolean).join(' · ') || undefined },
-  { key: 'private_flights', label: 'Private aircraft', color: '#76FF03', labelFields: ['callsign', 'icao24'],
+  { key: 'private_flights', label: msg('Private aircraft'), color: '#76FF03', labelFields: ['callsign', 'icao24'],
     detail: e => e.model || undefined },
-  { key: 'private_jets', label: 'Private jets', color: '#FFD500', labelFields: ['callsign', 'icao24'],
+  { key: 'private_jets', label: msg('Private jets'), color: '#FFD500', labelFields: ['callsign', 'icao24'],
     detail: e => e.model || undefined },
-  { key: 'military_flights', label: 'Military aircraft', color: '#FF3D3D', labelFields: ['callsign', 'icao24'],
+  { key: 'military_flights', label: msg('Military aircraft'), color: '#FF3D3D', labelFields: ['callsign', 'icao24'],
     detail: e => e.model || undefined },
-  { key: 'maritime_ships', label: 'Vessels', color: '#448AFF', labelFields: ['name', 'mmsi', 'imo'],
+  { key: 'maritime_ships', label: msg('Vessels'), color: '#448AFF', labelFields: ['name', 'mmsi', 'imo'],
     detail: e => e.destination || e.flag || undefined },
-  { key: 'satellites', label: 'Satellites', color: '#E040FB', labelFields: ['name', 'noradId'],
+  { key: 'satellites', label: msg('Satellites'), color: '#E040FB', labelFields: ['name', 'noradId'],
     detail: e => (e.altitude ? `${Math.round(e.altitude)} km` : undefined) },
-  { key: 'cameras', label: 'CCTV cameras', color: '#00E676', labelFields: ['name', 'id'],
+  { key: 'cameras', label: msg('CCTV cameras'), color: '#00E676', labelFields: ['name', 'id'],
     detail: e => [e.city, e.country].filter(Boolean).join(', ') || undefined },
-  { key: 'earthquakes', label: 'Earthquakes', color: '#FF9500', labelFields: ['place', 'id'],
+  { key: 'earthquakes', label: msg('Earthquakes'), color: '#FF9500', labelFields: ['place', 'id'],
     detail: e => (e.magnitude != null ? `M${e.magnitude}` : undefined) },
-  { key: 'infrastructure', label: 'Nuclear facilities', color: '#FFEE58', labelFields: ['name', 'id'],
+  { key: 'infrastructure', label: msg('Nuclear facilities'), color: '#FFEE58', labelFields: ['name', 'id'],
     detail: e => e.country || undefined },
-  { key: 'gdelt', label: 'Global incidents', color: '#FF6B1A', labelFields: ['name', 'id'],
+  { key: 'gdelt', label: msg('Global incidents'), color: '#FF6B1A', labelFields: ['name', 'id'],
     detail: e => e.type || undefined },
-  { key: 'weather_events', label: 'Severe weather', color: '#7E57C2', labelFields: ['title', 'name', 'id'],
+  { key: 'weather_events', label: msg('Severe weather'), color: '#7E57C2', labelFields: ['title', 'name', 'id'],
     detail: e => e.category || undefined },
 ];
 
@@ -145,7 +147,7 @@ function pickLabel(e: any, fields: string[]): string {
     const v = e?.[f];
     if (v !== undefined && v !== null && String(v).trim()) return String(v).trim();
   }
-  return 'Unknown';
+  return msg('Unknown');
 }
 
 /**

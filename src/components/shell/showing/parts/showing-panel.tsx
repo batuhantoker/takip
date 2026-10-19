@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { useT } from '@/components/ui/use-t';
 import type { ShownGroup, ShownRow } from '@/components/shell/showing/lib/held-rows';
 import { ShowingRow } from './showing-row';
 
@@ -17,6 +18,7 @@ export function ShowingPanel({ summary, groups, recent, tall, onSwitch, onOpenAr
   onOpenAreas?: () => void;
   footer?: { label: string; onClick: () => void };
 }) {
+  const t = useT();
   return (
     <div className="flex max-h-[min(560px,calc(100dvh-140px))] flex-col">
       <header className="shrink-0 px-4 pt-3 pb-3">
@@ -36,8 +38,8 @@ export function ShowingPanel({ summary, groups, recent, tall, onSwitch, onOpenAr
             </section>
           ))}
           {recent.length > 0 && (
-            <section aria-label="Recent" className={groups.length ? '-mx-4 mt-2 border-t border-line px-4 pt-1' : undefined}>
-              <h3 className="pt-1.5 pb-0.5 text-meta font-medium text-ink-3">Recent</h3>
+            <section aria-label={t('Recent')} className={groups.length ? '-mx-4 mt-2 border-t border-line px-4 pt-1' : undefined}>
+              <h3 className="pt-1.5 pb-0.5 text-meta font-medium text-ink-3">{t('Recent')}</h3>
               <ul className="flex flex-col">
                 {recent.map(r => <ShowingRow key={r.id} row={r} tall={tall} onSwitch={on => onSwitch(r, on)} />)}
               </ul>

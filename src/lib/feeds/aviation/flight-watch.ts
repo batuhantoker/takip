@@ -1,5 +1,9 @@
 /** Flight Watch, minus the UI: aircraft types, great-circle distance and which airports to trust. */
 
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
+
+const english = createTranslator('en', {});
+
 export interface WatchedFlight {
   icao24: string;
   callsign: string;
@@ -144,8 +148,8 @@ export function toFeet(metres: number): number {
   return Math.round((metres * 3.28084) / 25) * 25;
 }
 
-export function formatAlt(metres: number | undefined, grounded?: boolean): string {
-  if (grounded) return 'Ground';
+export function formatAlt(metres: number | undefined, grounded?: boolean, t: Translate = english): string {
+  if (grounded) return t('Ground');
   if (typeof metres !== 'number' || !Number.isFinite(metres)) return '—';
-  return `${toFeet(metres).toLocaleString()} ft`;
+  return `${toFeet(metres).toLocaleString(t.intl)} ft`;
 }

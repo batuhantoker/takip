@@ -4,9 +4,11 @@ import { useId, useRef, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useDismiss } from '@/components/ui/use-dismiss';
+import { useT } from '@/components/ui/use-t';
 
 /** A modal in the account dialog's style. */
 export default function DialogFrame({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const t = useT();
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useDismiss(true, onClose, panelRef);
@@ -29,7 +31,7 @@ export default function DialogFrame({ title, onClose, children }: { title: strin
       >
         <div className="flex h-[52px] items-center justify-between pl-4 pr-2 border-b border-line">
           <h2 id={titleId} className="text-[15px] font-semibold text-ink-1 truncate">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="flex size-8 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 hover:text-ink-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+          <button type="button" onClick={onClose} aria-label={t('Close')} className="flex size-8 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2 hover:text-ink-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
             <X className="w-4 h-4" />
           </button>
         </div>

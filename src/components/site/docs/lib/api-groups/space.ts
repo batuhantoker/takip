@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const SPACE: ApiGroup = {
   id: 'space',
-  title: 'Space',
+  title: msg('Space'),
   blurb: 'Launches, the spacecraft fleet, the solar system and the Sun, as the space view reads them. All keyless.',
   endpoints: [
     {

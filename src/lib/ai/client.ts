@@ -6,6 +6,7 @@
  * to be remembered, otherwise in sessionStorage, which the tab forgets when it
  * closes. It travels to TAKIP in a header on each call that needs it.
  */
+import { activeLocale } from '@/lib/core/i18n/active';
 import type { ProviderId } from './providers/catalog';
 import type { RunState } from './state';
 import { directionWord, formatAmount } from './forecast';
@@ -129,6 +130,7 @@ export const headersFor = (engine: Engine, key: string): Record<string, string> 
   'x-ai-model': engine.model,
   ...(key ? { 'x-ai-key': key } : {}),
   ...(engine.provider === 'local' && engine.base ? { 'x-ai-base': engine.base } : {}),
+  'x-ai-lang': activeLocale(),
 });
 
 /** What went wrong, in AI's words if it gave any. */

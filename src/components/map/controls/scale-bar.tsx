@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useT } from '@/components/ui/use-t';
 
 interface ScaleBarProps {
   zoom: number;
@@ -34,9 +35,10 @@ export function scaleFor(zoom: number, latitude: number): { barWidth: number; la
 
 /** How far a stretch of the map is at its centre: a hairline with end ticks, and the distance beside it. */
 export default function ScaleBar({ zoom, latitude }: ScaleBarProps) {
+  const t = useT();
   const { barWidth, label } = useMemo(() => scaleFor(zoom, latitude), [zoom, latitude]);
   return (
-    <div className="flex items-end gap-1.5 select-none" role="img" aria-label={`Scale at the map centre: ${label}`}>
+    <div className="flex items-end gap-1.5 select-none" role="img" aria-label={t('Scale at the map centre: {distance}', { distance: label })}>
       <span aria-hidden className="h-1.5 border-x border-b border-ink-3" style={{ width: barWidth }} />
       <span className="font-mono text-meta leading-none text-ink-3 tabular-nums [text-shadow:0_0_3px_var(--surface-0)]">{label}</span>
     </div>

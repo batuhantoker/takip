@@ -8,11 +8,14 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { LOCALES } from '../../src/lib/core/i18n/locales';
+import { bareSource } from '../../src/lib/core/i18n/translator';
 import { readCatalog, translationProblem, writeCatalog } from './catalogs';
 import { extract } from './extract';
 
 const ROOT = resolve(import.meta.dirname, '../..');
 const TRANSLATED = LOCALES.filter(l => l !== 'en');
+// A context key ('rail|Layers') without its own entry uses the plain key's.
+const translated = (catalog: Record<string, string>, s: string) => !!(catalog[s] || catalog[bareSource(s)]);
 
 function main() {
   const [command, ...args] = process.argv.slice(2);
@@ -27,7 +30,7 @@ function main() {
     let bad = 0;
     for (const locale of TRANSLATED) {
       const catalog = readCatalog(ROOT, locale);
-      const missing = wanted.filter(s => !catalog[s]);
+      const missing = wanted.filter(s => !translated(catalog, s));
       const unused = paths.length ? [] : Object.keys(catalog).filter(s => !sources.has(s));
       const problems = Object.entries(catalog).flatMap(([s, tr]) => {
         const why = translationProblem(s, tr);
@@ -45,7 +48,7 @@ function main() {
     const [locale] = positional;
     if (!TRANSLATED.includes(locale as never)) throw new Error(`missing <${TRANSLATED.join('|')}>`);
     const catalog = readCatalog(ROOT, locale);
-    const out = Object.fromEntries([...extract(ROOT)].filter(([s, files]) => under(files) && !catalog[s]).map(([s]) => [s, '']));
+    const out = Object.fromEntries([...extract(ROOT)].filter(([s, files]) => under(files) && !translated(catalog, s)).map(([s]) => [s, '']));
     console.log(JSON.stringify(out, null, 2));
     return;
   }

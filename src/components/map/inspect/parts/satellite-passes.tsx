@@ -5,6 +5,7 @@ import { Crosshair, Eye } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { PanelSection } from '@/components/ui/panel';
 import { Property, PropertyList } from '@/components/ui/property-list';
+import { useT } from '@/components/ui/use-t';
 import { parseTLE } from '@/lib/feeds/satellites/orbit';
 import { compassPoint, nextSkyPasses } from '@/lib/feeds/satellites/pass';
 import type { MapRef } from '@/components/map/types';
@@ -12,14 +13,15 @@ import { Note } from './inspect-card';
 import { usePlaceName } from '../use-place-name';
 
 const HOURS = 48;
-const when = (t: number) => new Date(t).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-const hhmm = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const when = (ms: number, locale: string) => new Date(ms).toLocaleString(locale, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+const hhmm = (ms: number, locale: string) => new Date(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 
 /**
  * When the satellite next crosses the sky over a place: the map centre when the card opened, or the
  * view's centre on request. Visible means sunlit against a dark sky, so it can be seen by eye.
  */
 export function SatellitePasses({ line1, line2, mapRef }: { line1: string; line2: string; mapRef: MapRef }) {
+  const t = useT();
   const [observer, setObserver] = useState<{ lat: number; lng: number } | null>(null);
   const takeCentre = useCallback(() => {
     const c = mapRef.current?.getCenter();
@@ -47,30 +49,30 @@ export function SatellitePasses({ line1, line2, mapRef }: { line1: string; line2
 
   return (
     <PanelSection
-      title="Next passes"
-      action={<IconButton size="sm" icon={Crosshair} label="Passes over the middle of the map" tooltipSide="left" onClick={takeCentre} />}
+      title={t('Next passes')}
+      action={<IconButton size="sm" icon={Crosshair} label={t('Passes over the middle of the map')} tooltipSide="left" onClick={takeCentre} />}
     >
-      <Note>Over {over}, above 10° of sky</Note>
+      <Note>{t('Over {place}, above 10° of sky', { place: over })}</Note>
       {always ? (
         <PropertyList className="mt-1">
-          <Property label="Always up" value={`${Math.round(passes[0].maxElevation)}° high, to the ${compassPoint(passes[0].riseAzimuth)}`} />
+          <Property label={t('Always up')} value={t('{deg}° high, to the {dir}', { deg: Math.round(passes[0].maxElevation), dir: compassPoint(passes[0].riseAzimuth) })} />
         </PropertyList>
       ) : passes.length ? (
         <PropertyList className="mt-1">
           {passes.map(p => (
             <Property
               key={p.rise}
-              label={<span className="font-mono tabular-nums">{when(p.rise)}{p.set ? `–${hhmm(p.set)}` : ''}</span>}
+              label={<span className="font-mono tabular-nums">{when(p.rise, t.intl)}{p.set ? `–${hhmm(p.set, t.intl)}` : ''}</span>}
               value={<span className="inline-flex items-center gap-1.5">
-                {p.visible && <Eye aria-label="Visible by eye" className="size-3.5 text-ink-2" strokeWidth={1.75} />}
-                {`${Math.round(p.maxElevation)}° · ${compassPoint(p.riseAzimuth)} to ${p.setAzimuth == null ? '…' : compassPoint(p.setAzimuth)}`}
+                {p.visible && <Eye aria-label={t('Visible by eye')} className="size-3.5 text-ink-2" strokeWidth={1.75} />}
+                {t('{deg}° · {from} to {to}', { deg: Math.round(p.maxElevation), from: compassPoint(p.riseAzimuth), to: p.setAzimuth == null ? '…' : compassPoint(p.setAzimuth) })}
               </span>}
               mono
             />
           ))}
         </PropertyList>
       ) : (
-        <Note>None in the next two days</Note>
+        <Note>{t('None in the next two days')}</Note>
       )}
     </PanelSection>
   );

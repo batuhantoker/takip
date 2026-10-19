@@ -3,6 +3,8 @@
  * thunderstorms, turbulence, icing, volcanic ash and tropical cyclones.
  */
 
+import { createTranslator, msg, type Vars } from '@/lib/core/i18n/translator';
+
 export const ISIGMET_URL = 'https://aviationweather.gov/api/data/isigmet?format=json';
 
 export interface Sigmet {
@@ -37,32 +39,41 @@ interface RawSigmet {
 }
 
 const HAZARDS: Record<string, string> = {
-  TS: 'Thunderstorms', TSGR: 'Thunderstorms with hail', TURB: 'Turbulence', ICE: 'Icing', MTW: 'Mountain waves',
-  VA: 'Volcanic ash', TC: 'Tropical cyclone', DS: 'Duststorm', SS: 'Sandstorm', RDOACT: 'Radioactive cloud',
+  TS: msg('Thunderstorms'), TSGR: msg('Thunderstorms with hail'), TURB: msg('Turbulence'), ICE: msg('Icing'), MTW: msg('Mountain waves'),
+  VA: msg('Volcanic ash'), TC: msg('Tropical cyclone'), DS: msg('Duststorm'), SS: msg('Sandstorm'), RDOACT: msg('Radioactive cloud'),
+};
+// The same hazards mid-phrase, after "severe", "embedded"…
+const HAZARDS_IN_PHRASE: Record<string, string> = {
+  TS: msg('thunderstorms'), TSGR: msg('thunderstorms with hail'), TURB: msg('turbulence'), ICE: msg('icing'), MTW: msg('mountain waves'),
+  VA: msg('volcanic ash'), TC: msg('tropical cyclone'), DS: msg('duststorm'), SS: msg('sandstorm'), RDOACT: msg('radioactive cloud'),
 };
 const WORDS: Record<string, string> = {
-  EMBD: 'embedded', SEV: 'severe', FRQ: 'frequent', OCNL: 'occasional', OBSC: 'obscured', SQL: 'squall line', HVY: 'heavy', ISOL: 'isolated',
+  EMBD: msg('embedded'), SEV: msg('severe'), FRQ: msg('frequent'), OCNL: msg('occasional'), OBSC: msg('obscured'), SQL: msg('squall line'), HVY: msg('heavy'), ISOL: msg('isolated'),
 };
-const CHANGE: Record<string, string> = { NC: 'No change', INTSF: 'Intensifying', WKN: 'Weakening' };
+const CHANGE: Record<string, string> = { NC: msg('No change'), INTSF: msg('Intensifying'), WKN: msg('Weakening') };
+
+type Say = (source: string, vars?: Vars) => string;
+const english: Say = createTranslator('en', {});
 
 /** "Severe turbulence", "Volcanic ash · Eruption Mt Semeru", "Tropical cyclone Trudy". */
-export function sigmetTitle(hazard: string, qualifier?: string): string {
-  const name = HAZARDS[hazard] ?? hazard;
+export function sigmetTitle(hazard: string, qualifier?: string, t: Say = english): string {
+  const name = HAZARDS[hazard] ? t(HAZARDS[hazard]) : hazard;
   if (!qualifier) return name;
   const title = (s: string) => s.toLowerCase().replace(/\b\p{L}/gu, ch => ch.toUpperCase());
   if (hazard === 'TC') return `${name} ${title(qualifier)}`;
   if (hazard === 'VA') return `${name} · ${title(qualifier)}`;
   const words = qualifier.split(/\s+/);
   if (words.every(w => WORDS[w] || HAZARDS[w])) {
-    const adj = words.filter(w => WORDS[w]).map(w => WORDS[w]);
-    const noun = words.map(w => HAZARDS[w]).find(Boolean) ?? name;
-    const text = [...adj, noun.toLowerCase()].join(' ');
+    const adj = words.filter(w => WORDS[w]).map(w => t(WORDS[w]));
+    const nounKey = words.find(w => HAZARDS_IN_PHRASE[w]) ?? hazard;
+    const noun = HAZARDS_IN_PHRASE[nounKey] ? t(HAZARDS_IN_PHRASE[nounKey]) : hazard.toLowerCase();
+    const text = adj.length ? t('{qualities} {hazard}', { qualities: adj.join(' '), hazard: noun }) : noun;
     return text.charAt(0).toUpperCase() + text.slice(1);
   }
   return `${name} · ${title(qualifier)}`;
 }
 
-export const changeText = (chng?: string) => (chng ? CHANGE[chng] ?? chng : undefined);
+export const changeText = (chng?: string, t: Say = english) => (chng ? (CHANGE[chng] ? t(CHANGE[chng]) : chng) : undefined);
 
 /** Flight levels from feet: 0 → "SFC", 14000 → "FL140". */
 export const flightLevel = (ft: number) => (ft <= 0 ? 'SFC' : `FL${String(Math.round(ft / 100)).padStart(3, '0')}`);

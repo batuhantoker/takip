@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const TI: ApiGroup = {
   id: 'ti',
-  title: 'TI, Takip AI (assist and prediction)',
+  title: msg('TI, Takip AI (assist and prediction)'),
   blurb:
     'TI Assist, a model on your own key that works the map in conversation, and a prediction engine on live TAKIP intelligence: it casts the actors who decide a question, plays them against each other over dated periods in several parallel worlds, and a report agent writes the predicted path with a calibrated figure. Your model key is sent in headers and never stored. Also served as an MCP server at /api/mcp; see TI guide.',
   endpoints: [

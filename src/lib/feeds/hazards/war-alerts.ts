@@ -1,3 +1,4 @@
+import { t } from '@/lib/core/i18n/active';
 import { pop } from '@/lib/map/popups/kit';
 
 /** As /api/war-alerts sends them. */
@@ -44,13 +45,13 @@ export function warAlertFeatures(rows: WarAlertRow[]): GeoJSON.Feature<GeoJSON.P
 }
 
 function ago(iso: unknown): string {
-  const t = Date.parse(String(iso ?? ''));
-  if (!Number.isFinite(t)) return 'unknown';
-  const min = Math.round((Date.now() - t) / 60_000);
-  if (min < 1) return 'just now';
-  if (min < 60) return `${min} min ago`;
-  if (min < 48 * 60) return `${Math.round(min / 60)} h ago`;
-  return new Date(t).toISOString().slice(0, 10);
+  const ms = Date.parse(String(iso ?? ''));
+  if (!Number.isFinite(ms)) return t('unknown');
+  const min = Math.round((Date.now() - ms) / 60_000);
+  if (min < 1) return t('just now');
+  if (min < 60) return t('{n} min ago', { n: min });
+  if (min < 48 * 60) return t('{n} h ago', { n: Math.round(min / 60) });
+  return new Date(ms).toISOString().slice(0, 10);
 }
 
 export function warAlertPopupHtml(p: Props): string {
@@ -58,19 +59,19 @@ export function warAlertPopupHtml(p: Props): string {
   const oblast = p.precision === 'oblast';
   const count = Number(p.count);
   return pop({
-    kicker: String(p.label ?? 'Alert'),
+    kicker: p.label == null ? t('Alert') : String(p.label),
     dot: warAlertColor(p.threat),
-    meta: active ? 'Active' : 'Ended',
+    meta: active ? t('Active') : t('Ended'),
     title: p.place,
-    subtitle: p.country === 'UA' ? 'Ukraine' : 'Israel',
+    subtitle: p.country === 'UA' ? t('Ukraine') : t('Israel'),
     rows: [
-      { label: oblast ? 'Since' : 'Last siren', value: ago(p.since) },
-      Number.isFinite(count) && count > 1 && { label: 'Sirens, last 24 h', value: count, mono: true },
-      { label: 'Source', value: p.provider },
+      { label: oblast ? t('Since') : t('Last siren'), value: ago(p.since) },
+      Number.isFinite(count) && count > 1 && { label: t('Sirens, last 24 h'), value: count, mono: true },
+      { label: t('Source'), value: p.provider },
     ],
     note: oblast
-      ? 'An alert covers the whole oblast; the pin is its administrative centre. A warning, not a confirmed strike.'
-      : 'Home Front Command siren for this locality.',
-    links: [{ href: p.source, label: 'Official map' }],
+      ? t('An alert covers the whole oblast; the pin is its administrative centre. A warning, not a confirmed strike.')
+      : t('Home Front Command siren for this locality.'),
+    links: [{ href: p.source, label: t('Official map') }],
   });
 }

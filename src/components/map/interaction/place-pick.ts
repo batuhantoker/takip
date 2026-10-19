@@ -1,5 +1,6 @@
 import * as maplibregl from 'maplibre-gl';
 import type { RefObject } from 'react';
+import { activeIntl, t } from '@/lib/core/i18n/active';
 import { BASEMAP_SOURCE } from '@/lib/map/basemap/provider';
 import { KIND_LABEL, kindOf, namesOf } from '@/lib/places/labels/wiki';
 import { placePopupHtml, type PlaceInfo } from '@/lib/places/labels/place-popup';
@@ -22,7 +23,7 @@ interface PlacePickDeps {
 const humanize = (v: unknown) => (typeof v === 'string' ? v.replace(/_/g, ' ') : '');
 
 function detailOf(sourceLayer: string | undefined, p: Record<string, unknown>): string | undefined {
-  if (sourceLayer === 'mountain_peak') return typeof p.ele === 'number' ? `${p.ele.toLocaleString('en-US')} m` : undefined;
+  if (sourceLayer === 'mountain_peak') return typeof p.ele === 'number' ? `${p.ele.toLocaleString(activeIntl())} m` : undefined;
   if (sourceLayer === 'aerodrome_label') return [p.iata, p.icao, humanize(p.class)].filter(Boolean).join(' · ');
   if (sourceLayer === 'poi') return humanize(p.subclass && p.subclass !== p.class ? p.subclass : p.class);
   return humanize(p.class) || undefined;
@@ -55,7 +56,7 @@ export function attachPlacePick(map: maplibregl.Map, { popupRef, claimed }: Plac
     const kind = kindOf(hit.sourceLayer, props.class)!;
     const names = namesOf(props);
     const at = hit.geometry.type === 'Point' ? maplibregl.LngLat.convert(hit.geometry.coordinates as [number, number]) : e.lngLat;
-    const place: PlaceInfo = { name: names[0], kind: KIND_LABEL[kind], detail: detailOf(hit.sourceLayer, props) };
+    const place: PlaceInfo = { name: names[0], kind: t(KIND_LABEL[kind]), detail: detailOf(hit.sourceLayer, props) };
 
     popupRef.current?.remove();
     const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '340px', offset: 10 })

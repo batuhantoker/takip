@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 
 /* ─────────────────────────────────────────────────────────────
    Inline code
@@ -19,6 +21,7 @@ export function Code({ children }: { children: React.ReactNode }) {
    ───────────────────────────────────────────────────────────── */
 
 export function CopyButton({ value, className = '' }: { value: string; className?: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -34,7 +37,7 @@ export function CopyButton({ value, className = '' }: { value: string; className
   return (
     <button
       onClick={copy}
-      aria-label={copied ? 'Copied' : 'Copy to clipboard'}
+      aria-label={copied ? t('Copied') : t('Copy to clipboard')}
       className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
         copied ? 'text-green' : 'text-ink-3 hover:bg-surface-3 hover:text-ink-1'
       } ${className}`}
@@ -49,7 +52,7 @@ export function CopyButton({ value, className = '' }: { value: string; className
           <path d="M5 15V5a2 2 0 0 1 2-2h10" />
         </svg>
       )}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? t('Copied') : t('Copy')}
     </button>
   );
 }
@@ -143,15 +146,15 @@ export function CodeBlock({
           <span className="text-[12px] text-ink-3 px-2">{label}</span>
         )}
         {tabs.length > 1 ? (
-          tabs.map((t, i) => (
+          tabs.map((tab, i) => (
             <button
-              key={t.label}
+              key={tab.label}
               onClick={() => setIdx(i)}
               className={`text-[12px] font-medium px-2.5 h-7 rounded-md transition-colors ${
                 i === idx ? 'text-ink-1 bg-surface-3' : 'text-ink-3 hover:text-ink-1'
               }`}
             >
-              {t.label}
+              {tab.label}
             </button>
           ))
         ) : (
@@ -180,9 +183,9 @@ export function Pre({ children, label, lang = 'bash' }: { children: string; labe
    ───────────────────────────────────────────────────────────── */
 
 const CALLOUT_TONES = {
-  info: { border: 'var(--blue)', icon: 'M12 16v-4M12 8h.01', label: 'Note' },
-  warn: { border: 'var(--amber)', icon: 'M12 9v4M12 17h.01', label: 'Caution' },
-  good: { border: 'var(--green)', icon: 'M20 6 9 17l-5-5', label: 'Tip' },
+  info: { border: 'var(--blue)', icon: 'M12 16v-4M12 8h.01', label: msg('Note') },
+  warn: { border: 'var(--amber)', icon: 'M12 9v4M12 17h.01', label: msg('Caution') },
+  good: { border: 'var(--green)', icon: 'M20 6 9 17l-5-5', label: msg('Tip') },
 };
 
 export function Callout({
@@ -194,23 +197,24 @@ export function Callout({
   title?: string;
   children: React.ReactNode;
 }) {
-  const t = CALLOUT_TONES[tone];
+  const t = useT();
+  const look = CALLOUT_TONES[tone];
   return (
-    <div className="rounded-card p-4 my-5 border border-line bg-surface-2 border-l-2" style={{ borderLeftColor: t.border }}>
+    <div className="rounded-card p-4 my-5 border border-line bg-surface-2 border-l-2" style={{ borderLeftColor: look.border }}>
       <div className="flex items-center gap-2 mb-1.5">
         <svg
           viewBox="0 0 24 24"
           className="w-3.5 h-3.5 shrink-0"
           fill="none"
-          stroke={t.border}
+          stroke={look.border}
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
           {tone !== 'good' && <circle cx="12" cy="12" r="9" />}
-          <path d={t.icon} />
+          <path d={look.icon} />
         </svg>
-        <span className="text-[13px] font-semibold text-ink-1">{title || t.label}</span>
+        <span className="text-[13px] font-semibold text-ink-1">{title || t(look.label)}</span>
       </div>
       <div className="text-[13px] leading-[1.7] text-ink-2">{children}</div>
     </div>
@@ -232,6 +236,7 @@ export function Section({
   eyebrow?: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <section id={id} className="scroll-mt-28 mb-20">
       {eyebrow && (
@@ -241,7 +246,7 @@ export function Section({
         {title}
         <a
           href={`#${id}`}
-          aria-label={`Link to ${title}`}
+          aria-label={t('Link to {title}', { title })}
           className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity text-ink-3 hover:text-ink-1"
         >
           <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

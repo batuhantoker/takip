@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
+import { useT } from '@/components/ui/use-t';
 import type { ChartedCountry } from '@/lib/history/countries/chart';
 import { SERIES_INK } from '@/lib/map/style/tokens';
 
@@ -16,13 +17,14 @@ export function LineKey({ slot }: { slot: number }) {
 
 /** The charts' legend: each country's line key and name, and a way to drop it from every chart. */
 export function CountryKeys({ countries, onRemove }: { countries: ChartedCountry[]; onRemove: (key: string) => void }) {
+  const t = useT();
   return (
     <ul className="flex flex-wrap gap-x-3 gap-y-1">
       {countries.map(c => (
         <li key={c.key} className="flex min-w-0 items-center gap-1.5 text-small">
           <LineKey slot={c.slot} />
           <span className="max-w-[10rem] truncate text-ink-2">{c.name}</span>
-          <IconButton size="sm" icon={X} label={`Remove ${c.name}`} className="-ml-1" onClick={() => onRemove(c.key)} />
+          <IconButton size="sm" icon={X} label={t('Remove {name}', { name: c.name })} className="-ml-1" onClick={() => onRemove(c.key)} />
         </li>
       ))}
     </ul>

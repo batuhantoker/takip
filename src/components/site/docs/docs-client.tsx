@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AdSlot from '@/components/shell/ads/ad-slot';
 import { AD_SLOTS } from '@/lib/platform/ads';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import CommandPalette, { buildPaletteItems } from '@/components/site/docs/parts/command-palette';
 import { ApiReference } from '@/components/site/docs/parts/api-reference';
 import { DocsHeader } from '@/components/site/docs/parts/docs-header';
@@ -22,7 +24,15 @@ import { AiGuideSection } from '@/components/site/docs/parts/ti-guide';
 
 const FALLBACK_ORIGIN = 'https://takip.example';
 
+const FOOTER_LINKS = [
+  { href: 'https://github.com/batuhantoker/takip', label: 'GitHub' },
+  { href: 'https://discord.gg/EPaFD5FFKf', label: 'Discord' },
+  { href: 'https://x.com/soulsimplifai', label: 'X' },
+  { href: 'https://github.com/batuhantoker/takip/issues', label: msg('Report an issue') },
+];
+
 export default function DocsClient() {
+  const t = useT();
   const [active, setActive] = useState('overview');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -30,7 +40,7 @@ export default function DocsClient() {
   const [origin, setOrigin] = useState(FALLBACK_ORIGIN);
   const mainRef = useRef<HTMLElement>(null);
 
-  const paletteItems = useMemo(() => buildPaletteItems(ALL_SECTIONS), []);
+  const paletteItems = useMemo(() => buildPaletteItems(ALL_SECTIONS, t), [t]);
 
   /* Snippets should reference the instance the reader is actually on. */
   useEffect(() => setOrigin(window.location.origin), []);
@@ -139,8 +149,8 @@ export default function DocsClient() {
                   href={`#${prev.id}`}
                   className="rounded-card border border-line bg-surface-1 p-4 hover:bg-surface-2 transition-colors"
                 >
-                  <div className="text-[12px] text-ink-3 mb-1">← Previous</div>
-                  <div className="text-[14px] font-medium text-ink-1">{prev.title}</div>
+                  <div className="text-[12px] text-ink-3 mb-1">{t('← Previous')}</div>
+                  <div className="text-[14px] font-medium text-ink-1">{t(prev.title)}</div>
                 </a>
               ) : (
                 <div />
@@ -150,8 +160,8 @@ export default function DocsClient() {
                   href={`#${next.id}`}
                   className="rounded-card border border-line bg-surface-1 p-4 hover:bg-surface-2 transition-colors sm:text-right"
                 >
-                  <div className="text-[12px] text-ink-3 mb-1">Next →</div>
-                  <div className="text-[14px] font-medium text-ink-1">{next.title}</div>
+                  <div className="text-[12px] text-ink-3 mb-1">{t('Next →')}</div>
+                  <div className="text-[14px] font-medium text-ink-1">{t(next.title)}</div>
                 </a>
               )}
             </div>
@@ -159,12 +169,7 @@ export default function DocsClient() {
 
           {/* Footer */}
           <footer className="border-t border-line pt-6 pb-16 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-ink-3">
-            {[
-              { href: 'https://github.com/batuhantoker/takip', label: 'GitHub' },
-              { href: 'https://discord.gg/EPaFD5FFKf', label: 'Discord' },
-              { href: 'https://x.com/soulsimplifai', label: 'X' },
-              { href: 'https://github.com/batuhantoker/takip/issues', label: 'Report an issue' },
-            ].map(l => (
+            {FOOTER_LINKS.map(l => (
               <a
                 key={l.label}
                 href={l.href}
@@ -172,10 +177,10 @@ export default function DocsClient() {
                 rel="noopener noreferrer"
                 className="hover:text-ink-1 transition-colors"
               >
-                {l.label}
+                {t(l.label)}
               </a>
             ))}
-            <span className="ml-auto">MIT licence</span>
+            <span className="ml-auto">{t('MIT licence')}</span>
           </footer>
         </main>
 

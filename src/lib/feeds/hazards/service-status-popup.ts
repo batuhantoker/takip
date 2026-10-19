@@ -1,3 +1,4 @@
+import { t } from '@/lib/core/i18n/active';
 import { htmlEsc, pop, urlSafe } from '@/lib/map/popups/kit';
 
 type Props = NonNullable<GeoJSON.GeoJsonProperties>;
@@ -23,10 +24,10 @@ export function serviceStatusPopupHtml(p: Props): string {
     </div>`;
   }).join('');
   return pop({
-    kicker: 'Service status',
+    kicker: t('Service status'),
     dot: indicatorColor(p.worst),
     title: p.city,
     body: rows || undefined,
-    note: 'Self-reported status pages, pinned at the vendor’s HQ, not where the outage is.',
+    note: t('Self-reported status pages, pinned at the vendor’s HQ, not where the outage is.'),
   });
 }

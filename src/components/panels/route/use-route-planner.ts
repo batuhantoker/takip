@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useT } from '@/components/ui/use-t';
 import { loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
 import type { LiveLocation, Place, RouteResult } from '@/lib/places/route/plan';
 import { noteDeviceLocation } from '@/lib/platform/device-location';
@@ -25,6 +26,7 @@ export function useRoutePlanner(
   { onRoute, onLocate, onLiveLocation, onActiveSegment, onFollowChange }: RoutePlannerCallbacks,
   initialTo: Place | null,
 ) {
+  const t = useT();
   const [fromText, setFromText] = useState('');
   const [toText, setToText] = useState(initialTo?.label ?? '');
   const [from, setFrom] = useState<Place | null>(null);
@@ -76,7 +78,7 @@ export function useRoutePlanner(
         setRoute(null);
         setRoutes([]);
         onRoute(null);
-        setError(data.error || 'No route found');
+        setError(data.error || t('No route found'));
       } else {
         const all: RouteResult[] = data.routes?.length ? data.routes : [data];
         setRoutes(all);
@@ -89,10 +91,10 @@ export function useRoutePlanner(
       setRoute(null);
       setRoutes([]);
       onRoute(null);
-      setError('Routing service unreachable');
+      setError(t('Routing service unreachable'));
     }
     setLoading(false);
-  }, [onRoute]);
+  }, [onRoute, t]);
 
   /** Current intermediate stops that actually resolved to a place. */
   const stops = useCallback(
@@ -114,7 +116,7 @@ export function useRoutePlanner(
     }
 
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setLocateError('This browser has no geolocation');
+      setLocateError(t('This browser has no geolocation'));
       return;
     }
 
@@ -133,13 +135,13 @@ export function useRoutePlanner(
         setTracking(true);
       },
       () => {
-        setLocateError('Location permission denied — needs HTTPS or localhost');
+        setLocateError(t('Location permission denied — needs HTTPS or localhost'));
         setTracking(false);
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
     );
     setTracking(true);
-  }, [tracking, onLiveLocation, onFollowChange]);
+  }, [tracking, onLiveLocation, onFollowChange, t]);
 
   useEffect(() => () => {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
@@ -176,7 +178,7 @@ export function useRoutePlanner(
     if (browser) {
       noteDeviceLocation(browser.coords);
       const { latitude, longitude } = browser.coords;
-      apply(latitude, longitude, 'My location');
+      apply(latitude, longitude, t('My location'));
       setLocating(false);
       return;
     }
@@ -185,16 +187,16 @@ export function useRoutePlanner(
       const res = await fetch('/api/geo');
       const d = await res.json();
       if (d?.lat && d?.lon) {
-        apply(d.lat, d.lon, d.city ? `Near ${d.city}` : 'Approximate location');
-        setLocateError('Approximate — from network location');
+        apply(d.lat, d.lon, d.city ? t('Near {city}', { city: d.city }) : t('Approximate location'));
+        setLocateError(t('Approximate — from network location'));
       } else {
-        setLocateError('Could not determine your location');
+        setLocateError(t('Could not determine your location'));
       }
     } catch {
-      setLocateError('Could not determine your location');
+      setLocateError(t('Could not determine your location'));
     }
     setLocating(false);
-  }, [to, mode, runRoute, onLocate, stops, avoid]);
+  }, [to, mode, runRoute, onLocate, stops, avoid, t]);
 
   const pickFrom = (p: Place) => { setFrom(p); remember(p); if (to) runRoute(p, to, mode, stops(), avoid); };
   const pickTo = (p: Place) => { setTo(p); remember(p); if (from) runRoute(from, p, mode, stops(), avoid); };

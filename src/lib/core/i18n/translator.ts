@@ -14,9 +14,15 @@ export interface Translate {
   intl: string;
 }
 
+/** 'rail|Layers': the same English with its own translation where the room or the meaning differs. */
+const CONTEXT = /^[a-z][a-z-]*\|(?=\S)/;
+
+/** The English a key shows, without its context. */
+export const bareSource = (source: string) => source.replace(CONTEXT, '');
+
 export function createTranslator(locale: Locale, catalog: Catalog): Translate {
   const tag = intlTag(locale);
-  const lookup = (source: string) => catalog[source] || source;
+  const lookup = (source: string) => catalog[source] || catalog[bareSource(source)] || bareSource(source);
   const t = ((source: string, vars?: Vars) => formatMessage(lookup(source), vars, tag)) as Translate;
   t.parts = (source, vars) => formatParts(lookup(source), vars, tag);
   t.locale = locale;

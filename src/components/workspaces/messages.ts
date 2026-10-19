@@ -1,31 +1,28 @@
 import type { WorkspaceFailure } from '@/lib/platform/workspaces/api';
 import { MAX_STATE_BYTES } from '@/lib/platform/workspaces/state';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
 
-const FALLBACK = 'Something went wrong. Try again.';
+export const SIGN_IN_TO_SAVE = msg('Sign in to save this view as a workspace and open it on any device.');
 
-export const SIGN_IN_TO_SAVE = 'Sign in to save this view as a workspace and open it on any device.';
-
-export const workspaceCount = (n: number) => (n === 1 ? '1 workspace' : `${n} workspaces`);
-
-export function describeWorkspaceFailure({ error, limit }: WorkspaceFailure): string {
+export function describeWorkspaceFailure({ error, limit }: WorkspaceFailure, t: Translate): string {
   switch (error) {
     case 'limit_reached':
-      return `Your plan allows ${workspaceCount(limit ?? 0)}. Delete one to save another.`;
+      return t('Your plan allows {n, plural, one {# workspace} other {# workspaces}}. Delete one to save another.', { n: limit ?? 0 });
     case 'entitlement_required':
-      return "Your plan doesn't include share links.";
+      return t("Your plan doesn't include share links.");
     case 'too_large':
-      return `This view is over ${MAX_STATE_BYTES / 1024} KB, too big to save. Remove some drawn areas and try again.`;
+      return t('This view is over {size} KB, too big to save. Remove some drawn areas and try again.', { size: MAX_STATE_BYTES / 1024 });
     case 'invalid_request':
-      return 'Give it a name of up to 80 characters.';
+      return t('Give it a name of up to {n} characters.', { n: 80 });
     case 'not_found':
-      return 'That workspace was deleted, perhaps on another device.';
+      return t('That workspace was deleted, perhaps on another device.');
     case 'sign_in_required':
-      return 'You were signed out. Sign in again to save.';
+      return t('You were signed out. Sign in again to save.');
     case 'unsupported_state':
-      return 'That workspace was saved by a newer version. Reload the page to open it.';
+      return t('That workspace was saved by a newer version. Reload the page to open it.');
     case 'network':
-      return "Couldn't reach the server. Check your connection and try again.";
+      return t("Couldn't reach the server. Check your connection and try again.");
     default:
-      return FALLBACK;
+      return t('Something went wrong. Try again.');
   }
 }

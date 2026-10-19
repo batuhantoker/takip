@@ -70,7 +70,7 @@ export default function ShowingChip({ isMobile, corner = 'top-right', revealed, 
   const t = useT();
   const [open, setOpen] = useState(false);
   const state = useShowingState({ layers, chosen, history, families, replay, arcgis: arcgis.arcgisLayers, areas, clocks: open });
-  const groups = rowsFor(state);
+  const groups = rowsFor(state, t);
   const recent = useRecent({ mode: state.mode, rows: groups.flatMap(g => g.rows) }, new Set(arcgis.arcgisLayers.map(l => l.id)), revealed);
 
   const [seen, setSeen] = useState(NOTHING_SEEN);
@@ -106,7 +106,7 @@ export default function ShowingChip({ isMobile, corner = 'top-right', revealed, 
       className={cx('p-0', isMobile ? 'w-[calc(100vw-24px)]' : 'w-[340px]')}
       trigger={<Chip count={countRows(groups)} live={state.mode === 'live'} down={menu.vertical === 'bottom'} />}>
       {close => (
-        <ShowingPanel summary={summaryFor(state)} groups={shown} recent={recentFor(recent, state.mode, listed).map(i => ({ ...i, on: false }))}
+        <ShowingPanel summary={summaryFor(state, t)} groups={shown} recent={recentFor(recent, state.mode, listed).map(i => ({ ...i, on: false }))}
           tall={isMobile} onSwitch={flip}
           onOpenAreas={isMobile ? undefined : () => { close(); onOpen('draw'); }}
           footer={{ label: panel === 'history' ? t('Open History') : t('Open Layers'), onClick: () => { close(); onOpen(panel); } }} />

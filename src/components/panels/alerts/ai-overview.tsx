@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/components/ui/use-t';
 import { BriefCard } from '@/components/panels/alerts/parts/alert-brief';
 import { TiGlyph } from '@/components/panels/ti-agent/atoms';
 import { useOverview } from '@/components/panels/alerts/hooks/use-overview';
@@ -18,6 +19,7 @@ interface AiOverviewProps {
 
 /** "Brief me": one click for TI's read of whatever payload it is handed. */
 export default function AiOverview({ mode, payload, signature, activeThreadId, onThreadSelect, onOpenChange }: AiOverviewProps) {
+  const t = useT();
   const overview = useOverview(mode, payload, signature);
   const [open, setOpenState] = useState(false);
   const setOpen = useCallback((next: boolean) => { setOpenState(next); onOpenChange?.(next); }, [onOpenChange]);
@@ -33,7 +35,7 @@ export default function AiOverview({ mode, payload, signature, activeThreadId, o
   return (
     <div className="flex w-full flex-col items-start gap-2">
       <Button variant="ghost" size="sm" icon={TiGlyph} aria-expanded={open} onClick={toggle}>
-        {open ? 'Hide brief' : 'Brief me'}
+        {open ? t('Hide brief') : t('Brief me')}
       </Button>
       {open && (
         <div className="w-full">

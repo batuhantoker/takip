@@ -6,6 +6,7 @@ import { IconButton } from '@/components/ui/button';
 import { ListRow } from '@/components/ui/list-row';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SearchField } from '@/components/ui/search-field';
+import { useT } from '@/components/ui/use-t';
 import { ScrollBody } from '../parts/scroll-body';
 import { ago } from '../theme';
 import { loadChats, type SavedChat } from './chat-store';
@@ -19,8 +20,8 @@ function haystack(c: SavedChat): string {
 function preview(c: SavedChat): string {
   for (let i = c.entries.length - 1; i >= 0; i--) {
     const e = c.entries[i];
-    const t = (e.role === 'user' ? e.text : e.says[e.says.length - 1] ?? '').trim();
-    if (t && t !== '…' && t !== '(spoken)' && t !== c.title) return t;
+    const line = (e.role === 'user' ? e.text : e.says[e.says.length - 1] ?? '').trim();
+    if (line && line !== '…' && line !== '(spoken)' && line !== c.title) return line;
   }
   return '';
 }
@@ -32,6 +33,7 @@ export function ChatHistory({ currentId, onOpen, onDelete, embedded }: {
   /** In the phone drawer, which scrolls as a whole. */
   embedded?: boolean;
 }) {
+  const t = useT();
   const [chats, setChats] = useState(loadChats);
   const [q, setQ] = useState('');
   const needle = q.trim().toLowerCase();
@@ -40,20 +42,20 @@ export function ChatHistory({ currentId, onOpen, onDelete, embedded }: {
   const remove = (id: string) => { onDelete(id); setChats(cs => cs.filter(c => c.id !== id)); };
 
   const list = chats.length === 0 ? (
-    <EmptyState icon={History} title="No saved chats yet" body="Your conversations with TI are kept here, ready to reopen." />
+    <EmptyState icon={History} title={t('No saved chats yet')} body={t('Your conversations with TI are kept here, ready to reopen.')} />
   ) : rows.length === 0 ? (
-    <EmptyState icon={History} title="Nothing matches" body={`No chat mentions “${q.trim()}”.`} />
+    <EmptyState icon={History} title={t('Nothing matches')} body={t('No chat mentions “{query}”.', { query: q.trim() })} />
   ) : (
     <div>
       {rows.map(c => (
-        <ListRow key={c.id} title={c.title} selected={c.id === currentId} meta={ago(c.updatedAt)} subtitle={preview(c) || undefined}
+        <ListRow key={c.id} title={c.title === 'Untitled chat' ? t('Untitled chat') : c.title} selected={c.id === currentId} meta={ago(c.updatedAt, t)} subtitle={preview(c) || undefined}
           onClick={() => onOpen(c.id)}
-          trailing={<IconButton size="sm" label="Delete chat" icon={X} onClick={() => remove(c.id)} className="-mr-1 text-ink-4 group-hover/row:text-ink-2" />} />
+          trailing={<IconButton size="sm" label={t('Delete chat')} icon={X} onClick={() => remove(c.id)} className="-mr-1 text-ink-4 group-hover/row:text-ink-2" />} />
       ))}
     </div>
   );
 
-  const search = <SearchField value={q} onChange={setQ} placeholder="Search chats" autoFocus={!embedded} />;
+  const search = <SearchField value={q} onChange={setQ} placeholder={t('Search chats')} autoFocus={!embedded} />;
 
   if (embedded) return <div className="flex flex-col gap-3 px-4 pb-4">{search}{list}</div>;
   return (

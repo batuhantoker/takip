@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const AVIATION_SPACE: ApiGroup = {
   id: 'aviation-space',
-  title: 'Aviation and space weather',
+  title: msg('Aviation and space weather'),
   blurb: 'Aircraft, airports, aviation weather, orbital objects, and heliophysics.',
   endpoints: [
     {

@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if ('error' in creds) return fail(400, creds.error);
   if (creds.provider !== 'openai' || !creds.key) return fail(400, 'Live voice runs on OpenAI Realtime: choose OpenAI in TI\'s engine and add your OpenAI key.');
 
-  const out = await mintVoiceSession(creds.key, { model: voiceModel(creds.model), context: body.context ? sanitizeContext(body.context) : null }, fetch, req.signal);
+  const out = await mintVoiceSession(creds.key, { model: voiceModel(creds.model), context: body.context ? sanitizeContext(body.context) : null, lang: creds.lang }, fetch, req.signal);
   if (!out.ok) return fail(out.status, out.error);
   return json({ value: out.value, expires_at: out.expiresAt, model: out.model });
 }

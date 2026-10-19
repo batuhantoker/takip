@@ -1,5 +1,7 @@
+import { msg } from '@/lib/core/i18n/translator';
+
 // MapLibre paints with real colour strings, so read the categorical tokens instead of copying their values.
-const TOKENS = [['--blue', 'Blue'], ['--violet', 'Violet'], ['--green', 'Green'], ['--amber', 'Amber'], ['--red', 'Red']] as const;
+const TOKENS = [['--blue', msg('Blue')], ['--violet', msg('Violet')], ['--green', msg('Green')], ['--amber', msg('Amber')], ['--red', msg('Red')]] as const;
 
 /** Colours for imported layers, named, in the order they are handed out. Empty during server render. */
 export function layerSwatches(): { name: string; color: string }[] {

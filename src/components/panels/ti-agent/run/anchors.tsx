@@ -16,6 +16,8 @@ import type { RunState } from '@/lib/ai/state';
 import type { ContextItem } from '@/lib/ai/types';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
+import type { Translate } from '@/lib/core/i18n/translator';
 import { ANCHOR, fmtDate, pct } from '@/components/panels/ti-agent/theme';
 import { TypeIcon } from '@/components/panels/ti-agent/atoms';
 import { PriceFan } from './fan';
@@ -54,7 +56,9 @@ function Mark({ row }: { row: Row }) {
   );
 }
 
-const traded = (v: number, platform: string) => (platform === 'Polymarket' ? `$${formatAmount(v)} traded` : `${formatAmount(v)} mana traded`);
+const traded = (t: Translate, v: number, platform: string) => (platform === 'Polymarket' ? t('{amount} traded', { amount: `$${formatAmount(v)}` }) : t('{amount} mana traded', { amount: formatAmount(v) }));
+
+const confidence = (t: Translate, c: 'low' | 'medium' | 'high') => (c === 'low' ? t('low confidence') : c === 'medium' ? t('medium confidence') : t('high confidence'));
 
 /** The markets found: the one on this same question first, the related after. */
 function marketsOf(s: RunState): { same: ContextItem | null; related: ContextItem[] } {
@@ -78,6 +82,7 @@ function ChartBlock({ title, children }: { title: string; children: React.ReactN
 }
 
 export function Anchors({ s, selected, onSelect }: { s: RunState; selected: string | null; onSelect: (k: string | null) => void }) {
+  const t = useT();
   const f = s.frame;
   const q = s.quant;
   if (!f || !hasAnchors(s)) return null;
@@ -88,25 +93,25 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
   const rows: Row[] = [];
 
   if (f.kind === 'number') {
-    if (q) rows.push({ key: 'base', label: 'Statistical baseline', detail: `${q.symbol}'s own daily moves, resampled to ${q.days} days ahead`, color: ANCHOR.baseline, range: [q.p10, q.p50, q.p90], select: series && `c:${series.id}` });
-    if (q?.simulated) rows.push({ key: 'sim', label: 'The simulation, priced', detail: 'Each world’s events, across the market’s own paths', color: ANCHOR.simulation, range: [q.simulated.p10, q.simulated.p50, q.simulated.p90] });
-    if (r?.estimate) rows.push({ key: 'pred', label: 'Prediction', detail: `${r.confidence} confidence`, color: ANCHOR.prediction, range: [r.estimate.low, r.estimate.value, r.estimate.high], strong: true, select: 'r:report' });
+    if (q) rows.push({ key: 'base', label: t('Statistical baseline'), detail: t("{symbol}'s own daily moves, resampled to {n, plural, one {# day} other {# days}} ahead", { symbol: q.symbol, n: q.days }), color: ANCHOR.baseline, range: [q.p10, q.p50, q.p90], select: series && `c:${series.id}` });
+    if (q?.simulated) rows.push({ key: 'sim', label: t('The simulation, priced'), detail: t('Each world’s events, across the market’s own paths'), color: ANCHOR.simulation, range: [q.simulated.p10, q.simulated.p50, q.simulated.p90] });
+    if (r?.estimate) rows.push({ key: 'pred', label: t('Prediction'), detail: confidence(t, r.confidence), color: ANCHOR.prediction, range: [r.estimate.low, r.estimate.value, r.estimate.high], strong: true, select: 'r:report' });
   } else {
-    if (q?.probability !== undefined) rows.push({ key: 'base', label: 'Statistical baseline', detail: `${q.symbol}'s own daily moves, resampled to the horizon`, color: ANCHOR.baseline, value: q.probability, select: series && `c:${series.id}` });
-    if (same?.odds) rows.push({ key: 'mkt', label: `${same.odds.platform} traders`, detail: `“${same.title}” · ${traded(same.odds.volume, same.odds.platform)}`, color: ANCHOR.market, value: same.odds.probability, select: `c:${same.id}` });
-    if (q?.simulated?.probability !== undefined) rows.push({ key: 'sim', label: 'The simulation, priced', detail: `${s.worlds.length} worlds’ events, across the market’s own paths`, color: ANCHOR.simulation, value: q.simulated.probability });
-    else if (last && f.kind === 'binary') rows.push({ key: 'sim', label: 'The worlds pooled', detail: `${s.worlds.length} simulated worlds`, color: ANCHOR.simulation, value: last.consensus });
-    if (r && f.kind === 'binary') rows.push({ key: 'pred', label: 'Prediction', detail: `${r.confidence} confidence`, color: ANCHOR.prediction, value: r.probability, strong: true, select: 'r:report' });
+    if (q?.probability !== undefined) rows.push({ key: 'base', label: t('Statistical baseline'), detail: t("{symbol}'s own daily moves, resampled to the horizon", { symbol: q.symbol }), color: ANCHOR.baseline, value: q.probability, select: series && `c:${series.id}` });
+    if (same?.odds) rows.push({ key: 'mkt', label: t('{platform} traders', { platform: same.odds.platform }), detail: `“${same.title}” · ${traded(t, same.odds.volume, same.odds.platform)}`, color: ANCHOR.market, value: same.odds.probability, select: `c:${same.id}` });
+    if (q?.simulated?.probability !== undefined) rows.push({ key: 'sim', label: t('The simulation, priced'), detail: t('{n, plural, one {# world’s events} other {# worlds’ events}}, across the market’s own paths', { n: s.worlds.length }), color: ANCHOR.simulation, value: q.simulated.probability });
+    else if (last && f.kind === 'binary') rows.push({ key: 'sim', label: t('The worlds pooled'), detail: t('{n, plural, one {# simulated world} other {# simulated worlds}}', { n: s.worlds.length }), color: ANCHOR.simulation, value: last.consensus });
+    if (r && f.kind === 'binary') rows.push({ key: 'pred', label: t('Prediction'), detail: confidence(t, r.confidence), color: ANCHOR.prediction, value: r.probability, strong: true, select: 'r:report' });
     if (r?.shares && f.kind === 'choice') {
       f.outcomes.forEach((o, i) => {
-        if (i < 4) rows.push({ key: `pred:${i}`, label: `Prediction · ${o}`, detail: i === 0 ? `${r.confidence} confidence` : '', color: ANCHOR.prediction, value: r.shares![i] ?? 0, strong: i === 0, select: 'r:report' });
+        if (i < 4) rows.push({ key: `pred:${i}`, label: t('Prediction · {outcome}', { outcome: o }), detail: i === 0 ? confidence(t, r.confidence) : '', color: ANCHOR.prediction, value: r.shares![i] ?? 0, strong: i === 0, select: 'r:report' });
       });
     }
     // A "which" question is priced one outcome at a time: each market stands beside the prediction, not behind it.
     // Rungs of the same ladder are on the ladder chart; the rows keep the markets it does not show.
     const onLadder = (m: ContextItem) => Boolean(same?.odds?.ladder && m.url === same.url);
     for (const m of related.filter(m => !onLadder(m)).slice(0, f.kind === 'choice' ? 4 : 3)) {
-      if (m.odds) rows.push({ key: m.id, label: f.kind === 'choice' ? `${m.odds.platform} traders` : 'Related market', detail: `“${m.title}”`, color: ANCHOR.market, value: m.odds.probability, select: `c:${m.id}`, muted: f.kind !== 'choice' });
+      if (m.odds) rows.push({ key: m.id, label: f.kind === 'choice' ? t('{platform} traders', { platform: m.odds.platform }) : t('Related market'), detail: `“${m.title}”`, color: ANCHOR.market, value: m.odds.probability, select: `c:${m.id}`, muted: f.kind !== 'choice' });
     }
   }
   if (!rows.length) return null;
@@ -118,7 +123,7 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
   const say = (v: number) => (q ? priceText(v, q.currency) : formatAmount(v));
 
   return (
-    <PanelSection title="What it rests on">
+    <PanelSection title={t('What it rests on')}>
       {q && (
         <button type="button" onClick={() => series && onSelect(selected === `c:${series.id}` ? null : `c:${series.id}`)} disabled={!series}
           className={cx('mb-3 flex w-full items-baseline gap-2 rounded-card border border-line px-2.5 py-1.5 text-left enabled:hover:bg-surface-2', FOCUS_RING, TRANSITION)}>
@@ -126,8 +131,11 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
           <span className="text-small font-medium whitespace-nowrap text-ink-1">{q.symbol}</span>
           <span className="font-mono text-small whitespace-nowrap text-ink-1 tabular-nums">{priceText(q.price, q.currency)}</span>
           <span className="truncate text-meta text-ink-3">
-            on {fmtDate(q.asOf)} · swings <span className="font-mono tabular-nums">{Math.round(q.vol * 100)}%</span> a year
-            {f.measure?.threshold !== undefined && <> · level <span className="font-mono tabular-nums">{priceText(f.measure.threshold, q.currency)}</span> ({f.measure.threshold >= q.price ? '+' : '−'}{Math.round(Math.abs(f.measure.threshold / q.price - 1) * 100)}%)</>}
+            {t.rich('on {date} · swings {vol} a year', { date: fmtDate(q.asOf, t), vol: <span className="font-mono tabular-nums">{Math.round(q.vol * 100)}%</span> })}
+            {f.measure?.threshold !== undefined && <> · {t.rich('level {price} ({change})', {
+              price: <span className="font-mono tabular-nums">{priceText(f.measure.threshold, q.currency)}</span>,
+              change: `${f.measure.threshold >= q.price ? '+' : '−'}${Math.round(Math.abs(f.measure.threshold / q.price - 1) * 100)}%`,
+            })}</>}
           </span>
         </button>
       )}
@@ -155,7 +163,7 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
                     <span className="absolute inset-y-0 -ml-px w-0.5" style={{ left: `${at(row.range[1])}%`, background: row.color }} />
                   </>
                 )}
-                {row.range && q && <span className="absolute inset-y-0 w-px bg-ink-1/70" style={{ left: `${at(q.price)}%` }} title={`Today ${say(q.price)}`} />}
+                {row.range && q && <span className="absolute inset-y-0 w-px bg-ink-1/70" style={{ left: `${at(q.price)}%` }} title={t('Today {price}', { price: say(q.price) })} />}
               </span>
               {row.range && (
                 <span className="mt-0.5 flex justify-between font-mono text-meta text-ink-3 tabular-nums">
@@ -167,9 +175,9 @@ export function Anchors({ s, selected, onSelect }: { s: RunState; selected: stri
         })}
       </div>
       {/* The figures above, then what they come from: the price world by world, the whole ladder, the baseline's record. */}
-      {q?.fan?.length ? <ChartBlock title="The price, world by world"><PriceFan s={s} /></ChartBlock> : null}
-      {q?.curve?.length && s.context.some(c => c.odds?.ladder) ? <ChartBlock title="Every level, the model and the crowd"><LadderChart s={s} /></ChartBlock> : null}
-      {q?.backtest ? <ChartBlock title={`Is the baseline any good? Its record on ${q.symbol}'s past`}><TrackRecord s={s} /></ChartBlock> : null}
+      {q?.fan?.length ? <ChartBlock title={t('The price, world by world')}><PriceFan s={s} /></ChartBlock> : null}
+      {q?.curve?.length && s.context.some(c => c.odds?.ladder) ? <ChartBlock title={t('Every level, the model and the crowd')}><LadderChart s={s} /></ChartBlock> : null}
+      {q?.backtest ? <ChartBlock title={t("Is the baseline any good? Its record on {symbol}'s past", { symbol: q.symbol })}><TrackRecord s={s} /></ChartBlock> : null}
     </PanelSection>
   );
 }

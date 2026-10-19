@@ -7,6 +7,7 @@ import { cx, TRANSITION } from '@/components/ui/class-names';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dot, type DotTone } from '@/components/ui/tag';
 import { Figure } from '@/components/ui/figure';
+import { useT } from '@/components/ui/use-t';
 import { placeName, stamp } from './format';
 import { openLink } from '@/components/panels/alerts/rows/row-parts';
 
@@ -40,19 +41,20 @@ function toStory(raw: unknown): Story | null {
 const toneFor = (score: number): DotTone => (score >= 8 ? 'red' : score >= 6 ? 'amber' : 'muted');
 
 export default function IntelFeed({ data, onLocate }: IntelFeedProps) {
+  const t = useT();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(t);
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
   }, []);
   const stories = (data.news ?? []).map(toStory).filter((s): s is Story => s !== null).sort((a, b) => b.ts - a.ts).slice(0, 40);
 
   if (!stories.length) {
-    return <EmptyState icon={Newspaper} title="No headlines yet" body="They arrive within a minute of opening TAKIP." />;
+    return <EmptyState icon={Newspaper} title={t('No headlines yet')} body={t('They arrive within a minute of opening TAKIP.')} />;
   }
 
   return (
-    <section aria-label="Headlines">
+    <section aria-label={t('Headlines')}>
       <ul className="flex flex-col">
         {stories.map((s, i) => (
           <li key={`${s.ts}-${i}`} className={cx('relative -mx-2 flex gap-3 rounded-control px-2 py-2.5 active:bg-surface-2', TRANSITION)}>
@@ -63,12 +65,12 @@ export default function IntelFeed({ data, onLocate }: IntelFeedProps) {
               <span className="mt-0.5 flex items-center gap-1.5 text-small text-ink-3">
                 <span className="truncate text-ink-2">{s.source}</span>
                 <span aria-hidden className="text-ink-4">·</span>
-                <Figure className="shrink-0 text-meta">{stamp(s.ts, now)}</Figure>
+                <Figure className="shrink-0 text-meta">{stamp(s.ts, now, t)}</Figure>
               </span>
             </button>
             {s.coords && onLocate && (
               <span className="relative z-[1] shrink-0">
-                <IconButton size="sm" icon={MapPin} label={s.anchor ? `Show ${placeName(s.anchor)} on the map` : 'Show on the map'}
+                <IconButton size="sm" icon={MapPin} label={s.anchor ? t('Show {place} on the map', { place: placeName(s.anchor) }) : t('Show on the map')}
                   onClick={() => onLocate(s.coords![0], s.coords![1])} />
               </span>
             )}

@@ -1,3 +1,5 @@
+import { msg } from '@/lib/core/i18n/translator';
+
 /** What a rider can take: GTFS route types (basic and extended) folded into a few kinds. */
 export type TransitMode = 'metro' | 'tram' | 'rail' | 'bus' | 'trolleybus' | 'ferry' | 'cable';
 
@@ -5,7 +7,7 @@ export type TransitMode = 'metro' | 'tram' | 'rail' | 'bus' | 'trolleybus' | 'fe
 export const TRANSIT_MODES: readonly TransitMode[] = ['metro', 'rail', 'tram', 'bus', 'trolleybus', 'ferry', 'cable'];
 
 export const MODE_LABEL: Record<TransitMode, string> = {
-  metro: 'Metro', rail: 'Train', tram: 'Tram', bus: 'Bus', trolleybus: 'Trolleybus', ferry: 'Ferry', cable: 'Cable car',
+  metro: msg('Metro'), rail: msg('Train'), tram: msg('Tram'), bus: msg('Bus'), trolleybus: msg('Trolleybus'), ferry: msg('Ferry'), cable: msg('Cable car'),
 };
 
 /** gtfs.org/schedule/reference/#routestxt and the extended types (developers.google.com/transit/gtfs/reference/extended-route-types). */
@@ -31,7 +33,7 @@ export function modeOfRouteType(type: number): TransitMode | null {
 export const sortModes = (modes: Iterable<TransitMode>) => TRANSIT_MODES.filter(m => new Set(modes).has(m));
 
 /** "Metro · Tram · Bus" */
-export const modesText = (modes: readonly TransitMode[]) => sortModes(modes).map(m => MODE_LABEL[m]).join(' · ');
+export const modesText = (modes: readonly TransitMode[], t: (source: string) => string = s => s) => sortModes(modes).map(m => t(MODE_LABEL[m])).join(' · ');
 
 /** One city on the zoomed-out map, from public/data/transit/cities.json. */
 export interface TransitCity {

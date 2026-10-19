@@ -4,18 +4,20 @@ import { useEffect, useRef } from 'react';
 import { LoaderCircle, Users } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { EmptyState } from '@/components/ui/empty-state';
+import { useT } from '@/components/ui/use-t';
 import { castOf, type RunState } from '@/lib/ai/state';
 import { Avatar, StanceTag } from '@/components/panels/ti-agent/atoms';
 
 export function ActorsList({ s, selected, onSelect }: { s: RunState; selected: string | null; onSelect: (k: string | null) => void }) {
+  const t = useT();
   const cast = castOf(s);
   const refs = useRef(new Map<string, HTMLButtonElement>());
   useEffect(() => {
     if (selected?.startsWith('a:')) refs.current.get(selected.slice(2))?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [selected]);
   if (!cast.length) {
-    return <EmptyState icon={Users} title={s.status === 'running' ? 'Casting the actors' : 'No actors in this run'}
-      body={s.status === 'running' ? 'The people and institutions who decide this appear here as they are cast.' : undefined} />;
+    return <EmptyState icon={Users} title={s.status === 'running' ? t('Casting the actors') : t('No actors in this run')}
+      body={s.status === 'running' ? t('The people and institutions who decide this appear here as they are cast.') : undefined} />;
   }
   const thinking = new Set(Object.keys(s.thinking).map(k => k.slice(k.indexOf(':') + 1)));
   return (
@@ -34,8 +36,8 @@ export function ActorsList({ s, selected, onSelect }: { s: RunState; selected: s
               <span className="block truncate text-small text-ink-2">{a.persona?.goal || a.role}</span>
             </span>
             {thinking.has(a.id)
-              ? <span className="flex shrink-0 items-center gap-1.5 text-meta text-ink-3"><LoaderCircle aria-hidden className="size-3 animate-spin motion-reduce:animate-none" />Deciding</span>
-              : latest && <span className="shrink-0" title={`Latest move: ${latest.action}`}><StanceTag stance={latest.stance} /></span>}
+              ? <span className="flex shrink-0 items-center gap-1.5 text-meta text-ink-3"><LoaderCircle aria-hidden className="size-3 animate-spin motion-reduce:animate-none" />{t('Deciding')}</span>
+              : latest && <span className="shrink-0" title={t('Latest move: {action}', { action: latest.action })}><StanceTag stance={latest.stance} /></span>}
           </button>
         );
       })}

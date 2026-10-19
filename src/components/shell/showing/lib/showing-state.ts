@@ -1,6 +1,8 @@
 import { LAYER_GROUPS, primary, type LayerDef } from '@/components/panels/layers/layer-groups';
 import { groupSections } from '@/components/panels/layers/lib/layer-sections';
 import { sentenceCase } from '@/components/panels/layers/lib/sentence-case';
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
 
 /** Which map is on screen: today's, History's calendar, History's deep time, or Replay. */
 export type ShowingMode = 'live' | 'history' | 'deep' | 'replay';
@@ -32,7 +34,12 @@ export type ShowingState = {
 /** Data layers in the Layers panel's order; display settings and sub-layer filters are not things drawn. */
 export const DATA_LAYERS: LayerDef[] = groupSections(LAYER_GROUPS).flatMap(s => s.groups.flatMap(g => primary(g.layers)));
 
-export const layerLabel = (l: LayerDef) => sentenceCase(l.label);
+export const ENGLISH: Translate = createTranslator(DEFAULT_LOCALE, {});
+
+export function layerLabel(l: LayerDef, t: Translate = ENGLISH) {
+  const label = t(l.label);
+  return label === l.label ? sentenceCase(label) : label;
+}
 
 /** Today's sky behind the globe: in the past views it is a backdrop, not part of the time shown. */
 const BACKDROP = new Set(['sky_stars']);

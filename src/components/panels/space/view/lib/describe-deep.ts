@@ -1,3 +1,4 @@
+import type { Translate } from '@/lib/core/i18n/translator';
 import { C_KM_S, LY_KM, norm, sub } from '@/lib/space/astro';
 import { DEEP_FEATURES } from '@/lib/space/deep/features';
 import type { ExoHost, PlanetRow } from '@/lib/space/deep/exoplanets';
@@ -28,18 +29,18 @@ export interface CardData {
 
 const fmtMag = (m: number) => (m >= 0 ? '+' : '−') + Math.abs(m).toFixed(2);
 
-function planetLine(p: PlanetRow): string {
+function planetLine(p: PlanetRow, t: Translate): string {
   const [name, period, radius, mass, year] = p;
   const bits = [
-    period !== null ? (period < 1000 ? `${period < 10 ? period.toFixed(2) : Math.round(period)}-day orbit` : `${(period / 365.25).toFixed(1)}-year orbit`) : null,
-    radius !== null ? `${radius} Earth radii` : mass !== null ? `${mass < 50 ? mass : Math.round(mass)} Earth masses` : null,
+    period !== null ? (period < 1000 ? t('{n}-day orbit', { n: period < 10 ? +period.toFixed(2) : Math.round(period) }) : t('{n}-year orbit', { n: +(period / 365.25).toFixed(1) })) : null,
+    radius !== null ? t('{n} Earth radii', { n: radius }) : mass !== null ? t('{n} Earth masses', { n: mass < 50 ? mass : Math.round(mass) }) : null,
   ].filter(Boolean);
   return `${name}${bits.length ? `: ${bits.join(', ')}` : ''} (${year})`;
 }
 
-function planetsNote(h: ExoHost): string {
-  const shown = h.planets.slice(0, 6).map(planetLine);
-  return `${shown.join('; ')}${h.planets.length > 6 ? `; and ${h.planets.length - 6} more` : ''}.`;
+function planetsNote(h: ExoHost, t: Translate): string {
+  const shown = h.planets.slice(0, 6).map(p => planetLine(p, t));
+  return `${shown.join('; ')}${h.planets.length > 6 ? `; ${t('and {n} more', { n: h.planets.length - 6 })}` : ''}.`;
 }
 
 /** The archive host a catalogue star is, if any: within 0.1° and a quarter of its distance. */
@@ -55,10 +56,10 @@ function raDecOf(v: Vec3): string {
   return `${ra.toFixed(2)}° / ${dec.toFixed(2)}°`;
 }
 
-export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now: number): CardData | null {
+export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now: number, t: Translate): CardData | null {
   if (!scene) return null;
   const cam = scene.camera.position;
-  const here = (p: { distanceTo: (v: typeof cam) => number }) => distance(p.distanceTo(cam));
+  const here = (p: { distanceTo: (v: typeof cam) => number }) => distance(p.distanceTo(cam), t);
 
   if (sel.kind === 'star') {
     const c = scene.nearby.catalog();
@@ -69,17 +70,21 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     const host = hostOf(s, scene.nearby.hosts());
     const id = c.ids[sel.index];
     const fields: [string, string][] = [
-      ['From the Sun', uncertain ? 'Unknown' : distance(ly * LY_KM)], ['From here', here(scene.nearby.position(sel.index))],
-      ['Apparent magnitude', fmtMag(s[3])], ['Absolute magnitude', uncertain ? '—' : fmtMag(absoluteMag(s[3], ly))],
-      ['Temperature', `${(Math.round(temperatureK(s[4]) / 100) * 100).toLocaleString('en-US')} K`], ['RA / Dec', raDecOf([s[0], s[1], s[2]])],
+      [t('From the Sun'), uncertain ? t('Unknown') : distance(ly * LY_KM, t)], [t('From here'), here(scene.nearby.position(sel.index))],
+      [t('Apparent magnitude'), fmtMag(s[3])], [t('Absolute magnitude'), uncertain ? '—' : fmtMag(absoluteMag(s[3], ly))],
+      [t('Temperature'), `${(Math.round(temperatureK(s[4]) / 100) * 100).toLocaleString(t.intl)} K`], [t('RA / Dec'), raDecOf([s[0], s[1], s[2]])],
     ];
+    const spectral = t('{class} star', { class: spectralClass(s[4]) });
     return {
       title: c.names[sel.index] ?? id,
-      subtitle: `${spectralClass(s[4])} star${c.names[sel.index] ? ` · ${id}` : ''}`,
+      subtitle: c.names[sel.index] ? `${spectral} · ${id}` : spectral,
       color: '#E8E2CF',
       fields,
-      note: [host ? `${host.planets.length} known planet${host.planets.length > 1 ? 's' : ''}: ${planetsNote(host)}` : null, uncertain ? 'No usable parallax: drawn at a nominal 3,000 light-years.' : null].filter(Boolean).join(' ') || null,
-      source: uncertain ? null : id.startsWith('Gaia') ? 'Position and distance from the Gaia DR3 parallax' : 'Distance from the Hipparcos parallax (van Leeuwen 2007)',
+      note: [
+        host ? t('{n, plural, one {# known planet} other {# known planets}}: {planets}', { n: host.planets.length, planets: planetsNote(host, t) }) : null,
+        uncertain ? t('No usable parallax: drawn at a nominal 3,000 light-years.') : null,
+      ].filter(Boolean).join(' ') || null,
+      source: uncertain ? null : id.startsWith('Gaia') ? t('Position and distance from the Gaia DR3 parallax') : t('Distance from the Hipparcos parallax (van Leeuwen 2007)'),
       link: { href: `https://simbad.cds.unistra.fr/simbad/sim-id?Ident=${encodeURIComponent(c.names[sel.index] ?? id)}`, label: 'SIMBAD' },
     };
   }
@@ -91,10 +96,10 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     if (!h) return null;
     return {
       title: h.name,
-      subtitle: `${h.planets.length} known planet${h.planets.length > 1 ? 's' : ''}`,
+      subtitle: t('{n, plural, one {# known planet} other {# known planets}}', { n: h.planets.length }),
       color: '#7CF7C4',
-      fields: [['From the Sun', distance(h.ly * LY_KM)], ['From here', here(scene.nearby.hostPosition(i))], ['Apparent magnitude', h.vmag !== null ? fmtMag(h.vmag) : '—'], ['RA / Dec', `${h.ra.toFixed(2)}° / ${h.dec.toFixed(2)}°`]],
-      note: planetsNote(h),
+      fields: [[t('From the Sun'), distance(h.ly * LY_KM, t)], [t('From here'), here(scene.nearby.hostPosition(i))], [t('Apparent magnitude'), h.vmag !== null ? fmtMag(h.vmag) : '—'], [t('RA / Dec'), `${h.ra.toFixed(2)}° / ${h.dec.toFixed(2)}°`]],
+      note: planetsNote(h, t),
       source: 'NASA Exoplanet Archive',
       link: { href: `https://exoplanetarchive.ipac.caltech.edu/overview/${encodeURIComponent(h.name)}`, label: 'Exoplanet Archive' },
     };
@@ -111,14 +116,14 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     const visitor = VISITORS.find(v => v.key === b.key);
     return {
       title: b.name,
-      subtitle: visitor ? `Interstellar object · ${visitor.designation}` : 'Dwarf planet',
+      subtitle: visitor ? t('Interstellar object · {designation}', { designation: visitor.designation }) : t('Dwarf planet'),
       color: b.color,
       fields: [
-        ['From the Sun', distance(norm(p))], ['From Earth', distance(earthKm)], ['Light time', lightTime(earthKm / C_KM_S)], ['Speed relative to the Sun', speed(norm(b.vel))],
-        ...(visitor ? [['Perihelion', visitor.perihelion] as [string, string]] : [['Radius', `${b.radiusKm.toLocaleString('en-US')} km`] as [string, string]]),
+        [t('From the Sun'), distance(norm(p), t)], [t('From Earth'), distance(earthKm, t)], [t('Light time'), lightTime(earthKm / C_KM_S, t)], [t('Speed relative to the Sun'), speed(norm(b.vel), t)],
+        ...(visitor ? [[t('Perihelion'), visitor.perihelion] as [string, string]] : [[t('Radius'), `${b.radiusKm.toLocaleString(t.intl)} km`] as [string, string]]),
       ],
-      note: visitor ? `${visitor.note} Its line is the real path through the solar system, 1990–2060.` : null,
-      source: visitor ? 'Path from JPL Horizons' : 'Position and orbit from JPL Horizons',
+      note: visitor ? `${t(visitor.note)} ${t('Its line is the real path through the solar system, 1990–2060.')}` : null,
+      source: visitor ? t('Path from JPL Horizons') : t('Position and orbit from JPL Horizons'),
       link: { href: `https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html#/?sstr=${encodeURIComponent(visitor?.designation ?? b.name)}`, label: 'JPL SBDB' },
     };
   }
@@ -130,18 +135,22 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     if (!m || !st || !at) return null;
     const ly = st.mly * 1e6;
     return {
-      title: st.name, subtitle: /void/i.test(st.name) ? 'Cosmic void' : 'Large-scale structure', color: '#E6D9FF',
-      fields: [['From the Sun', distance(ly * LY_KM)], ['From here', here(at.position)], ['Redshift', st.z.toFixed(4)], ['RA / Dec', `${st.ra.toFixed(2)}° / ${st.dec.toFixed(2)}°`]],
-      note: `Placed by its redshift: comoving distance, ${m.cosmology}. The dots around it are 2MASS Redshift Survey galaxies (${m.local.count.toLocaleString('en-US')}) and SDSS galaxies and quasars (${m.deep.count.toLocaleString('en-US')} sampled).`,
+      title: st.name, subtitle: /void/i.test(st.name) ? t('Cosmic void') : t('Large-scale structure'), color: '#E6D9FF',
+      fields: [[t('From the Sun'), distance(ly * LY_KM, t)], [t('From here'), here(at.position)], [t('Redshift'), st.z.toFixed(4)], [t('RA / Dec'), `${st.ra.toFixed(2)}° / ${st.dec.toFixed(2)}°`]],
+      note: t('Placed by its redshift: comoving distance, {cosmology}. The dots around it are 2MASS Redshift Survey galaxies ({local}) and SDSS galaxies and quasars ({deep} sampled).', { cosmology: m.cosmology, local: m.local.count, deep: m.deep.count }),
     };
   }
 
   if (sel.kind === 'feature') {
     const f = DEEP_FEATURES[sel.id];
     if (!f) return null;
-    const fields = [...(f.fields ?? [])];
-    if (f.position) fields.push(['From here', distance(norm(sub(f.position, [cam.x, cam.y, cam.z])))]);
-    return { title: f.name, subtitle: f.subtitle, color: f.illustration ? '#A9B8D6' : '#C9CFFF', fields, note: f.note, source: f.credit ? `Image: ${f.credit}` : null, illustration: f.illustration };
+    const fields: [string, string][] = f.fields?.(t) ?? [];
+    if (f.position) fields.push([t('From here'), distance(norm(sub(f.position, [cam.x, cam.y, cam.z])), t)]);
+    return {
+      title: t(f.name), subtitle: t(f.subtitle, f.subtitleVars), color: f.illustration ? '#A9B8D6' : '#C9CFFF', fields,
+      note: f.footnote ? `${t(f.note)} ${t(f.footnote)}` : t(f.note),
+      source: f.credit ? t('Image: {credit}', { credit: f.credit }) : null, illustration: f.illustration,
+    };
   }
   return null;
 }

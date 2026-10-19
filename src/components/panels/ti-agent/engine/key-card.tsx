@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/components/ui/use-t';
 import { providerInfo } from '@/lib/ai/providers/catalog';
 import { shortName } from '../theme';
 import { KeyForm, KeyPrivacy, type EngineState } from './key-form';
@@ -16,6 +17,7 @@ export interface KeyCardControl {
 }
 
 export function KeyCard({ note, adding: controlled, onAdding, waiting, ...p }: EngineState & KeyCardControl & { note?: ReactNode }) {
+  const t = useT();
   const [own, setOwn] = useState(false);
   const adding = controlled ?? own;
   const setAdding = (v: boolean) => { setOwn(v); onAdding?.(v); };
@@ -25,21 +27,21 @@ export function KeyCard({ note, adding: controlled, onAdding, waiting, ...p }: E
       <div className="flex w-full flex-col gap-3 py-1.5">
         {waiting && (
           <p className="text-small text-ink-2">
-            Add a key and <span className="text-ink-1">“{waiting}”</span> is ready to send.
+            {t.rich('Add a key and {question} is ready to send.', { question: <span className="text-ink-1">“{waiting}”</span> })}
           </p>
         )}
         <KeyForm {...p} autoFocus />
         <KeyPrivacy engine={p.engine} />
-        <Button variant="ghost" size="sm" className="-ml-2 self-start" onClick={() => setAdding(false)}>Not now</Button>
+        <Button variant="ghost" size="sm" className="-ml-2 self-start" onClick={() => setAdding(false)}>{t('Not now')}</Button>
       </div>
     );
   }
   return (
     <div className="flex w-full flex-col items-start gap-3 py-1.5">
       <p className="text-small text-ink-2">
-        TI runs on your own {name} key. It stays in this browser and is only used for your requests.{note ? <> {note}</> : null}
+        {t('TI runs on your own {provider} key. It stays in this browser and is only used for your requests.', { provider: name })}{note ? <> {note}</> : null}
       </p>
-      <Button variant="primary" size="sm" icon={KeyRound} onClick={() => setAdding(true)}>Add key</Button>
+      <Button variant="primary" size="sm" icon={KeyRound} onClick={() => setAdding(true)}>{t('Add key')}</Button>
     </div>
   );
 }

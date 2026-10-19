@@ -2,8 +2,10 @@
 /** TAKIP TI: the pieces an object's view is made of. */
 import type { ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import type { Translate } from '@/lib/core/i18n/translator';
 import { moveFor, nodeName } from '@/lib/ai/workspace/selection';
-import { worldName, type RunState } from '@/lib/ai/state';
+import type { RunState } from '@/lib/ai/state';
 import type { Link, Move } from '@/lib/ai/types';
 import { TONE_WORD, toneColor } from '../theme';
 import { Avatar, Mentions, PointTag, StanceTag, TypeIcon, accentFor } from '../atoms';
@@ -14,13 +16,15 @@ export type Pick = (k: string | null) => void;
 
 /** A link to another object: its icon and its name. */
 export function ObjectChip({ s, k, onSelect }: { s: RunState; k: string; onSelect: Pick }) {
+  const t = useT();
+  const name = nodeName(s, k, t);
   const source = k.startsWith('c:') ? s.context.find(c => `c:${c.id}` === k) : undefined;
   const subtype = k.startsWith('a:') ? s.actors.find(a => `a:${a.id}` === k)?.kind : k.startsWith('e:') ? s.events.find(e => `e:${e.id}` === k)?.kind : source?.kind ?? '';
   return (
-    <button type="button" onClick={() => onSelect(k)} title={nodeName(s, k)}
+    <button type="button" onClick={() => onSelect(k)} title={name}
       className={cx('inline-flex h-6 max-w-full items-center gap-1.5 rounded-[4px] border border-line px-1.5 text-small text-ink-1 hover:bg-surface-2', FOCUS_RING, TRANSITION)}>
       <TypeIcon k={k} subtype={subtype} className={cx('size-3 shrink-0', accentFor(k))} />
-      <span className="truncate">{nodeName(s, k)}</span>
+      <span className="truncate">{name}</span>
       {source && <span className="shrink-0 font-mono text-meta text-ink-3">[{source.id}]</span>}
     </button>
   );
@@ -30,20 +34,21 @@ export function ObjectChip({ s, k, onSelect }: { s: RunState; k: string; onSelec
 export const exactOf = (s: RunState, l: Link) => moveFor(s, l)?.cites?.find(c => `c:${c.source}` === l.to)?.exact ?? false;
 
 /** "World A · period 2": where in the simulation a move or a quote link was drawn. */
-export const whereOf = (l: Link) => `${worldName(l.id.split(':')[1] ?? '')} · period ${l.round}`;
+export const whereOf = (l: Link, t: Translate) => t('World {w} · period {n}', { w: l.id.split(':')[1] ?? '', n: l.round });
 
 const ROW = cx('-mx-2 rounded-control px-2 py-1.5 text-left hover:bg-surface-2', FOCUS_RING, TRANSITION);
 
 /** Who quoted a source, and in which words: each row opens the quote. */
 export function QuoteRows({ s, links, onSelect }: { s: RunState; links: Link[]; onSelect: Pick }) {
+  const t = useT();
   return (
     <div className="flex flex-col">
       {links.map(l => (
         <button key={l.id} type="button" onClick={() => onSelect(`link:${l.id}`)} className={ROW}>
           <span className="flex items-center gap-2">
-            <Avatar name={nodeName(s, l.from)} size={18} />
-            <span className="truncate text-small font-medium text-ink-1">{nodeName(s, l.from)}</span>
-            <span className="text-meta whitespace-nowrap text-ink-3">{whereOf(l)}</span>
+            <Avatar name={nodeName(s, l.from, t)} size={18} />
+            <span className="truncate text-small font-medium text-ink-1">{nodeName(s, l.from, t)}</span>
+            <span className="text-meta whitespace-nowrap text-ink-3">{whereOf(l, t)}</span>
             <span className="ml-auto"><Verbatim exact={exactOf(s, l)} /></span>
           </span>
           <span className="mt-1 block pl-[26px] text-small text-ink-2">“{l.label}”</span>
@@ -102,7 +107,8 @@ export function StrengthBar({ value }: { value: number }) {
 
 /** One of an actor's own moves, without its name: the period, the act, what it said, why, and what it quoted. */
 export function OwnMove({ s, move, onSelect }: { s: RunState; move: Move; onSelect: Pick }) {
-  const targets = move.targets.map(t => s.actors.find(a => a.id === t)?.name).filter(Boolean);
+  const t = useT();
+  const targets = move.targets.map(id => s.actors.find(a => a.id === id)?.name).filter(Boolean);
   const period = s.periods.find(p => p.index === move.period);
   return (
     <div className="flex gap-2.5">
@@ -110,11 +116,11 @@ export function OwnMove({ s, move, onSelect }: { s: RunState; move: Move; onSele
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">
           <StanceTag stance={move.stance} />
-          {targets.length > 0 && <span className="truncate text-meta text-ink-3">Toward {targets.join(', ')}</span>}
+          {targets.length > 0 && <span className="truncate text-meta text-ink-3">{t('Toward {actors}', { actors: targets.join(', ') })}</span>}
         </div>
         <p className="mt-1 text-small text-ink-1"><Mentions text={move.action} s={s} onSelect={onSelect} /></p>
         {move.statement && <p className="mt-1 text-small text-ink-2 italic">“{move.statement}”</p>}
-        {move.why && <p className="mt-1 text-small text-ink-3">Why: {move.why}</p>}
+        {move.why && <p className="mt-1 text-small text-ink-3">{t('Why: {reason}', { reason: move.why })}</p>}
         <Quotes s={s} cites={move.cites} onSelect={onSelect} />
       </div>
     </div>
@@ -123,6 +129,7 @@ export function OwnMove({ s, move, onSelect }: { s: RunState; move: Move; onSele
 
 /** Links from one object, each with its line, the object at the other end, and what the link says. */
 export function LinkRows({ s, links, from, onSelect }: { s: RunState; links: Link[]; from: string; onSelect: Pick }) {
+  const t = useT();
   return (
     <div className="flex flex-col">
       {links.map(l => {
@@ -131,9 +138,9 @@ export function LinkRows({ s, links, from, onSelect }: { s: RunState; links: Lin
           <button key={l.id} type="button" onClick={() => onSelect(`link:${l.id}`)} className={cx(ROW, 'flex items-center gap-2.5')}>
             <LineGlyph link={l} />
             <span className="min-w-0 flex-1 truncate text-small text-ink-1">
-              {nodeName(s, other)}{l.label && <span className="text-ink-3"> · {l.label}</span>}
+              {nodeName(s, other, t)}{l.label && <span className="text-ink-3"> · {l.label}</span>}
             </span>
-            <span className="shrink-0 text-meta text-ink-3">{TONE_WORD[l.tone]}</span>
+            <span className="shrink-0 text-meta text-ink-3">{t(TONE_WORD[l.tone])}</span>
           </button>
         );
       })}

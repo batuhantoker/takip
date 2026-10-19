@@ -6,6 +6,7 @@
  */
 import { useId } from 'react';
 import { Segmented, segmentId } from '@/components/ui/segmented';
+import { useT } from '@/components/ui/use-t';
 import type { Engine } from '@/lib/ai/client';
 import type { AiClient } from '@/components/panels/ti-agent/use-ai';
 import type { RunState } from '@/lib/ai/state';
@@ -22,16 +23,17 @@ export function RunTabs(p: {
   selected: string | null; onSelect: (k: string | null) => void; askTarget: string; setAskTarget: (t: string) => void; theater: boolean;
 }) {
   const { s, tab, setTab } = p;
+  const t = useT();
   const id = useId();
   const tabs: { value: Tab; label: string }[] = [
-    ...(!p.theater && s.report ? [{ value: 'report' as Tab, label: 'Report' }] : []),
-    { value: 'sim', label: 'Worlds' },
-    { value: 'actors', label: 'Actors' },
+    ...(!p.theater && s.report ? [{ value: 'report' as Tab, label: t('Report') }] : []),
+    { value: 'sim', label: t('Worlds') },
+    { value: 'actors', label: t('Actors') },
     // The world model and the sources behind it: "Research", so it is not mistaken for the simulated worlds.
-    { value: 'world', label: 'Research' },
-    { value: 'ask', label: 'Ask' },
+    { value: 'world', label: t('Research') },
+    { value: 'ask', label: t('Ask') },
   ];
-  const current = tabs.some(t => t.value === tab) ? tab : 'sim';
+  const current = tabs.some(x => x.value === tab) ? tab : 'sim';
   const body = (
     <>
       {current === 'report' && s.report && <ReportBody s={s} runId={p.ai.runId} selected={p.selected} onSelect={p.onSelect} />}
@@ -42,7 +44,7 @@ export function RunTabs(p: {
     </>
   );
   // Five equal tabs truncate "Research" at 360 px; sized to their words they all fit.
-  const bar = <Segmented id={id} semantics="tabs" size="sm" full label="Run" value={current} onChange={setTab} options={tabs} className="[&>button]:flex-auto" />;
+  const bar = <Segmented id={id} semantics="tabs" size="sm" full label={t('Run')} value={current} onChange={setTab} options={tabs} className="[&>button]:flex-auto" />;
 
   if (p.theater) {
     return (

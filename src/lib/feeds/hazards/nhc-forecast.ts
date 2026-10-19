@@ -1,4 +1,5 @@
 import type * as maplibregl from 'maplibre-gl';
+import { t } from '@/lib/core/i18n/active';
 import { pop } from '@/lib/map/popups/kit';
 import { LABEL_SIZE, MAP_INK, MARKER_STROKE, labelPaint } from '@/lib/map/style/tokens';
 
@@ -40,36 +41,36 @@ const graphics = (bin: unknown) => `https://www.nhc.noaa.gov/graphics_${String(b
 export function nhcPointPopupHtml(p: Props): string {
   const hours = num(p.hours), wind = num(p.wind), gust = num(p.gust), pressure = num(p.pressure);
   return pop({
-    kicker: hours ? `Forecast, ${hours} h ahead` : 'Forecast start',
+    kicker: hours ? t('Forecast, {hours} h ahead', { hours }) : t('Forecast start'),
     tone: p.stage === 'H' || p.stage === 'M' ? 'red' : p.stage === 'S' ? 'amber' : 'neutral',
-    title: `${p.stageLabel ?? 'Forecast'} ${p.storm ?? ''}`.trim(),
-    subtitle: `NHC advisory ${p.advisory}`,
+    title: `${p.stageLabel ?? t('Forecast')} ${p.storm ?? ''}`.trim(),
+    subtitle: t('NHC advisory {advisory}', { advisory: String(p.advisory) }),
     rows: [
-      { label: 'Valid', value: p.when ? String(p.when) : null, mono: true },
-      { label: 'Wind', value: wind == null ? null : `${wind} kt`, mono: true },
-      { label: 'Gusts', value: gust == null ? null : `${gust} kt`, mono: true },
-      { label: 'Pressure', value: pressure == null ? null : `${pressure} mb`, mono: true },
+      { label: t('Valid'), value: p.when ? String(p.when) : null, mono: true },
+      { label: t('Wind'), value: wind == null ? null : `${wind} kt`, mono: true },
+      { label: t('Gusts'), value: gust == null ? null : `${gust} kt`, mono: true },
+      { label: t('Pressure'), value: pressure == null ? null : `${pressure} mb`, mono: true },
     ],
-    links: [{ href: graphics(p.bin), label: 'NHC forecast' }],
+    links: [{ href: graphics(p.bin), label: t('NHC forecast') }],
   });
 }
 
 export function nhcConePopupHtml(p: Props): string {
   return pop({
-    kicker: 'Forecast cone',
-    title: String(p.storm ?? 'Storm'),
-    subtitle: `NHC advisory ${p.advisory}`,
-    note: 'Where the centre will probably go over five days, from the size of past forecast errors. Wind, rain and surge reach well outside it.',
-    links: [{ href: graphics(p.bin), label: 'NHC forecast' }],
+    kicker: t('Forecast cone'),
+    title: p.storm == null ? t('Storm') : String(p.storm),
+    subtitle: t('NHC advisory {advisory}', { advisory: String(p.advisory) }),
+    note: t('Where the centre will probably go over five days, from the size of past forecast errors. Wind, rain and surge reach well outside it.'),
+    links: [{ href: graphics(p.bin), label: t('NHC forecast') }],
   });
 }
 
 export function nhcTip(p: Props, layer: string) {
-  if (layer === NHC_CONE) return { key: `nhc-cone:${p.bin}`, name: `${p.storm} forecast cone`, meta: `NHC advisory ${p.advisory}` };
+  if (layer === NHC_CONE) return { key: `nhc-cone:${p.bin}`, name: t('{storm} forecast cone', { storm: String(p.storm) }), meta: t('NHC advisory {advisory}', { advisory: String(p.advisory) }) };
   const hours = num(p.hours), wind = num(p.wind);
   return {
     key: `nhc:${p.bin}:${hours}`,
-    name: `${p.storm}, ${hours ? `+${hours} h` : 'now'}`,
+    name: hours ? `${p.storm}, +${hours} h` : t('{storm}, now', { storm: String(p.storm) }),
     meta: [String(p.stageLabel ?? ''), wind == null ? null : `${wind} kt`].filter(Boolean).join(' · '),
   };
 }

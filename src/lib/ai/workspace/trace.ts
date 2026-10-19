@@ -11,6 +11,8 @@
 import type { RunState } from '../state';
 import type { Phase } from '../types';
 import { formatAmount, leader } from '../forecast';
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
 
 export type StepStatus = 'done' | 'active' | 'pending' | 'failed' | 'skipped';
 
@@ -30,6 +32,7 @@ export interface TraceStep {
 }
 
 const pct = (p: number) => `${Math.round(p * 100)}%`;
+const english = createTranslator(DEFAULT_LOCALE, {});
 
 /** A duration in the trace's terms: tenths of a second, then minutes. */
 export function formatDuration(ms: number): string {
@@ -39,15 +42,17 @@ export function formatDuration(ms: number): string {
   return `${m}m ${String(Math.round((ms % 60_000) / 1000)).padStart(2, '0')}s`;
 }
 
-export function traceOf(s: RunState): TraceStep[] {
+/** The trace, its titles and figures in `t`'s language (English when none is given). */
+export function traceOf(s: RunState, t: Translate = english): TraceStep[] {
   const planned: { id: string; phase: Phase; title: string }[] = [
-    { id: 'context', phase: 'context', title: 'Research the question' },
-    { id: 'graph', phase: 'graph', title: 'Map the world' },
-    { id: 'agents', phase: 'agents', title: 'Cast the actors' },
+    { id: 'context', phase: 'context', title: t('Research the question') },
+    { id: 'graph', phase: 'graph', title: t('Map the world') },
+    { id: 'agents', phase: 'agents', title: t('Cast the actors') },
     ...Array.from({ length: Math.max(1, s.periods.length || s.periodsPlanned) }, (_, i) => ({
-      id: `round:${i + 1}`, phase: 'simulate' as Phase, title: `Simulate · ${s.periods[i]?.label ?? `period ${i + 1}`}`,
+      id: `round:${i + 1}`, phase: 'simulate' as Phase,
+      title: s.periods[i]?.label ? t('Simulate · {period}', { period: s.periods[i].label }) : t('Simulate · period {n}', { n: i + 1 }),
     })),
-    { id: 'report', phase: 'report', title: 'Write the prediction' },
+    { id: 'report', phase: 'report', title: t('Write the prediction') },
   ];
 
   // The engine announces each stage as it enters it; the k-th "simulate" is period k.
@@ -69,36 +74,39 @@ export function traceOf(s: RunState): TraceStep[] {
     else if (next) status = 'done';
     else if (!ended) status = 'active';
     else status = s.status === 'done' ? 'done' : 'failed';
-    return { id: p.id, phase: p.phase, title: p.title, detail: hit?.label ?? '', status, start, end, metrics: hit ? metricsFor(s, p.id) : [] };
+    return { id: p.id, phase: p.phase, title: p.title, detail: hit?.label ?? '', status, start, end, metrics: hit ? metricsFor(s, p.id, t) : [] };
   });
 }
 
-function metricsFor(s: RunState, id: string): TraceMetric[] {
+function metricsFor(s: RunState, id: string, t: Translate): TraceMetric[] {
   const count = <T,>(xs: T[], f: (x: T) => boolean) => xs.filter(f).length;
   switch (id) {
     case 'context': {
       const kinds = (['web', 'series', 'odds', 'wiki', 'news', 'social', 'quake', 'market', 'data'] as const).map(k => [k, count(s.context, c => c.kind === k)] as const).filter(([, n]) => n > 0);
-      const name = { web: 'Articles', series: 'Market data', odds: 'Prediction markets', wiki: 'Background', news: 'Live feed', social: 'Social posts', quake: 'Quakes', market: 'Market board', data: 'Your data' } as const;
-      return [{ label: 'Sources', value: String(s.context.length) }, ...kinds.map(([k, n]) => ({ label: name[k], value: String(n) }))];
+      const name = {
+        web: t('Articles'), series: t('Market data'), odds: t('Prediction markets'), wiki: t('Background'), news: t('Live feed'),
+        social: t('Social posts'), quake: t('Quakes'), market: t('Market board'), data: t('Your data'),
+      };
+      return [{ label: t('Sources'), value: String(s.context.length) }, ...kinds.map(([k, n]) => ({ label: name[k], value: String(n) }))];
     }
     case 'graph': {
       const out: TraceMetric[] = [
-        { label: 'Actors', value: String(s.actors.length) },
-        { label: 'Relations', value: String(count(s.links, l => l.kind === 'relation')) },
-        { label: 'Evidence', value: String(count(s.links, l => l.kind === 'evidence')) },
+        { label: t('Actors'), value: String(s.actors.length) },
+        { label: t('Relations'), value: String(count(s.links, l => l.kind === 'relation')) },
+        { label: t('Evidence'), value: String(count(s.links, l => l.kind === 'evidence')) },
       ];
       const f = s.frame;
-      if (f?.kind === 'binary') out.push({ label: s.quant ? 'Baseline' : 'Base rate', value: pct(f.baseRate) });
-      if (s.quant) out.push({ label: 'Price', value: `${s.quant.symbol} ${formatAmount(s.quant.price)}` });
-      if (f?.kind === 'choice') out.push({ label: 'Outcomes', value: String(f.outcomes.length) });
-      if (f?.kind === 'number' && f.anchor !== null) out.push({ label: 'Today', value: formatAmount(f.anchor) });
+      if (f?.kind === 'binary') out.push({ label: s.quant ? t('Baseline') : t('Base rate'), value: pct(f.baseRate) });
+      if (s.quant) out.push({ label: t('Price'), value: `${s.quant.symbol} ${formatAmount(s.quant.price)}` });
+      if (f?.kind === 'choice') out.push({ label: t('Outcomes'), value: String(f.outcomes.length) });
+      if (f?.kind === 'number' && f.anchor !== null) out.push({ label: t('Today'), value: formatAmount(f.anchor) });
       return out;
     }
     case 'agents': {
       const cast = count(s.actors, a => Boolean(a.persona));
       return [
-        { label: 'Actors cast', value: s.actorsPlanned ? `${cast} / ${s.actorsPlanned}` : String(cast) },
-        ...(s.periods.length ? [{ label: 'Periods', value: String(s.periods.length) }, { label: 'Worlds', value: String(s.worlds.length) }] : []),
+        { label: t('Actors cast'), value: s.actorsPlanned ? `${cast} / ${s.actorsPlanned}` : String(cast) },
+        ...(s.periods.length ? [{ label: t('Periods'), value: String(s.periods.length) }, { label: t('Worlds'), value: String(s.worlds.length) }] : []),
       ];
     }
     case 'report': {
@@ -106,35 +114,35 @@ function metricsFor(s: RunState, id: string): TraceMetric[] {
       if (!r) return [];
       const sourced = count(r.drivers, d => (d.sources?.length ?? 0) > 0);
       return [
-        { label: 'Confidence', value: r.confidence },
-        ...(r.drivers.some(d => d.sources) ? [{ label: 'Sourced drivers', value: `${sourced} / ${r.drivers.length}` }] : []),
-        { label: 'Scenarios', value: String(r.scenarios.length) },
-        { label: 'Signposts', value: String(r.signposts.length) },
+        { label: t('Confidence'), value: r.confidence },
+        ...(r.drivers.some(d => d.sources) ? [{ label: t('Sourced drivers'), value: `${sourced} / ${r.drivers.length}` }] : []),
+        { label: t('Scenarios'), value: String(r.scenarios.length) },
+        { label: t('Signposts'), value: String(r.signposts.length) },
       ];
     }
   }
   const round = Number(id.slice(6));
   const moves = s.moves.filter(m => m.period === round);
   const out: TraceMetric[] = [
-    { label: 'Moves', value: String(moves.length) },
-    { label: 'Events', value: String(count(s.events, e => e.period === round && e.kind !== 'injected')) },
+    { label: t('Moves'), value: String(moves.length) },
+    { label: t('Events'), value: String(count(s.events, e => e.period === round && e.kind !== 'injected')) },
   ];
   const shocks = count(s.events, e => e.period === round && e.kind === 'shock');
-  if (shocks) out.push({ label: 'Surprises', value: String(shocks) });
+  if (shocks) out.push({ label: t('Surprises'), value: String(shocks) });
   // Quotes, and how many were found word for word in their sources.
   const cites = moves.flatMap(m => m.cites ?? []);
-  if (cites.length) out.push({ label: 'Quotes', value: `${cites.length} · ${count(cites, c => c.exact)} verbatim` });
+  if (cites.length) out.push({ label: t('Quotes'), value: t('{n} · {exact} verbatim', { n: String(cites.length), exact: String(count(cites, c => c.exact)) }) });
   const resolved = count(s.points, p => p.period === round && Boolean(p.resolved));
-  if (resolved) out.push({ label: 'Resolved', value: `${resolved} / ${s.worlds.length}` });
+  if (resolved) out.push({ label: t('Resolved'), value: `${resolved} / ${s.worlds.length}` });
   const injects = count(s.injects, x => x.round === round);
-  if (injects) out.push({ label: 'Injected', value: String(injects) });
+  if (injects) out.push({ label: t('Injected'), value: String(injects) });
   const stat = s.rounds.find(r => r.round === round);
   if (stat) {
-    if (s.frame?.kind === 'number' && stat.value) out.push({ label: 'Median', value: formatAmount(stat.value.median) });
+    if (s.frame?.kind === 'number' && stat.value) out.push({ label: t('Median'), value: formatAmount(stat.value.median) });
     else if (s.frame?.kind === 'choice' && stat.shares) {
       const i = leader(stat.shares);
-      out.push({ label: 'Leads', value: `${s.frame.outcomes[i] ?? '—'} ${pct(stat.shares[i])}` });
-    } else out.push({ label: 'Worlds pooled', value: pct(stat.consensus) }, { label: 'Range', value: `${pct(stat.min)}–${pct(stat.max)}` });
+      out.push({ label: t('Leads'), value: `${s.frame.outcomes[i] ?? '—'} ${pct(stat.shares[i])}` });
+    } else out.push({ label: t('Worlds pooled'), value: pct(stat.consensus) }, { label: t('Range'), value: `${pct(stat.min)}–${pct(stat.max)}` });
   }
   return out;
 }

@@ -1,3 +1,4 @@
+import { t } from '@/lib/core/i18n/active';
 import type { LngLat } from '@/lib/core/geodesic';
 import { circleToRing, haversine, pathLength, polygonArea, rectToRing, ringPerimeter } from '@/lib/core/geodesic';
 import { areaParts, type AreaGeometry } from './aoi';
@@ -189,13 +190,15 @@ export function toShape(result: DrawResult, existing: { color: string }[], index
     ? { areaKm2: 0, perimeterKm: pathLength(coords) }
     : measureArea(geometry);
 
-  const labels: Record<DrawMode, string> = {
-    polygon: 'Area', rectangle: 'Box', circle: 'Radius', line: 'Path', region: 'Region',
+  const n = index + 1;
+  const labels: Record<DrawMode, () => string> = {
+    polygon: () => t('Area {n}', { n }), rectangle: () => t('Box {n}', { n }), circle: () => t('Radius {n}', { n }),
+    line: () => t('Path {n}', { n }), region: () => t('Region {n}', { n }),
   };
 
   return {
     id: `aoi-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    name: result.name ?? `${labels[result.kind]} ${index + 1}`,
+    name: result.name ?? labels[result.kind](),
     kind: result.kind,
     geojson: { type: 'Feature', properties: {}, geometry },
     areaKm2,

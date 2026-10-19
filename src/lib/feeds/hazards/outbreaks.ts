@@ -1,3 +1,4 @@
+import { t } from '@/lib/core/i18n/active';
 import { htmlEsc, pop, urlSafe } from '@/lib/map/popups/kit';
 
 /** As /api/outbreaks sends them: one row per source × disease × country, at the country's centroid. */
@@ -51,14 +52,14 @@ export function outbreakPopupHtml(p: Props): string {
   const items = rows
     .sort((a, b) => (b.level ?? 0) - (a.level ?? 0) || b.published.localeCompare(a.published))
     .map(r => `<a href="${urlSafe(r.url)}" target="_blank" rel="noopener noreferrer">
-      <span class="tk-pop-list-title"><span class="tk-pop-dot tk-pop-dot-inline" style="background:${outbreakColor(r.level)}"></span>${htmlEsc(r.disease)}${r.level ? ` · CDC level ${r.level}` : ''}</span>
+      <span class="tk-pop-list-title"><span class="tk-pop-dot tk-pop-dot-inline" style="background:${outbreakColor(r.level)}"></span>${htmlEsc(r.disease)}${r.level ? ` · ${htmlEsc(t('CDC level {level}', { level: r.level }))}` : ''}</span>
       <span class="tk-pop-list-meta">${htmlEsc(r.source)} · ${htmlEsc(r.published.slice(0, 10))} · ${htmlEsc(r.title)}</span>
     </a>`).join('');
   return pop({
-    kicker: 'Outbreak notices',
+    kicker: t('Outbreak notices'),
     dot: String(p.color ?? outbreakColor(null)),
     title: p.country,
-    subtitle: 'Notices are country-level, not a location',
+    subtitle: t('Notices are country-level, not a location'),
     body: items ? `<div class="tk-pop-list">${items}</div>` : undefined,
   });
 }

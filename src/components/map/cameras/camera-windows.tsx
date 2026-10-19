@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { FloatingWindow, playingIds, useWindows, windowStore } from '@/components/map/windows';
 import { useRing } from '@/components/map/inspect/rings';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { useT } from '@/components/ui/use-t';
 import { countAction } from '@/lib/platform/usage-actions';
 import CameraViewer from './camera-viewer';
 
@@ -51,10 +52,11 @@ export default function CameraWindows({ camera, onClose, onLocate }: {
 }
 
 function CameraWindow({ camera, playing, onClose, onLocate }: { camera: Camera; playing: boolean; onClose: () => void; onLocate?: (lat: number, lng: number) => void }) {
+  const t = useT();
   const id = windowId(camera);
   useRing(id, { lat: camera.lat, lng: camera.lng });
   return (
-    <FloatingWindow id={id} kind="camera" label={`Camera: ${camera.name}`} onClose={onClose}>
+    <FloatingWindow id={id} kind="camera" label={t('Camera: {name}', { name: camera.name })} onClose={onClose}>
       <CameraViewer camera={camera} onClose={onClose} onLocate={onLocate} windowed playing={playing} onPlay={() => windowStore.focus(id)} />
     </FloatingWindow>
   );

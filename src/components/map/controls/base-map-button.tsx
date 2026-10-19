@@ -4,6 +4,8 @@ import { useId, useState, type Dispatch, type ReactNode, type SetStateAction } f
 import { Map as MapIcon, Moon, Mountain, Satellite } from 'lucide-react';
 import { Popover } from '@/components/ui/popover';
 import { cx, FOCUS_RING, TRANSITION, type IconType } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import type { MapStyle } from '@/components/shell/state/types';
 import { towardMiddle, type Corner } from '@/components/shell/layout/lib/model';
 import StyleStudio from '@/components/shell/map-look/style-studio';
@@ -12,18 +14,19 @@ import { ClusterButton } from './cluster-button';
 
 // One real tile of the Alps from each look, so the choice is a picture rather than a word.
 const STYLES: { id: MapStyle; label: string; note: string; icon: IconType; thumb: string }[] = [
-  { id: 'dark', label: 'Dark', note: 'Quiet streets and labels', icon: Moon,
+  { id: 'dark', label: msg('Dark'), note: msg('Quiet streets and labels'), icon: Moon,
     thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/4/5/8' },
-  { id: 'satellite', label: 'Satellite', note: 'Esri imagery', icon: Satellite,
+  { id: 'satellite', label: msg('Satellite'), note: msg('Esri imagery'), icon: Satellite,
     thumb: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/4/5/8' },
-  { id: 'topo', label: 'Topo', note: 'Relief and trails', icon: Mountain,
+  { id: 'topo', label: msg('Topo'), note: msg('Relief and trails'), icon: Mountain,
     thumb: 'https://a.tile.opentopomap.org/4/8/5.png' },
 ];
 
 function Swatch({ style, on, onPick }: { style: (typeof STYLES)[number]; on: boolean; onPick: () => void }) {
+  const t = useT();
   const Icon = style.icon;
   return (
-    <button type="button" role="radio" aria-checked={on} onClick={onPick} title={style.note}
+    <button type="button" role="radio" aria-checked={on} onClick={onPick} title={t(style.note)}
       className={cx('group flex min-w-0 flex-col gap-1.5 rounded-card text-left', FOCUS_RING)}>
       <span className={cx(
         'relative flex h-14 w-full items-center justify-center overflow-hidden rounded-card border bg-surface-2 text-ink-3',
@@ -38,7 +41,7 @@ function Swatch({ style, on, onPick }: { style: (typeof STYLES)[number]; on: boo
           className="absolute inset-0 size-full object-cover" />
       </span>
       <span className={cx('truncate px-0.5 text-small font-medium', on ? 'text-ink-1' : 'text-ink-2 group-hover:text-ink-1', TRANSITION)}>
-        {style.label}
+        {t(style.label)}
       </span>
     </button>
   );
@@ -50,8 +53,9 @@ export function BaseMapPicker({ mapStyle, setMapStyle, labelledBy }: {
   setMapStyle: Dispatch<SetStateAction<MapStyle>>;
   labelledBy?: string;
 }) {
+  const t = useT();
   return (
-    <div role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : 'Base map'} className="grid grid-cols-3 gap-2">
+    <div role="radiogroup" aria-labelledby={labelledBy} aria-label={labelledBy ? undefined : t('Base map')} className="grid grid-cols-3 gap-2">
       {STYLES.map(s => <Swatch key={s.id} style={s} on={s.id === mapStyle} onPick={() => { countAction('basemap.change'); setMapStyle(s.id); }} />)}
     </div>
   );
@@ -70,16 +74,17 @@ export function BaseMapButton({ mapStyle, setMapStyle, options, touch, corner = 
   /** Where the controls sit, so the menu opens toward the middle of the map. */
   corner?: Corner;
 }) {
+  const t = useT();
   const [studio, setStudio] = useState(false);
   const menu = towardMiddle(corner);
   const labelId = useId();
   return (
     <>
-      <Popover label="Base map and options" placement={menu.sideways} align={menu.alongEdge} className="w-[296px] p-3"
-        trigger={<ClusterButton label="Base map and options" touch={touch}><MapIcon aria-hidden className="size-4" strokeWidth={1.75} /></ClusterButton>}>
+      <Popover label={t('Base map and options')} placement={menu.sideways} align={menu.alongEdge} className="w-[296px] p-3"
+        trigger={<ClusterButton label={t('Base map and options')} touch={touch}><MapIcon aria-hidden className="size-4" strokeWidth={1.75} /></ClusterButton>}>
         {close => (
           <>
-            <p id={labelId} className="mb-2 text-meta font-medium text-ink-3">Base map</p>
+            <p id={labelId} className="mb-2 text-meta font-medium text-ink-3">{t('Base map')}</p>
             <BaseMapPicker mapStyle={mapStyle} setMapStyle={setMapStyle} labelledBy={labelId} />
             {options?.(() => { close(); setStudio(true); }, close)}
           </>

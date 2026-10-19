@@ -8,13 +8,16 @@ import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { Dot } from '@/components/ui/tag';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useT } from '@/components/ui/use-t';
 
 /** The timeline's main control: round, a size up from the icon buttons around it. */
 export function PlayButton({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
+  const t = useT();
   const Icon = playing ? Pause : Play;
+  const label = playing ? t('Pause') : t('Play');
   return (
-    <Tooltip label={playing ? 'Pause' : 'Play'} kbd="Space">
-      <button type="button" onClick={onToggle} aria-label={playing ? 'Pause' : 'Play'} aria-keyshortcuts="Space"
+    <Tooltip label={label} kbd="Space">
+      <button type="button" onClick={onToggle} aria-label={label} aria-keyshortcuts="Space"
         className={cx(
           'flex size-9 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface-2 text-ink-1 hover:bg-surface-3 active:bg-surface-3',
           FOCUS_RING,
@@ -28,8 +31,9 @@ export function PlayButton({ playing, onToggle }: { playing: boolean; onToggle: 
 
 /** Back or ahead by `span` ("10 min"), either side of the play button. */
 export function JumpButton({ dir, span, onJump }: { dir: -1 | 1; span: string; onJump: (dir: -1 | 1) => void }) {
+  const t = useT();
   return (
-    <IconButton label={`${dir < 0 ? 'Back' : 'Ahead'} ${span}`} icon={dir < 0 ? RotateCcw : RotateCw} kbd={dir < 0 ? ',' : '.'}
+    <IconButton label={dir < 0 ? t('Back {span}', { span }) : t('Ahead {span}', { span })} icon={dir < 0 ? RotateCcw : RotateCw} kbd={dir < 0 ? ',' : '.'}
       tooltipSide="top" onClick={() => onJump(dir)} />
   );
 }
@@ -58,11 +62,12 @@ export function ChoiceMenu<V extends string | number>({ label, value, display, g
   onChange: (value: V) => void;
   className?: string;
 }) {
+  const t = useT();
   const current = display ?? groups.flatMap(g => g.options).find(o => o.value === value)?.label ?? String(value);
   return (
     <Popover role="menu" label={label} placement="top" align="start" className="min-w-48 p-1"
       trigger={
-        <Button variant="ghost" size="sm" aria-label={`${label}: ${current}`} className={className}>
+        <Button variant="ghost" size="sm" aria-label={t('{label}: {value}', { label, value: current })} className={className}>
           <span className="truncate">{current}</span>
           <ChevronDown aria-hidden className="-mr-1 size-3.5 shrink-0 text-ink-3" strokeWidth={1.75} />
         </Button>
@@ -81,10 +86,11 @@ export function ChoiceMenu<V extends string | number>({ label, value, display, g
 }
 
 export function BackToLive({ onExit }: { onExit: () => void }) {
+  const t = useT();
   return (
     <Button size="sm" onClick={onExit}>
       <Dot tone="green" />
-      Back to live
+      {t('Back to live')}
     </Button>
   );
 }

@@ -13,11 +13,12 @@ import { ArrowDownRight, ArrowUpRight, GanttChart, LoaderCircle } from 'lucide-r
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Dot } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
 import { formatAmount } from '@/lib/ai/forecast';
 import { priceText } from '@/lib/ai/quant/series';
 import { timelineOf, type Timeline, type TimelineCell, type TimelineLane } from '@/lib/ai/workspace/timeline';
 import { castOf, type RunState } from '@/lib/ai/state';
-import { fit, fmtDate, plural, smooth } from '@/components/panels/ti-agent/theme';
+import { fit, fmtDate, smooth } from '@/components/panels/ti-agent/theme';
 import { TypeIcon } from '@/components/panels/ti-agent/atoms';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';
 
@@ -50,12 +51,13 @@ function Delta({ s, cell, prev }: { s: RunState; cell: TimelineCell; prev: Timel
 
 /** How far a world moved from its first period to its last. */
 function Drift({ s, lane }: { s: RunState; lane: TimelineLane }) {
+  const t = useT();
   const spoken = lane.cells.filter((c): c is TimelineCell => c !== null);
   if (lane.drift === null || spoken.length < 2) return <span className="px-2.5 py-2 text-small text-ink-4">—</span>;
   const held = Math.abs(lane.drift) < 0.005;
   const first = spoken[0], last = spoken[spoken.length - 1];
-  const text = s.frame?.kind === 'number' ? deltaText(s, last, first) : `${lane.drift > 0 ? '+' : '−'}${Math.round(Math.abs(lane.drift) * 100)} pts`;
-  return <span className={cx('px-2.5 py-2 text-small', held ? 'text-ink-3' : 'font-mono text-ink-1 tabular-nums')}>{held ? 'Held' : text}</span>;
+  const text = s.frame?.kind === 'number' ? deltaText(s, last, first) : t('{change} pts', { change: `${lane.drift > 0 ? '+' : '−'}${Math.round(Math.abs(lane.drift) * 100)}` });
+  return <span className={cx('px-2.5 py-2 text-small', held ? 'text-ink-3' : 'font-mono text-ink-1 tabular-nums')}>{held ? t('Held') : text}</span>;
 }
 
 /**
@@ -77,6 +79,7 @@ function windowOf(tl: Timeline): [number, number] {
 
 /** The worlds pooled across the periods, drawn in the columns the lanes use. */
 function PooledChart({ tl, cols, win }: { tl: Timeline; cols: number; win: [number, number] }) {
+  const t = useT();
   const box = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(0);
   useEffect(() => {
@@ -115,7 +118,7 @@ function PooledChart({ tl, cols, win }: { tl: Timeline; cols: number; win: [numb
             return (
               <g key={k}>
                 <line x1={ix} x2={ix} y1={4} y2={H - 4} strokeDasharray="2 3" className="stroke-ink-3" />
-                <title>{`Added in period ${inj.round}: ${inj.text}`}</title>
+                <title>{t('Added in period {n}: {text}', { n: inj.round, text: inj.text })}</title>
                 <circle cx={ix} cy={6} r={3} className="fill-ink-2" />
               </g>
             );
@@ -150,6 +153,7 @@ function PooledChart({ tl, cols, win }: { tl: Timeline; cols: number; win: [numb
 function LaneRow({ s, lane, tl, cols, template, win, selected, onSelect }: {
   s: RunState; lane: TimelineLane; tl: Timeline; cols: number; template: string; win: [number, number]; selected: string | null; onSelect: (k: string | null) => void;
 }) {
+  const t = useT();
   const at = (v: number) => Math.min(100, Math.max(0, ((v - win[0]) / (win[1] - win[0] || 1)) * 100));
   const world = lane.key.slice(2);
   const on = selected === lane.key;
@@ -171,7 +175,7 @@ function LaneRow({ s, lane, tl, cols, template, win, selected, onSelect }: {
         if (!cell) {
           return (
             <span key={r} className="px-2.5 py-2 text-small text-ink-4">
-              {deciding(r) ? <LoaderCircle aria-label="Deciding" className="size-3.5 animate-spin text-ink-3 motion-reduce:animate-none" /> : '—'}
+              {deciding(r) ? <LoaderCircle aria-label={t('Deciding')} className="size-3.5 animate-spin text-ink-3 motion-reduce:animate-none" /> : '—'}
             </span>
           );
         }
@@ -180,7 +184,7 @@ function LaneRow({ s, lane, tl, cols, template, win, selected, onSelect }: {
             <button type="button" onClick={() => pick(lane.key)} title={cell.point.note || undefined} className={cx('rounded-control text-left', FOCUS_RING)}>
               <span className="flex items-center gap-1.5">
                 <span className="truncate text-small text-ink-1">
-                  {cell.point.resolved && <span className="text-ink-3">Resolved · </span>}<Figures text={cell.label} />
+                  {cell.point.resolved && <span className="text-ink-3">{t('Resolved')} · </span>}<Figures text={cell.label === 'YES' ? t('YES') : cell.label === 'NO' ? t('NO') : cell.label} />
                 </span>
                 <Delta s={s} cell={cell} prev={prev} />
               </span>
@@ -195,7 +199,7 @@ function LaneRow({ s, lane, tl, cols, template, win, selected, onSelect }: {
               const key = `e:${e.id}`;
               const marked = e.kind === 'shock' || e.kind === 'injected';
               return (
-                <button key={e.id} type="button" onClick={() => pick(key)} title={`${fmtDate(e.date)} · ${e.title}`}
+                <button key={e.id} type="button" onClick={() => pick(key)} title={`${fmtDate(e.date, t)} · ${e.title}`}
                   className={cx('flex items-start gap-1.5 rounded-control text-left text-meta', selected === key ? 'text-ink-1' : 'text-ink-2 hover:text-ink-1', FOCUS_RING, TRANSITION)}>
                   <TypeIcon k={key} subtype={e.kind} className={cx('mt-0.5 size-3 shrink-0', marked ? 'text-gold' : 'text-ink-3')} />
                   <span className="line-clamp-2">{e.title}</span>
@@ -204,7 +208,7 @@ function LaneRow({ s, lane, tl, cols, template, win, selected, onSelect }: {
             })}
             {cell.events.length > 3 && (
               <button type="button" onClick={() => pick(lane.key)} className={cx('self-start rounded-control text-meta text-ink-3 hover:text-ink-1', FOCUS_RING)}>
-                <span className="font-mono tabular-nums">{cell.events.length - 3}</span> more
+                {t.rich('{n} more', { n: <span className="font-mono tabular-nums">{cell.events.length - 3}</span> })}
               </button>
             )}
           </span>
@@ -216,44 +220,50 @@ function LaneRow({ s, lane, tl, cols, template, win, selected, onSelect }: {
 }
 
 export function TimelineView({ s, selected, onSelect }: { s: RunState; selected: string | null; onSelect: (k: string | null) => void }) {
-  const tl = useMemo(() => timelineOf(s), [s]);
+  const t = useT();
+  const tl = useMemo(() => timelineOf(s, t), [s, t]);
   const cols = tl.rounds.length + (s.report ? 1 : 0);
   const template = `${NAME_COL}px repeat(${cols}, minmax(${MIN_COL}px, 1fr))`;
   const win = useMemo(() => windowOf(tl), [tl]);
 
   if (!castOf(s).length || !s.worlds.length) {
-    return <div className="flex h-full items-center justify-center"><EmptyState icon={GanttChart} title="Nothing on the timeline yet" body="It fills in once the actors are cast and the worlds start to run." /></div>;
+    return <div className="flex h-full items-center justify-center"><EmptyState icon={GanttChart} title={t('Nothing on the timeline yet')} body={t('It fills in once the actors are cast and the worlds start to run.')} /></div>;
   }
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 items-center gap-3 border-b border-line px-4 py-3">
         <div className="min-w-0">
-          <h3 className="text-body font-semibold text-ink-1">Timeline</h3>
+          <h3 className="text-body font-semibold text-ink-1">{t('Timeline')}</h3>
           <p className="mt-0.5 truncate text-meta text-ink-3">
-            {plural(tl.rounds.length, 'period')} · {plural(tl.lanes.length, 'world')} · {plural(s.events.length, 'event')}{tl.injects.length ? ` · ${tl.injects.length} added by you` : ''}
+            {[
+              t('{n, plural, one {# period} other {# periods}}', { n: tl.rounds.length }),
+              t('{n, plural, one {# world} other {# worlds}}', { n: tl.lanes.length }),
+              t('{n, plural, one {# event} other {# events}}', { n: s.events.length }),
+              tl.injects.length ? t('{n} added by you', { n: tl.injects.length }) : '',
+            ].filter(Boolean).join(' · ')}
           </p>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-4 text-meta text-ink-2">
-          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-3 bg-gold" />Pooled</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-gold/20" />Range</span>
-          {tl.reference && <span className="inline-flex items-center gap-1.5"><span className="w-3 border-t border-dashed border-ink-3" />{s.frame?.kind === 'number' ? 'Today' : 'Base rate'}</span>}
-          {tl.injects.length > 0 && <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-ink-2" />Added event</span>}
+          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-3 bg-gold" />{t('Pooled')}</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2 w-3 rounded-sm bg-gold/20" />{t('Range')}</span>
+          {tl.reference && <span className="inline-flex items-center gap-1.5"><span className="w-3 border-t border-dashed border-ink-3" />{s.frame?.kind === 'number' ? t('Today') : t('Base rate')}</span>}
+          {tl.injects.length > 0 && <span className="inline-flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-ink-2" />{t('Added event')}</span>}
         </div>
       </div>
       <div className="styled-scrollbar min-h-0 flex-1 overflow-auto">
         <div style={{ minWidth: NAME_COL + cols * MIN_COL }}>
           <div className="grid border-b border-line" style={{ gridTemplateColumns: template }}>
             <div className="sticky left-0 z-10 flex flex-col gap-1 bg-surface-1 px-3 py-3">
-              <span className="text-small font-medium text-ink-2">The worlds pooled</span>
+              <span className="text-small font-medium text-ink-2">{t('The worlds pooled')}</span>
               <span className="text-meta text-ink-3">
-                {s.frame?.kind === 'number' ? 'The worlds’ median, with their range' : s.frame?.kind === 'choice' ? 'The leading outcome’s pooled share' : 'Chance of yes across the worlds, with their range'}
+                {s.frame?.kind === 'number' ? t('The worlds’ median, with their range') : s.frame?.kind === 'choice' ? t('The leading outcome’s pooled share') : t('Chance of yes across the worlds, with their range')}
               </span>
             </div>
             <div style={{ gridColumn: `2 / span ${cols}` }} className="py-1"><PooledChart tl={tl} cols={cols} win={win} /></div>
           </div>
           <div className="sticky top-0 z-20 grid border-b border-line-strong bg-surface-1" style={{ gridTemplateColumns: template }}>
-            <span className="sticky left-0 bg-surface-1 px-3 py-2 text-meta font-medium text-ink-3">World</span>
+            <span className="sticky left-0 bg-surface-1 px-3 py-2 text-meta font-medium text-ink-3">{t('World')}</span>
             {tl.rounds.map(r => {
               const st = s.rounds.find(x => x.round === r);
               const live = !st && s.status === 'running' && s.phase === 'simulate' && s.steps.filter(x => x.phase === 'simulate').length === r;
@@ -261,13 +271,13 @@ export function TimelineView({ s, selected, onSelect }: { s: RunState; selected:
               return (
                 <span key={r} className="flex flex-col gap-0.5 px-2.5 py-2">
                   <span className={cx('inline-flex items-center gap-1.5 text-meta font-medium', live ? 'text-ink-1' : st ? 'text-ink-2' : 'text-ink-3')}>
-                    <span>Period <span className="font-mono tabular-nums">{r}</span></span>{live && <Dot tone="gold" pulse label="Running now" />}
+                    <span>{t.rich('Period {n}', { n: <span className="font-mono tabular-nums">{r}</span> })}</span>{live && <Dot tone="gold" pulse label={t('Running now')} />}
                   </span>
                   {period && <span className="truncate text-meta text-ink-3">{period.label}</span>}
                 </span>
               );
             })}
-            {cols > tl.rounds.length && <span className="px-2.5 py-2 text-meta font-medium text-ink-2">Final · drift</span>}
+            {cols > tl.rounds.length && <span className="px-2.5 py-2 text-meta font-medium text-ink-2">{t('Final · drift')}</span>}
           </div>
           {tl.lanes.map(lane => (
             <LaneRow key={lane.key} s={s} lane={lane} tl={tl} cols={cols} template={template} win={win} selected={selected} onSelect={onSelect} />

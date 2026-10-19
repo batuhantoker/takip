@@ -3,6 +3,7 @@
 import type { ComponentProps, ReactNode } from 'react';
 import { authClient } from '@/components/site/account/auth-client';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/components/ui/use-t';
 import { showAccountDialog } from '../account-dialog-state';
 import { Notice, TextButton } from '../form-parts';
 
@@ -38,13 +39,14 @@ export const needsFreshSignIn = (error: { code?: string } | null | undefined) =>
   error?.code === 'SESSION_NOT_FRESH' || error?.code === 'SESSION_EXPIRED';
 
 export function SignInAgain() {
+  const t = useT();
   const again = async () => {
     await authClient.signOut();
-    showAccountDialog({ kind: 'sign-in', notice: 'Signed out. Sign in again, then reopen Account settings.' });
+    showAccountDialog({ kind: 'sign-in', notice: t('Signed out. Sign in again, then reopen Account settings.') });
   };
   return (
     <Notice>
-      For your security, this needs a recent sign-in. <TextButton onClick={again}>Sign in again</TextButton>
+      {t('For your security, this needs a recent sign-in.')} <TextButton onClick={again}>{t('Sign in again')}</TextButton>
     </Notice>
   );
 }

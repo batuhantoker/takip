@@ -5,16 +5,24 @@ import { ScanSearch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PanelSection } from '@/components/ui/panel';
-import { TABS } from '@/components/panels/recon/recon-tools';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
+import { namedTools, TABS } from '@/components/panels/recon/recon-tools';
 import { ReconSearch } from './recon-search';
 import { RecentScans } from './recent-scans';
 import { suggestTools } from '@/lib/intel/recon/suggest-tools';
-import { detectQuery } from '@/lib/intel/recon/detect-query';
+import { detectQuery, type QueryKind } from '@/lib/intel/recon/detect-query';
 import { ErrorNote } from './error-note';
 import { TryExamples } from './example-link';
 import type { ReconLookup } from '@/components/panels/recon/use-recon-lookup';
 
 const EXAMPLES = ['8.8.8.8', 'wikipedia.org', 'octocat'];
+
+// Kinds the field recognises that no tool here looks up.
+const NO_TOOL: Partial<Record<QueryKind, string>> = {
+  cve: msg('Looks like a CVE id, and none of these tools can look one up yet.'),
+  hash: msg('Looks like a file hash, and none of these tools can look one up yet.'),
+};
 
 /** Nothing open yet: the search field, recent lookups and every tool. */
 export function ReconOverview({ lookup, isMobile, isFullScreen, onRun, onOpenByName, selfTrackError, onDismissSelfTrackError, browseAll, setBrowseAll, toolList }: {
@@ -30,9 +38,11 @@ export function ReconOverview({ lookup, isMobile, isFullScreen, onRun, onOpenByN
   setBrowseAll: (v: boolean) => void;
   toolList: ReactNode;
 }) {
+  const t = useT();
   const typed = lookup.query.trim();
-  const hasSuggestions = typed !== '' && suggestTools(typed, TABS).length > 0;
+  const hasSuggestions = typed !== '' && suggestTools(typed, namedTools(t)).length > 0;
   const detection = detectQuery(typed);
+  const noTool = NO_TOOL[detection.kind];
   const inputId = useId();
   const fresh = !typed && !lookup.history.length;
   const tryOne = (q: string) => { lookup.setQuery(q); document.getElementById(inputId)?.focus(); };
@@ -44,20 +54,20 @@ export function ReconOverview({ lookup, isMobile, isFullScreen, onRun, onOpenByN
       {selfTrackError && <ErrorNote className="mt-4" message={selfTrackError} onDismiss={onDismissSelfTrackError} />}
       {!typed && lookup.history.length > 0 && <RecentScans history={lookup.history} onPick={onRun} onClear={lookup.clearHistory} />}
       {fresh && isFullScreen && (
-        <EmptyState icon={ScanSearch} title="Start with something to look up" className="mt-10"
-          body={<>Paste an IP, domain, email, username or phone number and the tools that fit show up here. {examples}.</>} />
+        <EmptyState icon={ScanSearch} title={t('Start with something to look up')} className="mt-10"
+          body={t.rich('Paste an IP, domain, email, username or phone number and the tools that fit show up here. {examples}.', { examples })} />
       )}
       {/* Full screen keeps every tool in the rail. */}
       {!isFullScreen && (hasSuggestions ? (
-        <PanelSection title="All tools" hint={TABS.length}
-          action={<Button variant="ghost" size="sm" aria-expanded={browseAll} onClick={() => setBrowseAll(!browseAll)}>{browseAll ? 'Hide' : 'Show'}</Button>}>
+        <PanelSection title={t('All tools')} hint={TABS.length}
+          action={<Button variant="ghost" size="sm" aria-expanded={browseAll} onClick={() => setBrowseAll(!browseAll)}>{browseAll ? t('Hide') : t('Show')}</Button>}>
           {browseAll && toolList}
         </PanelSection>
       ) : (
         <div className="mt-6">
           {typed && (
             <p className="mb-4 text-small text-ink-2">
-              {detection.label ? `${detection.label}, and none of these tools can look one up yet.` : <>Not sure what “{typed}” is. Pick a tool to look it up with.</>}
+              {noTool ? t(noTool) : t('Not sure what “{query}” is. Pick a tool to look it up with.', { query: typed })}
             </p>
           )}
           {toolList}

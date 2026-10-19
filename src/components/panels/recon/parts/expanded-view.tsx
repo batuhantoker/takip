@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Minimize2 } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { Panel } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 
 /** Recon over the whole map, beside the sidebar: the tool rail on the left, results with room to breathe. Escape or the backdrop exits. */
 export function ExpandedView({ onExit, rail, footer, children }: {
@@ -13,16 +14,17 @@ export function ExpandedView({ onExit, rail, footer, children }: {
   footer?: ReactNode;
   children: ReactNode;
 }) {
+  const t = useT();
   const node = (
     <div className="fixed top-0 right-0 bottom-[var(--shell-foot,28px)] left-[72px] z-[1200] flex justify-center p-4">
       <div aria-hidden className="absolute inset-0 bg-surface-0/70" onClick={onExit} />
       <Panel
-        title="Recon"
-        subtitle="Look up an IP, domain, username or phone number"
+        title={t('Recon')}
+        subtitle={t('Look up an IP, domain, username or phone number')}
         docked={false}
         bare
         closeOnEscape={false}
-        actions={<IconButton label="Exit full screen" kbd="Esc" icon={Minimize2} onClick={onExit} />}
+        actions={<IconButton label={t('Exit full screen')} kbd="Esc" icon={Minimize2} onClick={onExit} />}
         footer={footer}
         className="relative h-full w-full max-w-[1500px]"
       >

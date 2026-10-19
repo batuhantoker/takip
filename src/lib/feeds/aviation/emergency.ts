@@ -1,4 +1,5 @@
 import type * as maplibregl from 'maplibre-gl';
+import { msg } from '@/lib/core/i18n/translator';
 import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/style/tokens';
 
 /*
@@ -6,16 +7,17 @@ import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/style/tokens';
  * drawn in red on their own layer, every one of them, since the regular layers thin traffic worldwide.
  */
 
-const SQUAWKS: Record<string, string> = { '7500': 'Hijack code', '7600': 'Radio failure', '7700': 'Emergency' };
+const SQUAWKS: Record<string, string> = { '7500': msg('Hijack code'), '7600': msg('Radio failure'), '7700': msg('Emergency') };
 /** ADS-B emergency statuses; `lifeguard` is a medical priority flight, not distress, so it is left out. */
 const STATUSES: Record<string, string> = {
-  general: 'Emergency', minfuel: 'Minimum fuel', nordo: 'Radio failure', unlawful: 'Unlawful interference', downed: 'Aircraft down',
+  general: msg('Emergency'), minfuel: msg('Minimum fuel'), nordo: msg('Radio failure'), unlawful: msg('Unlawful interference'), downed: msg('Aircraft down'),
 };
 
 /** What the aircraft is declaring, or null; the squawk wins when both are set. */
-export function emergencyOf(row: { squawk?: unknown; emergency?: unknown } | null | undefined): string | null {
+export function emergencyOf(row: { squawk?: unknown; emergency?: unknown } | null | undefined, t: (source: string) => string = s => s): string | null {
   if (!row) return null;
-  return SQUAWKS[String(row.squawk ?? '')] ?? STATUSES[String(row.emergency ?? '')] ?? null;
+  const declared = SQUAWKS[String(row.squawk ?? '')] ?? STATUSES[String(row.emergency ?? '')];
+  return declared ? t(declared) : null;
 }
 
 export const EMERGENCY_SOURCE = 'fl-emergency';

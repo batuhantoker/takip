@@ -1,3 +1,4 @@
+import { activeIntl, t } from '@/lib/core/i18n/active';
 import type { Box } from './bbox';
 import type { ReferenceDataset } from './catalog';
 
@@ -22,21 +23,22 @@ const esc = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g,
 
 /** Popup body for a clicked feature: its title, then its fields as a table. */
 export function popupHtml(dataset: ReferenceDataset, props: Record<string, unknown>): string {
-  const title = props[dataset.titleProp] ?? dataset.label;
+  const label = t(dataset.label);
+  const title = props[dataset.titleProp] ?? label;
   const rows = Object.entries(props)
     .filter(([k, v]) => k !== dataset.titleProp && v !== null && v !== '')
     .slice(0, MAX_POPUP_ROWS)
     .map(([k, v]) => {
       const text = Array.isArray(v) ? v.join(', ') : String(v);
       const value = /^https?:\/\//i.test(text)
-        ? `<a href="${esc(text)}" target="_blank" rel="noopener noreferrer" style="color:${dataset.color};">link</a>`
+        ? `<a href="${esc(text)}" target="_blank" rel="noopener noreferrer" style="color:${dataset.color};">${esc(t('link'))}</a>`
         : esc(text);
       return `<tr><td style="color:#5C5A54;padding:2px 10px 2px 0;vertical-align:top;">${esc(k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toUpperCase())}</td><td style="color:#E8E6E0;">${value}</td></tr>`;
     })
     .join('');
   return `<div style="background:rgba(12,14,26,0.95);border:1px solid ${dataset.color}4D;border-radius:10px;padding:14px;font-family:var(--font-hud);">
     <div style="color:${dataset.color};font-size:13px;font-weight:700;margin-bottom:2px;">${esc(title)}</div>
-    <div style="color:#5C5A54;font-size:9px;letter-spacing:0.1em;margin-bottom:8px;">${esc(dataset.label.toUpperCase())}</div>
+    <div style="color:#5C5A54;font-size:9px;letter-spacing:0.1em;margin-bottom:8px;">${esc(label.toLocaleUpperCase(activeIntl()))}</div>
     <table style="font-size:9px;border-collapse:collapse;">${rows}</table>
     <div style="margin-top:8px;color:#5C5A54;font-size:8px;">${esc(dataset.attribution)}</div>
   </div>`;

@@ -5,6 +5,7 @@ import { Tag } from '@/components/ui/tag';
 import { quoteOf, type NewsAlert } from '@/lib/intel/alerts/live-alerts';
 import { AlertRow, Meta } from './alert-row';
 import { Figure } from '@/components/ui/figure';
+import { useT } from '@/components/ui/use-t';
 import { fullDate, stamp, toneOf } from '@/components/panels/alerts/format';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 
@@ -16,6 +17,7 @@ export default function StatementRow({ speaker, items, now, selected, onSelect }
   selected: boolean;
   onSelect: () => void;
 }) {
+  const t = useT();
   const lead = items[0];
   return (
     <AlertRow
@@ -26,8 +28,8 @@ export default function StatementRow({ speaker, items, now, selected, onSelect }
       selected={selected}
       onSelect={onSelect}
       meta={<>
-        {items.some(i => i.flag) && <Tag tone="red">Breaking</Tag>}
-        <Meta parts={[lead.source_name, `${items.length} statements`]} />
+        {items.some(i => i.flag) && <Tag tone="red">{t('Breaking')}</Tag>}
+        <Meta parts={[lead.source_name, t('{n, plural, one {# statement} other {# statements}}', { n: items.length })]} />
       </>}
     >
       <ol className="flex flex-col gap-2.5 border-l border-line-strong pl-3">
@@ -35,9 +37,9 @@ export default function StatementRow({ speaker, items, now, selected, onSelect }
           <li key={item.id} className="flex items-start gap-2">
             <p className="min-w-0 flex-1 text-small whitespace-pre-line text-ink-2">{quoteOf(item, speaker, true)}</p>
             <span className="flex shrink-0 items-center gap-1">
-              <time title={fullDate(item.ts)} className="text-meta text-ink-3"><Figure>{stamp(item.ts, now)}</Figure></time>
+              <time title={fullDate(item.ts, t)} className="text-meta text-ink-3"><Figure>{stamp(item.ts, now, t)}</Figure></time>
               {item.link && (
-                <a href={item.link} target="_blank" rel="noopener noreferrer" aria-label="Open this statement"
+                <a href={item.link} target="_blank" rel="noopener noreferrer" aria-label={t('Open this statement')}
                   className={cx('flex size-6 items-center justify-center rounded-control text-ink-3 hover:bg-surface-3 hover:text-ink-1', FOCUS_RING)}>
                   <ExternalLink aria-hidden className="size-3.5" strokeWidth={1.75} />
                 </a>

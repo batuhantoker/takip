@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl';
 import type { RefObject } from 'react';
 import { articleTitle, HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryDetail, type HistoryExtras, type HistoryFeature, historyPopupHtml, shownIds } from '@/lib/history/popup';
 import type { ArticleSummary } from '@/lib/history/wiki';
+import { t } from '@/lib/core/i18n/active';
 import { getWikiLanguage } from '@/lib/core/wikipedia/language';
 import { pinStore } from '@/components/map/pinned/pin-store';
 
@@ -55,8 +56,8 @@ export function openHistoryPopup(map: maplibregl.Map, popupRef: PopupRef, p: His
     const family = HISTORY_FAMILIES[p.family];
     pinStore.pin({
       id: `history:${p.id}`,
-      label: p.title ?? family?.label ?? 'Event',
-      kicker: family?.label ?? 'Event',
+      label: p.title ?? (family ? t(family.label) : t('Event')),
+      kicker: family ? t(family.label) : t('Event'),
       dot: family?.color ?? HISTORY_FALLBACK_COLOR,
       at,
       node,

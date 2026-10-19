@@ -7,10 +7,12 @@ import { describeDevice, timeAgo } from '@/lib/platform/account/device-label';
 import { FormError } from '@/components/site/account/form-parts';
 import { FALLBACK_ERROR } from '@/components/site/account/use-form-action';
 import { Row, Section, SignInAgain, SmallButton, needsFreshSignIn } from '@/components/site/account/settings/settings-parts';
+import { useT } from '@/components/ui/use-t';
 
 type Device = { id: string; token: string; userAgent?: string | null; ipAddress?: string | null; updatedAt: Date | string };
 
 export default function DevicesSection({ currentId }: { currentId: string }) {
+  const t = useT();
   const [devices, setDevices] = useState<Device[] | null>(null);
   const [stale, setStale] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,23 +44,23 @@ export default function DevicesSection({ currentId }: { currentId: string }) {
   };
 
   return (
-    <Section title="Devices">
+    <Section title={t('Devices')}>
       {stale && <SignInAgain />}
-      <FormError message={error} />
+      <FormError message={error && t(error)} />
       {devices?.map(device => {
-        const label = describeDevice(device.userAgent);
+        const label = describeDevice(device.userAgent, t);
         const current = device.id === currentId;
         const Icon = /iOS|Android/.test(label) ? Smartphone : Monitor;
-        const detail = [current ? 'This device' : `Active ${timeAgo(device.updatedAt)}`, device.ipAddress].filter(Boolean).join(' · ');
+        const detail = [current ? t('This device') : t('Active {when}', { when: timeAgo(device.updatedAt, undefined, t) }), device.ipAddress].filter(Boolean).join(' · ');
         return (
           <Row key={device.id} icon={<Icon className="size-4 shrink-0 text-ink-3" aria-hidden />} label={label} detail={detail}>
-            {!current && <SmallButton disabled={pending} onClick={() => signOut(device.token)}>Sign out</SmallButton>}
+            {!current && <SmallButton disabled={pending} onClick={() => signOut(device.token)}>{t('Sign out')}</SmallButton>}
           </Row>
         );
       })}
       {devices && devices.length > 1 && (
         <SmallButton disabled={pending} onClick={() => signOut()} className="self-start">
-          Sign out all other devices
+          {t('Sign out all other devices')}
         </SmallButton>
       )}
     </Section>

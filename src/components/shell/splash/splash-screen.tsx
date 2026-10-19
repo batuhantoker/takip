@@ -4,6 +4,7 @@ import { useRef, type Dispatch, type SetStateAction } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TakipMark } from '@/components/shell/brand/takip-mark';
 import { TakipWordmark } from '@/components/shell/brand/takip-wordmark';
+import { useT } from '@/components/ui/use-t';
 import { GlobeCanvas } from './globe-canvas';
 import { useGlobeHandoff } from './use-globe-handoff';
 import { usePrefersReducedMotion } from './use-prefers-reduced-motion';
@@ -19,6 +20,7 @@ export default function SplashScreen({ showSplash, splashStage, setSplashGone }:
   splashStage: number;
   setSplashGone: Dispatch<SetStateAction<boolean>>;
 }) {
+  const t = useT();
   const still = usePrefersReducedMotion();
   const globeRef = useRef<HTMLDivElement>(null);
   const handoff = useGlobeHandoff(globeRef);
@@ -58,7 +60,7 @@ export default function SplashScreen({ showSplash, splashStage, setSplashGone }:
               <TakipMark key={still ? 'still' : 'intro'} intro={!still} className="h-9 w-auto md:h-10" />
               <TakipWordmark className="h-[22px] w-auto md:h-[26px]" />
             </div>
-            <div role="progressbar" aria-label="Loading the map" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}
+            <div role="progressbar" aria-label={t('Loading the map')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}
               className="h-px w-40 overflow-hidden bg-line">
               <div className="h-full origin-left bg-ink-2 transition-transform duration-500 ease-out motion-reduce:transition-none"
                 style={{ transform: `scaleX(${progress})` }} />

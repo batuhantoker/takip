@@ -7,6 +7,7 @@ import { AiMark } from '@/components/panels/ti-agent/atoms';
 import { Dot } from '@/components/ui/tag';
 import { cx } from '@/components/ui/class-names';
 import { useT } from '@/components/ui/use-t';
+import { railLabel } from './rail-labels';
 import { NAV_WIDTH, type ToolId } from './dock';
 import { RailButton } from './rail-button';
 
@@ -55,7 +56,7 @@ export function NavSidebar({ groups, active, onSelect, ti = true, tiLive, tiRunn
                 const Icon = item.icon;
                 return (
                   <div key={item.id} className="relative">
-                    <RailButton glyph={<Icon className="size-[18px]" strokeWidth={1.75} />} label={t(item.label)}
+                    <RailButton glyph={<Icon className="size-[18px]" strokeWidth={1.75} />} label={t(railLabel(item.label))}
                       hint={t(item.hint)} kbd={item.kbd} badge={item.badge} active={active === item.id} pressed={active === item.id}
                       onClick={() => onSelect(item.id)} />
                     {item.running && active !== item.id && <span className="pointer-events-none absolute top-2 right-3 flex"><Dot tone="accent" label={t('{name} is on', { name: t(item.label) })} /></span>}

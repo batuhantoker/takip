@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
+import { useT } from '@/components/ui/use-t';
 import { clampRect, GAP, type Edge } from '@/components/map/windows/lib/geometry';
 import type { WindowKind } from './kinds';
 import { useMapArea } from './map-area';
@@ -32,6 +33,7 @@ export function FloatingWindow({ id, kind, label, onClose, closable = true, chil
   closable?: boolean;
   children: ReactNode;
 }) {
+  const t = useT();
   const root = useRef<HTMLDivElement>(null);
   const snap = useWindows();
   const { list } = snap;
@@ -85,8 +87,8 @@ export function FloatingWindow({ id, kind, label, onClose, closable = true, chil
     const h = root.current?.querySelector<HTMLElement>('header');
     if (!h) return;
     h.tabIndex = 0;
-    h.setAttribute('aria-label', `${label}: arrow keys move it, Enter folds it`);
-  }, [label]);
+    h.setAttribute('aria-label', t('{label}: arrow keys move it, Enter folds it', { label }));
+  }, [label, t]);
 
   useEffect(() => { windowStore.clampAll(area); }, [area]);
 

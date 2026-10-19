@@ -6,6 +6,7 @@ import { IconButton } from '@/components/ui/button';
 import { cx, ENTER, type IconType } from '@/components/ui/class-names';
 import { WindowFoldButton, useWindowControls } from '@/components/map/windows';
 import { Panel } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 import { coords } from '@/components/map/inspect/format';
 
 /** The card's frame: the kit's floating Panel, with tags under the header and sections below. */
@@ -40,6 +41,7 @@ export function StatRow({ children }: { children: ReactNode }) {
 
 /** Where it is: the place, the coordinates, and a copy button. */
 export function WhereRow({ lat, lng, place }: { lat: number; lng: number; place: string | null }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const text = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   const copy = () => {
@@ -53,11 +55,11 @@ export function WhereRow({ lat, lng, place }: { lat: number; lng: number; place:
       <MapPin aria-hidden className="size-4 shrink-0 text-ink-3" strokeWidth={1.75} />
       <div className="min-w-0 flex-1">
         <div className={cx('truncate text-body', place ? 'font-medium text-ink-1' : 'text-ink-3')} title={place ?? undefined}>
-          {place ?? 'Finding the place…'}
+          {place ?? t('Finding the place…')}
         </div>
         <div className="truncate font-mono text-small text-ink-2 tabular-nums">{coords(lat, lng)}</div>
       </div>
-      <IconButton label={copied ? 'Copied' : 'Copy coordinates'} icon={copied ? Check : Copy} size="sm" onClick={copy} tooltipSide="left" />
+      <IconButton label={copied ? t('Copied') : t('Copy coordinates')} icon={copied ? Check : Copy} size="sm" onClick={copy} tooltipSide="left" />
     </div>
   );
 }

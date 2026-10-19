@@ -5,6 +5,7 @@ import { Check, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { MenuDivider, MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
+import { useT } from '@/components/ui/use-t';
 import type { ImportedLayer } from '@/lib/map/layers/arcgis';
 import { layerSwatches } from './arcgis-palette';
 
@@ -25,17 +26,18 @@ export function ArcgisLayerOptions({ layer, onUpdate, onRemove }: {
   onUpdate: (updates: Partial<{ color: string; opacity: number }>) => void;
   onRemove: () => void;
 }) {
+  const t = useT();
   const id = useId();
   const pct = Math.round(layer.opacity * 100);
   return (
     <Popover
       placement="bottom"
       align="end"
-      label={`${layer.title} options`}
+      label={t('{layer} options', { layer: layer.title })}
       className="w-60 p-1"
       trigger={
         // A bare button, not IconButton: its Tooltip wrapper is display:contents, which leaves Popover nothing to anchor to.
-        <button type="button" aria-label="Layer options"
+        <button type="button" aria-label={t('Layer options')}
           className={cx('inline-flex size-7 items-center justify-center rounded-control text-ink-2 hover:bg-surface-2 hover:text-ink-1 active:bg-surface-3', FOCUS_RING, TRANSITION)}>
           <SlidersHorizontal aria-hidden className="size-3.5" strokeWidth={1.75} />
         </button>
@@ -44,12 +46,12 @@ export function ArcgisLayerOptions({ layer, onUpdate, onRemove }: {
       {close => (
         <>
           <div className="px-2 pt-2 pb-3">
-            <p className="mb-2 text-meta font-medium text-ink-3">Colour</p>
-            <div role="radiogroup" aria-label="Colour" className="flex flex-wrap gap-1.5">
+            <p className="mb-2 text-meta font-medium text-ink-3">{t('Colour')}</p>
+            <div role="radiogroup" aria-label={t('Colour')} className="flex flex-wrap gap-1.5">
               {layerSwatches().map(({ name, color: c }) => {
                 const on = layer.color === c;
                 return (
-                  <button key={c} type="button" role="radio" aria-checked={on} aria-label={name}
+                  <button key={c} type="button" role="radio" aria-checked={on} aria-label={t(name)}
                     data-autofocus={on || undefined}
                     onClick={() => onUpdate({ color: c })}
                     className={cx('flex size-6 items-center justify-center rounded-full ring-1 ring-line-strong ring-inset', FOCUS_RING)}
@@ -60,7 +62,7 @@ export function ArcgisLayerOptions({ layer, onUpdate, onRemove }: {
               })}
             </div>
             <div className="mt-4 mb-1.5 flex items-baseline justify-between">
-              <label htmlFor={id} className="text-meta font-medium text-ink-3">Opacity</label>
+              <label htmlFor={id} className="text-meta font-medium text-ink-3">{t('Opacity')}</label>
               <span className="font-mono text-meta text-ink-2 tabular-nums">{pct}%</span>
             </div>
             <input id={id} type="range" min={10} max={100} step={5} value={pct}
@@ -70,7 +72,7 @@ export function ArcgisLayerOptions({ layer, onUpdate, onRemove }: {
           </div>
           <MenuDivider />
           <div className="p-1">
-            <MenuItem icon={Trash2} danger onSelect={() => { close(); onRemove(); }}>Remove from map</MenuItem>
+            <MenuItem icon={Trash2} danger onSelect={() => { close(); onRemove(); }}>{t('Remove from map')}</MenuItem>
           </div>
         </>
       )}

@@ -1,3 +1,5 @@
+import { msg } from '@/lib/core/i18n/translator';
+
 export interface SweepDevice {
   ip: string;
   ports: number[];
@@ -108,45 +110,45 @@ export function classifyDevice(
   const tagLower = (tags || []).map((t) => t.toLowerCase());
 
   if (portSet.has(554) || portSet.has(8554) || cpeLower.some((c) => /camera|dvr|hikvision|dahua|axis|ipcam/.test(c))) {
-    return { device_type: 'Camera/DVR', device_icon: 'Camera', device_color: '#FF3D3D' };
+    return { device_type: msg('Camera/DVR'), device_icon: 'Camera', device_color: '#FF3D3D' };
   }
   if (portSet.has(9100) || cpeLower.some((c) => /printer|hp.*laserjet|epson|brother/.test(c))) {
-    return { device_type: 'Printer', device_icon: 'Printer', device_color: '#F48FB1' };
+    return { device_type: msg('Printer'), device_icon: 'Printer', device_color: '#F48FB1' };
   }
   if (portSet.has(1883) || portSet.has(8883) || tagLower.includes('iot')) {
-    return { device_type: 'IoT Device', device_icon: 'Cpu', device_color: '#39FF14' };
+    return { device_type: msg('IoT Device'), device_icon: 'Cpu', device_color: '#39FF14' };
   }
   if (portSet.has(5060) || portSet.has(5061)) {
-    return { device_type: 'VoIP/SIP', device_icon: 'Phone', device_color: '#87CEEB' };
+    return { device_type: msg('VoIP/SIP'), device_icon: 'Phone', device_color: '#87CEEB' };
   }
   if (cpeLower.some((c) => /mikrotik|ubiquiti|cisco|juniper|fortinet/.test(c)) || portSet.has(161) || portSet.has(8291)) {
-    return { device_type: 'Router/Switch', device_icon: 'Router', device_color: '#00E5FF' };
+    return { device_type: msg('Router/Switch'), device_icon: 'Router', device_color: '#00E5FF' };
   }
   if (portSet.has(3306) || portSet.has(5432) || portSet.has(27017) || portSet.has(6379) || portSet.has(9200) || portSet.has(5984)) {
-    return { device_type: 'Database', device_icon: 'Database', device_color: '#FF6B00' };
+    return { device_type: msg('Database'), device_icon: 'Database', device_color: '#FF6B00' };
   }
   if (portSet.has(25) || portSet.has(587) || portSet.has(993) || portSet.has(995) || portSet.has(110) || portSet.has(143)) {
-    return { device_type: 'Mail Server', device_icon: 'Mail', device_color: '#FF9500' };
+    return { device_type: msg('Mail Server'), device_icon: 'Mail', device_color: '#FF9500' };
   }
   if (portSet.has(53)) {
-    return { device_type: 'DNS Server', device_icon: 'Server', device_color: '#00BCD4' };
+    return { device_type: msg('DNS Server'), device_icon: 'Server', device_color: '#00BCD4' };
   }
   if (portSet.has(21) || portSet.has(990)) {
-    return { device_type: 'FTP Server', device_icon: 'HardDrive', device_color: '#FFD700' };
+    return { device_type: msg('FTP Server'), device_icon: 'HardDrive', device_color: '#FFD700' };
   }
   if (portSet.has(1194) || portSet.has(1723) || portSet.has(500) || portSet.has(4500) || cpeLower.some((c) => /openvpn|wireguard/.test(c))) {
-    return { device_type: 'VPN Gateway', device_icon: 'ShieldCheck', device_color: '#D4AF37' };
+    return { device_type: msg('VPN Gateway'), device_icon: 'ShieldCheck', device_color: '#D4AF37' };
   }
   if (portSet.has(3389)) {
-    return { device_type: 'Windows Workstation', device_icon: 'Monitor', device_color: '#E040FB' };
+    return { device_type: msg('Windows Workstation'), device_icon: 'Monitor', device_color: '#E040FB' };
   }
   if (portSet.has(22) && !portSet.has(80) && !portSet.has(443)) {
-    return { device_type: 'Linux Server', device_icon: 'Terminal', device_color: '#76FF03' };
+    return { device_type: msg('Linux Server'), device_icon: 'Terminal', device_color: '#76FF03' };
   }
   if (portSet.has(80) || portSet.has(443) || portSet.has(8080) || portSet.has(8443)) {
-    return { device_type: 'Web Server', device_icon: 'Globe', device_color: '#448AFF' };
+    return { device_type: msg('Web Server'), device_icon: 'Globe', device_color: '#448AFF' };
   }
-  return { device_type: 'Unknown Host', device_icon: 'CircleDot', device_color: '#666666' };
+  return { device_type: msg('Unknown Host'), device_icon: 'CircleDot', device_color: '#666666' };
 }
 
 export function assessRisk(

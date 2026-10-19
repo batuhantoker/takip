@@ -11,6 +11,13 @@
  */
 import type { RunState } from '../state';
 import type { Actor, ContextItem, Link, Move, Report, Scenario, Signpost, SimEvent } from '../types';
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, msg, type Vars } from '@/lib/core/i18n/translator';
+
+/** Any translator: the component's, or the page's for code outside React (the globe's tooltips). */
+type Translate = (source: string, vars?: Vars) => string;
+
+const english: Translate = createTranslator(DEFAULT_LOCALE, {});
 
 export type Selection =
   | { type: 'link'; key: string; link: Link }
@@ -49,15 +56,15 @@ export function relatedLinks(s: RunState, key: string | null): Set<string> {
   return out;
 }
 
-/** A node's name, from its key. */
-export function nodeName(s: RunState, nodeKey: string): string {
+/** A node's name, from its key, in `t`'s language where it is not the run's own data. */
+export function nodeName(s: RunState, nodeKey: string, t: Translate = english): string {
   const [prefix, ...rest] = nodeKey.split(':');
   const id = rest.join(':');
   if (prefix === 'a') return s.actors.find(a => a.id === id)?.name ?? id;
   if (prefix === 'e') return s.events.find(e => e.id === id)?.title ?? id;
-  if (prefix === 'w') return `World ${id}`;
+  if (prefix === 'w') return t('World {w}', { w: id });
   if (prefix === 'c') return s.context.find(c => c.id === id)?.title ?? id;
-  if (prefix === 'r') return 'The report';
+  if (prefix === 'r') return t('The report');
   return id;
 }
 
@@ -72,43 +79,56 @@ export function moveFor(s: RunState, link: Link): Move | undefined {
   return s.moves.find(m => m.actor === actor && m.world === world && m.period === link.round);
 }
 
-const RELATION_WORD = { support: 'aligned', oppose: 'opposed', neutral: 'linked' } as const;
-const STANCE_WORD = { support: 'works with', oppose: 'presses', neutral: 'holds toward' } as const;
-const EFFECT_WORD = { support: 'points toward YES', oppose: 'points toward NO', neutral: 'bears on' } as const;
+const RELATION_WORD = { support: msg('aligned'), oppose: msg('opposed'), neutral: msg('linked') } as const;
 
 const clip = (t: string, n: number) => (t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t);
 
-/** Two short lines for a tooltip. */
-export function brief(s: RunState, key: string): { title: string; detail: string } | null {
+/** What an evidence link does to the question, and to whom: "points toward NO: China". */
+function effectLine(s: RunState, tone: Link['tone'], target: string, t: Translate): string {
+  if (tone === 'neutral') return t('bears on: {target}', { target });
+  if (s.frame?.kind === 'number') return tone === 'support' ? t('points higher: {target}', { target }) : t('points lower: {target}', { target });
+  return tone === 'support' ? t('points toward YES: {target}', { target }) : t('points toward NO: {target}', { target });
+}
+
+/** "United States presses China": a move arc, as its stance reads. */
+function stanceLine(tone: Link['tone'], from: string, to: string, t: Translate): string {
+  if (tone === 'support') return t('{from} works with {to}', { from, to });
+  if (tone === 'oppose') return t('{from} presses {to}', { from, to });
+  return t('{from} holds toward {to}', { from, to });
+}
+
+/** Two short lines for a tooltip, in `t`'s language (English when none is given). */
+export function brief(s: RunState, key: string, t: Translate = english): { title: string; detail: string } | null {
   const sel = resolve(s, key);
   if (!sel) return null;
   switch (sel.type) {
     case 'link': {
       const l = sel.link;
-      const from = nodeName(s, l.from);
-      const to = nodeName(s, l.to);
-      if (l.kind === 'relation') return { title: `${from} ⇄ ${to}`, detail: `${RELATION_WORD[l.tone]} · ${clip(l.label, 90)}` };
-      if (l.kind === 'evidence') {
-        const effect = s.frame?.kind === 'number' ? (l.tone === 'support' ? 'points higher' : l.tone === 'oppose' ? 'points lower' : 'bears on') : EFFECT_WORD[l.tone];
-        return { title: clip(from, 80), detail: `${effect}: ${to}` };
-      }
+      const from = nodeName(s, l.from, t);
+      const to = nodeName(s, l.to, t);
+      if (l.kind === 'relation') return { title: `${from} ⇄ ${to}`, detail: `${t(RELATION_WORD[l.tone])} · ${clip(l.label, 90)}` };
+      if (l.kind === 'evidence') return { title: clip(from, 80), detail: effectLine(s, l.tone, to, t) };
       const world = l.id.split(':')[1];
       if (l.kind === 'cite') {
         return l.from === 'r:report'
-          ? { title: `The report rests on ${clip(to, 60)}`, detail: clip(l.label, 100) }
-          : { title: `${from} quotes ${clip(to, 60)}`, detail: `World ${world}, period ${l.round} · “${clip(l.label, 90)}”` };
+          ? { title: t('The report rests on {source}', { source: clip(to, 60) }), detail: clip(l.label, 100) }
+          : { title: t('{actor} quotes {source}', { actor: from, source: clip(to, 60) }), detail: t('World {w}, period {n} · “{quote}”', { w: world, n: l.round, quote: clip(l.label, 90) }) };
       }
-      return { title: `${from} ${STANCE_WORD[l.tone]} ${to}`, detail: `World ${world}, period ${l.round} · ${clip(l.label, 90)}` };
+      return { title: stanceLine(l.tone, from, to, t), detail: t('World {w}, period {n} · {label}', { w: world, n: l.round, label: clip(l.label, 90) }) };
     }
-    case 'actor': return { title: sel.actor.name, detail: clip(sel.actor.persona ? `Plays to: ${sel.actor.persona.goal}` : sel.actor.role, 90) };
+    case 'actor': return { title: sel.actor.name, detail: clip(sel.actor.persona ? t('Plays to: {goal}', { goal: sel.actor.persona.goal }) : sel.actor.role, 90) };
     case 'world': {
       const last = [...s.points].reverse().find(p => p.world === sel.world);
-      return { title: `World ${sel.world}`, detail: last ? (last.resolved ? `Resolved ${last.resolved}` : clip(last.note, 90)) : 'Not started' };
+      return { title: t('World {w}', { w: sel.world }), detail: last ? (last.resolved ? t('Resolved {answer}', { answer: last.resolved }) : clip(last.note, 90)) : t('Not started') };
     }
-    case 'event': return { title: clip(sel.event.title, 90), detail: `World ${sel.event.world} · ${sel.event.date}${sel.event.kind === 'shock' ? ' · surprise' : sel.event.kind === 'injected' ? ' · injected' : ''}` };
+    case 'event': {
+      const e = sel.event;
+      const kind = e.kind === 'shock' ? t('surprise') : e.kind === 'injected' ? t('injected') : '';
+      return { title: clip(e.title, 90), detail: [t('World {w}', { w: e.world }), e.date, kind].filter(Boolean).join(' · ') };
+    }
     case 'context': return { title: clip(sel.item.title, 90), detail: [sel.item.source, sel.item.place].filter(Boolean).join(' · ') };
-    case 'scenario': return { title: `Scenario: ${sel.scenario.name}`, detail: `${Math.round(sel.scenario.probability * 100)}% · ${clip(sel.scenario.description, 70)}` };
-    case 'signpost': return { title: 'Signpost', detail: clip(sel.signpost.text, 90) };
-    case 'report': return { title: 'The report', detail: `${sel.report.answer} · ${clip(sel.report.headline, 80)}` };
+    case 'scenario': return { title: t('Scenario: {name}', { name: sel.scenario.name }), detail: `${Math.round(sel.scenario.probability * 100)}% · ${clip(sel.scenario.description, 70)}` };
+    case 'signpost': return { title: t('Signpost'), detail: clip(sel.signpost.text, 90) };
+    case 'report': return { title: t('The report'), detail: `${sel.report.answer} · ${clip(sel.report.headline, 80)}` };
   }
 }

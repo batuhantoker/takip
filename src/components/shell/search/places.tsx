@@ -11,7 +11,9 @@ import {
 } from 'lucide-react';
 import { Kbd } from '@/components/ui/kbd';
 import { cx, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 import { haversine } from '@/lib/core/geodesic';
+import { msg } from '@/lib/core/i18n/translator';
 
 export interface PlaceLike {
   label: string;
@@ -22,29 +24,29 @@ export interface PlaceLike {
 }
 
 const KIND: Record<string, { icon: LucideIcon; label: string; group: string }> = {
-  poi: { icon: Landmark, label: 'Place', group: 'Places' },
-  address: { icon: Home, label: 'Address', group: 'Addresses' },
-  street: { icon: Signpost, label: 'Street', group: 'Streets' },
-  city: { icon: Building2, label: 'City', group: 'Cities and towns' },
-  region: { icon: MapIcon, label: 'Region', group: 'Regions' },
-  country: { icon: Globe2, label: 'Country', group: 'Countries' },
-  coordinate: { icon: MapPin, label: 'Coordinates', group: 'Coordinates' },
-  current: { icon: LocateFixed, label: 'You', group: 'You' },
-  recent: { icon: Clock, label: 'Recent', group: 'Recent' },
+  poi: { icon: Landmark, label: msg('Place'), group: msg('Places') },
+  address: { icon: Home, label: msg('Address'), group: msg('Addresses') },
+  street: { icon: Signpost, label: msg('Street'), group: msg('Streets') },
+  city: { icon: Building2, label: msg('City'), group: msg('Cities and towns') },
+  region: { icon: MapIcon, label: msg('Region'), group: msg('Regions') },
+  country: { icon: Globe2, label: msg('Country'), group: msg('Countries') },
+  coordinate: { icon: MapPin, label: msg('Coordinates'), group: msg('Coordinates') },
+  current: { icon: LocateFixed, label: msg('You'), group: msg('You') },
+  recent: { icon: Clock, label: msg('Recent'), group: msg('Recent') },
 };
 
 export const kindIcon = (kind?: string): LucideIcon => KIND[kind ?? '']?.icon ?? MapPin;
-export const kindLabel = (kind?: string): string => KIND[kind ?? '']?.label ?? 'Place';
+export const kindLabel = (kind?: string): string => KIND[kind ?? '']?.label ?? msg('Place');
 /** The heading a kind of result is listed under. */
-export const kindGroup = (kind?: string): string => KIND[kind ?? '']?.group ?? 'Places';
+export const kindGroup = (kind?: string): string => KIND[kind ?? '']?.group ?? msg('Places');
 
 /** How far a place is from a point, rounded the way a person says it. */
-export function distanceText(from: { lat: number; lng: number } | null | undefined, to: { lat: number; lng: number }): string {
+export function distanceText(from: { lat: number; lng: number } | null | undefined, to: { lat: number; lng: number }, intl = 'en-US'): string {
   if (!from) return '';
   const m = haversine([from.lng, from.lat], [to.lng, to.lat]) * 1000;
   if (m < 1000) return `${Math.max(10, Math.round(m / 10) * 10)} m`;
-  if (m < 100_000) return `${(m / 1000).toFixed(m < 10_000 ? 1 : 0)} km`;
-  return `${Math.round(m / 1000).toLocaleString('en-US')} km`;
+  if (m < 100_000) return `${(m / 1000).toLocaleString(intl, { minimumFractionDigits: m < 10_000 ? 1 : 0, maximumFractionDigits: m < 10_000 ? 1 : 0 })} km`;
+  return `${Math.round(m / 1000).toLocaleString(intl)} km`;
 }
 
 /** A name with the first match of what was typed set heavier. */
@@ -88,8 +90,9 @@ export function PlaceRow({ place, query = '', on, onPick, onHover, from, trailin
   kindOverride?: string;
   id?: string;
 }) {
+  const t = useT();
   const kind = kindOverride ?? place.kind;
-  const far = place.kind === 'current' ? '' : distanceText(from, place);
+  const far = place.kind === 'current' ? '' : distanceText(from, place, t.intl);
   return (
     <div id={id} role="option" aria-selected={on} onMouseMove={onHover}
       className={cx('group/row relative flex min-h-10 items-center gap-3 rounded-control px-2 py-1.5', on ? 'bg-surface-2' : 'hover:bg-surface-2', TRANSITION)}>

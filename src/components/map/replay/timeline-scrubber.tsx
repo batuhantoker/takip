@@ -2,6 +2,7 @@
 
 import { type KeyboardEvent, type PointerEvent, useLayoutEffect, useRef, useState } from 'react';
 import { cx } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 import type { CoverageSpan } from '@/lib/map/replay/session';
 import type { Tick } from '@/lib/map/replay/timeline-ticks';
 
@@ -70,6 +71,7 @@ export type TimelineScrubberProps = {
 export default function TimelineScrubber({
   label, lo, hi, time, step, onSeek, onTogglePlay, format, ticksFor, gaps = [], provisionalFrom, notes, bands, today,
 }: TimelineScrubberProps) {
+  const t = useT();
   const root = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<number | null>(null);
@@ -160,7 +162,7 @@ export default function TimelineScrubber({
         <div aria-hidden className="pointer-events-none absolute top-0 right-0 bottom-[17px]" style={{ left: pct(today) }}>
           <div className="absolute inset-0 rounded-r-[3px] bg-ink-1/[0.04]" />
           <span className="absolute top-[5px] left-0 h-[18px] w-px bg-ink-3" />
-          <span className={cx('absolute -top-[3px] text-meta leading-[14px] whitespace-nowrap text-ink-3', (1 - frac(today)) * width < 44 ? 'right-full pr-1' : 'left-1')}>Today</span>
+          <span className={cx('absolute -top-[3px] text-meta leading-[14px] whitespace-nowrap text-ink-3', (1 - frac(today)) * width < 44 ? 'right-full pr-1' : 'left-1')}>{t('Today')}</span>
         </div>
       )}
 

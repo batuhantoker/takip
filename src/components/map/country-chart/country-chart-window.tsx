@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cx, ENTER } from '@/components/ui/class-names';
 import { Panel } from '@/components/ui/panel';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { useT } from '@/components/ui/use-t';
 import { FloatingWindow, WindowFoldButton } from '@/components/map/windows';
 import { MAX_CHARTED } from '@/lib/history/countries/chart';
 import type { CountryView } from '@/lib/history/countries/view';
@@ -33,6 +34,7 @@ const MIN_WEEKS = 8 / 52;
  * the countries.
  */
 export function CountryChartWindow({ session }: { session: HistorySession }) {
+  const t = useT();
   const { clock, countries: view, chart } = session;
   const time = useSyncExternalStore(clock.subscribe, clock.time, clock.time);
   const signature = useSyncExternalStore(view.subscribe, () => picksSignature(view), () => picksSignature(view));
@@ -58,7 +60,7 @@ export function CountryChartWindow({ session }: { session: HistorySession }) {
 
   const close = () => chart.clear();
   const at = yearAt(time);
-  const t = hover ?? at;
+  const shownAt = hover ?? at;
   const many = picks.length > 1;
   const dated = picks.every(p => p.status === 'ready' && p.data.step === 'day');
   const fold = (code: string, open: boolean) => setFolded(prev => {
@@ -69,19 +71,21 @@ export function CountryChartWindow({ session }: { session: HistorySession }) {
   });
 
   const single = !many && state.status === 'ready' ? state.data : null;
-  const subtitle = many ? `${picks.length} indicators` : single ? [single.metric.unit, single.source.name].filter(Boolean).join(' · ') : undefined;
+  const subtitle = many ? t('{n, plural, one {# indicator} other {# indicators}}', { n: picks.length }) : single ? [single.metric.unit, single.source.name].filter(Boolean).join(' · ') : undefined;
   const atCap = charted.length >= MAX_CHARTED;
+  const when = <span className="font-mono text-ink-2 tabular-nums">{dated ? formatAt(shownAt, 'day', t) : formatYear(Math.floor(shownAt), t)}</span>;
   const panel = (
-    <Panel docked={false} title={many ? 'Over time' : nameOf(state, true)} subtitle={subtitle} icon={ChartLine} onClose={close}
+    <Panel docked={false} title={many ? t('Over time') : nameOf(state, true, t)} subtitle={subtitle} icon={ChartLine} onClose={close}
       className={isMobile ? 'max-h-[inherit]' : undefined} closeOnEscape={isMobile}
       actions={isMobile ? undefined : <WindowFoldButton />}
-      footer={<span>{atCap ? `That's ${MAX_CHARTED}, the most at once. Remove one to add another.` : 'Click a country on the map to add it, and again to remove it. Drag across a chart to zoom in.'}</span>}>
+      footer={<span>{atCap ? t("That's {n}, the most at once. Remove one to add another.", { n: MAX_CHARTED }) : t('Click a country on the map to add it, and again to remove it. Drag across a chart to zoom in.')}</span>}>
       <div className="mb-2 flex min-h-7 items-center gap-2">
         <p className="min-w-0 flex-1 text-meta text-ink-3">
-          Values {dated ? 'on' : 'in'} <span className="font-mono text-ink-2 tabular-nums">{dated ? formatAt(t, 'day') : formatYear(Math.floor(t))}</span>
-          {hover === null ? ', where the clock is' : ''}
+          {dated
+            ? (hover === null ? t.rich('Values on {time}, where the clock is', { time: when }) : t.rich('Values on {time}', { time: when }))
+            : (hover === null ? t.rich('Values in {time}, where the clock is', { time: when }) : t.rich('Values in {time}', { time: when }))}
         </p>
-        {range && <Button variant="ghost" size="sm" onClick={() => setRange(null)}>Show all years</Button>}
+        {range && <Button variant="ghost" size="sm" onClick={() => setRange(null)}>{t('Show all years')}</Button>}
       </div>
       <CountryKeys countries={charted} onRemove={key => chart.remove(key)} />
       <div className="mt-3">
@@ -93,6 +97,6 @@ export function CountryChartWindow({ session }: { session: HistorySession }) {
       </div>
     </Panel>
   );
-  if (!isMobile) return <FloatingWindow id="country-chart" kind="chart" label="Country chart" onClose={close}>{panel}</FloatingWindow>;
+  if (!isMobile) return <FloatingWindow id="country-chart" kind="chart" label={t('Country chart')} onClose={close}>{panel}</FloatingWindow>;
   return <div className={cx('absolute top-16 right-2 left-2 z-[300]', ENTER)} style={{ maxHeight: 'min(70vh, 640px)' }}>{panel}</div>;
 }

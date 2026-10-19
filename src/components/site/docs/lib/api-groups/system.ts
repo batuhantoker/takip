@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const SYSTEM: ApiGroup = {
   id: 'system',
-  title: 'System',
+  title: msg('System status'),
   blurb:
     'Liveness and aggregate counters. Safe to poll from monitoring. The accounts API behind /api/v1 (keys, usage, workspaces, ArcGIS, the entity graph) documents itself at /api/v1/docs.',
   endpoints: [

@@ -4,16 +4,18 @@ import { useRef, useState, type Dispatch, type PointerEvent, type ReactNode, typ
 import { X } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import type { MobilePanel } from '@/components/shell/state/types';
 
 const TITLES: Record<MobilePanel, string> = {
-  layers: 'Layers',
-  markets: 'Markets',
-  intel: 'Alerts',
-  history: 'History',
-  space: 'Space',
-  search: 'Search',
-  recon: 'Recon',
+  layers: msg('Layers'),
+  markets: msg('Markets'),
+  intel: msg('Alerts'),
+  history: msg('History'),
+  space: msg('Space'),
+  search: msg('Search'),
+  recon: msg('Recon'),
   ai: 'TI',
 };
 
@@ -30,9 +32,11 @@ export function MobileDrawer({ mobilePanel, setMobilePanel, subtitle, actions, c
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const t = useT();
   const [pull, setPull] = useState(0);
   const from = useRef<number | null>(null);
   if (!mobilePanel) return null;
+  const title = t(TITLES[mobilePanel]);
   const close = () => setMobilePanel(null);
 
   const grab = {
@@ -53,7 +57,7 @@ export function MobileDrawer({ mobilePanel, setMobilePanel, subtitle, actions, c
   };
 
   return (
-    <section data-hud aria-label={TITLES[mobilePanel]} style={pull ? { transform: `translateY(${pull}px)` } : undefined}
+    <section data-hud aria-label={title} style={pull ? { transform: `translateY(${pull}px)` } : undefined}
       className={cx(
         'fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-[400] flex max-h-[min(60vh,calc(100dvh-120px))] flex-col',
         'rounded-t-float border-t border-line bg-surface-1 shadow-float',
@@ -65,12 +69,12 @@ export function MobileDrawer({ mobilePanel, setMobilePanel, subtitle, actions, c
         <div aria-hidden className="mx-auto mt-2 h-1 w-9 rounded-full bg-ink-4" />
         <header className="flex min-h-11 items-center justify-between gap-3 py-1 pr-2 pl-4">
           <div className="min-w-0">
-            <h2 className="truncate text-title font-semibold text-ink-1">{TITLES[mobilePanel]}</h2>
+            <h2 className="truncate text-title font-semibold text-ink-1">{title}</h2>
             {subtitle && <p className="truncate text-meta text-ink-3">{subtitle}</p>}
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
             {actions}
-            <IconButton label="Close" icon={X} onClick={close} />
+            <IconButton label={t('Close')} icon={X} onClick={close} />
           </div>
         </header>
       </div>

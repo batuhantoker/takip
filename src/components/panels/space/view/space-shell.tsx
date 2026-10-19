@@ -24,6 +24,7 @@ import SpacePanelLeft from './space-panel-left';
 import { useNow } from '@/components/panels/space/use-space-data';
 import { useSpaceScene } from './use-space-scene';
 import { useEscape } from '@/components/ui/use-escape';
+import { useT } from '@/components/ui/use-t';
 
 /**
  * TAKIP — the space view: the scene, its left panel and its inspect card.
@@ -71,6 +72,7 @@ export default function SpaceShell({ request, satellites, map, onFocus, onExit }
   /** `to` is the map view to land on, when the operator zoomed back down into Earth and there is no `map` to move. */
   onExit: (to?: MapTarget) => void;
 }) {
+  const t = useT();
   const [isPresent, safeToRemove] = usePresence();
   const [leaving, setLeaving] = useState<Leaving | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -307,7 +309,7 @@ export default function SpaceShell({ request, satellites, map, onFocus, onExit }
       )}
       {replayId !== null && !leaving && (
         <div className="pointer-events-none absolute bottom-[88px] z-[206] flex justify-center" style={{ left: 'var(--shell-left, 72px)', right: 0 }}>
-          <FlightReplayBar name={fleet?.craft.find(c => c.id === replayId)?.name ?? 'Spacecraft'}
+          <FlightReplayBar name={fleet?.craft.find(c => c.id === replayId)?.name ?? t('Spacecraft')}
             model={scene?.replay?.state.craftId === replayId ? scene.replay.model : null} state={replay} error={flight.error} controls={controls} />
         </div>
       )}

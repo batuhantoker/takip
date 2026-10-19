@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const WEBHOOKS: ApiGroup = {
   id: 'webhooks',
-  title: 'Webhooks',
+  title: msg('Webhooks'),
   blurb: 'Inbound hooks from external services.',
   endpoints: [
     {

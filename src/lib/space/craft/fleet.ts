@@ -8,6 +8,7 @@
  * heliopause — is worked out from its distance to the bodies, not stored.
  */
 
+import { msg } from '@/lib/core/i18n/translator';
 import { AU_KM, norm, sub, dot } from '../astro';
 import type { MajorBody, Vec3 } from '../horizons';
 
@@ -32,19 +33,19 @@ export type Region =
   | 'interplanetary' | 'outer' | 'interstellar';
 
 export const REGION_LABEL: Record<Region, string> = {
-  'earth-orbit': 'Earth orbit',
-  cislunar: 'Earth–Moon space',
-  moon: 'At the Moon',
-  'sun-earth-l1': 'Sun–Earth L1',
-  'sun-earth-l2': 'Sun–Earth L2',
-  mercury: 'At Mercury',
-  venus: 'At Venus',
-  mars: 'At Mars',
-  jupiter: 'Jupiter system',
-  saturn: 'Saturn system',
-  interplanetary: 'Interplanetary cruise',
-  outer: 'Outer solar system',
-  interstellar: 'Interstellar space',
+  'earth-orbit': msg('Earth orbit'),
+  cislunar: msg('Earth–Moon space'),
+  moon: msg('At the Moon'),
+  'sun-earth-l1': msg('Sun–Earth L1'),
+  'sun-earth-l2': msg('Sun–Earth L2'),
+  mercury: msg('At Mercury'),
+  venus: msg('At Venus'),
+  mars: msg('At Mars'),
+  jupiter: msg('Jupiter system'),
+  saturn: msg('Saturn system'),
+  interplanetary: msg('Interplanetary cruise'),
+  outer: msg('Outer solar system'),
+  interstellar: msg('Interstellar space'),
 };
 
 /** Heliocentric positions of the bodies a craft can be "at", same epoch. */

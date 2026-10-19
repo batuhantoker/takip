@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Undo2 } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 import { HEX_RE } from '@/lib/map/style/style-studio';
 
 /** "GEIST MONO" → "Geist mono"; the brand keeps its capitals. */
@@ -46,10 +47,11 @@ export function Swatch({ label, value, onChange }: { label: string; value: strin
  * not need a reset of the whole theme.
  */
 export function ResettableSwatch({ label, value, fallback, onChange }: { label: string; value: string; fallback: string; onChange: (v: string) => void }) {
+  const t = useT();
   const changed = value.toLowerCase() !== fallback.toLowerCase();
   return (
     <div className="flex items-center gap-1">
-      <button type="button" onClick={() => onChange(fallback)} aria-label={`Restore the default ${label.toLowerCase()}`} title="Restore the default"
+      <button type="button" onClick={() => onChange(fallback)} aria-label={t('Restore the default: {name}', { name: label })} title={t('Restore the default')}
         className={cx('flex size-6 items-center justify-center rounded-control text-ink-3 hover:bg-surface-2 hover:text-ink-1', FOCUS_RING, TRANSITION,
           !changed && 'pointer-events-none invisible')}>
         <Undo2 aria-hidden className="size-3.5" strokeWidth={1.75} />
@@ -84,13 +86,14 @@ export function AutoSlider({ label, value, min, max, step, whenEnabled, onChange
   label: string; value: number | null; min: number; max: number; step: number;
   whenEnabled: number; onChange: (v: number | null) => void; format: (v: number) => string;
 }) {
+  const t = useT();
   const auto = value === null;
   return (
     <div className="flex max-w-[188px] flex-1 items-center gap-2">
       <button type="button" onClick={() => onChange(auto ? whenEnabled : null)} aria-pressed={auto}
-        title={auto ? `${label} follows the app` : `${label} is set here`}
+        title={auto ? t('{name} follows the app', { name: label }) : t('{name} is set here', { name: label })}
         className={cx('h-6 shrink-0 rounded-control px-1.5 text-meta font-medium', auto ? 'bg-surface-3 text-ink-1' : 'text-ink-3 hover:text-ink-1', FOCUS_RING, TRANSITION)}>
-        Auto
+        {t('Auto')}
       </button>
       <input type="range" min={min} max={max} step={step} value={auto ? whenEnabled : value} disabled={auto}
         onChange={e => onChange(parseFloat(e.target.value))} aria-label={label} className={RANGE} />

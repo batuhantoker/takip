@@ -4,17 +4,22 @@ import { useEffect } from 'react';
 import { Circle, Earth, Pentagon, Spline, Square, type LucideIcon } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import type { DrawMode } from '@/lib/places/areas/draw';
-import { SHAPE_NAME } from '@/components/panels/areas/area-view';
 
 // One line each at panel width; the pill over the map takes it from there.
 const SHAPES: { mode: DrawMode; icon: LucideIcon; hint: string }[] = [
-  { mode: 'polygon', icon: Pentagon, hint: 'Click each corner, then press Enter to close it.' },
-  { mode: 'rectangle', icon: Square, hint: 'Click one corner, then the opposite one.' },
-  { mode: 'circle', icon: Circle, hint: 'Click the centre, then where the edge goes.' },
-  { mode: 'line', icon: Spline, hint: 'Click along the route, then press Enter to stop.' },
-  { mode: 'region', icon: Earth, hint: 'Click a country, or zoom in to pick a state.' },
+  { mode: 'polygon', icon: Pentagon, hint: msg('Click each corner, then press Enter to close it.') },
+  { mode: 'rectangle', icon: Square, hint: msg('Click one corner, then the opposite one.') },
+  { mode: 'circle', icon: Circle, hint: msg('Click the centre, then where the edge goes.') },
+  { mode: 'line', icon: Spline, hint: msg('Click along the route, then press Enter to stop.') },
+  { mode: 'region', icon: Earth, hint: msg('Click a country, or zoom in to pick a state.') },
 ];
+
+const DRAW: Record<DrawMode, string> = {
+  polygon: msg('Draw an area'), rectangle: msg('Draw a box'), circle: msg('Draw a radius'), line: msg('Draw a path'), region: msg('Draw a region'),
+};
 
 const isEditable = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
@@ -26,6 +31,7 @@ export default function ShapePicker({ mode, onChange, busy }: {
   /** A shape is half drawn: switching now would throw it away. */
   busy: boolean;
 }) {
+  const t = useT();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented || isEditable(e.target) || busy) return;
@@ -42,11 +48,12 @@ export default function ShapePicker({ mode, onChange, busy }: {
 
   return (
     <div>
-      <div role="group" aria-label="Shape" className="grid grid-cols-5 gap-1.5">
+      <div role="group" aria-label={t('Shape')} className="grid grid-cols-5 gap-1.5">
         {SHAPES.map(({ mode: m, icon: Icon }, i) => {
           const on = mode === m;
-          const name = SHAPE_NAME[m];
-          const label = busy ? 'Finish or cancel this shape first' : on ? 'Stop drawing' : `Draw ${name === 'Area' ? 'an area' : `a ${name.toLowerCase()}`}`;
+          // A select, not the bare words: "Area" elsewhere means a surface measure.
+          const name = t('{shape, select, polygon {Area} rectangle {Box} circle {Radius} line {Path} other {Region}}', { shape: m });
+          const label = busy ? t('Finish or cancel this shape first') : on ? t('Stop drawing') : t(DRAW[m]);
           return (
             <Tooltip key={m} label={label} kbd={busy ? undefined : String(i + 1)}>
               <button
@@ -70,7 +77,7 @@ export default function ShapePicker({ mode, onChange, busy }: {
         })}
       </div>
       <p aria-live="polite" className="mt-2 text-small text-ink-2">
-        {current ? current.hint : 'Pick a shape and click the map, or press 1 to 5.'}
+        {current ? t(current.hint) : t('Pick a shape and click the map, or press 1 to 5.')}
       </p>
     </div>
   );

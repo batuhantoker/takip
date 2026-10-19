@@ -6,7 +6,8 @@
  * colours set in the Style Studio, and only appear where TI draws or explains
  * them (the legend, the graph's lines).
  */
-import type { Frame, Link } from '@/lib/ai/types';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
+import type { Frame, Link, Phase } from '@/lib/ai/types';
 
 /** CSS colours for SVG and inline styles; markup uses the token classes (text-gold, bg-surface-2…). */
 export const T = {
@@ -43,44 +44,63 @@ export const WORLD_COLORS = [T.gold, T.ink1, T.blue, 'var(--violet)', T.ink3];
 /** The arcs' colour for a line's tone: for drawing the arcs and the graph's lines, and the legend that explains them. */
 export const toneColor = (tone: Link['tone']) => (tone === 'support' ? T.support : tone === 'oppose' ? T.oppose : T.neutral);
 
-export const TONE_WORD: Record<Link['tone'], string> = { support: 'Aligned', oppose: 'Opposed', neutral: 'Between' };
+export const TONE_WORD: Record<Link['tone'], string> = { support: msg('Aligned'), oppose: msg('Opposed'), neutral: msg('Between') };
 
-/** Which way something pushes the question, in its own terms: "yes", "higher", or the outcome it favours. */
-export function leanWord(frame: Frame | null, push: 'yes' | 'no', favors = ''): string {
-  if (frame?.kind === 'choice') return favors || (push === 'yes' ? 'for' : 'against');
-  if (frame?.kind === 'number') return push === 'yes' ? 'higher' : 'lower';
-  return push === 'yes' ? 'yes' : 'no';
+/** Which way something pushes the question, in its own terms: "Toward yes", "Toward higher", or the outcome it favours. */
+export function toward(t: Translate, frame: Frame | null, push: 'yes' | 'no', favors = ''): string {
+  if (frame?.kind === 'choice') return favors ? t('Toward {outcome}', { outcome: favors }) : push === 'yes' ? t('Toward for') : t('Toward against');
+  if (frame?.kind === 'number') return push === 'yes' ? t('Toward higher') : t('Toward lower');
+  return push === 'yes' ? t('Toward yes') : t('Toward no');
 }
 
 /** "YES" or "52% YES" from the engine, as a person would write it. */
-export const sentence = (s: string) => (/^[A-Z]{2,4}$/.test(s) ? s[0] + s.slice(1).toLowerCase() : s.replace(/\b(YES|NO)\b/g, w => w.toLowerCase()));
+export function sentence(s: string, t: Translate): string {
+  if (s === 'YES') return t('Yes');
+  if (s === 'NO') return t('No');
+  return /^[A-Z]{2,4}$/.test(s) ? s[0] + s.slice(1).toLowerCase() : s.replace(/\b(YES|NO)\b/g, w => (w === 'YES' ? t('yes') : t('no')));
+}
+
+/** The engine's words for the stage it is in, in the reader's language; a label it has not been taught stays as sent. */
+export function phaseText(t: Translate, phase: Phase, label: string): string {
+  if (!label) return '';
+  switch (phase) {
+    case 'context': return /^Reading/.test(label) ? t('Reading the seed material') : t('Researching the question: the news, the background, the live feeds');
+    case 'graph': return t('Mapping actors and relations');
+    case 'agents': return t('Casting the actors who decide it');
+    case 'simulate': {
+      const m = /^(.+): the actors move in (\d+) worlds$/.exec(label);
+      return m ? t('{period}: the actors move in {n, plural, one {# world} other {# worlds}}', { period: m[1], n: Number(m[2]) }) : label;
+    }
+    case 'report': return t('Writing the prediction');
+    case 'done': return t('Prediction ready');
+  }
+  return label;
+}
 
 export const pct = (p: number | null | undefined) => (p === null || p === undefined || !Number.isFinite(p) ? '—' : `${Math.round(p * 100)}%`);
 export const initials = (name: string) => name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 export const shortName = (name: string) => name.replace(' (Alibaba Cloud)', '').replace(' (scripted, dev only)', '');
-export const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 
-export const KIND_LABEL: Record<Frame['kind'], string> = { binary: 'Yes or no', choice: 'Which outcome', number: 'How much' };
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const KIND_LABEL: Record<Frame['kind'], string> = { binary: msg('Yes or no'), choice: msg('Which outcome'), number: msg('How much') };
 
 /** "2026-12-17" as "17 Dec 2026", the way the period headers write dates; anything else as it came. */
-export function fmtDate(d: string): string {
+export function fmtDate(d: string, t: Translate): string {
   const m = d.match(/^(\d{4})-(\d{2})(?:-(\d{2}))?$/);
-  const month = m ? MONTHS[Number(m[2]) - 1] : undefined;
-  if (!m || !month) return d;
-  return m[3] ? `${Number(m[3])} ${month} ${m[1]}` : `${month} ${m[1]}`;
+  const month = m ? Number(m[2]) : 0;
+  if (!m || month < 1 || month > 12) return d;
+  const at = new Date(Date.UTC(Number(m[1]), month - 1, m[3] ? Number(m[3]) : 1));
+  return new Intl.DateTimeFormat(t.intl, { ...(m[3] ? { day: 'numeric' } : {}), month: 'short', year: 'numeric', timeZone: 'UTC' }).format(at);
 }
 
 /** "4 min ago", "2 h ago", "3 d ago". */
-export function ago(iso: string | number): string {
-  const t = typeof iso === 'number' ? iso : Date.parse(iso);
-  if (!Number.isFinite(t)) return '';
-  const m = Math.max(0, Math.round((Date.now() - t) / 60_000));
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m} min ago`;
+export function ago(iso: string | number, t: Translate): string {
+  const at = typeof iso === 'number' ? iso : Date.parse(iso);
+  if (!Number.isFinite(at)) return '';
+  const m = Math.max(0, Math.round((Date.now() - at) / 60_000));
+  if (m < 1) return t('just now');
+  if (m < 60) return t('{n} min ago', { n: m });
   const h = Math.round(m / 60);
-  return h < 48 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+  return h < 48 ? t('{n} h ago', { n: h }) : t('{n} d ago', { n: Math.round(h / 24) });
 }
 
 /** "0.4 s", "38 s", "2 min 5 s": how long something took, the way the status bar writes units. */

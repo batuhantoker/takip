@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { endpointId, type ApiEndpoint } from '@/components/site/docs/api-catalog';
 import { CodeBlock, CopyButton, type CodeTab } from './docs-primitives';
+import { useT } from '@/components/ui/use-t';
 
 const METHOD_STYLES: Record<string, string> = {
   GET: 'text-green border-green/35',
@@ -100,6 +101,7 @@ data = r.json()`;
    ───────────────────────────────────────────────────────────── */
 
 export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: string }) {
+  const t = useT();
   const methods = Array.isArray(ep.method) ? ep.method : [ep.method];
   const primary = methods[0];
   const id = endpointId(ep);
@@ -140,14 +142,14 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
       } catch {
         /* not JSON — show the raw body */
       }
-      const truncated = pretty.length > 4000 ? `${pretty.slice(0, 4000)}\n\n… truncated` : pretty;
+      const truncated = pretty.length > 4000 ? `${pretty.slice(0, 4000)}\n\n${t('… truncated')}` : pretty;
       setResult({ status: res.status, ms, body: truncated, ok: res.ok });
     } catch (e) {
       setResult({
         status: 0,
         ms: Math.round(performance.now() - started),
         ok: false,
-        body: `Request failed: ${e instanceof Error ? e.message : String(e)}`,
+        body: t('Request failed: {error}', { error: e instanceof Error ? e.message : String(e) }),
       });
     } finally {
       setRunning(false);
@@ -206,16 +208,16 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
           {/* Params */}
           {ep.params && ep.params.length > 0 && (
             <div className="mb-4">
-              <div className="text-[12px] font-medium text-ink-3 mb-2">Query parameters</div>
+              <div className="text-[12px] font-medium text-ink-3 mb-2">{t('Query parameters')}</div>
               <div className="space-y-2">
                 {ep.params.map(p => (
                   <div key={p.name} className="grid grid-cols-1 sm:grid-cols-[minmax(0,9rem)_1fr] gap-x-3 gap-y-1 items-start">
                     <div className="flex items-center gap-1.5 pt-1.5">
                       <span className="font-mono text-[13px] text-ink-1">{p.name}</span>
                       {p.required ? (
-                        <span className="text-[11px] text-amber">required</span>
+                        <span className="text-[11px] text-amber">{t('required')}</span>
                       ) : (
-                        <span className="text-[11px] text-ink-3">optional</span>
+                        <span className="text-[11px] text-ink-3">{t('optional')}</span>
                       )}
                     </div>
                     <div className="min-w-0">
@@ -223,7 +225,7 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
                         value={values[p.name] ?? ''}
                         onChange={e => setValues(v => ({ ...v, [p.name]: e.target.value }))}
                         placeholder={p.example || p.name}
-                        aria-label={`${p.name} value`}
+                        aria-label={t('{name} value', { name: p.name })}
                         className="w-full h-8 px-2.5 rounded-md text-[13px] font-mono bg-surface-2 border border-line-strong text-ink-1 placeholder:text-ink-4 outline-none focus:border-accent"
                       />
                       <p className="text-[13px] leading-relaxed text-ink-2 mt-1">{p.desc}</p>
@@ -237,13 +239,13 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
           {/* Request body */}
           {ep.bodyExample && (
             <>
-              <div className="text-[12px] font-medium text-ink-3 mb-1">Request body</div>
+              <div className="text-[12px] font-medium text-ink-3 mb-1">{t('Request body')}</div>
               <CodeBlock dense tabs={[{ label: 'JSON', lang: 'json', code: ep.bodyExample }]} />
             </>
           )}
 
           {/* Request snippets */}
-          <div className="text-[12px] font-medium text-ink-3 mb-1 mt-4">Request</div>
+          <div className="text-[12px] font-medium text-ink-3 mb-1 mt-4">{t('Request')}</div>
           <CodeBlock dense tabs={tabs} />
 
           {/* Try it */}
@@ -262,11 +264,11 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   )}
-                  {running ? 'Running' : 'Send request'}
+                  {running ? t('Running') : t('Send request')}
                 </button>
                 {missingRequired.length > 0 && (
                   <span className="text-[12px] text-ink-3">
-                    Fill in <span className="font-mono">{missingRequired.map(p => p.name).join(', ')}</span> first
+                    {t.rich('Fill in {names} first', { names: <span className="font-mono">{missingRequired.map(p => p.name).join(', ')}</span> })}
                   </span>
                 )}
                 <CopyButton value={`${origin}${liveUrl}`} />
@@ -274,8 +276,8 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
             ) : (
               <span className="text-[12px] text-ink-3">
                 {ep.requiresAuth
-                  ? 'Requires a credential — run this from your own client.'
-                  : 'POST endpoint — run this from your own client.'}
+                  ? t('Requires a credential — run this from your own client.')
+                  : t('POST endpoint — run this from your own client.')}
               </span>
             )}
           </div>
@@ -284,7 +286,7 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
           {result && (
             <div className="mt-3">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[12px] font-medium text-ink-3">Response</span>
+                <span className="text-[12px] font-medium text-ink-3">{t('Response')}</span>
                 <span
                   className={`text-[11px] font-mono font-medium px-1.5 py-0.5 rounded-[4px] border ${
                     result.ok ? 'text-green border-green/35' : 'text-red border-red/35'
@@ -300,7 +302,7 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
 
           {/* Returns */}
           <div className="mt-4">
-            <div className="text-[12px] font-medium text-ink-3 mb-1.5">Response keys</div>
+            <div className="text-[12px] font-medium text-ink-3 mb-1.5">{t('Response keys')}</div>
             <div className="flex flex-wrap gap-1.5">
               {ep.returns.map(r => (
                 <span
@@ -316,7 +318,7 @@ export default function EndpointCard({ ep, origin }: { ep: ApiEndpoint; origin: 
           {/* Env */}
           {ep.env && ep.env.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="text-[12px] font-medium text-ink-3">Environment</span>
+              <span className="text-[12px] font-medium text-ink-3">{t('Environment')}</span>
               {ep.env.map(e => (
                 <span
                   key={e}

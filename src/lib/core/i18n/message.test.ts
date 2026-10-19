@@ -54,3 +54,14 @@ describe('messageVariables', () => {
     expect(messageVariables('Plain')).toEqual([]);
   });
 });
+
+describe('context keys', () => {
+  it('show their English without the context and fall back to the plain key', async () => {
+    const { createTranslator } = await import('./translator');
+    const t = createTranslator('tr', { Layers: 'Katmanlar', 'rail|More': 'Diğer', More: 'Daha fazla' });
+    expect(t('rail|Layers')).toBe('Katmanlar');
+    expect(t('rail|More')).toBe('Diğer');
+    expect(createTranslator('en', {})('rail|Layers')).toBe('Layers');
+    expect(createTranslator('en', {})('Map | Space')).toBe('Map | Space');
+  });
+});

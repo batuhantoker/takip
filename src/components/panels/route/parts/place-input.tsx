@@ -6,6 +6,7 @@ import { IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
 import { fieldBox, fieldInput } from '@/components/ui/field-shell';
 import { ListRow } from '@/components/ui/list-row';
+import { useT } from '@/components/ui/use-t';
 import type { RecentPlace } from '@/lib/places/recent-places';
 import type { Place } from '@/lib/places/route/plan';
 import { distanceText, kindIcon } from '@/components/shell/search/places';
@@ -40,6 +41,7 @@ export default function PlaceInput({
   recent: RecentPlace[];
   trailing?: ReactNode;
 }) {
+  const t = useT();
   const [results, setResults] = useState<Place[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -75,7 +77,7 @@ export default function PlaceInput({
       const lat = parseFloat(coord[1]);
       const lng = parseFloat(coord[2]);
       if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-        setResults([{ label: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng, kind: 'coordinate', context: 'Coordinates' }]);
+        setResults([{ label: `${lat.toFixed(5)}, ${lng.toFixed(5)}`, lat, lng, kind: 'coordinate', context: t('Coordinates') }]);
         setOpen(true);
         return;
       }
@@ -109,7 +111,7 @@ export default function PlaceInput({
       }
       if (!ctrl.signal.aborted) setLoading(false);
     }, 280);
-  }, [onChange, biasLat, biasLng]);
+  }, [onChange, biasLat, biasLng, t]);
 
   const choose = (p: Place) => {
     onChange(p.label);
@@ -120,7 +122,7 @@ export default function PlaceInput({
 
   // What the list offers: where you are (when tracked), then what was typed for, or recent places while the field is empty.
   const empty = value.trim().length < 2;
-  const you: Place[] = liveFix ? [{ label: 'Your location', lat: liveFix.lat, lng: liveFix.lng, kind: 'current', context: 'Live position' }] : [];
+  const you: Place[] = liveFix ? [{ label: t('Your location'), lat: liveFix.lat, lng: liveFix.lng, kind: 'current', context: t('Live position') }] : [];
   const options: Array<Place & { recent?: boolean }> = [...you, ...(empty ? recent.map(r => ({ ...r, recent: true })) : results)];
   const at = Math.min(idx, Math.max(0, options.length - 1));
   const center = biasLat !== undefined && biasLng !== undefined ? { lat: biasLat, lng: biasLng } : null;
@@ -154,15 +156,15 @@ export default function PlaceInput({
           spellCheck={false}
         />
         {loading && <LoaderCircle aria-hidden className="size-3.5 shrink-0 animate-spin text-ink-3 motion-reduce:animate-none" strokeWidth={1.75} />}
-        {value && onClear && <IconButton size="sm" icon={X} label={`Clear ${placeholder.toLowerCase()}`} onClick={() => { onClear(); setResults([]); }} />}
-        {onLocate && <IconButton size="sm" icon={LocateFixed} label="Use my location" disabled={locating} onClick={onLocate} />}
+        {value && onClear && <IconButton size="sm" icon={X} label={t('Clear {field}', { field: placeholder.toLocaleLowerCase(t.intl) })} onClick={() => { onClear(); setResults([]); }} />}
+        {onLocate && <IconButton size="sm" icon={LocateFixed} label={t('Use my location')} disabled={locating} onClick={onLocate} />}
         {trailing}
       </div>
 
       {open && options.length > 0 && (
-        <div id={listId} role="listbox" aria-label={empty ? 'Suggestions' : 'Places found'}
+        <div id={listId} role="listbox" aria-label={empty ? t('Suggestions') : t('Places found')}
           className="styled-scrollbar absolute top-full right-0 left-0 z-[10000] mt-1 max-h-[300px] overflow-y-auto rounded-float border border-line bg-surface-1 p-1 shadow-float">
-          {empty && recent.length > 0 && <p className="px-2 pt-1.5 pb-1 text-meta font-medium text-ink-3">Recent</p>}
+          {empty && recent.length > 0 && <p className="px-2 pt-1.5 pb-1 text-meta font-medium text-ink-3">{t('Recent')}</p>}
           {options.map((r, i) => {
             const Icon = kindIcon(r.recent ? 'recent' : r.kind);
             return (
@@ -171,7 +173,7 @@ export default function PlaceInput({
                   leading={<Icon aria-hidden className="size-4" strokeWidth={1.75} />}
                   title={r.label}
                   subtitle={r.context ? <span className="text-ink-3">{r.context}</span> : undefined}
-                  meta={center ? <span className="font-mono tabular-nums">{distanceText(center, r)}</span> : undefined} />
+                  meta={center ? <span className="font-mono tabular-nums">{distanceText(center, r, t.intl)}</span> : undefined} />
               </div>
             );
           })}

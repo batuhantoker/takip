@@ -1,3 +1,5 @@
+import { t } from '@/lib/core/i18n/active';
+import { msg } from '@/lib/core/i18n/translator';
 import { htmlEsc, pop } from '@/lib/map/popups/kit';
 
 /** As /api/airport-status sends them. One airport can have several rows (a ground stop and a ground delay). */
@@ -23,11 +25,11 @@ type Props = NonNullable<GeoJSON.GeoJsonProperties>;
 
 const COLORS: Record<string, string> = { severe: '#FF1744', major: '#FF6D00', moderate: '#FFB300', minor: '#9CCC65' };
 const TYPES: Record<string, string> = {
-  ground_stop: 'Ground stop',
-  ground_delay: 'Ground delay programme',
-  arrival_delay: 'Arrival delays',
-  departure_delay: 'Departure delays',
-  closure: 'Closure',
+  ground_stop: msg('Ground stop'),
+  ground_delay: msg('Ground delay programme'),
+  arrival_delay: msg('Arrival delays'),
+  departure_delay: msg('Departure delays'),
+  closure: msg('Closure'),
 };
 const RANK = ['minor', 'moderate', 'major', 'severe'];
 
@@ -57,8 +59,8 @@ export function airportDelayFeatures(rows: AirportDelayRow[]): GeoJSON.Feature<G
 }
 
 function delayText(r: AirportDelayRow): string {
-  if (r.type === 'closure' || r.type === 'ground_stop') return r.endTime ? `until ${r.endTime}` : '';
-  if (r.avgDelayMin != null) return `avg ${r.avgDelayMin} min`;
+  if (r.type === 'closure' || r.type === 'ground_stop') return r.endTime ? t('until {time}', { time: r.endTime }) : '';
+  if (r.avgDelayMin != null) return t('avg {n} min', { n: r.avgDelayMin });
   if (r.minDelayMin != null && r.maxDelayMin != null) return `${r.minDelayMin}–${r.maxDelayMin} min`;
   return '';
 }
@@ -67,15 +69,15 @@ export function airportDelayPopupHtml(p: Props): string {
   let rows: AirportDelayRow[] = [];
   try { rows = JSON.parse(String(p.rows ?? '[]')); } catch { /* the header still renders */ }
   const items = rows.map(r => `<div class="tk-pop-item">
-      <div class="tk-pop-item-title"><span class="tk-pop-dot" style="background:${delayColor(r.severity)}"></span>${htmlEsc(TYPES[r.type] ?? r.type)}${r.partial ? ' (some aircraft only)' : ''}</div>
+      <div class="tk-pop-item-title"><span class="tk-pop-dot" style="background:${delayColor(r.severity)}"></span>${htmlEsc(TYPES[r.type] ? t(TYPES[r.type]) : r.type)}${r.partial ? ` ${htmlEsc(t('(some aircraft only)'))}` : ''}</div>
       <div>${htmlEsc([delayText(r), r.trend].filter(Boolean).join(' · ') || '—')}</div>
       <div class="tk-pop-list-meta">${htmlEsc(r.reason)}</div>
     </div>`).join('');
   return pop({
-    kicker: 'Airport delays',
+    kicker: t('Airport delays'),
     dot: delayColor(p.severity),
     title: [p.code, p.name].filter(Boolean).join(' · '),
-    subtitle: 'FAA airspace status',
+    subtitle: t('FAA airspace status'),
     body: items || undefined,
     links: [{ href: rows[0]?.source ?? 'https://nasstatus.faa.gov/', label: 'FAA NAS status' }],
   });

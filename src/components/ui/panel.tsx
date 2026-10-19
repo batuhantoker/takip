@@ -6,6 +6,7 @@ import { IconButton } from './button';
 import { cx, type IconType } from './class-names';
 import { Segmented, segmentId, type SegmentedOption } from './segmented';
 import { useEscape } from './use-escape';
+import { useT } from './use-t';
 
 export type PanelTabs<T extends string> = {
   options: SegmentedOption<T>[];
@@ -40,6 +41,7 @@ export type PanelProps<T extends string = string> = {
 export function Panel<T extends string = string>({
   title, subtitle, meta, icon: Icon, actions, tabs, onClose, closeOnEscape = true, footer, docked = true, bare, className, children,
 }: PanelProps<T>) {
+  const t = useT();
   const id = useId();
   const root = useRef<HTMLElement>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -68,7 +70,7 @@ export function Panel<T extends string = string>({
           {(actions || onClose) && (
             <div className="flex shrink-0 items-center gap-0.5">
               {actions}
-              {onClose && <IconButton label="Close" kbd="Esc" icon={X} onClick={onClose} />}
+              {onClose && <IconButton label={t('Close')} kbd="Esc" icon={X} onClick={onClose} />}
             </div>
           )}
         </header>

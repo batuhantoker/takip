@@ -7,6 +7,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { cx } from '@/components/ui/class-names';
 import { Dot } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
 import { latestPoints, type RunState } from '@/lib/ai/state';
 import { formatAmount, leader, positionIn } from '@/lib/ai/forecast';
 import { T, fit, pct, smooth } from '@/components/panels/ti-agent/theme';
@@ -49,6 +50,7 @@ function Track({ children }: { children: ReactNode }) {
 }
 
 export function Verdict({ s }: { s: RunState; large?: boolean }) {
+  const t = useT();
   const frame = s.frame;
   const last = s.rounds[s.rounds.length - 1] ?? null;
   const final = Boolean(s.report);
@@ -56,12 +58,12 @@ export function Verdict({ s }: { s: RunState; large?: boolean }) {
   let value: number | null = null;
   let format = (v: number) => `${Math.round(v * 100)}`;
   let suffix = '%';
-  let caption = 'Chance of yes';
+  let caption = t('Chance of yes');
   let sub = '';
   let detail: ReactNode = null;
 
   if (frame?.kind === 'choice') {
-    caption = 'Most likely';
+    caption = t('Most likely');
     const shares = s.report?.shares ?? last?.shares ?? null;
     const lead = shares ? leader(shares) : -1;
     if (shares) { value = shares[lead]; sub = frame.outcomes[lead] ?? ''; }
@@ -78,7 +80,7 @@ export function Verdict({ s }: { s: RunState; large?: boolean }) {
               </div>
               <div className="relative h-1 overflow-hidden rounded-full bg-surface-3">
                 <div className={cx('absolute inset-y-0 left-0 rounded-full', top ? 'bg-gold' : 'bg-ink-3', MOVE)} style={{ width: `${(v ?? 0) * 100}%` }} />
-                {frame.prior[i] !== undefined && <span className="absolute inset-y-0 w-px bg-ink-1/60" style={{ left: `${frame.prior[i] * 100}%` }} title={`Prior ${pct(frame.prior[i])}`} />}
+                {frame.prior[i] !== undefined && <span className="absolute inset-y-0 w-px bg-ink-1/60" style={{ left: `${frame.prior[i] * 100}%` }} title={t('Prior {chance}', { chance: pct(frame.prior[i]) })} />}
               </div>
             </div>
           );
@@ -86,7 +88,7 @@ export function Verdict({ s }: { s: RunState; large?: boolean }) {
       </div>
     );
   } else if (frame?.kind === 'number') {
-    caption = 'Estimate';
+    caption = t('Estimate');
     const e = s.report?.estimate ?? (last?.value ? { value: last.value.median, low: last.value.low, high: last.value.high } : null);
     if (e) {
       value = e.value; format = formatAmount; suffix = ''; sub = frame.unit;
@@ -97,12 +99,12 @@ export function Verdict({ s }: { s: RunState; large?: boolean }) {
         <div>
           <Track>
             <span className={cx('absolute top-[5px] h-1.5 rounded-sm bg-gold/25', MOVE)} style={{ left: `${at(e.low)}%`, width: `${at(e.high) - at(e.low)}%` }} />
-            {frame.anchor !== null && <span className="absolute top-0.5 h-3 w-px bg-ink-2" style={{ left: `${at(frame.anchor)}%` }} title={`Today: ${formatAmount(frame.anchor)}`} />}
+            {frame.anchor !== null && <span className="absolute top-0.5 h-3 w-px bg-ink-2" style={{ left: `${at(frame.anchor)}%` }} title={t('Today: {value}', { value: formatAmount(frame.anchor) })} />}
             <span className={cx('absolute top-0 -ml-px h-4 w-0.5 rounded-full bg-gold', MOVE)} style={{ left: `${at(e.value)}%` }} />
           </Track>
           <div className="mt-1 flex justify-between text-meta text-ink-3">
             <span className="font-mono tabular-nums">{formatAmount(e.low)}</span>
-            <span>80% range{frame.anchor !== null && <> · today <span className="font-mono text-ink-1 tabular-nums">{formatAmount(frame.anchor)}</span></>}</span>
+            <span>{t('80% range')}{frame.anchor !== null && <> · {t.rich('today {value}', { value: <span className="font-mono text-ink-1 tabular-nums">{formatAmount(frame.anchor)}</span> })}</>}</span>
             <span className="font-mono tabular-nums">{formatAmount(e.high)}</span>
           </div>
         </div>
@@ -116,19 +118,21 @@ export function Verdict({ s }: { s: RunState; large?: boolean }) {
     detail = (
       <div>
         <Track>
-          {last && <span className={cx('absolute top-[5px] h-1.5 rounded-sm bg-gold/20', MOVE)} title="The range across the worlds"
+          {last && <span className={cx('absolute top-[5px] h-1.5 rounded-sm bg-gold/20', MOVE)} title={t('The range across the worlds')}
             style={{ left: `${last.min * 100}%`, width: `${Math.max(1, (last.max - last.min) * 100)}%` }} />}
-          <span className="absolute top-0.5 h-3 w-px bg-ink-2" style={{ left: `${frame.baseRate * 100}%` }} title={`Base rate ${pct(frame.baseRate)}`} />
+          <span className="absolute top-0.5 h-3 w-px bg-ink-2" style={{ left: `${frame.baseRate * 100}%` }} title={t('Base rate {chance}', { chance: pct(frame.baseRate) })} />
           {market && <span className="absolute top-[5px] -ml-[3px] size-1.5 rotate-45 bg-blue" style={{ left: `${market.probability * 100}%` }} title={`${market.platform} ${pct(market.probability)}`} />}
           {p !== null && <span className={cx('absolute top-0 -ml-px h-4 w-0.5 rounded-full bg-gold', MOVE)} style={{ left: `${p * 100}%` }} />}
         </Track>
         <div className="mt-1 flex justify-between gap-2 text-meta text-ink-3">
-          <span>No</span>
+          <span>{t('No')}</span>
           <span className="truncate">
-            {s.quant ? 'Baseline' : 'Base rate'} <span className="font-mono text-ink-1 tabular-nums">{pct(frame.baseRate)}</span>
+            {s.quant
+              ? t.rich('Baseline {chance}', { chance: <span className="font-mono text-ink-1 tabular-nums">{pct(frame.baseRate)}</span> })
+              : t.rich('Base rate {chance}', { chance: <span className="font-mono text-ink-1 tabular-nums">{pct(frame.baseRate)}</span> })}
             {market && <> · {market.platform} <span className="font-mono text-ink-1 tabular-nums">{pct(market.probability)}</span></>}
           </span>
-          <span>Yes</span>
+          <span>{t('Yes')}</span>
         </div>
       </div>
     );
@@ -138,17 +142,17 @@ export function Verdict({ s }: { s: RunState; large?: boolean }) {
   const crowd = frame ? s.context.find(c => c.id === frame.market && c.odds)?.odds : undefined;
   const gap = crowd && s.report && frame?.kind === 'binary' ? s.report.probability - crowd.probability : null;
   const standing = latestPoints(s);
-  const progress = !final && last ? `So far, after period ${last.round} of ${s.periodsPlanned}` : '';
+  const progress = !final && last ? t('So far, after period {n} of {total}', { n: last.round, total: s.periodsPlanned }) : '';
 
   return (
-    <section className="flex flex-col gap-4" aria-label="Prediction">
+    <section className="flex flex-col gap-4" aria-label={t('Prediction')}>
       <div className="flex items-end gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-meta font-medium text-ink-3">{caption}</p>
           {shown === null && s.status === 'running' ? (
             <div className="mt-1.5">
-              <p className="flex items-center gap-2 text-body font-medium text-ink-1"><Dot tone="gold" pulse />Forming</p>
-              <p className="mt-1 text-small text-ink-2">The figure appears after the first period of simulated time, then firms up as the worlds play on.</p>
+              <p className="flex items-center gap-2 text-body font-medium text-ink-1"><Dot tone="gold" pulse />{t('Forming')}</p>
+              <p className="mt-1 text-small text-ink-2">{t('The figure appears after the first period of simulated time, then firms up as the worlds play on.')}</p>
             </div>
           ) : (
             <p className={cx('mt-1 font-mono text-display font-medium tabular-nums', final ? 'text-gold' : 'text-ink-1')}>
@@ -158,9 +162,11 @@ export function Verdict({ s }: { s: RunState; large?: boolean }) {
           {sub && <p className="truncate text-small text-ink-2">{sub}</p>}
           {progress && <p className="mt-0.5 truncate text-meta text-ink-3"><Figures text={progress} /></p>}
           {crowd && gap !== null && (
-            <p className="mt-0.5 text-meta text-ink-3" title={`${crowd.platform} prices the same question at ${pct(crowd.probability)}`}>
+            <p className="mt-0.5 text-meta text-ink-3" title={t('{platform} prices the same question at {chance}', { platform: crowd.platform, chance: pct(crowd.probability) })}>
               {crowd.platform} <span className="font-mono text-ink-2 tabular-nums">{pct(crowd.probability)}</span>
-              {' · '}{Math.abs(gap) < 0.02 ? 'in line' : <><span className="font-mono tabular-nums">{Math.round(Math.abs(gap) * 100)}</span> pts {gap > 0 ? 'above' : 'below'} the crowd</>}
+              {' · '}{Math.abs(gap) < 0.02 ? t('in line') : gap > 0
+                ? t.rich('{n} pts above the crowd', { n: <span className="font-mono tabular-nums">{Math.round(Math.abs(gap) * 100)}</span> })
+                : t.rich('{n} pts below the crowd', { n: <span className="font-mono tabular-nums">{Math.round(Math.abs(gap) * 100)}</span> })}
             </p>
           )}
         </div>
@@ -168,8 +174,8 @@ export function Verdict({ s }: { s: RunState; large?: boolean }) {
       </div>
       {detail}
       {standing.size > 0 && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5" aria-label="Where each world stands">
-          <span className="text-meta font-medium text-ink-3">Worlds</span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5" aria-label={t('Where each world stands')}>
+          <span className="text-meta font-medium text-ink-3">{t('Worlds')}</span>
           {s.worlds.map(w => {
             const point = standing.get(w);
             return (

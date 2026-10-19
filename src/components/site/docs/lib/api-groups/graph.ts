@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const GRAPH: ApiGroup = {
   id: 'graph',
-  title: 'Entity graph',
+  title: msg('Entity graph'),
   blurb: 'Link analysis over entities surfaced elsewhere in the platform.',
   endpoints: [
     {

@@ -4,6 +4,7 @@
  * Minor Planet Center has an orbit for, placed from its elements.
  */
 
+import { msg } from '@/lib/core/i18n/translator';
 import { AU_KM } from '../astro';
 import type { StateRow, Vec3 } from '../horizons';
 
@@ -33,9 +34,9 @@ export interface VisitorDef extends OuterBodyDef {
 }
 
 export const VISITORS: VisitorDef[] = [
-  { key: 'oumuamua', name: 'ʻOumuamua', designation: '1I/2017 U1', command: 'DES=A/2017 U1;', radiusKm: 0.1, color: '#FF7AD9', perihelion: '2017-09-09', note: 'The first object seen passing through the solar system from interstellar space, found by Pan-STARRS on 2017-10-19 already on its way out.' },
-  { key: 'borisov', name: '2I/Borisov', designation: '2I/2019 Q4', command: 'DES=C/2019 Q4;CAP;NOFRAG;', radiusKm: 0.5, color: '#FF7AD9', perihelion: '2019-12-08', note: 'The first interstellar comet, found by Gennadiy Borisov on 2019-08-30.' },
-  { key: 'atlas', name: '3I/ATLAS', designation: '3I/2025 N1', command: 'DES=C/2025 N1;CAP;NOFRAG;', radiusKm: 2, color: '#FF7AD9', perihelion: '2025-10-29', note: 'The third known interstellar object, a comet found by ATLAS on 2025-07-01.' },
+  { key: 'oumuamua', name: 'ʻOumuamua', designation: '1I/2017 U1', command: 'DES=A/2017 U1;', radiusKm: 0.1, color: '#FF7AD9', perihelion: '2017-09-09', note: msg('The first object seen passing through the solar system from interstellar space, found by Pan-STARRS on 2017-10-19 already on its way out.') },
+  { key: 'borisov', name: '2I/Borisov', designation: '2I/2019 Q4', command: 'DES=C/2019 Q4;CAP;NOFRAG;', radiusKm: 0.5, color: '#FF7AD9', perihelion: '2019-12-08', note: msg('The first interstellar comet, found by Gennadiy Borisov on 2019-08-30.') },
+  { key: 'atlas', name: '3I/ATLAS', designation: '3I/2025 N1', command: 'DES=C/2025 N1;CAP;NOFRAG;', radiusKm: 2, color: '#FF7AD9', perihelion: '2025-10-29', note: msg('The third known interstellar object, a comet found by ATLAS on 2025-07-01.') },
 ];
 
 export interface OuterBody {

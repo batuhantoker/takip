@@ -12,9 +12,10 @@ import { Check, ChevronDown, LoaderCircle, Minus, X } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
 import { Stat } from '@/components/ui/stat';
+import { useT } from '@/components/ui/use-t';
 import { traceOf, type TraceStep } from '@/lib/ai/workspace/trace';
 import type { RunState } from '@/lib/ai/state';
-import { plural, took, tookParts } from '@/components/panels/ti-agent/theme';
+import { phaseText, took, tookParts } from '@/components/panels/ti-agent/theme';
 import { Figures } from '@/components/panels/ti-agent/parts/figures';
 
 function StepIcon({ status }: { status: TraceStep['status'] }) {
@@ -27,26 +28,27 @@ function StepIcon({ status }: { status: TraceStep['status'] }) {
 }
 
 export function TraceView({ s }: { s: RunState }) {
-  const steps = useMemo(() => traceOf(s), [s]);
+  const t = useT();
+  const steps = useMemo(() => traceOf(s, t), [s, t]);
   // The step under way shows its time ticking.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (s.status !== 'running') return;
-    const t = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(timer);
   }, [s.status]);
 
   const total = s.startedAt ? (s.endedAt || (s.status === 'running' ? now : s.updatedAt)) - s.startedAt : 0;
   const tokens = s.usage.input + s.usage.output;
 
   return (
-    <section aria-label="Execution trace" className="flex flex-col">
+    <section aria-label={t('Execution trace')} className="flex flex-col">
       <div className="grid grid-cols-3 gap-4">
-        <Stat size="sm" label="Time" {...tookParts(total)} />
-        <Stat size="sm" label="Model calls" value={s.usage.calls.toLocaleString('en-US')} />
-        <Stat size="sm" label="Tokens" value={tokens ? tokens.toLocaleString('en-US') : '—'} />
+        <Stat size="sm" label={t('Time')} {...tookParts(total)} />
+        <Stat size="sm" label={t('Model calls')} value={s.usage.calls.toLocaleString(t.intl)} />
+        <Stat size="sm" label={t('Tokens')} value={tokens ? tokens.toLocaleString(t.intl) : '—'} />
       </div>
-      <PanelSection title="Steps" hint={`${s.provider} / ${s.model}`} className="mt-6">
+      <PanelSection title={t('Steps')} hint={`${s.provider} / ${s.model}`} className="mt-6">
         <ol className="relative flex flex-col">
           {steps.map((st, i) => {
             const running = st.status === 'active';
@@ -60,10 +62,10 @@ export function TraceView({ s }: { s: RunState }) {
                   <div className="flex items-baseline gap-2">
                     <span className={cx('flex-1 truncate text-small font-medium', quiet ? 'text-ink-3' : 'text-ink-1')}>{st.title}</span>
                     <span className={cx('shrink-0 text-meta', running ? 'text-ink-1' : 'text-ink-3')}>
-                      {duration !== null ? <Figures text={took(duration)} /> : st.status === 'skipped' ? 'Not reached' : 'Waiting'}
+                      {duration !== null ? <Figures text={took(duration)} /> : st.status === 'skipped' ? t('Not reached') : t('Waiting')}
                     </span>
                   </div>
-                  {st.detail && !quiet && <p className="mt-0.5 truncate text-meta text-ink-2">{st.detail}</p>}
+                  {st.detail && !quiet && <p className="mt-0.5 truncate text-meta text-ink-2">{phaseText(t, st.phase, st.detail)}</p>}
                   {st.metrics.length > 0 && (
                     <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-meta">
                       {st.metrics.map(m => (
@@ -82,7 +84,7 @@ export function TraceView({ s }: { s: RunState }) {
       {s.warnings.length > 0 && (
         <details className="group mt-5 rounded-card border border-line px-3 py-2">
           <summary className="flex cursor-pointer list-none items-center gap-2 text-small text-ink-2 hover:text-ink-1">
-            <span className="flex-1">{plural(s.warnings.length, 'hiccup')} along the way</span>
+            <span className="flex-1">{t('{n, plural, one {# hiccup} other {# hiccups}} along the way', { n: s.warnings.length })}</span>
             <ChevronDown aria-hidden className="size-4 text-ink-3 transition-transform duration-150 group-open:rotate-180" strokeWidth={1.75} />
           </summary>
           <ul className="mt-2 flex flex-col gap-1">

@@ -3,6 +3,8 @@
  * astronomically: year 0 is 1 BCE, so 500 BCE is -499.
  */
 
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
+
 export const HISTORY_START = utcYear(-9999);
 
 function utcYear(year: number, month = 0, day = 1, h = 0, min = 0) {
@@ -29,13 +31,20 @@ export function parseJump(text: string): number | undefined {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const pad = (n: number) => String(n).padStart(2, '0');
+const english = createTranslator('en', {});
+const dateFormats = new Map<string, Intl.DateTimeFormat>();
+const dateFormat = (intl: string) => {
+  let f = dateFormats.get(intl);
+  if (!f) dateFormats.set(intl, (f = new Intl.DateTimeFormat(intl, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })));
+  return f;
+};
 
 /** Seconds when the view spans a day or so, the date when it spans years, the year alone before the common era. */
-export function formatTime(t: number, spanMs: number) {
-  const d = new Date(t);
+export function formatTime(at: number, spanMs: number, t: Translate = english) {
+  const d = new Date(at);
   const year = d.getUTCFullYear();
-  if (year <= 0) return `${1 - year} BCE`;
-  const date = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${year}`;
+  if (year <= 0) return t('{year} BCE', { year: String(1 - year) });
+  const date = t.locale === 'en' ? `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${year}` : dateFormat(t.intl).format(at);
   if (spanMs > 400 * 86_400_000) return date;
   return `${date} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} UTC`;
 }

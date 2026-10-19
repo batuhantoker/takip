@@ -7,6 +7,7 @@ import { restoreDevice } from '@/lib/platform/workspaces/device';
 import { workspaceParts } from '@/lib/platform/workspaces/parts';
 import { workspaceSession } from '@/lib/platform/workspaces/session';
 import { registerStoredParts } from '@/lib/platform/workspaces/stored-parts';
+import { useT } from '@/components/ui/use-t';
 import ConflictDialog from '@/components/workspaces/parts/conflict-dialog';
 import DialogFrame, { Hint } from '@/components/workspaces/parts/dialog-frame';
 import ImportOffer from '@/components/workspaces/parts/import-offer';
@@ -22,6 +23,7 @@ const POLL_MS = 10_000;
 
 /** Mount once per page, beside <AccountDialog />: runs autosave and the share-link landing, and shows the dialogs. */
 export default function WorkspaceHost() {
+  const t = useT();
   const { data, isPending } = authClient.useSession();
   const userId = data?.user.id ?? null;
   const { offerImport, conflict, current, shared } = useWorkspace();
@@ -71,8 +73,8 @@ export default function WorkspaceHost() {
       {dialog?.kind === 'share' && <ShareDialog key="share" onClose={close} />}
       {dialog?.kind === 'open' && <OpenDialog key="open" onClose={close} />}
       {!dialog && link.failed && (
-        <DialogFrame key="link" title="Link unavailable" onClose={link.dismiss}>
-          <Hint>This share link no longer works: its owner stopped sharing, made a new link, or deleted the workspace.</Hint>
+        <DialogFrame key="link" title={t('Link unavailable')} onClose={link.dismiss}>
+          <Hint>{t('This share link no longer works: its owner stopped sharing, made a new link, or deleted the workspace.')}</Hint>
         </DialogFrame>
       )}
       {!dialog && !link.failed && conflict && current && <ConflictDialog key="conflict" name={current.name} />}

@@ -1,9 +1,5 @@
-import type { DrawMode, DrawnShape } from '@/lib/places/areas/draw';
+import type { DrawnShape } from '@/lib/places/areas/draw';
 import { formatArea, formatDistance } from '@/lib/core/geodesic';
-
-export const SHAPE_NAME: Record<DrawMode, string> = {
-  polygon: 'Area', rectangle: 'Box', circle: 'Radius', line: 'Path', region: 'Region',
-};
 
 function positions(shape: DrawnShape): number[][] {
   const g = shape.geojson.geometry;
@@ -28,7 +24,7 @@ export function framing(shape: DrawnShape): { lat: number; lng: number; zoom: nu
 }
 
 /** The measurements that matter for the shape, as text: area and perimeter, or a path's length. */
-export function measures(shape: DrawnShape): { primary: string; secondary: string | null } {
-  if (shape.kind === 'line') return { primary: formatDistance(shape.perimeterKm), secondary: null };
-  return { primary: formatArea(shape.areaKm2), secondary: formatDistance(shape.perimeterKm) };
+export function measures(shape: DrawnShape, intl = 'en'): { primary: string; secondary: string | null } {
+  if (shape.kind === 'line') return { primary: formatDistance(shape.perimeterKm, intl), secondary: null };
+  return { primary: formatArea(shape.areaKm2, intl), secondary: formatDistance(shape.perimeterKm, intl) };
 }

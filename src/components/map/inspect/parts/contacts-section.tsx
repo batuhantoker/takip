@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Plane, Ship } from 'lucide-react';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 import { toFeet } from '@/lib/feeds/aviation/flight-watch';
 import { CONTACT_RADIUS_KM, nearestContacts } from '@/lib/feeds/contacts';
 import { compass } from '@/components/map/inspect/format';
@@ -18,6 +19,7 @@ export function ContactsSection({ data, subject }: {
   data: Record<string, unknown>;
   subject: { kind: 'aircraft' | 'ship'; id: string; lat: number; lng: number };
 }) {
+  const t = useT();
   // Rounded, so a moving subject doesn't recount tens of thousands of aircraft on every frame.
   const lat = Math.round(subject.lat * 50) / 50, lng = Math.round(subject.lng * 50) / 50;
   const contacts = useMemo(
@@ -27,11 +29,11 @@ export function ContactsSection({ data, subject }: {
   );
 
   return (
-    <PanelSection title="Nearby" hint={`within ${CONTACT_RADIUS_KM} km`}>
+    <PanelSection title={t('Nearby')} hint={t('within {km} km', { km: CONTACT_RADIUS_KM })}>
       {contacts.length ? contacts.map(c => {
         const Icon = c.kind === 'aircraft' ? Plane : Ship;
         const detail = c.kind === 'aircraft'
-          ? (c.alt != null ? `${toFeet(c.alt).toLocaleString()} ft` : null)
+          ? (c.alt != null ? `${toFeet(c.alt).toLocaleString(t.intl)} ft` : null)
           : (c.speed != null ? `${Math.round(c.speed)} kn` : null);
         return (
           <ListRow
@@ -42,10 +44,10 @@ export function ContactsSection({ data, subject }: {
             meta={detail}
             trailing={`${c.km < 10 ? c.km.toFixed(1) : Math.round(c.km)} km ${compass(c.bearing)}`}
             onClick={() => requestTrack({ kind: c.kind, id: c.id })}
-            aria-label={`Go to ${c.name} and follow it`}
+            aria-label={t('Go to {name} and follow it', { name: c.name })}
           />
         );
-      }) : <Note>No aircraft or ships in the feeds within {CONTACT_RADIUS_KM} km</Note>}
+      }) : <Note>{t('No aircraft or ships in the feeds within {km} km', { km: CONTACT_RADIUS_KM })}</Note>}
     </PanelSection>
   );
 }

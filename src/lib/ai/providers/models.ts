@@ -9,6 +9,7 @@
  * snapshots of a listed alias tucked away until asked for or searched.
  * Browser-safe: no server code.
  */
+import { msg } from '@/lib/core/i18n/translator';
 import type { ProviderId } from './catalog';
 
 export interface ModelOption {
@@ -50,18 +51,18 @@ interface Family { key: string; label: string; rank: number }
 function openaiFamily(id: string): Family {
   const m = id.toLowerCase();
   if (/^chatgpt-4o/.test(m)) return { key: 'gpt-4o', label: 'GPT-4o', rank: 400 };
-  if (/^o\d/.test(m)) return { key: 'o', label: 'o-series · reasoning', rank: 300 };
+  if (/^o\d/.test(m)) return { key: 'o', label: msg('o-series · reasoning'), rank: 300 };
   const g = /^gpt-(\d+)(?:\.(\d+))?(o)?/.exec(m);
   if (g) {
     const major = Number(g[1]);
     const minor = Number(g[2] ?? 0);
     if (g[3]) return { key: `gpt-${major}o`, label: `GPT-${major}o`, rank: 400 - major };
-    if (major < 4 || (major === 4 && !g[2])) return { key: 'legacy', label: 'Legacy', rank: 900 };
+    if (major < 4 || (major === 4 && !g[2])) return { key: 'legacy', label: msg('Legacy'), rank: 900 };
     const v = g[2] ? `${major}.${minor}` : `${major}`;
     // Newer versions first: GPT-5.2, GPT-5.1, GPT-5 … GPT-4.1, then the o-series.
     return { key: `gpt-${v}`, label: `GPT-${v}`, rank: 100 - major - minor / 100 };
   }
-  return { key: 'other', label: 'Other', rank: 800 };
+  return { key: 'other', label: msg('Other'), rank: 800 };
 }
 
 /** A model's hint, from the conventions of its name. */
@@ -73,24 +74,24 @@ export function modelHint(provider: ProviderId, id: string): string {
     return [size ? `${size}B parameters` : '', /coder|code/.test(m) ? 'code' : isReasoning(provider, m) ? 'reasons first' : ''].filter(Boolean).join(' · ');
   }
   if (provider === 'openai') {
-    if (/^chatgpt-|chat-latest/.test(m)) return 'Chat-tuned, as in ChatGPT';
+    if (/^chatgpt-|chat-latest/.test(m)) return msg('Chat-tuned, as in ChatGPT');
     if (/^o\d/.test(m)) {
-      if (/nano|mini/.test(m)) return 'Reasoning · fast, low cost';
-      return 'Deep reasoning · slower, higher cost';
+      if (/nano|mini/.test(m)) return msg('Reasoning · fast, low cost');
+      return msg('Deep reasoning · slower, higher cost');
     }
     const fam = openaiFamily(m);
-    if (fam.key === 'legacy') return 'Older model';
-    if (/nano/.test(m)) return 'Fastest · lowest cost';
-    if (/mini/.test(m)) return isReasoning(provider, m) ? 'Reasons first · fast, good value' : 'Fast · low cost';
-    if (/^gpt-5/.test(m)) return 'Most capable · reasons first';
-    if (/^gpt-4\.1/.test(m)) return 'Long context · answers directly';
-    if (/^gpt-4o/.test(m)) return 'Versatile · answers directly';
+    if (fam.key === 'legacy') return msg('Older model');
+    if (/nano/.test(m)) return msg('Fastest · lowest cost');
+    if (/mini/.test(m)) return isReasoning(provider, m) ? msg('Reasons first · fast, good value') : msg('Fast · low cost');
+    if (/^gpt-5/.test(m)) return msg('Most capable · reasons first');
+    if (/^gpt-4\.1/.test(m)) return msg('Long context · answers directly');
+    if (/^gpt-4o/.test(m)) return msg('Versatile · answers directly');
     return '';
   }
-  if (/opus|ultra|-max\b|large|pro\b|grok-4(?!.*mini)/.test(m)) return 'Most capable · higher cost';
-  if (/haiku|nano|lite|mini|small|turbo|instant|8b|flash/.test(m)) return 'Fast · low cost';
-  if (/sonnet|medium|plus|versatile|70b/.test(m)) return 'Balanced';
-  if (isReasoning(provider, m)) return 'Reasoning · slower';
+  if (/opus|ultra|-max\b|large|pro\b|grok-4(?!.*mini)/.test(m)) return msg('Most capable · higher cost');
+  if (/haiku|nano|lite|mini|small|turbo|instant|8b|flash/.test(m)) return msg('Fast · low cost');
+  if (/sonnet|medium|plus|versatile|70b/.test(m)) return msg('Balanced');
+  if (isReasoning(provider, m)) return msg('Reasoning · slower');
   return '';
 }
 
@@ -135,7 +136,7 @@ export function organizeModels(
 
   const rec = opts.suggested.map(id => shown.find(o => o.id === id)).filter((o): o is ModelOption => !!o);
   const rest = shown.filter(o => !o.recommended);
-  const groups: ModelGroup[] = rec.length ? [{ key: 'recommended', label: 'Recommended', models: rec }] : [];
+  const groups: ModelGroup[] = rec.length ? [{ key: 'recommended', label: msg('Recommended'), models: rec }] : [];
 
   if (provider === 'openai') {
     const byFamily = new Map<string, { fam: Family; models: ModelOption[] }>();
@@ -152,7 +153,7 @@ export function organizeModels(
       groups.push({ key: fam.key, label: fam.label, models: ms });
     }
   } else if (rest.length) {
-    groups.push({ key: 'all', label: rec.length ? 'More models' : 'Models', models: rest });
+    groups.push({ key: 'all', label: rec.length ? msg('More models') : msg('Models'), models: rest });
   }
   return { groups, hidden };
 }

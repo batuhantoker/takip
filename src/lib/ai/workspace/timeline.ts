@@ -12,6 +12,10 @@
 import type { RunState } from '../state';
 import type { Period, SimEvent, WorldPoint } from '../types';
 import { formatAmount, leader, pointView, positionIn } from '../forecast';
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
+
+const english = createTranslator(DEFAULT_LOCALE, {});
 
 export interface TimelineCell {
   round: number;
@@ -57,7 +61,8 @@ export interface Timeline {
   label: (v: number) => string;
 }
 
-export function timelineOf(s: RunState): Timeline {
+/** The timeline, its words in `t`'s language (English when none is given). */
+export function timelineOf(s: RunState, t: Translate = english): Timeline {
   const frame = s.frame;
   const n = Math.max(s.periods.length, s.periodsPlanned, s.rounds.length, 1);
   const rounds = Array.from({ length: n }, (_, i) => i + 1);
@@ -70,6 +75,7 @@ export function timelineOf(s: RunState): Timeline {
     return p.probability;
   };
   const toScale = (v: number) => (frame?.kind === 'number' ? positionIn(v, lo, hi) : v);
+  const said = (v: string) => (v === 'YES' ? t('YES') : v === 'NO' ? t('NO') : v);
 
   const lanes: TimelineLane[] = s.worlds.map(w => {
     let prev: number | null = null;
@@ -86,8 +92,8 @@ export function timelineOf(s: RunState): Timeline {
     const last = played[played.length - 1]?.point;
     return {
       key: `w:${w}`,
-      name: `World ${w}`,
-      role: last ? (last.resolved ? `Resolved: ${pointView(last, frame)}` : last.note || pointView(last, frame)) : 'Not started',
+      name: t('World {w}', { w }),
+      role: last ? (last.resolved ? t('Resolved: {answer}', { answer: said(pointView(last, frame)) }) : last.note || pointView(last, frame)) : t('Not started'),
       cells,
       drift: played.length > 1 ? played[played.length - 1].value - played[0].value : null,
     };
@@ -113,12 +119,12 @@ export function timelineOf(s: RunState): Timeline {
     else final = { value: r.probability, low: null, high: null, label: `${Math.round(r.probability * 100)}%` };
   }
 
-  const reference = frame?.kind === 'binary' ? { value: frame.baseRate, label: `Base rate ${Math.round(frame.baseRate * 100)}%` }
-    : frame?.kind === 'number' && frame.anchor !== null ? { value: toScale(frame.anchor), label: `Today ${formatAmount(frame.anchor)}` }
+  const reference = frame?.kind === 'binary' ? { value: frame.baseRate, label: t('Base rate {p}%', { p: Math.round(frame.baseRate * 100) }) }
+    : frame?.kind === 'number' && frame.anchor !== null ? { value: toScale(frame.anchor), label: t('Today {value}', { value: formatAmount(frame.anchor) }) }
       : null;
 
   const ends: [string, string] = frame?.kind === 'number' ? [formatAmount(lo), formatAmount(hi)]
-    : frame?.kind === 'choice' ? ['0%', `${frame.outcomes[lead] ?? 'Leader'} 100%`] : ['NO', 'YES'];
+    : frame?.kind === 'choice' ? ['0%', `${frame.outcomes[lead] ?? t('Leader')} 100%`] : [t('NO'), t('YES')];
 
   const label = frame?.kind === 'number' ? (v: number) => formatAmount(lo + v * (hi - lo)) : (v: number) => `${Math.round(v * 100)}%`;
   return { rounds, periods: s.periods, lanes, pooled, final, reference, injects: s.injects, ends, label };

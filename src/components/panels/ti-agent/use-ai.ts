@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorOf, headersFor, HISTORY_CAP, loadHistory, runToken, saveHistory, saveRunToken, setUrlRun, type Engine, type HistoryEntry, type StartInput } from '@/lib/ai/client';
 import { applyEvent, currentAnswer, currentProbability, initialState, type RunState } from '@/lib/ai/state';
+import { t } from '@/lib/core/i18n/active';
 import type { Stamped } from '@/lib/ai/types';
 import { countAction } from '@/lib/platform/usage-actions';
 
@@ -71,7 +72,7 @@ export function useAi() {
     setToken(runToken(id));
     const res = await fetch(`/api/ai/runs/${id}`, { cache: 'no-store' }).catch(() => null);
     if (!res?.ok) {
-      setError(res?.status === 404 ? 'That forecast has expired. Runs are kept for a few hours.' : 'Could not reach TI.');
+      setError(res?.status === 404 ? t('That forecast has expired. Runs are kept for a few hours.') : t('Could not reach TI.'));
       setRunId(null);
       setUrlRun(null);
       return false;
@@ -95,7 +96,7 @@ export function useAi() {
     es.onerror = () => {
       if (es.readyState !== EventSource.CLOSED || source.current !== es) return;
       source.current = null;
-      setError('Lost the live stream of this run. Reopen it from your forecasts to catch up.');
+      setError(t('Lost the live stream of this run. Reopen it from your forecasts to catch up.'));
     };
     return true;
   }, [close, flush]);
@@ -111,7 +112,7 @@ export function useAi() {
         body: JSON.stringify({ question: input.question, seed: input.seed, seed_scope: input.seedScope, depth: input.depth, use_feeds: input.useFeeds }),
       });
     } catch {
-      setError('Could not reach TI.');
+      setError(t('Could not reach TI.'));
       return null;
     }
     if (!res.ok) { setError(await errorOf(res)); return null; }
@@ -133,25 +134,25 @@ export function useAi() {
   }, [runId, token]);
 
   const inject = useCallback(async (text: string): Promise<string | null> => {
-    if (!runId || !token) return 'Only the browser that started this run can steer it.';
+    if (!runId || !token) return t('Only the browser that started this run can steer it.');
     const res = await fetch(`/api/ai/runs/${runId}/inject`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-ai-run-token': token },
       body: JSON.stringify({ text }),
     }).catch(() => null);
-    if (!res) return 'Could not reach TI.';
+    if (!res) return t('Could not reach TI.');
     return res.ok ? null : errorOf(res);
   }, [runId, token]);
 
   const ask = useCallback(async (target: string, message: string, engine: Engine, key: string): Promise<{ reply?: string; error?: string }> => {
-    if (!runId) return { error: 'No run.' };
+    if (!runId) return { error: t('No run.') };
     countAction('ti.ask');
     const res = await fetch(`/api/ai/runs/${runId}/ask`, {
       method: 'POST',
       headers: headersFor(engine, key),
       body: JSON.stringify({ target, message }),
     }).catch(() => null);
-    if (!res) return { error: 'Could not reach TI.' };
+    if (!res) return { error: t('Could not reach TI.') };
     if (!res.ok) return { error: await errorOf(res) };
     return { reply: (await res.json()).reply };
   }, [runId]);

@@ -1,4 +1,5 @@
-import { htmlEsc, pop, popCoords, sentence, type PopTone } from './kit';
+import { htmlEsc, levelWord, pop, popCoords, sentence, type PopTone } from './kit';
+import { t } from '@/lib/core/i18n/active';
 
 type FeatureProps = NonNullable<GeoJSON.GeoJsonProperties>;
 
@@ -13,19 +14,19 @@ export function malwarePopupHtml(p: FeatureProps): string {
   return pop({
     kicker: sentence(String(p.threat_type || 'malware').replace(/_/g, ' ')),
     tone: online ? 'red' : 'neutral',
-    meta: online ? 'Online' : sentence(p.status || 'Unknown'),
-    title: p.malware || 'Unclassified payload',
+    meta: online ? t('Online') : p.status ? sentence(p.status) : t('Unknown'),
+    title: p.malware || t('Unclassified payload'),
     subtitle: place || undefined,
     rows: [
-      { label: 'Host', value: `${p.ip}:${p.port ?? 0}`, mono: true },
-      { label: 'Network', value: p.as_name ? `AS${p.asn} ${p.as_name}` : null },
-      { label: 'Live URLs', value: Number(p.url_count) || 1, mono: true },
-      { label: 'First seen', value: String(p.first_seen || '').split(' ')[0] || null, mono: true },
-      { label: 'Last report', value: String(p.last_seen || '').split(' ')[0] || null, mono: true },
+      { label: t('Host'), value: `${p.ip}:${p.port ?? 0}`, mono: true },
+      { label: t('Network'), value: p.as_name ? `AS${p.asn} ${p.as_name}` : null },
+      { label: t('Live URLs'), value: Number(p.url_count) || 1, mono: true },
+      { label: t('First seen'), value: String(p.first_seen || '').split(' ')[0] || null, mono: true },
+      { label: t('Last report'), value: String(p.last_seen || '').split(' ')[0] || null, mono: true },
     ],
-    note: p.reporter ? `Reported by ${p.reporter}` : undefined,
+    note: p.reporter ? t('Reported by {reporter}', { reporter: String(p.reporter) }) : undefined,
     // The specific URLhaus report behind this node.
-    links: [p.reference && { href: p.reference, label: 'URLhaus report' }],
+    links: [p.reference && { href: p.reference, label: t('URLhaus report') }],
   });
 }
 
@@ -33,32 +34,32 @@ export function outagePopupHtml(p: FeatureProps): string {
   // MapLibre serialises feature properties, so booleans can arrive as strings.
   const ongoing = p.ongoing === true || p.ongoing === 'true';
   return pop({
-    kicker: 'Internet outage',
+    kicker: t('Internet outage'),
     tone: ongoing ? 'amber' : 'neutral',
-    meta: ongoing ? 'Ongoing' : 'Resolved',
+    meta: ongoing ? t('Ongoing') : t('Resolved'),
     title: p.country_name,
     body: p.description ? htmlEsc(p.description) : undefined,
     rows: [
-      { label: 'Cause', value: sentence(p.cause || 'Unspecified') },
-      { label: 'Scope', value: p.scope || 'Nationwide' },
-      { label: 'Started', value: utc(p.start), mono: true },
-      { label: 'Ended', value: utc(p.end), mono: true },
+      { label: t('Cause'), value: p.cause ? sentence(p.cause) : t('Unspecified') },
+      { label: t('Scope'), value: p.scope || t('Nationwide') },
+      { label: t('Started'), value: utc(p.start), mono: true },
+      { label: t('Ended'), value: utc(p.end), mono: true },
     ],
     note: 'Cloudflare Radar',
-    links: [{ href: p.url, label: 'Radar detail' }],
+    links: [{ href: p.url, label: t('Radar detail') }],
   });
 }
 
 export function attackOriginPopupHtml(p: FeatureProps): string {
   return pop({
-    kicker: 'Attack traffic origin',
+    kicker: t('Attack traffic origin'),
     tone: 'red',
     title: p.country_name,
     rows: [
-      { label: 'Share', value: `${p.share}%`, mono: true },
-      { label: 'Country code', value: p.country, mono: true },
+      { label: t('Share'), value: `${p.share}%`, mono: true },
+      { label: t('Country code'), value: p.country, mono: true },
     ],
-    note: 'Share of layer-3 attack traffic observed by Cloudflare Radar, by origin.',
+    note: t('Share of layer-3 attack traffic observed by Cloudflare Radar, by origin.'),
   });
 }
 
@@ -67,33 +68,33 @@ export function attackOriginPopupHtml(p: FeatureProps): string {
 export function c2ServerPopupHtml(p: FeatureProps): string {
   const online = p.status === 'online';
   return pop({
-    kicker: 'Botnet control server',
+    kicker: t('Botnet control server'),
     tone: online ? 'amber' : 'neutral',
-    meta: online ? 'Online' : sentence(p.status || 'Unknown'),
-    title: p.malware || 'Family not reported',
+    meta: online ? t('Online') : p.status ? sentence(p.status) : t('Unknown'),
+    title: p.malware || t('Family not reported'),
     subtitle: p.hostname || undefined,
     rows: [
-      { label: 'Address', value: p.ip, mono: true },
-      { label: 'Port', value: p.port, mono: true },
-      { label: 'Hosted in', value: p.country || 'Not reported' },
-      { label: 'Network', value: p.as_number ? `AS${p.as_number}${p.as_name ? ` ${p.as_name}` : ''}` : null },
-      { label: 'First seen', value: p.first_seen || null, mono: true },
-      { label: 'Last online', value: p.last_online || null, mono: true },
+      { label: t('Address'), value: p.ip, mono: true },
+      { label: t('Port'), value: p.port, mono: true },
+      { label: t('Hosted in'), value: p.country || t('Not reported') },
+      { label: t('Network'), value: p.as_number ? `AS${p.as_number}${p.as_name ? ` ${p.as_name}` : ''}` : null },
+      { label: t('First seen'), value: p.first_seen || null, mono: true },
+      { label: t('Last online'), value: p.last_online || null, mono: true },
     ],
-    note: 'A blocklist entry, not an observed attack. The marker sits at the hosting country, not the host.',
+    note: t('A blocklist entry, not an observed attack. The marker sits at the hosting country, not the host.'),
     links: [{ href: p.source_url || 'https://feodotracker.abuse.ch/browse/', label: 'Feodo Tracker' }],
   });
 }
 
 export function scanTargetPopupHtml(p: FeatureProps, coords: number[]): string {
   return pop({
-    kicker: 'Scan target',
+    kicker: t('Scan target'),
     tone: 'red',
     title: p.id,
     subtitle: [[p.city, p.country].filter(Boolean).join(', '), p.isp].filter(Boolean).join(' · ') || undefined,
     rows: [
-      { label: 'Type', value: sentence(p.type || 'Unknown') },
-      { label: 'Location', value: popCoords(coords[1], coords[0]), mono: true },
+      { label: t('Type'), value: p.type ? sentence(p.type) : t('Unknown') },
+      { label: t('Location'), value: popCoords(coords[1], coords[0]), mono: true },
     ],
   });
 }
@@ -103,12 +104,12 @@ export function supplierPopupHtml(p: FeatureProps): string {
   let threats: string[] = [];
   try { threats = p.active_threats ? JSON.parse(p.active_threats) : []; } catch { /* not a list */ }
   return pop({
-    kicker: 'Supplier',
+    kicker: t('Supplier'),
     tone,
-    meta: p.risk_level ? `${sentence(p.risk_level)} risk` : undefined,
+    meta: p.risk_level ? t('{level} risk', { level: levelWord(p.risk_level) }) : undefined,
     title: p.name,
     subtitle: [p.category, [p.city, p.country].filter(Boolean).join(', ')].filter(Boolean).join(' · '),
-    body: threats.length ? `<div class="tk-pop-label">Active threats</div>${threats.map(t => `<div>${htmlEsc(t)}</div>`).join('')}` : undefined,
+    body: threats.length ? `<div class="tk-pop-label">${htmlEsc(t('Active threats'))}</div>${threats.map(threat => `<div>${htmlEsc(threat)}</div>`).join('')}` : undefined,
   });
 }
 
@@ -120,14 +121,14 @@ export function sweepDevicePopupHtml(p: FeatureProps): string {
   const risk = String(p.risk_level || '');
   const tone: PopTone = risk === 'CRITICAL' ? 'red' : risk === 'HIGH' || risk === 'MEDIUM' ? 'amber' : 'neutral';
   return pop({
-    kicker: sentence(p.device_type || 'Device'),
+    kicker: p.device_type ? sentence(p.device_type) : t('Device'),
     tone,
     title: p.ip,
     subtitle: hostnames.length ? hostnames.join(', ') : undefined,
     rows: [
-      { label: 'Open ports', value: ports.length ? `${ports.slice(0, 12).join(', ')}${ports.length > 12 ? ' …' : ''}` : 'None', mono: true },
-      { label: 'Risk', value: sentence(risk || 'Unknown'), tone },
-      vulns.length > 0 && { label: 'CVEs', value: `${vulns.slice(0, 5).join(', ')}${vulns.length > 5 ? ` +${vulns.length - 5} more` : ''}`, mono: true, tone: 'red' },
+      { label: t('Open ports'), value: ports.length ? `${ports.slice(0, 12).join(', ')}${ports.length > 12 ? ' …' : ''}` : t('None'), mono: true },
+      { label: t('Risk'), value: risk ? levelWord(risk) : t('Unknown'), tone },
+      vulns.length > 0 && { label: 'CVEs', value: `${vulns.slice(0, 5).join(', ')}${vulns.length > 5 ? ` ${t('+{n} more', { n: vulns.length - 5 })}` : ''}`, mono: true, tone: 'red' },
     ],
   });
 }

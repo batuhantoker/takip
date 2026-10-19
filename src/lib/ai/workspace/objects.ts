@@ -11,6 +11,10 @@
  */
 import type { RunState } from '../state';
 import type { LinkKind } from '../types';
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, msg, type Translate } from '@/lib/core/i18n/translator';
+
+const english = createTranslator(DEFAULT_LOCALE, {});
 
 export type ObjectType = 'actor' | 'source' | 'world' | 'event' | 'report' | 'scenario' | 'signpost';
 
@@ -24,44 +28,44 @@ export interface AiObject {
 }
 
 export const TYPE_LABEL: Record<ObjectType, string> = {
-  actor: 'Actor', source: 'Source', world: 'World', event: 'Event', report: 'Report', scenario: 'Scenario', signpost: 'Signpost',
+  actor: msg('Actor'), source: msg('Source'), world: msg('World'), event: msg('Event'), report: msg('Report'), scenario: msg('Scenario'), signpost: msg('Signpost'),
 };
 
 export const LINK_LABEL: Record<LinkKind, string> = {
-  relation: 'Relation', evidence: 'Evidence', move: 'Move', cite: 'Quote',
+  relation: msg('Relation'), evidence: msg('Evidence'), move: msg('Move'), cite: msg('Quote'),
 };
 
 /** Every object in the run, in a stable order: actors, sources, worlds, events, the report, scenarios, signposts. */
-export function objectsOf(s: RunState): AiObject[] {
+export function objectsOf(s: RunState, t: Translate = english): AiObject[] {
   return [
-    ...s.actors.map(a => ({ key: `a:${a.id}`, type: 'actor' as const, subtype: a.kind, title: a.name, subtitle: a.persona ? `Plays: ${a.persona.goal}` : a.role })),
+    ...s.actors.map(a => ({ key: `a:${a.id}`, type: 'actor' as const, subtype: a.kind, title: a.name, subtitle: a.persona ? t('Plays: {goal}', { goal: a.persona.goal }) : a.role })),
 
     ...s.context.map(c => ({ key: `c:${c.id}`, type: 'source' as const, subtype: c.kind, title: c.title, subtitle: [c.source, c.place].filter(Boolean).join(' · ') })),
-    ...s.worlds.map(w => ({ key: `w:${w}`, type: 'world' as const, subtype: 'world', title: `World ${w}`, subtitle: [...s.points].reverse().find(p => p.world === w)?.note ?? 'Simulated world' })),
-    ...s.events.map(e => ({ key: `e:${e.id}`, type: 'event' as const, subtype: e.kind, title: e.title, subtitle: `World ${e.world} · ${e.date}` })),
+    ...s.worlds.map(w => ({ key: `w:${w}`, type: 'world' as const, subtype: 'world', title: t('World {w}', { w }), subtitle: [...s.points].reverse().find(p => p.world === w)?.note ?? t('Simulated world') })),
+    ...s.events.map(e => ({ key: `e:${e.id}`, type: 'event' as const, subtype: e.kind, title: e.title, subtitle: `${t('World {w}', { w: e.world })} · ${e.date}` })),
     ...(s.report ? [{ key: 'r:report', type: 'report' as const, subtype: 'report', title: s.report.headline, subtitle: s.report.answer }] : []),
     ...(s.report?.scenarios ?? []).map((sc, i) => ({ key: `s:${i}`, type: 'scenario' as const, subtype: 'scenario', title: sc.name, subtitle: `${Math.round(sc.probability * 100)}% · ${sc.description}` })),
     ...(s.report?.signposts ?? []).map((sp, i) => ({ key: `p:${i}`, type: 'signpost' as const, subtype: 'signpost', title: sp.text, subtitle: sp.place })),
   ];
 }
 
-const fold = (t: string) => t.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+const fold = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 /**
  * Objects matching a query, best first: a title that starts with it, then a
  * word in the title that does, then anywhere in the title, then the subtitle.
  * Accents and case are ignored, so "lucia" finds Lucía.
  */
-export function searchObjects(s: RunState, query: string, limit = 12): AiObject[] {
+export function searchObjects(s: RunState, query: string, limit = 12, t: Translate = english): AiObject[] {
   const q = fold(query.trim());
   if (!q) return [];
   const scored: { o: AiObject; score: number; i: number }[] = [];
-  objectsOf(s).forEach((o, i) => {
-    const t = fold(o.title), sub = fold(o.subtitle);
+  objectsOf(s, t).forEach((o, i) => {
+    const title = fold(o.title), sub = fold(o.subtitle);
     let score = -1;
-    if (t.startsWith(q)) score = 0;
-    else if (t.split(/[^\p{L}\p{N}]+/u).some(w => w.startsWith(q))) score = 1;
-    else if (t.includes(q)) score = 2;
+    if (title.startsWith(q)) score = 0;
+    else if (title.split(/[^\p{L}\p{N}]+/u).some(w => w.startsWith(q))) score = 1;
+    else if (title.includes(q)) score = 2;
     else if (sub.includes(q)) score = 3;
     if (score >= 0) scored.push({ o, score, i });
   });

@@ -111,6 +111,15 @@ Chosen by the user on 2026-10-15. Details are in [`inspiration-sources/gods-eye-
    - **More imagery:** Esri Wayback (2014 on; paid use needs an Esri account) and Black Marble night lights.
 3. **Map looks:** night vision, thermal, noir and snow, opt-in and on the map only (design rule added 2026-10-15). Later.
 
+### 1.8 Languages
+Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/README.md`, Language).
+1. Mirror the shell for Arabic: replace left/right with logical properties (`ps-`, `ms-`, `start-`), then set `dir="rtl"`. Until then Arabic runs right to left inside left-to-right panels.
+2. Save the language on the account (apps/api, through the backend lead), so a signed-in person's pick follows them across devices.
+3. Have native speakers review the translations, Turkish first.
+4. Space Replay's flight events ("Mars flyby", "Arrives at…") are labelled in English by the server (`api/(space)/space/history/collect.ts`). Send the parts and build the label in the browser.
+5. TI's action cards and tool summaries stay English, because the model reads them back. Translate them on screen only, keeping the stored text English.
+6. Every non-English page load inlines its language's catalog in the HTML: about 120 KB gzipped for Turkish and 145 KB for Russian (2026-10-19), against 17 KB for the whole English page. Serve each catalog as a hashed, cacheable script (`next/script` beforeInteractive) that the provider reads on the client and a per-locale server cache feeds during SSR, so repeat visits skip it.
+
 ## 2. After the action items
 
 - **Weather and disasters** (data-roadmap §1): the GDACS API with polygons, and USGS volcano alert levels; aviationweather.gov international SIGMETs (including volcanic ash) and METARs; the EMSC earthquake WebSocket; NWS / NHC alerts into ingest; MeteoAlarm; river levels and flood warnings; tsunami.gov CAP.

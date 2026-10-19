@@ -1,3 +1,5 @@
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, type Translate } from '@/lib/core/i18n/translator';
 import type { Projection } from './projection';
 
 /*
@@ -171,37 +173,66 @@ export const rampFor = (dark: boolean) => (dark ? [...BLUES].reverse() : BLUES);
 /** Short units ride along with each number; long ones are printed once, under the metric's name. */
 export const unitInline = (unit: string | null) => (unit && unit.length <= 12 ? unit : null);
 
-export function formatValue(v: number, unit: string | null = null): string {
+const numberFormats = new Map<string, Intl.NumberFormat>();
+const numberFormat = (intl: string, kind: 'compact' | 'whole' | 'tenths' | 'small') => {
+  const key = `${intl}|${kind}`;
+  let f = numberFormats.get(key);
+  if (!f) {
+    const options: Intl.NumberFormatOptions = kind === 'compact' ? { notation: 'compact', maximumSignificantDigits: 3 }
+      : kind === 'whole' ? { maximumFractionDigits: 0 }
+        : kind === 'tenths' ? { minimumFractionDigits: 1, maximumFractionDigits: 1 }
+          : { minimumSignificantDigits: 2, maximumSignificantDigits: 2 };
+    numberFormats.set(key, (f = new Intl.NumberFormat(intl, options)));
+  }
+  return f;
+};
+
+/** English keeps its spaced T/B/M/k; other languages get their own short forms (Mrd., млн, 億…). */
+export function formatValue(v: number, unit: string | null = null, intl = 'en'): string {
   const abs = Math.abs(v);
+  const en = intl === 'en';
   let text: string;
-  if (abs >= 1e12) text = `${(v / 1e12).toPrecision(3)} T`;
+  if (!en && abs >= 1e4) text = numberFormat(intl, 'compact').format(v);
+  else if (abs >= 1e12) text = `${(v / 1e12).toPrecision(3)} T`;
   else if (abs >= 1e9) text = `${(v / 1e9).toPrecision(3)} B`;
   else if (abs >= 1e6) text = `${(v / 1e6).toPrecision(3)} M`;
   else if (abs >= 1e4) text = `${(v / 1e3).toPrecision(3)} k`;
-  else if (abs >= 100) text = Math.round(v).toLocaleString('en-US');
-  else if (abs >= 1) text = v.toFixed(1);
-  else text = v === 0 ? '0' : v.toPrecision(2);
+  else if (abs >= 100) text = numberFormat(intl, 'whole').format(Math.round(v));
+  else if (abs >= 1) text = en ? v.toFixed(1) : numberFormat(intl, 'tenths').format(v);
+  else text = v === 0 ? '0' : en ? v.toPrecision(2) : numberFormat(intl, 'small').format(v);
   const inline = unitInline(unit);
   if (!inline) return text;
   return inline === '%' ? `${text}%` : `${text} ${inline}`;
 }
 
-/** A calendar year, astronomical (0 is 1 BCE) → "1950" or "500 BCE". */
-export const formatYear = (year: number) => (year > 0 ? String(year) : `${1 - year} BCE`);
+const EN = createTranslator(DEFAULT_LOCALE, {});
 
-const DATE = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+/** A calendar year, astronomical (0 is 1 BCE) → "1950" or "500 BCE". */
+export const formatYear = (year: number, t: Translate = EN) => (year > 0 ? String(year) : t('{year} BCE', { year: String(1 - year) }));
+
+const DATES = new Map<string, Intl.DateTimeFormat>();
 const DAY_MS = 86_400_000;
+const dateFormat = (intl: string) => {
+  const tag = intl === 'en' ? 'en-GB' : intl;
+  let f = DATES.get(tag);
+  if (!f) DATES.set(tag, (f = new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })));
+  return f;
+};
 
 /** A point's x → "1950", or "5 Apr 2020" in a 'day' series. */
-export const formatAt = (x: number, step: Step = 'year') =>
-  step === 'day' ? DATE.format(Math.round(msAt(x) / DAY_MS) * DAY_MS) : formatYear(x);
+export const formatAt = (x: number, step: Step = 'year', t: Translate = EN) =>
+  step === 'day' ? dateFormat(t.intl).format(Math.round(msAt(x) / DAY_MS) * DAY_MS) : formatYear(x, t);
 
 /** `projection` names a projected reading ("UN projection (medium variant)"). */
-export function readingText(r: Reading, unit: string | null, names: Record<string, string>, step: Step = 'year', projection = 'projection'): string {
-  const value = formatValue(r.shown, unit);
-  const via = r.via ? ` · ${names[r.via] ?? r.via} value` : '';
-  const range = r.range ? `, ${r.range.label} ${formatValue(r.range.lo)}–${formatValue(r.range.hi)}` : '';
-  const projected = r.projected ? ` · ${r.note ?? projection}${range}` : '';
-  if (r.kind === 'recorded') return `${value} ${step === 'day' ? 'on' : 'in'} ${formatAt(r.year, step)}${via}${projected}`;
-  return `≈ ${value}, between ${formatAt(r.between[0], step)} and ${formatAt(r.between[1], step)}${via}${projected}`;
+export function readingText(r: Reading, unit: string | null, names: Record<string, string>, step: Step = 'year', projection?: string, t: Translate = EN): string {
+  const value = formatValue(r.shown, unit, t.intl);
+  const via = r.via ? t('{name} value', { name: names[r.via] ?? r.via }) : null;
+  const named = r.note ?? projection ?? t('projection');
+  const projected = !r.projected ? null : r.range
+    ? t('{projection}, {range} {lo}–{hi}', { projection: named, range: r.range.label, lo: formatValue(r.range.lo, null, t.intl), hi: formatValue(r.range.hi, null, t.intl) })
+    : named;
+  const head = r.kind === 'recorded'
+    ? (step === 'day' ? t('{value} on {date}', { value, date: formatAt(r.year, step, t) }) : t('{value} in {date}', { value, date: formatAt(r.year, step, t) }))
+    : t('≈ {value}, between {from} and {to}', { value, from: formatAt(r.between[0], step, t), to: formatAt(r.between[1], step, t) });
+  return [head, via, projected].filter(Boolean).join(' · ');
 }

@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const TRANSPORT: ApiGroup = {
   id: 'transport',
-  title: 'Roads, rail and sea',
+  title: msg('Roads, rail and sea'),
   blurb: 'Measured road traffic, live public transport, shipping, chokepoints, and maritime warnings.',
   endpoints: [
     {

@@ -2,6 +2,7 @@
 /** TAKIP TI: the research graph's marks: a node and the legend. */
 import type { CSSProperties, PointerEvent, ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
 import type { GraphNode, GraphNodeKind } from '@/lib/ai/workspace/graph';
 import { T } from '@/components/panels/ti-agent/theme';
 import { TypeIcon } from '@/components/panels/ti-agent/atoms';
@@ -14,9 +15,10 @@ export function GraphNodeMark({ n, refFn, selected, dim, showLabel, thinking, on
   n: GraphNode; refFn: (el: SVGGElement | null) => void; selected: boolean; dim: boolean; showLabel: boolean; thinking: boolean;
   onDown: (e: PointerEvent) => void; onEnter: () => void; onLeave: () => void;
 }) {
+  const t = useT();
   const color = NODE_COLOR[n.kind];
   const icon = n.radius * 1.05;
-  const label = n.kind === 'evidence' ? clip(n.label, 36) : n.label;
+  const label = n.kind === 'evidence' ? clip(n.label, 36) : n.kind === 'report' ? t(n.label) : n.label;
   const ring: CSSProperties = { stroke: color, strokeWidth: n.kind === 'evidence' ? 1 : n.kind === 'report' ? 2 : 1.5 };
   return (
     <g ref={refFn} data-ai-node={n.key} style={{ cursor: 'pointer', opacity: dim ? 0.16 : 1, transition: 'opacity .2s ease-out' }}
@@ -47,6 +49,7 @@ export function GraphNodeMark({ n, refFn, selected, dim, showLabel, thinking, on
 
 /** What the edges' colours mean (the arcs' own three, from the Style Studio), and the ring the players wear. */
 export function GraphLegend() {
+  const t = useT();
   const line = (label: string, color: string, dash?: string) => (
     <span className="inline-flex items-center gap-1.5">
       <svg width="16" height="6" aria-hidden><line x1="1" x2="15" y1="3" y2="3" strokeWidth="2" strokeDasharray={dash} strokeLinecap="round" style={{ stroke: color }} /></svg>{label}
@@ -54,12 +57,12 @@ export function GraphLegend() {
   );
   return (
     <div className="pointer-events-none absolute bottom-3 left-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-card border border-line bg-surface-1 px-3 py-1.5 text-meta text-ink-2">
-      {line('Aligned · cooperates', T.support)}
-      {line('Opposed · presses', T.oppose)}
-      {line('Between', T.neutral)}
-      {line('Quote', T.ink2, '0.5 3')}
+      {line(t('Aligned · cooperates'), T.support)}
+      {line(t('Opposed · presses'), T.oppose)}
+      {line(t('Between'), T.neutral)}
+      {line(t('Quote'), T.ink2, '0.5 3')}
       <span className="inline-flex items-center gap-1.5">
-        <svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="none" strokeWidth="1.2" style={{ stroke: T.goldDim }} /></svg>Plays in the simulation
+        <svg width="10" height="10" aria-hidden><circle cx="5" cy="5" r="4" fill="none" strokeWidth="1.2" style={{ stroke: T.goldDim }} /></svg>{t('Plays in the simulation')}
       </span>
     </div>
   );

@@ -1,3 +1,4 @@
+import { activeIntl, t } from '@/lib/core/i18n/active';
 import { pop } from '@/lib/map/popups/kit';
 import { MAP_INK } from '@/lib/map/style/tokens';
 
@@ -17,12 +18,12 @@ const num = (v: unknown) => (v == null || v === '' || !Number.isFinite(Number(v)
 export function acresText(v: unknown): string | null {
   const a = num(v);
   if (a == null) return null;
-  return `${a >= 100 ? Math.round(a).toLocaleString('en-US') : a.toFixed(1)} acres`;
+  return t('{area} acres', { area: a >= 100 ? Math.round(a).toLocaleString(activeIntl()) : a.toFixed(1) });
 }
 
 const day = (v: unknown) => {
-  const t = num(v);
-  return t == null ? null : new Date(t).toISOString().slice(0, 10);
+  const ms = num(v);
+  return ms == null ? null : new Date(ms).toISOString().slice(0, 10);
 };
 
 export const perimeterColor = (kind: unknown) => (kind === 'prescribed' ? MAP_INK.amber : MAP_INK.red);
@@ -31,26 +32,26 @@ export function firePerimeterTip(p: Props) {
   const contained = num(p.contained);
   return {
     key: `perimeter:${p.id}`,
-    name: String(p.name || 'Wildfire'),
-    meta: [p.kind === 'prescribed' ? 'Prescribed burn' : 'Wildfire perimeter', acresText(p.acres), contained == null ? null : `${contained}% contained`]
+    name: p.name ? String(p.name) : t('Wildfire'),
+    meta: [p.kind === 'prescribed' ? t('Prescribed burn') : t('Wildfire perimeter'), acresText(p.acres), contained == null ? null : t('{pct}% contained', { pct: contained })]
       .filter(Boolean).join(' · '),
   };
 }
 
 export function firePerimeterPopupHtml(p: Props): string {
   const contained = num(p.contained);
-  const place = [p.county ? `${p.county} County` : null, p.state].filter(Boolean).join(', ');
+  const place = [p.county ? t('{county} County', { county: String(p.county) }) : null, p.state].filter(Boolean).join(', ');
   return pop({
-    kicker: p.kind === 'prescribed' ? 'Prescribed burn' : 'Wildfire perimeter',
+    kicker: p.kind === 'prescribed' ? t('Prescribed burn') : t('Wildfire perimeter'),
     dot: perimeterColor(p.kind),
-    title: String(p.name || 'Wildfire'),
-    subtitle: place ? `${place} · agency-mapped` : 'Agency-mapped',
+    title: p.name ? String(p.name) : t('Wildfire'),
+    subtitle: place ? t('{place} · agency-mapped', { place }) : t('Agency-mapped'),
     rows: [
-      { label: 'Size', value: acresText(p.acres), mono: true },
-      { label: 'Contained', value: contained == null ? null : `${contained}%`, mono: true },
-      { label: 'Cause', value: p.cause ? String(p.cause) : null },
-      { label: 'Discovered', value: day(p.discovered), mono: true },
-      { label: 'Edge mapped', value: day(p.mapped), mono: true },
+      { label: t('Size'), value: acresText(p.acres), mono: true },
+      { label: t('Contained'), value: contained == null ? null : `${contained}%`, mono: true },
+      { label: t('Cause'), value: p.cause ? String(p.cause) : null },
+      { label: t('Discovered'), value: day(p.discovered), mono: true },
+      { label: t('Edge mapped'), value: day(p.mapped), mono: true },
     ],
     links: [{ href: 'https://data-nifc.opendata.arcgis.com/datasets/nifc::wfigs-interagency-fire-perimeters', label: 'NIFC WFIGS' }],
   });

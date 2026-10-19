@@ -1,3 +1,4 @@
+import { msg } from '@/lib/core/i18n/translator';
 import { detectQuery, type QueryKind } from './detect-query';
 
 type Named = { id: string; label: string; aliases?: string };
@@ -36,7 +37,7 @@ export function suggestTools(query: string, tools: Named[]): SuggestionGroup[] {
 
   const named = matchNames(query, tools);
   const byName: SuggestionGroup | null = named.length
-    ? { label: 'Open a tool', items: named.map(t => ({ id: t.id, action: 'open' as const })) }
+    ? { label: msg('Open a tool'), items: named.map(t => ({ id: t.id, action: 'open' as const })) }
     : null;
   return [byName, detected].filter((g): g is SuggestionGroup => g !== null);
 }

@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const CYBER: ApiGroup = {
   id: 'cyber',
-  title: 'Cyber threats',
+  title: msg('Cyber threats'),
   blurb: 'Vulnerability, attack, malware, and on-chain threat telemetry.',
   endpoints: [
     {

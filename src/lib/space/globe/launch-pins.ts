@@ -3,6 +3,8 @@
  * a pad, and stacked pins would show only one of them.
  */
 
+import { activeIntl, t } from '@/lib/core/i18n/active';
+
 export interface LaunchRow {
   id: string;
   name: string;
@@ -42,18 +44,24 @@ export interface PadFeature {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+function utcDate(d: Date, withDay: boolean): string {
+  const tag = activeIntl();
+  if (tag === 'en') return `${withDay ? `${d.getUTCDate()} ` : ''}${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return new Intl.DateTimeFormat(tag, { day: withDay ? 'numeric' : undefined, month: 'short', year: 'numeric', timeZone: 'UTC' }).format(d);
+}
+
 /** A launch date only as precise as LL2 says it is: "Q4 2026", "Nov 2026", "13 Oct 2026 00:11 UTC". */
 export function formatNet(net: string, precision: string | null): string {
   const d = new Date(net);
-  if (Number.isNaN(d.getTime())) return 'TBD';
-  const day = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  if (Number.isNaN(d.getTime())) return t('TBD');
+  const day = utcDate(d, true);
   const year = d.getUTCFullYear();
   const p = (precision ?? '').toLowerCase();
   const part = p.match(/(quarter|half) (\d)/);
   if (part) return `${part[1] === 'quarter' ? 'Q' : 'H'}${part[2]} ${year}`;
   if (p.includes('year')) return String(year);
-  if (p === 'month') return `${MONTHS[d.getUTCMonth()]} ${year}`;
-  if (p === 'week') return `week of ${day}`;
+  if (p === 'month') return utcDate(d, false);
+  if (p === 'week') return t('week of {day}', { day });
   if (p === 'day' || p.includes('morning') || p.includes('afternoon')) return day;
   return `${day} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC`;
 }

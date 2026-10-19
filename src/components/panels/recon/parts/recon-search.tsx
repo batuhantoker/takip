@@ -5,7 +5,8 @@ import { Kbd } from '@/components/ui/kbd';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
-import { TABS, toolById } from '@/components/panels/recon/recon-tools';
+import { useT } from '@/components/ui/use-t';
+import { namedTools, toolById } from '@/components/panels/recon/recon-tools';
 import { flatSuggestions, suggestTools, type Suggestion } from '@/lib/intel/recon/suggest-tools';
 
 /** Recon's front door: one field that works out what was typed and offers the tools that fit, Enter running the best. */
@@ -17,7 +18,8 @@ export function ReconSearch({ id, query, setQuery, onRun, onOpen, autoFocus }: {
   onOpen: (toolId: string) => void;
   autoFocus?: boolean;
 }) {
-  const groups = useMemo(() => suggestTools(query, TABS), [query]);
+  const t = useT();
+  const groups = useMemo(() => suggestTools(query, namedTools(t)), [query, t]);
   const items = flatSuggestions(groups);
   const [picked, setPicked] = useState(0);
   const [pickedFor, setPickedFor] = useState(query);
@@ -44,31 +46,33 @@ export function ReconSearch({ id, query, setQuery, onRun, onOpen, autoFocus }: {
   return (
     <div className="flex flex-col">
       <p className="sr-only" aria-live="polite">
-        {current ? `${current.label}, ${active + 1} of ${items.length}. Enter to ${items[active].action === 'run' ? 'run' : 'open'}.` : ''}
+        {current ? t('{tool}, {n} of {total}. Enter to {action, select, run {run} other {open}}.', {
+          tool: t(current.label), n: active + 1, total: items.length, action: items[active].action,
+        }) : ''}
       </p>
       <SearchField
         id={id}
         value={query}
         onChange={setQuery}
         onKeyDown={onKeyDown}
-        placeholder="IP, domain, email, username or phone"
-        label="Look up an IP, domain, email, username or phone number"
+        placeholder={t('IP, domain, email, username or phone')}
+        label={t('Look up an IP, domain, email, username or phone number')}
         autoFocus={autoFocus}
         autoComplete="off"
         spellCheck={false}
       />
       {groups.map(group => (
-        <PanelSection key={group.label} title={group.label}>
+        <PanelSection key={group.label} title={t(group.label)}>
           {group.items.map(s => {
-            const t = toolById(s.id);
+            const tool = toolById(s.id);
             const i = index++;
-            if (!t) return null;
+            if (!tool) return null;
             return (
               <ListRow
                 key={`${s.action}-${s.id}`}
-                leading={<t.icon aria-hidden className="size-4" strokeWidth={1.75} />}
-                title={t.label}
-                subtitle={<span className="text-ink-3">{t.blurb}</span>}
+                leading={<tool.icon aria-hidden className="size-4" strokeWidth={1.75} />}
+                title={t(tool.label)}
+                subtitle={<span className="text-ink-3">{t(tool.blurb)}</span>}
                 selected={i === active}
                 trailing={i === active ? <span className="flex pointer-coarse:hidden"><Kbd size="sm">↵</Kbd></span> : undefined}
                 onClick={() => choose(s)}

@@ -1,3 +1,5 @@
+import { activeIntl, t } from '@/lib/core/i18n/active';
+import { msg } from '@/lib/core/i18n/translator';
 import { pop } from '@/lib/map/popups/kit';
 
 /* Wartime border layers for History: who held what, month by month, coloured by alignment. */
@@ -6,12 +8,12 @@ export type Alignment = 'axis' | 'occupied' | 'belligerent' | 'allied' | 'neutra
 
 /** Diverging blue ↔ red, desaturated to sit under labels; occupation also gets a hatch. The History legend reads these. */
 export const ALIGNMENTS: { key: Alignment; label: string; color: string }[] = [
-  { key: 'axis', label: 'Axis and aligned', color: '#C9625C' },
-  { key: 'occupied', label: 'Occupied by the Axis', color: '#9E7A77' },
-  { key: 'belligerent', label: 'At war, in neither bloc', color: '#8C80C2' },
-  { key: 'neutral', label: 'Neutral', color: '#76808A' },
-  { key: 'allied', label: 'Allies', color: '#5A8CCB' },
-  { key: 'none', label: 'Not at war', color: '#343B44' },
+  { key: 'axis', label: msg('Axis and aligned'), color: '#C9625C' },
+  { key: 'occupied', label: msg('Occupied by the Axis'), color: '#9E7A77' },
+  { key: 'belligerent', label: msg('At war, in neither bloc'), color: '#8C80C2' },
+  { key: 'neutral', label: msg('Neutral'), color: '#76808A' },
+  { key: 'allied', label: msg('Allies'), color: '#5A8CCB' },
+  { key: 'none', label: msg('Not at war'), color: '#343B44' },
 ];
 
 /** `start` and `end` bound the borders' months; Play runs between them. */
@@ -19,9 +21,9 @@ export type WarLayer = { code: string; label: string; years: string; note: strin
 
 export const WAR_LAYERS: WarLayer[] = [{
   code: 'ww2-europe',
-  label: 'World War II in Europe',
+  label: msg('World War II in Europe'),
   years: '1938–1945',
-  note: 'Each month shows the borders as they stood at its end, from annexations; occupation shows as a status, not a border.',
+  note: msg('Each month shows the borders as they stood at its end, from annexations; occupation shows as a status, not a border.'),
   start: Date.UTC(1938, 1, 1),
   end: Date.UTC(1945, 4, 31),
   view: { lat: 47, lng: 17, zoom: 3.05 },
@@ -33,7 +35,10 @@ export type WarFeature = { id: number; name: string; status: string | null; alig
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const month = (s: number) => {
   const d = new Date(s * 1000);
-  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  const intl = activeIntl();
+  // English keeps its own table: en-GB's short September is "Sept".
+  if (intl === 'en') return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return new Intl.DateTimeFormat(intl, { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(d);
 };
 
 export function warPopupHtml(p: WarFeature, attribution: string | null): string {
@@ -41,14 +46,14 @@ export function warPopupHtml(p: WarFeature, attribution: string | null): string 
   // t1 is the first of the month after the last one shown.
   const last = p.t1 === null ? null : month(p.t1 - 1);
   return pop({
-    kicker: a.label,
+    kicker: t(a.label),
     dot: a.color,
     title: p.name,
     rows: [
-      { label: 'Status', value: p.status && p.status !== a.label ? p.status : null },
-      { label: 'These borders', value: last === null ? `from ${month(p.t0)}` : last === month(p.t0) ? last : `${month(p.t0)} – ${last}` },
-      { label: 'Head of state', value: p.head },
-      { label: 'Government in exile', value: p.exile },
+      { label: t('Status'), value: p.status && p.status !== a.label ? p.status : null },
+      { label: t('These borders'), value: last === null ? t('from {date}', { date: month(p.t0) }) : last === month(p.t0) ? last : `${month(p.t0)} – ${last}` },
+      { label: t('Head of state'), value: p.head },
+      { label: t('Government in exile'), value: p.exile },
     ],
     note: attribution ?? undefined,
   });

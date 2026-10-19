@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { t } from '@/lib/core/i18n/active';
 import { distinctStructures, MLY_KM, parseRecords, RECORD_FLOATS, type CosmosMeta } from '@/lib/space/deep/cosmos';
 import { bodyDirection, EQUATORIAL_TO_ECLIPTIC } from '@/lib/space/frames';
 import { LOGDEPTH, loadTexture, rotation } from '../shared';
@@ -140,7 +141,7 @@ export function createCosmos() {
     }
     if (cmbK > 0 && !cmbLoading) {
       cmbLoading = true;
-      loadTexture(CMB_URL, t => { t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; cmbUniforms.map.value = t; });
+      loadTexture(CMB_URL, tex => { tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; cmbUniforms.map.value = tex; });
     }
     cmbUniforms.opacity.value = 0.75 * cmbK;
     if (cmb) cmb.visible = cmbK > 0.005 && !!cmbUniforms.map.value;
@@ -152,7 +153,7 @@ export function createCosmos() {
     const at = (ra: number, dec: number, mly: number) => new THREE.Vector3(...bodyDirection(dec, ra).map(v => v * mly)).applyMatrix4(group.matrix);
     return [
       ...distinctStructures(meta.structures).map(s => ({ id: `cosmos:${s.name}`, name: s.name, position: at(s.ra, s.dec, s.mly) })),
-      { id: 'cmb', name: 'Cosmic microwave background', position: at(0, 75, meta.horizon.cmbMly) },
+      { id: 'cmb', name: t('Cosmic microwave background'), position: at(0, 75, meta.horizon.cmbMly) },
     ];
   }
 

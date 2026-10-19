@@ -1,3 +1,4 @@
+import { activeIntl, t } from '@/lib/core/i18n/active';
 import { idSafe } from '@/lib/map/popups/layer-popups';
 import { htmlEsc, urlSafe } from '@/lib/map/popups/kit';
 import { routeGroup, routeTitle, type RouteSummary } from './api';
@@ -9,7 +10,7 @@ export type DetailsState = RouteDetails | 'loading' | 'failed' | undefined;
 const MAX_OTHERS = 8;
 const MAX_TEXT = 240;
 
-const km = (m: number) => `${m >= 100_000 ? Math.round(m / 1000).toLocaleString('en-US') : (m / 1000).toFixed(1)} km`;
+const km = (m: number) => `${m >= 100_000 ? Math.round(m / 1000).toLocaleString(activeIntl()) : (m / 1000).toFixed(1)} km`;
 const clip = (s: string) => (s.length > MAX_TEXT ? `${s.slice(0, MAX_TEXT - 1)}…` : s);
 
 const symbol = (id: string | undefined, size: number) => (id
@@ -44,22 +45,22 @@ export function hikingPopupHtml(routes: RouteSummary[], selected: number, detail
   const itinerary = r.itinerary?.length ? r.itinerary : d?.itinerary;
 
   const stats = [
-    d?.length ? stat('Mapped', km(d.length)) : '',
-    d?.official_length ? stat('Official', km(d.official_length)) : '',
-    d?.subroutes ? stat('Stages', String(d.subroutes)) : '',
+    d?.length ? stat(htmlEsc(t('Mapped')), km(d.length)) : '',
+    d?.official_length ? stat(htmlEsc(t('Official')), km(d.official_length)) : '',
+    d?.subroutes ? stat(htmlEsc(t('Stages')), String(d.subroutes)) : '',
   ].join('');
   const text = [d?.description && d.description !== title ? d.description : '', d?.note ?? ''].filter(Boolean);
   const partOf = d?.superroutes.length
-    ? `<div class="tk-pop-label">Part of</div>${d.superroutes.map(routeRow).join('')}`
+    ? `<div class="tk-pop-label">${htmlEsc(t('Part of'))}</div>${d.superroutes.map(routeRow).join('')}`
     : '';
   const links = [
     link(`https://hiking.waymarkedtrails.org/#route?id=${r.id}&type=relation`, 'Waymarked Trails'),
     link(`https://www.openstreetmap.org/relation/${r.id}`, 'OpenStreetMap'),
-    d?.url ? link(d.url, 'Website') : '',
+    d?.url ? link(d.url, htmlEsc(t('Website'))) : '',
     d?.wikipedia ? link(d.wikipedia, 'Wikipedia') : '',
   ].join('');
   const others = routes.filter(x => x.id !== r.id);
-  const more = others.length > MAX_OTHERS ? `<div class="tk-pop-list-meta">+${others.length - MAX_OTHERS} more</div>` : '';
+  const more = others.length > MAX_OTHERS ? `<div class="tk-pop-list-meta">${htmlEsc(t('+{n} more', { n: others.length - MAX_OTHERS }))}</div>` : '';
 
   return `<div class="tk-pop">
     <div class="tk-pop-kicker"><span>${kind}</span></div>
@@ -70,12 +71,12 @@ export function hikingPopupHtml(routes: RouteSummary[], selected: number, detail
     ${localName && localName !== title ? `<div class="tk-pop-sub">${htmlEsc(localName)}</div>` : ''}
     ${itinerary?.length ? `<div class="tk-pop-body">${itinerary.map(htmlEsc).join(' → ')}</div>` : ''}
     ${stats ? `<dl class="tk-pop-stats">${stats}</dl>` : ''}
-    ${d?.operator ? `<dl class="tk-pop-rows"><dt>Operator</dt><dd>${htmlEsc(d.operator)}</dd></dl>` : ''}
-    ${text.map(t => `<div class="tk-pop-body">${htmlEsc(clip(t))}</div>`).join('')}
-    ${details === 'loading' ? `<div class="tk-pop-note">Loading details…</div>` : ''}
-    ${d?.bbox ? `<button type="button" data-hiking-fit class="tk-pop-action">Fit the route on the map</button>` : ''}
+    ${d?.operator ? `<dl class="tk-pop-rows"><dt>${htmlEsc(t('Operator'))}</dt><dd>${htmlEsc(d.operator)}</dd></dl>` : ''}
+    ${text.map(s => `<div class="tk-pop-body">${htmlEsc(clip(s))}</div>`).join('')}
+    ${details === 'loading' ? `<div class="tk-pop-note">${htmlEsc(t('Loading details…'))}</div>` : ''}
+    ${d?.bbox ? `<button type="button" data-hiking-fit class="tk-pop-action">${htmlEsc(t('Fit the route on the map'))}</button>` : ''}
     ${partOf}
-    ${others.length ? `<div class="tk-pop-label">Also here · ${others.length}</div>${others.slice(0, MAX_OTHERS).map(routeRow).join('')}${more}` : ''}
+    ${others.length ? `<div class="tk-pop-label">${htmlEsc(t('Also here · {n}', { n: others.length }))}</div>${others.slice(0, MAX_OTHERS).map(routeRow).join('')}${more}` : ''}
     <div class="tk-pop-links">${links}</div>
     <div class="tk-pop-note">Waymarked Trails · © OpenStreetMap contributors</div>
   </div>`;

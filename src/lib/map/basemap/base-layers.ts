@@ -1,4 +1,5 @@
 import type * as maplibregl from 'maplibre-gl';
+import { activeLocale } from '@/lib/core/i18n/active';
 import { addCctvSource } from '@/lib/feeds/cameras/map-layers';
 import { EMERGENCY_ICON } from '@/lib/feeds/aviation/emergency';
 import { MAP_INK } from '@/lib/map/style/tokens';
@@ -11,6 +12,7 @@ import { addWarningIcons, createDot, createIcon } from './bands/icons';
 import { addOverlayLayers } from './bands/overlays';
 import { EMPTY_FC } from './bands/shared';
 import { addSiteLayers } from './bands/sites';
+import { localizeBaseLabels } from './label-language';
 
 export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satLayerRef: { current: ReturnType<typeof createSatelliteLayer> | null }) {
   // Theme colors
@@ -55,4 +57,5 @@ export function addBaseLayers(map: maplibregl.Map, theme: 'core' | 'ghost', satL
   addOverlayLayers(map);
 
   addTransitLayers(map);
+  localizeBaseLabels(map, activeLocale());
 }

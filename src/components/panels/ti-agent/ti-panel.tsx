@@ -19,6 +19,8 @@ import { ArrowLeft, History, Maximize2, Plus, SquarePen, X } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button';
 import { Panel } from '@/components/ui/panel';
 import { Segmented } from '@/components/ui/segmented';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { PROVIDERS, providerInfo } from '@/lib/ai/providers/catalog';
 import { loadEngine, loadKey, type Engine } from '@/lib/ai/client';
 import type { AiClient } from './use-ai';
@@ -76,8 +78,8 @@ export interface AiPanelProps {
 export type { AiMode };
 
 export const MODE_OPTIONS: { value: AiMode; label: string }[] = [
-  { value: 'assist', label: 'Assist' },
-  { value: 'forecast', label: 'Forecast' },
+  { value: 'assist', label: msg('Assist') },
+  { value: 'forecast', label: msg('Forecast') },
 ];
 
 /** The engine this browser last used, or OpenAI with its default model. */
@@ -88,10 +90,11 @@ function initialEngine(): Engine {
 }
 
 function ErrorNote({ text, onDismiss }: { text: string; onDismiss: () => void }) {
+  const t = useT();
   return (
     <div role="alert" className="mb-4 flex items-start gap-2 rounded-card border border-red/30 bg-red/10 py-1.5 pr-1.5 pl-3">
       <span className="min-w-0 flex-1 py-1 text-small text-ink-1">{text}</span>
-      <IconButton size="sm" label="Dismiss" icon={X} onClick={onDismiss} />
+      <IconButton size="sm" label={t('Dismiss')} icon={X} onClick={onDismiss} />
     </div>
   );
 }
@@ -104,6 +107,8 @@ export default function AiPanel(props: AiPanelProps) {
 
 function TiPanelBody(props: AiPanelProps) {
   const { ai, selected, onSelect, embedded = false, theater = false, assist } = props;
+  const t = useT();
+  const modeOptions = MODE_OPTIONS.map(o => ({ ...o, label: t(o.label) }));
   // Settings come from this browser's storage. The panel only renders once opened, on the client.
   const [engine, setEngine] = useState<Engine>(initialEngine);
   const [key, setKey] = useState(() => loadKey(initialEngine().provider));
@@ -149,8 +154,8 @@ function TiPanelBody(props: AiPanelProps) {
 
   const assistActions = (
     <>
-      <IconButton label="Saved chats" icon={History} onClick={() => setShowChats(v => !v)} />
-      {assist.entries.length > 0 && <IconButton label="New conversation" icon={SquarePen} onClick={() => { setShowChats(false); assist.clear(); }} />}
+      <IconButton label={t('Saved chats')} icon={History} onClick={() => setShowChats(v => !v)} />
+      {assist.entries.length > 0 && <IconButton label={t('New conversation')} icon={SquarePen} onClick={() => { setShowChats(false); assist.clear(); }} />}
     </>
   );
   const assistBody = showChats
@@ -210,7 +215,7 @@ function TiPanelBody(props: AiPanelProps) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-1">
-          <Segmented size="sm" full semantics="tabs" label="TI" value={props.mode} onChange={props.onMode} options={MODE_OPTIONS} className="min-w-0 flex-1" />
+          <Segmented size="sm" full semantics="tabs" label="TI" value={props.mode} onChange={props.onMode} options={modeOptions} className="min-w-0 flex-1" />
           {!forecasting && assistActions}
         </div>
         <div className="-mx-3 flex flex-col">{body}</div>
@@ -220,23 +225,23 @@ function TiPanelBody(props: AiPanelProps) {
 
   const model = ready ? engine.model : '';
   const footer = !forecasting || !s ? undefined : showHistory ? (
-    <Button variant="ghost" size="sm" icon={ArrowLeft} className="-ml-2" onClick={() => setShowHistory(false)}>Back to the forecast</Button>
+    <Button variant="ghost" size="sm" icon={ArrowLeft} className="-ml-2" onClick={() => setShowHistory(false)}>{t('Back to the forecast')}</Button>
   ) : (
     <>
       <UsageLine s={s} />
-      {ai.history.length > 0 && <Button variant="ghost" size="sm" icon={History} className="-mr-2" onClick={() => setShowHistory(true)}>Your forecasts</Button>}
+      {ai.history.length > 0 && <Button variant="ghost" size="sm" icon={History} className="-mr-2" onClick={() => setShowHistory(true)}>{t('Your forecasts')}</Button>}
     </>
   );
   return (
     <Panel title="TI" subtitle={model ? `Takip AI · ${model}` : 'Takip AI'} icon={live ? TiGlyphLive : TiGlyph} bare
-      tabs={{ options: MODE_OPTIONS, value: props.mode, onChange: props.onMode }}
+      tabs={{ options: modeOptions, value: props.mode, onChange: props.onMode }}
       onClose={props.onClose} footer={footer}
       actions={(
         <>
-          {forecasting && s && <IconButton label="New forecast" icon={Plus} onClick={reset} />}
+          {forecasting && s && <IconButton label={t('New forecast')} icon={Plus} onClick={reset} />}
           {!forecasting && assistActions}
           {engineMenu}
-          {props.onTheater && <IconButton label="Open the workspace" icon={Maximize2} onClick={() => props.onTheater?.(true)} />}
+          {props.onTheater && <IconButton label={t('Open the workspace')} icon={Maximize2} onClick={() => props.onTheater?.(true)} />}
         </>
       )}>
       {body}

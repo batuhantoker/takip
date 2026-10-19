@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { t } from '@/lib/core/i18n/active';
 import { jdFromMs } from '@/lib/space/horizons';
 import { MISSION_NOTES } from '@/lib/space/craft/mission-notes';
 import type { SpaceSelection } from '@/lib/space/selection';
@@ -42,12 +43,12 @@ function surfaceTargets(scene: SpaceScene, world: GlobeWorldId, ms: number, out:
 }
 
 function targets(scene: SpaceScene, jd: number, ms: number): Target[] {
-  const out: Target[] = [{ sel: { kind: 'body', key: 'sun' }, position: new THREE.Vector3(), radiusPx: 0, text: 'Sun', color: SUN_COLOR, priority: 100 }];
+  const out: Target[] = [{ sel: { kind: 'body', key: 'sun' }, position: new THREE.Vector3(), radiusPx: 0, text: t('Sun'), color: SUN_COLOR, priority: 100 }];
   // Far out, the planets and craft all sit on the Sun's label; only the Sun stays.
   const planets = scene.fades.planets > 0.3, craft = scene.fades.craft > 0.3;
   for (const [key, p] of scene.planets) {
     if (!p.group.visible || !planets) continue;
-    out.push({ sel: { kind: 'body', key }, position: p.group.position, radiusPx: 0, text: p.def.name, color: p.def.color, priority: key === 'earth' ? 98 : key === 'moon' ? 96 : 90 });
+    out.push({ sel: { kind: 'body', key }, position: p.group.position, radiusPx: 0, text: t(p.def.name), color: p.def.color, priority: key === 'earth' ? 98 : key === 'moon' ? 96 : 90 });
   }
   if (scene.layers.fleet && craft) {
     for (const c of scene.fleet) {
@@ -61,11 +62,11 @@ function targets(scene: SpaceScene, jd: number, ms: number): Target[] {
   surfaceTargets(scene, 'moon', ms, out);
   surfaceTargets(scene, 'mars', ms, out);
   deepTargets(scene, jd, out);
-  for (const t of out) {
-    if (t.sel.kind !== 'body') continue;
-    const key = t.sel.key;
+  for (const target of out) {
+    if (target.sel.kind !== 'body') continue;
+    const key = target.sel.key;
     const radiusKm = key === 'sun' ? 695_700 : scene.planets.get(key)!.def.radiusKm;
-    t.radiusPx = Math.max(7, radiusKm * pxPerKmAt(scene, t.position));
+    target.radiusPx = Math.max(7, radiusKm * pxPerKmAt(scene, target.position));
   }
   return out;
 }

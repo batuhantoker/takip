@@ -13,6 +13,7 @@ import { converse } from '@/lib/ai/assist/agent';
 import { FIND_LAYERS, LAYERS, SOURCES } from '@/lib/ai/assist/catalog';
 import { feedProblems } from '@/lib/ai/assist/feed-state';
 import { feedMarks } from '@/lib/core/feed-log';
+import { t } from '@/lib/core/i18n/active';
 import { asksForForecast, type AssistContext, type AssistMessage, type Call, type Mode, type ToolName } from '@/lib/ai/assist/protocol';
 import { runCall, type Card, type Depth, type Outcome, type Site } from '@/lib/ai/assist/tools';
 import { hasContent, loadChats, removeChat, titleOf, upsertChat } from './chat-store';
@@ -84,7 +85,7 @@ const MAX_HISTORY = 40;
 
 /** A turn that was mid-flight when the page went away did not finish. */
 function settle(entries: Entry[]): Entry[] {
-  return entries.map(e => (e.role === 'ai' && e.busy ? { ...e, busy: false, live: undefined, error: e.error ?? 'Interrupted.' } : e));
+  return entries.map(e => (e.role === 'ai' && e.busy ? { ...e, busy: false, live: undefined, error: e.error ?? t('Interrupted.') } : e));
 }
 
 function load(): { entries: Entry[]; history: AssistMessage[]; chatId: string | null } {
@@ -230,10 +231,10 @@ export function useAssist(deps: AssistDeps) {
           }
         },
       });
-      patch(e => ({ ...e, busy: false, live: undefined, actions: e.actions.map(a => (a.status === 'running' || a.status === 'pending' ? { ...a, status: ctrl.signal.aborted ? 'error' : a.status, summary: a.summary ?? (ctrl.signal.aborted ? 'Stopped' : undefined) } : a)) }));
+      patch(e => ({ ...e, busy: false, live: undefined, actions: e.actions.map(a => (a.status === 'running' || a.status === 'pending' ? { ...a, status: ctrl.signal.aborted ? 'error' : a.status, summary: a.summary ?? (ctrl.signal.aborted ? t('Stopped') : undefined) } : a)) }));
       if (finalSay && !ctrl.signal.aborted) depsRef.current.onReply?.(finalSay);
     } catch (err) {
-      const message = ctrl.signal.aborted ? 'Stopped.' : err instanceof Error ? err.message : 'TI could not answer.';
+      const message = ctrl.signal.aborted ? t('Stopped.') : err instanceof Error ? err.message : t('TI could not answer.');
       patch(e => ({ ...e, busy: false, live: undefined, error: message, retry: ctrl.signal.aborted ? undefined : { text: said, mode }, actions: e.actions.map(a => (a.status === 'running' || a.status === 'pending' ? { ...a, status: 'error' } : a)) }));
     } finally {
       abort.current = null;
@@ -346,11 +347,11 @@ export function useAssist(deps: AssistDeps) {
         history.current = [...history.current, { role: 'assistant', say: text, calls: [] }];
       },
       end(error?: string) {
-        const t = spoken.current;
-        if (!t) return;
+        const turn = spoken.current;
+        if (!turn) return;
         flushCalls();
-        if (!t.heard) setEntries(list => list.map(e => (e.id === t.userId && e.role === 'user' ? { ...e, text: '(spoken)' } : e)));
-        patchAi(e => ({ ...e, busy: false, ...(error ? { error } : {}), actions: e.actions.map(a => (a.status === 'running' ? { ...a, status: 'error', summary: a.summary ?? 'Stopped' } : a)) }));
+        if (!turn.heard) setEntries(list => list.map(e => (e.id === turn.userId && e.role === 'user' ? { ...e, text: '(spoken)' } : e)));
+        patchAi(e => ({ ...e, busy: false, ...(error ? { error } : {}), actions: e.actions.map(a => (a.status === 'running' ? { ...a, status: 'error', summary: a.summary ?? t('Stopped') } : a)) }));
         spoken.current = null;
         setEntries(list => { archive(chatIdRef.current, list, history.current); return list; });
       },

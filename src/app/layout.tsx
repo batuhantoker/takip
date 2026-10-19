@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import AdsProvider from '@/components/shell/ads/ads-provider';
 import ErrorBoundary from '@/components/ui/error-boundary';
+import LocaleProvider from '@/components/ui/locale-provider';
+import { loadCatalog } from '@/lib/core/i18n/catalog';
+import { requestLocale } from '@/lib/core/i18n/request';
 import "./globals.css";
 
 // TODO: the real domain.
@@ -180,13 +183,14 @@ const jsonLd = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { locale, chosen, automatic } = await requestLocale();
   return (
-    <html lang="en" dir="ltr">
+    <html lang={locale} dir="ltr">
       <head>
         {/* Must run before any client code reads its settings. */}
         <script dangerouslySetInnerHTML={{ __html: MIGRATE_STORAGE_KEYS }} />
@@ -202,9 +206,11 @@ export default function RootLayout({
 
       </head>
       <body className="antialiased">
-        <ErrorBoundary name="TAKIP Core">
-          <AdsProvider>{children}</AdsProvider>
-        </ErrorBoundary>
+        <LocaleProvider locale={locale} chosen={chosen} automatic={automatic} catalog={await loadCatalog(locale)}>
+          <ErrorBoundary name="TAKIP Core">
+            <AdsProvider>{children}</AdsProvider>
+          </ErrorBoundary>
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -31,6 +31,7 @@ import { clock, createArcLayer, AI_ARCS, type Ping } from './arc-layer';
 import { actorTint, DEFAULT_TONES, leanColor, lift, type ToneColors } from './colors';
 import { EMPTY, ensureNodeLayers, LAYERS, NODES } from './layers';
 import { brief, relatedLinks } from '../workspace/selection';
+import { t } from '@/lib/core/i18n/active';
 import type { RunState } from '../state';
 import type { Link, Move } from '../types';
 
@@ -136,7 +137,7 @@ export function attachAi(map: MlMap, options: AiGlobeOptions = {}): AiGlobe {
       map.getCanvas().style.cursor = key ? 'pointer' : '';
       if (key === hoverKey && !key) return;
       hoverKey = key;
-      const b = key && state ? brief(state, key) : null;
+      const b = key && state ? brief(state, key, t) : null;
       options.onHover?.(b && key ? { key, ...b, x: e.point.x, y: e.point.y } : null);
     };
     // Picking reads pixels back from the GPU: at most every 70 ms, and always the latest position.

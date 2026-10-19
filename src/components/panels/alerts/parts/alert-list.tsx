@@ -5,6 +5,8 @@ import { Activity, CloudSun, Newspaper, SearchX, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useEscape } from '@/components/ui/use-escape';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import type { AlertItem, LocateOptions } from '@/lib/intel/alerts/live-alerts';
 import NewsRow, { newsTarget } from '@/components/panels/alerts/rows/news-row';
 import QuakeRow from '@/components/panels/alerts/rows/quake-row';
@@ -34,10 +36,10 @@ function moveFocus(e: KeyboardEvent<HTMLElement>) {
 }
 
 const EMPTY: Record<AlertTab, { icon: typeof Radio; title: string; body: string }> = {
-  all: { icon: Radio, title: 'Nothing has come in yet', body: 'The sources did not answer. Try again in a minute.' },
-  news: { icon: Newspaper, title: 'No reports right now', body: 'The channels did not answer. Try again in a minute.' },
-  warnings: { icon: CloudSun, title: 'No warnings in force', body: 'Official weather and disaster warnings show up here when issued.' },
-  quakes: { icon: Activity, title: 'No recent earthquakes', body: 'Earthquakes from USGS show up here within minutes.' },
+  all: { icon: Radio, title: msg('Nothing has come in yet'), body: msg('The sources did not answer. Try again in a minute.') },
+  news: { icon: Newspaper, title: msg('No reports right now'), body: msg('The channels did not answer. Try again in a minute.') },
+  warnings: { icon: CloudSun, title: msg('No warnings in force'), body: msg('Official weather and disaster warnings show up here when issued.') },
+  quakes: { icon: Activity, title: msg('No recent earthquakes'), body: msg('Earthquakes from USGS show up here within minutes.') },
 };
 
 export default function AlertList({ tab, groups, loading, filtersActive, now, openKey, setOpenKey, onLocate, onRetry, onClearFilters }: {
@@ -52,12 +54,13 @@ export default function AlertList({ tab, groups, loading, filtersActive, now, op
   onRetry?: () => void;
   onClearFilters: () => void;
 }) {
+  const t = useT();
   // An open alert closes before the panel does.
   useEscape(() => setOpenKey(null), openKey !== null);
 
   if (loading) {
     return (
-      <div aria-busy="true" aria-label="Reading the sources" className="flex flex-col gap-4 pt-2">
+      <div aria-busy="true" aria-label={t('Reading the sources')} className="flex flex-col gap-4 pt-2">
         {[0, 1, 2, 3, 4].map(i => (
           <div key={i} className="flex gap-3">
             <span className="mt-1.5 size-1.5 rounded-full bg-surface-3" />
@@ -74,14 +77,14 @@ export default function AlertList({ tab, groups, loading, filtersActive, now, op
   if (!groups.length) {
     if (filtersActive) {
       return (
-        <EmptyState icon={SearchX} title="Nothing matches" body="Try other words, or clear the filters to see everything."
-          action={<Button size="sm" onClick={onClearFilters}>Clear filters</Button>} />
+        <EmptyState icon={SearchX} title={t('Nothing matches')} body={t('Try other words, or clear the filters to see everything.')}
+          action={<Button size="sm" onClick={onClearFilters}>{t('Clear filters')}</Button>} />
       );
     }
     const e = EMPTY[tab];
     return (
-      <EmptyState icon={e.icon} title={e.title} body={e.body}
-        action={onRetry && (tab === 'all' || tab === 'news') ? <Button size="sm" onClick={onRetry}>Try again</Button> : undefined} />
+      <EmptyState icon={e.icon} title={t(e.title)} body={t(e.body)}
+        action={onRetry && (tab === 'all' || tab === 'news') ? <Button size="sm" onClick={onRetry}>{t('Try again')}</Button> : undefined} />
     );
   }
 
@@ -96,9 +99,9 @@ export default function AlertList({ tab, groups, loading, filtersActive, now, op
   return (
     <div className="flex flex-col gap-5" onKeyDown={moveFocus}>
       {groups.map(group => (
-        <section key={group.label} aria-label={group.label}>
+        <section key={group.label} aria-label={t(group.label)}>
           <h3 className="sticky top-0 z-[3] -mx-4 mb-1 h-8 truncate bg-surface-1 px-4 text-meta leading-8 font-medium text-ink-3">
-            {group.label}<span className="font-normal"> · {group.count.toLocaleString()}</span>
+            {t(group.label)}<span className="font-normal"> · {group.count.toLocaleString(t.intl)}</span>
           </h3>
           <ul className="flex flex-col gap-px">
             {group.entries.map(entry => {

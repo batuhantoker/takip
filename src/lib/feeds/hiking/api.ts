@@ -1,3 +1,5 @@
+import { t } from '@/lib/core/i18n/active';
+import { msg } from '@/lib/core/i18n/translator';
 import { fromMercator, type MercatorBox } from './mercator';
 import { WMT_API } from './overlay';
 
@@ -61,20 +63,21 @@ export function drawnAt(group: string, zoom: number): boolean {
 }
 
 const GROUPS: Record<string, { label: string; color: string }> = {
-  INT: { label: 'International', color: '#FF5A5A' },
-  NAT: { label: 'National', color: '#6F86FF' },
-  REG: { label: 'Regional', color: '#FFA304' },
-  LOC: { label: 'Local', color: '#B57CF2' },
-  AL1: { label: 'Hiking trail', color: '#FFD54F' },
-  AL2: { label: 'Mountain trail', color: '#FF5A5A' },
-  AL3: { label: 'Demanding mountain trail', color: '#FF5A5A' },
-  AL4: { label: 'Alpine trail', color: '#6FA8FF' },
+  INT: { label: msg('International'), color: '#FF5A5A' },
+  NAT: { label: msg('National'), color: '#6F86FF' },
+  REG: { label: msg('Regional'), color: '#FFA304' },
+  LOC: { label: msg('Local'), color: '#B57CF2' },
+  AL1: { label: msg('Hiking trail'), color: '#FFD54F' },
+  AL2: { label: msg('Mountain trail'), color: '#FF5A5A' },
+  AL3: { label: msg('Demanding mountain trail'), color: '#FF5A5A' },
+  AL4: { label: msg('Alpine trail'), color: '#6FA8FF' },
 };
 
 export function routeGroup(group: string | undefined): { label: string; color: string } {
-  return GROUPS[group ?? ''] ?? { label: group || 'Route', color: GROUPS.LOC.color };
+  const known = GROUPS[group ?? ''];
+  return known ? { ...known, label: t(known.label) } : { label: group || t('Route'), color: GROUPS.LOC.color };
 }
 
 export function routeTitle(r: Pick<RouteSummary, 'id' | 'name' | 'ref' | 'itinerary'>): string {
-  return r.name || r.ref || r.itinerary?.join(' – ') || `Route ${r.id}`;
+  return r.name || r.ref || r.itinerary?.join(' – ') || t('Route {id}', { id: String(r.id) });
 }

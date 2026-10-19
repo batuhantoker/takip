@@ -10,10 +10,12 @@ import { PROVIDER_IDS, PROVIDER_LABELS, canConnect, loadProviders, type Provider
 import { FALLBACK_ERROR } from '@/components/site/account/use-form-action';
 import ChangePasswordForm from './change-password-form';
 import { Row, Section, SignInAgain, SmallButton, needsFreshSignIn } from '@/components/site/account/settings/settings-parts';
+import { useT } from '@/components/ui/use-t';
 
 type Account = { id: string; providerId: string };
 
 export default function SignInMethods({ email }: { email: string }) {
+  const t = useT();
   const [accounts, setAccounts] = useState<Account[] | null>(null);
   const [configured, setConfigured] = useState<ProviderId[]>([]);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -38,7 +40,7 @@ export default function SignInMethods({ email }: { email: string }) {
     };
   }, []);
 
-  if (!accounts) return <Section title="Sign-in methods"><p className="text-small text-ink-3">Loading…</p></Section>;
+  if (!accounts) return <Section title={t('Sign-in methods')}><p className="text-small text-ink-3">{t('Loading…')}</p></Section>;
 
   const accountFor = (id: ProviderId) => accounts.find(a => a.providerId === id);
   const hasPassword = accounts.some(a => a.providerId === 'credential');
@@ -51,25 +53,25 @@ export default function SignInMethods({ email }: { email: string }) {
     const { error } = await action();
     setPending(false);
     if (needsFreshSignIn(error)) return setStale(true);
-    if (error) return setMessage(error.message ?? FALLBACK_ERROR);
+    if (error) return setMessage(error.message ?? t(FALLBACK_ERROR));
     if (done) setMessage(done);
     await reload();
   };
 
   return (
-    <Section title="Sign-in methods">
+    <Section title={t('Sign-in methods')}>
       {stale && <SignInAgain />}
       {message && <Notice>{message}</Notice>}
 
-      <Row icon={<KeyRound className="size-4 shrink-0 text-ink-3" aria-hidden />} label="Password" detail={hasPassword ? 'Set' : 'Not set'}>
+      <Row icon={<KeyRound className="size-4 shrink-0 text-ink-3" aria-hidden />} label={t('Password')} detail={hasPassword ? t('Set') : t('Not set')}>
         {hasPassword ? (
-          <SmallButton onClick={() => setChangingPassword(v => !v)}>{changingPassword ? 'Cancel' : 'Change'}</SmallButton>
+          <SmallButton onClick={() => setChangingPassword(v => !v)}>{changingPassword ? t('Cancel') : t('Change')}</SmallButton>
         ) : (
           <SmallButton
             disabled={pending}
-            onClick={() => run(() => authClient.requestPasswordReset({ email, redirectTo: RESET_CALLBACK }), `We sent a link to ${email} to set a password.`)}
+            onClick={() => run(() => authClient.requestPasswordReset({ email, redirectTo: RESET_CALLBACK }), t('We sent a link to {email} to set a password.', { email }))}
           >
-            Set one
+            {t('Set one')}
           </SmallButton>
         )}
       </Row>
@@ -77,7 +79,7 @@ export default function SignInMethods({ email }: { email: string }) {
         <ChangePasswordForm
           onDone={() => {
             setChangingPassword(false);
-            setMessage('Password changed.');
+            setMessage(t('Password changed.'));
           }}
         />
       )}
@@ -85,14 +87,14 @@ export default function SignInMethods({ email }: { email: string }) {
       {rows.map(id => {
         const account = accountFor(id);
         return (
-          <Row key={id} icon={PROVIDER_ICONS[id]} label={PROVIDER_LABELS[id]} detail={account ? 'Connected' : undefined}>
+          <Row key={id} icon={PROVIDER_ICONS[id]} label={PROVIDER_LABELS[id]} detail={account ? t('Connected') : undefined}>
             {account ? (
               <SmallButton
                 disabled={pending || onlyOne}
-                title={onlyOne ? "It's your only way to sign in" : undefined}
+                title={onlyOne ? t("It's your only way to sign in") : undefined}
                 onClick={() => run(() => authClient.unlinkAccount({ accountId: account.id }))}
               >
-                Disconnect
+                {t('Disconnect')}
               </SmallButton>
             ) : (
               // On success the browser leaves for the provider and comes back to these settings.
@@ -100,7 +102,7 @@ export default function SignInMethods({ email }: { email: string }) {
                 disabled={pending}
                 onClick={() => run(() => authClient.linkSocial({ provider: id, callbackURL: SETTINGS_CALLBACK, errorCallbackURL: SETTINGS_CALLBACK }))}
               >
-                Connect
+                {t('Connect')}
               </SmallButton>
             )}
           </Row>

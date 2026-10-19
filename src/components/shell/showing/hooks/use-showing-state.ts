@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useReducer } from 'react';
+import { useT } from '@/components/ui/use-t';
 import { countLayersOn } from '@/components/shell/sidebar/nav-items';
 import type { ImportedLayer } from '@/lib/map/layers/arcgis';
 import type { DrawnShape } from '@/lib/places/areas/draw';
@@ -58,6 +59,7 @@ export function useShowingState({ layers, chosen, history, families, replay, arc
   areas: DrawnShape[];
   clocks: boolean;
 }): ShowingState {
+  const t = useT();
   usePastTick(history, replay, clocks);
   const deep = !!history?.deep();
   const time = history && !deep ? history.clock.time() : replay ? replay.clock.time() : null;
@@ -68,12 +70,12 @@ export function useShowingState({ layers, chosen, history, families, replay, arc
     time,
     projected: !!history && time !== null && projectedAt(history.countries.projection(), time),
     ma: deep ? maAt(history!.deepClock.time()) : null,
-    chapter: chapter === null ? null : CHAPTERS[chapter]?.title ?? null,
+    chapter: chapter === null || !CHAPTERS[chapter] ? null : t(CHAPTERS[chapter].title),
     layers,
     paused: history || replay ? countLayersOn(chosen as Record<string, boolean>) - countLayersOn(layers as Record<string, boolean>) : 0,
     families,
     borders: history?.layers()[0] ?? null,
-    colouring: pick && pick.status !== 'off' ? { code: pick.code, name: nameOf(pick, true), ramp: rampFor(history!.countries.dark()) } : null,
+    colouring: pick && pick.status !== 'off' ? { code: pick.code, name: nameOf(pick, true, t), ramp: rampFor(history!.countries.dark()) } : null,
     arcgis: arcgis.filter(l => l.visible).map(l => ({ id: l.id, title: l.title, color: l.color })),
     areas: { count: areas.length, color: areas[0]?.color ?? null },
   };

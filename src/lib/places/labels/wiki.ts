@@ -4,6 +4,8 @@
  * name near the label, and anything that only resembles the name is refused.
  */
 
+import { msg } from '@/lib/core/i18n/translator';
+
 /** `region`s are matched by name alone; the rest by name near the label. */
 export type PlaceKind = 'region' | 'place' | 'water' | 'peak' | 'airport' | 'park' | 'poi';
 
@@ -20,7 +22,7 @@ export const SEARCH_MAX_KM: Record<Exclude<PlaceKind, 'region'>, number> = {
 };
 
 export const KIND_LABEL: Record<PlaceKind, string> = {
-  region: 'Region', place: 'Place', water: 'Water', peak: 'Peak', airport: 'Airfield', park: 'Protected area', poi: 'Place of interest',
+  region: msg('Region'), place: msg('Place'), water: msg('Water'), peak: msg('Peak'), airport: msg('Airfield'), park: msg('Protected area'), poi: msg('Place of interest'),
 };
 
 /** OpenMapTiles source-layer and class → what kind of lookup the label needs, or null for labels not worth one. */

@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const EARTH: ApiGroup = {
   id: 'earth',
-  title: 'Earth and environment',
+  title: msg('Earth and environment'),
   blurb: 'Seismic, fire, weather, disaster, radiation, health, and orbital-imagery feeds.',
   endpoints: [
     {

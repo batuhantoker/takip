@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { authClient } from '@/components/site/account/auth-client';
+import { useT } from '@/components/ui/use-t';
 import { lookupError, lookupUrl, needsSignIn, parseLeaks, runSweep, SIGN_IN_REQUIRED } from '@/lib/intel/recon/lookup';
 import { countAction } from '@/lib/platform/usage-actions';
 import type { UsageAction } from '@takip/core/usage';
@@ -53,6 +54,7 @@ async function resolveToIp(query: string): Promise<string | null> {
 
 /** All of Recon's lookup state and the one entry point that runs a tool. Kept out of the panel so the view stays small. */
 export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target: string, data: any) => void }) {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any>(null);
   const [resultTool, setResultTool] = useState<string | null>(null);
@@ -99,11 +101,11 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
       const total = Math.pow(2, 32 - cidr);
       setSweepProgress({ current: 0, total });
       try {
-        const result = await runSweep(q, cidr, total, done => setSweepProgress({ current: done, total }));
+        const result = await runSweep(q, cidr, total, done => setSweepProgress({ current: done, total }), t);
         setSweepResult(result);
         remember(tool, q);
       } catch (err: any) {
-        setError(plainError(err.message || 'Scan failed'));
+        setError(plainError(err.message || 'Scan failed', t));
       } finally {
         setSweepProgress(null);
         setLoading(false);
@@ -127,7 +129,7 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
       }
 
       const data = await res.json();
-      if (!res.ok) { setError(plainError(lookupError(data, 'Lookup failed'))); return; }
+      if (!res.ok) { setError(plainError(lookupError(data, 'Lookup failed', t), t)); return; }
 
       setResults(tool === 'leaks' ? parseLeaks(data, q) : data);
       remember(tool, q);
@@ -147,11 +149,11 @@ export function useReconLookup({ onScanGeolocate }: { onScanGeolocate?: (target:
           .catch(() => {});
       }
     } catch {
-      setError(plainError('Network error'));
+      setError(plainError('Network error', t));
     } finally {
       setLoading(false);
     }
-  }, [loading, signedIn, sweepCidr, clearResults, remember, onScanGeolocate]);
+  }, [loading, signedIn, sweepCidr, clearResults, remember, onScanGeolocate, t]);
 
   return {
     query, setQuery, results, resultTool, loading, error, setError,

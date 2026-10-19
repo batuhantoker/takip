@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
 import { Tag } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { pointView } from '@/lib/ai/forecast';
 import { mentions } from '@/lib/ai/workspace/objects';
 import type { RunState } from '@/lib/ai/state';
@@ -52,22 +54,24 @@ export function Avatar({ name, size = 28, ring }: { name: string; size?: number;
 
 /** Where a world stands in figures; how it resolved once it has. */
 export function PointTag({ point, frame }: { point: WorldPoint; frame: Frame | null }) {
-  const said = sentence(pointView(point, frame));
-  const view = point.resolved && /^(Yes|No)$/.test(said) ? said.toLowerCase() : said;
+  const t = useT();
+  const said = pointView(point, frame);
+  const view = point.resolved && said === 'YES' ? t('yes') : point.resolved && said === 'NO' ? t('no') : sentence(said, t);
   return (
-    <span title={point.resolved ? 'Resolved in this world' : 'Where the question stands in this world'}
+    <span title={point.resolved ? t('Resolved in this world') : t('Where the question stands in this world')}
       className="inline-flex h-5 shrink-0 items-center gap-1 rounded-[4px] border border-line-strong px-1.5 text-meta leading-none font-medium whitespace-nowrap text-ink-1">
-      {point.resolved && <span className="text-ink-3">Resolved</span>}
+      {point.resolved && <span className="text-ink-3">{t('Resolved')}</span>}
       <span><Figures text={view} /></span>
     </span>
   );
 }
 
 /** How an actor's move stands toward the actors it is aimed at. */
-export const STANCE: Record<Move['stance'], string> = { cooperate: 'Cooperates', pressure: 'Presses', oppose: 'Opposes', hold: 'Holds' };
+export const STANCE: Record<Move['stance'], string> = { cooperate: msg('Cooperates'), pressure: msg('Presses'), oppose: msg('Opposes'), hold: msg('Holds') };
 
 export function StanceTag({ stance }: { stance: Move['stance'] }) {
-  return <Tag>{STANCE[stance]}</Tag>;
+  const t = useT();
+  return <Tag>{t(STANCE[stance])}</Tag>;
 }
 
 /* ───────────── Object types ───────────── */

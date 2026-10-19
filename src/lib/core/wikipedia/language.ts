@@ -1,5 +1,7 @@
 /* The reader's Wikipedia, picked in Settings: popups show its article when one exists, else the one the data names. */
 
+import { activeLocale } from '@/lib/core/i18n/active';
+
 const KEY = 'takip.wiki-language';
 export const DEFAULT_WIKI_LANGUAGE = 'en';
 
@@ -18,7 +20,9 @@ export function getWikiLanguage(): string {
   } catch {
     // Storage blocked.
   }
-  return isCode(v) ? v : DEFAULT_WIKI_LANGUAGE;
+  if (isCode(v)) return v;
+  const ui = activeLocale();
+  return (WIKI_LANGUAGES as readonly string[]).includes(ui) ? ui : DEFAULT_WIKI_LANGUAGE;
 }
 
 export function setWikiLanguage(lang: string) {
@@ -31,10 +35,10 @@ export function setWikiLanguage(lang: string) {
   }
 }
 
-/** "French" for fr; the code itself where the browser has no name for it. */
-export function languageName(lang: string): string {
+/** "French" for fr, in the language `intl` names; the code itself where the browser has no name for it. */
+export function languageName(lang: string, intl = 'en'): string {
   try {
-    return new Intl.DisplayNames(['en'], { type: 'language' }).of(lang) ?? lang;
+    return new Intl.DisplayNames([intl], { type: 'language' }).of(lang) ?? lang;
   } catch {
     return lang;
   }

@@ -3,17 +3,20 @@
 import { TriangleAlert } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
 import { Dot } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { exchangeClocks } from '@/lib/intel/markets/markets';
 
 const mono = 'font-mono tabular-nums';
 
 /** Local time at the big exchanges, each with whether its regular session is open. */
 export function ExchangeClocks({ now }: { now: number }) {
+  const t = useT();
   return (
-    <div className="hidden items-center gap-3 text-meta xl:flex" title="Regular sessions, local time. Holidays and early closes are not shown.">
+    <div className="hidden items-center gap-3 text-meta xl:flex" title={t('Regular sessions, local time. Holidays and early closes are not shown.')}>
       {exchangeClocks(new Date(now)).map(c => (
         <span key={c.code} className="flex items-center gap-1.5">
-          <Dot tone={c.open ? 'green' : 'muted'} label={c.open ? `${c.code} open` : `${c.code} closed`} />
+          <Dot tone={c.open ? 'green' : 'muted'} label={c.open ? t('{exchange} open', { exchange: c.code }) : t('{exchange} closed', { exchange: c.code })} />
           <span className="text-ink-3">{c.code}</span>
           <span className={cx(mono, 'text-ink-2')}>{c.time}</span>
         </span>
@@ -24,25 +27,28 @@ export function ExchangeClocks({ now }: { now: number }) {
 
 /** "5 of 10 trading", or that every session in the section is shut. */
 export function TradingStatus({ open, total }: { open: number; total: number }) {
+  const t = useT();
   return (
     <span className="flex shrink-0 items-center gap-1.5 text-meta text-ink-3">
-      {open ? <><Dot tone="green" /><span className="tabular-nums">{open} of {total} trading</span></> : <span className="tabular-nums">All {total} closed</span>}
+      {open ? <><Dot tone="green" /><span className="tabular-nums">{t('{open} of {total} trading', { open, total })}</span></> : <span className="tabular-nums">{t('All {total} closed', { total })}</span>}
     </span>
   );
 }
 
-const PLACES: Record<string, string> = { HORMUZ: 'Strait of Hormuz', SUEZ: 'Suez Canal', PANAMA: 'Panama Canal' };
+const PLACES: Record<string, string> = { HORMUZ: msg('Strait of Hormuz'), SUEZ: msg('Suez Canal'), PANAMA: msg('Panama Canal') };
 
 /** The feed shouts these ("🚨 HORMUZ HIGH: …"); this says where, how bad, and what it means. */
-function readAlert(raw: string): { place: string | null; critical: boolean; text: string } {
+function readAlert(raw: string): { place: string | null; known: boolean; critical: boolean; text: string } {
   const m = /^\W*([A-Z]+) (HIGH|CRITICAL):\s*(.*)$/u.exec(raw);
-  if (!m) return { place: null, critical: false, text: raw.replace(/^\W+\s*/u, '') };
-  const place = PLACES[m[1]] ?? m[1].charAt(0) + m[1].slice(1).toLowerCase();
-  return { place, critical: m[2] === 'CRITICAL', text: m[3] };
+  if (!m) return { place: null, known: false, critical: false, text: raw.replace(/^\W+\s*/u, '') };
+  const known = m[1] in PLACES;
+  const place = known ? PLACES[m[1]] : m[1].charAt(0) + m[1].slice(1).toLowerCase();
+  return { place, known, critical: m[2] === 'CRITICAL', text: m[3] };
 }
 
 /** Shipping chokepoints whose congestion is moving prices. */
 export function SupplyAlerts({ alerts }: { alerts: string[] }) {
+  const t = useT();
   return (
     <ul className="flex flex-col gap-3">
       {alerts.map((raw, i) => {
@@ -53,7 +59,7 @@ export function SupplyAlerts({ alerts }: { alerts: string[] }) {
             <div className="min-w-0">
               {a.place && (
                 <p className="text-body font-medium text-ink-1">
-                  {a.place} <span className="font-normal text-ink-3">· {a.critical ? 'critical' : 'high'} congestion</span>
+                  {a.known ? t(a.place) : a.place} <span className="font-normal text-ink-3">· {a.critical ? t('critical congestion') : t('high congestion')}</span>
                 </p>
               )}
               <p className="text-small text-ink-2">{a.text}</p>
@@ -72,16 +78,23 @@ export function MarketsFooter({ spaceWeather, full }: {
   /** Room for the long form. */
   full?: boolean;
 }) {
+  const t = useT();
   const kp = spaceWeather?.kp_index;
   const level = spaceWeather?.storm_level ? String(spaceWeather.storm_level).toLowerCase() : null;
   const flare = spaceWeather?.solar_flares?.[0]?.class as string | undefined;
   return (
     <>
-      <span className="truncate">{full ? 'Prices from Yahoo Finance · charts by TradingView' : 'Prices from Yahoo Finance'}</span>
+      <span className="truncate">{full ? t('Prices from Yahoo Finance · charts by TradingView') : t('Prices from Yahoo Finance')}</span>
       {spaceWeather && (
-        <span className="ml-auto shrink-0" title={`Geomagnetic activity from NOAA, which can disturb GPS, radio and power grids${flare ? `. Latest flare ${flare}` : ''}`}>
-          {kp == null ? 'No space weather reading' : (
-            <>Space weather Kp <span className={mono}>{kp}</span>{level && full ? `, ${level}` : ''}{flare && full && <> · flare <span className={mono}>{flare}</span></>}</>
+        <span className="ml-auto shrink-0" title={flare
+          ? t('Geomagnetic activity from NOAA, which can disturb GPS, radio and power grids. Latest flare {flare}', { flare })
+          : t('Geomagnetic activity from NOAA, which can disturb GPS, radio and power grids')}>
+          {kp == null ? t('No space weather reading') : (
+            <>
+              {t.rich('Space weather Kp {kp}', { kp: <span className={mono}>{kp}</span> })}
+              {level && full ? `, ${level}` : ''}
+              {flare && full && <> · {t.rich('flare {flare}', { flare: <span className={mono}>{flare}</span> })}</>}
+            </>
           )}
         </span>
       )}

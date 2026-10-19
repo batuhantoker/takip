@@ -5,6 +5,7 @@ import { CornerDownLeft, Search } from 'lucide-react';
 import { cx } from '@/components/ui/class-names';
 import { fieldBox, fieldInput } from '@/components/ui/field-shell';
 import { Kbd } from '@/components/ui/kbd';
+import { useT } from '@/components/ui/use-t';
 import type { FunctionCode, Suggestion } from '@/lib/intel/markets/markets';
 import { sectionTitle } from '@/components/panels/markets/markets-format';
 
@@ -19,6 +20,7 @@ export default function CommandLine({ command, setCommand, pick, setPick, miss, 
   suggestions: Suggestion[];
   run: (s?: Suggestion) => void;
 }) {
+  const t = useT();
   return (
     <form onSubmit={e => { e.preventDefault(); run(pick >= 0 ? suggestions[pick] : undefined); }} className="relative">
       <div className={fieldBox('md', !!miss)}>
@@ -31,8 +33,8 @@ export default function CommandLine({ command, setCommand, pick, setPick, miss, 
             else if (e.key === 'ArrowUp' && suggestions.length) { e.preventDefault(); setPick(p => (p <= 0 ? suggestions.length - 1 : p - 1)); }
             else if (e.key === 'Escape' && command) { e.preventDefault(); setCommand(''); setPick(-1); }
           }}
-          placeholder="Ticker, name or section: LMT, gold, FX"
-          aria-label="Find a security or section"
+          placeholder={t('Ticker, name or section: LMT, gold, FX')}
+          aria-label={t('Find a security or section')}
           aria-autocomplete="list"
           aria-describedby={miss ? 'markets-find-miss' : undefined}
           autoComplete="off"
@@ -41,7 +43,7 @@ export default function CommandLine({ command, setCommand, pick, setPick, miss, 
         />
         {command && <Kbd size="sm"><CornerDownLeft aria-label="Enter" className="size-3" strokeWidth={2} /></Kbd>}
       </div>
-      {miss && <p id="markets-find-miss" className="mt-1.5 text-meta text-red">Nothing matches “{miss}”. Type help for what works.</p>}
+      {miss && <p id="markets-find-miss" className="mt-1.5 text-meta text-red">{t('Nothing matches “{miss}”. Type help for what works.', { miss })}</p>}
       {suggestions.length > 0 && (
         <ul role="listbox" className="absolute top-full right-0 left-0 z-30 mt-1 overflow-hidden rounded-float border border-line bg-surface-1 p-1 shadow-float">
           {suggestions.map((s, i) => (
@@ -53,8 +55,8 @@ export default function CommandLine({ command, setCommand, pick, setPick, miss, 
                 className={cx('flex h-8 w-full items-center gap-2.5 rounded-control px-2 text-left text-body', i === pick ? 'bg-surface-3' : '')}
               >
                 <span className="w-16 shrink-0 truncate font-mono text-small text-ink-1">{s.kind === 'function' ? s.label : s.hint}</span>
-                <span className="min-w-0 flex-1 truncate text-ink-2">{s.kind === 'function' ? sectionTitle(s.value as FunctionCode) : s.label}</span>
-                <span className="shrink-0 text-meta text-ink-3">{s.kind === 'function' ? 'Section' : 'Security'}</span>
+                <span className="min-w-0 flex-1 truncate text-ink-2">{s.kind === 'function' ? sectionTitle(s.value as FunctionCode, t) : s.label}</span>
+                <span className="shrink-0 text-meta text-ink-3">{s.kind === 'function' ? t('Section') : t('Security')}</span>
               </button>
             </li>
           ))}

@@ -4,6 +4,9 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { Hourglass, Layers, Orbit, Radar, Route, Search, TriangleAlert } from 'lucide-react';
 import { AiMark } from '@/components/panels/ti-agent/atoms';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
+import { railLabel } from '@/components/shell/sidebar/rail-labels';
 import { isShown, type BarId } from '@/components/shell/layout/lib/model';
 import { usePageLayout } from '@/components/shell/layout/use-page-layout';
 import type { ActiveRoute, MobilePanel, NavSession } from '@/components/shell/state/types';
@@ -12,15 +15,15 @@ type Tab = { id: BarId; label: string; glyph: ReactNode };
 
 const ICON = 'size-[18px]';
 const TABS: Tab[] = [
-  { id: 'layers', label: 'Layers', glyph: <Layers className={ICON} strokeWidth={1.75} /> },
-  { id: 'intel', label: 'Alerts', glyph: <TriangleAlert className={ICON} strokeWidth={1.75} /> },
-  { id: 'history', label: 'History', glyph: <Hourglass className={ICON} strokeWidth={1.75} /> },
-  { id: 'space', label: 'Space', glyph: <Orbit className={ICON} strokeWidth={1.75} /> },
-  { id: 'recon', label: 'Recon', glyph: <Radar className={ICON} strokeWidth={1.75} /> },
+  { id: 'layers', label: msg('Layers'), glyph: <Layers className={ICON} strokeWidth={1.75} /> },
+  { id: 'intel', label: msg('Alerts'), glyph: <TriangleAlert className={ICON} strokeWidth={1.75} /> },
+  { id: 'history', label: msg('History'), glyph: <Hourglass className={ICON} strokeWidth={1.75} /> },
+  { id: 'space', label: msg('Space'), glyph: <Orbit className={ICON} strokeWidth={1.75} /> },
+  { id: 'recon', label: msg('Recon'), glyph: <Radar className={ICON} strokeWidth={1.75} /> },
   { id: 'ai', label: 'TI', glyph: <AiMark size={18} /> },
-  { id: 'search', label: 'Search', glyph: <Search className={ICON} strokeWidth={1.75} /> },
+  { id: 'search', label: msg('Search'), glyph: <Search className={ICON} strokeWidth={1.75} /> },
   // Search and Route sit together: both answer "take me somewhere".
-  { id: 'route', label: 'Route', glyph: <Route className={ICON} strokeWidth={1.75} /> },
+  { id: 'route', label: msg('Route'), glyph: <Route className={ICON} strokeWidth={1.75} /> },
 ];
 
 /** The phone's bottom bar, in the person's order without what they hid: one sheet at a time, and Route, which opens at the top instead. */
@@ -32,10 +35,11 @@ export default function MobileNav({ mobilePanel, setMobilePanel, showDirections,
   navSession: NavSession | null;
   setActiveRoute: Dispatch<SetStateAction<ActiveRoute | null>>;
 }) {
+  const t = useT();
   const layout = usePageLayout();
-  const tabs = layout.phone.bar.filter(id => isShown(layout, 'phone', `bar:${id}`)).map(id => TABS.find(t => t.id === id)!);
+  const tabs = layout.phone.bar.filter(id => isShown(layout, 'phone', `bar:${id}`)).map(id => TABS.find(tab => tab.id === id)!);
   return (
-    <nav data-hud aria-label="Tools"
+    <nav data-hud data-bottom-bar aria-label={t('Tools')}
       className="fixed inset-x-0 bottom-0 z-[450] border-t border-line bg-surface-1 px-1 pb-[env(safe-area-inset-bottom)]">
       <div className="flex h-14 items-stretch gap-0.5 py-1">
         {tabs.map(tab => {
@@ -61,7 +65,7 @@ export default function MobileNav({ mobilePanel, setMobilePanel, showDirections,
                 TRANSITION,
               )}>
               <span aria-hidden className="flex size-[18px] items-center justify-center">{tab.glyph}</span>
-              <span className="max-w-full truncate">{tab.label}</span>
+              <span className="max-w-full truncate">{t(railLabel(tab.label))}</span>
             </button>
           );
         })}

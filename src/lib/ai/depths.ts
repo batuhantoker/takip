@@ -1,4 +1,5 @@
 /** How big a run is. Kept apart from the engine so the browser can read it without the server code. */
+import { msg } from '@/lib/core/i18n/translator';
 import type { Depth } from './types';
 
 /**
@@ -7,9 +8,9 @@ import type { Depth } from './types';
  * from the live TAKIP feeds, and the articles the research reads.
  */
 export const DEPTHS: Record<Depth, { label: string; actors: number; periods: number; worlds: number; feed: number; research: number }> = {
-  quick: { label: 'Quick', actors: 4, periods: 3, worlds: 2, feed: 10, research: 6 },
-  standard: { label: 'Standard', actors: 6, periods: 4, worlds: 3, feed: 12, research: 8 },
-  deep: { label: 'Deep', actors: 7, periods: 4, worlds: 4, feed: 16, research: 10 },
+  quick: { label: msg('Quick'), actors: 4, periods: 3, worlds: 2, feed: 10, research: 6 },
+  standard: { label: msg('Standard'), actors: 6, periods: 4, worlds: 3, feed: 12, research: 8 },
+  deep: { label: msg('Deep'), actors: 7, periods: 4, worlds: 4, feed: 16, research: 10 },
 };
 
 /** Model calls the simulation makes: in every world and period, each actor's move and the world engine's step. */

@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { API_GROUPS, endpointId } from '@/components/site/docs/api-catalog';
+import { useT } from '@/components/ui/use-t';
+import type { Translate } from '@/lib/core/i18n/translator';
 
 export interface PaletteItem {
   id: string;
@@ -11,11 +13,11 @@ export interface PaletteItem {
   group?: string;
 }
 
-export function buildPaletteItems(guideSections: { id: string; title: string }[]): PaletteItem[] {
+export function buildPaletteItems(guideSections: { id: string; title: string }[], t: Translate): PaletteItem[] {
   const guide: PaletteItem[] = guideSections.map(s => ({
     id: s.id,
-    label: s.title,
-    hint: 'Guide section',
+    label: t(s.title),
+    hint: t('Guide section'),
     kind: 'Guide',
   }));
 
@@ -25,7 +27,7 @@ export function buildPaletteItems(guideSections: { id: string; title: string }[]
       label: ep.path,
       hint: ep.summary,
       kind: 'Endpoint' as const,
-      group: g.title,
+      group: t(g.title),
     }))
   );
 
@@ -41,6 +43,7 @@ export default function CommandPalette({
   onClose: () => void;
   items: PaletteItem[];
 }) {
+  const t = useT();
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +117,7 @@ export default function CommandPalette({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Search documentation"
+      aria-label={t('Search documentation')}
     >
       <div
         onClick={e => e.stopPropagation()}
@@ -130,8 +133,8 @@ export default function CommandPalette({
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Search sections and endpoints…"
-            aria-label="Search documentation"
+            placeholder={t('Search sections and endpoints…')}
+            aria-label={t('Search documentation')}
             className="flex-1 bg-transparent text-[14px] text-ink-1 placeholder:text-ink-3 focus:outline-none"
           />
           <kbd className="text-[11px] font-mono px-1.5 py-0.5 rounded-[4px] border border-line-strong bg-surface-2 text-ink-2">
@@ -142,7 +145,7 @@ export default function CommandPalette({
         <div ref={listRef} className="max-h-[52vh] overflow-y-auto styled-scrollbar py-1.5">
           {results.length === 0 && (
             <div className="px-4 py-8 text-center text-[13px] text-ink-3">
-              No matches for “{query}”
+              {t('No matches for “{query}”', { query })}
             </div>
           )}
           {results.map((it, i) => (
@@ -158,7 +161,7 @@ export default function CommandPalette({
               <span
                 className="text-[11px] font-medium px-1.5 py-0.5 rounded-[4px] border border-line-strong text-ink-3 shrink-0 w-10 text-center"
               >
-                {it.kind === 'Endpoint' ? 'API' : 'Doc'}
+                {it.kind === 'Endpoint' ? 'API' : t('Doc')}
               </span>
               <span className="min-w-0 flex-1">
                 <span className={`block text-[13px] text-ink-1 truncate ${it.kind === 'Endpoint' ? 'font-mono' : 'font-medium'}`}>{it.label}</span>
@@ -176,12 +179,12 @@ export default function CommandPalette({
         <div className="flex items-center gap-4 px-4 h-9 border-t border-line text-[12px] text-ink-3">
           <span className="flex items-center gap-1">
             <kbd className="px-1 py-0.5 font-mono text-[11px] rounded-[4px] border border-line-strong bg-surface-2 text-ink-2">↑</kbd>
-            <kbd className="px-1 py-0.5 font-mono text-[11px] rounded-[4px] border border-line-strong bg-surface-2 text-ink-2">↓</kbd> to move
+            <kbd className="px-1 py-0.5 font-mono text-[11px] rounded-[4px] border border-line-strong bg-surface-2 text-ink-2">↓</kbd> {t('to move')}
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 font-mono text-[11px] rounded-[4px] border border-line-strong bg-surface-2 text-ink-2">↵</kbd> to open
+            <kbd className="px-1 py-0.5 font-mono text-[11px] rounded-[4px] border border-line-strong bg-surface-2 text-ink-2">↵</kbd> {t('to open')}
           </span>
-          <span className="ml-auto">{results.length} results</span>
+          <span className="ml-auto">{t('{n, plural, one {# result} other {# results}}', { n: results.length })}</span>
         </div>
       </div>
     </div>

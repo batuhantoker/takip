@@ -9,6 +9,7 @@
  * names it.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { t } from '@/lib/core/i18n/active';
 
 interface RecognitionResult { isFinal: boolean; 0: { transcript: string } }
 interface RecognitionEvent { resultIndex: number; results: ArrayLike<RecognitionResult> }
@@ -62,7 +63,7 @@ export function useDictation(onFinal: (text: string) => void) {
       }
       setHeard((finalRef.current + interim).trim());
     };
-    r.onerror = e => setError(e.error === 'not-allowed' ? 'Microphone permission was refused.' : e.error === 'no-speech' ? 'Nothing heard.' : 'Dictation stopped.');
+    r.onerror = e => setError(e.error === 'not-allowed' ? t('Microphone permission was refused.') : e.error === 'no-speech' ? t('Nothing heard.') : t('Dictation stopped.'));
     r.onend = () => {
       rec.current = null;
       setListening(false);

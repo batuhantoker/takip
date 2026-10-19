@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { t } from '@/lib/core/i18n/active';
 import { AU_KM, LY_KM } from '@/lib/space/astro';
 import { DEEP_FEATURES, NEARBY_GALAXIES } from '@/lib/space/deep/features';
 import { apparentMag } from '@/lib/space/deep/nearby-stars';
@@ -29,10 +30,10 @@ export function deepTargets(scene: SpaceScene, jd: number, out: Target[]) {
       if (p) out.push({ sel: { kind: 'outer', key: b.key }, position: new THREE.Vector3(...p), radiusPx: 8, text: b.name, color: b.color, priority: b.kind === 'visitor' ? VISITOR_PRIORITY : DWARF_PRIORITY });
     }
   }
-  if (f.belt > 0.4 && scene.outer.distantCount()) out.push(feature('kuiper-belt', KUIPER_LABEL, 'Kuiper belt', '#9FC4E8', 24));
+  if (f.belt > 0.4 && scene.outer.distantCount()) out.push(feature('kuiper-belt', KUIPER_LABEL, t('Kuiper belt'), '#9FC4E8', 24));
 
   if (f.heliosphere > 0.3) {
-    if (illus) for (const n of scene.heliosphere.noses()) out.push(feature(n.shell, n.position, `${DEEP_FEATURES[n.shell].name} · model`, SHELL_COLOR[n.shell], 30));
+    if (illus) for (const n of scene.heliosphere.noses()) out.push(feature(n.shell, n.position, t('{name} · model', { name: t(DEEP_FEATURES[n.shell].name) }), SHELL_COLOR[n.shell], 30));
     scene.heliosphere.crossings().forEach(c => out.push(feature(c.shell, c.position, c.label, c.color, 26)));
   }
   for (const l of scene.oort.labels(scene.sunKm, f.oort)) {
@@ -45,7 +46,7 @@ export function deepTargets(scene: SpaceScene, jd: number, out: Target[]) {
     if (l.id !== 'cmb' || f.cmb > 0.3) out.push(feature(l.id, l.position, l.name, l.id === 'cmb' ? '#FF9F6B' : '#E6D9FF', l.id === 'cmb' ? 50 : 38));
   }
   if (f.localGroup > 0.3) {
-    for (const g of NEARBY_GALAXIES) out.push(feature(g.id, new THREE.Vector3(...DEEP_FEATURES[g.id].position!), g.name, '#C9CFFF', g.diameterLy > 30_000 ? 55 : 34));
+    for (const g of NEARBY_GALAXIES) out.push(feature(g.id, new THREE.Vector3(...DEEP_FEATURES[g.id].position!), t(g.name), '#C9CFFF', g.diameterLy > 30_000 ? 55 : 34));
   }
 }
 

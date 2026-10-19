@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const MEDIA_MARKETS: ApiGroup = {
   id: 'media-markets',
-  title: 'Media and markets',
+  title: msg('Media and markets'),
   blurb: 'News aggregation, live broadcast streams, and financial instruments.',
   endpoints: [
     {

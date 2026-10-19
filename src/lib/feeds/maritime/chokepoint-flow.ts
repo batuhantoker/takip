@@ -1,3 +1,5 @@
+import { t } from '@/lib/core/i18n/active';
+import { msg } from '@/lib/core/i18n/translator';
 import { htmlEsc, pop, sentence } from '@/lib/map/popups/kit';
 
 /** As /api/chokepoints sends them. */
@@ -30,6 +32,7 @@ type Props = NonNullable<GeoJSON.GeoJsonProperties>;
 
 const COLORS = { disrupted: '#FF1744', normal: '#26C6DA', insufficient: '#8A877F' } as const;
 export const flowColor = (status: unknown) => COLORS[status as keyof typeof COLORS] ?? COLORS.insufficient;
+const STATUS: Record<string, string> = { disrupted: msg('Disrupted'), normal: msg('Normal'), insufficient: msg('Insufficient') };
 
 export function chokepointFlowFeatures(rows: ChokepointFlowRow[], disruptions: ChokepointDisruptionRow[] = []): GeoJSON.Feature<GeoJSON.Point>[] {
   const byId = new Map(disruptions.map(d => [d.id, d]));
@@ -75,19 +78,24 @@ export function chokepointFlowPopupHtml(p: Props): string {
   const ratio = Number(p.ratio);
   const totals = parse<number[]>(p.totals, []);
   const disruptions = parse<ChokepointDisruptionRow[]>(p.disruptions, []);
+  const pct = Math.round(ratio * 100);
+  const basis = p.basis === 'capacity' ? 'capacity' : 'count';
   const verdict = p.status === 'insufficient'
-    ? 'Too little history or traffic to rate.'
-    : `${Math.round(ratio * 100)}% of its previous ~90 days (${p.basis === 'capacity' ? 'tanker tonnage' : 'vessel count'})${p.status === 'disrupted' ? ', below 85% for three days running' : ''}.`;
-  const events = disruptions.map(d => `<div class="tk-pop-item-title"><span class="tk-pop-dot" style="background:${d.alertLevel?.toUpperCase() === 'RED' ? 'var(--red)' : 'var(--amber)'}"></span>${htmlEsc(d.name)}${d.fromDate ? ` · since ${htmlEsc(d.fromDate.slice(0, 10))}` : ''}</div>`).join('');
+    ? t('Too little history or traffic to rate.')
+    : p.status === 'disrupted'
+      ? t('{pct}% of its previous ~90 days ({basis, select, capacity {tanker tonnage} other {vessel count}}), below 85% for three days running.', { pct, basis })
+      : t('{pct}% of its previous ~90 days ({basis, select, capacity {tanker tonnage} other {vessel count}}).', { pct, basis });
+  const events = disruptions.map(d => `<div class="tk-pop-item-title"><span class="tk-pop-dot" style="background:${d.alertLevel?.toUpperCase() === 'RED' ? 'var(--red)' : 'var(--amber)'}"></span>${htmlEsc(d.name)}${d.fromDate ? ` · ${htmlEsc(t('since {date}', { date: d.fromDate.slice(0, 10) }))}` : ''}</div>`).join('');
+  const status = String(p.status ?? '');
   return pop({
-    kicker: 'Strait traffic',
+    kicker: t('Strait traffic'),
     dot: color,
-    meta: sentence(p.status),
+    meta: STATUS[status] ? t(STATUS[status]) : sentence(p.status),
     title: p.name,
     body: `<div>${htmlEsc(verdict)}</div>${sparkline(totals, color)}
-      <div class="tk-pop-note">Vessels a day, last 30 days to ${htmlEsc(p.latestDate ?? '—')} (published weekly). Rated against this strait’s own recent past, so a long closure becomes its own baseline.</div>
-      ${events ? `<div class="tk-pop-label">Disruptions</div>${events}` : ''}`,
-    note: 'IMF PortWatch · daily transits',
+      <div class="tk-pop-note">${htmlEsc(t('Vessels a day, last 30 days to {date} (published weekly). Rated against this strait’s own recent past, so a long closure becomes its own baseline.', { date: String(p.latestDate ?? '—') }))}</div>
+      ${events ? `<div class="tk-pop-label">${htmlEsc(t('Disruptions'))}</div>${events}` : ''}`,
+    note: t('IMF PortWatch · daily transits'),
     links: [{ href: 'https://portwatch.imf.org/', label: 'PortWatch' }],
   });
 }

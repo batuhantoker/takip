@@ -2,8 +2,9 @@ import type { InputHTMLAttributes, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { TextField } from '@/components/ui/field';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
+import { msg } from '@/lib/core/i18n/translator';
 
-export const PASSWORDS_DIFFER = "The two passwords don't match.";
+export const PASSWORDS_DIFFER = msg("The two passwords don't match.");
 
 /** For a bare <input> outside the kit's TextField; drawn the same way. */
 export const INPUT =

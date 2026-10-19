@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, Link2, LocateFixed, ZoomIn } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
+import { useT } from '@/components/ui/use-t';
 import type { MapRef } from '@/components/map/types';
 import { trackLink, type TrackTarget } from '@/components/map/inspect/track-request';
 import { countAction } from '@/lib/platform/usage-actions';
@@ -17,6 +18,7 @@ export function MoveActions({ mapRef, lat, lng, zoom, following, onFollow, share
   onFollow?: (on: boolean) => void;
   share?: TrackTarget;
 }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -38,16 +40,16 @@ export function MoveActions({ mapRef, lat, lng, zoom, following, onFollow, share
       clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt('Copy this link', link);
+      window.prompt(t('Copy this link'), link);
     }
   };
   return (
     <>
       {onFollow && (
-        <IconButton label={following ? 'Stop following' : 'Follow'} icon={LocateFixed} active={following} onClick={() => onFollow(!following)} />
+        <IconButton label={following ? t('Stop following') : t('Follow')} icon={LocateFixed} active={following} onClick={() => onFollow(!following)} />
       )}
-      <IconButton label="Zoom to" icon={ZoomIn} onClick={zoomTo} />
-      {share && <IconButton label={copied ? 'Link copied' : 'Copy a link that follows this'} icon={copied ? Check : Link2} onClick={copyLink} />}
+      <IconButton label={t('Zoom to')} icon={ZoomIn} onClick={zoomTo} />
+      {share && <IconButton label={copied ? t('Link copied') : t('Copy a link that follows this')} icon={copied ? Check : Link2} onClick={copyLink} />}
     </>
   );
 }

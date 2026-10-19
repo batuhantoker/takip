@@ -2,6 +2,7 @@
 
 import type { HistorySession } from '@/lib/history/session';
 import { ALIGNMENTS, WAR_LAYERS } from '@/lib/history/war-layers';
+import { useT } from '@/components/ui/use-t';
 import { LegendCard } from './legend-card';
 import { Swatch } from '@/components/panels/history/parts/swatch';
 
@@ -11,17 +12,18 @@ export const occupiedFill = (color: string) => `repeating-linear-gradient(135deg
 
 /** Over the History timeline while wartime borders are on: what the colours mean and where the borders come from. */
 export default function WarLegend({ session }: { session: HistorySession }) {
+  const t = useT();
   const layers = WAR_LAYERS.filter(l => session.layers().includes(l.code));
   if (!layers.length) return null;
   return (
-    <LegendCard title={layers.map(l => l.label).join(', ')} meta={layers.map(l => l.years).join(', ')}
-      closeLabel="Hide the borders" onClose={() => layers.forEach(l => session.setLayer(l.code, false))}
-      source={<>{layers.map(l => l.note).join(' ')} From the Stanford Spatial History Lab.</>}>
+    <LegendCard title={layers.map(l => t(l.label)).join(', ')} meta={layers.map(l => l.years).join(', ')}
+      closeLabel={t('Hide the borders')} onClose={() => layers.forEach(l => session.setLayer(l.code, false))}
+      source={<>{layers.map(l => t(l.note)).join(' ')} {t('From the Stanford Spatial History Lab.')}</>}>
       <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
         {ALIGNMENTS.map(a => (
           <li key={a.key} className="flex min-w-0 items-center gap-2 text-small text-ink-2">
             <Swatch color={a.color} shape="bar" style={a.key === 'occupied' ? { background: occupiedFill(a.color) } : undefined} />
-            <span className="truncate">{a.label}</span>
+            <span className="truncate">{t(a.label)}</span>
           </li>
         ))}
       </ul>

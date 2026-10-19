@@ -6,9 +6,11 @@ import { cx, ENTER } from '@/components/ui/class-names';
 import { Panel } from '@/components/ui/panel';
 import { Segmented } from '@/components/ui/segmented';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { FloatingWindow, WindowFoldButton } from '@/components/map/windows';
 import { KINDS } from '@/components/map/windows/kinds';
-import { usePlaceName } from '@/components/map/inspect/use-place-name';
+import { placeName, usePlaceName } from '@/components/map/inspect/use-place-name';
 import type { MapRef } from '@/components/map/types';
 import type { AreaGeometry } from '@/lib/places/areas/aoi';
 import { MAX_AREA_KM, areaAround, areaLabel, areaOfBox, areaOfShape, type Bbox, type ImageryArea } from '@/lib/feeds/imagery/area';
@@ -25,11 +27,11 @@ export type ImageryTarget = { lat: number; lng: number } | { shape: AreaGeometry
 
 type Scope = '10' | '50' | '200' | 'view';
 const SCOPES: { value: Scope; label: string }[] = [
-  { value: '10', label: '10 km' }, { value: '50', label: '50 km' }, { value: '200', label: '200 km' }, { value: 'view', label: 'Map view' },
+  { value: '10', label: '10 km' }, { value: '50', label: '50 km' }, { value: '200', label: '200 km' }, { value: 'view', label: msg('Map view') },
 ];
 
 const COLLECTION_NAME: Record<string, string> = {
-  'sentinel-2-l2a': 'Sentinel-2', 'sentinel-1-rtc': 'Sentinel-1', 'landsat-c2-l2': 'Landsat', all: 'the image catalogue',
+  'sentinel-2-l2a': 'Sentinel-2', 'sentinel-1-rtc': 'Sentinel-1', 'landsat-c2-l2': 'Landsat', all: msg('the image catalogue'),
 };
 
 function mapBox(mapRef: MapRef): Bbox | null {
@@ -53,6 +55,7 @@ function frame(mapRef: MapRef, [w, s, e, n]: Bbox, rightInset: number) {
  * where the picked pass's satellite is now.
  */
 export function SatelliteImages({ target, mapRef, onClose }: { target: ImageryTarget; mapRef: MapRef; onClose: () => void }) {
+  const t = useT();
   const [scope, setScope] = useState<Scope>('10');
   const [viewBox, setViewBox] = useState<Bbox | null>(null);
   const area = useMemo<ImageryArea>(() => {
@@ -68,7 +71,8 @@ export function SatelliteImages({ target, mapRef, onClose }: { target: ImageryTa
   const imager = pass && !pass.mix ? pass.lead.imager : undefined;
   useImageryOverlay(mapRef, area, pass, imager ? data.elements.get(imager.norad) : undefined, imager?.name);
   const place = usePlaceName(area.center.lat, area.center.lng);
-  const name = 'shape' in target ? target.name : place?.name ?? 'this place';
+  const name = 'shape' in target ? target.name : place ? placeName(t, place) : t('this place');
+  const collection = (id: string) => (COLLECTION_NAME[id] ? t(COLLECTION_NAME[id]) : id);
   const { state: save, save: onSave } = useSaveImage(area.bbox, name);
   const isMobile = useIsMobile();
   const inset = isMobile ? 0 : KINDS.imagery.width;
@@ -87,22 +91,24 @@ export function SatelliteImages({ target, mapRef, onClose }: { target: ImageryTa
   };
 
   const panel = (
-    <Panel docked={false} title="Satellite images" subtitle={`${areaLabel(area)} · ${name}`} icon={Satellite} onClose={onClose}
+    <Panel docked={false} title={t('Satellite images')} subtitle={`${areaLabel(area)} · ${name}`} icon={Satellite} onClose={onClose}
       className={isMobile ? 'max-h-[inherit]' : undefined} closeOnEscape={isMobile}
       actions={isMobile ? undefined : <WindowFoldButton />}
       footer={<span>{IMAGERY_CREDIT}</span>}>
       {'lat' in target && (
-        <Segmented size="sm" full label="Area to search" options={SCOPES} value={scope} onChange={pickScope} className="mb-4" />
+        <Segmented size="sm" full label={t('Area to search')} options={SCOPES.map(s => ({ value: s.value, label: t(s.label) }))} value={scope} onChange={pickScope} className="mb-4" />
       )}
       {area.clamped && (
         <p className="mb-3 text-meta text-ink-3">
-          {'shape' in target ? 'This area is' : 'The map view is'} wider than {MAX_AREA_KM} km, so this searches the {MAX_AREA_KM} km in the middle.
+          {'shape' in target
+            ? t('This area is wider than {km} km, so this searches the {km} km in the middle.', { km: MAX_AREA_KM })
+            : t('The map view is wider than {km} km, so this searches the {km} km in the middle.', { km: MAX_AREA_KM })}
         </p>
       )}
       {data.loading ? (
         <div className="flex items-center gap-2 py-6 text-small text-ink-3">
           <LoaderCircle aria-hidden className="size-4 animate-spin motion-reduce:animate-none" strokeWidth={1.75} />
-          Searching the last {SEARCH_DAYS} days of passes…
+          {t('Searching the last {n} days of passes…', { n: SEARCH_DAYS })}
         </div>
       ) : (
         <>
@@ -110,18 +116,18 @@ export function SatelliteImages({ target, mapRef, onClose }: { target: ImageryTa
           <SceneList passes={data.passes} mix={data.mix} days={SEARCH_DAYS} selected={selected} onSelect={select} elements={data.elements} now={now}
             save={save} onSave={onSave}
             onShowSatellite={sat => mapRef.current?.easeTo({ center: [sat.lng, sat.lat], zoom: 2.5, duration: 1600 })} />
-          {data.truncated.map(t => (
-            <p key={t.collection} className="mt-2 text-meta text-ink-3">
-              {COLLECTION_NAME[t.collection] ?? t.collection} has more tiles here than one search returns, so its images go back only to {shortDate(t.since)}.
+          {data.truncated.map(cut => (
+            <p key={cut.collection} className="mt-2 text-meta text-ink-3">
+              {t('{collection} has more tiles here than one search returns, so its images go back only to {date}.', { collection: collection(cut.collection), date: shortDate(cut.since, t.intl) })}
             </p>
           ))}
           {data.failed.length > 0 && (
-            <p className="mt-2 text-meta text-ink-3">Couldn&apos;t reach {data.failed.map(c => COLLECTION_NAME[c] ?? c).join(', ')}; the list may be missing images.</p>
+            <p className="mt-2 text-meta text-ink-3">{t("Couldn't reach {sources}; the list may be missing images.", { sources: data.failed.map(collection).join(', ') })}</p>
           )}
         </>
       )}
     </Panel>
   );
-  if (!isMobile) return <FloatingWindow id="imagery" kind="imagery" label="Satellite images" onClose={onClose}>{panel}</FloatingWindow>;
+  if (!isMobile) return <FloatingWindow id="imagery" kind="imagery" label={t('Satellite images')} onClose={onClose}>{panel}</FloatingWindow>;
   return <div className={cx('absolute top-16 right-2 left-2 z-[300]', ENTER)} style={{ maxHeight: 'min(70vh, 640px)' }}>{panel}</div>;
 }

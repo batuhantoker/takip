@@ -3,6 +3,7 @@
 import { type MouseEvent, useMemo, useState } from 'react';
 import { climateAt } from '@/lib/history/paleo/climate';
 import { formatMa, periodAt } from '@/lib/history/paleo/deep-time';
+import { useT } from '@/components/ui/use-t';
 
 const W = 368;
 const H = 64;
@@ -14,6 +15,7 @@ const deg = (v: number) => `${Math.round(v)}°`;
 
 /** Global temperature over the PhanDA record: the median, its 16–84% range, today's level and the clock's age. Click to go there. */
 export default function ClimateChart({ rows, ma, onSeek }: { rows: number[][]; ma: number; onSeek: (ma: number) => void }) {
+  const t = useT();
   const [hover, setHover] = useState<number | null>(null);
   const oldest = rows[rows.length - 1][0];
   const geo = useMemo(() => {
@@ -45,14 +47,14 @@ export default function ClimateChart({ rows, ma, onSeek }: { rows: number[][]; m
           <span className="min-w-0 flex-1 truncate">
             <span className="font-mono font-medium text-ink-1 tabular-nums">{shown.gmst.mid.toFixed(1)} °C</span>
             <span className="font-mono tabular-nums"> {deg(shown.gmst.lo)}–{deg(shown.gmst.hi)}</span>
-            <span className="text-ink-2"> · {formatMa(hover)} · {periodAt(hover).name}</span>
+            <span className="text-ink-2"> · {formatMa(hover, t.intl)} · {t(periodAt(hover).name)}</span>
           </span>
-        ) : <span className="flex-1 font-medium">Global temperature</span>}
+        ) : <span className="flex-1 font-medium">{t('Global temperature')}</span>}
         <svg aria-hidden width="14" height="2" className="shrink-0"><line x1="0" x2="14" y1="1" y2="1" stroke="var(--ink-4)" strokeWidth={2} strokeDasharray="2 3" /></svg>
-        <span>today</span>
+        <span>{t('today')}</span>
       </figcaption>
       <svg viewBox={`0 0 ${W} ${H + AXIS}`} className="block h-auto w-full cursor-crosshair select-none" role="img"
-        aria-label={`Global mean surface temperature, ${Math.round(oldest)} million years ago to today`}
+        aria-label={t('Global mean surface temperature, {n} million years ago to today', { n: Math.round(oldest) })}
         onPointerMove={e => setHover(snap(ageAt(e)))} onPointerLeave={() => setHover(null)} onClick={e => onSeek(ageAt(e))}>
         <line x1={PAD_L} x2={W} y1={geo.y(geo.today)} y2={geo.y(geo.today)} stroke="var(--ink-4)" strokeDasharray="2 3" />
         <polygon points={geo.band} fill="var(--ink-1)" fillOpacity={0.08} />
@@ -60,9 +62,9 @@ export default function ClimateChart({ rows, ma, onSeek }: { rows: number[][]; m
         {[geo.lo, geo.hi].map(v => (
           <text key={v} x={PAD_L - 6} y={geo.y(v) + (v === geo.hi ? 8 : 0)} textAnchor="end" fill="var(--ink-3)" fontSize={11} className="font-mono tabular-nums">{deg(v)}</text>
         ))}
-        {ticks.map(t => (
-          <text key={t} x={geo.x(t)} y={H + AXIS - 3} textAnchor={t === oldest ? 'start' : t === 0 ? 'end' : 'middle'} fill="var(--ink-3)" fontSize={11} className="font-mono tabular-nums">
-            {t === 0 ? 'now' : `${Math.round(t)} Ma`}
+        {ticks.map(tick => (
+          <text key={tick} x={geo.x(tick)} y={H + AXIS - 3} textAnchor={tick === oldest ? 'start' : tick === 0 ? 'end' : 'middle'} fill="var(--ink-3)" fontSize={11} className="font-mono tabular-nums">
+            {tick === 0 ? t('now') : `${Math.round(tick)} Ma`}
           </text>
         ))}
         {now && (

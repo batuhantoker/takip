@@ -7,6 +7,7 @@ import { cx } from '@/components/ui/class-names';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
+import { useT } from '@/components/ui/use-t';
 import LayerSection from '@/components/panels/layers/parts/layer-section';
 import LayersOnMap from '@/components/panels/layers/parts/layers-on-map';
 import { useLayerBrowser } from './use-layer-browser';
@@ -27,19 +28,20 @@ const NO_CAPABILITIES: Record<string, boolean> = {};
 
 /** The docked Layers panel: find a layer, see what is on, and switch things on and off by group. */
 function LayersPane({ data, activeLayers, setActiveLayers, capabilities = NO_CAPABILITIES, onClose }: LayersPaneProps) {
+  const t = useT();
   const b = useLayerBrowser({ data, activeLayers, setActiveLayers, capabilities });
   const [scrolled, setScrolled] = useState(false);
 
   return (
     <Panel
-      title="Layers"
-      meta={b.onMap.length > 0 ? `${b.onMap.length} on` : undefined}
+      title={t('Layers')}
+      meta={b.onMap.length > 0 ? t('{n} on', { n: b.onMap.length }) : undefined}
       onClose={onClose}
       bare
-      actions={<IconButton label="Collapse all groups" icon={ChevronsDownUp} disabled={!b.anyOpen} onClick={b.collapseAll} />}
+      actions={<IconButton label={t('Collapse all groups')} icon={ChevronsDownUp} disabled={!b.anyOpen} onClick={b.collapseAll} />}
     >
       <div className={cx('shrink-0 border-b px-4 pb-3 transition-colors duration-150', scrolled ? 'border-line' : 'border-transparent')}>
-        <SearchField value={b.query} onChange={b.setQuery} placeholder={`Search ${b.layerTotal} layers`} autoComplete="off" spellCheck={false} />
+        <SearchField value={b.query} onChange={b.setQuery} placeholder={t('Search {n} layers', { n: b.layerTotal })} autoComplete="off" spellCheck={false} />
       </div>
       <div className="styled-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4" onScroll={e => setScrolled(e.currentTarget.scrollTop > 0)}>
         {!b.searching && (
@@ -48,10 +50,10 @@ function LayersPane({ data, activeLayers, setActiveLayers, capabilities = NO_CAP
           </div>
         )}
         {b.shown.length === 0 ? (
-          <EmptyState icon={SearchX} title={`No layers match “${b.query.trim()}”`} body="Search matches layer names and their sources, such as ships, quakes or ADS-B." />
+          <EmptyState icon={SearchX} title={t('No layers match “{query}”', { query: b.query.trim() })} body={t('Search matches layer names and their sources, such as ships, quakes or ADS-B.')} />
         ) : (
           <div>
-            {b.searching && <p role="status" className="mb-1 text-meta text-ink-3">{b.matchCount === 1 ? '1 layer matches' : `${b.matchCount} layers match`}</p>}
+            {b.searching && <p role="status" className="mb-1 text-meta text-ink-3">{t('{n, plural, one {# layer matches} other {# layers match}}', { n: b.matchCount })}</p>}
             <div>
               {b.shown.map(section => (
                 <LayerSection

@@ -7,6 +7,7 @@ import { TextField } from '@/components/ui/field';
 import { ListRow } from '@/components/ui/list-row';
 import { MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
+import { useT } from '@/components/ui/use-t';
 import { queryArea, type DrawnShape } from '@/lib/places/areas/draw';
 import { measures } from '@/components/panels/areas/area-view';
 import { Figure } from '@/components/ui/figure';
@@ -23,10 +24,11 @@ export default function AreaRow({ shape, selected, watched, onSelect, onToggleWa
   onShow: () => void;
   onImagery?: () => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(shape.name);
   const [copied, setCopied] = useState(false);
-  const { primary, secondary } = measures(shape);
+  const { primary, secondary } = measures(shape, t.intl);
   const watchable = !!onToggleWatch && !!queryArea(shape);
 
   const commit = () => {
@@ -47,7 +49,7 @@ export default function AreaRow({ shape, selected, watched, onSelect, onToggleWa
       <div className="-mx-2 flex min-h-10 items-center gap-3 rounded-control bg-surface-2 px-2 py-1">
         <Swatch color={shape.color} />
         <TextField
-          aria-label="Name"
+          aria-label={t('Name')}
           size="sm"
           autoFocus
           value={draft}
@@ -71,8 +73,9 @@ export default function AreaRow({ shape, selected, watched, onSelect, onToggleWa
       title={shape.name}
       subtitle={
         <>
-          <Figure>{primary}</Figure>
-          {secondary ? <> · <Figure>{secondary}</Figure> perimeter</> : ' long'}
+          {secondary
+            ? t.rich('{area} · {perimeter} perimeter', { area: <Figure>{primary}</Figure>, perimeter: <Figure>{secondary}</Figure> })
+            : t.rich('{length} long', { length: <Figure>{primary}</Figure> })}
         </>
       }
       selected={selected}
@@ -80,17 +83,17 @@ export default function AreaRow({ shape, selected, watched, onSelect, onToggleWa
       trailing={<>
         {watchable && (
           <IconButton size="sm" icon={watched ? WatchingBell : Bell} active={watched} onClick={onToggleWatch}
-            label={watched ? 'Stop watching' : 'Watch for things entering or leaving'} />
+            label={watched ? t('Stop watching') : t('Watch for things entering or leaving')} />
         )}
-        <IconButton size="sm" icon={Trash2} label={`Delete ${shape.name}`} onClick={onDelete} />
-        <Popover role="menu" label={`${shape.name} options`} placement="bottom" align="end" className="w-52 p-1"
-          trigger={<IconButton size="sm" icon={MoreHorizontal} label="More" />}>
+        <IconButton size="sm" icon={Trash2} label={t('Delete {name}', { name: shape.name })} onClick={onDelete} />
+        <Popover role="menu" label={t('{name} options', { name: shape.name })} placement="bottom" align="end" className="w-52 p-1"
+          trigger={<IconButton size="sm" icon={MoreHorizontal} label={t('More')} />}>
           {close => (
             <>
-              <MenuItem icon={Crosshair} onSelect={() => { onShow(); close(); }}>Show on map</MenuItem>
-              {onImagery && queryArea(shape) && <MenuItem icon={Satellite} onSelect={() => { onImagery(); close(); }}>Satellite images</MenuItem>}
-              <MenuItem icon={PenLine} onSelect={() => { setDraft(shape.name); setEditing(true); close(); }}>Rename</MenuItem>
-              <MenuItem icon={copied ? Check : Copy} onSelect={copy} hint={copied ? 'Copied' : undefined}>Copy as GeoJSON</MenuItem>
+              <MenuItem icon={Crosshair} onSelect={() => { onShow(); close(); }}>{t('Show on map')}</MenuItem>
+              {onImagery && queryArea(shape) && <MenuItem icon={Satellite} onSelect={() => { onImagery(); close(); }}>{t('Satellite images')}</MenuItem>}
+              <MenuItem icon={PenLine} onSelect={() => { setDraft(shape.name); setEditing(true); close(); }}>{t('Rename')}</MenuItem>
+              <MenuItem icon={copied ? Check : Copy} onSelect={copy} hint={copied ? t('Copied') : undefined}>{t('Copy as GeoJSON')}</MenuItem>
             </>
           )}
         </Popover>

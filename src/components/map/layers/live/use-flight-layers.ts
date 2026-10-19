@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import type * as maplibregl from 'maplibre-gl';
+import { t } from '@/lib/core/i18n/active';
 import type { Airport } from '@/lib/feeds/aviation/flight-watch';
 import { EMERGENCY_SOURCE, emergencyOf } from '@/lib/feeds/aviation/emergency';
 import type { FlightLayer } from '@/components/map/inspect/types';
@@ -21,7 +22,7 @@ export function useFlightLayers({ mapReady, data, activeLayers, setGeo }: LayerH
       let filtered = arr || [];
       // Aircraft in distress go to their own layer, every one of them.
       filtered = filtered.filter(f => {
-        const declared = emergencyOf(f);
+        const declared = emergencyOf(f, t);
         if (declared) emergencies.push(point(f, { ...props(f), declared, layer }));
         return !declared;
       });

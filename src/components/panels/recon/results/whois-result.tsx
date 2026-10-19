@@ -2,6 +2,7 @@
 
 import type { Tone } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 import { ResultRow, SanctionsBadge, day, fromNow, plain, type ToolResultProps } from './result-primitives';
 
 type Entity = { roles?: string[]; name?: string; org?: string };
@@ -24,6 +25,7 @@ const party = (entities: Entity[], role: string) => {
 
 /** Who registered a domain and when (RDAP), and how its website answers. */
 export function WhoisResult({ r, query }: ToolResultProps) {
+  const t = useT();
   const rdap = r.rdap;
   const entities: Entity[] = rdap?.entities ?? [];
   const http = r.http;
@@ -33,32 +35,32 @@ export function WhoisResult({ r, query }: ToolResultProps) {
   return (
     <div>
       <SanctionsBadge match={r.sanctions_match} />
-      <PanelSection title="Registration">
+      <PanelSection title={t('Domain registration')}>
         {rdap ? (
           <>
-            <ResultRow label="Domain" value={(rdap.name || r.domain || query).toLowerCase()} mono={false} />
-            <ResultRow label="Registrar" value={party(entities, 'registrar')} mono={false} />
-            <ResultRow label="Registrant" value={party(entities, 'registrant')} mono={false} />
-            <ResultRow label="Registered" value={day(r.registration)} note={fromNow(r.registration)} />
-            <ResultRow label="Expires" value={day(r.expiration)} note={fromNow(r.expiration)} />
-            <ResultRow label="Last changed" value={day(r.last_changed)} note={fromNow(r.last_changed)} />
-            <ResultRow label="Status" value={(rdap.status ?? []).map(plain)} mono={false} />
-            <ResultRow label="Name servers" value={(rdap.nameservers ?? []).map((n: string) => n.toLowerCase())} mono={false} />
+            <ResultRow label={t('Domain')} value={(rdap.name || r.domain || query).toLowerCase()} mono={false} />
+            <ResultRow label={t('Registrar')} value={party(entities, 'registrar')} mono={false} />
+            <ResultRow label={t('Registrant')} value={party(entities, 'registrant')} mono={false} />
+            <ResultRow label={t('Registered')} value={day(r.registration, t.intl)} note={fromNow(r.registration, t.intl)} />
+            <ResultRow label={t('Expires')} value={day(r.expiration, t.intl)} note={fromNow(r.expiration, t.intl)} />
+            <ResultRow label={t('Last changed')} value={day(r.last_changed, t.intl)} note={fromNow(r.last_changed, t.intl)} />
+            <ResultRow label={t('Status')} value={(rdap.status ?? []).map(plain)} mono={false} />
+            <ResultRow label={t('Name servers')} value={(rdap.nameservers ?? []).map((n: string) => n.toLowerCase())} mono={false} />
           </>
         ) : (
-          <p className="text-small text-ink-2">No registration record came back. Some country domains don’t publish one.</p>
+          <p className="text-small text-ink-2">{t('No registration record came back. Some country domains don’t publish one.')}</p>
         )}
       </PanelSection>
 
       {http && (
-        <PanelSection title="Website">
-          <ResultRow label="Answers with" value={`HTTP ${http.status}`} mono={false}
-            note={http.redirected && http.final_url ? `after redirecting to ${http.final_url}` : undefined} />
-          <ResultRow label="Server" value={http.headers?.server} mono={false} />
-          <ResultRow label="Powered by" value={http.headers?.['x-powered-by']} mono={false} />
+        <PanelSection title={t('Website')}>
+          <ResultRow label={t('Answers with')} value={`HTTP ${http.status}`} mono={false}
+            note={http.redirected && http.final_url ? t('after redirecting to {url}', { url: http.final_url }) : undefined} />
+          <ResultRow label={t('Server')} value={http.headers?.server} mono={false} />
+          <ResultRow label={t('Powered by')} value={http.headers?.['x-powered-by']} mono={false} />
           {score && (
-            <ResultRow label="Security headers" value={`Grade ${score.grade} · ${score.score} of ${score.max} points`} mono={false}
-              tone={GRADE_TONE[score.grade]} note={missing.length ? `Missing ${missing.join(', ')}` : 'All the protective headers are set'} />
+            <ResultRow label={t('Security headers')} value={t('Grade {grade} · {score} of {max} points', { grade: score.grade, score: score.score, max: score.max })} mono={false}
+              tone={GRADE_TONE[score.grade]} note={missing.length ? t('Missing {headers}', { headers: missing.join(', ') }) : t('All the protective headers are set')} />
           )}
         </PanelSection>
       )}

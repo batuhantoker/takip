@@ -1,11 +1,13 @@
 'use client';
 
 import { ALL_SECTIONS } from '@/components/site/docs/docs-sections';
+import { useT } from '@/components/ui/use-t';
 
 export function DocsRail({ active }: { active: string }) {
+  const t = useT();
   return (
     <aside className="hidden xl:block w-52 shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto styled-scrollbar py-16">
-      <div className="text-[12px] font-medium text-ink-3 mb-3">On this page</div>
+      <div className="text-[12px] font-medium text-ink-3 mb-3">{t('On this page')}</div>
       <div className="space-y-0.5">
         {ALL_SECTIONS.map(s => (
           <a
@@ -15,7 +17,7 @@ export function DocsRail({ active }: { active: string }) {
               active === s.id ? 'text-ink-1 font-medium' : 'text-ink-3 hover:text-ink-2'
             }`}
           >
-            {s.title}
+            {t(s.title)}
           </a>
         ))}
       </div>
@@ -27,7 +29,7 @@ export function DocsRail({ active }: { active: string }) {
         <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="m18 15-6-6-6 6" />
         </svg>
-        Back to top
+        {t('Back to top')}
       </button>
     </aside>
   );

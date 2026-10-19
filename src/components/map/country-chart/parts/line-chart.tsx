@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useT } from '@/components/ui/use-t';
 import type { ChartedCountry } from '@/lib/history/countries/chart';
 import { countryReading, formatYear, type SeriesPayload } from '@/lib/history/series';
 import { SERIES_INK } from '@/lib/map/style/tokens';
@@ -15,7 +16,6 @@ const PAD_T = 8;
 const AXIS = 20;
 /** Head labels flip to the dot's left this close to the right edge. */
 const FLIP_AT = W - 96;
-const TICK = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 2 });
 /** A press that moves less than this is a click (go there), more a drag (zoom to it). */
 const DRAG_PX = 6;
 
@@ -76,6 +76,8 @@ export function LineChart({ data, log, countries, at, hover, range, onHover, onS
   /** In the chart's own units; it is drawn 368 wide and scales to the window. */
   height?: number;
 }) {
+  const t = useT();
+  const tick = useMemo(() => new Intl.NumberFormat(t.intl, { notation: 'compact', maximumFractionDigits: 2 }), [t.intl]);
   const clipId = useId();
   const plotId = useId();
   const svg = useRef<SVGSVGElement>(null);
@@ -161,7 +163,7 @@ export function LineChart({ data, log, countries, at, hover, range, onHover, onS
   const names = countries.map(c => c.name).join(', ');
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full cursor-crosshair touch-none select-none" role="img"
-      aria-label={`${data.metric.name} for ${names}, ${formatYear(Math.floor(t0))} to ${formatYear(Math.floor(t1 - 0.5))}`}
+      aria-label={t('{metric} for {names}, {from} to {to}', { metric: data.metric.name, names, from: formatYear(Math.floor(t0), t), to: formatYear(Math.floor(t1 - 0.5), t) })}
       ref={svg}
       onPointerDown={e => {
         if (e.button !== 0) return;
@@ -189,13 +191,13 @@ export function LineChart({ data, log, countries, at, hover, range, onHover, onS
       {axis.ticks.map(t => (
         <g key={t}>
           <line x1={PAD_L} x2={W - PAD_R} y1={y(t)} y2={y(t)} stroke="var(--line)" />
-          <text x={PAD_L - 6} y={y(t) + 4} textAnchor="end" fill="var(--ink-3)" fontSize={11} className="font-mono tabular-nums">{TICK.format(t)}</text>
+          <text x={PAD_L - 6} y={y(t) + 4} textAnchor="end" fill="var(--ink-3)" fontSize={11} className="font-mono tabular-nums">{tick.format(t)}</text>
         </g>
       ))}
-      {timeTicks(t0, t1).map(t => {
-        const tx = x(t);
+      {timeTicks(t0, t1).map(tick => {
+        const tx = x(tick);
         const anchor = tx < PAD_L + 16 ? 'start' : tx > W - 20 ? 'end' : 'middle';
-        return <text key={t} x={tx} y={H - 5} textAnchor={anchor} fill="var(--ink-3)" fontSize={11} className="font-mono tabular-nums">{formatYear(t)}</text>;
+        return <text key={tick} x={tx} y={H - 5} textAnchor={anchor} fill="var(--ink-3)" fontSize={11} className="font-mono tabular-nums">{formatYear(tick, t)}</text>;
       })}
       {inside(at) && <line x1={headX} x2={headX} y1={PAD_T} y2={PLOT_B} stroke="var(--accent)" strokeOpacity={0.5} />}
       {lines.map(l => (

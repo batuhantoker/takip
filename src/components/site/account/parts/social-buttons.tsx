@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { SIGN_IN_FAILED_CALLBACK } from '@/lib/platform/account/links';
 import { authClient } from '@/components/site/account/auth-client';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/components/ui/use-t';
 import { PROVIDER_ICONS } from './provider-icons';
 import { PROVIDER_LABELS as LABELS, loadProviders, type ProviderId } from '@/components/site/account/providers';
 
 export default function SocialButtons() {
+  const t = useT();
   const [providers, setProviders] = useState<ProviderId[]>([]);
   const [pending, setPending] = useState<ProviderId | null>(null);
   const [failed, setFailed] = useState<ProviderId | null>(null);
@@ -49,14 +51,14 @@ export default function SocialButtons() {
           <Button key={id} disabled={pending !== null && pending !== id} loading={pending === id} onClick={() => signIn(id)}
             className={id === featured ? 'col-span-2' : undefined}>
             {pending !== id && PROVIDER_ICONS[id]}
-            {id === featured ? `Continue with ${LABELS[id]}` : LABELS[id]}
+            {id === featured ? t('Continue with {provider}', { provider: LABELS[id] }) : LABELS[id]}
           </Button>
         ))}
       </div>
-      {failed && <p role="alert" className="text-small text-red">Couldn&apos;t reach {LABELS[failed]}. Try again.</p>}
+      {failed && <p role="alert" className="text-small text-red">{t("Couldn't reach {provider}. Try again.", { provider: LABELS[failed] })}</p>}
       <div className="flex items-center gap-2 text-meta text-ink-3">
         <span className="h-px flex-1 bg-line" />
-        or with email
+        {t('or with email')}
         <span className="h-px flex-1 bg-line" />
       </div>
     </div>

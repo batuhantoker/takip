@@ -1,3 +1,6 @@
+import { t } from '@/lib/core/i18n/active';
+import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
+import { createTranslator, msg, type Translate } from '@/lib/core/i18n/translator';
 import { msAt, type SeriesPayload, type ShapePoint, yearAt } from './series';
 
 /*
@@ -27,47 +30,47 @@ type Publisher = {
 const PUBLISHERS: Publisher[] = [
   {
     prefix: 'wpp:',
-    name: 'UN projection',
-    short: 'UN projection',
+    name: msg('UN projection'),
+    short: msg('UN projection'),
     scenarios: [
-      { id: '', label: 'medium variant' },
-      { id: 'high', label: 'high variant' },
-      { id: 'low', label: 'low variant' },
-      { id: 'constant-fertility', label: 'constant-fertility variant' },
-      { id: 'zero-migration', label: 'zero-migration variant' },
+      { id: '', label: msg('medium variant') },
+      { id: 'high', label: msg('high variant') },
+      { id: 'low', label: msg('low variant') },
+      { id: 'constant-fertility', label: msg('constant-fertility variant') },
+      { id: 'zero-migration', label: msg('zero-migration variant') },
     ],
-    range: '95% prediction interval',
+    range: msg('95% prediction interval'),
   },
-  { prefix: 'wup:', name: 'UN projection', short: 'UN projection', scenarios: [{ id: '', label: 'World Urbanization Prospects 2025' }] },
-  { prefix: 'idb:', name: 'US Census projection', short: 'Census projection', scenarios: [{ id: '', label: '' }] },
-  { prefix: 'gep:', name: 'World Bank forecast', short: 'World Bank forecast', scenarios: [{ id: '', label: 'Global Economic Prospects, June 2026' }] },
-  { prefix: 'imf:', name: 'IMF projection', short: 'IMF projection', scenarios: [{ id: '', label: 'World Economic Outlook, October 2026' }] },
+  { prefix: 'wup:', name: msg('UN projection'), short: msg('UN projection'), scenarios: [{ id: '', label: 'World Urbanization Prospects 2025' }] },
+  { prefix: 'idb:', name: msg('US Census projection'), short: msg('Census projection'), scenarios: [{ id: '', label: '' }] },
+  { prefix: 'gep:', name: msg('World Bank forecast'), short: msg('World Bank forecast'), scenarios: [{ id: '', label: 'Global Economic Prospects, June 2026' }] },
+  { prefix: 'imf:', name: msg('IMF projection'), short: msg('IMF projection'), scenarios: [{ id: '', label: 'World Economic Outlook, October 2026' }] },
   {
     prefix: 'oecd-lt:',
-    name: 'OECD long-term scenario',
-    short: 'OECD scenario',
+    name: msg('OECD long-term scenario'),
+    short: msg('OECD scenario'),
     scenarios: [
-      { id: '', label: 'business as usual, median climate damage' },
-      { id: 'bau2', label: 'business as usual, high climate damage' },
-      { id: 'et1', label: 'faster energy transition, median damage, costs fall slowly' },
-      { id: 'et2', label: 'faster energy transition, median damage, costs fall fast' },
-      { id: 'et3', label: 'faster energy transition, high damage, costs fall slowly' },
-      { id: 'et4', label: 'faster energy transition, high damage, costs fall fast' },
+      { id: '', label: msg('business as usual, median climate damage') },
+      { id: 'bau2', label: msg('business as usual, high climate damage') },
+      { id: 'et1', label: msg('faster energy transition, median damage, costs fall slowly') },
+      { id: 'et2', label: msg('faster energy transition, median damage, costs fall fast') },
+      { id: 'et3', label: msg('faster energy transition, high damage, costs fall slowly') },
+      { id: 'et4', label: msg('faster energy transition, high damage, costs fall fast') },
     ],
   },
   {
     prefix: 'cckp:',
-    name: 'CMIP6 model median',
-    short: 'Climate model',
+    name: msg('CMIP6 model median'),
+    short: msg('Climate model'),
     scenarios: [
-      { id: '', label: 'SSP2-4.5, middle of the road' },
-      { id: 'ssp119', label: 'SSP1-1.9, very low emissions, scaled from the others' },
-      { id: 'ssp126', label: 'SSP1-2.6, low emissions' },
-      { id: 'ssp370', label: 'SSP3-7.0, high emissions' },
-      { id: 'ssp585', label: 'SSP5-8.5, very high emissions' },
+      { id: '', label: msg('SSP2-4.5, middle of the road') },
+      { id: 'ssp119', label: msg('SSP1-1.9, very low emissions, scaled from the others') },
+      { id: 'ssp126', label: msg('SSP1-2.6, low emissions') },
+      { id: 'ssp370', label: msg('SSP3-7.0, high emissions') },
+      { id: 'ssp585', label: msg('SSP5-8.5, very high emissions') },
     ],
-    range: 'models’ 10th–90th percentile',
-    simulated: 'CMIP6 historical run, model median',
+    range: msg('models’ 10th–90th percentile'),
+    simulated: msg('CMIP6 historical run, model median'),
   },
 ];
 
@@ -140,17 +143,19 @@ export function withProjection(est: SeriesPayload, proj: SeriesPayload, plan: Pr
   // A simulated past is no more measured than the projections: marked from its first year.
   if (plan.simulated) for (const [key, points] of Object.entries(values)) if (points.length) starts[key] = points[0][0];
   const from = Math.min(...Object.values(starts));
-  const label = plan.scenario.label ? `${plan.name} (${plan.scenario.label})` : plan.name;
+  const name = t(plan.name);
+  const label = plan.scenario.label ? t('{projection} ({scenario})', { projection: name, scenario: t(plan.scenario.label) }) : name;
   return {
     ...est,
     values,
     names: { ...est.names, ...proj.names },
     years: [Math.min(est.years?.[0] ?? from, from), proj.years[1]],
     projection: {
-      code: proj.metric.code, label, short: plan.short, scenario: plan.scenario.id, scenarios: plan.scenarios,
+      code: proj.metric.code, label, short: t(plan.short), scenario: plan.scenario.id,
+      scenarios: plan.scenarios.map(s => ({ ...s, label: s.label && t(s.label) })),
       from, to: proj.years[1], starts,
-      ...(range && plan.range && { range: { label: plan.range, lo: range.lo.values, hi: range.hi.values } }),
-      ...(plan.simulated && est.years && { simulated: { label: plan.simulated, to: est.years[1] } }),
+      ...(range && plan.range && { range: { label: t(plan.range), lo: range.lo.values, hi: range.hi.values } }),
+      ...(plan.simulated && est.years && { simulated: { label: t(plan.simulated), to: est.years[1] } }),
     },
   };
 }
@@ -170,8 +175,12 @@ export const startsTogether = (p: Projection) => Object.values(p.starts).every(s
 /** The year the last country's projections start: from then on every value shown is projected. */
 export const lastStart = (p: Projection) => Math.max(p.from, ...Object.values(p.starts));
 
+const EN = createTranslator(DEFAULT_LOCALE, {});
+
 /** "projected from 2024", or "projected from 2008–2026 by country". */
-export const startText = (p: Projection) => (startsTogether(p) ? `projected from ${p.from}` : `projected from ${p.from}–${lastStart(p)} by country`);
+export const startText = (p: Projection, t: Translate = EN) => (startsTogether(p)
+  ? t('projected from {year}', { year: String(p.from) })
+  : t('projected from {from}–{to} by country', { from: String(p.from), to: String(lastStart(p)) }));
 
 /** Whether every country is projected at epoch ms `t`, not only some. */
 export const allProjectedAt = (p: Projection | null | undefined, t: number) => !!p && Math.floor(yearAt(t)) >= lastStart(p);

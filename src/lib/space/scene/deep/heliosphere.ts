@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { t } from '@/lib/core/i18n/active';
 import { AU_KM, norm } from '@/lib/space/astro';
 import { CROSSINGS, crossingPoint, fitHeliosphere, NOSE, shellRadiusAu, TAIL_COS, VOYAGER_DIRECTIONS, type ShellKey } from '@/lib/space/deep/heliosphere';
 import type { Vec3 } from '@/lib/space/horizons';
@@ -101,7 +102,7 @@ export function createHeliosphere() {
     }
     crossings = CROSSINGS.map(c => ({
       position: new THREE.Vector3(...crossingPoint(c, directions[c.craftId])),
-      label: `${c.craft} crossed · ${c.date.slice(0, 4)}`,
+      label: t('{craft} crossed · {year}', { craft: c.craft, year: c.date.slice(0, 4) }),
       color: SHELL_COLOR[c.shell],
       shell: c.shell,
     }));

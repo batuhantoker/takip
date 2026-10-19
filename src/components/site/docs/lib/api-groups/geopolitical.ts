@@ -1,8 +1,9 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 export const GEOPOLITICAL: ApiGroup = {
   id: 'geopolitical',
-  title: 'Geopolitical',
+  title: msg('Geopolitical'),
   blurb: 'Conflict zones, frontlines, event streams, air-raid alerts, travel advice, and country-level risk.',
   endpoints: [
     {

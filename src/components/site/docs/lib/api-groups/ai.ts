@@ -1,4 +1,5 @@
 import type { ApiGroup } from '../../api-catalog';
+import { msg } from '@/lib/core/i18n/translator';
 
 const CONTEXT = `{
     "earthquakes": [],
@@ -10,7 +11,7 @@ const CONTEXT = `{
 
 export const AI: ApiGroup = {
   id: 'ai',
-  title: 'AI analysis',
+  title: msg('AI analysis'),
   blurb:
     'Gemini-backed correlation over feed data you supply. All three are POST. Analyze and briefing allow 5 requests a minute per IP, overview 20. The server’s own Gemini key is for Pro plans; analyze and briefing run free for anyone on a Gemini key sent in X-Gemini-Key.',
   endpoints: [

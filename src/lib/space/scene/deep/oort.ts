@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { t } from '@/lib/core/i18n/active';
+import { msg } from '@/lib/core/i18n/translator';
 import { AU_KM, C_KM_S } from '@/lib/space/astro';
 
 /**
@@ -10,10 +12,10 @@ import { AU_KM, C_KM_S } from '@/lib/space/astro';
 const LIGHT_DAY_AU = (C_KM_S * 86_400) / AU_KM;
 
 export const RINGS: { id: string; au: number; label: string }[] = [
-  { id: 'light-day', au: LIGHT_DAY_AU, label: '1 light-day' },
-  { id: 'light-week', au: LIGHT_DAY_AU * 7, label: '1 light-week' },
-  { id: 'light-month', au: LIGHT_DAY_AU * 30, label: '1 light-month' },
-  { id: 'light-year', au: LIGHT_DAY_AU * 365.25, label: '1 light-year' },
+  { id: 'light-day', au: LIGHT_DAY_AU, label: msg('1 light-day') },
+  { id: 'light-week', au: LIGHT_DAY_AU * 7, label: msg('1 light-week') },
+  { id: 'light-month', au: LIGHT_DAY_AU * 30, label: msg('1 light-month') },
+  { id: 'light-year', au: LIGHT_DAY_AU * 365.25, label: msg('1 light-year') },
 ];
 export const FOCUS_AU = 550;
 const OORT_INNER_AU = 2_000, HILLS_EDGE_AU = 20_000, OORT_OUTER_AU = 100_000;
@@ -100,9 +102,9 @@ export function createOort() {
   function labels(sunKm: number, cloudFade: number): { id: string; text: string; position: THREE.Vector3; alpha: number }[] {
     const at = (au: number) => LABEL_DIR.clone().multiplyScalar(au * AU_KM);
     return [
-      ...rings.map(r => ({ id: r.id, text: r.label, position: at(r.au), alpha: ringFade(sunKm, r.au) })),
-      { id: 'gravitational-focus', text: 'Solar gravitational focus', position: LABEL_DIR.clone().applyAxisAngle(new THREE.Vector3(0, 0, 1), 0.6).multiplyScalar(FOCUS_AU * AU_KM), alpha: ringFade(sunKm, FOCUS_AU) },
-      { id: 'oort-cloud', text: 'Oort cloud · illustration', position: new THREE.Vector3(0, 0, 1).multiplyScalar(30_000 * AU_KM), alpha: cloudFade },
+      ...rings.map(r => ({ id: r.id, text: t(r.label), position: at(r.au), alpha: ringFade(sunKm, r.au) })),
+      { id: 'gravitational-focus', text: t('Solar gravitational focus'), position: LABEL_DIR.clone().applyAxisAngle(new THREE.Vector3(0, 0, 1), 0.6).multiplyScalar(FOCUS_AU * AU_KM), alpha: ringFade(sunKm, FOCUS_AU) },
+      { id: 'oort-cloud', text: t('Oort cloud · illustration'), position: new THREE.Vector3(0, 0, 1).multiplyScalar(30_000 * AU_KM), alpha: cloudFade },
     ];
   }
 

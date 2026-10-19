@@ -12,13 +12,15 @@
  * overview route can build the same brief on the server.
  */
 
+import { createTranslator, msg, type Vars } from '@/lib/core/i18n/translator';
+
 export type Bloc = 'western' | 'russian' | 'regional' | 'independent';
 
 export const BLOCS: Record<Bloc, { label: string; short: string; color: string }> = {
-  western: { label: 'Western / Ukrainian', short: 'WEST', color: '#4F9CFF' },
-  russian: { label: 'Russian-aligned', short: 'RU-ALIGNED', color: '#A78BFA' },
-  regional: { label: 'Regional (Turkey, Middle East)', short: 'REGIONAL', color: '#2DD4BF' },
-  independent: { label: 'Independent aggregator', short: 'INDEPENDENT', color: '#C8C2B4' },
+  western: { label: msg('Western / Ukrainian'), short: msg('WEST'), color: '#4F9CFF' },
+  russian: { label: msg('Russian-aligned'), short: msg('RU-ALIGNED'), color: '#A78BFA' },
+  regional: { label: msg('Regional (Turkey, Middle East)'), short: msg('REGIONAL'), color: '#2DD4BF' },
+  independent: { label: msg('Independent aggregator'), short: msg('INDEPENDENT'), color: '#C8C2B4' },
 };
 
 export const BLOC_ORDER: Bloc[] = ['western', 'russian', 'regional', 'independent'];
@@ -29,9 +31,9 @@ export type AlertKind = 'rocket' | 'event' | 'news';
 /** How each kind is marked, on the map and in the feed. */
 // Status tokens (docs/design/README.md): red for rocket fire, amber for events, blue for news.
 export const ALERT_KINDS: Record<AlertKind, { label: string; color: string }> = {
-  rocket: { label: 'ROCKET', color: '#E5534B' },
-  event: { label: 'EVENT', color: '#E9A23B' },
-  news: { label: 'NEWS', color: '#5B9CF5' },
+  rocket: { label: msg('ROCKET'), color: '#E5534B' },
+  event: { label: msg('EVENT'), color: '#E9A23B' },
+  news: { label: msg('NEWS'), color: '#5B9CF5' },
 };
 
 export interface DigestReport {
@@ -109,7 +111,7 @@ interface Term { id: string; label: string; terms: string[] }
  * terms of three letters or fewer are always whole words.
  */
 export const THEATRES: Term[] = [
-  { id: 'russia-ukraine', label: 'Russia–Ukraine war', terms: [
+  { id: 'russia-ukraine', label: msg('Russia–Ukraine war'), terms: [
     'ukrain', 'kyiv', 'kiev', 'kharkiv', 'kharkov', 'donbas', 'donetsk', 'luhansk', 'lugansk', 'zaporizh',
     'zaporozh', 'kherson', 'crimea', 'kursk', 'belgorod', 'bryansk', 'odesa', 'odessa', 'dnipro', 'dnepr',
     'pokrovsk', 'volchansk', 'kupyansk', 'zelensk', 'kremlin', 'putin', 'moscow', 'russia', 'geran',
@@ -117,7 +119,7 @@ export const THEATRES: Term[] = [
   ] },
   /* Palestinian and Lebanese newsrooms report at town level — "Jenin",
      "Khan Younis", "Nabatieh" — usually without naming the country. */
-  { id: 'israel-gaza-lebanon', label: 'Israel · Gaza · Lebanon', terms: [
+  { id: 'israel-gaza-lebanon', label: msg('Israel · Gaza · Lebanon'), terms: [
     'israel', 'gaza', 'idf', 'hamas', 'hezbollah', 'lebanon', 'lebanes', 'west bank', 'rafah', 'jerusalem',
     'tel aviv', 'netanyahu', 'kiryat', 'beirut', 'galilee', 'huckabee',
     'quds', 'al-aqsa', 'jenin', 'nablus', 'ramallah', 'hebron', 'tulkarem', 'bethlehem', 'khan younis',
@@ -125,61 +127,61 @@ export const THEATRES: Term[] = [
     'unifil', 'nabatieh', 'bint jbeil', 'sidon', 'dahiyeh', 'litani', 'shebaa', 'naqoura',
     'израил', 'ливан', 'хамас', 'хезболл',
   ] },
-  { id: 'iran-gulf', label: 'Iran & the Gulf', terms: [
+  { id: 'iran-gulf', label: msg('Iran & the Gulf'), terms: [
     'iran', 'irgc', 'tehran', 'hormuz', 'persian gulf', 'saudi', 'riyadh', 'qatar', 'doha', 'uae', 'emirat',
     'bahrain', 'oman$', 'kuwait', 'jask', 'иран', 'тегеран', 'саудов',
   ] },
-  { id: 'yemen-red-sea', label: 'Yemen & Red Sea', terms: [
+  { id: 'yemen-red-sea', label: msg('Yemen & Red Sea'), terms: [
     'yemen', 'houthi', 'ansarallah', 'ansar allah', 'red sea', 'bab al-mandab', 'bab el-mandeb', 'aden$',
     'sanaa', 'hodeidah', 'йемен', 'хусит',
   ] },
-  { id: 'syria-iraq', label: 'Syria & Iraq', terms: [
+  { id: 'syria-iraq', label: msg('Syria & Iraq'), terms: [
     'syria', 'damascus', 'aleppo', 'idlib', 'latakia', 'iraq', 'baghdad', 'erbil', 'kurd', 'сири', 'ирак',
   ] },
-  { id: 'china-pacific', label: 'China · Taiwan · Pacific', terms: [
+  { id: 'china-pacific', label: msg('China · Taiwan · Pacific'), terms: [
     'china', 'chinese', 'beijing', 'taiwan', 'taipei', 'pla', 'south china sea', 'philippin', 'japan', 'tokyo',
     'xi jinping', 'китай', 'тайван', 'япони',
   ] },
-  { id: 'korea', label: 'Korean Peninsula', terms: [
+  { id: 'korea', label: msg('Korean Peninsula'), terms: [
     'north korea', 'dprk', 'pyongyang', 'kim jong', 'south korea', 'seoul', 'кндр', 'корея$', 'кореи$', 'корее$', 'корею$',
   ] },
-  { id: 'south-asia', label: 'South & Central Asia', terms: [
+  { id: 'south-asia', label: msg('South & Central Asia'), terms: [
     'india', 'delhi', 'pakistan', 'islamabad', 'kashmir', 'afghan', 'taliban', 'kabul', 'bangladesh',
     'индия', 'индии', 'пакистан', 'афган',
   ] },
-  { id: 'africa', label: 'Africa', terms: [
+  { id: 'africa', label: msg('Africa'), terms: [
     'sudan', 'khartoum', 'somali', 'mogadishu', 'ethiopia', 'eritrea', 'sahel', 'mali$', 'niger$', 'burkina',
     'congo', 'libya', 'tripoli', 'nigeria', 'kenya', 'africa', 'судан', 'африк', 'сомали',
   ] },
-  { id: 'americas', label: 'Latin America', terms: [
+  { id: 'americas', label: msg('Latin America'), terms: [
     'venezuela', 'caracas', 'maduro', 'colombia', 'farc', 'mexico', 'cartel', 'brazil', 'argentin', 'cuba',
     'haiti', 'panama', 'ecuador', 'peru$', 'венесуэл', 'аргентин', 'колумби',
   ] },
-  { id: 'europe-nato', label: 'Europe & NATO', terms: [
+  { id: 'europe-nato', label: msg('Europe & NATO'), terms: [
     'nato', 'european union', 'brussels', 'germany', 'german', 'berlin', 'france', 'french', 'paris', 'poland',
     'polish', 'warsaw', 'baltic', 'finland', 'estonia', 'latvia', 'lithuania', 'romania', 'moldova', 'serbia',
     'kosovo', 'hungary', 'sweden', 'swedish', 'britain', 'british', 'london', 'нато', 'европ', 'финлянд',
     'польш', 'германи', 'балти', 'молдав',
   ] },
-  { id: 'us-policy', label: 'U.S. policy', terms: [
+  { id: 'us-policy', label: msg('U.S. policy'), terms: [
     'trump', 'white house', 'washington', 'pentagon', 'congress', 'senate', 'vance', 'rubio', 'hegseth',
     'state department', 'joint chiefs', 'трамп', 'сша', 'вашингтон', 'конгресс',
   ] },
 ];
 
 export const TOPICS: Term[] = [
-  { id: 'drones', label: 'drones', terms: ['drone', 'uav', 'geran', 'shahed', 'fpv', 'lancet', 'дрон', 'бпла', 'беспилот'] },
-  { id: 'strikes', label: 'strikes', terms: ['strike', 'struck', 'missile', 'shelling', 'bombard', 'airstrike', 'rocket', 'explosion', 'impact', 'удар', 'ракет', 'обстрел', 'взрыв'] },
-  { id: 'air-defence', label: 'air defence', terms: ['air defense', 'air defence', 'patriot', 's-400', 'iron dome', 'intercept', 'пво', 'перехват'] },
-  { id: 'ground', label: 'ground fighting', terms: ['frontline', 'front line', 'offensive', 'assault', 'captured', 'liberated', 'encircle', 'cauldron', 'troops', 'наступ', 'штурм', 'освобод'] },
-  { id: 'maritime', label: 'maritime', terms: ['ship', 'tanker', 'vessel', 'navy', 'naval', 'strait', 'port$', 'ports$', 'fleet', 'shipowner', 'флот', 'танкер', 'судн'] },
-  { id: 'diplomacy', label: 'diplomacy', terms: ['talks', 'negotiat', 'summit', 'ceasefire', 'truce', 'peace', 'agreement', 'diplomat', 'ambassador', 'переговор', 'перемири', 'саммит'] },
-  { id: 'sanctions', label: 'sanctions', terms: ['sanction', 'embargo', 'tariff', 'санкц', 'пошлин'] },
-  { id: 'nuclear', label: 'nuclear', terms: ['nuclear', 'uranium', 'enrichment', 'iaea', 'ядерн'] },
-  { id: 'casualties', label: 'casualties', terms: ['killed', 'dead$', 'casualt', 'wounded', 'injured', 'fatalit', 'погиб', 'убит', 'ранен'] },
-  { id: 'energy', label: 'energy', terms: ['oil$', 'gas$', 'refinery', 'pipeline', 'power plant', 'energy', 'нефт', 'энерг', 'нпз'] },
-  { id: 'cyber', label: 'cyber', terms: ['cyber', 'hacker', 'hacked', 'ransomware', 'ddos', 'кибер', 'хакер'] },
-  { id: 'politics', label: 'politics & unrest', terms: ['protest', 'riot', 'coup', 'election', 'parliament', 'протест', 'выбор', 'парламент'] },
+  { id: 'drones', label: msg('drones'), terms: ['drone', 'uav', 'geran', 'shahed', 'fpv', 'lancet', 'дрон', 'бпла', 'беспилот'] },
+  { id: 'strikes', label: msg('strikes'), terms: ['strike', 'struck', 'missile', 'shelling', 'bombard', 'airstrike', 'rocket', 'explosion', 'impact', 'удар', 'ракет', 'обстрел', 'взрыв'] },
+  { id: 'air-defence', label: msg('air defence'), terms: ['air defense', 'air defence', 'patriot', 's-400', 'iron dome', 'intercept', 'пво', 'перехват'] },
+  { id: 'ground', label: msg('ground fighting'), terms: ['frontline', 'front line', 'offensive', 'assault', 'captured', 'liberated', 'encircle', 'cauldron', 'troops', 'наступ', 'штурм', 'освобод'] },
+  { id: 'maritime', label: msg('maritime'), terms: ['ship', 'tanker', 'vessel', 'navy', 'naval', 'strait', 'port$', 'ports$', 'fleet', 'shipowner', 'флот', 'танкер', 'судн'] },
+  { id: 'diplomacy', label: msg('diplomacy'), terms: ['talks', 'negotiat', 'summit', 'ceasefire', 'truce', 'peace', 'agreement', 'diplomat', 'ambassador', 'переговор', 'перемири', 'саммит'] },
+  { id: 'sanctions', label: msg('sanctions'), terms: ['sanction', 'embargo', 'tariff', 'санкц', 'пошлин'] },
+  { id: 'nuclear', label: msg('nuclear'), terms: ['nuclear', 'uranium', 'enrichment', 'iaea', 'ядерн'] },
+  { id: 'casualties', label: msg('casualties'), terms: ['killed', 'dead$', 'casualt', 'wounded', 'injured', 'fatalit', 'погиб', 'убит', 'ранен'] },
+  { id: 'energy', label: msg('energy'), terms: ['oil$', 'gas$', 'refinery', 'pipeline', 'power plant', 'energy', 'нефт', 'энерг', 'нпз'] },
+  { id: 'cyber', label: msg('cyber'), terms: ['cyber', 'hacker', 'hacked', 'ransomware', 'ddos', 'кибер', 'хакер'] },
+  { id: 'politics', label: msg('politics & unrest'), terms: ['protest', 'riot', 'coup', 'election', 'parliament', 'протест', 'выбор', 'парламент'] },
 ];
 
 function compile(terms: string[]): RegExp {
@@ -212,16 +214,19 @@ const toMs = (v: string | number | null | undefined): number | null => {
   return Number.isFinite(ms) ? ms : null;
 };
 
+type Say = (source: string, vars?: Vars) => string;
+const english: Say = createTranslator('en', {});
+
 /** "just now", "12m ago", "3h ago", "2d ago". */
-export function timeAgo(v: string | number | null | undefined, now = Date.now()): string {
+export function timeAgo(v: string | number | null | undefined, now = Date.now(), t: Say = english): string {
   const ms = toMs(v);
   if (ms == null) return '';
   const mins = Math.max(0, Math.floor((now - ms) / 60000));
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t('just now');
+  if (mins < 60) return t('{n}m ago', { n: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 24) return t('{n}h ago', { n: hrs });
+  return t('{n}d ago', { n: Math.floor(hrs / 24) });
 }
 
 const plural = (n: number, word: string, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;

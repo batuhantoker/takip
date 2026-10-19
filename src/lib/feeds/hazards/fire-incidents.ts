@@ -1,3 +1,4 @@
+import { activeIntl, t } from '@/lib/core/i18n/active';
 import { pop } from '@/lib/map/popups/kit';
 
 /** As /api/fires sends them in `fire_incidents`. */
@@ -33,24 +34,24 @@ export function fireIncidentFeatures(rows: FireIncidentRow[]): GeoJSON.Feature<G
 function hectares(v: unknown): string {
   const n = Number(v);
   if (!Number.isFinite(n) || v === null || v === '') return '—';
-  return n >= 1000 ? `${Math.round(n).toLocaleString('en-US')} ha` : `${n < 10 ? n.toFixed(1) : Math.round(n)} ha`;
+  return n >= 1000 ? `${Math.round(n).toLocaleString(activeIntl())} ha` : `${n < 10 ? n.toFixed(1) : Math.round(n)} ha`;
 }
 
 export function fireIncidentPopupHtml(p: Props): string {
   const updated = Date.parse(String(p.updated ?? ''));
   const ofNote = p.ofNote === true || p.ofNote === 'true';
   return pop({
-    kicker: 'Wildfire',
+    kicker: t('Wildfire'),
     dot: fireStageColor(p.stage),
-    meta: ofNote ? 'Fire of note' : undefined,
+    meta: ofNote ? t('Fire of note') : undefined,
     title: p.name,
-    subtitle: `${p.agency} · agency-reported`,
+    subtitle: t('{agency} · agency-reported', { agency: String(p.agency) }),
     rows: [
-      { label: 'Stage', value: p.stageLabel },
-      { label: 'Size', value: hectares(p.sizeHa), mono: true },
-      { label: 'Cause', value: p.cause || '—' },
-      { label: 'Updated', value: Number.isFinite(updated) ? new Date(updated).toISOString().slice(0, 10) : '—', mono: true },
+      { label: t('Stage'), value: p.stageLabel },
+      { label: t('Size'), value: hectares(p.sizeHa), mono: true },
+      { label: t('Cause'), value: p.cause || '—' },
+      { label: t('Updated'), value: Number.isFinite(updated) ? new Date(updated).toISOString().slice(0, 10) : '—', mono: true },
     ],
-    links: [{ href: p.url, label: 'Incident page' }],
+    links: [{ href: p.url, label: t('Incident page') }],
   });
 }

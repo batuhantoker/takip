@@ -330,6 +330,33 @@ line saying what goes here, one line saying how, and at most one button.
 | HIGH SEVERITY · 16H LEFT | Severe · ends in 16 h |
 | HISTORY ▸ LIVE | History · Back to live |
 
+## Language
+
+TAKIP speaks English (the source), Turkish, Spanish, Portuguese (Brazil),
+French, German, Russian, Arabic, Simplified Chinese and Japanese. The language
+follows the country a visitor opens it from; the browser chooses among a
+multilingual country's languages; a pick in Settings → General overrides it and
+is remembered. URLs are the same in every language.
+
+- Every word a person reads goes through the translator: `const t = useT()` in
+  components, `await getT()` in server components and metadata, and `t` from
+  `lib/core/i18n/active` in browser-only code (popups, hover tips, map layers).
+  The English text is the key: `t('Back to live')`,
+  `t('{n, plural, one {# layer} other {# layers}}', { n })`.
+- Text kept in tables is marked `msg('Layers')` and translated where it renders,
+  `t(item.label)`.
+- One English word, two meanings or a tighter spot: give the key a context,
+  `t('rail|Layers')`. English shows the part after the bar, and a language
+  without its own entry uses the plain key's. The sidebar and phone bar labels
+  go through `railLabel()`, because they have about 47px.
+- Not translated: TAKIP, TI, names of sources and products, ids, keyboard keys,
+  codes and unit symbols, data from feeds, logs, API errors, and Admin.
+- Numbers and dates format with `t.intl`, never a fixed `'en'`.
+- Arabic runs right to left inside its text, but the layout stays left to right
+  until the shell is mirrored.
+- New copy is written in English with `t()`; English shows until a translation
+  is merged (`npm run i18n -- check`).
+
 ## Map data
 
 Owned by the map work, summarised here so the chrome and the data agree:

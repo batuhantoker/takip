@@ -5,6 +5,8 @@ import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { Button, IconButton } from '@/components/ui/button';
 import { Panel } from '@/components/ui/panel';
 import { Segmented, type SegmentedOption } from '@/components/ui/segmented';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { nextManeuver, viaRoad, type Place, type RouteResult } from '@/lib/places/route/plan';
 import { useRoutePlanner, type RoutePlannerCallbacks } from './use-route-planner';
 import PlaceInput from '@/components/panels/route/parts/place-input';
@@ -43,10 +45,10 @@ type Mode = 'auto' | 'pedestrian' | 'bicycle';
 
 const PROVIDER: Record<string, string> = { valhalla: 'Valhalla', osrm: 'OSRM' };
 
-const MODES: SegmentedOption<Mode>[] = [
-  { value: 'auto', label: 'Drive', icon: Car },
-  { value: 'pedestrian', label: 'Walk', icon: Footprints },
-  { value: 'bicycle', label: 'Bike', icon: Bike },
+const MODES: (SegmentedOption<Mode> & { label: string })[] = [
+  { value: 'auto', label: msg('Drive'), icon: Car },
+  { value: 'pedestrian', label: msg('Walk'), icon: Footprints },
+  { value: 'bicycle', label: msg('Bike'), icon: Bike },
 ];
 
 export default function DirectionsBar({ onRoute, onLocate, onClose, center = null, onLiveLocation, onActiveSegment, onFollowChange, onStartNavigation, initialTo = null, guiding = false, onEndNavigation }: DirectionsBarProps) {
@@ -56,6 +58,7 @@ export default function DirectionsBar({ onRoute, onLocate, onClose, center = nul
     recent, toggleTracking, useMyLocation,
     pickFrom, pickTo, pickMode, pickRecent, clearEnd, pickVia, removeVia, toggleAvoid, swap, chooseRoute,
   } = useRoutePlanner({ onRoute, onLocate, onLiveLocation, onActiveSegment, onFollowChange }, initialTo);
+  const t = useT();
   const mobile = useIsMobile();
 
   const via = route ? viaRoad(route.steps) : null;
@@ -69,13 +72,13 @@ export default function DirectionsBar({ onRoute, onLocate, onClose, center = nul
 
   return (
     // The dock closes the panel on Escape; this stays mounted while hidden, so it must not listen too.
-    <Panel title="Route" bare docked={!mobile} closeOnEscape={false} onClose={onClose}
+    <Panel title={t('Route')} bare docked={!mobile} closeOnEscape={false} onClose={onClose}
       meta={tracking ? <LiveMark /> : undefined}
       className={mobile ? 'max-h-[min(72vh,640px)]' : undefined}
       actions={<DirectionsActions tracking={tracking} follow={follow} setFollow={setFollow} onFollowChange={onFollowChange} toggleTracking={toggleTracking} />}
       footer={route && !loading ? (
         <span className="truncate">
-          Routing by {PROVIDER[route.provider] ?? route.provider} ·{' '}
+          {t('Routing by {provider}', { provider: PROVIDER[route.provider] ?? route.provider })} ·{' '}
           <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="hover:text-ink-1">© OpenStreetMap</a>
         </span>
       ) : undefined}>
@@ -87,7 +90,7 @@ export default function DirectionsBar({ onRoute, onLocate, onClose, center = nul
             <RailRow mark={<StartMark />}>
               <PlaceInput
                 value={fromText} onChange={setFromText} onPick={pickFrom} onClear={() => clearEnd('from')}
-                placeholder="Choose a start" autoFocus={!initialTo} {...bias}
+                placeholder={t('Choose a start')} autoFocus={!initialTo} {...bias}
                 onLocate={useMyLocation} locating={locating} liveFix={live} recent={recent}
               />
             </RailRow>
@@ -95,29 +98,29 @@ export default function DirectionsBar({ onRoute, onLocate, onClose, center = nul
               <RailRow key={i} mark={<StopMark />}>
                 <PlaceInput
                   value={v.text}
-                  onChange={(t) => setVias((prev) => prev.map((x, j) => (j === i ? { ...x, text: t } : x)))}
+                  onChange={(text) => setVias((prev) => prev.map((x, j) => (j === i ? { ...x, text } : x)))}
                   onPick={(p) => pickVia(i, p)}
-                  placeholder={`Stop ${i + 1}`} {...bias} liveFix={live} recent={recent}
-                  trailing={<IconButton size="sm" icon={Trash2} label={`Remove stop ${i + 1}`} onClick={() => removeVia(i)} />}
+                  placeholder={t('Stop {n}', { n: i + 1 })} {...bias} liveFix={live} recent={recent}
+                  trailing={<IconButton size="sm" icon={Trash2} label={t('Remove stop {n}', { n: i + 1 })} onClick={() => removeVia(i)} />}
                 />
               </RailRow>
             ))}
             <RailRow mark={<EndMark />} last>
               <PlaceInput
                 value={toText} onChange={setToText} onPick={pickTo} onClear={() => clearEnd('to')}
-                placeholder="Choose a destination" {...bias} liveFix={live} recent={recent}
+                placeholder={t('Choose a destination')} {...bias} liveFix={live} recent={recent}
               />
             </RailRow>
           </div>
-          <IconButton icon={ArrowUpDown} label="Swap start and destination" tooltipSide="left" onClick={swap} />
+          <IconButton icon={ArrowUpDown} label={t('Swap start and destination')} tooltipSide="left" onClick={swap} />
         </div>
 
         <div className="mt-2 flex items-center pl-7">
-          <Button variant="ghost" size="sm" icon={Plus} className="-ml-2.5" onClick={() => setVias((v) => [...v, { place: null, text: '' }])}>Add stop</Button>
+          <Button variant="ghost" size="sm" icon={Plus} className="-ml-2.5" onClick={() => setVias((v) => [...v, { place: null, text: '' }])}>{t('Add stop')}</Button>
           <span className="ml-auto"><RouteOptions avoid={avoid} toggleAvoid={toggleAvoid} /></span>
         </div>
 
-        <Segmented<Mode> label="Travel mode" className="mt-3" full value={mode as Mode} onChange={pickMode} options={MODES} />
+        <Segmented<Mode> label={t('Travel mode')} className="mt-3" full value={mode as Mode} onChange={pickMode} options={MODES.map(m => ({ ...m, label: t(m.label) }))} />
       </div>
 
       {/* result */}

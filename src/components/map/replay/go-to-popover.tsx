@@ -7,11 +7,12 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { TextField } from '@/components/ui/field';
 import { Popover } from '@/components/ui/popover';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useT } from '@/components/ui/use-t';
 
 export type GoToExample = { label: string; value: string };
 
 /** "Go to…": type a time, or pick one of a few examples. `onGo` says whether it understood the text, or why it can't go there. */
-export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examples, title = 'Go to a date' }: {
+export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examples, title: titled }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGo: (text: string) => boolean | string;
@@ -21,6 +22,8 @@ export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examp
   examples: GoToExample[];
   title?: string;
 }) {
+  const t = useT();
+  const title = titled ?? t('Go to a date');
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +45,7 @@ export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examp
         <Popover open={open} onOpenChange={o => { onOpenChange(o); if (!o) setError(null); }} label={title} placement="top" align="end" className="w-80 p-3"
           trigger={
             <Button variant="ghost" size="sm" icon={CalendarSearch} aria-label={title} aria-keyshortcuts="J">
-              <span className="hidden @5xl/timeline:inline">Go to</span>
+              <span className="hidden @5xl/timeline:inline">{t('Go to')}</span>
             </Button>
           }>
           {close => (
@@ -52,7 +55,7 @@ export function GoToPopover({ open, onOpenChange, onGo, placeholder, hint, examp
                   onChange={e => { setText(e.target.value); setError(null); }}
                   error={error ?? undefined} />
               </form>
-              <p className="mt-3 mb-1 text-meta font-medium text-ink-3">Or try</p>
+              <p className="mt-3 mb-1 text-meta font-medium text-ink-3">{t('Or try')}</p>
               <ul className="-mx-1 flex flex-col">
                 {examples.map(x => (
                   <li key={x.value}>

@@ -2,6 +2,7 @@
 
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 import {
   PULSE, formatMove, formatPrice, longName,
   type FunctionCode, type MarketQuote as Quote,
@@ -20,6 +21,7 @@ export function PulseMonitor({ bySymbol, chartSymbol, open, maximized }: {
   open: (q: { symbol: string }) => void;
   maximized: boolean;
 }) {
+  const t = useT();
   return (
     <div className={cx('-mx-2 grid gap-1', maximized ? 'grid-cols-4 xl:grid-cols-8' : 'grid-cols-4')}>
       {PULSE.map(({ symbol, label }) => {
@@ -27,10 +29,10 @@ export function PulseMonitor({ bySymbol, chartSymbol, open, maximized }: {
         return (
           <button key={symbol} type="button" onClick={() => q && open(q)} disabled={!q}
             aria-pressed={chartSymbol === symbol}
-            title={q ? `Chart ${longName(q)}` : `${pulseLabel(label)}: no reading`}
+            title={q ? t('Chart {name}', { name: longName(q) }) : t('{name}: no reading', { name: pulseLabel(label, t) })}
             className={cx(TILE, chartSymbol === symbol ? 'bg-surface-3' : 'hover:bg-surface-2')}>
-            <span className="block truncate text-meta text-ink-3">{pulseLabel(label)}</span>
-            <span className={cx('block truncate font-mono text-ink-1 tabular-nums', maximized ? 'text-title' : 'text-small')}>{q ? formatPrice(q) : '—'}</span>
+            <span className="block truncate text-meta text-ink-3">{pulseLabel(label, t)}</span>
+            <span className={cx('block truncate font-mono text-ink-1 tabular-nums', maximized ? 'text-title' : 'text-small')}>{q ? formatPrice(q, q.price, t.intl) : '—'}</span>
             <span className={cx('block font-mono text-meta tabular-nums', moveTone(q?.change_percent))}>{formatMove(q?.change_percent)}</span>
           </button>
         );
@@ -41,14 +43,18 @@ export function PulseMonitor({ bySymbol, chartSymbol, open, maximized }: {
 
 /** How much of everything rose today, and the biggest move each way. */
 export function BreadthCard({ breadth, open }: { breadth: MarketBreadth; open: (q: { symbol: string }) => void }) {
+  const t = useT();
   const best = breadth.best[0], worst = breadth.worst[0];
   const pct = (n: number) => `${(n / breadth.total) * 100}%`;
+  const up = <span className="font-medium text-green">{breadth.up}</span>;
+  const down = <span className="font-medium text-red">{breadth.down}</span>;
   return (
     <div>
       <p className="text-small text-ink-2 tabular-nums">
-        <span className="font-medium text-green">{breadth.up}</span> up · <span className="font-medium text-red">{breadth.down}</span> down
-        {breadth.flat > 0 && <> · {breadth.flat} flat</>}
-        <span className="text-ink-3"> of {breadth.total}</span>
+        {breadth.flat > 0
+          ? t.rich('{up} up · {down} down · {flat} flat', { up, down, flat: String(breadth.flat) })
+          : t.rich('{up} up · {down} down', { up, down })}
+        <span className="text-ink-3"> {t('of {total}', { total: breadth.total })}</span>
       </p>
       <span aria-hidden className="mt-2 flex h-1 overflow-hidden rounded-full bg-surface-3">
         <span className="bg-green" style={{ width: pct(breadth.up) }} />
@@ -57,10 +63,10 @@ export function BreadthCard({ breadth, open }: { breadth: MarketBreadth; open: (
       </span>
       <div className="mt-2 flex items-center justify-between gap-3 text-small">
         <button type="button" onClick={() => open(best)} className={cx('min-w-0 truncate rounded-[4px] text-left text-ink-2 hover:text-ink-1', FOCUS_RING)}>
-          Best: {best.name} <span className="font-mono text-green tabular-nums">{formatMove(best.change_percent)}</span>
+          {t.rich('Best: {name} {move}', { name: best.name, move: <span className="font-mono text-green tabular-nums">{formatMove(best.change_percent)}</span> })}
         </button>
         <button type="button" onClick={() => open(worst)} className={cx('min-w-0 truncate rounded-[4px] text-right text-ink-2 hover:text-ink-1', FOCUS_RING)}>
-          Worst: {worst.name} <span className="font-mono text-red tabular-nums">{formatMove(worst.change_percent)}</span>
+          {t.rich('Worst: {name} {move}', { name: worst.name, move: <span className="font-mono text-red tabular-nums">{formatMove(worst.change_percent)}</span> })}
         </button>
       </div>
     </div>
@@ -73,8 +79,9 @@ export function MarketHeatmap({ allQuotes, chartSymbol, open, setFn }: {
   open: (q: { symbol: string }) => void;
   setFn: (code: FunctionCode) => void;
 }) {
+  const t = useT();
   return (
-    <PanelSection title="Today’s moves">
+    <PanelSection title={t('Today’s moves')}>
       <div className="flex flex-col gap-2">
         {FEED_SECTIONS.map(s => {
           const quotes = allQuotes.filter(q => q.group === s);
@@ -83,7 +90,7 @@ export function MarketHeatmap({ allQuotes, chartSymbol, open, setFn }: {
             <div key={s} className="flex items-start gap-2">
               <button type="button" onClick={() => setFn(SECTION_OF[s])}
                 className={cx('w-24 shrink-0 truncate rounded-[4px] pt-1.5 text-left text-meta text-ink-3 hover:text-ink-1', FOCUS_RING)}>
-                {sectionTitle(SECTION_OF[s])}
+                {sectionTitle(SECTION_OF[s], t)}
               </button>
               <div className="flex flex-1 flex-wrap gap-1">
                 {quotes.map(q => (
@@ -104,8 +111,9 @@ export function MarketHeatmap({ allQuotes, chartSymbol, open, setFn }: {
 }
 
 export function Movers({ breadth, open }: { breadth: MarketBreadth; open: (q: { symbol: string }) => void }) {
+  const t = useT();
   return (
-    <PanelSection title="Biggest moves, all markets">
+    <PanelSection title={t('Biggest moves, all markets')}>
       <div className="grid grid-cols-2 gap-4">
         {[breadth.best, breadth.worst].map((list, col) => (
           <ul key={col}>

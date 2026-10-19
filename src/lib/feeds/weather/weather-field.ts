@@ -1,4 +1,5 @@
 import type { AddProtocolAction } from 'maplibre-gl';
+import { msg } from '@/lib/core/i18n/translator';
 
 /** The /api/weather-grid payload. Points are row-major: `lats` outer, `lngs` inner. */
 export interface WeatherGrid {
@@ -174,16 +175,16 @@ export function installWeatherProtocol(addProtocol: (name: string, handler: AddP
 
 /** WMO weather interpretation codes, as Open-Meteo reports them. */
 export function weatherLabel(code: number | null | undefined): string {
-  if (code == null) return 'Unknown';
-  if (code === 0) return 'Clear sky';
-  if (code <= 2) return 'Partly cloudy';
-  if (code === 3) return 'Overcast';
-  if (code === 45 || code === 48) return 'Fog';
-  if (code >= 51 && code <= 57) return 'Drizzle';
-  if (code >= 61 && code <= 67) return 'Rain';
-  if (code >= 71 && code <= 77) return 'Snow';
-  if (code >= 80 && code <= 82) return 'Rain showers';
-  if (code === 85 || code === 86) return 'Snow showers';
-  if (code >= 95) return 'Thunderstorm';
-  return 'Unknown';
+  if (code == null) return msg('Unknown');
+  if (code === 0) return msg('Clear sky');
+  if (code <= 2) return msg('Partly cloudy');
+  if (code === 3) return msg('Overcast');
+  if (code === 45 || code === 48) return msg('Fog');
+  if (code >= 51 && code <= 57) return msg('Drizzle');
+  if (code >= 61 && code <= 67) return msg('Rain');
+  if (code >= 71 && code <= 77) return msg('Snow');
+  if (code >= 80 && code <= 82) return msg('Rain showers');
+  if (code === 85 || code === 86) return msg('Snow showers');
+  if (code >= 95) return msg('Thunderstorm');
+  return msg('Unknown');
 }

@@ -1,3 +1,4 @@
+import { msg } from '@/lib/core/i18n/translator';
 import { isValidUsername } from './username/scan';
 
 export type QueryKind = 'ipv4' | 'ipv6' | 'mac' | 'asn' | 'domain' | 'url' | 'email' | 'phone' | 'cve' | 'wallet' | 'hash' | 'username' | 'unknown';
@@ -30,23 +31,23 @@ export function detectQuery(raw: string): Detection {
   const q = raw.trim();
   if (!q) return { kind: 'unknown', label: '', tools: [] };
 
-  if (MAC.test(q)) return { kind: 'mac', label: 'Looks like a MAC address', tools: ['mac'] };
-  if (EMAIL.test(q)) return { kind: 'email', label: 'Looks like an email address', tools: ['leaks', 'fingerprint'] };
-  if (CVE.test(q)) return { kind: 'cve', label: 'Looks like a CVE id', tools: [] };
-  if (ASN.test(q)) return { kind: 'asn', label: 'Looks like an ASN', tools: ['bgp'] };
-  if (isIpv4(q)) return { kind: 'ipv4', label: 'Looks like an IP address', tools: ['bgp', 'shodan', 'scanner', 'vuln', 'threats', 'sweep'] };
-  if (IPV6.test(q) && (q.match(/:/g)?.length ?? 0) >= 2) return { kind: 'ipv6', label: 'Looks like an IPv6 address', tools: ['bgp', 'shodan'] };
+  if (MAC.test(q)) return { kind: 'mac', label: msg('Looks like a MAC address'), tools: ['mac'] };
+  if (EMAIL.test(q)) return { kind: 'email', label: msg('Looks like an email address'), tools: ['leaks', 'fingerprint'] };
+  if (CVE.test(q)) return { kind: 'cve', label: msg('Looks like a CVE id'), tools: [] };
+  if (ASN.test(q)) return { kind: 'asn', label: msg('Looks like an ASN'), tools: ['bgp'] };
+  if (isIpv4(q)) return { kind: 'ipv4', label: msg('Looks like an IP address'), tools: ['bgp', 'shodan', 'scanner', 'vuln', 'threats', 'sweep'] };
+  if (IPV6.test(q) && (q.match(/:/g)?.length ?? 0) >= 2) return { kind: 'ipv6', label: msg('Looks like an IPv6 address'), tools: ['bgp', 'shodan'] };
 
-  if (/^https?:\/\//i.test(q)) return { kind: 'url', label: 'Looks like a web address', tools: ['headers', 'tech', 'ssl'] };
-  if (DOMAIN.test(q)) return { kind: 'domain', label: 'Looks like a domain', tools: ['dns', 'whois', 'certs', 'subdomains', 'ssl', 'headers', 'tech', 'scanner', 'vuln'] };
+  if (/^https?:\/\//i.test(q)) return { kind: 'url', label: msg('Looks like a web address'), tools: ['headers', 'tech', 'ssl'] };
+  if (DOMAIN.test(q)) return { kind: 'domain', label: msg('Looks like a domain'), tools: ['dns', 'whois', 'certs', 'subdomains', 'ssl', 'headers', 'tech', 'scanner', 'vuln'] };
 
-  if (looksPhone(q)) return { kind: 'phone', label: 'Looks like a phone number', tools: ['phone', 'fingerprint'] };
+  if (looksPhone(q)) return { kind: 'phone', label: msg('Looks like a phone number'), tools: ['phone', 'fingerprint'] };
 
   if (BTC.test(q) || (SOL.test(q) && q.length >= 40) || /^0x[0-9a-f]{40}$/i.test(q)) {
-    return { kind: 'wallet', label: 'Looks like a crypto wallet', tools: ['crypto'] };
+    return { kind: 'wallet', label: msg('Looks like a crypto wallet'), tools: ['crypto'] };
   }
-  if (HEX_HASH.test(q)) return { kind: 'hash', label: 'Looks like a file hash', tools: [] };
+  if (HEX_HASH.test(q)) return { kind: 'hash', label: msg('Looks like a file hash'), tools: [] };
 
-  if (isValidUsername(q)) return { kind: 'username', label: 'Looks like a username', tools: ['fingerprint', 'username', 'github'] };
+  if (isValidUsername(q)) return { kind: 'username', label: msg('Looks like a username'), tools: ['fingerprint', 'username', 'github'] };
   return { kind: 'unknown', label: '', tools: [] };
 }

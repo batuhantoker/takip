@@ -5,6 +5,7 @@ import { Download, PenLine, Trash2, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel, PanelSection } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 import type { DrawMode, DrawProgress, DrawnShape } from '@/lib/places/areas/draw';
 import type { WatchEvent } from '@/lib/places/areas/watch';
 import AoiContents from '@/components/panels/areas/parts/aoi-contents';
@@ -47,6 +48,7 @@ export default function DrawingToolbar({
   selectedPolygon, onSelectPolygon, onRenamePolygon, data, onLocateEntity, onLocateArea,
   watched, onToggleWatch, watchEvents = [], onImagery, onClose,
 }: DrawingToolbarProps) {
+  const t = useT();
   const [undo, setUndo] = useState<{ message: string; shapes: DrawnShape[] } | null>(null);
   const undoTimer = useRef<number | undefined>(undefined);
   const seen = useRef<Set<string> | null>(null);
@@ -78,13 +80,13 @@ export default function DrawingToolbar({
   };
 
   const remove = (shape: DrawnShape) => {
-    offerUndo(`Deleted ${shape.name}`);
+    offerUndo(t('Deleted {name}', { name: shape.name }));
     if (selectedPolygon === shape.id) onSelectPolygon(null);
     onDeletePolygon(shape.id);
   };
 
   const clearAll = () => {
-    offerUndo(`Cleared ${polygons.length} ${polygons.length === 1 ? 'shape' : 'shapes'}`);
+    offerUndo(t('{n, plural, one {Cleared # shape} other {Cleared # shapes}}', { n: polygons.length }));
     onClearAll();
   };
 
@@ -102,31 +104,31 @@ export default function DrawingToolbar({
   const selected = polygons.find(p => p.id === selectedPolygon) ?? null;
   const watchCount = polygons.filter(p => watched?.has(p.id)).length;
   const subtitle = polygons.length === 0
-    ? 'Draw a shape to see what’s inside it'
-    : `${polygons.length} ${polygons.length === 1 ? 'shape' : 'shapes'}${watchCount ? ` · ${watchCount} watched` : ''}`;
+    ? t('Draw a shape to see what’s inside it')
+    : `${t('{n, plural, one {# shape} other {# shapes}}', { n: polygons.length })}${watchCount ? ` · ${t('{n} watched', { n: watchCount })}` : ''}`;
 
   const footer = undo ? (
     <>
       <span className="min-w-0 flex-1 truncate text-small text-ink-2" role="status">{undo.message}</span>
-      <Button size="sm" icon={Undo2} onClick={restore}>Undo</Button>
+      <Button size="sm" icon={Undo2} onClick={restore}>{t('Undo')}</Button>
     </>
   ) : polygons.length > 0 ? (
     <>
-      <Button size="sm" icon={Download} onClick={onExportGeoJSON}>Export GeoJSON</Button>
-      <Button size="sm" variant="ghost" icon={Trash2} className="-mr-2 ml-auto" onClick={clearAll}>Clear all</Button>
+      <Button size="sm" icon={Download} onClick={onExportGeoJSON}>{t('Export GeoJSON')}</Button>
+      <Button size="sm" variant="ghost" icon={Trash2} className="-mr-2 ml-auto" onClick={clearAll}>{t('Clear all')}</Button>
     </>
   ) : undefined;
 
   return (
-    <Panel title="Areas" subtitle={subtitle} onClose={onClose} closeOnEscape={!drawMode} footer={footer}>
-      <PanelSection title="Draw">
+    <Panel title={t('Areas')} subtitle={subtitle} onClose={onClose} closeOnEscape={!drawMode} footer={footer}>
+      <PanelSection title={t('Draw')}>
         <ShapePicker mode={drawMode} onChange={onSetDrawMode} busy={(progress?.vertices ?? 0) > 0} />
       </PanelSection>
 
-      <PanelSection title="Your shapes" hint={polygons.length || undefined}>
+      <PanelSection title={t('Your shapes')} hint={polygons.length || undefined}>
         {polygons.length === 0 ? (
-          <EmptyState icon={PenLine} title="No shapes yet"
-            body="What you draw is kept here between visits. Select a shape to see what’s inside it or to watch it." className="py-6" />
+          <EmptyState icon={PenLine} title={t('No shapes yet')}
+            body={t('What you draw is kept here between visits. Select a shape to see what’s inside it or to watch it.')} className="py-6" />
         ) : (
           <ul className="flex flex-col">
             {polygons.map(p => (
@@ -157,7 +159,7 @@ export default function DrawingToolbar({
           )}
           {/* The outline stays on the map, so its licence's credit stays with it. */}
           {selected.meta?.boundary?.source && (
-            <p className="mt-6 text-meta text-ink-3">Outline from {selected.meta.boundary.source}</p>
+            <p className="mt-6 text-meta text-ink-3">{t('Outline from {source}', { source: selected.meta.boundary.source })}</p>
           )}
         </>
       )}

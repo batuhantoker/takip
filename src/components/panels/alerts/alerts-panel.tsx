@@ -4,13 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, RefreshCw } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { Panel, PanelSection } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 import { BLOC_ORDER, type Bloc } from '@/lib/intel/alerts/digest';
 import type { LiveAlertsData, LocateOptions, QuakeAlert, SourceHealth as Source } from '@/lib/intel/alerts/live-alerts';
 import { BriefCard } from '@/components/panels/alerts/parts/alert-brief';
 import AlertFilters, { FilterSummary } from '@/components/panels/alerts/parts/alert-filters';
 import AlertList from '@/components/panels/alerts/parts/alert-list';
 import AlertSummary, { type StatPick } from '@/components/panels/alerts/parts/alert-summary';
-import { ago, plural } from './format';
+import { ago } from './format';
 import LiveTv from '@/components/panels/alerts/parts/live-tv';
 import { Spinner } from '@/components/panels/alerts/rows/row-parts';
 import SourceHealth from '@/components/panels/alerts/parts/source-health';
@@ -40,6 +41,7 @@ const isTab = (v: unknown): v is AlertTab => TABS.includes(v as AlertTab);
 const isBloc = (v: unknown): v is Bloc | 'all' => v === 'all' || BLOC_ORDER.includes(v as Bloc);
 
 export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRefresh, pinsOn = false, onTogglePins, onPinnedChange }: LiveAlertsProps) {
+  const t = useT();
   const [tab, setTab] = usePersisted<AlertTab>('takip.alerts.tab', 'all', isTab);
   const [bloc, setBloc] = usePersisted<Bloc | 'all'>('takip.alerts.side', 'all', isBloc);
   const [query, setQuery] = useState('');
@@ -52,12 +54,12 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
   const top = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
   }, []);
 
   const { news, quakes, warnings, threads, overviewPayload } = useAlertItems(data);
-  const activeThread = threads.find(t => t.id === threadId) ?? null;
+  const activeThread = threads.find(th => th.id === threadId) ?? null;
   const q = query.trim().toLowerCase();
   const { newsFiltersActive, list, pinned, groups } = useAlertList({
     tab, bloc, newsKind, q, activeThread, news, quakes, warnings, now, onPinnedChange,
@@ -122,31 +124,33 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
   };
 
   const subtitle = loading
-    ? 'Reading the sources…'
-    : `${lastDay.toLocaleString()} in the last day${fetchedAt ? ` · updated ${ago(fetchedAt, now)}` : ''}`;
+    ? t('Reading the sources…')
+    : `${t('{n} in the last day', { n: lastDay })}${fetchedAt ? ` · ${t('updated {ago}', { ago: ago(fetchedAt, now, t) })}` : ''}`;
 
   return (
     <Panel
-      title="Alerts"
+      title={t('Alerts')}
       subtitle={subtitle}
       onClose={onClose}
       actions={<>
         {onTogglePins && (
           <IconButton icon={MapPin} active={pinsOn} onClick={() => onTogglePins(!pinsOn)}
-            label={pinsOn ? 'Hide news pins on the map' : pinned.length ? `Pin ${plural(pinned.length, 'news report')} on the map` : 'Pin news reports on the map'} />
+            label={pinsOn ? t('Hide news pins on the map') : pinned.length
+              ? t('{n, plural, one {Pin # news report on the map} other {Pin # news reports on the map}}', { n: pinned.length })
+              : t('Pin news reports on the map')} />
         )}
         {onRefresh && (
-          <IconButton icon={refreshing ? Spinner : RefreshCw} disabled={refreshing} onClick={refresh} label="Refresh now" />
+          <IconButton icon={refreshing ? Spinner : RefreshCw} disabled={refreshing} onClick={refresh} label={t('Refresh now')} />
         )}
       </>}
       tabs={{
         value: tab,
         onChange: selectTab,
         options: [
-          { value: 'all', label: 'All' },
-          { value: 'news', label: 'News' },
-          { value: 'warnings', label: 'Warnings' },
-          { value: 'quakes', label: 'Quakes' },
+          { value: 'all', label: t('All') },
+          { value: 'news', label: t('News') },
+          { value: 'warnings', label: t('Warnings') },
+          { value: 'quakes', label: t('Quakes') },
         ],
       }}
       footer={<>
@@ -154,9 +158,9 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
         <LiveTv onWatch={f => { onLocate(f.lat, f.lng); onWatchFeed?.(f.url, f.name); }} />
       </>}
     >
-      <PanelSection title="Right now" action={
+      <PanelSection title={t('Right now')} action={
         <Button variant="ghost" size="sm" icon={TiGlyph} aria-expanded={briefOpen} onClick={toggleBrief}>
-          {briefOpen ? 'Hide brief' : 'Brief me'}
+          {briefOpen ? t('Hide brief') : t('Brief me')}
         </Button>
       }>
         <AlertSummary rightNow={rightNow} active={picked} onPick={pick} />

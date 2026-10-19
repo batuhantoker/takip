@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Minimize2 } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { Panel } from '@/components/ui/panel';
+import { useT } from '@/components/ui/use-t';
 
 /**
  * Markets over the dimmed map: find and sections across the top, the
@@ -24,11 +25,12 @@ export default function MarketsFull({ subtitle, clocks, find, sections, monitor,
   footer: ReactNode;
   onExit: () => void;
 }) {
+  const t = useT();
   return createPortal(
     <div className="fixed inset-0 z-[1100] flex bg-surface-0/80 p-4" onClick={onExit}>
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[1500px]" onClick={e => e.stopPropagation()}>
-        <Panel docked={false} bare closeOnEscape={false} title="Markets" subtitle={subtitle} className="h-full w-full"
-          actions={<>{clocks}<IconButton icon={Minimize2} label="Exit full screen" kbd="Esc" onClick={onExit} className="ml-3" /></>}
+        <Panel docked={false} bare closeOnEscape={false} title={t('Markets')} subtitle={subtitle} className="h-full w-full"
+          actions={<>{clocks}<IconButton icon={Minimize2} label={t('Exit full screen')} kbd="Esc" onClick={onExit} className="ml-3" /></>}
           footer={footer}>
           <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pt-1 pb-4">
             <div className="flex shrink-0 items-start gap-4">

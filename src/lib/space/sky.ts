@@ -6,6 +6,7 @@
  * point it stands over on Earth is worked out in the browser as Earth turns.
  */
 
+import { msg } from '@/lib/core/i18n/translator';
 import { subPoint, wrap180, wrap360 } from './astro';
 import type { StateRow, Vec3 } from './horizons';
 
@@ -22,17 +23,17 @@ export interface SkyBodyDef {
 }
 
 export const SKY_BODIES: SkyBodyDef[] = [
-  { key: 'sun', id: 10, name: 'Sun', kind: 'star', color: '#FFC24A', radiusKm: 695_700 },
-  { key: 'mercury', id: 199, name: 'Mercury', kind: 'planet', color: '#B9AC9F', radiusKm: 2_439.7 },
-  { key: 'venus', id: 299, name: 'Venus', kind: 'planet', color: '#EBD3A2', radiusKm: 6_051.8 },
-  { key: 'earth', id: 399, name: 'Earth', kind: 'planet', color: '#4FA3FF', radiusKm: 6_371 },
-  { key: 'moon', id: 301, name: 'Moon', kind: 'moon', color: '#DADADA', radiusKm: 1_737.4 },
-  { key: 'mars', id: 499, name: 'Mars', kind: 'planet', color: '#E2603A', radiusKm: 3_389.5 },
-  { key: 'jupiter', id: 599, name: 'Jupiter', kind: 'planet', color: '#D9B38C', radiusKm: 69_911 },
-  { key: 'saturn', id: 699, name: 'Saturn', kind: 'planet', color: '#E6CF8B', radiusKm: 58_232 },
-  { key: 'uranus', id: 799, name: 'Uranus', kind: 'planet', color: '#9FD8E0', radiusKm: 25_362 },
-  { key: 'neptune', id: 899, name: 'Neptune', kind: 'planet', color: '#6B8CFF', radiusKm: 24_622 },
-  { key: 'pluto', id: 999, name: 'Pluto', kind: 'dwarf', color: '#C9B79C', radiusKm: 1_188.3 },
+  { key: 'sun', id: 10, name: msg('Sun'), kind: 'star', color: '#FFC24A', radiusKm: 695_700 },
+  { key: 'mercury', id: 199, name: msg('Mercury'), kind: 'planet', color: '#B9AC9F', radiusKm: 2_439.7 },
+  { key: 'venus', id: 299, name: msg('Venus'), kind: 'planet', color: '#EBD3A2', radiusKm: 6_051.8 },
+  { key: 'earth', id: 399, name: msg('Earth'), kind: 'planet', color: '#4FA3FF', radiusKm: 6_371 },
+  { key: 'moon', id: 301, name: msg('Moon'), kind: 'moon', color: '#DADADA', radiusKm: 1_737.4 },
+  { key: 'mars', id: 499, name: msg('Mars'), kind: 'planet', color: '#E2603A', radiusKm: 3_389.5 },
+  { key: 'jupiter', id: 599, name: msg('Jupiter'), kind: 'planet', color: '#D9B38C', radiusKm: 69_911 },
+  { key: 'saturn', id: 699, name: msg('Saturn'), kind: 'planet', color: '#E6CF8B', radiusKm: 58_232 },
+  { key: 'uranus', id: 799, name: msg('Uranus'), kind: 'planet', color: '#9FD8E0', radiusKm: 25_362 },
+  { key: 'neptune', id: 899, name: msg('Neptune'), kind: 'planet', color: '#6B8CFF', radiusKm: 24_622 },
+  { key: 'pluto', id: 999, name: msg('Pluto'), kind: 'dwarf', color: '#C9B79C', radiusKm: 1_188.3 },
 ];
 
 export interface SkySample {

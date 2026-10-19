@@ -5,6 +5,7 @@ import { PanelSection } from '@/components/ui/panel';
 import { Property, PropertyList } from '@/components/ui/property-list';
 import { Stat } from '@/components/ui/stat';
 import { Tag } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
 import type { MapRef } from '@/components/map/types';
 import { readableRoute, TRANSIT_STATUS, transitKmh, transitTitle, transitWhere } from '@/lib/feeds/transit/describe';
 import type { TransitMode } from '@/lib/feeds/transit/modes';
@@ -30,6 +31,7 @@ export function TransitInspect({ target, live, shown, mapRef, onClose }: {
   mapRef: MapRef;
   onClose: () => void;
 }) {
+  const t = useT();
   const v = live ?? target;
   const pos = shown ?? { lat: v.lat, lng: v.lng };
   const { following, setFollowing } = useFollow(mapRef, pos, `transit:${target.id}`);
@@ -39,7 +41,7 @@ export function TransitInspect({ target, live, shown, mapRef, onClose }: {
 
   const kmh = transitKmh(v.speed);
   const route = readableRoute(v.route);
-  const status = transitWhere(v) ?? (v.status != null ? TRANSIT_STATUS[v.status] : undefined);
+  const status = transitWhere(v) ?? (v.status != null && TRANSIT_STATUS[v.status] ? t(TRANSIT_STATUS[v.status]) : undefined);
   const stale = age > STALE_MS;
 
   return (
@@ -48,38 +50,38 @@ export function TransitInspect({ target, live, shown, mapRef, onClose }: {
       title={transitTitle(v)}
       subtitle={v.operator || v.feed}
       tags={<>
-        {kmh != null && <Tag>{kmh >= 2 ? 'Moving' : 'Stopped'}</Tag>}
-        {v.scheduled ? <Tag>Timetable, not live</Tag> : v.estimated && <Tag>Estimated position</Tag>}
-        {stale && <Tag tone="amber">No recent position</Tag>}
+        {kmh != null && <Tag>{kmh >= 2 ? t('Moving') : t('Stationary')}</Tag>}
+        {v.scheduled ? <Tag>{t('Timetable, not live')}</Tag> : v.estimated && <Tag>{t('Estimated position')}</Tag>}
+        {stale && <Tag tone="amber">{t('No recent position')}</Tag>}
       </>}
       onClose={onClose}
       headerActions={<MoveActions mapRef={mapRef} lat={pos.lat} lng={pos.lng} zoom={15} following={following} onFollow={setFollowing} />}
       footer={<span>{v.scheduled
-        ? 'Where its timetable has it now · this system publishes nothing live'
+        ? t('Where its timetable has it now · this system publishes nothing live')
         : v.estimated
-          ? `Stop reported ${ago(age)} · placed from its timetable, not GPS`
-          : `Position ${ago(age)} · checked every ${TRANSIT_TRACK_MS / 1000} s`}</span>}
+          ? t('Stop reported {ago} · placed from its timetable, not GPS', { ago: ago(age, t) })
+          : t('Position {ago} · checked every {n} s', { ago: ago(age, t), n: TRANSIT_TRACK_MS / 1000 })}</span>}
     >
       <StatRow>
-        <Stat size="sm" label="Speed" value={kmh != null ? String(kmh) : '—'} unit="km/h" />
-        {v.bearing != null && <Stat size="sm" label="Heading" value={bearing(v.bearing)} unit={compass(v.bearing)} />}
+        <Stat size="sm" label={t('Speed')} value={kmh != null ? String(kmh) : '—'} unit="km/h" />
+        {v.bearing != null && <Stat size="sm" label={t('Heading')} value={bearing(v.bearing)} unit={compass(v.bearing)} />}
       </StatRow>
-      <PanelSection title="Vehicle" className="mt-6">
+      <PanelSection title={t('Vehicle')} className="mt-6">
         <PropertyList>
-          {route && <Property label="Route" value={route} mono={false} />}
-          {!route && v.route && <Property label="Route id" value={v.route} mono />}
-          {v.label && <Property label="Vehicle" value={v.label} mono />}
-          {v.plate && <Property label="Plate" value={v.plate} mono />}
-          {status && <Property label="Status" value={status} mono={false} />}
-          {v.operator && v.feed && v.operator !== v.feed && <Property label="Feed" value={v.feed} mono={false} />}
+          {route && <Property label={t('Route')} value={route} mono={false} />}
+          {!route && v.route && <Property label={t('Route id')} value={v.route} mono />}
+          {v.label && <Property label={t('Vehicle')} value={v.label} mono />}
+          {v.plate && <Property label={t('Plate')} value={v.plate} mono />}
+          {status && <Property label={t('Status')} value={status} mono={false} />}
+          {v.operator && v.feed && v.operator !== v.feed && <Property label={t('Feed')} value={v.feed} mono={false} />}
         </PropertyList>
       </PanelSection>
-      <PanelSection title="Where">
-        <WhereRow lat={pos.lat} lng={pos.lng} place={describePlace(place, 'Near the ')} />
+      <PanelSection title={t('Where')}>
+        <WhereRow lat={pos.lat} lng={pos.lng} place={describePlace(t, place, 'near')} />
       </PanelSection>
       {v.license && /^https?:\/\//.test(v.license) && (
-        <PanelSection title="Source">
-          <SourceLinks links={[{ href: v.license, label: 'Data licence' }]} />
+        <PanelSection title={t('Source')}>
+          <SourceLinks links={[{ href: v.license, label: t('Data licence') }]} />
         </PanelSection>
       )}
     </InspectCard>

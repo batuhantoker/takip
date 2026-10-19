@@ -5,14 +5,24 @@ import TimelineScrubber from '@/components/map/replay/timeline-scrubber';
 import { calendarTicks } from '@/lib/map/replay/timeline-ticks';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useT } from '@/components/ui/use-t';
+import type { Translate } from '@/lib/core/i18n/translator';
 import { formatTime } from '@/lib/map/replay/time-input';
 import type { HistoryEvent } from '@/lib/space/replay/flight-history';
 import { jdFromMs, msFromJd } from '@/lib/space/horizons';
 import { replayDate } from '@/lib/space/replay/format';
 
 /** "6 Aug 2012", and "6 Aug 2012 05:17" when the flight is short enough for the hour to matter. */
-export const flightDate = (jd: number, withTime = false) =>
-  `${formatTime(msFromJd(jd), Number.POSITIVE_INFINITY)}${withTime ? ` ${replayDate(jd).slice(11, 16)}` : ''}`;
+export const flightDate = (jd: number, t: Translate, withTime = false) =>
+  `${formatTime(msFromJd(jd), Number.POSITIVE_INFINITY, t)}${withTime ? ` ${replayDate(jd).slice(11, 16)}` : ''}`;
+
+export function eventLabel(e: HistoryEvent, t: Translate): string {
+  if (e.kind === 'now') return t('Now');
+  if (e.kind === 'end') return t('Ephemeris ends');
+  if (e.label === 'Launch') return t('Launch');
+  if (e.label === 'Ephemeris begins') return t('Ephemeris begins');
+  return e.label;
+}
 
 /** The shared timeline track over the whole flight, with its events pinned above the rail. */
 export default function FlightTrack({ start, end, jd, predictedFrom, events, onSeek, onTogglePlay }: {
@@ -25,6 +35,7 @@ export default function FlightTrack({ start, end, jd, predictedFrom, events, onS
   onSeek: (jd: number) => void;
   onTogglePlay: () => void;
 }) {
+  const t = useT();
   const [hovered, setHovered] = useState<number | null>(null);
   const lo = msFromJd(start), hi = msFromJd(end);
   const left = (t: number) => `${((t - start) / (end - start)) * 100}%`;
@@ -39,17 +50,17 @@ export default function FlightTrack({ start, end, jd, predictedFrom, events, onS
             className={cx('absolute top-[5px] size-[5px] -translate-x-1/2 rounded-full', e.kind === 'now' ? 'bg-green' : hovered === i ? 'bg-ink-1' : 'bg-ink-3')} />
         ))}
       </div>
-      <TimelineScrubber label="Flight timeline" lo={lo} hi={hi} time={msFromJd(jd)} step={(hi - lo) / 200}
+      <TimelineScrubber label={t('Flight timeline')} lo={lo} hi={hi} time={msFromJd(jd)} step={(hi - lo) / 200}
         onSeek={ms => onSeek(jdFromMs(ms))} onTogglePlay={onTogglePlay}
-        format={ms => flightDate(jdFromMs(ms), short)}
-        ticksFor={max => calendarTicks(lo, hi, max)}
+        format={ms => flightDate(jdFromMs(ms), t, short)}
+        ticksFor={max => calendarTicks(lo, hi, max, t)}
         provisionalFrom={predictedFrom === undefined ? undefined : msFromJd(predictedFrom)}
-        notes={{ provisional: 'predicted' }} />
+        notes={{ provisional: t('predicted') }} />
       {/* Above the rail, so the rail itself still scrubs everywhere. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-3">
         {events.map((e, i) => (
-          <Tooltip key={`${e.kind}-${e.jd}`} label={<>{e.label}<span className="ml-2 font-mono font-normal text-ink-3 tabular-nums">{flightDate(e.jd, short)}</span></>}>
-            <button type="button" aria-label={e.label} onClick={() => onSeek(e.jd)}
+          <Tooltip key={`${e.kind}-${e.jd}`} label={<>{eventLabel(e, t)}<span className="ml-2 font-mono font-normal text-ink-3 tabular-nums">{flightDate(e.jd, t, short)}</span></>}>
+            <button type="button" aria-label={eventLabel(e, t)} onClick={() => onSeek(e.jd)}
               onPointerEnter={() => setHovered(i)} onPointerLeave={() => setHovered(null)}
               onFocus={() => setHovered(i)} onBlur={() => setHovered(null)}
               className={cx('pointer-events-auto absolute top-0 size-3 -translate-x-1/2 cursor-pointer rounded-full', FOCUS_RING)}

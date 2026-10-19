@@ -1,3 +1,5 @@
+import { t } from '@/lib/core/i18n/active';
+import { msg } from '@/lib/core/i18n/translator';
 import type { ReplayClock } from '@/lib/map/replay/clock';
 import { baseCode, mayProject, type Projection, projectionPlan, withProjection } from '../projection';
 import { type CatalogueMetric, msAt, type Reading, type Scale, type SeriesPayload, type ShapePoint, scaleFor, yearAt } from '../series';
@@ -8,68 +10,68 @@ import { type CatalogueMetric, msAt, type Reading, type Scale, type SeriesPayloa
  * the source publishes them (projection.ts).
  */
 
-/** `projectedTo`: the picker adds "projected to <year>"; the legend keeps the shorter label. */
-export const VIEW_GROUPS: { label: string; views: { code: string; label: string; projectedTo?: number }[] }[] = [
-  { label: 'Health', views: [
-    { code: 'wpp:LEx', label: 'Life expectancy', projectedTo: 2100 },
-    { code: 'owid:le_0', label: 'Life expectancy, since 1543' },
-    { code: 'owid:child_mortality', label: 'Child mortality, since 1751' },
-    { code: 'wpp:IMR', label: 'Infant mortality', projectedTo: 2100 },
-    { code: 'owid:water_safely_managed', label: 'Safe drinking water' },
-    { code: 'owid:prev_depression', label: 'Depression' },
-    { code: 'owid:suicide_rate', label: 'Suicide rate' },
+/** `since` and `projectedTo`: the labels add "since <year>" and, in the picker, "projected to <year>". */
+export const VIEW_GROUPS: { label: string; views: { code: string; label: string; since?: number; projectedTo?: number }[] }[] = [
+  { label: msg('Health'), views: [
+    { code: 'wpp:LEx', label: msg('Life expectancy'), projectedTo: 2100 },
+    { code: 'owid:le_0', label: msg('Life expectancy'), since: 1543 },
+    { code: 'owid:child_mortality', label: msg('Child mortality'), since: 1751 },
+    { code: 'wpp:IMR', label: msg('Infant mortality'), projectedTo: 2100 },
+    { code: 'owid:water_safely_managed', label: msg('Safe drinking water') },
+    { code: 'owid:prev_depression', label: msg('Depression') },
+    { code: 'owid:suicide_rate', label: msg('Suicide rate') },
   ] },
   { label: 'COVID-19', views: [
-    { code: 'owid:covid_weekly_deaths_pm', label: 'COVID-19 deaths, weekly' },
-    { code: 'owid:covid_weekly_cases_pm', label: 'COVID-19 cases, weekly' },
-    { code: 'owid:covid_vaccinated', label: 'Vaccinated against COVID-19' },
+    { code: 'owid:covid_weekly_deaths_pm', label: msg('COVID-19 deaths, weekly') },
+    { code: 'owid:covid_weekly_cases_pm', label: msg('COVID-19 cases, weekly') },
+    { code: 'owid:covid_vaccinated', label: msg('Vaccinated against COVID-19') },
   ] },
-  { label: 'People', views: [
-    { code: 'wpp:TPopulation1July', label: 'Population', projectedTo: 2100 },
-    { code: 'owid:population', label: 'Population, long run' },
-    { code: 'wpp:PopGrowthRate', label: 'Population growth', projectedTo: 2100 },
-    { code: 'wpp:TFR', label: 'Fertility rate', projectedTo: 2100 },
-    { code: 'wup:UrbanShare', label: 'Urban population', projectedTo: 2050 },
-    { code: 'wup:CityShare', label: 'People living in cities', projectedTo: 2050 },
-    { code: 'wpp:MedianAgePop', label: 'Median age', projectedTo: 2100 },
-    { code: 'wpp:Share65', label: 'People aged 65 and over', projectedTo: 2100 },
-    { code: 'wpp:OldAgeDep', label: 'Old-age dependency', projectedTo: 2100 },
-    { code: 'wpp:CNMR', label: 'Net migration rate', projectedTo: 2100 },
+  { label: msg('People'), views: [
+    { code: 'wpp:TPopulation1July', label: msg('Population'), projectedTo: 2100 },
+    { code: 'owid:population', label: msg('Population, long run') },
+    { code: 'wpp:PopGrowthRate', label: msg('Population growth'), projectedTo: 2100 },
+    { code: 'wpp:TFR', label: msg('Fertility rate'), projectedTo: 2100 },
+    { code: 'wup:UrbanShare', label: msg('Urban population'), projectedTo: 2050 },
+    { code: 'wup:CityShare', label: msg('People living in cities'), projectedTo: 2050 },
+    { code: 'wpp:MedianAgePop', label: msg('Median age'), projectedTo: 2100 },
+    { code: 'wpp:Share65', label: msg('People aged 65 and over'), projectedTo: 2100 },
+    { code: 'wpp:OldAgeDep', label: msg('Old-age dependency'), projectedTo: 2100 },
+    { code: 'wpp:CNMR', label: msg('Net migration rate'), projectedTo: 2100 },
   ] },
-  { label: 'Conflict', views: [
-    { code: 'owid:conflict_deaths_all', label: 'Deaths in conflicts' },
-    { code: 'wdi:MS.MIL.XPND.GD.ZS', label: 'Military spending' },
+  { label: msg('Conflict'), views: [
+    { code: 'owid:conflict_deaths_all', label: msg('Deaths in conflicts') },
+    { code: 'wdi:MS.MIL.XPND.GD.ZS', label: msg('Military spending') },
   ] },
-  { label: 'Politics', views: [
-    { code: 'owid:electdem_vdem', label: 'Electoral democracy, since 1789' },
-    { code: 'owid:civlibs_vdem', label: 'Human rights, since 1789' },
+  { label: msg('Politics'), views: [
+    { code: 'owid:electdem_vdem', label: msg('Electoral democracy'), since: 1789 },
+    { code: 'owid:civlibs_vdem', label: msg('Human rights'), since: 1789 },
   ] },
-  { label: 'Economy', views: [
-    { code: 'wdi:NY.GDP.PCAP.KD', label: 'GDP per person' },
-    { code: 'owid:gdp_pc_maddison', label: 'GDP per person, since 1 CE' },
-    { code: 'oecd-lt:GDPVD_CAP', label: 'GDP per person, OECD scenarios', projectedTo: 2100 },
-    { code: 'imf:NGDP_RPCH', label: 'GDP growth', projectedTo: 2031 },
-    { code: 'gep:NYGDPMKTPKDZ', label: 'GDP growth, World Bank forecast', projectedTo: 2028 },
-    { code: 'imf:PCPIPCH', label: 'Inflation', projectedTo: 2031 },
-    { code: 'imf:GGXWDG_NGDP', label: 'Government debt', projectedTo: 2031 },
+  { label: msg('Economy'), views: [
+    { code: 'wdi:NY.GDP.PCAP.KD', label: msg('GDP per person') },
+    { code: 'owid:gdp_pc_maddison', label: msg('GDP per person'), since: 1 },
+    { code: 'oecd-lt:GDPVD_CAP', label: msg('GDP per person, OECD scenarios'), projectedTo: 2100 },
+    { code: 'imf:NGDP_RPCH', label: msg('GDP growth'), projectedTo: 2031 },
+    { code: 'gep:NYGDPMKTPKDZ', label: msg('GDP growth, World Bank forecast'), projectedTo: 2028 },
+    { code: 'imf:PCPIPCH', label: msg('Inflation'), projectedTo: 2031 },
+    { code: 'imf:GGXWDG_NGDP', label: msg('Government debt'), projectedTo: 2031 },
   ] },
-  { label: 'Education', views: [
-    { code: 'owid:lays', label: 'Learning-adjusted schooling' },
-    { code: 'owid:ner_primary_f', label: 'Girls in primary school' },
-    { code: 'wdi:SE.ADT.LITR.ZS', label: 'Adult literacy' },
+  { label: msg('Education'), views: [
+    { code: 'owid:lays', label: msg('Learning-adjusted schooling') },
+    { code: 'owid:ner_primary_f', label: msg('Girls in primary school') },
+    { code: 'wdi:SE.ADT.LITR.ZS', label: msg('Adult literacy') },
   ] },
-  { label: 'Climate', views: [
-    { code: 'cckp:hd35', label: 'Days above 35 °C, modelled', projectedTo: 2100 },
-    { code: 'cckp:tas', label: 'Mean temperature, modelled', projectedTo: 2100 },
-    { code: 'cckp:tr', label: 'Tropical nights, modelled', projectedTo: 2100 },
-    { code: 'era5:tas', label: 'Mean temperature, observed' },
-    { code: 'oecd-lt:CO2', label: 'CO₂ emissions, OECD scenarios', projectedTo: 2100 },
+  { label: msg('Climate'), views: [
+    { code: 'cckp:hd35', label: msg('Days above 35 °C, modelled'), projectedTo: 2100 },
+    { code: 'cckp:tas', label: msg('Mean temperature, modelled'), projectedTo: 2100 },
+    { code: 'cckp:tr', label: msg('Tropical nights, modelled'), projectedTo: 2100 },
+    { code: 'era5:tas', label: msg('Mean temperature, observed') },
+    { code: 'oecd-lt:CO2', label: msg('CO₂ emissions, OECD scenarios'), projectedTo: 2100 },
   ] },
-  { label: 'Technology and environment', views: [
-    { code: 'wdi:IT.NET.USER.ZS', label: 'Internet users' },
-    { code: 'wdi:EG.ELC.ACCS.ZS', label: 'Access to electricity' },
-    { code: 'wdi:EN.GHG.CO2.PC.CE.AR5', label: 'CO₂ per person' },
-    { code: 'wdi:AG.LND.FRST.ZS', label: 'Forest area' },
+  { label: msg('Technology and environment'), views: [
+    { code: 'wdi:IT.NET.USER.ZS', label: msg('Internet users') },
+    { code: 'wdi:EG.ELC.ACCS.ZS', label: msg('Access to electricity') },
+    { code: 'wdi:EN.GHG.CO2.PC.CE.AR5', label: msg('CO₂ per person') },
+    { code: 'wdi:AG.LND.FRST.ZS', label: msg('Forest area') },
   ] },
 ];
 
@@ -217,7 +219,7 @@ export function createCountryView(clock: ReplayClock, get: typeof fetch = fetch)
 
   const settled = (code: string, data: SeriesPayload): CountryPick => {
     const scale = scaleFor(data.values);
-    return scale ? { status: 'ready', code, data, scale } : { status: 'error', code, message: 'No country values for this metric' };
+    return scale ? { status: 'ready', code, data, scale } : { status: 'error', code, message: t('No country values for this metric') };
   };
 
   /** Loads a pick that isn't colouring the map; an answer for a pick since dropped or recoloured is ignored. */

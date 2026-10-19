@@ -4,10 +4,14 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Flag, LoaderCircle, LocateFixed, TriangleAlert, Volume2, VolumeX, X } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import type { Translate } from '@/lib/core/i18n/translator';
+import { arrivalTime } from '@/lib/places/route/plan';
 import {
   cumulativeDistances, stepPositions, computeProgress, shouldAnnounce, announcementText,
   type NavStep, type NavFix, type NavProgress,
 } from '@/lib/places/route/navigation';
+import { fixed } from '@/components/panels/route/lib/route-format';
 import { ManeuverIcon } from './route-marks';
 
 /** Turn-by-turn guidance, driven by the device's own position feed. */
@@ -35,22 +39,25 @@ interface NavigationViewProps {
   onRecenter?: () => void;
 }
 
+const AT_TURN_M = 20;
+
 /** Guidance distances read better rounded than exact. */
-export function navDistance(m: number): string {
-  if (m < 20) return 'Now';
+export function navDistance(m: number, t: Translate): string {
+  if (m < AT_TURN_M) return t('Now');
   if (m < 1000) return `${Math.round(m / 10) * 10} m`;
-  return m < 10_000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m / 1000)} km`;
+  return m < 10_000 ? `${fixed(m / 1000, 1, t)} km` : `${fixed(m / 1000, 0, t)} km`;
 }
 
-export function navDuration(s: number): string {
+export function navDuration(s: number, t: Translate): string {
   const mins = Math.max(1, Math.round(s / 60));
-  if (mins < 60) return `${mins} min`;
-  return `${Math.floor(mins / 60)} hr ${mins % 60} min`;
+  if (mins < 60) return t('{n} min', { n: mins });
+  return t('{h} hr {m} min', { h: Math.floor(mins / 60), m: mins % 60 });
 }
 
 export default function NavigationView({
   route, destinationLabel, fix, onExit, onReroute, onProgress, following, onRecenter,
 }: NavigationViewProps) {
+  const t = useT();
   const [muted, setMuted] = useState(false);
   const [rerouting, setRerouting] = useState(false);
   // Coarse clock for the arrival time — reading Date.now() during render is
@@ -154,7 +161,8 @@ export default function NavigationView({
   const left = progress
     ? { seconds: progress.durationRemaining, metres: progress.distanceRemaining }
     : { seconds: route.duration, metres: route.distance };
-  const toTurn = progress ? navDistance(progress.distanceToStep) : null;
+  const toTurn = progress ? navDistance(progress.distanceToStep, t) : null;
+  const atTurn = progress ? progress.distanceToStep < AT_TURN_M : false;
 
   return (
     <div className="overflow-hidden rounded-float border border-line bg-surface-1 shadow-float">
@@ -165,19 +173,19 @@ export default function NavigationView({
         </span>
         <div className="min-w-0 flex-1" aria-live="polite">
           {!arrived && toTurn && (
-            <p className={cx('text-display font-medium text-ink-1', toTurn !== 'Now' && 'font-mono tabular-nums')}>{toTurn}</p>
+            <p className={cx('text-display font-medium text-ink-1', !atTurn && 'font-mono tabular-nums')}>{toTurn}</p>
           )}
           <p className={cx('text-title', arrived || !progress ? 'font-semibold text-ink-1' : 'text-ink-2')}>
-            {arrived ? `You have arrived at ${destinationLabel}` : step?.instruction ?? 'Starting…'}
+            {arrived ? t('You have arrived at {destination}', { destination: destinationLabel }) : step?.instruction ?? t('Starting…')}
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-0.5 self-start">
-          <IconButton icon={X} label="End navigation" tooltipSide="left" onClick={onExit} />
+          <IconButton icon={X} label={t('End navigation')} tooltipSide="left" onClick={onExit} />
           <IconButton icon={muted ? VolumeX : Volume2} active={muted} tooltipSide="left"
-            label={muted ? 'Turn voice guidance on' : 'Mute voice guidance'}
+            label={muted ? t('Turn voice guidance on') : t('Mute voice guidance')}
             onClick={() => { setMuted((m) => !m); window.speechSynthesis?.cancel(); }} />
           {/* Only once the camera has been taken off the driver; while following it would do nothing. */}
-          {onRecenter && !following && <IconButton icon={LocateFixed} label="Back to me, and follow" tooltipSide="left" onClick={onRecenter} />}
+          {onRecenter && !following && <IconButton icon={LocateFixed} label={t('Back to me, and follow')} tooltipSide="left" onClick={onRecenter} />}
         </div>
       </div>
 
@@ -187,18 +195,18 @@ export default function NavigationView({
 
       <div className="flex min-h-11 items-center justify-between gap-3 px-4 py-2.5">
         {rerouting ? (
-          <span className="flex items-center gap-2 text-small text-amber"><LoaderCircle aria-hidden className="size-3.5 animate-spin motion-reduce:animate-none" strokeWidth={1.75} /> Finding a new route…</span>
+          <span className="flex items-center gap-2 text-small text-amber"><LoaderCircle aria-hidden className="size-3.5 animate-spin motion-reduce:animate-none" strokeWidth={1.75} /> {t('Finding a new route…')}</span>
         ) : progress?.offRoute ? (
-          <span className="flex items-center gap-2 text-small text-amber"><TriangleAlert aria-hidden className="size-3.5" strokeWidth={1.75} /> Off route</span>
+          <span className="flex items-center gap-2 text-small text-amber"><TriangleAlert aria-hidden className="size-3.5" strokeWidth={1.75} /> {t('Off route')}</span>
         ) : (
-          <span className="truncate text-small text-ink-2">To {destinationLabel}</span>
+          <span className="truncate text-small text-ink-2">{t('To {destination}', { destination: destinationLabel })}</span>
         )}
         {!arrived && (
           <span className="flex shrink-0 items-baseline gap-2.5 font-mono tabular-nums">
-            <span className="text-body font-medium text-ink-1">{navDuration(left.seconds)}</span>
-            <span className="text-small text-ink-2">{navDistance(left.metres)}</span>
+            <span className="text-body font-medium text-ink-1">{navDuration(left.seconds, t)}</span>
+            <span className="text-small text-ink-2">{navDistance(left.metres, t)}</span>
             <span className="font-sans text-small text-ink-3">
-              arrive <span className="font-mono tabular-nums">{new Date(now + left.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              {t.rich('arrive {time}', { time: <span className="font-mono tabular-nums">{arrivalTime(left.seconds, new Date(now), t.intl)}</span> })}
             </span>
           </span>
         )}
@@ -206,7 +214,7 @@ export default function NavigationView({
 
       {next && (
         <div className="flex min-h-10 items-center gap-3 border-t border-line px-4 py-2">
-          <span className="text-meta font-medium text-ink-3">Then</span>
+          <span className="text-meta font-medium text-ink-3">{t('Then')}</span>
           <ManeuverIcon step={next} className="size-4 shrink-0 text-ink-2" />
           <span className="truncate text-small text-ink-2">{next.instruction}</span>
         </div>
@@ -216,8 +224,8 @@ export default function NavigationView({
         <div className="flex items-center gap-2 border-t border-line px-4 py-2.5 text-small text-ink-2">
           <LoaderCircle aria-hidden className="size-3.5 shrink-0 animate-spin text-ink-3 motion-reduce:animate-none" strokeWidth={1.75} />
           {typeof window !== 'undefined' && !window.isSecureContext
-            ? 'Your browser only shares your position over a secure (https) connection.'
-            : 'Waiting for your position…'}
+            ? t('Your browser only shares your position over a secure (https) connection.')
+            : t('Waiting for your position…')}
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 import type * as maplibregl from 'maplibre-gl';
 import { LABEL_SIZE, MAP_INK, MARKER_STROKE, labelPaint, markerRadius } from '@/lib/map/style/tokens';
 import type { AirportWx, FlightCategory } from './metar';
+import { t } from '@/lib/core/i18n/active';
 import { sigmetTitle, type Sigmet } from './sigmet';
 
 export const AIRPORT_WX_SOURCE = 'airport-wx';
@@ -81,6 +82,6 @@ export function sigmetFeatures(rows: Sigmet[]): GeoJSON.Feature<GeoJSON.Polygon 
     geometry: rings.length === 1
       ? { type: 'Polygon', coordinates: [rings[0]] }
       : { type: 'MultiPolygon', coordinates: rings.map(r => [r]) },
-    properties: Object.fromEntries(Object.entries({ ...s, title: sigmetTitle(s.hazard, s.qualifier), color: sigmetColor(s.hazard) }).filter(([, v]) => v != null && v !== '')),
+    properties: Object.fromEntries(Object.entries({ ...s, title: sigmetTitle(s.hazard, s.qualifier, t), color: sigmetColor(s.hazard) }).filter(([, v]) => v != null && v !== '')),
   }));
 }

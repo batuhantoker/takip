@@ -1,3 +1,5 @@
+import { msg } from '@/lib/core/i18n/translator';
+
 export interface ArcGISResult {
   id: string;
   title: string;
@@ -20,11 +22,11 @@ export interface ImportedLayer {
 }
 
 export const CATEGORIES = [
-  { label: 'Pipelines', query: 'pipeline' },
-  { label: 'Power Grid', query: 'power grid transmission' },
-  { label: 'Infrastructure', query: 'critical infrastructure' },
-  { label: 'Military', query: 'military base installation' },
-  { label: 'Emergency', query: 'emergency shelter evacuation' },
+  { label: msg('Pipelines'), query: 'pipeline' },
+  { label: msg('Power Grid'), query: 'power grid transmission' },
+  { label: msg('Infrastructure'), query: 'critical infrastructure' },
+  { label: msg('Military'), query: 'military base installation' },
+  { label: msg('Emergency'), query: 'emergency shelter evacuation' },
 ] as const;
 
 export const LAYER_COLORS = [

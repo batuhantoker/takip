@@ -1,3 +1,4 @@
+import { createTranslator, type Vars } from '@/lib/core/i18n/translator';
 import type { WarningAlert } from './live-alerts';
 
 /*
@@ -57,9 +58,12 @@ export type WarningPlace = {
   country: string | null;
 };
 
+type Say = (source: string, vars?: Vars) => string;
+const english: Say = createTranslator('en', {});
+
 const unique = (xs: string[]) => [...new Set(xs.filter(Boolean))];
-const andMore = (xs: string[]) =>
-  xs.length > 2 ? `${xs[0]} and ${xs.length - 1} more` : xs.length === 2 ? `${xs[0]} and ${xs[1]}` : xs[0] ?? null;
+const andMore = (xs: string[], t: Say) =>
+  xs.length > 2 ? t('{first} and {n} more', { first: xs[0], n: xs.length - 1 }) : xs.length === 2 ? t('{first} and {second}', { first: xs[0], second: xs[1] }) : xs[0] ?? null;
 const calm = (s: string) => {
   const t = s.replace(/[.\s]+$/, '').trim();
   return shouts(t) || /^\p{Lu}{4,}$/u.test(t) ? titleWords(t) : t;
@@ -68,7 +72,7 @@ const calm = (s: string) => {
 const tidyPlace = (s: string) => calm(s.replace(/\s*\([^)]*\)/g, '').replace(/\s+,/g, ','));
 
 /** Where a warning applies, from the issuer's area string. */
-export function warningPlace(area: string | null, title = ''): WarningPlace {
+export function warningPlace(area: string | null, title = '', t: Say = english): WarningPlace {
   if (!area) return { short: null, parts: [], country: null };
   const a = decode(area).trim();
 
@@ -76,7 +80,7 @@ export function warningPlace(area: string | null, title = ''): WarningPlace {
   if (countryLevel) {
     const parts = unique(a.slice(countryLevel[0].length).split(';').map(s => s.trim().replace(/\.$/, '')));
     const country = /^([^:]{2,40}):/.exec(decode(title))?.[1]?.trim();
-    return { short: country ?? andMore(parts), parts, country: country ?? null };
+    return { short: country ?? andMore(parts, t), parts, country: country ?? null };
   }
 
   const dash = a.lastIndexOf(' — ');
@@ -92,7 +96,7 @@ export function warningPlace(area: string | null, title = ''): WarningPlace {
     for (const m of regional as RegExpExecArray[]) byRegion.set(m[1].trim(), [...(byRegion.get(m[1].trim()) ?? []), m[2].trim()]);
     const regions = [...byRegion.keys()];
     return {
-      short: withCountry(andMore(regions)),
+      short: withCountry(andMore(regions, t)),
       parts: [...byRegion].map(([r, places]) => `${r}: ${unique(places).join(', ')}`),
       country,
     };
@@ -102,9 +106,9 @@ export function warningPlace(area: string | null, title = ''): WarningPlace {
   const commaList = segments.length === 1 ? segments[0].replace(/\([^)]*\)/g, '').split(/,\s*/) : [];
   if (commaList.length >= 3 && !commaList.some(x => /^\p{Lu}{2}$/u.test(x.trim()))) {
     const items = unique(commaList.map(x => x.trim()));
-    return { short: withCountry(andMore(items)), parts: [items.join(', ')], country };
+    return { short: withCountry(andMore(items, t)), parts: [items.join(', ')], country };
   }
 
   const parts = unique(segments.map(calm));
-  return { short: withCountry(andMore(unique(segments.map(tidyPlace)))), parts: parts.length ? parts : country ? [country] : [], country };
+  return { short: withCountry(andMore(unique(segments.map(tidyPlace)), t)), parts: parts.length ? parts : country ? [country] : [], country };
 }

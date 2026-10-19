@@ -5,6 +5,7 @@ import { Plane, X } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { WindowFoldButton } from '@/components/map/windows';
 import { ListRow } from '@/components/ui/list-row';
+import { useT } from '@/components/ui/use-t';
 import {
   formatAlt,
   resolveEndpoints,
@@ -35,6 +36,7 @@ function Row({ flight, telem, selected, onRemove, onSelect, onDetail }: {
   onSelect: FlightWatchPanelProps['onSelect'];
   onDetail: (icao24: string, d: AircraftDetail | null) => void;
 }) {
+  const t = useT();
   const [detail, setDetail] = useState<AircraftDetail | null | undefined>(undefined);
 
   useEffect(() => {
@@ -60,7 +62,7 @@ function Row({ flight, telem, selected, onRemove, onSelect, onDetail }: {
   const from = code(detail?.origin);
   const to = code(detail?.destination);
   const route = from || to ? `${from ?? '—'} → ${to ?? '—'}` : null;
-  const model = detail === undefined ? 'Identifying…' : detail?.model || detail?.typeCode || 'Type unknown';
+  const model = detail === undefined ? t('Identifying…') : detail?.model || detail?.typeCode || t('Type unknown');
 
   return (
     <ListRow
@@ -69,11 +71,11 @@ function Row({ flight, telem, selected, onRemove, onSelect, onDetail }: {
       selected={selected}
       leading={<Plane className="size-4" strokeWidth={1.75} />}
       title={flight.callsign?.trim() || flight.icao24.toUpperCase()}
-      subtitle={telem ? [model, route].filter(Boolean).join(' · ') : 'No longer in the live feed'}
+      subtitle={telem ? [model, route].filter(Boolean).join(' · ') : t('No longer in the live feed')}
       onClick={() => onSelect(flight, telem)}
       trailing={<>
-        <span className="font-mono text-[12px] text-ink-2 tabular-nums">{telem ? formatAlt(telem.alt, telem.grounded) : '—'}</span>
-        <IconButton label="Stop watching" icon={X} size="sm" onClick={() => onRemove(flight.icao24)} tooltipSide="left" />
+        <span className="font-mono text-[12px] text-ink-2 tabular-nums">{telem ? (telem.grounded ? t('Ground') : formatAlt(telem.alt, false, t)) : '—'}</span>
+        <IconButton label={t('Stop watching')} icon={X} size="sm" onClick={() => onRemove(flight.icao24)} tooltipSide="left" />
       </>}
     />
   );
@@ -81,11 +83,12 @@ function Row({ flight, telem, selected, onRemove, onSelect, onDetail }: {
 
 /** The aircraft being watched, in a window of its own. */
 export default function FlightWatchPanel({ watched, telemetry, onRemove, onSelect, onDetail, selectedId }: FlightWatchPanelProps) {
+  const t = useT();
   if (watched.length === 0) return null;
   return (
-    <section aria-label="Watched aircraft" className="pointer-events-auto flex flex-col overflow-hidden rounded-float border border-line bg-surface-1 shadow-float">
+    <section aria-label={t('Watched aircraft')} className="pointer-events-auto flex flex-col overflow-hidden rounded-float border border-line bg-surface-1 shadow-float">
       <header className="flex h-9 shrink-0 items-center pr-1 pl-4">
-        <h3 className="flex-1 text-[11px]/[14px] font-medium text-ink-3">Watching · {watched.length}</h3>
+        <h3 className="flex-1 text-[11px]/[14px] font-medium text-ink-3">{t('Watching · {n}', { n: watched.length })}</h3>
         <WindowFoldButton size="sm" />
       </header>
       <div className="min-h-0 overflow-y-auto px-2 pb-1.5">

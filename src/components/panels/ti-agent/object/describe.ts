@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { RichTranslate } from '@/components/ui/use-t';
 import type { Selection } from '@/lib/ai/workspace/selection';
 import type { RunState } from '@/lib/ai/state';
 import type { LinkKind } from '@/lib/ai/types';
@@ -19,6 +20,7 @@ export interface Described {
 
 export interface DescribeCtx {
   s: RunState;
+  t: RichTranslate;
   onSelect: Pick;
   onAsk: (actorId: string) => void;
 }

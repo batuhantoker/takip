@@ -3,6 +3,7 @@
 import { cx, FOCUS_RING, TRANSITION, type Tone } from '@/components/ui/class-names';
 import { Stat } from '@/components/ui/stat';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useT } from '@/components/ui/use-t';
 import type { QuakeAlert } from '@/lib/intel/alerts/live-alerts';
 import { magnitude } from '@/components/panels/alerts/format';
 
@@ -20,24 +21,25 @@ export default function AlertSummary({ rightNow, active, onPick }: {
   active: StatPick | null;
   onPick: (pick: StatPick) => void;
 }) {
+  const t = useT();
   const { severe, rockets, breaking, biggest } = rightNow;
   const quakeTone: Tone = !biggest ? 'neutral' : biggest.magnitude >= 6 ? 'red' : biggest.magnitude >= 5 ? 'amber' : 'neutral';
   // Dozens of severe warnings are always in force, so a red count there would never switch off.
   const stats: { key: StatPick; label: string; value: string; tone: Tone; hint: string }[] = [
-    { key: 'severe', label: 'Severe', value: String(severe), tone: 'neutral', hint: 'Warnings in force graded severe or extreme' },
-    { key: 'rocket', label: 'Rockets', value: String(rockets), tone: rockets ? 'red' : 'neutral', hint: 'Rocket or missile reports in the last 6 h' },
-    { key: 'breaking', label: 'Breaking', value: String(breaking), tone: 'neutral', hint: 'Reports a channel flagged as breaking in the last 6 h' },
+    { key: 'severe', label: t('Severe'), value: severe.toLocaleString(t.intl), tone: 'neutral', hint: t('Warnings in force graded severe or extreme') },
+    { key: 'rocket', label: t('Rockets'), value: rockets.toLocaleString(t.intl), tone: rockets ? 'red' : 'neutral', hint: t('Rocket or missile reports in the last 6 h') },
+    { key: 'breaking', label: t('Breaking'), value: breaking.toLocaleString(t.intl), tone: 'neutral', hint: t('Reports a channel flagged as breaking in the last 6 h') },
     {
       key: 'quake',
-      label: 'Largest quake',
+      label: t('Largest quake'),
       value: biggest ? magnitude(biggest) : '–',
       tone: quakeTone,
-      hint: biggest ? `Largest in the last day: ${biggest.place}` : 'No earthquakes in the last day',
+      hint: biggest ? t('Largest in the last day: {place}', { place: biggest.place }) : t('No earthquakes in the last day'),
     },
   ];
 
   return (
-    <div role="group" aria-label="Right now" className="-mx-2 grid grid-cols-[1fr_1fr_1fr_1.35fr] gap-1">
+    <div role="group" aria-label={t('Right now')} className="-mx-2 grid grid-cols-[1fr_1fr_1fr_1.35fr] gap-1">
       {stats.map(s => {
         const on = active === s.key;
         return (
