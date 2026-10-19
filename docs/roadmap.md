@@ -12,13 +12,11 @@ In order. "(you)" marks the user's own steps.
 
 ## Easy win for transit, if we have the route show the user the route. showing the route with the stops
 
-### 1.0 A new name
-1. (you) Make a Cloudflare token with Account → Registrar (Edit), and save it with the account ID in `~/.config/cloudflare/registrar.env`.
-2. Check the shortlist with the Registrar `domain-check` API, which shows price and premium tier. `domain-search` gives more ideas.
-   - The shortlist was screened over RDAP on 2026-10-15: Rasat, Terrarum, Piri, Seyir, Armillary, or keep TAKIP with `takipmap.com`.
-   - The user wants "digital world twin" in the name. Twin names screened the same day: TwinAtlas, EarthTwin, MirrorEarth, GlobeTwin, Imago Mundi, and İkiz Dünya (`ikizdunya.com` is the only free twin `.com`). Every literal twin `.com` is taken.
-   - The API covers about 40 endings, so `.live`, `.world` and `.earth` rest on RDAP.
-3. Rename: the brand geometry (`tools/brand`), the `SITE_URL` environment variable, and the rebrand leftovers in §4.
+### 1.0 Ads on takip.dev
+`/ads.txt` is live with the publisher ID since 2026-10-19 (`NEXT_PUBLIC_ADSENSE_CLIENT` in the NUC's `.env.production.local`).
+1. (you) AdSense → Sites: add `takip.dev`, verify it with ads.txt and request review. First turn Auto ads off and publish the European regulations message (Privacy & messaging); `/privacy` promises both.
+2. After approval: create two display units, `panel` and `page`, put their ids in `NEXT_PUBLIC_ADSENSE_SLOT_PANEL` and `NEXT_PUBLIC_ADSENSE_SLOT_PAGE` beside the client, and rebuild the NUC.
+3. Before ads show: the self-hosted basemap (`architecture/map-detail.md`) and Open-Meteo's commercial terms (`architecture/data-roadmap.md`).
 
 
 
@@ -114,16 +112,18 @@ Chosen by the user on 2026-10-15. Details are in [`inspiration-sources/gods-eye-
 3. **Map looks:** night vision, thermal, noir and snow, opt-in and on the map only (design rule added 2026-10-15). Later.
 
 ### 1.7 Being found
-Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages under `/map` (layers, History and deep time, the Space view, Replay and the tools), an `/about` page, and a generated robots.txt and sitemap, each page in ten languages at its own URL (`/tr/map/…`) and leading with a picture of the map ([`architecture/public-pages.md`](architecture/public-pages.md)). Links open History at a year, deep time, Space at a body, Replay or a panel (`?view=…`, `?panel=…`). City and country pages, also since 2026-10-19: `/city/<place>/<topic>` for transit, cameras, flights and weather across 31,762 GeoNames places, 24.7k of them indexed, and `/country/<place>` listing its places ([`architecture/place-pages.md`](architecture/place-pages.md)); more topics and time-range pages are being added in parallel, and guides are being written. The pages' live map is `/embed/<slug>`, and any place, layers and period is `/embed?…` ([`architecture/embeds.md`](architecture/embeds.md)), with earthquakes over any area and window.
-1. (you) Once the domain is bought (1.0): set `SITE_URL`, verify the domain in Google Search Console and Bing Webmaster Tools, and submit `/sitemap.xml`. Nothing can rank on the rotating tunnel link.
-2. More History pages, one per era people search for (the Cold War, 1492, the Mongol Empire, the British Empire at its height), and a `&layer=` parameter so a link can open History with a border layer on, such as World War II in Europe.
-3. Camera sources where people search and the catalogue has none. "nevşehir kameraları izle" finds no page: there is no camera within 60 km of Nevşehir, and Kayseri's 42 are off air. Cappadocia's public webcams (Göreme's balloon streams) would give it one.
+Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages under `/map` (layers, History and deep time, the Space view, Replay and the tools), an `/about` page, and a generated robots.txt and sitemap, each page in ten languages at its own URL (`/tr/map/…`) and leading with a picture of the map ([`architecture/public-pages.md`](architecture/public-pages.md)). Links open History at a year, deep time, Space at a body, Replay or a panel (`?view=…`, `?panel=…`). City and country pages, also since 2026-10-19: `/city/<place>/<topic>` and `/country/<place>/<topic>` for transit, cameras, flights, weather, ports, ISS passes, aurora, hiking and earthquake history (last 10 and 100 years, and the whole record) across 31,762 GeoNames places and 237 countries, about 28k pages indexed, each in ten languages at its own URL ([`architecture/place-pages.md`](architecture/place-pages.md)), plus guides at `/guides` (English only). The pages' live map is `/embed/<slug>`, and any place, layers and period is `/embed?…` ([`architecture/embeds.md`](architecture/embeds.md)), with earthquakes over any area and window.
+1. (you) Verify `takip.dev` in Google Search Console and Bing Webmaster Tools, and submit `/sitemap.xml`. `SITE_URL` is set on the NUC.
+2. More History pages, one per era people search for (the Cold War, 1492, the Mongol Empire, the British Empire at its height).
+3. Camera sources where people search and the catalogue has none. Nevşehir has two on air since 2026-10-19 (Uçhisar, Skyline); its two square cameras are off air with no stated place, and urgup.bel.tr sits behind a Cloudflare challenge.
 4. Earthquake pages (`/quakes/<usgs id>`), only if they add what USGS's own page lacks (cameras, flights and ships near the epicentre); otherwise they are thin copies.
-5. Embeds, next (`architecture/embeds.md`, Scaling out): a place table (admin-0 and admin-1 boxes and names in ten languages, Natural Earth) for place-and-period pages; more windowed layers (FIRMS, IBTrACS, `history.db`'s events); "Open the full map" from a windowed embed opening the map on that window; `/tr/embed/…` following the page's language; then other sites (`frame-ancestors` on `/embed` only), which earns links back.
+5. Embeds, next (`architecture/embeds.md`, Scaling out): a place table (admin-0 and admin-1 boxes and names in ten languages, Natural Earth) for place-and-period pages; more windowed layers (FIRMS, IBTrACS, `history.db`'s events); then other sites (`frame-ancestors` on `/embed` only), which earns links back.
 6. Share cards in Arabic: Satori can't lay out Arabic, so `/og` draws them in English.
 7. Outreach: Show HN, r/MapPorn, r/space, r/aurora, r/OSINT, and short screen recordings of the globe. Measure with the referrers in Admin → Analytics and Search Console's queries.
 8. (you) Visitors from search get the anonymous 15 minutes a day of map time. Decide whether a first visit should get more.
-9. Pictures for place pages: `tools/site/shots.ts` shoots the layer pages, and place pages show the world sketch. Shoot the few hundred biggest indexed places, not all 24k.
+9. Country names inside sentences: German and French need articles ("in der Schweiz", "au Japon"), Russian a case and Turkish a suffix, which a bare `{place}` can't carry, so some country pages read "in Schweiz". A per-language "in <country>" table for the 237 countries, used by the topics' copy.
+10. Place earthquake pages open History, which draws NOAA's damaging quakes, so the map shows fewer than the page counts (USGS M4.5+). A windowed USGS layer on the full map, as `/embed` has, would match.
+11. Pictures for place pages: `tools/site/shots.ts` shoots the layer pages, and place pages show the world sketch. Shoot the few hundred biggest indexed places, not all 24k.
 
 ### 1.8 Languages
 Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/README.md`, Language).
@@ -139,19 +139,17 @@ Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/RE
 - **Weather and disasters** (data-roadmap §1): the GDACS API with polygons, and USGS volcano alert levels; aviationweather.gov international SIGMETs (including volcanic ash) and METARs; the EMSC earthquake WebSocket; NWS / NHC alerts into ingest; MeteoAlarm; river levels and flood warnings; tsunami.gov CAP.
 - **More history** (data-roadmap §2): IBTrACS cyclone tracks; fix the timeline rebuild (it redoes the whole quake family on every load), then backfill USGS ComCat at M4.5+ and re-run `noaa-hazards --force`; the GDACS archive and NOAA Storm Events.
 - **More history on demand:** GDELT raw files, FIRMS, ERA5, and OpenSky `/tracks/all` for the last 30 days.
-- **GDELT stories:** the live layer works; the ingest connector and history wait on §3.4 (`architecture/gdelt.md`).
+- **GDELT stories:** the live layer works; the ingest connector and history wait on §3.2 (`architecture/gdelt.md`).
 - **TI on live conflicts** (asked 2026-10-16, after the history tools `chronicle` and `past_event`): a read tool over GDELT, alerts and hazards ("what's flaring up near the Red Sea"), then a watch on a region or topic that notifies through alerts.
 - **More projections** (`data-sources.md`, Projections): OECD-FAO; Wittgenstein education (decided 2026-10-16: five-yearly values blend between published years, marked "≈", as gaps do; needs an `.rds` reader for the Data Explorer's 1950–2100 files, or Zenodo's counts from 2020). The IMF World Economic Outlook is in from a hand-downloaded CSV (decided 2026-10-16), for personal use until the IMF permits commercial reuse; each new edition is downloaded the same way. Then the window means (Aqueduct, INFORM Climate Change, Human Climate Horizons), which need History to draw a value across its 20- or 30-year window.
 
 ## 3. Decisions waiting on the user
 
-1. **The new name:** BT:TBD see 1.0. "Takip" is an everyday Turkish word (crowded search results, hard to get a domain), and in Turkish it can also mean following a person. `https://takip.example` is the placeholder.
-2. **A fixed address for the NUC:** it runs there since 2026-10-18 ([`runbooks/nuc.md`](runbooks/nuc.md)) at a Cloudflare quick-tunnel link that changes on every restart. Once §3.1's domain is bought on Cloudflare, move it to a named tunnel on that domain. Anyone with the link can use it, so the §5 hosting and security work applies.
-3. **How long to keep data, and a disk budget.** BT:TBD, I am not sure, for now just record we will get there can geProposed: fine track detail (L0) 3 months, L1 90 days, L2 forever. How long raw files are kept is open.
-4. **History:** whether the plan lookback limit applies to History at all (recommended: no, for personal use); and GDELT history as one entry per story per day, or news intensity per country (`architecture/gdelt.md`).
-5. **Cameras as their own product:** later.
-6. **Consent for the visitor id (2026-10-19):** the map now keeps a random visitor id in localStorage and sends it with each minute tick (`architecture/backend.md` §8; Admin → Analytics → Visitors). Under ePrivacy, an analytics id like this usually needs consent from visitors in the EU and UK; today it is disclosed on `/privacy` ("What we measure") but not asked. Options: ask first in those regions (and fall back to the daily address hash), or keep it as is.
-7. **Long-run country numbers** (researched 2026-10-16; Maddison GDP per person is already in through `owid-longrun`, value for value, and so is OWID's long-run population (HYDE, Gapminder, UN; year 0–2023) on today's countries). Maddison population and total GDP need: whether totals (population, GDP) may be drawn on historical polities like the USSR, which the series API would paint onto each successor's shape (an `apps/api` change); and Maddison's rule to cite its source papers wherever its data is shown.
+1. **How long to keep data, and a disk budget.** BT:TBD, I am not sure, for now just record we will get there can geProposed: fine track detail (L0) 3 months, L1 90 days, L2 forever. How long raw files are kept is open.
+2. **History:** whether the plan lookback limit applies to History at all (recommended: no, for personal use); and GDELT history as one entry per story per day, or news intensity per country (`architecture/gdelt.md`).
+3. **Cameras as their own product:** later.
+4. **Consent for the visitor id (2026-10-19):** the map now keeps a random visitor id in localStorage and sends it with each minute tick (`architecture/backend.md` §8; Admin → Analytics → Visitors). Under ePrivacy, an analytics id like this usually needs consent from visitors in the EU and UK; today it is disclosed on `/privacy` ("What we measure") but not asked. Options: ask first in those regions (and fall back to the daily address hash), or keep it as is.
+5. **Long-run country numbers** (researched 2026-10-16; Maddison GDP per person is already in through `owid-longrun`, value for value, and so is OWID's long-run population (HYDE, Gapminder, UN; year 0–2023) on today's countries). Maddison population and total GDP need: whether totals (population, GDP) may be drawn on historical polities like the USSR, which the series API would paint onto each successor's shape (an `apps/api` change); and Maddison's rule to cite its source papers wherever its data is shown.
 
 ## 4. Known issues
 
@@ -160,13 +158,13 @@ The fix-it pass (1.2) adds to this list.
 - Key docs disagree with the code (`.env.example`, README, `self-hosting.md`, `api-catalog.ts`, `docs-client.tsx`): they say the AIS and OpenSky keys are unused (both are read); FIRMS and N2YO keys are listed but never read; Etherscan and Helius keys are read but change nothing; the Gemini bring-your-own-key option has no UI.
 - Static data presented as live: conflict zones, ports and chokepoints.
 - Region dossier: a failed data.police.uk lookup reads as "no data", and missing `lat`/`lng` isn't refused (kept for parity).
-- Rebrand leftovers: the upstream Ko-fi link, Discord and X (`@soulsimplifai`) in `more-menu.tsx`.
+- Rebrand leftovers: the upstream Ko-fi link and X (`@soulsimplifai`) in `more-menu.tsx`.
 - Global Incidents (`global_incidents`) reads the GDACS feed (`api/(intel)/gdelt/route.ts`), but `use-sdk-entities.ts` labels it "GDELT Project".
 - Active Fires adds NASA EONET volcanoes to the FIRMS hotspots with made-up readings (brightness 500 K, FRP 100 MW, `api/(feeds)/fires/route.ts`), and the popup presents them as heat detected by satellite. `/map/wildfires` says so until this is fixed.
 
 ## 5. Parked until the release decision
 
-Built or designed for other people using TAKIP. Frozen until §3.1 is answered.
+Built or designed for other people using TAKIP. Frozen until the release decision.
 
 ### Hosting in public
 - Cloudflare Tunnel or nginx with TLS.
@@ -231,7 +229,7 @@ Measured locally on 11 Oct 2026 (one dev server, one tab):
 - **Positioning against World Monitor** (free and paid tiers already); the survey is in [`inspiration-sources/`](inspiration-sources/README.md). Use "Palantir alternative" only as a comparison, never in the name or logo.
 - Scan git history for secrets (gitleaks) and rotate the AIS, Cloudflare and OpenSky keys that were pasted into chat sessions.
 - Rewrite the README; add CONTRIBUTING, CODE_OF_CONDUCT, a security contact and issue templates.
-- Domain, X and Discord; a public roadmap (this file) and a changelog.
+- Domain and X; a public roadmap (this file) and a changelog.
 - Never import other people's camera snapshots; keep the privacy blocklist.
 
 ## 6. Parked

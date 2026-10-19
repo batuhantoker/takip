@@ -35,6 +35,7 @@ export const alertSource = (place: Place): WeatherData['alerts'] => (place.cc ==
 export const WEATHER: PlaceTopic<WeatherData, StationNow[]> = {
   id: 'weather',
   label: msg('Weather'),
+  inline: msg('weather'),
   kinds: ['city'],
 
   pages(place) {

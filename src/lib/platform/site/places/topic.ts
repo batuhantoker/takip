@@ -1,4 +1,5 @@
 import type { Translate } from '@/lib/core/i18n/translator';
+import type { EmbedSpec } from '@/lib/map/embed/spec';
 import type { PanelLink, ViewModeLink } from '@/lib/map/view-mode-link';
 import type { MapView } from '../map-link';
 import type { Place, PlaceKind } from './place';
@@ -15,6 +16,8 @@ export interface PlaceTopic<D = unknown, L = unknown> {
   id: string;
   /** What the topic is called in the overview's links, as msg(). */
   label: string;
+  /** Its name inside a sentence ("cameras", "ISS sightings"), as msg(): casing is the translation's to decide, not code's. */
+  inline: string;
   kinds: readonly PlaceKind[];
   /**
    * The topic's pages for a place, with the data each renders; [] when there is nothing real to say. Must be cheap
@@ -28,6 +31,8 @@ export interface PlaceTopic<D = unknown, L = unknown> {
   open(place: Place, page: TopicPage<D>): MapLink;
   /** What is true right now, fetched when the page renders, over loopback (live/own-api.ts); null leaves it out. */
   live?(place: Place, page: TopicPage<D>, t: Translate): Promise<L | null>;
+  /** The live box's heading on this topic's page, as msg() with {time}, where "Right now · as of {time}" isn't true. */
+  liveLabel?: string;
 }
 
 export interface TopicPage<D = unknown> {
@@ -36,6 +41,8 @@ export interface TopicPage<D = unknown> {
   data: D;
   /** Enough real data to be worth a search result. A page below it still renders, with noindex, and stays out of the sitemap. */
   index: boolean;
+  /** The page's name in the place's links, as msg(), where its topic has several pages; the topic's label otherwise. */
+  label?: string;
 }
 
 /** The <title> (up to 60 characters), meta description (110 to 160), heading and lede. */
@@ -49,4 +56,6 @@ export interface MapLink {
   zoom?: number;
   mode?: ViewModeLink;
   panel?: PanelLink;
+  /** What the header's live map shows, when it isn't `layers` at the place: an area over a past window. */
+  embed?: EmbedSpec;
 }

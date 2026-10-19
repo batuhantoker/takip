@@ -1,12 +1,16 @@
 import { ArrowUpRight, Video } from 'lucide-react';
+import { Fragment, type ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { LocalClock } from '@/components/site/pages/local-clock';
 import { Section } from '@/components/site/pages/site-frame';
+import { msg } from '@/lib/core/i18n/translator';
 import { mapHref } from '@/lib/platform/site/map-link';
 import { count, nameOf } from '@/lib/platform/site/places/copy/format';
 import type { CamerasData } from '@/lib/platform/site/places/topics/cameras';
 import { Notes } from '../parts/notes';
-import { utcClock } from '../parts/live-box';
 import type { TopicView } from './view';
+
+const COUNTED = msg('Counted within {km} km of the centre of {city} from the camera list as it was at {time} on {day}. Cameras come and go as their owners add and retire them.');
 
 /** A camera on the map, close enough to pick out. */
 const cameraPath = (at: [number, number]) => mapHref({ layers: ['cctv', 'cctv_previews'], view: { lat: at[1], lon: at[0], zoom: 15 } });
@@ -16,11 +20,11 @@ export const CAMERAS_VIEW: TopicView<CamerasData> = {
 
   Body({ text, place, page: { data } }) {
     const { t } = text;
-    const day = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(data.counted);
     const notes = [
-      t('Counted within {km} km of the centre of {city} from the camera list as it was at {time} on {day}. Cameras come and go as their owners add and retire them.', {
-        km: data.km, city: nameOf(place, t), time: utcClock(t, data.counted), day,
-      }),
+      <Fragment key="counted">{t.parts(COUNTED, {
+        km: data.km, city: nameOf(place, t),
+        time: <LocalClock key="time" at={data.counted} intl={t.intl} />, day: <LocalClock key="day" at={data.counted} show="date" intl={t.intl} />,
+      }) as ReactNode[]}</Fragment>,
       ...(data.onAir && data.offAir ? [t('{n, plural, one {One more camera is} other {# more cameras are}} listed but off air.', { n: data.offAir })] : []),
       t('Many sources publish a still picture that updates every minute or few, not video. Click a camera on the map to see which it is.'),
     ];

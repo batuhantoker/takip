@@ -18,6 +18,7 @@ const MIN_INDEXED_POP = 100_000;
 export const FLIGHTS: PlaceTopic<FlightsData, StationNow[]> = {
   id: 'flights',
   label: msg('Flights'),
+  inline: msg('flights'),
   kinds: ['city'],
 
   pages(place) {

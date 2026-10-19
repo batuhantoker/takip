@@ -37,6 +37,7 @@ const sameNear = (name: string, cc: string, [lng, lat]: [number, number]) =>
 
 const rows: Record<string, TransitRow> = {};
 const missing: string[] = [];
+const unmatched: string[] = [];
 for (const c of transit.cities) {
   if (!c.operators.length) continue;
   const place = byAt.get(key(c.cc, c.at)) ?? sameNear(c.name, c.cc, c.at);
@@ -44,15 +45,21 @@ for (const c of transit.cities) {
     missing.push(`${c.name} ${c.cc}`);
     continue;
   }
-  const operators = c.operators.map(name => {
+  // An operator whose feed can't be found is left out rather than guessed at: how it is placed is what the page claims.
+  const operators = c.operators.flatMap(name => {
     const feeds = TRANSIT_FEEDS.filter(f => f.name === name && near(f, c.at));
+    if (!feeds.length) {
+      unmatched.push(`${name} @ ${c.name}`);
+      return [];
+    }
     const license = feeds.find(f => f.license?.startsWith('http'))?.license;
-    return { name, how: feeds.length ? howOf(feeds) : 'live' as OperatorHow, modes: sortModes(feeds.flatMap(f => f.modes ?? [])), ...(license ? { license } : {}) };
+    return [{ name, how: howOf(feeds), modes: sortModes(feeds.flatMap(f => f.modes ?? [])), ...(license ? { license } : {}) }];
   });
+  if (!operators.length) continue;
   rows[place.id] = { vehicles: c.vehicles, modes: sortModes(c.modes), operators };
 }
 
 mkdirSync('data/site/topics', { recursive: true });
 const table: TopicTable<TransitRow, TransitMeta> = { generated: new Date().toISOString().slice(0, 10), meta: { seen: transit.generated }, rows };
 writeFileSync(OUT, `${JSON.stringify(table)}\n`);
-console.log(`wrote ${Object.keys(rows).length} places to ${OUT}${missing.length ? `; not in the gazetteer: ${missing.join(', ')}` : ''}`);
+console.log(`wrote ${Object.keys(rows).length} places to ${OUT}${missing.length ? `; not in the gazetteer: ${missing.join(', ')}` : ''}${unmatched.length ? `; no feed found for: ${unmatched.join(', ')}` : ''}`);

@@ -22,11 +22,10 @@ import {
 } from '@/components/site/docs/parts/guide-sections';
 import { AiGuideSection } from '@/components/site/docs/parts/ti-guide';
 
-const FALLBACK_ORIGIN = 'https://takip.example';
+const FALLBACK_ORIGIN = 'https://takip.dev';
 
 const FOOTER_LINKS = [
   { href: 'https://github.com/batuhantoker/takip', label: 'GitHub' },
-  { href: 'https://discord.gg/EPaFD5FFKf', label: 'Discord' },
   { href: 'https://x.com/soulsimplifai', label: 'X' },
   { href: 'https://github.com/batuhantoker/takip/issues', label: msg('Report an issue') },
 ];

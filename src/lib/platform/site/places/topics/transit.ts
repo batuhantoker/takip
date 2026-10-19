@@ -22,6 +22,7 @@ export const transitKm = (place: Place) => Math.round(Math.max(12, reachKm(place
 export const TRANSIT: PlaceTopic<TransitData, TransitNow> = {
   id: 'transit',
   label: msg('Transit'),
+  inline: msg('transit'),
   kinds: ['city'],
 
   pages(place) {

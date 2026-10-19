@@ -29,8 +29,9 @@ export function extract(root: string, dirs = ['src']): Extracted {
   for (const dir of dirs) {
     for (const path of files(join(root, dir), root)) {
       const text = readFileSync(path, 'utf8');
-      // `t` is a common local name (a time, a helper); only files that import a translator hold messages.
-      if (!/from '@\/(lib\/core\/i18n\/|components\/ui\/use-t')/.test(text) || !/\b(t|msg)(\.rich)?\(/.test(text)) continue;
+      // `t` is a common local name (a time, a helper); only files that import a translator, or take one from a
+      // public page's SiteText, hold messages.
+      if (!/from '@\/(lib\/core\/i18n\/|components\/ui\/use-t')|\{[^}]*\bt\b[^}]*\} = (?:text|props\.text)\b/.test(text) || !/\b(t|msg)(\.rich)?\(/.test(text)) continue;
       const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, false, path.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
       const file = relative(root, path);
       const visit = (node: ts.Node) => {

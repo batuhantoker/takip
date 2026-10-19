@@ -6,7 +6,7 @@ export const GPS_JAMMING: Guide = {
   title: 'What GPS jamming looks like on a map, and how it is found',
   description: 'How a live map finds GPS jamming from what aircraft say about their own position: the signal it reads, the thresholds, where it shows up, and its limits.',
   heading: 'What GPS jamming looks like on a map',
-  lede: 'Nobody broadcasts "I am jamming GPS". But aircraft broadcast how sure they are of their own position, and where many of them lose that certainty in the same place at once, the map lights up.',
+  lede: 'Nobody broadcasts “I am jamming GPS”. But aircraft broadcast how sure they are of their own position, and where many of them lose that certainty in the same place at once, the map lights up.',
   layers: ['gps-jamming', 'flight-tracker', 'gps-satellites'],
   open: { layers: ['gps_jamming', 'flights'], view: { lat: 45, lon: 30, zoom: 3.5 } },
   checked: '2026-10-19',

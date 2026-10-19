@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import AdSlot from '@/components/shell/ads/ad-slot';
 import { Section } from '@/components/site/pages/site-frame';
+import { embedHref } from '@/lib/map/embed/spec';
 import { AD_SLOTS } from '@/lib/platform/ads';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
@@ -37,6 +38,8 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
   const { t } = text;
   const link = current ? current.topic.open(place, current.page) : { layers: pages.flatMap(p => p.topic.open(place, p.page).layers ?? []).slice(0, 4) };
   const open = placeOpenPath(place, link);
+  const focus = { lat: place.at[1], lon: place.at[0], zoom: placeZoom(place, link.zoom) };
+  const embed = embedHref('embed' in link && link.embed ? link.embed : { layers: link.layers ?? [], view: focus });
   const shown = lives.flatMap(({ ref, live, at }) => {
     const Live = TOPIC_VIEWS[ref.topic.id]?.Live;
     const node: ReactNode = Live ? <Live key={ref.page.slug} text={text} place={place} page={ref.page} live={live} /> : null;
@@ -47,9 +50,8 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
 
   return (
     <article>
-      <PlaceHeader t={t} kicker={kicker} heading={copy.heading} lede={copy.lede} open={open} image={image}
-        focus={{ lat: place.at[1], lon: place.at[0], zoom: placeZoom(place, link.zoom) }}
-        live={shown.length ? <LiveBox t={t} at={Math.min(...shown.map(s => s.at))}>{shown.map(s => s.node)}</LiveBox> : undefined} />
+      <PlaceHeader t={t} kicker={kicker} heading={copy.heading} lede={copy.lede} open={open} embed={embed} image={image} focus={focus}
+        live={shown.length ? <LiveBox t={t} at={Math.min(...shown.map(s => s.at))} label={current?.topic.liveLabel}>{shown.map(s => s.node)}</LiveBox> : undefined} />
       {pages.length > 1 && <TopicNav text={text} place={place} pages={pages} current={current?.page.slug} />}
 
       <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">

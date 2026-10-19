@@ -14,8 +14,10 @@ export interface Place {
   names?: Partial<Record<Locale, string>>;
   /** ISO 3166-1 alpha-2. */
   cc: string;
-  /** State, province or region. */
+  /** State, province or region, in English. */
   region?: string;
+  /** GeoNames' key for the region, "TR.34": its name in other languages is in GazetteerFile.regions. */
+  admin1?: string;
   /** The US state's postal code. */
   regionCode?: string;
   /** [lon, lat]; a country's is where its label goes. */
@@ -25,10 +27,19 @@ export interface Place {
   area?: number;
 }
 
-export interface GazetteerFile { generated: string; places: Place[] }
+export interface GazetteerFile {
+  generated: string;
+  /** Region names in other languages, where they differ from the English, by admin1 key. */
+  regions?: Record<string, Partial<Record<Locale, string>>>;
+  places: Place[];
+}
 
-/** "Kraków" → "krakow", "St. John's" → "st-johns". */
+/** Letters that Unicode doesn't split into a base and an accent, so stripping accents would drop them. */
+const LETTERS: Record<string, string> = { ø: 'o', æ: 'ae', œ: 'oe', ß: 'ss', đ: 'd', ð: 'd', þ: 'th', ł: 'l', ı: 'i', ħ: 'h', ŧ: 't', ŋ: 'n', ŀ: 'l' };
+
+/** "Kraków" → "krakow", "Tromsø" → "tromso", "St. John's" → "st-johns". */
 export function placeSlugBase(name: string): string {
-  return name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[łŁ]/g, 'l').replace(/[ıİ]/g, 'i').toLowerCase()
+  return name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[øæœßđðþłıħŧŋŀ]/g, ch => LETTERS[ch])
     .replace(/['’.]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }

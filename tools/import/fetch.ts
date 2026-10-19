@@ -12,7 +12,7 @@ import { RAW_MORE, REPO } from './context';
 import { readCsv } from './csv';
 import { WIKI_DIR } from './wiki';
 
-const UA = 'TAKIP-history-import/0.1 (https://takip.example; hello@takip.dev)';
+const UA = 'TAKIP-history-import/0.1 (https://takip.dev; hello@takip.dev)';
 
 async function get(url: string, init: RequestInit = {}): Promise<Response> {
   for (let attempt = 1; ; attempt++) {

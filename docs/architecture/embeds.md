@@ -9,7 +9,7 @@ A small live map that a page shows in an iframe: one layer page's layers at its 
 | `/embed/<slug>` | A layer page's layers at its view, following its `track` (the ISS). 45 of the 66 catalogue pages, fewer on a server without the keys some layers need (`availablePages`): those without a `mode` (History, deep time, Space, Replay) or a `panel` (the tools). | `app/embed/[slug]/page.tsx`; `hasEmbed`, `embedPath`, `pageEmbed` in `lib/platform/site/embed.ts` |
 | `/embed?…` | Any spec, read from the query. | `app/embed/page.tsx`; `embedHref(spec)` writes the URL |
 
-Both render `EmbedView` (`components/site/embed/`): the map, full-bleed, and "Open the full map" in the corner, which replaces the page around the frame (`target="_top"`). Both are `noindex, nofollow` and stay out of the sitemap.
+Both render `EmbedView` (`components/site/embed/`): the map, full-bleed, and "Open the full map" in the corner, which replaces the page around the frame (`target="_top"`). It opens the same layers and place on today's map; a windowed spec opens History over the same years with its layers' families on (`historyLink`: earthquakes are the `hazard` family, which is NOAA's damaging quakes, tsunamis and volcanoes rather than the whole catalogue). Both are `noindex, nofollow` and stay out of the sitemap. Like the reading pages they take a language prefix (`/tr/embed/earthquakes`), so a Turkish page frames a Turkish map.
 
 ## The spec
 
@@ -47,11 +47,10 @@ ComCat's completeness falls off with age and distance from dense networks: small
 
 ## Scaling out
 
-1. **Places.** The spec takes a `bbox`, so a place-and-period page is a place table away: admin-0 and admin-1 shapes with their box and names in the ten languages (Natural Earth is public domain), next to the cities table `lib/platform/site/cities/` already holds. A page is then `embedHref({ layers: ['earthquakes'], bbox, window: { last: { n: 100, unit: 'y' } }, minMag: 4 })`. Generate only where the window holds enough to say something, and let the page carry facts from the same route (the count, the largest, its date), or it is a thin doorway page.
+1. **Places.** The spec takes a `bbox`, so a place-and-period page is a place table away: admin-0 and admin-1 shapes with their box and names in the ten languages (Natural Earth is public domain), beside the GeoNames gazetteer the place pages already run on (`lib/platform/site/places/`), which has points, not areas. A page is then `embedHref({ layers: ['earthquakes'], bbox, window: { last: { n: 100, unit: 'y' } }, minMag: 4 })`. Generate only where the window holds enough to say something, and let the page carry facts from the same route (the count, the largest, its date), or it is a thin doorway page.
 2. **More windowed layers.** Each is a range route, an entry in `WINDOWED_LAYERS` and a loader beside the earthquakes one in `components/site/embed/hooks/use-window-data.ts`. Candidates: wildfires (FIRMS archive), tropical cyclones (IBTrACS), disasters and conflict events already in `history.db` behind `/api/replay/history/events` (bbox, from, to and families; NOAA's damaging quakes are its `hazard` family), and tsunamis and volcanoes (NOAA NCEI, also there).
-3. **The full map learning windows.** "Open the full map" from a windowed embed lands on today's layer at the same place, because `use-startup.ts` doesn't read `last`, `from` or `to`. Teaching it, or opening History at the window's start, is the next step that makes the link faithful.
-4. **Language.** `/embed` isn't a reading path, so its language follows the visitor (cookie, country, browser), while `/tr/map/…` sets it from the URL. Adding `embed` to `READING` in `lib/platform/site/locale-path.ts` and to `proxy.ts`'s matcher would make `/tr/embed/…` follow the page.
-5. **Other sites.** `X-Frame-Options: SAMEORIGIN` (`next.config.ts`) keeps the embed to our own pages. For blogs and news sites, send `frame-ancestors *` and no `X-Frame-Options` on `/embed` only, and decide on attribution and the rate limits first.
+3. **The same catalogue in History.** A windowed embed opens History over its years, but History's quakes are NOAA's damaging ones, not ComCat's. Backfilling ComCat into `history.db` (roadmap §2, More history) would make the two show the same quakes.
+4. **Other sites.** `X-Frame-Options: SAMEORIGIN` (`next.config.ts`) keeps the embed to our own pages. For blogs and news sites, send `frame-ancestors *` and no `X-Frame-Options` on `/embed` only, and decide on attribution and the rate limits first.
 
 ## Limits
 

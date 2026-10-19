@@ -51,6 +51,8 @@ import { ISTANBUL_IBB_BOUNDS, fetchIstanbulIbbCameras } from '@/lib/feeds/camera
 import { ISTANBUL_SEYRET_BOUNDS, fetchIstanbulSeyretCameras } from '@/lib/feeds/cameras/sources/turkey/istanbul-seyret';
 import { CAMBASI_BOUNDS, fetchCambasiCameras } from '@/lib/feeds/cameras/sources/turkey/cambasi';
 import { ULUDAG_BOUNDS, fetchUludagCameras } from '@/lib/feeds/cameras/sources/turkey/uludag';
+import { NEVSEHIR_BOUNDS, fetchNevsehirCameras } from '@/lib/feeds/cameras/sources/turkey/nevsehir';
+import { UCHISAR_BOUNDS, fetchUchisarCameras } from '@/lib/feeds/cameras/sources/turkey/uchisar';
 import { MDCHART_BOUNDS, fetchMdChartCameras } from '@/lib/feeds/cameras/sources/us/mdchart';
 import { MODOT_BOUNDS, fetchModotCameras } from '@/lib/feeds/cameras/sources/us/modot';
 import { KC_SCOUT_BOUNDS, fetchKcScoutCameras } from '@/lib/feeds/cameras/sources/us/kcscout';
@@ -173,6 +175,9 @@ export const FEEDS: StateFeed[] = [
   { region: 'cambasi', idPrefix: 'tr-cambasi', bounds: CAMBASI_BOUNDS, fetch: fetchCambasiCameras },
   // No webcam terms published (only ticket-sale terms); permission pending.
   { region: 'uludag', idPrefix: 'tr-uludag', bounds: ULUDAG_BOUNDS, fetch: fetchUludagCameras },
+  // No published terms for either municipality's camera page; permission pending.
+  { region: 'nevsehir', idPrefix: 'tr-nevsehir', bounds: NEVSEHIR_BOUNDS, fetch: fetchNevsehirCameras },
+  { region: 'uchisar', idPrefix: 'tr-uchisar', bounds: UCHISAR_BOUNDS, fetch: fetchUchisarCameras },
   // CHART's public "Data Feeds"; no licence stated.
   { region: 'maryland', idPrefix: 'mdsha', bounds: MDCHART_BOUNDS, fetch: fetchMdChartCameras },
   // No terms found on modot.org or the traveler map.

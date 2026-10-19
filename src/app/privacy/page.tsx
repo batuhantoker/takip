@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Fragment, isValidElement, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  Activity, Bot, Camera, ChevronDown, ExternalLink, HardDrive, KeyRound, Map as MapIcon, Megaphone, MessageCircle, Search, ShieldCheck, Sparkles, UserRound,
+  Activity, Bot, Camera, ChevronDown, ExternalLink, HardDrive, KeyRound, Map as MapIcon, Megaphone, Search, ShieldCheck, Sparkles, UserRound,
 } from 'lucide-react';
 import { getT } from '@/lib/core/i18n/request';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
@@ -309,10 +309,6 @@ export default async function PrivacyPage() {
             <a href="https://github.com/batuhantoker/takip/issues" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-md border border-line-strong bg-surface-2 px-3.5 h-9 text-[13px] font-medium text-ink-1 hover:bg-surface-3">
               <ExternalLink className="h-4 w-4" /> {t('Open an issue on GitHub')}
-            </a>
-            <a href="https://discord.gg/umBykEpb98" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md border border-line-strong bg-surface-2 px-3.5 h-9 text-[13px] font-medium text-ink-1 hover:bg-surface-3">
-              <MessageCircle className="h-4 w-4" /> {t('Ask on Discord')}
             </a>
           </div>
         </Section>

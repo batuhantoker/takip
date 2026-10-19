@@ -2,18 +2,24 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
-import { MapWindow } from '@/components/site/pages/map-window';
+import { LiveWindow } from '@/components/site/pages/live-window';
+import { WorldSketch } from '@/components/site/pages/world-sketch';
 import { LINK_BUTTON } from '@/components/site/pages/site-frame';
 import type { Translate } from '@/lib/core/i18n/translator';
 import type { MapView } from '@/lib/platform/site/map-link';
 
-/** The top of a place page: where it belongs, the heading, the lede, a way onto the map, and what is true right now. */
-export function PlaceHeader({ t, kicker, heading, lede, open, focus, image, live, secondary }: {
+/**
+ * The top of a place page: where it belongs, the heading, the lede, a way onto the map, and what is true right now,
+ * beside a close view of the place that turns into the live map there.
+ */
+export function PlaceHeader({ t, kicker, heading, lede, open, embed, focus, image, live, secondary }: {
   t: Translate;
   kicker: { href: string; label: string };
   heading: string;
   lede: string;
   open: string;
+  /** The live map the picture turns into, /embed?…. */
+  embed: string;
   focus: MapView;
   image: string | null;
   /** The "right now" box; left out when nothing live came back. */
@@ -32,7 +38,8 @@ export function PlaceHeader({ t, kicker, heading, lede, open, focus, image, live
         </div>
         {live}
       </div>
-      <MapWindow href={open} image={image} alt={heading} cta={t('Open the live map')} badge={live ? t('Live') : undefined} points={[focus]} priority />
+      <LiveWindow src={embed} href={open} image={image} alt={heading} cta={t('Open the live map')} explore={t('Explore it here')}
+        badge={live ? t('Live') : undefined} fallback={<WorldSketch focus={{ ...focus, zoom: Math.min(focus.zoom, 9) }} />} />
     </header>
   );
 }

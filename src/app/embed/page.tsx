@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { EmbedView, embedMetadata } from '@/components/site/embed/embed-view';
 import { getT } from '@/lib/core/i18n/request';
-import { bboxView, parseEmbedSpec } from '@/lib/map/embed/spec';
+import { bboxView, historyLink, parseEmbedSpec } from '@/lib/map/embed/spec';
 import { mapHref } from '@/lib/platform/site/map-link';
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -19,6 +19,7 @@ export default async function SpecEmbed({ searchParams }: Props) {
   }
   const spec = parseEmbedSpec(query);
   const view = spec.view ?? (spec.bbox ? bboxView(spec.bbox) : undefined);
-  // The full map shows today; a window's past stays in the embed until the map can open on one.
-  return <EmbedView spec={spec} fullMap={mapHref({ layers: spec.layers, view, track: spec.track })} />;
+  // A window opens History over the same years; History keeps the visitor's own layers.
+  const mode = historyLink(spec);
+  return <EmbedView spec={spec} fullMap={mapHref({ layers: mode ? [] : spec.layers, view, track: spec.track, mode })} />;
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parsePanelLink, parseViewModeLink, viewModeQuery, yearStart } from './view-mode-link';
+import { HISTORY_FAMILIES } from '@/lib/history/popup';
+import { HISTORY_FAMILY_LINKS, parsePanelLink, parseViewModeLink, viewModeQuery, yearStart } from './view-mode-link';
 
 const NOW = Date.parse('2026-10-19T12:00:00Z');
 const parse = (q: string) => parseViewModeLink(new URLSearchParams(q), NOW);
@@ -15,6 +16,20 @@ describe('parseViewModeLink', () => {
   it('switches on only border layers it knows', () => {
     expect(parse('view=history&year=1939&layer=ww2-europe')).toMatchObject({ layer: 'ww2-europe' });
     expect(parse('view=history&layer=anything')).toMatchObject({ layer: null });
+  });
+
+  it('reads a span of years, and leaves out one that runs backwards or past today', () => {
+    expect(parse('view=history&year=2017&from=2017&to=2026')).toEqual({ view: 'history', year: 2017, layer: null, range: { from: 2017, to: 2026 } });
+    expect(parse('view=history&from=-500&to=-400')).toMatchObject({ range: { from: -500, to: -400 } });
+    expect(parse('view=history&from=2026&to=2017')).not.toHaveProperty('range');
+    expect(parse('view=history&from=2017&to=2999')).not.toHaveProperty('range');
+    expect(parse('view=history&from=2017')).not.toHaveProperty('range');
+  });
+
+  it('switches on only event families History has', () => {
+    expect(parse('view=history&families=hazard,disaster,hazard')).toMatchObject({ families: ['hazard', 'disaster'] });
+    expect(parse('view=history&families=aliens')).not.toHaveProperty('families');
+    for (const f of HISTORY_FAMILY_LINKS) expect(HISTORY_FAMILIES).toHaveProperty(f);
   });
 
   it('reads deep time by millions of years or by chapter', () => {
@@ -37,7 +52,9 @@ describe('parseViewModeLink', () => {
   });
 
   it('writes what it reads', () => {
-    for (const q of ['view=history&year=1683&layer=world-borders', 'view=deep&ma=66', 'view=space&focus=moon']) expect(viewModeQuery(parse(q)!)).toBe(q);
+    for (const q of ['view=history&year=1683&layer=world-borders', 'view=history&year=1927&from=1927&to=2026&families=hazard', 'view=deep&ma=66', 'view=space&focus=moon']) {
+      expect(viewModeQuery(parse(q)!)).toBe(q);
+    }
   });
 });
 

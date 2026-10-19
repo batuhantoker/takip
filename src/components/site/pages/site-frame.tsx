@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { LOCALES, LOCALE_NAMES } from '@/lib/core/i18n/locales';
 import type { Translate } from '@/lib/core/i18n/translator';
-import { localePath } from '@/lib/platform/site/locale-path';
+import { isReadingPath, localePath } from '@/lib/platform/site/locale-path';
 
 /** The kit's primary and secondary buttons, for links. */
 export const LINK_BUTTON = {
@@ -53,14 +53,15 @@ export function SiteFrame({ t, path, trail = [], children }: {
               {footer.map(l => <Link key={l.href} href={l.href} className={cx('hover:text-ink-1', FOCUS_RING)}>{l.label}</Link>)}
             </nav>
           </div>
-          <nav aria-label={t('This page in other languages')} className="flex flex-wrap content-start gap-x-4 gap-y-2">
+          {/* A page with one URL in every language (the guides, until translated) has no other languages to offer. */}
+          {isReadingPath(path) && <nav aria-label={t('This page in other languages')} className="flex flex-wrap content-start gap-x-4 gap-y-2">
             {LOCALES.map(l => (
               <a key={l} href={localePath(l, path)} hrefLang={l} lang={l} aria-current={l === t.locale ? 'page' : undefined}
                 className={cx(l === t.locale ? 'text-ink-1' : 'hover:text-ink-1', FOCUS_RING, TRANSITION)}>
                 {LOCALE_NAMES[l]}
               </a>
             ))}
-          </nav>
+          </nav>}
         </footer>
       </div>
     </main>

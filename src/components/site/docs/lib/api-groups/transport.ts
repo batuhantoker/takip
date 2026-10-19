@@ -57,9 +57,13 @@ export const TRANSPORT: ApiGroup = {
       path: '/api/maritime',
       method: 'GET',
       summary: 'Ports, chokepoints, and vessel positions.',
+      params: [
+        { name: 'near', desc: '`lat,lng`: instead of every ship, only `{ near: { km, total, underway, types }, timestamp }` for the ships around that point.', example: '51.9,4.48' },
+        { name: 'km', desc: 'The radius for `near`, 10 by default and at most 100.' },
+      ],
       returns: ['ports', 'chokepoints', 'ships', 'total_ports', 'total_chokepoints', 'total_ships', 'timestamp'],
       env: ['AIS_API_KEY'],
-      notes: 'Vessels come from the aisstream.io websocket, so without the key `ships` is empty. Port congestion and chokepoint risk are heuristics over the ships nearby.',
+      notes: 'Vessels come from the aisstream.io websocket, so without the key `ships` is empty. Port congestion and chokepoint risk are heuristics over the ships nearby. A malformed `near` or `km` is a 400.',
     },
     {
       path: '/api/chokepoints',

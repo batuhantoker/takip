@@ -1,4 +1,5 @@
 import { DEFAULT_LAYERS, type ActiveLayers } from '@/lib/map/layers/defaults';
+import type { ViewModeLink } from '@/lib/map/view-mode-link';
 import { WINDOWED_LAYERS } from './windows';
 
 /** Where an embed's camera opens. */
@@ -141,6 +142,16 @@ export function embedLayers(spec: Pick<EmbedSpec, 'layers' | 'window'>): ActiveL
   const layers = Object.fromEntries(Object.entries(DEFAULT_LAYERS).map(([k, v]) => [k, k.startsWith('ships_') && !setsShips ? v : on.has(k)])) as ActiveLayers;
   // The map draws conflict zones unless this key is false, and no layer key switches them on.
   return Object.assign(layers, { conflict_zones: false });
+}
+
+/** Where "Open the full map" takes a windowed spec: History over the same years, with its layers' families on. */
+export function historyLink(spec: Pick<EmbedSpec, 'layers' | 'window'>, now = Date.now()): ViewModeLink | undefined {
+  if (!spec.window) return undefined;
+  const { from, to } = resolveWindow(spec.window, now);
+  const year = (t: number) => new Date(t).getUTCFullYear();
+  const families = [...new Set(spec.layers.flatMap(k => WINDOWED_LAYERS.get(k)?.family ?? []))];
+  const range = { from: year(from), to: Math.min(year(to - 1), year(now)) };
+  return { view: 'history', year: range.from, layer: null, range, ...(families.length ? { families } : {}) };
 }
 
 /** A view that roughly fits `bbox` in a 1024 px wide map, for links into the full map, which takes a centre and zoom. */

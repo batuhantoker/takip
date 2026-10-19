@@ -1,6 +1,6 @@
 import { createTranslator, msg, type Translate } from '@/lib/core/i18n/translator';
 import { sortModes, type TransitMode } from '@/lib/feeds/transit/modes';
-import { placeLabel } from '../gazetteer';
+import { placeLabel, regionLabel } from '../gazetteer';
 import { placeSlugBase, type Place } from '../place';
 
 export const EN = createTranslator('en', {});
@@ -21,7 +21,7 @@ const sharesName = (place: Place) => place.kind === 'city' && place.slug !== pla
 
 /** What tells a shared name apart: the region, unless it is named like the place (Sinop in Sinop), then the country. */
 function qualifier(place: Place, t: Translate) {
-  return place.region && placeSlugBase(place.region) !== placeSlugBase(place.name) ? place.region : countryName(place.cc, t);
+  return place.region && placeSlugBase(place.region) !== placeSlugBase(place.name) ? regionLabel(place, t.locale)! : countryName(place.cc, t);
 }
 
 /** The place's name in the reader's language: "Nevşehir", "ネヴシェヒル", and "London, Ontario" where the plain name is taken. */
@@ -34,8 +34,8 @@ export function nameOf(place: Place, t: Translate): string {
 /** "Cincinnati, Ohio", "Nevşehir, Türkiye", "London, Ontario, Canada"; a country is just itself. */
 export function placeName(place: Place, t: Translate): string {
   if (place.kind === 'country') return countryName(place.cc, t);
-  if (sharesName(place)) return `${nameOf(place, t)}${qualifier(place, t) === place.region ? `, ${countryName(place.cc, t)}` : ''}`;
-  return `${nameOf(place, t)}, ${WITH_REGION.has(place.cc) && place.region ? place.region : countryName(place.cc, t)}`;
+  if (sharesName(place)) return `${nameOf(place, t)}${qualifier(place, t) === regionLabel(place, t.locale) ? `, ${countryName(place.cc, t)}` : ''}`;
+  return `${nameOf(place, t)}, ${WITH_REGION.has(place.cc) && place.region ? regionLabel(place, t.locale) : countryName(place.cc, t)}`;
 }
 
 /** "a, b and c": English without the serial comma, like the rest of the site. */

@@ -4,8 +4,9 @@ import { useEffect, useLayoutEffect, useRef, type MutableRefObject } from 'react
 import type { HistorySession } from '@/lib/history/session';
 import { atMa } from '@/lib/history/paleo/deep-time';
 import type { ReplaySession } from '@/lib/map/replay/session';
-import { parsePanelLink, parseViewModeLink, yearStart, type PanelLink, type ViewModeLink } from '@/lib/map/view-mode-link';
+import { HISTORY_FAMILY_LINKS, parsePanelLink, parseViewModeLink, yearStart, type PanelLink, type ViewModeLink } from '@/lib/map/view-mode-link';
 import type { SpaceFocus } from '@/lib/space/worlds';
+import { SPEEDS } from '@/components/panels/history/lib/history-timeline-config';
 import type { ToolId } from '@/components/shell/sidebar/dock';
 import type { MobilePanel } from './types';
 
@@ -14,6 +15,12 @@ const TOOL: Record<PanelLink, ToolId> = {
 };
 // Areas, Route and ArcGIS stay on the desktop.
 const MOBILE: Partial<Record<PanelLink, MobilePanel>> = { layers: 'layers', alerts: 'intel', recon: 'recon', ti: 'ai', space: 'space' };
+
+/** A span of years plays through in about a minute at most, at one of History's own speeds. */
+function spanSpeed(from: number, to: number): number {
+  const seconds = (to - from) / 1000;
+  return SPEEDS.find(s => seconds / s.value <= 60)?.value ?? SPEEDS[SPEEDS.length - 1].value;
+}
 
 type Actions = {
   isMobile: boolean;
@@ -70,8 +77,14 @@ export function useViewModeLink({ splashGone, autoLocateCancelled: autoLocateCan
     if (!openedRef.current || timedRef.current || !mode) return;
     if (mode.view === 'history' && history) {
       timedRef.current = true;
-      if (mode.year !== null) { history.clock.seek(yearStart(mode.year)); history.clock.pause(); }
+      if (mode.families) for (const f of HISTORY_FAMILY_LINKS) history.setFamily(f, mode.families.includes(f));
       if (mode.layer) history.setLayer(mode.layer, true);
+      if (mode.range) {
+        const from = yearStart(mode.range.from), to = Math.min(Date.now(), yearStart(mode.range.to + 1));
+        history.clock.seek(from);
+        history.clock.setSpeed(spanSpeed(from, to));
+        history.clock.play(to);
+      } else if (mode.year !== null) { history.clock.seek(yearStart(mode.year)); history.clock.pause(); }
     } else if (mode.view === 'deep' && history) {
       timedRef.current = true;
       history.setDeep(true);

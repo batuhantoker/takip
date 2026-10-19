@@ -7,7 +7,7 @@ import { camerasNear } from './camera-catalogue';
 /**
  * Public cameras at /city/<place>/cameras: who publishes the ones around the place and which they are. Read from the
  * app's own camera catalogue when the page renders, so the count is current. A page wherever one camera is listed,
- * even off air (a search for a town's cameras deserves the truth about them); indexed from three on air.
+ * even off air (a search for a town's cameras deserves the truth about them); indexed from two on air.
  */
 
 export interface CamerasData {
@@ -23,7 +23,7 @@ export interface CamerasData {
   counted: number;
 }
 
-const MIN_INDEXED = 3;
+const MIN_INDEXED = 2;
 const PICKS = 12;
 
 /** A source named after a place ("Cincinnati, OH") says nothing about who runs the camera. */
@@ -56,6 +56,7 @@ export function camerasData(place: Place): CamerasData | null {
 export const CAMERAS: PlaceTopic<CamerasData> = {
   id: 'cameras',
   label: msg('Cameras'),
+  inline: msg('cameras'),
   kinds: ['city'],
 
   pages(place) {

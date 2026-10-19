@@ -56,9 +56,11 @@ export async function placeMetadata(kind: PlaceKind, slug: string, page?: string
 }
 
 /** What each page's topic says is true right now, stamped with when it was. */
-async function livesFor(refs: PlacePageRef[], place: Place, t: Translate): Promise<PageLive[]> {
+async function livesFor(refs: PlacePageRef[], place: Place, t: Translate, overview: boolean): Promise<PageLive[]> {
   const found = await Promise.all(refs.filter(r => r.topic.live).map(async ref => {
-    const live: unknown = await ref.topic.live!(place, ref.page, t).catch(() => null);
+    const answer: unknown = await ref.topic.live!(place, ref.page, t).catch(() => null);
+    // The overview gives each topic one line: the first of a list (the nearest station).
+    const live = overview && Array.isArray(answer) ? answer.slice(0, 1) : answer;
     if (live == null || (Array.isArray(live) && !live.length)) return null;
     // A live answer may say when it was true (transit does); an array's `at` is its method, not a time.
     const stamp = !Array.isArray(live) && (live as { at?: unknown }).at;
@@ -73,7 +75,7 @@ export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: s
   if (!found) return null;
   const { place, pages, places, current, text, copy } = found;
   const { t } = text;
-  const lives = await livesFor(current ? [current] : pages.filter(p => OVERVIEW_LIVE.includes(p.topic.id)), place, t);
+  const lives = await livesFor(current ? [current] : pages.filter(p => OVERVIEW_LIVE.includes(p.topic.id)), place, t, !current);
   const origin = configuredOrigin() ?? publicOrigin(await headers());
   const index = localePath(text.locale, KIND_INDEX[place.kind]);
   const overview = localePath(text.locale, placePath(place));

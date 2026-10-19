@@ -16,7 +16,7 @@ import type { GazetteerFile, Place } from '../../src/lib/platform/site/places/pl
 const OUT = 'data/site/gazetteer.json';
 const CACHE = join('.cache', 'site');
 const GEONAMES = 'https://download.geonames.org/export/dump';
-const UA = 'TAKIP-site-pages/0.1 (https://takip.example; hello@takip.dev)';
+const UA = 'TAKIP-site-pages/0.1 (https://takip.dev; hello@takip.dev)';
 const BATCH = 300;
 /** Sections of a city, historical and abandoned places: not places a visitor looks up. */
 const SKIP_CODES = new Set(['PPLX', 'PPLH', 'PPLQ', 'PPLW']);
@@ -67,13 +67,20 @@ async function labels(ids: string[], refresh: boolean): Promise<Record<string, R
   return known;
 }
 
+/** Wikidata tells same-named places apart in the label ("Zeytinburnu (ilçe)", "Hatta, Dubai"); the page does that itself. */
+function cleanLabel(label: string, english: string): string {
+  const bare = label.replace(/\s*[(（][^()（）]*[)）]\s*$/, '');
+  return (/[,،，]/.test(english) ? bare : bare.split(/\s*[,،，]\s*/)[0]).trim() || label;
+}
+
 /** Our locale → the label, only where it differs from the English name. */
 function names(english: string, wiki: Record<string, string> | undefined): Record<string, string> | undefined {
   if (!wiki) return undefined;
   const out: Record<string, string> = {};
   for (const locale of LOCALES) {
     if (locale === 'en') continue;
-    const label = WIKI_LANGS[locale].map(l => wiki[l]).find(Boolean);
+    const raw = WIKI_LANGS[locale].map(l => wiki[l]).find(Boolean);
+    const label = raw && cleanLabel(raw, english);
     if (label && label !== english) out[locale] = label;
   }
   return Object.keys(out).length ? out : undefined;
@@ -100,12 +107,13 @@ async function main() {
 
   const zip = existsSync(join('.cache', 'transit', 'cities15000.zip')) ? join('.cache', 'transit', 'cities15000.zip') : await cached('cities15000.zip', `${GEONAMES}/cities15000.zip`);
   const rows = tsv(execFileSync('unzip', ['-p', zip], { maxBuffer: 64 * 1024 * 1024 }).toString('utf8'));
-  const admin1 = new Map(tsv(readFileSync(await cached('admin1CodesASCII.txt', `${GEONAMES}/admin1CodesASCII.txt`), 'utf8')).map(r => [r[0], r[1]]));
+  const admin1Rows = tsv(readFileSync(await cached('admin1CodesASCII.txt', `${GEONAMES}/admin1CodesASCII.txt`), 'utf8'));
+  const admin1 = new Map(admin1Rows.map(r => [r[0], r[1]]));
   const countries = tsv(readFileSync(await cached('countryInfo.txt', `${GEONAMES}/countryInfo.txt`), 'utf8'));
 
   const cities: Place[] = rows.filter(r => !SKIP_CODES.has(r[7]) && Number(r[14]) > 0).map(r => ({
     id: Number(r[0]), kind: 'city' as const, slug: '', name: r[1], cc: r[8],
-    ...(admin1.get(`${r[8]}.${r[10]}`) ? { region: admin1.get(`${r[8]}.${r[10]}`)! } : {}),
+    ...(admin1.get(`${r[8]}.${r[10]}`) ? { region: admin1.get(`${r[8]}.${r[10]}`)!, admin1: `${r[8]}.${r[10]}` } : {}),
     ...(/^[A-Z0-9]{1,3}$/.test(r[10]) && r[8] === 'US' ? { regionCode: r[10] } : {}),
     at: [Number(Number(r[5]).toFixed(4)), Number(Number(r[4]).toFixed(4))] as [number, number],
     pop: Number(r[14]),
@@ -118,16 +126,23 @@ async function main() {
     ...(Number(r[6]) > 0 ? { area: Number(r[6]) } : {}),
   }));
 
-  const wiki = await labels([...cities, ...countryPlaces].map(p => String(p.id)), refresh);
+  const used = new Set(cities.map(c => c.admin1).filter(Boolean));
+  const regionRows = admin1Rows.filter(r => used.has(r[0]) && r[3]);
+  const wiki = await labels([...cities, ...countryPlaces].map(p => String(p.id)).concat(regionRows.map(r => r[3])), refresh);
   for (const p of [...cities, ...countryPlaces]) {
     const n = names(p.name, wiki[String(p.id)]);
     if (n) p.names = n;
+  }
+  const regions: GazetteerFile['regions'] = {};
+  for (const r of regionRows) {
+    const n = names(r[1], wiki[r[3]]);
+    if (n) regions[r[0]] = n;
   }
   const countryNames = new Map(countryPlaces.map(c => [c.cc, c.name]));
   assignSlugs(cities, countryNames);
   assignSlugs(countryPlaces, countryNames);
 
-  const file: GazetteerFile = { generated: new Date().toISOString().slice(0, 10), places: [...countryPlaces, ...cities] };
+  const file: GazetteerFile = { generated: new Date().toISOString().slice(0, 10), regions, places: [...countryPlaces, ...cities] };
   writeFileSync(OUT, `${JSON.stringify(file)}\n`);
   console.log(`wrote ${cities.length} cities and ${countryPlaces.length} countries to ${OUT}`);
 }

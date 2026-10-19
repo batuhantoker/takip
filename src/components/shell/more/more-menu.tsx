@@ -11,7 +11,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { useT } from '@/components/ui/use-t';
 import { msg } from '@/lib/core/i18n/translator';
-import { DiscordIcon, XIcon } from './brand-icons';
+import { XIcon } from './brand-icons';
 import { RailButton } from '@/components/shell/sidebar/rail-button';
 import { showShortcuts } from '@/components/shell/keyboard/shortcuts-state';
 import { openSettings } from '@/components/shell/settings/open-settings';
@@ -19,7 +19,6 @@ import { showReportDialog } from '@/components/site/report/report-dialog-state';
 import TokenChart from './token-chart';
 
 const SOCIAL = [
-  { href: 'https://discord.gg/EPaFD5FFKf', label: msg('TAKIP on Discord'), Icon: DiscordIcon },
   { href: 'https://x.com/soulsimplifai', label: msg('TAKIP on X'), Icon: XIcon },
 ];
 

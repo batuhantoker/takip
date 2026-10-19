@@ -411,6 +411,19 @@ Added 2026-10-12 (terms pending: njta.gov's disclaimer has a copyright line and 
 - Labels are landmarks relative to the camera (`relative_direction` `north` + `NJ 73 (Mount Laurel Twp)` is NJTA's "north of NJ 73"). The trailing town becomes `city`.
 - The region is `njta`, not `newjersey`, which stays free for 511NJ (NJDOT), not added yet.
 
+Added 2026-10-19, Nevşehir province / Cappadocia, which had no camera (no published terms; permission pending):
+
+| Region | Module | Source | Cameras | Media |
+|---|---|---|---|---|
+| `nevsehir` | `turkey/nevsehir.ts` (+ `nevsehir-cert.ts`) | Nevşehir Belediyesi, `belsis.nevsehir.bel.tr/kameracanli/canli` (the page `canli.nevsehir.bel.tr` frames; one card per camera with a stream key) | 2 of 4, both off air on 2026-10-19 | HLS only, `belsis.nevsehir.bel.tr/hls/live/<key>/index.m3u8` (Node-Media-Server, CORS `*`; 404 while nothing publishes) |
+| `uchisar` | `turkey/uchisar.ts` | Uçhisar Belediyesi, the Clappr players on `uchisar.bel.tr/uchisar-canli-kamera-{merkez,vadi}/` | 1 (live) | HLS only, `player.rade.com.tr/live/uchisar1.stream/playlist.m3u8` (Wowza; CORS reflects the Origin on playlist, chunklist and segments) |
+| `asia-live` | `asia-skyline.generated.ts` | SkylineWebcams 979, Pigeon Valley from Helike Cave Suites, Uçhisar | 1 (still refreshes every ~10 min) | proxied `live979.jpg` + link; Skyline's own HLS is left alone |
+
+- **No coordinates upstream.** Nevşehir cameras are placed by name (`Kayaşehir …` at the underground city); the two `Meydan` cameras are left out because the city doesn't say which square. Uçhisar's `uchisar1` shows the town-centre roundabout. `uchisar2` (the "Vadi" page) was off air, so its view and place are unknown and it is left out.
+- **belsis.nevsehir.bel.tr omits its intermediate certificate** (Sectigo DV R36), so Node's fetch fails where browsers don't; the adapter requests over `node:https` with the intermediate added, and does its own 404 check instead of `markMissingMedia`.
+- **The Skyline row is a hand edit** of a generated file whose generator isn't in the repo; regenerate with care.
+- Not found: any 24/7 YouTube live from Göreme or a hotel, a Göreme, Avanos, Ortahisar, Derinkuyu or Kaymaklı municipal camera, or KGM road cameras. `urgup.bel.tr` sits behind a Cloudflare challenge and wasn't read.
+
 ### Leads, with tested endpoints
 
 | Lead | Cameras | Notes |

@@ -67,16 +67,20 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
     const target = parseTrack(spec.track);
     if (!target) return;
     requestTrack(target);
-    // Its card opens folded to the header, so a small frame keeps the map; a click unfolds it.
+    // Its card opens folded to the header, so a small frame keeps the map; a click unfolds it. Each time it
+    // appears (StrictMode mounts it twice), until the person first touches the page.
     const id = trackKey(target);
-    let folded = false;
+    let shown = false;
     const fold = () => {
-      if (folded || !windowStore.find(id)) return;
-      folded = true;
-      windowStore.fold(id, true);
+      const open = !!windowStore.find(id);
+      const appeared = open && !shown;
+      // Before folding: the fold emits, which calls this again.
+      shown = open;
+      if (appeared) windowStore.fold(id, true);
     };
     const unsubscribe = windowStore.subscribe(fold);
-    return () => { unsubscribe(); stopTracking(); };
+    window.addEventListener('pointerdown', unsubscribe, { once: true });
+    return () => { unsubscribe(); window.removeEventListener('pointerdown', unsubscribe); stopTracking(); };
   }, [spec.track]);
 
   // Read once, as the map is built. Framed in a page, one finger and the wheel scroll the page, not the map.

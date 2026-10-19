@@ -20,7 +20,7 @@ Every page carries schema.org JSON-LD for the site (`site-copy.ts`), and layer p
 
 ## The address
 
-Canonical links, the sitemap and preview images need the site's public origin. `SITE_URL` sets it. Until the domain exists it is unset, and each request's own host is used (`lib/platform/site/origin.ts`), because the NUC's quick-tunnel link changes on every restart. While it is unset every page renders per request. TI's watch links use the same helper after `AI_PUBLIC_ORIGIN`.
+Canonical links, the sitemap and preview images need the site's public origin. `SITE_URL` sets it: `https://takip.dev` on the NUC. Where it is unset (dev, self-hosted copies) each request's own host is used (`lib/platform/site/origin.ts`). While it is unset every page renders per request. TI's watch links use the same helper after `AI_PUBLIC_ORIGIN`.
 
 ## Adding or changing a layer page
 

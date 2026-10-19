@@ -11,6 +11,7 @@ import type { LiveLine } from '@/lib/platform/site/live/lines';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { sectionIn, type SiteText } from '@/lib/platform/site/text';
 import { LiveWindow } from './live-window';
+import { LocalClock, SpokenText } from './local-clock';
 import { MapWindow } from './map-window';
 import { PageCard } from './page-card';
 import { SECTION_ICON } from './section-icon';
@@ -55,9 +56,9 @@ export function LayerArticle({ text, page, image, live, related }: {
             <div className="mt-8 rounded-card border border-line bg-surface-1 p-4">
               <p className="flex items-center gap-2 text-[12px] font-medium text-ink-3">
                 <span className="size-1.5 rounded-full bg-green" aria-hidden />
-                <span>{t.parts(AS_OF, { time: <time key="t" className="font-mono tabular-nums">{live.asOf}</time> }) as ReactNode[]}</span>
+                <span>{t.parts(AS_OF, { time: <LocalClock key="t" at={live.at} intl={t.intl} className="font-mono tabular-nums" /> }) as ReactNode[]}</span>
               </p>
-              <p className="mt-2 text-[15px] leading-relaxed text-ink-1">{live.text}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-ink-1"><SpokenText parts={live.text} intl={t.intl} /></p>
             </div>
           )}
         </div>

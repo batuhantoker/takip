@@ -4,6 +4,7 @@ import ErrorBoundary from '@/components/ui/error-boundary';
 import LocaleProvider from '@/components/ui/locale-provider';
 import { headers } from 'next/headers';
 import { loadCatalog } from '@/lib/core/i18n/catalog';
+import { AD_CLIENT } from '@/lib/platform/ads';
 import { ogLocale } from '@/lib/core/i18n/locales';
 import { getT, requestLocale } from '@/lib/core/i18n/request';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
@@ -80,6 +81,8 @@ export async function generateMetadata(): Promise<Metadata> {
       "mobile-web-app-capable": "yes",
       "msapplication-TileColor": "#0A0C0F",
       "msapplication-config": "none",
+      // AdSense site verification: the ad script loads client-side once the plan is known, so crawlers never see it.
+      ...(AD_CLIENT ? { "google-adsense-account": AD_CLIENT } : {}),
     },
   };
 }

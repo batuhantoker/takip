@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Locale } from '@/lib/core/i18n/locales';
 import type { GazetteerFile, Place, PlaceKind } from './place';
@@ -8,15 +8,28 @@ export type { Place, PlaceKind } from './place';
 /** Committed data the place pages read from disk; kept out of the server bundle. */
 export const SITE_DATA = process.env.SITE_DATA_DIR || join(process.cwd(), 'data', 'site');
 
-let loaded: { places: Place[]; bySlug: Map<string, Place>; byId: Map<number, Place> } | null = null;
+/** A rebuilt file is read again when its time changes, checked at most this often. */
+export const DATA_RECHECK_MS = 30_000;
+
+let loaded: { mtime: number; checked: number; places: Place[]; bySlug: Map<string, Place>; byId: Map<number, Place>; regions: NonNullable<GazetteerFile['regions']> } | null = null;
 
 function gazetteer() {
+  const path = join(SITE_DATA, 'gazetteer.json');
+  const now = Date.now();
+  if (loaded && now - loaded.checked > DATA_RECHECK_MS) {
+    loaded.checked = now;
+    if (statSync(path).mtimeMs !== loaded.mtime) loaded = null;
+  }
   if (!loaded) {
-    const file = JSON.parse(readFileSync(join(SITE_DATA, 'gazetteer.json'), 'utf8')) as GazetteerFile;
+    const mtime = statSync(path).mtimeMs;
+    const file = JSON.parse(readFileSync(path, 'utf8')) as GazetteerFile;
     loaded = {
+      mtime,
+      checked: now,
       places: file.places,
       bySlug: new Map(file.places.map(p => [`${p.kind}/${p.slug}`, p])),
       byId: new Map(file.places.map(p => [p.id, p])),
+      regions: file.regions ?? {},
     };
   }
   return loaded;
@@ -29,6 +42,10 @@ export const countryPlace = (cc: string) => gazetteer().places.find(p => p.kind 
 
 /** The place's name in the reader's language. */
 export const placeLabel = (place: Place, locale: Locale) => place.names?.[locale] ?? place.name;
+
+/** The place's region in the reader's language: "İstanbul" for a Turkish reader. */
+export const regionLabel = (place: Place, locale: Locale) =>
+  (place.admin1 && gazetteer().regions[place.admin1]?.[locale]) || place.region;
 
 export function km([lng1, lat1]: [number, number], [lng2, lat2]: [number, number]): number {
   const r = Math.PI / 180;

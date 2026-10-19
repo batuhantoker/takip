@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bboxView, embedHref, embedLayers, embedQuery, parseEmbedSpec, resolveWindow, type EmbedSpec } from './spec';
+import { bboxView, embedHref, embedLayers, embedQuery, historyLink, parseEmbedSpec, resolveWindow, type EmbedSpec } from './spec';
 
 const NOW = Date.parse('2026-10-19T12:00:00Z');
 const parse = (q: string) => parseEmbedSpec(new URLSearchParams(q), NOW);
@@ -82,5 +82,18 @@ describe('bboxView', () => {
     expect(bboxView([-125, 24, -66, 50])).toMatchObject({ lat: 37, lon: -95.5 });
     expect(bboxView([170, -20, -170, 0]).lon).toBe(-180);
     expect(bboxView([37.5, 37.8, 39.3, 39.4]).zoom).toBeGreaterThan(7);
+  });
+});
+
+describe('historyLink', () => {
+  it('sends a window to History over the same years, with the layers’ families on', () => {
+    expect(historyLink({ layers: ['earthquakes'], window: { last: { n: 100, unit: 'y' } } }, NOW))
+      .toEqual({ view: 'history', year: 1926, layer: null, range: { from: 1926, to: 2026 }, families: ['hazard'] });
+    expect(historyLink({ layers: ['earthquakes'], window: { from: Date.UTC(1999, 7, 17), to: Date.UTC(1999, 7, 18) } }, NOW))
+      .toMatchObject({ year: 1999, range: { from: 1999, to: 1999 } });
+  });
+
+  it('leaves a spec without a window on today’s map', () => {
+    expect(historyLink({ layers: ['earthquakes'] }, NOW)).toBeUndefined();
   });
 });

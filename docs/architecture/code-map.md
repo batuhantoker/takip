@@ -51,7 +51,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `hazards/` | Popup and shaping helpers: quake twins, fire incidents and US perimeters, NHC forecast cones, war alerts, outbreaks, GNSS, service status | map/interaction, map/layers; api/earthquakes |
 | `hiking/` | Waymarked Trails client, overlay and popup | map/layers; api/hiking |
 | `imagery/` | GIBS, geostationary ring, dated rasters, scene search, area images, passes | map/imagery, map/layers |
-| `maritime/` | Vessel filters, chokepoint flow | map/layers, panels/layers, map/interaction |
+| `maritime/` | Vessel filters, chokepoint flow, the major ports and chokepoints the ship layer marks, ship counts around a point | map/layers, panels/layers, map/interaction; api/maritime; lib/platform/site; tools/site |
 | `reference/` | Reference datasets: catalogue, file store, clipping, map layers | api/reference; panels/layers, map/layers |
 | `satellites/` | Propagation (worker and client), filters, motion, chase, sky passes over a place; `gl/` (WebGL points) | map/layers; api/satellites |
 | `traffic/` | Road traffic upstreams, TomTom flow tiles, layers; `sources/` | api/traffic; map/interaction, map/layers; tools/traffic |

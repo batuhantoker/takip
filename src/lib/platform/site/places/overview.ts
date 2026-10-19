@@ -8,7 +8,8 @@ import type { PlaceCopy } from './topic';
 export function overviewCopy(place: Place, pages: PlacePageRef[], t: Translate, places = 0): PlaceCopy {
   if (!pages.length && place.kind === 'country') return countryOverview(place, t, places);
   const name = (t: Translate) => nameOf(place, t);
-  const labels = (t: Translate, k: number) => listOf(pages.slice(0, k).map(p => t(p.topic.label).toLocaleLowerCase(t.intl)), t);
+  // A topic with several pages (earthquakes over 10 and 100 years) is named once.
+  const labels = (t: Translate, k: number) => listOf([...new Set(pages.map(p => t(p.topic.inline)))].slice(0, k), t);
   const all = pages.length;
   return {
     title: fit([

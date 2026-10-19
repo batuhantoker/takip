@@ -4,16 +4,18 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { countryName, nameOf } from '@/lib/platform/site/places/copy/format';
 import { placePages, type PlacePageRef } from '@/lib/platform/site/places/pages';
+import { regionLabel } from '@/lib/platform/site/places/gazetteer';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { SiteText } from '@/lib/platform/site/text';
 import { TOPIC_VIEWS } from '../topics/registry';
 
 /** The place's pages side by side: its overview and each topic page. */
-export function TopicNav({ text: { t }, place, pages, current }: { text: SiteText; place: Place; pages: PlacePageRef[]; current?: string }) {
+export function TopicNav({ text, place, pages, current }: { text: SiteText; place: Place; pages: PlacePageRef[]; current?: string }) {
+  const { t } = text;
   const items: { href: string; label: string; here: boolean; Icon?: LucideIcon }[] = [
     { href: placePath(place), label: t('Overview'), here: !current },
-    ...pages.map(p => ({ href: placePath(place, p.page.slug), label: t(p.topic.label), here: p.page.slug === current, Icon: TOPIC_VIEWS[p.topic.id]?.icon })),
+    ...pages.map(p => ({ href: placePath(place, p.page.slug), label: t(p.page.label ?? p.topic.label), here: p.page.slug === current, Icon: TOPIC_VIEWS[p.topic.id]?.icon })),
   ];
   return (
     <nav aria-label={t('{city} on TAKIP', { city: nameOf(place, t) })} className="mt-6 flex flex-wrap gap-2">
@@ -43,7 +45,8 @@ export function LinkCard({ href, title, line, Icon }: { href: string; title: str
 }
 
 /** Other places, each as a card naming its region and its indexed pages; to the same topic page when it has one. */
-export function PlaceCards({ text: { t }, places, page }: { text: SiteText; places: Place[]; page?: string }) {
+export function PlaceCards({ text, places, page }: { text: SiteText; places: Place[]; page?: string }) {
+  const { t } = text;
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {places.map(p => {
@@ -52,7 +55,7 @@ export function PlaceCards({ text: { t }, places, page }: { text: SiteText; plac
         return (
           <li key={p.id}>
             <LinkCard href={localePath(t.locale, placePath(p, to))} title={nameOf(p, t)}
-              line={`${p.region ?? countryName(p.cc, t)} · ${pages.map(x => t(x.topic.label)).join(', ')}`} />
+              line={`${regionLabel(p, t.locale) ?? countryName(p.cc, t)} · ${[...new Set(pages.map(x => t(x.topic.label)))].join(', ')}`} />
           </li>
         );
       })}
@@ -61,13 +64,14 @@ export function PlaceCards({ text: { t }, places, page }: { text: SiteText; plac
 }
 
 /** Many places as plain links, each with what its page covers. */
-export function PlaceList({ text: { t }, places }: { text: SiteText; places: Place[] }) {
+export function PlaceList({ text, places }: { text: SiteText; places: Place[] }) {
+  const { t } = text;
   return (
     <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
       {places.map(p => (
         <li key={p.id} className="text-[14px]">
           <Link href={localePath(t.locale, placePath(p))} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{nameOf(p, t)}</Link>
-          <span className="text-ink-3"> · {placePages(p).filter(x => x.page.index).map(x => t(x.topic.label)).join(', ')}</span>
+          <span className="text-ink-3"> · {[...new Set(placePages(p).filter(x => x.page.index).map(x => t(x.topic.label)))].join(', ')}</span>
         </li>
       ))}
     </ul>
