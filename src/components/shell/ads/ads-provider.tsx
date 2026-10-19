@@ -6,6 +6,7 @@ import Script from 'next/script';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { useAccess } from '@/components/site/account/use-access';
 import { AD_CLIENT, AD_SLOTS, showAds } from '@/lib/platform/ads';
+import { splitLocalePath } from '@/lib/platform/site/locale-path';
 import AdblockNotice from './adblock-notice';
 import { baitHidden } from './adblock-bait';
 
@@ -20,7 +21,8 @@ export const useAds = () => useContext(AdsContext);
 /** Loads Google's ad script for plans that show ads, and notices when a blocker stops it. */
 export default function AdsProvider({ children }: { children: ReactNode }) {
   // An embed sits in a page that runs its own ads; it also mustn't ask the account API about the visitor.
-  const embedded = /^\/embed(\/|$)/.test(usePathname() ?? '');
+  const pathname = usePathname() ?? '';
+  const embedded = /^\/embed(\/|$)/.test(splitLocalePath(pathname)?.path ?? pathname);
   return AD_CLIENT && !embedded ? <AdsRuntime client={AD_CLIENT}>{children}</AdsRuntime> : children;
 }
 

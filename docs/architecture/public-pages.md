@@ -36,7 +36,7 @@ On pages with an embed (`hasEmbed`: layers on today's map at a view), the pictur
 
 Each page leads with a picture of the map: its own "Open on the map" link, taken in headless Chrome with the interface hidden, so it reads the same in every language (`MapWindow`; the whole picture links into the live map). `nice npx tsx tools/site/shots.ts` takes them against the running app (`--only slug,slug`, `--force` to retake, about 25 minutes for all), answering the map-time and usage calls itself so the run spends no one's minutes and leaves nothing in the analytics. They go to `.cache/site-shots/` (`SITE_SHOTS_DIR`), outside git, so a server needs its own run or a copy. A page without one shows a sketch of the world with its places marked. Retake a page's picture when its layer changes how it looks.
 
-Each page has one ad slot (`AD_SLOTS.page`), beside the text and never over the picture; it shows only where AdSense is configured and the plan has ads.
+Each page has one ad slot (`AD_SLOTS.page`), beside the text and never over the picture; it shows only where AdSense is configured and the plan has ads. AdSense's Auto ads are on as well (since 2026-10-19), so Google adds its own placements on every page that loads the script, the map included; `/embed` never loads it, in any language.
 
 ## Languages
 
