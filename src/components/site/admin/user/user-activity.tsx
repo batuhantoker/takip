@@ -13,6 +13,7 @@ import UserActivityApi from './user-activity-api';
 import UserActivityTime from './user-activity-time';
 import UserBelongings from './user-belongings';
 import UserBrowsers from './user-browsers';
+import UserDevicePlaces from './user-device-places';
 import UserPlaces from './user-places';
 import UserSignIns from './user-sign-ins';
 
@@ -71,9 +72,10 @@ function Activity({ u }: { u: UserAnalytics }) {
       </Tiles>
       <UserActivityTime u={u} />
       <Pair>
+        <UserDevicePlaces places={u.devicePlaces ?? []} />
         <UserPlaces places={u.places} />
-        <UserActions actions={u.actions} />
       </Pair>
+      <UserActions actions={u.actions} />
       <UserActivityApi u={u} />
       <UserSignIns signIns={u.signIns} total={sum(u.daily.map(d => d.signIns))} />
       <UserBrowsers browsers={u.browsers} />

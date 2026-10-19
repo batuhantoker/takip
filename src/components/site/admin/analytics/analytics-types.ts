@@ -25,6 +25,25 @@ export type Place = {
 /** The latest place, as table rows show it. */
 export type PlaceBrief = { ip: string; country: string | null; region: string | null; city: string | null };
 
+/**
+ * Where the browser itself said it was, when the person used their location on the map (Your location, Use my
+ * location, navigation): rounded by the api, named by Nominatim (© OpenStreetMap contributors; label null until named).
+ * Show it before the IP place, marked "shared"; the IP place, marked "from IP", can be hundreds of km off.
+ */
+export type DevicePlace = {
+  latitude: number;
+  longitude: number;
+  /** The browser's own accuracy for the fix, in metres. */
+  accuracyM: number | null;
+  label: string | null;
+  firstSeenAt: number;
+  lastSeenAt: number;
+  fixes: number;
+};
+
+/** The latest shared location, as table rows show it. */
+export type DeviceBrief = { latitude: number; longitude: number; accuracyM: number | null; label: string | null; at: number };
+
 /** Counts of named actions (packages/core/src/usage.ts USAGE_ACTIONS), e.g. 'search.run', 'route.plan', 'recon.email'. */
 export type ActionUse = { action: string; count: number; users: number; visitors: number };
 
@@ -195,6 +214,8 @@ export type UserActivitySummary = {
   lastIp: string | null;
   /** Where lastIp is, when it can be placed. */
   lastPlace: Omit<PlaceBrief, 'ip'> | null;
+  /** Their latest shared location, if they ever used theirs on the map. */
+  lastDevice: DeviceBrief | null;
   /** Active (not revoked, not expired) API keys, and workspaces not deleted. */
   keys: number;
   workspaces: number;
@@ -234,6 +255,8 @@ export type UserAnalytics = AnalyticsRange & {
   browsers: (VisitorProfile & { minutes: number; activeDays: number })[];
   /** Addresses the account used the map from, most recent first. */
   places: Place[];
+  /** Locations they shared, most recent first. */
+  devicePlaces: DevicePlace[];
   /** Their actions in the range, with on how many days. */
   actions: { action: string; count: number; days: number }[];
 };
@@ -256,6 +279,8 @@ export type VisitorProfile = {
   linkedAt: number | null;
   /** The address it last used the map from, and where that is. */
   place: PlaceBrief | null;
+  /** The latest location this browser shared, if any. */
+  device: DeviceBrief | null;
 };
 
 /** GET /api/admin/analytics/visitors?days=: browsers over the range. */
@@ -282,7 +307,8 @@ export type AnalyticsVisitors = AnalyticsRange & {
   /** Visitors active in the range by where they used the map from (place_seen); one visitor can be in several. */
   countries: { country: string; visitors: number; signedIn: number }[];
   cities: { country: string; region: string | null; city: string; visitors: number }[];
-  /** One point per placed visitor (latest place), for a map; at most 2000. */
+  /** One point per placed visitor, for a map; at most 2000. Their latest shared location when they have one, else their IP place.
+   * Countries and cities stay IP-only: shared labels aren't normalised to ISO codes. */
   points: { latitude: number; longitude: number; visitors: number }[];
   /** Weekly first-seen cohorts (Monday UTC), last 8: share with signed-out minutes in week +0…+7, null for unmeasured weeks. */
   cohorts: { week: string; size: number; retained: (number | null)[] }[];
@@ -308,5 +334,7 @@ export type VisitorAnalytics = AnalyticsRange & {
   hours: { dow: number; hour: number; minutes: number }[];
   /** Every address this browser used, most recent first. */
   places: Place[];
+  /** Locations this browser shared, most recent first. */
+  devicePlaces: DevicePlace[];
   actions: { action: string; count: number; days: number }[];
 };

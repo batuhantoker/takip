@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import type { NavProgress } from '@/lib/places/route/navigation';
+import { noteDeviceLocation } from '@/lib/platform/device-location';
 import type { ActiveRoute, NavSession } from '@/components/shell/state/types';
 import type { LiveLocation } from './directions-bar';
 
@@ -25,12 +26,10 @@ export function useDirections() {
     if (!navSession) return;
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
-      (pos) => setLiveLocation({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-        accuracy: pos.coords.accuracy,
-        heading: pos.coords.heading,
-      }),
+      (pos) => {
+        noteDeviceLocation(pos.coords);
+        setLiveLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy, heading: pos.coords.heading });
+      },
       () => { /* the view already explains the HTTPS requirement */ },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
     );

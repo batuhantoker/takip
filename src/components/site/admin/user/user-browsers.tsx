@@ -5,8 +5,9 @@ import { Muted, when } from '@/components/site/admin/parts/admin-parts';
 import type { UserAnalytics } from '@/components/site/admin/analytics/analytics-types';
 import { DIRECT_ARRIVAL } from '@/components/site/admin/analytics/lib/features';
 import { count, minutes } from '@/components/site/admin/analytics/lib/format';
-import { placeShort } from '@/components/site/admin/analytics/lib/place';
+import { accuracyText, deviceText, placeShort } from '@/components/site/admin/analytics/lib/place';
 import { shortVisitor } from '@/components/site/admin/tables/visitors-table';
+import { DbIpCredit } from '@/components/site/admin/analytics/parts/place-label';
 
 /** Browsers (visitor ids) this account signed in on, with how each first arrived and its signed-out time. */
 export default function UserBrowsers({ browsers }: { browsers: UserAnalytics['browsers'] }) {
@@ -22,7 +23,8 @@ export default function UserBrowsers({ browsers }: { browsers: UserAnalytics['br
                 <span className="block text-[11px] text-ink-3">
                   First seen {when(b.firstSeenAt)} · last seen <span title={when(b.lastSeenAt)}>{timeAgo(new Date(b.lastSeenAt))}</span>
                 </span>
-                {b.place && <span className="block text-[11px] text-ink-3">Last at {placeShort(b.place)} · <span className="font-mono">{b.place.ip}</span></span>}
+                {b.device && <span className="block text-[11px] text-green">Shared {deviceText(b.device)} {accuracyText(b.device.accuracyM)}</span>}
+                {b.place && <span className="block text-[11px] text-ink-3">From IP {placeShort(b.place)} · <span className="font-mono">{b.place.ip}</span></span>}
                 <span className="block text-[11px] text-ink-3">
                   Arrived from {b.referrer ?? DIRECT_ARRIVAL.toLowerCase()}
                   {b.landing && <> on <span className="font-mono">{b.landing}</span></>}
@@ -36,6 +38,7 @@ export default function UserBrowsers({ browsers }: { browsers: UserAnalytics['br
           ))}
         </ul>
       ) : <Muted>No browser with a visitor id has signed in to this account yet. A browser gets one the first time it opens the map.</Muted>}
+      {browsers.some(b => b.place || b.device) && <DbIpCredit osm={browsers.some(b => b.device?.label)} />}
     </ChartCard>
   );
 }

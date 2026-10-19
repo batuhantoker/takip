@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Kbd } from '@/components/ui/kbd';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { forgetRecent, loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
+import { noteDeviceLocation } from '@/lib/platform/device-location';
 import { countAction } from '@/lib/platform/usage-actions';
 import { Key, PlaceRow, type PlaceLike } from './places';
 import { groupHits, type Hit } from './search-groups';
@@ -96,6 +97,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
       navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
     });
     if (fix) {
+      noteDeviceLocation(fix.coords);
       onLocate(fix.coords.latitude, fix.coords.longitude, 15);
       setLocating(false);
       onClose?.();

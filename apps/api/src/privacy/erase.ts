@@ -21,9 +21,11 @@ const OWNED: readonly { table: string; where: string }[] = [
   { table: 'sign_in', where: 'user_id = @id OR impersonated_by = @id' },
   { table: 'place_seen', where: "subject_type = 'user' AND subject_id = @id" },
   { table: 'action_count', where: "subject_type = 'user' AND subject_id = @id" },
+  { table: 'device_place', where: "subject_type = 'user' AND subject_id = @id" },
   // The browsers they signed in on, and what was booked to those browsers while signed out.
   { table: 'place_seen', where: "subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)" },
   { table: 'action_count', where: "subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)" },
+  { table: 'device_place', where: "subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)" },
   { table: 'visitor_day', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
   { table: 'visitor_feature', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
   { table: 'visitor_hour', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },

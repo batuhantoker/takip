@@ -36,3 +36,16 @@ export function placeShort(place: PlaceLike | null | undefined) {
   if (!place || (!place.country && !place.city)) return 'Unknown place';
   return [place.city, place.country ? countryName(place.country) : null].filter(Boolean).join(', ');
 }
+
+type DeviceLike = { latitude: number; longitude: number; accuracyM: number | null; label: string | null };
+
+/** "±30 m", "±1.2 km"; empty when the browser gave no accuracy. */
+export function accuracyText(metres: number | null | undefined) {
+  if (metres == null || !Number.isFinite(metres)) return '';
+  return metres < 1000 ? `±${Math.round(metres)} m` : `±${(metres / 1000).toFixed(metres < 10_000 ? 1 : 0)} km`;
+}
+
+/** Nominatim's name for a shared location, or its rounded coordinates until one comes back. */
+export function deviceText(device: DeviceLike) {
+  return device.label ?? `Shared location ${device.latitude.toFixed(2)}, ${device.longitude.toFixed(2)}`;
+}

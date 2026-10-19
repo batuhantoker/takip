@@ -230,6 +230,19 @@ describe('sections, actions and places', () => {
     expect(t.db.prepare('SELECT count(*) FROM map_time').pluck().get()).toBe(0);
   });
 
+  it('notes a shared location for the account or the visitor id, on every tick and on the closing flush, never for a bare visitor', async () => {
+    const fix = { lat: 39.920772, lon: 32.85411, accuracy: 20 };
+    await post('/api/v1/me/time', { device: fix });
+    await post('/api/v1/me/time', { device: fix, visitor: { id: ID } });
+    await post('/api/v1/me/time', { device: fix, visitor: { id: ID } });
+    const jar = await t.signUpVerified();
+    await post('/api/v1/me/actions', { device: { lat: 41.0082, lon: 28.9784, accuracy: 15 } }, { jar });
+    expect(t.db.prepare('SELECT subject_type AS type, latitude, fixes FROM device_place ORDER BY subject_type').all()).toEqual([
+      { type: 'user', latitude: 41.0082, fixes: 1 },
+      { type: 'visitor', latitude: 39.920772, fixes: 2 },
+    ]);
+  });
+
   it('notes the address each booked minute came from, for the visitor and for the account', async () => {
     await post('/api/v1/me/time', { visitor: { id: ID } });
     await post('/api/v1/me/time', { visitor: { id: ID } });

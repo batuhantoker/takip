@@ -172,6 +172,7 @@ export default function PrivacyPage() {
             <li><span className="text-ink-1">Actions.</span> We count what people do by name: a search run, a route planned, a camera opened, a recon lookup by kind (email, domain…). Never the words, places, addresses or names themselves.</li>
             <li><span className="text-ink-1">Signed out,</span> those minutes are tied to the random visitor id this browser keeps, along with the browser’s name, the site that first sent you here, the page you landed on, and the address you connect from with the town and country it points to. Clearing this site’s data starts a new id.</li>
             <li><span className="text-ink-1">Signed in,</span> they are tied to your account, with the addresses you use the map from and where they point to, and the browser’s visitor id is linked to it. Each sign-in is recorded with its time, address and browser.</li>
+            <li><span className="text-ink-1">Your location, when you use it.</span> If you use your location on the map (Your location in search, Use my location, or navigation), we note the position your browser gives, as precisely as it gives it, and the town it is in. While navigating that is at most one position a minute. We never ask for your location just to note it.</li>
             <li><span className="text-ink-1">Where an address points to</span> is looked up on our own server in a copy of DB-IP’s free database, so the address isn’t sent anywhere for it. It is a rough guess, usually the right country and a nearby town.</li>
             <li><span className="text-ink-1">How long:</span> all of this, sign-ins included, is kept for 90 days and then deleted. Counts of API requests, which plan limits rely on, are kept for up to 400 days (35 for visitors).</li>
             <li><span className="text-ink-1">Yours to take or delete:</span> your account’s download includes all of it, and deleting the account deletes it, with the browsers linked to it.</li>
@@ -238,7 +239,7 @@ export default function PrivacyPage() {
                 { name: 'News publishers’ feeds, GDELT, Wikipedia', what: 'a few keywords from your question, to find the reporting and background a prediction reads; the articles found are then read from their publishers' },
                 { name: 'Yahoo Finance', what: 'the ticker of a price your question is about, for its price history and its news' },
                 { name: 'Polymarket and Manifold', what: 'a few keywords from your question, to find what prediction markets price it at; and, for the suggestions on the ask form, nothing about you at all' },
-                { name: 'Photon and Nominatim (OpenStreetMap)', what: 'a place name, when you search for one or TI looks one up' },
+                { name: 'Photon and Nominatim (OpenStreetMap)', what: 'a place name, when you search for one or TI looks one up; and, to name the town of a location you used, a point rounded to about 10 km, asked from our server' },
                 { name: 'OpenStreetMap Overpass', what: 'a point and a kind of place (dams, airports…), when TI looks up what is mapped near it' },
                 { name: 'Open-Meteo', what: 'a point, when TI reads the weather there' },
               ]}>

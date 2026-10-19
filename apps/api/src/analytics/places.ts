@@ -46,7 +46,7 @@ export function accountCountries(db: AppDb, r: Range) {
     GROUP BY country ORDER BY users DESC, country`).all(dayStartMs(r.first)) as { country: string; users: number }[];
 }
 
-/** Visitors by country and city over the range, and one point per placed visitor's latest address. */
+/** Visitors by country and city over the range (addresses only), and one point per visitor: latest shared location, else latest address. */
 export function visitorPlaces(db: AppDb, r: Range) {
   const params = { from: dayStartMs(r.first) };
   const base = `FROM place_seen p JOIN visitor v ON v.visitor_id = p.subject_id
@@ -60,9 +60,17 @@ export function visitorPlaces(db: AppDb, r: Range) {
     GROUP BY p.country, p.region, p.city ORDER BY visitors DESC, p.country, p.city LIMIT ${CITIES}`).all(params) as {
     country: string; region: string | null; city: string; visitors: number;
   }[];
+  // A visitor's latest shared location beats their address's place, which can be hundreds of km off.
   const points = db.prepare(`
+    WITH ip AS (
+      SELECT p.subject_id AS id, p.latitude AS lat, p.longitude AS lon, max(p.last_seen_at) ${base} GROUP BY p.subject_id
+    ), shared AS (
+      SELECT d.subject_id AS id, d.latitude AS lat, d.longitude AS lon, max(d.last_seen_at)
+      FROM device_place d JOIN visitor v ON v.visitor_id = d.subject_id
+      WHERE d.subject_type = 'visitor' AND d.last_seen_at >= @from ${visitorNotAdmin(r)} GROUP BY d.subject_id
+    )
     SELECT round(lat, 2) AS latitude, round(lon, 2) AS longitude, count(*) AS visitors FROM (
-      SELECT p.subject_id, p.latitude AS lat, p.longitude AS lon, max(p.last_seen_at) ${base} GROUP BY p.subject_id)
+      SELECT id, lat, lon FROM shared UNION ALL SELECT id, lat, lon FROM ip WHERE id NOT IN (SELECT id FROM shared))
     WHERE lat IS NOT NULL AND lon IS NOT NULL
     GROUP BY 1, 2 ORDER BY visitors DESC, 1, 2 LIMIT ${POINTS}`).all(params) as { latitude: number; longitude: number; visitors: number }[];
   return { countries, cities, points };

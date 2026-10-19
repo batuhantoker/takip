@@ -2,6 +2,7 @@ import { DAY_MS, isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
 import { noLocator, type IpLocator } from '../geoip/ip-location';
 import { subjectActions } from './actions';
+import { devicePlacesOf, latestDevices } from './device-places';
 import { latestPlaces, placeOfIp, placesOf } from './places';
 import { dayStartMs, eachDay, round1, type Range } from './range';
 import { PROFILE_COLUMNS, toProfile, type ProfileRow } from './visitor-list';
@@ -93,6 +94,7 @@ export function userAnalytics(db: AppDb, userId: string, r: Range, locate: IpLoc
     FROM visitor v LEFT JOIN auth_user u ON u.id = v.user_id LEFT JOIN visitor_day d ON d.visitor_id = v.visitor_id
     WHERE v.user_id = ? GROUP BY v.visitor_id ORDER BY v.last_seen_at DESC, v.visitor_id`, userId);
   const browserPlaces = latestPlaces(db, 'visitor', browsers.map(b => b.visitorId));
+  const browserDevices = latestDevices(db, 'visitor', browsers.map(b => b.visitorId));
 
   return {
     today: isoDay(r.today),
@@ -106,8 +108,11 @@ export function userAnalytics(db: AppDb, userId: string, r: Range, locate: IpLoc
     signIns,
     workspaces,
     reports,
-    browsers: browsers.map(({ minutes, activeDays, ...row }) => ({ ...toProfile(row, browserPlaces.get(row.visitorId) ?? null), minutes, activeDays })),
+    browsers: browsers.map(({ minutes, activeDays, ...row }) => ({
+      ...toProfile(row, browserPlaces.get(row.visitorId) ?? null, browserDevices.get(row.visitorId) ?? null), minutes, activeDays,
+    })),
     places: placesOf(db, 'user', userId),
+    devicePlaces: devicePlacesOf(db, 'user', userId),
     actions: subjectActions(db, 'user', userId, r),
   };
 }

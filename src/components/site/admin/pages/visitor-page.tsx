@@ -9,11 +9,12 @@ import type { VisitorAnalytics } from '@/components/site/admin/analytics/analyti
 import { DIRECT_ARRIVAL, featureLabel, splitFeature } from '@/components/site/admin/analytics/lib/features';
 import { count, longDay, minutes, pct, shortDay } from '@/components/site/admin/analytics/lib/format';
 import { useAnalyticsData } from '@/components/site/admin/analytics/lib/use-analytics-data';
-import { DbIpCredit, PlaceLabel } from '@/components/site/admin/analytics/parts/place-label';
+import { DbIpCredit, PlaceLabel, SharedLabel } from '@/components/site/admin/analytics/parts/place-label';
 import { CollectingNote, Pair, SectionFrame, Tiles } from '@/components/site/admin/analytics/parts/section-frame';
 import { shortVisitor } from '@/components/site/admin/tables/visitors-table';
 import UserActions from '@/components/site/admin/user/user-actions';
 import UserActivityTime from '@/components/site/admin/user/user-activity-time';
+import UserDevicePlaces from '@/components/site/admin/user/user-device-places';
 import UserPlaces from '@/components/site/admin/user/user-places';
 
 const RANGES = [7, 30, 90] as const;
@@ -61,8 +62,17 @@ function Visitor({ v }: { v: VisitorAnalytics }) {
             {describeDevice(visitor.userAgent)}
             {visitor.userAgent && <span className="block break-all font-mono text-[11px] text-ink-3">{visitor.userAgent}</span>}
           </dd>
-          <dt className="text-ink-3">Last place</dt>
-          <dd>{visitor.place ? <PlaceLabel place={visitor.place} ip={visitor.place.ip} /> : <span className="text-ink-3">Not placed yet</span>}</dd>
+          <dt className="text-ink-3">Shared location</dt>
+          <dd>
+            {visitor.device ? (
+              <>
+                <SharedLabel device={visitor.device} />
+                <span className="block text-[11px] text-ink-3">{when(visitor.device.at)}</span>
+              </>
+            ) : <span className="text-ink-3">Never shared; only the IP&apos;s guess below</span>}
+          </dd>
+          <dt className="text-ink-3">From IP</dt>
+          <dd>{visitor.place ? <PlaceLabel place={visitor.place} ip={visitor.place.ip} fromIp /> : <span className="text-ink-3">Not placed yet</span>}</dd>
           <dt className="text-ink-3">Arrived from</dt><dd className={visitor.referrer ? '' : 'text-ink-3'}>{visitor.referrer ?? DIRECT_ARRIVAL}</dd>
           <dt className="text-ink-3">Landed on</dt><dd className="break-all font-mono text-[11px]">{visitor.landing ?? '—'}</dd>
           <dt className="text-ink-3">Account</dt>
@@ -75,7 +85,7 @@ function Visitor({ v }: { v: VisitorAnalytics }) {
             ) : <span className="text-ink-3">Never signed in on this browser</span>}
           </dd>
         </dl>
-        {visitor.place && <DbIpCredit />}
+        {(visitor.place || visitor.device) && <DbIpCredit osm={!!visitor.device?.label} />}
       </Card>
 
       <CollectingNote since={v.since} first={v.daily[0]?.day} />
@@ -93,9 +103,10 @@ function Visitor({ v }: { v: VisitorAnalytics }) {
       </Tiles>
       <UserActivityTime u={v} who="This visitor" />
       <Pair>
+        <UserDevicePlaces places={v.devicePlaces ?? []} who="this browser" />
         <UserPlaces places={v.places} who="this browser" />
-        <UserActions actions={v.actions} />
       </Pair>
+      <UserActions actions={v.actions} />
     </>
   );
 }

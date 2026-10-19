@@ -359,6 +359,23 @@ const MIGRATIONS: string[] = [
   ) STRICT, WITHOUT ROWID;
   CREATE INDEX IF NOT EXISTS action_count_subject ON action_count (subject_type, subject_id, day);
   `,
+  // Where people say they are: the browser's own fix when they use their location on the map, rounded server-side
+  // (access/map-time-input.ts), and the town it's in from Nominatim. Far closer than an address's place_seen.
+  `
+  CREATE TABLE IF NOT EXISTS device_place (
+    subject_type   TEXT NOT NULL CHECK (subject_type IN ('user','visitor')),
+    subject_id     TEXT NOT NULL,
+    latitude       REAL NOT NULL,
+    longitude      REAL NOT NULL,
+    accuracy_m     INTEGER,
+    label          TEXT,
+    first_seen_at  INTEGER NOT NULL,
+    last_seen_at   INTEGER NOT NULL,
+    fixes          INTEGER NOT NULL,
+    PRIMARY KEY (subject_type, subject_id, latitude, longitude)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS device_place_last ON device_place (last_seen_at);
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

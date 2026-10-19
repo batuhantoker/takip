@@ -10,6 +10,27 @@ interface ReverseRow {
 /** A tenth of a degree (about 11 km): a moving cursor reuses one answer, and it still names a city. */
 const GRID = 10;
 
+async function lookUp(lat: number, lng: number) {
+  const row = await nominatim<ReverseRow>('reverse', {
+    lat: (Math.round(lat * GRID) / GRID).toFixed(1),
+    lon: (Math.round(lng * GRID) / GRID).toFixed(1),
+    zoom: '10',
+    addressdetails: '1',
+  });
+  const address = row?.address ?? {};
+  const label = [
+    address.city || address.town || address.village || address.county,
+    address.state || address.region,
+    address.country,
+  ].filter(Boolean).join(', ');
+  return { row, label };
+}
+
+/** "City, region, country" for a point, on the same shared grid and cache as GET /reverse; null when Nominatim has none or is busy. */
+export async function nameCoordinate(lat: number, lng: number): Promise<string | null> {
+  return (await lookUp(lat, lng)).label || null;
+}
+
 export const reverseRoute = createRoute({
   method: 'get',
   path: '/reverse',
@@ -44,19 +65,7 @@ export const reverse: RouteHandler<typeof reverseRoute> = async c => {
     return c.json({ error: 'lat and lng required' }, 400);
   }
 
-  const row = await nominatim<ReverseRow>('reverse', {
-    lat: (Math.round(lat * GRID) / GRID).toFixed(1),
-    lon: (Math.round(lng * GRID) / GRID).toFixed(1),
-    zoom: '10',
-    addressdetails: '1',
-  });
-
-  const address = row?.address ?? {};
-  const label = [
-    address.city || address.town || address.village || address.county,
-    address.state || address.region,
-    address.country,
-  ].filter(Boolean).join(', ');
+  const { row, label } = await lookUp(lat, lng);
 
   return c.json(
     { label: label || null, attribution: ATTRIBUTION },

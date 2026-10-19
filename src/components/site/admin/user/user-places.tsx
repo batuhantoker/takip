@@ -9,8 +9,8 @@ import { DbIpCredit, PlaceLabel } from '@/components/site/admin/analytics/parts/
 export default function UserPlaces({ places, who = 'this account' }: { places: Place[]; who?: string }) {
   return (
     <ChartCard
-      title="Places"
-      note={`Addresses ${who} used the map from, and roughly where they are`}
+      title="From IP addresses"
+      note={`Addresses ${who} used the map from, and where each points to: a guess that can be hundreds of km off, so a shared location wins`}
       table={places.length ? { columns: ['Place', 'IP address', 'First seen', 'Last seen', 'Minutes'], rows: places.map(p => [placeText(p), p.ip, when(p.firstSeenAt), when(p.lastSeenAt), p.minutes]) } : null}
     >
       {places.length ? (
@@ -26,7 +26,7 @@ export default function UserPlaces({ places, who = 'this account' }: { places: P
             <tbody>
               {places.map(p => (
                 <tr key={p.ip}>
-                  <td className={TD}><PlaceLabel place={p} ip={p.ip} /></td>
+                  <td className={TD}><PlaceLabel place={p} ip={p.ip} fromIp /></td>
                   <td className={`${TD} whitespace-nowrap text-[12px] text-ink-2`}>
                     {when(p.lastSeenAt)}
                     <span className="block text-[11px] text-ink-3">first {when(p.firstSeenAt)}</span>

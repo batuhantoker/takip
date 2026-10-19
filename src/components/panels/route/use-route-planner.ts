@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
 import type { LiveLocation, Place, RouteResult } from '@/lib/places/route/plan';
+import { noteDeviceLocation } from '@/lib/platform/device-location';
 import { countAction } from '@/lib/platform/usage-actions';
 
 export interface RoutePlannerCallbacks {
@@ -120,6 +121,7 @@ export function useRoutePlanner(
     setLocateError(null);
     watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
+        noteDeviceLocation(pos.coords);
         const loc: LiveLocation = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
@@ -172,6 +174,7 @@ export function useRoutePlanner(
     });
 
     if (browser) {
+      noteDeviceLocation(browser.coords);
       const { latitude, longitude } = browser.coords;
       apply(latitude, longitude, 'My location');
       setLocating(false);

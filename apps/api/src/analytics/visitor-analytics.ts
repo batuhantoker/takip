@@ -1,6 +1,7 @@
 import { isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
 import { subjectActions } from './actions';
+import { devicePlacesOf, latestDevices } from './device-places';
 import { latestPlaces, placesOf } from './places';
 import { eachDay, round1, type Range } from './range';
 import { PROFILE_COLUMNS, toProfile, type ProfileRow } from './visitor-list';
@@ -52,12 +53,13 @@ export function visitorAnalytics(db: AppDb, visitorId: string, r: Range) {
     today: isoDay(r.today),
     since: totals.firstActiveDay,
     days: r.days,
-    visitor: toProfile(profile, latestPlaces(db, 'visitor', [visitorId]).get(visitorId) ?? null),
+    visitor: toProfile(profile, latestPlaces(db, 'visitor', [visitorId]).get(visitorId) ?? null, latestDevices(db, 'visitor', [visitorId]).get(visitorId) ?? null),
     totals,
     daily,
     features,
     hours,
     places: placesOf(db, 'visitor', visitorId),
+    devicePlaces: devicePlacesOf(db, 'visitor', visitorId),
     actions: subjectActions(db, 'visitor', visitorId, r),
   };
 }

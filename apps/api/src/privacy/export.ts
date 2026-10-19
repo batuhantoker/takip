@@ -72,6 +72,11 @@ export function accountExport(db: AppDb, userId: string, { access, currentSessio
       WHERE (subject_type = 'user' AND subject_id = ?) OR (subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id = ?))
       ORDER BY first_seen_at`, userId, userId)
       .map(row => times(row, 'firstSeenAt', 'lastSeenAt')),
+    sharedLocations: all(`
+      SELECT latitude, longitude, accuracy_m AS accuracyMetres, label, first_seen_at AS firstSeenAt, last_seen_at AS lastSeenAt, fixes FROM device_place
+      WHERE (subject_type = 'user' AND subject_id = ?) OR (subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id = ?))
+      ORDER BY first_seen_at`, userId, userId)
+      .map(row => times(row, 'firstSeenAt', 'lastSeenAt')),
     actions: all("SELECT day, action, count FROM action_count WHERE subject_type = 'user' AND subject_id = ? ORDER BY day, action", userId)
       .map((row): Json => ({ ...row, day: isoDay(row.day as number) })),
     browsers: all(`

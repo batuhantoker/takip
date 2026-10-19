@@ -56,7 +56,7 @@ export default function VisitorsList({ days }: { days: number }) {
             <Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Previous</Button>
             <Button disabled={offset + PAGE >= data.total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
           </div>
-          {data.visitors.some(v => v.place) && <DbIpCredit />}
+          {data.visitors.some(v => v.place || v.device) && <DbIpCredit osm={data.visitors.some(v => v.device?.label)} />}
         </>
       )}
       {!data && !error && <Muted>Loading…</Muted>}

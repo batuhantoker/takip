@@ -60,7 +60,7 @@ export default function UsersPage() {
             <Button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Previous</Button>
             <Button disabled={offset + PAGE >= data.total} onClick={() => setOffset(offset + PAGE)}>Next</Button>
           </div>
-          {data.users.some(u => u.activity.lastPlace) && <div className="mt-2"><DbIpCredit /></div>}
+          {data.users.some(u => u.activity.lastPlace || u.activity.lastDevice) && <div className="mt-2"><DbIpCredit osm={data.users.some(u => u.activity.lastDevice?.label)} /></div>}
         </>
       )}
       {!data && !error && <Muted>Loading…</Muted>}

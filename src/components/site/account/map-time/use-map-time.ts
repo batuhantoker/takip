@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { restoreDeviceLocation, takeDeviceLocation } from '@/lib/platform/device-location';
 import { restoreActions, takeActions } from '@/lib/platform/usage-actions';
 import { arrival, visitorId } from '@/lib/platform/visitor';
 import { authClient } from '../auth-client';
@@ -13,24 +14,32 @@ const ARRIVAL = typeof window === 'undefined' ? null : arrival();
 async function ask(method: 'GET' | 'POST', features?: readonly string[]): Promise<MapTime | null> {
   const id = method === 'POST' ? visitorId() : null;
   const actions = method === 'POST' ? takeActions() : undefined;
+  const device = method === 'POST' ? takeDeviceLocation() : undefined;
+  const failed = () => {
+    restoreActions(actions);
+    if (device) restoreDeviceLocation();
+  };
   try {
-    const body = features && JSON.stringify({ features, actions, visitor: id ? { id, ...ARRIVAL } : undefined });
+    const body = features && JSON.stringify({ features, actions, device, visitor: id ? { id, ...ARRIVAL } : undefined });
     const res = await fetch('/api/v1/me/time', { method, cache: 'no-store', body, headers: body ? { 'content-type': 'application/json' } : undefined });
-    if (!res.ok) restoreActions(actions);
+    if (!res.ok) failed();
     return res.ok ? ((await res.json()) as MapTime) : null;
   } catch {
-    restoreActions(actions);
+    failed();
     return null;
   }
 }
 
-/** Sends the actions counted since the last tick as the page is hidden or closed; a beacon survives the unload. */
+/** Sends the actions counted and the location shared since the last tick as the page is hidden or closed; a beacon survives the unload. */
 function flushActions() {
   const actions = takeActions();
-  if (!actions) return;
+  const device = takeDeviceLocation();
+  if (!actions && !device) return;
   const id = visitorId();
-  const body = new Blob([JSON.stringify({ actions, visitor: id ? { id } : undefined })], { type: 'application/json' });
-  if (!navigator.sendBeacon('/api/v1/me/actions', body)) restoreActions(actions);
+  const body = new Blob([JSON.stringify({ actions, device, visitor: id ? { id } : undefined })], { type: 'application/json' });
+  if (navigator.sendBeacon('/api/v1/me/actions', body)) return;
+  restoreActions(actions);
+  if (device) restoreDeviceLocation();
 }
 
 /**

@@ -79,6 +79,7 @@ describe('pruning usage_counter', () => {
       t.db.prepare("INSERT INTO sign_in (user_id, at) VALUES ('u1', ?)").run(at(age));
       t.db.prepare("INSERT INTO action_count (day, subject_type, subject_id, action, count) VALUES (?, 'user', 'u1', 'search.run', 1)").run(day(age));
       t.db.prepare("INSERT INTO place_seen (subject_type, subject_id, ip, first_seen_at, last_seen_at, minutes) VALUES ('visitor', ?, '203.0.113.5', ?, ?, 1)").run(`v${age}`, at(age), at(age));
+      t.db.prepare("INSERT INTO device_place (subject_type, subject_id, latitude, longitude, first_seen_at, last_seen_at, fixes) VALUES ('user', 'u1', ?, 32.8, ?, ?, 1)").run(39 + age / 1000, at(age), at(age));
     }
     schedulePruneUsage(t.jobs.queue, Date.now());
     await runner().runDue();
@@ -92,6 +93,7 @@ describe('pruning usage_counter', () => {
     expect(t.db.prepare('SELECT visitor_id FROM visitor ORDER BY visitor_id').pluck().all()).toEqual(['v0', 'v90']);
     expect((t.db.prepare('SELECT at FROM sign_in ORDER BY at DESC').pluck().all() as number[]).map(ms => TODAY - ms / DAY_MS)).toEqual([0, 90]);
     expect(t.db.prepare('SELECT subject_id FROM place_seen ORDER BY subject_id').pluck().all()).toEqual(['v0', 'v90']);
+    expect(t.db.prepare('SELECT latitude FROM device_place ORDER BY latitude').pluck().all()).toEqual([39, 39.09]);
   });
 
   it('takes its activity window from the configuration', async () => {

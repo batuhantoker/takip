@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { AppDb } from '../db/app-db';
+import { latestDevices, type DeviceBrief } from './device-places';
 import { latestPlaces, type PlaceBrief } from './places';
 import { rangeQuery, visitorNotAdmin, type Range } from './range';
 
@@ -15,11 +16,12 @@ export type ProfileRow = {
   linkedAt: number | null; userId: string | null; userEmail: string | null; userName: string | null;
 };
 
-/** `place` is the browser's latest address (places.ts latestPlaces). */
-export const toProfile = ({ userId, userEmail, userName, ...rest }: ProfileRow, place: PlaceBrief | null = null) => ({
+/** `place` is the browser's latest address (places.ts latestPlaces), `device` its latest shared location (device-places.ts). */
+export const toProfile = ({ userId, userEmail, userName, ...rest }: ProfileRow, place: PlaceBrief | null = null, device: DeviceBrief | null = null) => ({
   ...rest,
   user: userId && userEmail ? { id: userId, email: userEmail, name: userName ?? '' } : null,
   place,
+  device,
 });
 
 export const VISITOR_SORTS = ['lastSeen', 'firstSeen', 'minutes', 'activeDays'] as const;
@@ -60,6 +62,7 @@ export function visitorList(db: AppDb, query: z.infer<typeof visitorsQuery>, r: 
 
   const ids = JSON.stringify(rows.map(row => row.visitorId));
   const places = latestPlaces(db, 'visitor', rows.map(row => row.visitorId));
+  const devices = latestDevices(db, 'visitor', rows.map(row => row.visitorId));
   const top = new Map<string, { panel: string | null; layer: string | null; wall: boolean }>();
   for (const row of db.prepare(`
     SELECT visitor_id AS id, feature FROM visitor_feature
@@ -78,7 +81,7 @@ export function visitorList(db: AppDb, query: z.infer<typeof visitorsQuery>, r: 
     days: r.days,
     sort: query.sort,
     visitors: rows.map(({ minutes, activeDays, ...row }) => ({
-      ...toProfile(row, places.get(row.visitorId) ?? null),
+      ...toProfile(row, places.get(row.visitorId) ?? null, devices.get(row.visitorId) ?? null),
       minutes,
       activeDays,
       topPanel: top.get(row.visitorId)?.panel ?? null,

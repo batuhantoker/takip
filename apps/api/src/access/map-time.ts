@@ -2,9 +2,9 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { Hono } from 'hono';
 import type { AppDb } from '../db/app-db';
 import { noLocator, type IpLocator } from '../geoip/ip-location';
-import { activityBook, type ActionSubject } from './activity-book';
+import { activityBook, type ActionSubject, type NamePoint, type PlaceSubject } from './activity-book';
 import { addressBlock } from './client-ip';
-import { edgeCountry, parseActions, parseFeatures, parseVisitor, type ActionCounts, type VisitorTick } from './map-time-input';
+import { edgeCountry, parseActions, parseDevice, parseFeatures, parseVisitor, type ActionCounts, type DeviceFix, type VisitorTick } from './map-time-input';
 import type { AccessEnv } from './middleware';
 import type { Principal } from './principal';
 import { DAY_MS, utcDay } from './usage';
@@ -17,8 +17,9 @@ export type MapTimeState = { limit: number; used: number; remaining: number; blo
 
 type Row = { minutes: number; lastTickAt: number };
 
-/** What a tick reports besides itself: features in use, the browser's visitor id, actions since the last tick, Cloudflare's country. */
-export type TickReport = { features?: readonly string[]; visitor?: VisitorTick | null; actions?: ActionCounts; edgeCountry?: string | null };
+/** What a tick reports besides itself: features in use, the browser's visitor id, actions since the last tick, a location the
+ * person shared, Cloudflare's country. */
+export type TickReport = { features?: readonly string[]; visitor?: VisitorTick | null; actions?: ActionCounts; device?: DeviceFix | null; edgeCountry?: string | null };
 
 /**
  * Minutes of map a day against the plan's `map.minutes_per_day`, per account or per anonymous address block.
@@ -33,7 +34,7 @@ export type TickReport = { features?: readonly string[]; visitor?: VisitorTick |
  * account. The limit stays on the address block: an id the browser can clear can't buy more time. Each booked
  * minute also notes the address it came from (activity-book.ts), and actions are counted on every tick.
  */
-export function createMapTime(db: AppDb, { now = () => Date.now(), salt = randomBytes(16) as Buffer | string, locate = noLocator as IpLocator } = {}) {
+export function createMapTime(db: AppDb, { now = () => Date.now(), salt = randomBytes(16) as Buffer | string, locate = noLocator as IpLocator, name = undefined as NamePoint | undefined } = {}) {
   const read = db.prepare('SELECT minutes, last_tick_at AS lastTickAt FROM map_time WHERE day = ? AND subject_type = ? AND subject_id = ?');
   const tick = db.prepare(`
     INSERT INTO map_time (day, subject_type, subject_id, minutes, last_tick_at) VALUES (?, ?, ?, 1, ?)
@@ -66,7 +67,7 @@ export function createMapTime(db: AppDb, { now = () => Date.now(), salt = random
   const visitorHour = db.prepare(`
     INSERT INTO visitor_hour (visitor_id, day, hour, minutes) VALUES (?, ?, ?, 1)
     ON CONFLICT (visitor_id, day, hour) DO UPDATE SET minutes = minutes + 1`);
-  const extra = activityBook(db, locate);
+  const extra = activityBook(db, locate, name);
 
   const subjectOf = (p: Exclude<Principal, { kind: 'key' }>, day: number) =>
     p.kind === 'anon'
@@ -99,13 +100,22 @@ export function createMapTime(db: AppDb, { now = () => Date.now(), salt = random
   const actionSubject = (p: Exclude<Principal, { kind: 'key' }>, day: number, visitor: VisitorTick | null): ActionSubject =>
     p.kind === 'user' ? { type: 'user', id: p.userId } : visitor ? { type: 'visitor', id: visitor.id } : (subjectOf(p, day) as ActionSubject);
 
+  /** Shared locations belong to the account, else the browser's visitor id; without either there's no one to note them for. */
+  const deviceSubject = (p: Exclude<Principal, { kind: 'key' }>, visitor: VisitorTick | null): PlaceSubject | null =>
+    p.kind === 'user' ? { type: 'user', id: p.userId } : visitor ? { type: 'visitor', id: visitor.id } : null;
+
+  const noteDevice = (p: Exclude<Principal, { kind: 'key' }>, visitor: VisitorTick | null, fix: DeviceFix | null | undefined, at: number) => {
+    const subject = fix && deviceSubject(p, visitor);
+    if (fix && subject) extra.device(subject, fix, at);
+  };
+
   /** The caller's minutes today; with `count`, this call is a tick and adds a minute unless one was just added. */
   function state(principal: Principal, limit: number, { count = false, report = {} as TickReport } = {}): MapTimeState {
     const at = now();
     const day = utcDay(at);
     const resetsAt = new Date((day + 1) * DAY_MS).toISOString();
     if (principal.kind === 'key') return { limit: 0, used: 0, remaining: 0, blocked: false, resetsAt };
-    const { features = [], visitor = null, actions = [], edgeCountry: country = null } = report;
+    const { features = [], visitor = null, actions = [], device = null, edgeCountry: country = null } = report;
     const subject = subjectOf(principal, day);
     const row = read.get(day, subject.type, subject.id) as Row | undefined;
     let used = row?.minutes ?? 0;
@@ -121,15 +131,19 @@ export function createMapTime(db: AppDb, { now = () => Date.now(), salt = random
       }
     }
     if (actions.length) extra.actions(actionSubject(principal, day, visitor), day, actions);
+    // A second tab's tick still carries a fresh fix, so this isn't behind the minute's check.
+    if (count) noteDevice(principal, visitor, device, at);
     if (limit === 0) return { limit: 0, used, remaining: 0, blocked: false, resetsAt };
     return { limit, used, remaining: Math.max(0, limit - used), blocked: used >= limit, resetsAt };
   }
 
-  /** Actions alone, from the page's flush as it's hidden or closed. */
-  function countActions(principal: Principal, visitor: VisitorTick | null, actions: ActionCounts) {
-    if (principal.kind === 'key' || !actions.length) return;
-    const day = utcDay(now());
-    extra.actions(actionSubject(principal, day, visitor), day, actions);
+  /** Actions (and a last shared location) alone, from the page's flush as it's hidden or closed. */
+  function countActions(principal: Principal, visitor: VisitorTick | null, actions: ActionCounts, device: DeviceFix | null = null) {
+    if (principal.kind === 'key') return;
+    const at = now();
+    const day = utcDay(at);
+    if (actions.length) extra.actions(actionSubject(principal, day, visitor), day, actions);
+    noteDevice(principal, visitor, device, at);
   }
 
   return { state, countActions };
@@ -137,11 +151,11 @@ export function createMapTime(db: AppDb, { now = () => Date.now(), salt = random
 
 export type MapTime = ReturnType<typeof createMapTime>;
 
-type TickBody = { features?: unknown; visitor?: unknown; actions?: unknown } | null;
+type TickBody = { features?: unknown; visitor?: unknown; actions?: unknown; device?: unknown } | null;
 
 /**
  * Mounted at /api/v1: GET /me/time reads the caller's map time today, POST is the web app's once-a-minute tick
- * ({ features, visitor, actions } all optional), and POST /me/actions takes the actions a closing page still holds.
+ * ({ features, visitor, actions, device } all optional), and POST /me/actions takes what a closing page still holds.
  * `cloudflare`: Cloudflare is the trusted edge, so its CF-IPCountry header can place an address the database can't.
  */
 export function mapTimeRoutes(mapTime: MapTime, { cloudflare = false } = {}) {
@@ -155,13 +169,14 @@ export function mapTimeRoutes(mapTime: MapTime, { cloudflare = false } = {}) {
       features: parseFeatures(body?.features),
       visitor: parseVisitor(body?.visitor, c.req.header('user-agent')),
       actions: parseActions(body?.actions),
+      device: parseDevice(body?.device),
       edgeCountry: edgeCountry(c.req.header('cf-ipcountry'), cloudflare),
     };
     return c.json(mapTime.state(c.var.principal, limitOf(c), { count: true, report }), 200, NO_STORE);
   });
   app.post('/me/actions', async c => {
     const body = (await c.req.json().catch(() => null)) as TickBody;
-    mapTime.countActions(c.var.principal, parseVisitor(body?.visitor, c.req.header('user-agent')), parseActions(body?.actions));
+    mapTime.countActions(c.var.principal, parseVisitor(body?.visitor, c.req.header('user-agent')), parseActions(body?.actions), parseDevice(body?.device));
     return c.body(null, 204);
   });
   return app;

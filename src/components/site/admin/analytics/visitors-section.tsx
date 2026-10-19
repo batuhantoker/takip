@@ -119,7 +119,7 @@ function Visitors({ v }: { v: AnalyticsVisitors }) {
       </Pair>
       <ChartCard
         title="On the map"
-        note="One dot per place, sized by how many visitors were last seen there"
+        note="One dot per place, sized by how many visitors were last seen there: their shared location where they gave one, else their IP's guess"
         table={v.points.length ? { columns: ['Latitude', 'Longitude', 'Visitors'], rows: [...v.points].sort((a, b) => b.visitors - a.visitors).map(p => [p.latitude.toFixed(2), p.longitude.toFixed(2), p.visitors]) } : null}
       >
         {v.points.length ? (

@@ -10,7 +10,7 @@ const RUN_HOUR_MS = 4 * 60 * 60_000;
 
 /**
  * Days kept. API counts (usage_counter): `days` for accounts and their keys, `anonDays` for visitors' daily hashes.
- * User activity (map time and what it went on, visitor ids, places, actions, sign-ins): `activityDays` for everyone.
+ * User activity (map time and what it went on, visitor ids, places, shared locations, actions, sign-ins): `activityDays` for everyone.
  */
 export type UsageRetention = { days: number; anonDays: number; activityDays: number };
 export const DEFAULT_RETENTION: UsageRetention = { days: 400, anonDays: 35, activityDays: 90 };
@@ -32,6 +32,7 @@ export function pruneUsage(db: AppDb, { days, anonDays, activityDays }: UsageRet
   for (const table of ACTIVITY_TABLES) activity += db.prepare(`DELETE FROM ${table} WHERE day < ?`).run(from).changes;
   activity += db.prepare('DELETE FROM visitor WHERE last_seen_at < ?').run(from * DAY_MS).changes;
   activity += db.prepare('DELETE FROM place_seen WHERE last_seen_at < ?').run(from * DAY_MS).changes;
+  activity += db.prepare('DELETE FROM device_place WHERE last_seen_at < ?').run(from * DAY_MS).changes;
   activity += db.prepare('DELETE FROM sign_in WHERE at < ?').run(from * DAY_MS).changes;
   return { anon, accounts, activity };
 }

@@ -27,6 +27,7 @@ import { loadEnv, loadEnvFiles } from './env';
 import { createLogger } from './obs/logger';
 import { createMetrics } from './obs/metrics';
 import { openIpLocator } from './geoip/ip-location';
+import { nameCoordinate } from './v1/geo/reverse';
 
 loadEnvFiles();
 const env = loadEnv();
@@ -45,7 +46,7 @@ const usage = createUsage(db, { logger });
 const keys = createApiKeys(db, { logger });
 const locate = openIpLocator(env.GEOIP_PATH ?? join(env.TAKIP_DATA_DIR, 'geoip', 'dbip-city-lite.mmdb'), logger);
 // A stable salt keeps visitors' map minutes across restarts.
-const mapTime = createMapTime(db, { locate, ...(env.BETTER_AUTH_SECRET ? { salt: env.BETTER_AUTH_SECRET } : {}) });
+const mapTime = createMapTime(db, { locate, name: nameCoordinate, ...(env.BETTER_AUTH_SECRET ? { salt: env.BETTER_AUTH_SECRET } : {}) });
 const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 

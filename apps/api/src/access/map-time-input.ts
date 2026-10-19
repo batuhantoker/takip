@@ -61,6 +61,26 @@ export function parseActions(input: unknown): ActionCounts {
     .map(([action, n]) => [action, Math.min(n, MAX_ACTION_COUNT)]);
 }
 
+/** A position the browser gave when the person used their location on the map. */
+export type DeviceFix = { latitude: number; longitude: number; accuracyM: number | null };
+
+// A fix vaguer than this is a cell-tower guess, no better than the address's place.
+const MAX_ACCURACY_M = 50_000;
+const fixed6 = (n: number) => Math.round(n * 1e6) / 1e6;
+
+/** `{ lat, lon, accuracy }` from a tick body, as given (to a micro-degree); null for anything out of range, (0, 0) or too vague. */
+export function parseDevice(input: unknown): DeviceFix | null {
+  const d = input as { lat?: unknown; lon?: unknown; accuracy?: unknown } | null;
+  if (!d || typeof d.lat !== 'number' || typeof d.lon !== 'number') return null;
+  const { lat, lon } = d as { lat: number; lon: number };
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  // Broken clients send (0, 0), which would put someone in the Gulf of Guinea.
+  if (lat === 0 && lon === 0) return null;
+  const accuracy = typeof d.accuracy === 'number' && Number.isFinite(d.accuracy) && d.accuracy >= 0 ? Math.round(d.accuracy) : null;
+  if (accuracy !== null && accuracy > MAX_ACCURACY_M) return null;
+  return { latitude: fixed6(lat), longitude: fixed6(lon), accuracyM: accuracy };
+}
+
 /** Cloudflare's guess at the caller's country, when Cloudflare is the trusted edge; XX and T1 (unknown, Tor) say nothing. */
 export function edgeCountry(header: string | undefined, cloudflare: boolean): string | null {
   return cloudflare && header && /^[A-Z]{2}$/.test(header) && header !== 'XX' && header !== 'T1' ? header : null;

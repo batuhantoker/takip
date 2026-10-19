@@ -4,6 +4,7 @@ import { isoDay } from '../access/usage';
 import { toUser, USER_COLUMNS, type RawUser } from '../admin/queries';
 import type { AppDb } from '../db/app-db';
 import { noLocator, type IpLocator } from '../geoip/ip-location';
+import { latestDevices } from './device-places';
 import { placeOfIp } from './places';
 import { dayStartMs, rangeQuery, type Range } from './range';
 
@@ -75,6 +76,7 @@ export function userList(db: AppDb, access: AccessResolver, query: z.infer<typeo
 /** What only the listed rows need: top features, when and where they were last seen, keys and workspaces. */
 function pageDetails(db: AppDb, ids: string[], r: Range, now: number, locate: IpLocator) {
   const json = JSON.stringify(ids);
+  const devices = latestDevices(db, 'user', ids);
   const all = <T>(sql: string, ...params: unknown[]) => db.prepare(sql).all(...params) as T[];
   const byId = <T extends { id: string }>(rows: T[]) => new Map(rows.map(row => [row.id, row]));
 
@@ -124,6 +126,7 @@ function pageDetails(db: AppDb, ids: string[], r: Range, now: number, locate: Ip
       lastUserAgent: device?.ua ?? null,
       lastIp: device?.ip ?? null,
       lastPlace: placeOfIp(locate, device?.ip ?? null),
+      lastDevice: devices.get(id) ?? null,
       keys: keys.get(id)?.n ?? 0,
       workspaces: workspaces.get(id)?.n ?? 0,
     };
