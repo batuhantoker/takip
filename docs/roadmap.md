@@ -158,7 +158,7 @@ The fix-it pass (1.2) adds to this list.
 - Key docs disagree with the code (`.env.example`, README, `self-hosting.md`, `api-catalog.ts`, `docs-client.tsx`): they say the AIS and OpenSky keys are unused (both are read); FIRMS and N2YO keys are listed but never read; Etherscan and Helius keys are read but change nothing; the Gemini bring-your-own-key option has no UI.
 - Static data presented as live: conflict zones, ports and chokepoints.
 - Region dossier: a failed data.police.uk lookup reads as "no data", and missing `lat`/`lng` isn't refused (kept for parity).
-- Rebrand leftovers: the upstream Ko-fi link and X (`@soulsimplifai`) in `more-menu.tsx`.
+- Rebrand leftovers: the upstream X account (`@soulsimplifai`) in `more-menu.tsx`.
 - Global Incidents (`global_incidents`) reads the GDACS feed (`api/(intel)/gdelt/route.ts`), but `use-sdk-entities.ts` labels it "GDELT Project".
 - Active Fires adds NASA EONET volcanoes to the FIRMS hotspots with made-up readings (brightness 500 K, FRP 100 MW, `api/(feeds)/fires/route.ts`), and the popup presents them as heat detected by satellite. `/map/wildfires` says so until this is fixed.
 

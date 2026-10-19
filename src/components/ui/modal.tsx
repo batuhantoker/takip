@@ -7,7 +7,7 @@ import { cx, ENTER } from '@/components/ui/class-names';
 
 /**
  * A centred panel over a dimmed map, for things that need the whole attention:
- * the shortcut sheet, the token chart, the account. Escape, the close button
+ * the shortcut sheet, the account. Escape, the close button
  * or a press on the dimmed map closes it; focus comes back to where it was.
  */
 export function Modal<T extends string = string>({ open, onClose, title, subtitle, actions, tabs, className, bare, children }: {
