@@ -12,7 +12,7 @@ All of them are systemd **user** services. Linger is on, so they start at boot w
 
 | Unit | Runs | Listens on |
 |---|---|---|
-| `takip-web` | `next start` from `~/takip` | 127.0.0.1:3000 |
+| `takip-web` | `next start -H localhost` from `~/takip` | 127.0.0.1:3000 |
 | `takip-api` | `apps/api` through tsx | 127.0.0.1:4100 |
 | `takip-ingest` | the recorder (`apps/ingest`, `worker`) | — |
 | `takip-tunnel` | `~/.config/takip/tunnel.sh` (cloudflared) | — |
@@ -34,9 +34,13 @@ https://takip.dev, and `www.takip.dev` (both in `~/.cloudflared/config.yml`). Th
 ## Updating
 
 ```sh
-cd ~/takip && systemctl --user stop takip-web takip-ingest && git pull --ff-only && npm ci && npm run build \
-  && systemctl --user start takip-web takip-ingest && systemctl --user restart takip-api
+cd ~/takip && systemctl --user stop takip-web takip-ingest takip-api && git pull --ff-only && npm ci \
+  && taskset -c 0-2 env NODE_OPTIONS=--max-old-space-size=3072 npm run build \
+  && systemctl --user start takip-web takip-ingest takip-api
 ```
+
+- **Memory:** since the public pages (2026-10-19) a build on all eight cores is killed for lack of memory. On three cores, with the api stopped, it fits with swap full. More swap needs `sudo`.
+- **`-H localhost`, not `127.0.0.1`:** Next writes the request's host as `localhost` inside `proxy.ts`. With the server started on `127.0.0.1`, the rewrite that serves `/tr/…` pages no longer matches the server's own address, so Next proxies it to `https://localhost:3000` (Cloudflare sends `X-Forwarded-Proto: https`) and every non-English page returns 500. `localhost` resolves to 127.0.0.1 here, so it is still loopback only.
 
 - It takes about three minutes, and the site is down meanwhile. The web app is stopped because the build rewrites the `.next` it serves from; the recorder, because both are memory-hungry on 7.5 GB. `takip-tunnel` keeps running, so the link stays the same.
 - If the build sits at "Creating an optimized production build" with no CPU use, a client bundle has pulled in something Turbopack can't compile. `next build --experimental-build-mode=compile --debug-build-paths 'app/page.tsx'` compiles one page, which makes it quick to narrow down (satellite.js 7's WASM module was the first such case, handled in `tools/satellite-js-loader.cjs`).
