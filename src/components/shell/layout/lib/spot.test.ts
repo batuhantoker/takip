@@ -29,12 +29,38 @@ describe('spotFromBox', () => {
 describe('snapTo', () => {
   it('takes the nearest preset place within reach', () => {
     const middleTop = boxAt(presetSpot('top'), 100, 40, area);
-    expect(snapTo(sized(middleTop.left + 20, middleTop.top + 15), area)).toEqual({ anchor: 'top', x: 0, y: 12 });
-    expect(snapTo(sized(area.right - 112 - 10, area.bottom - 52 + 10), area)).toEqual({ anchor: 'bottom-right', x: 12, y: 12 });
+    expect(snapTo(sized(middleTop.left + 20, middleTop.top + 15), area)).toMatchObject({ spot: { anchor: 'top', x: 0, y: 12 }, preset: 'top' });
+    expect(snapTo(sized(area.right - 112 - 10, area.bottom - 52 + 10), area)?.spot).toEqual({ anchor: 'bottom-right', x: 12, y: 12 });
   });
 
-  it('leaves a piece far from every preset where it is', () => {
+  it('leaves a piece far from every preset and piece where it is', () => {
     expect(snapTo(sized(300, 300), area)).toBeNull();
+  });
+
+  it('sets a piece beside another, 8 px off and lined up, hung from that piece’s anchor', () => {
+    // Search in the top-left corner: 420 × 40 at 84, 12.
+    const search = { box: sized(84, 12, 420, 40), anchor: 'top-left' as const };
+    const snap = snapTo(sized(530, 20), area, [search]);
+    expect(snap).toMatchObject({ box: sized(512, 12), preset: null, spot: { anchor: 'top-left', x: 440, y: 12 } });
+    // Below it, lined up with its left side.
+    expect(snapTo(sized(90, 70), area, [search])?.box).toEqual(sized(84, 60));
+  });
+
+  it('centres pieces of nearly the same height on each other', () => {
+    const search = { box: sized(84, 12, 420, 40), anchor: 'top-left' as const };
+    // A 38 px pill dropped low beside a 40 px field still lines up on the middle, 1 px down.
+    expect(snapTo(sized(520, 30, 120, 38), area, [search])?.box).toEqual(sized(512, 13, 120, 38));
+  });
+
+  it('follows a neighbour hung from a middle', () => {
+    const showing = { box: sized(626, 12), anchor: 'top' as const };
+    expect(snapTo(sized(740, 15), area, [showing])?.spot).toEqual({ anchor: 'top', x: 108, y: 12 });
+  });
+
+  it('passes over a place that would cover another piece', () => {
+    // The top-left preset is where search sits; beside search is next nearest.
+    const search = { box: sized(84, 12, 420, 40), anchor: 'top-left' as const };
+    expect(snapTo(sized(90, 14), area, [search])?.preset).not.toBe('top-left');
   });
 });
 

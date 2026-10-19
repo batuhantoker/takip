@@ -5,8 +5,8 @@ import { Move } from 'lucide-react';
 import { getArea } from '@/components/map/windows/map-area';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { useT } from '@/components/ui/use-t';
-import { ANCHORS, placeFreely, type FreeSpot, type OverlayId } from '../lib/model';
-import { presetSpot, snapTo, spotFromBox, type Box } from '../lib/spot';
+import { ANCHORS, placeFreely, type Anchor, type FreeSpot, type OverlayId } from '../lib/model';
+import { presetSpot, snapTo, spotFromBox, type Box, type Neighbour } from '../lib/spot';
 import { updateLayout } from '../use-page-layout';
 import { setDragging } from './arrange-state';
 
@@ -18,15 +18,21 @@ const PAD = ['7', '8', '9', '4', '5', '6', '1', '2', '3'];
 
 const shifted = (r: DOMRect, dx: number, dy: number): Box => ({ left: r.left + dx, top: r.top + dy, right: r.right + dx, bottom: r.bottom + dy });
 
+/** Every other piece on the map as it stands, for a drag to line up against. */
+const neighboursOf = (id: OverlayId): Neighbour[] =>
+  [...document.querySelectorAll<HTMLElement>('[data-piece]')]
+    .filter(el => el.dataset.piece !== id)
+    .map(el => ({ box: el.getBoundingClientRect(), anchor: el.dataset.anchor as Anchor }));
+
 /**
  * A piece while arranging: outlined and covered, so a drag anywhere on it moves it rather than using it. Near one of
- * the nine preset places it takes that place when dropped, anywhere else it stays where it lands. The arrow keys
- * nudge it (Shift for a longer step) and 1 to 9 send it to a preset place.
+ * the nine preset places, or the side of another piece, it takes that place when dropped; anywhere else it stays
+ * where it lands. The arrow keys nudge it (Shift for a longer step) and 1 to 9 send it to a preset place.
  */
-export default function PieceFrame({ id, label, children }: { id: OverlayId; label: string; children: ReactNode }) {
+export default function PieceFrame({ id, anchor, label, children }: { id: OverlayId; anchor: Anchor; label: string; children: ReactNode }) {
   const t = useT();
   const box = useRef<HTMLDivElement>(null);
-  const from = useRef<{ x: number; y: number; at: DOMRect } | null>(null);
+  const from = useRef<{ x: number; y: number; at: DOMRect; neighbours: Neighbour[] } | null>(null);
   const [shift, setShift] = useState<{ x: number; y: number } | null>(null);
 
   const put = (spot: FreeSpot) => {
@@ -45,7 +51,7 @@ export default function PieceFrame({ id, label, children }: { id: OverlayId; lab
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     const at = box.current.getBoundingClientRect();
-    from.current = { x: e.clientX, y: e.clientY, at };
+    from.current = { x: e.clientX, y: e.clientY, at, neighbours: neighboursOf(id) };
     setShift({ x: 0, y: 0 });
     setDragging({ id, width: at.width, height: at.height, snap: null });
   };
@@ -54,7 +60,8 @@ export default function PieceFrame({ id, label, children }: { id: OverlayId; lab
     if (!f) return;
     const dx = e.clientX - f.x, dy = e.clientY - f.y;
     setShift({ x: dx, y: dy });
-    setDragging({ id, width: f.at.width, height: f.at.height, snap: snapTo(shifted(f.at, dx, dy), getArea())?.anchor ?? null });
+    const snap = snapTo(shifted(f.at, dx, dy), getArea(), f.neighbours);
+    setDragging({ id, width: f.at.width, height: f.at.height, snap: snap && { box: snap.box, preset: snap.preset } });
   };
   const onPointerUp = (e: PointerEvent<HTMLDivElement>) => {
     const f = from.current;
@@ -63,7 +70,7 @@ export default function PieceFrame({ id, label, children }: { id: OverlayId; lab
     if (e.clientX === f.x && e.clientY === f.y) return;
     const dropped = shifted(f.at, e.clientX - f.x, e.clientY - f.y);
     const area = getArea();
-    put(snapTo(dropped, area) ?? spotFromBox(dropped, area));
+    put(snapTo(dropped, area, f.neighbours)?.spot ?? spotFromBox(dropped, area));
   };
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const preset = PAD.indexOf(e.key);
@@ -80,7 +87,7 @@ export default function PieceFrame({ id, label, children }: { id: OverlayId; lab
   };
 
   return (
-    <div ref={box} className="relative" style={shift ? { transform: `translate(${shift.x}px, ${shift.y}px)` } : undefined}>
+    <div ref={box} data-piece={id} data-anchor={anchor} className="relative" style={shift ? { transform: `translate(${shift.x}px, ${shift.y}px)` } : undefined}>
       {children}
       <div role="button" tabIndex={0} data-arrange={id} aria-label={t('Move {name}: drag it, use the arrow keys, or 1 to 9 for a preset place', { name: label })}
         onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={end} onKeyDown={onKeyDown}

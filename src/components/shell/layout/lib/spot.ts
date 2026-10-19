@@ -18,8 +18,12 @@ export interface Box {
 
 /** An edge keeps the corner slots' 12 px; a middle sits right on it. */
 const MARGIN = 12;
-/** How near a preset place a dropped piece has to be to take it. */
+/** How near a preset place, or the side of another piece, a dropped piece has to be to take it. */
 export const SNAP_PX = 48;
+/** Between pieces set side by side, as in a corner's stack. */
+export const GAP_PX = 8;
+/** Pieces this close in size are only lined up on their middles: a 38 px pill beside a 40 px field. */
+const ALIGN_PX = 6;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 const GRID: Anchor[][] = [['top-left', 'top', 'top-right'], ['left', 'center', 'right'], ['bottom-left', 'bottom', 'bottom-right']];
@@ -39,6 +43,14 @@ export function boxAt({ anchor, x, y }: FreeSpot, width: number, height: number,
   return { left, top, right: left + width, bottom: top + height };
 }
 
+/** A spot for a piece at `box`, measured from `anchor`'s edges or middles. */
+export function spotAt(box: Box, anchor: Anchor, area: Area): FreeSpot {
+  const { h, v } = axes(anchor);
+  const x = h === 'left' ? box.left - area.left : h === 'right' ? area.right - box.right : (box.left + box.right) / 2 - (area.left + area.right) / 2;
+  const y = v === 'top' ? box.top - area.top : v === 'bottom' ? area.bottom - box.bottom : (box.top + box.bottom) / 2 - (area.top + area.bottom) / 2;
+  return { anchor, x: Math.round(x), y: Math.round(y) };
+}
+
 /**
  * Where a piece dropped at `box` goes: it hangs from the third of the map its middle is in (a corner, an edge's
  * middle or the map's), so a narrower window or a panel opening beside the sidebar carries it along. Kept inside the area.
@@ -49,22 +61,63 @@ export function spotFromBox(box: Box, area: Area): FreeSpot {
   const row = third((box.top + box.bottom) / 2, area.top, area.bottom);
   const left = clamp(box.left, area.left, area.right - width);
   const top = clamp(box.top, area.top, area.bottom - height);
-  const x = col === 0 ? left - area.left : col === 2 ? area.right - left - width : left + width / 2 - (area.left + area.right) / 2;
-  const y = row === 0 ? top - area.top : row === 2 ? area.bottom - top - height : top + height / 2 - (area.top + area.bottom) / 2;
-  return { anchor: GRID[row][col], x: Math.round(x), y: Math.round(y) };
+  return spotAt({ left, top, right: left + width, bottom: top + height }, GRID[row][col], area);
 }
 
-/** The preset place a piece at `box` is near enough to take, nearest first; null when it is near none. */
-export function snapTo(box: Box, area: Area, within = SNAP_PX): FreeSpot | null {
+/** Another piece on the map, and what it hangs from (its corner, or its own spot's anchor). */
+export interface Neighbour {
+  box: Box;
+  anchor: Anchor;
+}
+
+/** Where a dragged piece would land, and whether that is one of the nine presets. */
+export interface Snap {
+  spot: FreeSpot;
+  box: Box;
+  preset: Anchor | null;
+}
+
+const at = (left: number, top: number, width: number, height: number): Box => ({ left, top, right: left + width, bottom: top + height });
+const overlaps = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+const inside = (b: Box, area: Area) => b.left >= area.left && b.top >= area.top && b.right <= area.right && b.bottom <= area.bottom;
+
+/** Lined up on the middle, and on both ends too when the sizes differ enough for that to show. */
+const lineUps = (start: number, end: number, size: number) => {
+  const middle = (start + end - size) / 2;
+  return Math.abs(end - start - size) < 2 * ALIGN_PX ? [middle] : [middle, start, end - size];
+};
+
+/** Beside a piece, as the corner stacks set them: to either side lined up with its top, bottom or middle, or above or below lined up with its sides or middle. */
+function beside(n: Box, width: number, height: number): Box[] {
+  const rows = lineUps(n.top, n.bottom, height);
+  const cols = lineUps(n.left, n.right, width);
+  return [
+    ...rows.flatMap(top => [at(n.right + GAP_PX, top, width, height), at(n.left - GAP_PX - width, top, width, height)]),
+    ...cols.flatMap(left => [at(left, n.bottom + GAP_PX, width, height), at(left, n.top - GAP_PX - height, width, height)]),
+  ];
+}
+
+/**
+ * Where a piece at `box` snaps to, nearest first: one of the nine presets, or beside another piece (hung from that
+ * piece's anchor, so the two move together). A place that would cover another piece or leave the map is passed over.
+ * Null when it is near none.
+ */
+export function snapTo(box: Box, area: Area, neighbours: Neighbour[] = [], within = SNAP_PX): Snap | null {
   const width = box.right - box.left, height = box.bottom - box.top;
-  let best: { spot: FreeSpot; d: number } | null = null;
-  for (const anchor of ANCHORS) {
-    const spot = presetSpot(anchor);
-    const at = boxAt(spot, width, height, area);
-    const d = Math.hypot(at.left - box.left, at.top - box.top);
-    if (d <= within && (!best || d < best.d)) best = { spot, d };
+  const candidates: Snap[] = [
+    ...ANCHORS.map(anchor => {
+      const spot = presetSpot(anchor);
+      return { spot, box: boxAt(spot, width, height, area), preset: anchor };
+    }),
+    ...neighbours.flatMap(n => beside(n.box, width, height).map(b => ({ spot: spotAt(b, n.anchor, area), box: b, preset: null }))),
+  ];
+  let best: { snap: Snap; d: number } | null = null;
+  for (const c of candidates) {
+    const d = Math.hypot(c.box.left - box.left, c.box.top - box.top);
+    if (d > within || (best && d >= best.d) || !inside(c.box, area) || neighbours.some(n => overlaps(c.box, n.box))) continue;
+    best = { snap: c, d };
   }
-  return best?.spot ?? null;
+  return best?.snap ?? null;
 }
 
 // The same edges as the corner slots: in from the sidebar's panel (--shell-left), up from the status bar or a timeline.

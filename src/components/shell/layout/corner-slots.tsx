@@ -9,7 +9,7 @@ import ArrangeTargets from './arrange/arrange-targets';
 import { useArranging } from './arrange/arrange-state';
 import PieceFrame from './arrange/piece-frame';
 import { OVERLAY_LABELS } from './lib/labels';
-import { CORNERS, OVERLAY_IDS, menuCorner, type Corner, type FreeSpot, type OverlayId } from './lib/model';
+import { CORNERS, OVERLAY_IDS, menuCorner, type Anchor, type Corner, type FreeSpot, type OverlayId } from './lib/model';
 import { spotStyle } from './lib/spot';
 
 // Clear of the sidebar and any panel beside it (--shell-left), and above the status bar or a timeline (--shell-bottom).
@@ -42,9 +42,9 @@ export default function CornerSlots({ corners, free, revealed, pieces }: {
   // Search's results open over the windows.
   const layer = (ids: OverlayId[]) => (ids.includes('search') ? 'z-[450]' : 'z-[240]');
   const shown = revealed ? 'opacity-100' : 'opacity-0';
-  const piece = (id: OverlayId, corner: Corner) => {
-    const node = pieces[id](corner);
-    return arranging && node ? <PieceFrame id={id} label={t(OVERLAY_LABELS[id])}>{node}</PieceFrame> : node;
+  const piece = (id: OverlayId, anchor: Anchor) => {
+    const node = pieces[id](menuCorner(anchor));
+    return arranging && node ? <PieceFrame id={id} anchor={anchor} label={t(OVERLAY_LABELS[id])}>{node}</PieceFrame> : node;
   };
 
   useEffect(() => { requestAnimationFrame(refreshMapArea); }, [corners, free]);
@@ -63,7 +63,7 @@ export default function CornerSlots({ corners, free, revealed, pieces }: {
         const spot = free[id];
         return spot && (
           <div key={id} data-hud data-free style={spotStyle(spot)} className={cx(HUD, layer([id]), shown)}>
-            {piece(id, menuCorner(spot.anchor))}
+            {piece(id, spot.anchor)}
           </div>
         );
       })}

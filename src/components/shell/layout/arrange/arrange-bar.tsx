@@ -14,7 +14,7 @@ export default function ArrangeBar({ placed }: { placed: number }) {
   return (
     <div role="toolbar" aria-label={t('Arrange the map')}
       className="fixed top-16 left-1/2 z-[600] flex -translate-x-1/2 items-center gap-2 rounded-float border border-line bg-surface-1 py-1.5 pr-1.5 pl-3 shadow-float">
-      <span className="mr-1 text-small whitespace-nowrap text-ink-2">{t('Drag a piece anywhere; it snaps to the corners, the edges and the middle. Arrows nudge, 1–9 jump.')}</span>
+      <span className="mr-1 text-small whitespace-nowrap text-ink-2">{t('Drag a piece anywhere; it snaps beside other pieces and to the corners, edges and middle. Arrows nudge, 1–9 jump.')}</span>
       {placed > 0 && <Button variant="ghost" size="sm" onClick={() => updateLayout(backToCorners)}>{t('Back to corners')}</Button>}
       <Button variant="primary" size="sm" onClick={stopArranging}>{t('Done')}</Button>
     </div>

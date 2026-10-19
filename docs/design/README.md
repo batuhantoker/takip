@@ -202,8 +202,11 @@ with a separate layout for phones:
   be dragged anywhere, or nudged with the arrow keys; Done or Escape ends it.
   Nine preset places (each corner and edge middle, 12 px in, and the middle of
   the map) show as outlines while a piece is dragged, and one dropped within
-  48 px of a preset takes it; 1 to 9 send the selected piece to one, laid out
-  as on a number pad. A placed piece hangs from the corner, edge middle or
+  48 px of a preset, or of the side of another piece, takes it: beside a piece
+  it sits 8 px off, as in a corner's stack, lined up on its middle (or its
+  edge, when their sizes differ), and hangs from that piece's anchor so the
+  two move together. A place that would cover another piece is passed over.
+  1 to 9 send the selected piece to a preset, laid out as on a number pad. A placed piece hangs from the corner, edge middle or
   centre of the third it is in, so a narrower window or a panel opening beside
   the sidebar carries it along and a centred one stays centred. Picking a
   corner, or Back to corners, puts it back in a stack. Desktop only; a phone's

@@ -2,13 +2,14 @@
 
 import { useSyncExternalStore } from 'react';
 import type { Anchor, OverlayId } from '../lib/model';
+import type { Box } from '../lib/spot';
 
-/** The piece being dragged, its size, and the preset place it would take if dropped now. */
+/** The piece being dragged, its size, and where it would snap to if dropped now: a preset, or beside another piece. */
 export interface Dragging {
   id: OverlayId;
   width: number;
   height: number;
-  snap: Anchor | null;
+  snap: { box: Box; preset: Anchor | null } | null;
 }
 
 let arranging = false;
@@ -30,8 +31,12 @@ export const stopArranging = () => {
   notify();
 };
 
+const sameSnap = (a: Dragging['snap'], b: Dragging['snap']) =>
+  a === b || (!!a && !!b && a.preset === b.preset && a.box.left === b.box.left && a.box.top === b.box.top);
+
+// Called on every pointer move: only a change of target re-renders anything.
 export function setDragging(next: Dragging | null) {
-  if (next?.id === dragging?.id && next?.snap === dragging?.snap && next?.width === dragging?.width && next?.height === dragging?.height) return;
+  if (next?.id === dragging?.id && next?.width === dragging?.width && next?.height === dragging?.height && sameSnap(next?.snap ?? null, dragging?.snap ?? null)) return;
   dragging = next;
   notify();
 }
