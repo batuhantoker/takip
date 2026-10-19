@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { compact, longDay, niceMax, shortDay } from '@/components/site/admin/analytics/lib/format';
+import { compact, firstWithData, longDay, niceMax, shortDay } from '@/components/site/admin/analytics/lib/format';
 import { Legend, PlotFrame, Tip, XLabels } from './chart-card';
 
 export type Series = { key: string; label: string; color: string; values: number[] };
@@ -10,9 +10,12 @@ const W = 1000;
 const H = 100;
 
 /** Lines over days on one axis; a single series also gets a 10% wash. Crosshair readout on hover and arrow keys. */
-export function TimeSeries({ days, series, format = compact, height = 160, label }: {
+export function TimeSeries({ days: allDays, series: allSeries, format = compact, height = 160, label }: {
   days: string[]; series: Series[]; format?: (n: number) => string; height?: number; label: string;
 }) {
+  const start = firstWithData(allSeries.map(s => s.values));
+  const days = allDays.slice(start);
+  const series = start ? allSeries.map(s => ({ ...s, values: s.values.slice(start) })) : allSeries;
   const [at, setAt] = useState<number | null>(null);
   const n = days.length;
   const max = niceMax(Math.max(0, ...series.flatMap(s => s.values)));

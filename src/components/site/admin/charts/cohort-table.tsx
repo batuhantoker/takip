@@ -4,7 +4,9 @@ import { TABLE, TD, TH } from '@/components/site/admin/parts/admin-parts';
 export type Cohort = { week: string; size: number; retained: (number | null)[] };
 
 /** Retention triangle: each cohort week's share active in the weeks after, shaded in one hue. */
-export function CohortTable({ cohorts, cohortLabel = 'Signed up (week of)', sizeLabel = 'Accounts' }: { cohorts: Cohort[]; cohortLabel?: string; sizeLabel?: string }) {
+export function CohortTable({ cohorts: all, cohortLabel = 'Signed up (week of)', sizeLabel = 'Accounts' }: { cohorts: Cohort[]; cohortLabel?: string; sizeLabel?: string }) {
+  // Weeks before the first cohort with anyone in it are rows of nothing.
+  const cohorts = all.slice(Math.max(0, all.findIndex(c => c.size > 0)));
   const weeks = Math.max(0, ...cohorts.map(c => c.retained.length));
   return (
     <div className="overflow-x-auto">

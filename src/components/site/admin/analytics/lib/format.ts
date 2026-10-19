@@ -13,6 +13,9 @@ export function bytes(n: number | null | undefined) {
 
 export const count = (n: number | null | undefined) => (n == null ? '—' : Math.round(n).toLocaleString('en'));
 
+/** "1 account", "3 accounts" */
+export const plural = (n: number, one: string, many = `${one}s`) => `${count(n)} ${Math.round(n) === 1 ? one : many}`;
+
 /** 1,284 / 12.9K / 4.2M */
 export function compact(n: number | null | undefined) {
   if (n == null) return '—';
@@ -63,6 +66,17 @@ export function weekDelta(values: number[], firstValid = 0) {
   const recent = sum(values.slice(-7));
   const prior = sum(values.slice(-14, -7));
   return { recent, prior };
+}
+
+/**
+ * Where a chart starts: the first point any series has data, keeping at least `min` points, so a range that
+ * began before collecting doesn't open on weeks of zeros.
+ */
+export function firstWithData(series: number[][], min = 7) {
+  const n = Math.max(0, ...series.map(s => s.length));
+  let i = 0;
+  while (i < n && series.every(s => !s[i])) i++;
+  return Math.max(0, Math.min(i, n - min));
 }
 
 /** A clean axis top: 1, 2, 2.5 or 5 × 10^k at or above `max`. */

@@ -4,17 +4,23 @@ import { Meter } from '@/components/site/admin/charts/meter';
 import { Sparkline } from '@/components/site/admin/charts/stat-tile';
 import { Muted } from '@/components/site/admin/parts/admin-parts';
 import type { AnalyticsEngagement, FeatureUse } from '../analytics-types';
-import { featureLabel, splitFeature } from '../lib/features';
-import { count, minutes, sum } from '../lib/format';
+import { featureLabel, onByDefault, splitFeature } from '../lib/features';
+import { minutes, plural, sum } from '../lib/format';
 import { ink } from '../lib/series';
 import { Pair } from './section-frame';
 
 /** Sections and actions arrived in a later release than map minutes, so their history starts later. */
 export const SECTIONS_NOTE = 'The Layers panel’s sections (Air, Sea, Weather…), counted from the release that added them.';
 
-export const reach = (f: FeatureUse) => `${count(f.users)} accounts · ${count(f.visitors)} visitor-days`;
+export const reach = (f: FeatureUse) => `${plural(f.users, 'account')} · ${plural(f.visitors, 'visitor-day')}`;
 
 const rowsOf = (features: FeatureUse[]) => features.map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: reach(f) }));
+
+/** Layers people switched on first; the ones the map opens with after, greyed, since their minutes are mostly defaults kept. */
+const layerRows = (layers: FeatureUse[]) => [
+  ...rowsOf(layers.filter(f => !onByDefault(f.feature))),
+  ...layers.filter(f => onByDefault(f.feature)).map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: `On by default · ${reach(f)}`, color: 'var(--ink-4)' })),
+];
 
 /** Panels (with a small multiple per panel over the range), the Layers sections people follow, layers, windows and devices. */
 export function FeatureCards({ e, panels, layers, devices }: { e: AnalyticsEngagement; panels: FeatureUse[]; layers: FeatureUse[]; devices: FeatureUse[] }) {
@@ -55,8 +61,8 @@ export function FeatureCards({ e, panels, layers, devices }: { e: AnalyticsEngag
         <ChartCard title="Sections followed" note={`${SECTIONS_NOTE} Minutes with any layer of the section on, and who followed it.`}>
           <BarList format={minutes} share={false} rows={rowsOf(sections)} empty="No section time in this range yet." />
         </ChartCard>
-        <ChartCard title="Layers" note="Minutes each data layer was on the map">
-          <BarList format={minutes} share={false} limit={12} rows={rowsOf(layers)} empty="No layer time in this range yet." />
+        <ChartCard title="Layers" note="Minutes each data layer was on the map; the ones it opens with come last">
+          <BarList format={minutes} share={false} limit={12} rows={layerRows(layers)} empty="No layer time in this range yet." />
         </ChartCard>
       </Pair>
 

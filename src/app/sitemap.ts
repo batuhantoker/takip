@@ -25,5 +25,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...availableGuides().map(g => ({ url: `${origin}${guidePath(g)}`, changeFrequency: 'monthly' as const })),
     { url: `${origin}/docs`, changeFrequency: 'weekly' },
     { url: `${origin}/privacy`, changeFrequency: 'monthly' },
+    { url: `${origin}/terms`, changeFrequency: 'monthly' },
   ];
 }

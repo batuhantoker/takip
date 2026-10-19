@@ -6,6 +6,7 @@ import { Switch } from '@/components/site/admin/parts/admin-switch';
 import type {
   AnalyticsApi, AnalyticsAudience, AnalyticsData, AnalyticsEngagement, AnalyticsPages, AnalyticsStorage, AnalyticsSystem, AnalyticsVisitors,
 } from '@/components/site/admin/analytics/analytics-types';
+import { attention, flaggedTabs } from '@/components/site/admin/analytics/lib/attention';
 import { useAnalyticsData } from '@/components/site/admin/analytics/lib/use-analytics-data';
 import { OverviewSection } from '@/components/site/admin/analytics/overview-section';
 import { AudienceSection } from '@/components/site/admin/analytics/audience-section';
@@ -58,6 +59,10 @@ export default function AnalyticsPage() {
   // The api caches its disk scan; a rescan asks for a fresh one, and the counter makes each click a new request.
   const storage = useAnalyticsData<AnalyticsStorage>(`/analytics/storage${rescans ? `?refresh=1&n=${rescans}` : ''}`);
   const rescan = () => setRescans(n => n + 1);
+  const notes = attention({
+    audience: audience.data, visitors: visitors.data, pages: pages.data, api: api.data, data: data.data, system: system.data, storage: storage.data,
+  });
+  const flagged = flaggedTabs(notes);
 
   return (
     <>
@@ -81,12 +86,13 @@ export default function AnalyticsPage() {
             className={`-mb-px h-9 whitespace-nowrap border-b-2 px-3 text-[13px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${section === s.id ? 'border-accent text-ink-1' : 'border-transparent text-ink-3 hover:text-ink-1'}`}
           >
             {s.label}
+            {s.id !== 'overview' && flagged.has(s.id) && <span aria-label="needs a look" className="ml-1.5 inline-block size-1.5 rounded-full bg-amber align-middle" />}
           </button>
         ))}
       </div>
 
       <div role="tabpanel" aria-label={SECTIONS.find(s => s.id === section)?.label} className="flex flex-col gap-4 pb-10">
-        {section === 'overview' && <OverviewSection audience={audience} engagement={engagement} api={api} storage={storage} data={data} />}
+        {section === 'overview' && <OverviewSection attention={notes} audience={audience} visitors={visitors} pages={pages} engagement={engagement} api={api} storage={storage} system={system} />}
         {section === 'audience' && <AudienceSection query={audience} />}
         {section === 'visitors' && <VisitorsSection query={visitors} days={days} />}
         {section === 'pages' && <PagesSection query={pages} />}

@@ -11,7 +11,7 @@ export type BarRow = { key: string; label: ReactNode; value: number; detail?: Re
  * Ranked horizontal bars, labelled with the value and its share of `total` (the rows' sum by default).
  * `max` sets the full-length bar, so several lists can share one scale.
  */
-export function BarList({ rows, format = compact, total, max: scale, limit = 8, empty = 'No data yet.', share = true }: {
+export function BarList({ rows, format = compact, total, max: scale, limit = 6, empty = 'No data yet.', share = true }: {
   rows: BarRow[]; format?: (n: number) => string; total?: number; max?: number; limit?: number; empty?: string; share?: boolean;
 }) {
   const [all, setAll] = useState(false);

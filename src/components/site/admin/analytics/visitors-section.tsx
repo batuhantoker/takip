@@ -13,6 +13,7 @@ import { placeText } from './lib/place';
 import { ink, NEUTRAL } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
 import { DbIpCredit, PlaceLabel } from './parts/place-label';
+import { More } from './parts/more';
 import { Pair, SectionFrame, SectionHeading, Tiles } from './parts/section-frame';
 import VisitorsList from './parts/visitors-list';
 
@@ -132,16 +133,17 @@ function Visitors({ v }: { v: AnalyticsVisitors }) {
       </ChartCard>
       <DbIpCredit />
 
-      <SectionHeading>Devices</SectionHeading>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Browsers"><BarList format={count} rows={devices('browser')} empty="No visitors in this range." /></ChartCard>
-        <ChartCard title="Operating systems"><BarList format={count} rows={devices('os')} empty="No visitors in this range." /></ChartCard>
-        <ChartCard title="Device types"><BarList format={count} rows={devices('device')} empty="No visitors in this range." /></ChartCard>
-      </div>
+      <More id="visitors-devices" title="Devices and retention" holds="Browsers, systems and device types, and which first-seen weeks came back">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <ChartCard title="Browsers"><BarList format={count} rows={devices('browser')} empty="No visitors in this range." /></ChartCard>
+          <ChartCard title="Operating systems"><BarList format={count} rows={devices('os')} empty="No visitors in this range." /></ChartCard>
+          <ChartCard title="Device types"><BarList format={count} rows={devices('device')} empty="No visitors in this range." /></ChartCard>
+        </div>
 
-      <ChartCard title="Retention by first-seen week" note="Share of each week's new visitors with signed-out map time in the weeks after (UTC, weeks start Monday)">
-        {v.cohorts.some(c => c.size) ? <CohortTable cohorts={v.cohorts} cohortLabel="First seen (week of)" sizeLabel="Visitors" /> : <Muted>No visitors to follow yet.</Muted>}
-      </ChartCard>
+        <ChartCard title="Retention by first-seen week" note="Share of each week's new visitors with signed-out map time in the weeks after (UTC, weeks start Monday)">
+          {v.cohorts.some(c => c.size) ? <CohortTable cohorts={v.cohorts} cohortLabel="First seen (week of)" sizeLabel="Visitors" /> : <Muted>No visitors to follow yet.</Muted>}
+        </ChartCard>
+      </More>
     </>
   );
 }

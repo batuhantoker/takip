@@ -13,8 +13,8 @@ In order. "(you)" marks the user's own steps.
 ## Easy win for transit, if we have the route show the user the route. showing the route with the stops
 
 ### 1.0 Ads on takip.dev
-`/ads.txt` is live with the publisher ID since 2026-10-19 (`NEXT_PUBLIC_ADSENSE_CLIENT` in the NUC's `.env.production.local`).
-1. (you) AdSense → Sites: add `takip.dev`, verify it with ads.txt and request review. First turn Auto ads off and publish the European regulations message (Privacy & messaging); `/privacy` promises both.
+`/ads.txt` and the verification meta tag are live with the publisher ID since 2026-10-19 (`NEXT_PUBLIC_ADSENSE_CLIENT` in the NUC's `.env.production.local`), and the site review was requested the same day.
+1. (you) Before approval: turn Auto ads off (the script loads on every page that may show ads, the map included) and publish the European regulations message (Privacy & messaging); `/privacy` promises both.
 2. After approval: create two display units, `panel` and `page`, put their ids in `NEXT_PUBLIC_ADSENSE_SLOT_PANEL` and `NEXT_PUBLIC_ADSENSE_SLOT_PAGE` beside the client, and rebuild the NUC.
 3. Before ads show: the self-hosted basemap (`architecture/map-detail.md`) and Open-Meteo's commercial terms (`architecture/data-roadmap.md`).
 
@@ -113,7 +113,7 @@ Chosen by the user on 2026-10-15. Details are in [`inspiration-sources/gods-eye-
 
 ### 1.7 Being found
 Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages under `/map` (layers, History and deep time, the Space view, Replay and the tools), an `/about` page, and a generated robots.txt and sitemap, each page in ten languages at its own URL (`/tr/map/…`) and leading with a picture of the map ([`architecture/public-pages.md`](architecture/public-pages.md)). Links open History at a year, deep time, Space at a body, Replay or a panel (`?view=…`, `?panel=…`). City and country pages, also since 2026-10-19: `/city/<place>/<topic>` and `/country/<place>/<topic>` for transit, cameras, flights, weather, ports, ISS passes, aurora, hiking and earthquake history (last 10 and 100 years, and the whole record) across 31,762 GeoNames places and 237 countries, about 28k pages indexed, each in ten languages at its own URL ([`architecture/place-pages.md`](architecture/place-pages.md)), plus guides at `/guides` (English only). The pages' live map is `/embed/<slug>`, and any place, layers and period is `/embed?…` ([`architecture/embeds.md`](architecture/embeds.md)), with earthquakes over any area and window.
-1. (you) Verify `takip.dev` in Google Search Console and Bing Webmaster Tools, and submit `/sitemap.xml`. `SITE_URL` is set on the NUC.
+1. (you) Search Console and Bing Webmaster Tools are verified (2026-10-19, Bing imported from Search Console). Submit the sitemaps in both (`/sitemap.xml` and `/places/sitemap/0.xml` to `3.xml`), and in Bing run a Live URL test: on 2026-10-19 it still showed a DNS failure from before the domain resolved. Turn on Cloudflare's Always Use HTTPS (`http://takip.dev` answers 200). `SITE_URL` is set on the NUC.
 2. More History pages, one per era people search for (the Cold War, 1492, the Mongol Empire, the British Empire at its height).
 3. Camera sources where people search and the catalogue has none. Nevşehir has two on air since 2026-10-19 (Uçhisar, Skyline); its two square cameras are off air with no stated place, and urgup.bel.tr sits behind a Cloudflare challenge.
 4. Earthquake pages (`/quakes/<usgs id>`), only if they add what USGS's own page lacks (cameras, flights and ships near the epicentre); otherwise they are thin copies.

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type KeyboardEvent } from 'react';
-import { compact, niceMax } from '@/components/site/admin/analytics/lib/format';
+import { compact, firstWithData, niceMax } from '@/components/site/admin/analytics/lib/format';
 import { Legend, PlotFrame, Tip, XLabels } from './chart-card';
 
 export type BarColumn = { key: string; label: string; title?: string };
@@ -11,9 +11,14 @@ export type BarSeries = { key: string; label: string; color: string; values: num
  * Columns stacked by series from one baseline: ≤24 px wide, 2 px surface gaps, a 4 px rounded top.
  * Each column is its own hit target; arrow keys walk them.
  */
-export function StackedBars({ columns, series, format = compact, height = 140, label }: {
+export function StackedBars({ columns: allColumns, series: allSeries, format = compact, height = 140, label, days = true }: {
   columns: BarColumn[]; series: BarSeries[]; format?: (n: number) => string; height?: number; label: string;
+  /** Columns are days, so leading empty ones (before collecting began) are left out; false for categories. */
+  days?: boolean;
 }) {
+  const start = days ? firstWithData(allSeries.map(s => s.values)) : 0;
+  const columns = allColumns.slice(start);
+  const series = start ? allSeries.map(s => ({ ...s, values: s.values.slice(start) })) : allSeries;
   const [at, setAt] = useState<number | null>(null);
   const totals = columns.map((_, i) => series.reduce((s, x) => s + (x.values[i] ?? 0), 0));
   const max = niceMax(Math.max(0, ...totals));

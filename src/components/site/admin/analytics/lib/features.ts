@@ -1,6 +1,7 @@
 import { MAP_LAYER_SECTIONS, type MapLayerSection } from '@takip/core/entitlements';
 import { LAYER_GROUPS } from '@/components/panels/layers/layer-groups';
 import { sectionTitle } from '@/components/panels/layers/lib/layer-gates';
+import { DEFAULT_LAYERS } from '@/lib/map/layers/defaults';
 
 const VIEWS: Record<string, string> = {
   map: 'Map',
@@ -74,6 +75,14 @@ export function featureLongLabel(feature: string) {
   if (kind === 'view' && id !== 'wall') return `${label} view`;
   return label;
 }
+
+const ON_BY_DEFAULT = new Set(Object.entries(DEFAULT_LAYERS).filter(([, on]) => on).map(([id]) => id));
+
+/** A layer the map opens with: its minutes say people kept it, not that they chose it. */
+export const onByDefault = (feature: string) => {
+  const { kind, id } = splitFeature(feature);
+  return kind === 'layer' && ON_BY_DEFAULT.has(id);
+};
 
 /** A visitor's first arrival with no referring site: typed, bookmarked, or the referrer was withheld. */
 export const DIRECT_ARRIVAL = 'Direct or hidden';

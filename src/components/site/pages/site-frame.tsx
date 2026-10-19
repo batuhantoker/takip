@@ -31,6 +31,7 @@ export function SiteFrame({ t, path, trail = [], children }: {
     { href: here('/about'), label: t('About TAKIP') },
     { href: '/docs', label: t('Docs and API') },
     { href: '/privacy', label: t('Privacy') },
+    { href: '/terms', label: t('Terms') },
   ];
   return (
     // docs-root releases the full-screen map's scroll lock (see globals.css), so the page scrolls.

@@ -8,6 +8,7 @@ import type { AnalyticsSystem } from './analytics-types';
 import { bytes, count, duration, ms, pct, shortDay, sum } from './lib/format';
 import { NEUTRAL } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
+import { More } from './parts/more';
 import { Pair, SectionFrame, Tiles } from './parts/section-frame';
 
 const NUM = `${TD} text-right font-mono tabular-nums`;
@@ -122,18 +123,20 @@ function System({ s }: { s: AnalyticsSystem }) {
         </ChartCard>
       </Pair>
 
-      <Pair>
-        <ChartCard title="Admin and account changes per day" note="Audit events (kept 30 days)" actions={<Link href="/admin/audit" className="text-[12px] text-accent hover:underline">Audit log</Link>}>
-          {sum(s.audit.days.map(d => d.events)) ? (
-            <StackedBars label="Audit events per day" format={count} height={100}
-              columns={s.audit.days.map(d => ({ key: d.day, label: shortDay(d.day) }))}
-              series={[{ key: 'events', label: 'Events', color: NEUTRAL, values: s.audit.days.map(d => d.events) }]} />
-          ) : <Muted>No audit events in this range.</Muted>}
-        </ChartCard>
-        <ChartCard title="Most common changes">
-          <BarList format={count} rows={s.audit.actions.map(a => ({ key: a.action, label: <span className="font-mono text-[12px]">{a.action}</span>, value: a.events }))} empty="No audit events in this range." />
-        </ChartCard>
-      </Pair>
+      <More id="system-audit" title="Admin and account changes" holds="Audit events per day and the most common ones">
+        <Pair>
+          <ChartCard title="Admin and account changes per day" note="Audit events (kept 30 days)" actions={<Link href="/admin/audit" className="text-[12px] text-accent hover:underline">Audit log</Link>}>
+            {sum(s.audit.days.map(d => d.events)) ? (
+              <StackedBars label="Audit events per day" format={count} height={100}
+                columns={s.audit.days.map(d => ({ key: d.day, label: shortDay(d.day) }))}
+                series={[{ key: 'events', label: 'Events', color: NEUTRAL, values: s.audit.days.map(d => d.events) }]} />
+            ) : <Muted>No audit events in this range.</Muted>}
+          </ChartCard>
+          <ChartCard title="Most common changes">
+            <BarList format={count} rows={s.audit.actions.map(a => ({ key: a.action, label: <span className="font-mono text-[12px]">{a.action}</span>, value: a.events }))} empty="No audit events in this range." />
+          </ChartCard>
+        </Pair>
+      </More>
     </>
   );
 }

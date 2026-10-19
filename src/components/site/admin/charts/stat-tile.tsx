@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
+import { firstWithData } from '@/components/site/admin/analytics/lib/format';
+
+/** Below this many in the earlier period a percentage overstates (1 → 3 reads +200%), so the change shows as a count. */
+const SMALL_BASE = 5;
 
 /** `what` names the measure when it isn't the tile's value (sign-ups under an accounts total). */
 export type Delta = { recent: number; prior: number; upIsGood?: boolean; vs?: string; what?: string };
@@ -15,7 +19,7 @@ export function StatTile({ label, value, sub, delta, trend }: { label: string; v
       </div>
       {(sub || delta) && (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-ink-3">
-          {delta && <Change {...delta} />}
+          {delta && (delta.recent || delta.prior) ? <Change {...delta} /> : null}
           {sub && <span className="min-w-0 truncate">{sub}</span>}
         </div>
       )}
@@ -25,7 +29,8 @@ export function StatTile({ label, value, sub, delta, trend }: { label: string; v
 
 function Change({ recent, prior, upIsGood = true, vs = 'prior 7 d', what }: Delta) {
   const diff = recent - prior;
-  const text = prior === 0 ? (recent === 0 ? 'no change' : `+${recent.toLocaleString('en')}`) : `${diff >= 0 ? '+' : '−'}${Math.abs(Math.round((diff / prior) * 100))}%`;
+  const sign = diff >= 0 ? '+' : '−';
+  const text = diff === 0 ? 'no change' : prior < SMALL_BASE ? `${sign}${Math.abs(diff).toLocaleString('en')}` : `${sign}${Math.abs(Math.round((diff / prior) * 100))}%`;
   const Icon = diff > 0 ? ArrowUpRight : diff < 0 ? ArrowDownRight : Minus;
   const tone = diff === 0 ? 'text-ink-3' : (diff > 0) === upIsGood ? 'text-green' : 'text-red';
   return (
@@ -38,7 +43,8 @@ function Change({ recent, prior, upIsGood = true, vs = 'prior 7 d', what }: Delt
   );
 }
 
-export function Sparkline({ values, width = 72, height = 24 }: { values: number[]; width?: number; height?: number }) {
+export function Sparkline({ values: all, width = 72, height = 24 }: { values: number[]; width?: number; height?: number }) {
+  const values = all.slice(firstWithData([all]));
   const max = Math.max(1, ...values);
   const pts = values.map((v, i) => [(i / (values.length - 1)) * width, height - 2 - (v / max) * (height - 4)] as const);
   const [lx, ly] = pts[pts.length - 1];

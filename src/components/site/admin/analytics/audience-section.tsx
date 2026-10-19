@@ -7,11 +7,12 @@ import { StatTile } from '@/components/site/admin/charts/stat-tile';
 import { TimeSeries } from '@/components/site/admin/charts/time-series';
 import { Muted } from '@/components/site/admin/parts/admin-parts';
 import type { AnalyticsAudience } from './analytics-types';
-import { count, minutes, pct, shortDay, sinceIndex, sum, weekDelta } from './lib/format';
+import { count, minutes, pct, plural, shortDay, sinceIndex, sum, weekDelta } from './lib/format';
 import { ink, NEUTRAL } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
 import { DbIpCredit, PlaceLabel } from './parts/place-label';
-import { CollectingNote, Pair, SectionFrame, SectionHeading, Tiles } from './parts/section-frame';
+import { More } from './parts/more';
+import { CollectingNote, Pair, SectionFrame, Tiles } from './parts/section-frame';
 
 const PROVIDERS: Record<string, string> = { credential: 'Email and password', google: 'Google', github: 'GitHub', apple: 'Apple', microsoft: 'Microsoft', passkey: 'Passkey' };
 
@@ -38,8 +39,9 @@ function Audience({ a }: { a: AnalyticsAudience }) {
       <Tiles>
         <StatTile label="Accounts" value={count(totals.users)} sub={`${count(sum(signups))} new in ${a.days.length} days`} trend={signups} delta={signupDelta && { ...signupDelta, what: 'Sign-ups' }} />
         <StatTile label="Email confirmed" value={pct(totals.verified, totals.users)} sub={`${count(totals.verified)} of ${count(totals.users)}`} />
-        <StatTile label="Two-factor on" value={pct(totals.twoFactor, totals.users)} sub={`${count(totals.twoFactor)} accounts · ${count(totals.banned)} banned`} />
-        <StatTile label="Stickiness" value={pct(totals.dau, totals.mau)} sub="Active today ÷ active this month" />
+        <StatTile label="Two-factor on" value={pct(totals.twoFactor, totals.users)} sub={`${plural(totals.twoFactor, 'account')} · ${count(totals.banned)} banned`} />
+        {/* A ratio of one or two accounts says nothing yet. */}
+        <StatTile label="Stickiness" value={totals.mau < 3 ? '—' : pct(totals.dau, totals.mau)} sub={totals.mau < 3 ? 'Too few active accounts to say' : 'Active today ÷ active this month'} />
         <StatTile label="Active today" value={count(totals.dau)} trend={a.days.map(d => d.activeUsers)} delta={weekDelta(a.days.map(d => d.activeUsers), from)} sub="Accounts with map time" />
         <StatTile label="Active this week" value={count(totals.wau)} sub={`${count(totals.mau)} this month`} />
         <StatTile label="Visitors today" value={count(totals.visitorsToday)} trend={a.days.map(d => d.activeVisitors)} delta={weekDelta(a.days.map(d => d.activeVisitors), from)} />
@@ -88,17 +90,17 @@ function Audience({ a }: { a: AnalyticsAudience }) {
         </ChartCard>
       </div>
 
-      <SectionHeading>Devices</SectionHeading>
-      <p className="-mt-3 text-[12px] text-ink-3">From the browsers of sessions started in the range.</p>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Browsers"><BarList format={count} rows={devices('browser')} empty="No sessions in this range." /></ChartCard>
-        <ChartCard title="Operating systems"><BarList format={count} rows={devices('os')} empty="No sessions in this range." /></ChartCard>
-        <ChartCard title="Device types"><BarList format={count} rows={devices('device')} empty="No sessions in this range." /></ChartCard>
-      </div>
+      <More id="audience-devices" title="Devices and retention" holds="Browsers, systems and device types of sessions started in the range, and which sign-up weeks came back">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <ChartCard title="Browsers"><BarList format={count} rows={devices('browser')} empty="No sessions in this range." /></ChartCard>
+          <ChartCard title="Operating systems"><BarList format={count} rows={devices('os')} empty="No sessions in this range." /></ChartCard>
+          <ChartCard title="Device types"><BarList format={count} rows={devices('device')} empty="No sessions in this range." /></ChartCard>
+        </div>
 
-      <ChartCard title="Retention by sign-up week" note="Share of each week's new accounts with map time in the weeks after (UTC, weeks start Monday)">
-        {a.cohorts.length ? <CohortTable cohorts={a.cohorts} /> : <Muted>No sign-ups in this range to follow.</Muted>}
-      </ChartCard>
+        <ChartCard title="Retention by sign-up week" note="Share of each week's new accounts with map time in the weeks after (UTC, weeks start Monday)">
+          {a.cohorts.length ? <CohortTable cohorts={a.cohorts} /> : <Muted>No sign-ups in this range to follow.</Muted>}
+        </ChartCard>
+      </More>
     </>
   );
 }

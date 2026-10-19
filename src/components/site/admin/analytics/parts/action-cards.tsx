@@ -3,7 +3,7 @@ import { Sparkline } from '@/components/site/admin/charts/stat-tile';
 import { Muted } from '@/components/site/admin/parts/admin-parts';
 import type { AnalyticsEngagement } from '../analytics-types';
 import { actionGroup, actionLabel } from '../lib/actions';
-import { count, sum } from '../lib/format';
+import { count, plural, sum } from '../lib/format';
 import { GroupedActions } from './grouped-actions';
 import { Pair } from './section-frame';
 
@@ -27,7 +27,7 @@ export function ActionCards({ e }: { e: AnalyticsEngagement }) {
           rows: e.actions.map(a => [actionLabel(a.action), actionGroup(a.action).label, a.count, a.users, a.visitors]),
         }}
       >
-        <GroupedActions rows={e.actions} detail={a => `${count(a.users)} accounts · ${count(a.visitors)} visitors`} empty="No actions counted in this range yet." />
+        <GroupedActions rows={e.actions} detail={a => `${plural(a.users, 'account')} · ${plural(a.visitors, 'visitor')}`} empty="No actions counted in this range yet." />
       </ChartCard>
       <ChartCard title="Busiest actions per day" note="Each on its own scale; the dot is the last day">
         {daily.length ? (

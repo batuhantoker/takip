@@ -291,6 +291,7 @@ export default async function PrivacyPage() {
         <Section id="choices" title={t('Your choices')}>
           <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-ink-2">
             <li>{t.rich('{clear} by clearing this site’s data in your browser settings.', { clear: lead(t('Clear everything')) })}</li>
+            <li>{t.rich('{remove} from Account settings: choose Delete account, and we email you a link; opening it in a browser signed in to that account deletes the account and everything it holds, including sign-ins through Google, Facebook or GitHub.', { remove: lead(t('Delete your account')) })}</li>
             <li>{t.rich('{turnOff} in {adCenter}, or decline in the consent message; you then see ads that do not depend on your history.', {
               turnOff: lead(t('Turn off personalised ads')),
               adCenter: (
@@ -317,6 +318,7 @@ export default async function PrivacyPage() {
 
         <p className="mt-14 border-t border-line pt-5 text-[12px] text-ink-3">
           {t('Last checked against the code on {date}. When a feature changes what it shares, this page changes with it.', { date: reviewed })}
+          {' '}<Link href="/terms" className="text-accent hover:underline">{t('Terms of use')}</Link>
         </p>
       </div>
     </main>

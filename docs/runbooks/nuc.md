@@ -27,7 +27,7 @@ All of them are systemd **user** services. Linger is on, so they start at boot w
 https://takip.dev, and `www.takip.dev` (both in `~/.cloudflared/config.yml`). The domain is registered on Cloudflare (2026-10-19).
 
 - `takip-tunnel` runs the named tunnel `takip` (`cloudflared tunnel run takip`). Its credentials are `~/.cloudflared/<tunnel id>.json` and `cert.pem`; `cloudflared tunnel route dns takip <host>` adds a hostname, and the hostname also needs an `ingress` entry.
-- `BETTER_AUTH_URL` and `SITE_URL` are fixed at `https://takip.dev` in `~/.config/takip/env`. Sign-in works on that host only. OAuth apps redirect to `https://takip.dev/api/auth/callback/<provider>`.
+- `BETTER_AUTH_URL` and `SITE_URL` are fixed at `https://takip.dev` in `~/.config/takip/env`. Sign-in works on that host only. OAuth apps redirect to `https://takip.dev/api/auth/callback/<provider>`. Facebook sign-in is off here (its keys are set empty in `~/.config/takip/env`; set both or neither, or the api won't start); Google and GitHub are on.
 - Quick tunnels didn't carry Server-Sent Events (TI's live run updates); nobody has checked yet whether the named tunnel does.
 - The quick-tunnel script it replaced is `~/.config/takip/tunnel-quick.sh.bak`.
 
