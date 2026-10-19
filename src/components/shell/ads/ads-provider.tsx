@@ -19,7 +19,9 @@ export const useAds = () => useContext(AdsContext);
 
 /** Loads Google's ad script for plans that show ads, and notices when a blocker stops it. */
 export default function AdsProvider({ children }: { children: ReactNode }) {
-  return AD_CLIENT ? <AdsRuntime client={AD_CLIENT}>{children}</AdsRuntime> : children;
+  // An embed sits in a page that runs its own ads; it also mustn't ask the account API about the visitor.
+  const embedded = /^\/embed(\/|$)/.test(usePathname() ?? '');
+  return AD_CLIENT && !embedded ? <AdsRuntime client={AD_CLIENT}>{children}</AdsRuntime> : children;
 }
 
 function AdsRuntime({ client, children }: { client: string; children: ReactNode }) {

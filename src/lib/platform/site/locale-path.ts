@@ -4,7 +4,8 @@ import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from '@/lib/core/i18n/
  * The public reading pages have one URL per language, so search engines can index each: English at /map/…,
  * the others under a prefix, /tr/map/…. The map itself keeps one URL in every language.
  */
-const READING = /^\/(?:map|about)(?:\/|$)/;
+// /embed, the minimal live map the pages frame, takes the page's language too, though it isn't indexed.
+const READING = /^\/(?:map|about|city|country|embed)(?:\/|$)/;
 
 export const isReadingPath = (path: string) => READING.test(path);
 

@@ -7,13 +7,20 @@ import { noteFeed, noteFeedFailure } from '@/lib/core/feed-log';
 import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import type { BackendStatus, LiveData } from './types';
 
-export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpaceWeather, activeLayers, replayActive = false }: {
+// USGS and EMSC, merged server-side.
+const EQ_URL = '/api/earthquakes';
+const eqTransform = (data: { earthquakes?: unknown[] }) => ({ earthquakes: data.earthquakes ?? [] });
+const weatherTransform = (d: { events?: unknown[] }) => ({ weather_events: d.events });
+
+export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpaceWeather, activeLayers, replayActive = false, panels = true }: {
   dataRef: RefObject<LiveData>;
   setDataVersion: Dispatch<SetStateAction<number>>;
   setBackendStatus: Dispatch<SetStateAction<BackendStatus>>;
   setSpaceWeather: Dispatch<SetStateAction<any>>;
   activeLayers: ActiveLayers;
   replayActive?: boolean;
+  /** False for a map with no panels (the embed): no markets or space weather, and earthquakes, news and warnings only while their layer is on. */
+  panels?: boolean;
 }) {
   /* `skipWhenHidden` is for background polling only — skipping a *user-initiated*
      load (a layer toggle, or first paint in a background tab) leaves the caller
@@ -50,16 +57,14 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
 
   // ── PROGRESSIVE DATA LOADING (request-optimized) ──
   useEffect(() => {
+    if (!panels) return;
     // Priority 1: Core feeds (always needed for panels)
-    // USGS and EMSC, merged server-side.
-    const eqUrl = '/api/earthquakes';
-    const eqTransform = (data: { earthquakes?: unknown[] }) => ({ earthquakes: data.earthquakes ?? [] });
-    fetchEndpoint(eqUrl, eqTransform);
+    fetchEndpoint(EQ_URL, eqTransform);
     fetchEndpoint('/api/news', newsTransform);
     /* Official warnings — NOAA/NWS, GDACS, NASA EONET. A core feed rather than
        a layer fetch: Live Alerts lists them whether or not the weather layer
        is on, and this is the one thing in the panel a reader may have to act on. */
-    fetchEndpoint('/api/weather', d => ({ weather_events: d.events }));
+    fetchEndpoint('/api/weather', weatherTransform);
     layerFetchedRef.current.add('weather');
     /* A cold start can time out every upstream quote and return an all-empty
        feed. Waiting a full poll interval to find out leaves the panel blank for
@@ -83,11 +88,11 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
 
     // Polling — OPTIMIZED intervals to minimize edge requests
     const intervals = [
-      setInterval(() => fetchEndpoint(eqUrl, eqTransform, undefined, { skipWhenHidden: true }), 900000),  // 15 min (was 5)
+      setInterval(() => fetchEndpoint(EQ_URL, eqTransform, undefined, { skipWhenHidden: true }), 900000),  // 15 min (was 5)
       // 5 min: the route caches each channel for 3, so Telegram sees at most one read per channel per window however many tabs poll.
       setInterval(() => fetchEndpoint('/api/news', newsTransform, undefined, { skipWhenHidden: true }), 300000),
       // 5 min: a warning that has just been issued is the point of the panel.
-      setInterval(() => fetchEndpoint('/api/weather', d => ({ weather_events: d.events }), undefined, { skipWhenHidden: true }), 300000),
+      setInterval(() => fetchEndpoint('/api/weather', weatherTransform, undefined, { skipWhenHidden: true }), 300000),
       setInterval(() => fetchEndpoint('/api/markets', d => ({ markets: d }), undefined, { skipWhenHidden: true }), 900000), // 15 min (was 5)
     ];
     return () => {
@@ -96,7 +101,24 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       clearTimeout(spaceTimer);
       intervals.forEach(clearInterval);
     };
-  }, [fetchEndpoint]);
+  }, [fetchEndpoint, panels]);
+
+  // Without the panels, the core feeds above load only for the layers that draw them, at the same rates.
+  const quakesOn = !panels && !!activeLayers.earthquakes;
+  const newsOn = !panels && !!activeLayers.alert_pins;
+  const warningsOn = !panels && !!activeLayers.weather;
+  useEffect(() => {
+    const feeds = [
+      quakesOn && { url: EQ_URL, transform: eqTransform, every: 900_000 },
+      newsOn && { url: '/api/news', transform: newsTransform, every: 300_000 },
+      warningsOn && { url: '/api/weather', transform: weatherTransform, every: 300_000 },
+    ].filter(f => !!f);
+    // The layer loader below would fetch the warnings a second time.
+    if (warningsOn) layerFetchedRef.current.add('weather');
+    feeds.forEach(f => fetchEndpoint(f.url, f.transform));
+    const intervals = feeds.map(f => setInterval(() => fetchEndpoint(f.url, f.transform, undefined, { skipWhenHidden: true }), f.every));
+    return () => intervals.forEach(clearInterval);
+  }, [quakesOn, newsOn, warningsOn, fetchEndpoint]);
 
   // ── LAYER-AWARE DATA LOADING — only fetch when layer is toggled ON ──
   const layerFetchedRef = useRef<Set<string>>(new Set());

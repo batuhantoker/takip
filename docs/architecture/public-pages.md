@@ -13,6 +13,7 @@ How TAKIP shows up in search results and link previews. Built 2026-10-19. The ma
 | `/about` | Why TAKIP exists, in plain words, beside a wall of four pictures. | `app/about/page.tsx` |
 | `/tr/…`, `/ja/…` | Every reading page in nine more languages (below). | `src/proxy.ts` |
 | `/shots/<slug>.jpg` | The pictures of the map the pages lead with. | `app/shots/[file]/route.ts` |
+| `/embed/<slug>`, `/embed?…` | A minimal live map of a page's layers, framed in its picture; noindex. | `app/embed/`, docs/architecture/embeds.md |
 | `/robots.txt`, `/sitemap.xml` | Generated. Crawlers stay out of `/api/`, `/admin`, `/design` and `/w/`. | `app/robots.ts`, `app/sitemap.ts` |
 
 Every page carries schema.org JSON-LD for the site (`site-copy.ts`), and layer pages add a breadcrumb trail.
@@ -30,6 +31,8 @@ Canonical links, the sitemap and preview images need the site's public origin. `
 - `layers` replaces the map's whole set when the link opens (`use-startup.ts`), so `mapHref` adds the quiet display layers (day and night, the sky, the SDK lines) to any it names. A page that names none (History, Space, the tools) leaves the visitor's own layers alone.
 
 ## Pictures
+
+On pages with an embed (`hasEmbed`: layers on today's map at a view), the picture turns into the live map: on a wide screen once it scrolls into view, on a phone only when the reader taps "Explore it here", since it loads the whole map's code (`LiveWindow`). Until it has loaded, the picture links into the full map.
 
 Each page leads with a picture of the map: its own "Open on the map" link, taken in headless Chrome with the interface hidden, so it reads the same in every language (`MapWindow`; the whole picture links into the live map). `nice npx tsx tools/site/shots.ts` takes them against the running app (`--only slug,slug`, `--force` to retake, about 25 minutes for all), answering the map-time and usage calls itself so the run spends no one's minutes and leaves nothing in the analytics. They go to `.cache/site-shots/` (`SITE_SHOTS_DIR`), outside git, so a server needs its own run or a copy. A page without one shows a sketch of the world with its places marked. Retake a page's picture when its layer changes how it looks.
 

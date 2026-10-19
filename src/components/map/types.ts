@@ -42,6 +42,10 @@ export interface WorldMapProps {
   flyToLocation?: { lat: number; lng: number; zoom?: number; alertId?: string; duration?: number; offset?: [number, number]; onArrive?: () => void; ts: number } | null;
   /** Fires once, when the map has drawn its first complete frame. */
   onReady?: () => void;
+  /** MapLibre options over createMap's own, read once when the map is built. */
+  mapOptions?: Partial<maplibregl.MapOptions>;
+  /** False leaves out the right-click menu (the embed). */
+  contextMenu?: boolean;
   /** Replay mode: ships and aircraft drawn at this session's clock instead of live. */
   replay?: ReplaySession | null;
   /** The clock button in the map controls. */

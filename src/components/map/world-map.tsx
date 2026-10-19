@@ -94,7 +94,7 @@ import './map-popup.css';
 const NO_FAMILIES: readonly string[] = [];
 const QUAKES: readonly string[] = ['hazard'];
 
-function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], imageryRequest = null, drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, onGlobeLink, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, onAiGlobe, onAiSelect, onAiHover, onAiFollow, aiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, mapOptions, contextMenu = true, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], imageryRequest = null, drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, onGlobeLink, route = null, userLocation = null, followUser = false, onFollowInterrupt, navigating = false, onAiGlobe, onAiSelect, onAiHover, onAiFollow, aiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -176,7 +176,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
     if (!containerRef.current || mapRef.current) return;
     
     const container = containerRef.current;
-    const map = createMap(container);
+    const map = createMap(container, mapOptions);
     if (!map) return;
 
     map.on('load', () => {
@@ -395,7 +395,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
       )}
       {mapReady && <SelectionRings mapRef={mapRef} />}
       {mapReady && <TrackNotice />}
-      {mapMenu && (
+      {contextMenu && mapMenu && (
         <MapMenu at={mapMenu} onClose={() => setMapMenu(null)}
           onDossier={at => onRightClick?.({ lat: at.lat, lng: at.lng })} onImagery={at => setImagery({ target: { lat: at.lat, lng: at.lng }, key: `${at.lat},${at.lng}` })} />
       )}

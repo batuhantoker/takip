@@ -39,6 +39,7 @@ export function earthquakePopupHtml(p: FeatureProps, coords: number[]): string {
     title: t('Magnitude {magnitude}', { magnitude: String(p.magnitude) }),
     subtitle: p.place || t('Unknown location'),
     rows: [
+      Number.isFinite(Number(p.time)) && { label: t('When'), value: `${new Date(Number(p.time)).toLocaleString(activeIntl(), { timeZone: 'UTC', dateStyle: 'medium', timeStyle: 'short' })} UTC`, mono: true },
       { label: t('Depth'), value: num(p.depth, 0, ' km'), mono: true },
       { label: t('Location'), value: popCoords(coords[1], coords[0]), mono: true },
       // A twin credited to the same network is the same solution, not a second opinion.

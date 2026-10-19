@@ -48,6 +48,7 @@ export function SiteFrame({ t, path, trail = [], children }: {
         <footer className="mt-24 grid gap-8 border-t border-line pt-8 text-[13px] leading-relaxed text-ink-3 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <div>
             <p className="max-w-[36rem]">{t('TAKIP is a free live map of public data: flights, ships, satellites, cameras, weather, earthquakes and news, gathered onto one map.')}</p>
+            <p className="mt-2 max-w-[36rem] text-[12px]">{t('Places from GeoNames (CC BY 4.0), with names from Wikidata.')}</p>
             <nav aria-label={t('More from TAKIP')} className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
               {footer.map(l => <Link key={l.href} href={l.href} className={cx('hover:text-ink-1', FOCUS_RING)}>{l.label}</Link>)}
             </nav>

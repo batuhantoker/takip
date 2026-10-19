@@ -1,10 +1,11 @@
 import * as maplibregl from 'maplibre-gl';
 import type { RefObject } from 'react';
-import { activeIntl, t } from '@/lib/core/i18n/active';
+import { activeIntl, activeLocale, t } from '@/lib/core/i18n/active';
+import { getWikiLanguage } from '@/lib/core/wikipedia/language';
 import { BASEMAP_SOURCE } from '@/lib/map/basemap/provider';
+import { CLASS_LABEL } from '@/lib/places/labels/classes';
 import { KIND_LABEL, kindOf, namesOf } from '@/lib/places/labels/wiki';
-import { placePopupHtml, type PlaceInfo } from '@/lib/places/labels/place-popup';
-import type { WikiSummary } from '@/lib/core/wikipedia/summary';
+import { placePopupHtml, type PlaceArticle, type PlaceInfo } from '@/lib/places/labels/place-popup';
 
 /** How near a label, in pixels, a click has to land. */
 const HIT_PX = 4;
@@ -20,18 +21,24 @@ interface PlacePickDeps {
   claimed: (e: maplibregl.MapMouseEvent) => boolean;
 }
 
-const humanize = (v: unknown) => (typeof v === 'string' ? v.replace(/_/g, ' ') : '');
+/** The tile's class in the reader's language; one outside CLASS_LABEL is OpenStreetMap's English word, so only English shows it. */
+function classWord(sourceLayer: string | undefined, cls: unknown): string | undefined {
+  if (typeof cls !== 'string' || !cls) return undefined;
+  const label = CLASS_LABEL[sourceLayer ?? '']?.[cls];
+  if (label) return t(label);
+  return activeLocale() === 'en' ? cls.replace(/_/g, ' ') : undefined;
+}
 
 function detailOf(sourceLayer: string | undefined, p: Record<string, unknown>): string | undefined {
   if (sourceLayer === 'mountain_peak') return typeof p.ele === 'number' ? `${p.ele.toLocaleString(activeIntl())} m` : undefined;
-  if (sourceLayer === 'aerodrome_label') return [p.iata, p.icao, humanize(p.class)].filter(Boolean).join(' · ');
-  if (sourceLayer === 'poi') return humanize(p.subclass && p.subclass !== p.class ? p.subclass : p.class);
-  return humanize(p.class) || undefined;
+  if (sourceLayer === 'aerodrome_label') return [p.iata, p.icao, classWord(sourceLayer, p.class)].filter(Boolean).join(' · ');
+  if (sourceLayer === 'poi') return classWord(sourceLayer, p.subclass && p.subclass !== p.class ? p.subclass : p.class);
+  return classWord(sourceLayer, p.class);
 }
 
 /**
- * Click a place name on the base map for its Wikipedia lead. The tiles carry
- * no Wikidata ids, so /api/map/wiki finds the article by name near the label.
+ * Click a place name on the base map for its Wikipedia lead, in the reader's Wikipedia when it has the
+ * article. The tiles carry no Wikidata ids, so /api/map/wiki finds the article by name near the label.
  */
 export function attachPlacePick(map: maplibregl.Map, { popupRef, claimed }: PlacePickDeps): PlacePick {
   let lookup: AbortController | null = null;
@@ -57,10 +64,11 @@ export function attachPlacePick(map: maplibregl.Map, { popupRef, claimed }: Plac
     const names = namesOf(props);
     const at = hit.geometry.type === 'Point' ? maplibregl.LngLat.convert(hit.geometry.coordinates as [number, number]) : e.lngLat;
     const place: PlaceInfo = { name: names[0], kind: t(KIND_LABEL[kind]), detail: detailOf(hit.sourceLayer, props) };
+    const lang = getWikiLanguage();
 
     popupRef.current?.remove();
     const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '340px', offset: 10 })
-      .setLngLat(at).setHTML(placePopupHtml(place, { state: 'loading' })).addTo(map);
+      .setLngLat(at).setHTML(placePopupHtml(place, { state: 'loading' }, lang)).addTo(map);
     popupRef.current = popup;
     const ctrl = lookup = new AbortController();
     popup.on('close', () => {
@@ -68,15 +76,15 @@ export function attachPlacePick(map: maplibregl.Map, { popupRef, claimed }: Plac
       if (popupRef.current === popup) popupRef.current = null;
     });
 
-    const qs = new URLSearchParams({ lat: at.lat.toFixed(5), lon: at.lng.toFixed(5), kind });
+    const qs = new URLSearchParams({ lat: at.lat.toFixed(5), lon: at.lng.toFixed(5), kind, lang });
     for (const n of names) qs.append('n', n);
     fetch(`/api/map/wiki?${qs}`, { signal: ctrl.signal })
-      .then(r => (r.ok ? r.json() as Promise<WikiSummary> : null))
+      .then(r => (r.ok ? r.json() as Promise<PlaceArticle> : null))
       .then(summary => {
-        if (!ctrl.signal.aborted) popup.setHTML(placePopupHtml(place, summary ? { state: 'found', summary } : { state: 'none' }));
+        if (!ctrl.signal.aborted) popup.setHTML(placePopupHtml(place, summary ? { state: 'found', summary } : { state: 'none' }, lang));
       })
       .catch(() => {
-        if (!ctrl.signal.aborted) popup.setHTML(placePopupHtml(place, { state: 'none' }));
+        if (!ctrl.signal.aborted) popup.setHTML(placePopupHtml(place, { state: 'none' }, lang));
       });
   };
 

@@ -7,7 +7,7 @@ import type { LayerHookArgs } from '@/components/map/types';
 export function useEarthquakeLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('earthquakes', activeLayers.earthquakes && data.earthquakes ? data.earthquakes.map((eq: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [eq.lng, eq.lat] }, properties: { id: eq.id, magnitude: eq.magnitude, place: eq.place, depth: eq.depth, source: eq.source, url: eq.url, network: eq.network, twin_source: eq.twin?.source, twin_magnitude: eq.twin?.magnitude, twin_network: eq.twin?.network } })) : []);
+    setGeo('earthquakes', activeLayers.earthquakes && data.earthquakes ? data.earthquakes.map((eq: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [eq.lng, eq.lat] }, properties: { id: eq.id, magnitude: eq.magnitude, place: eq.place, depth: eq.depth, time: eq.time, source: eq.source, url: eq.url, network: eq.network, twin_source: eq.twin?.source, twin_magnitude: eq.twin?.magnitude, twin_network: eq.twin?.network } })) : []);
   }, [mapReady, data.earthquakes, activeLayers.earthquakes, setGeo]);
 }
 
@@ -37,9 +37,11 @@ export function useIncidentLayers({ mapReady, data, activeLayers, setGeo }: Laye
   }, [mapReady, data.gdelt_events, (activeLayers as any).gdelt_events, setGeo]);
 }
 
-export function useConflictZones({ mapReady, setGeo }: Pick<LayerHookArgs, 'mapReady' | 'setGeo'>) {
+export function useConflictZones({ mapReady, activeLayers, setGeo }: Pick<LayerHookArgs, 'mapReady' | 'activeLayers' | 'setGeo'>) {
+  // Shown unless set false (use-layer-visibility.ts); only the embed does.
+  const off = activeLayers.conflict_zones === false;
   useEffect(() => {
-    if (!mapReady) return;
+    if (!mapReady || off) return;
     // 🔴 CONFLICT ZONES - Live from /api/conflicts 🔴
     let cancelled = false;
     (async () => {
@@ -97,5 +99,5 @@ export function useConflictZones({ mapReady, setGeo }: Pick<LayerHookArgs, 'mapR
       }
     })();
     return () => { cancelled = true; };
-  }, [mapReady, setGeo]);
+  }, [mapReady, off, setGeo]);
 }

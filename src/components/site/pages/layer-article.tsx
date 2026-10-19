@@ -5,10 +5,12 @@ import AdSlot from '@/components/shell/ads/ad-slot';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { AD_SLOTS } from '@/lib/platform/ads';
+import { embedPath, hasEmbed } from '@/lib/platform/site/embed';
 import { openPath, pagePath, type LayerPage } from '@/lib/platform/site/layer-pages';
 import type { LiveLine } from '@/lib/platform/site/live/lines';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { sectionIn, type SiteText } from '@/lib/platform/site/text';
+import { LiveWindow } from './live-window';
 import { MapWindow } from './map-window';
 import { PageCard } from './page-card';
 import { SECTION_ICON } from './section-icon';
@@ -59,8 +61,12 @@ export function LayerArticle({ text, page, image, live, related }: {
             </div>
           )}
         </div>
-        <MapWindow href={open} image={image} alt={page.heading} cta={t('Open the live map')} badge={live ? t('Live') : undefined}
-          points={(page.spots ?? []).map(s => s.view)} priority />
+        {hasEmbed(page)
+          ? <LiveWindow src={localePath(text.locale, embedPath(page.slug))} href={open} image={image} alt={page.heading}
+              cta={t('Open the live map')} explore={t('Explore it here')} badge={live ? t('Live') : undefined}
+              fallback={<WorldSketch points={(page.spots ?? []).map(s => s.view)} />} />
+          : <MapWindow href={open} image={image} alt={page.heading} cta={t('Open the live map')} badge={live ? t('Live') : undefined}
+              points={(page.spots ?? []).map(s => s.view)} priority />}
       </header>
 
       <div className="mt-20 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">

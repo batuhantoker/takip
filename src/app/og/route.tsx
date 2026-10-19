@@ -5,6 +5,7 @@ import { DEFAULT_LOCALE, isLocale, type Locale } from '@/lib/core/i18n/locales';
 import { getT } from '@/lib/core/i18n/request';
 import { ABOUT } from '@/lib/platform/site/about-copy';
 import { layerPage } from '@/lib/platform/site/layer-pages';
+import { placeCard } from '@/lib/platform/site/places/card';
 import { ogFontFamily, ogFonts } from '@/lib/platform/site/og-fonts';
 import { describeView } from '@/lib/platform/site/share-view';
 import { shotFile } from '@/lib/platform/site/shots';
@@ -58,12 +59,20 @@ async function picture(slug: string | undefined): Promise<{ uri: string; version
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const pageParam = params.get('page');
+  const placeParam = params.get('place');
   const langParam = params.get('lang');
 
   let card: Card;
   let locale: Locale;
   let key: string;
-  if (pageParam && /^[a-z0-9-]{1,64}$/.test(pageParam)) {
+  if (placeParam && /^[a-z]+\/[a-z0-9-]{1,80}(?:\/[a-z0-9-]{1,64})?$/.test(placeParam)) {
+    // Place pages (lib/platform/site/places) draw their own card's words; only the picture and layout are ours.
+    locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
+    const found = placeCard(placeParam, (await siteText(locale)).t);
+    if (!found) return new Response('Not found', { status: 404 });
+    card = found;
+    key = `place:${placeParam}:${locale}`;
+  } else if (pageParam && /^[a-z0-9-]{1,64}$/.test(pageParam)) {
     locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
     const found = await readingCard(pageParam, locale);
     if (!found) return new Response('Not found', { status: 404 });
@@ -84,11 +93,11 @@ export async function GET(req: Request) {
   // Drawing is CPU work on a small machine; cached cards above stay free.
   if (isRateLimited(`og:${getClientIp(req)}`, 30)) return new Response('Too many requests', { status: 429 });
 
+  const english = async () => (placeParam ? placeCard(placeParam, (await siteText(DEFAULT_LOCALE)).t) : pageParam ? await readingCard(pageParam, DEFAULT_LOCALE) : null);
   // A script Geist can't draw needs a font fetched for it; without one, the card is drawn in English.
   let fonts = await ogFonts(locale, `${card.kicker}${card.title}${card.subtitle}TAKIP`);
   if (fonts === null) {
-    const english = pageParam ? await readingCard(pageParam, DEFAULT_LOCALE) : null;
-    if (english) card = english;
+    card = (await english()) || card;
     fonts = undefined;
   }
   const draw = (c: Card, withFonts: typeof fonts) => new ImageResponse(
@@ -97,7 +106,7 @@ export async function GET(req: Request) {
     { ...OG_SIZE, ...(withFonts ? { fonts: withFonts } : {}) },
   ).arrayBuffer();
   // Satori can't lay out every script (Arabic among them); a card in English beats no card.
-  const png = await draw(card, fonts).catch(async () => draw((pageParam && await readingCard(pageParam, DEFAULT_LOCALE)) || card, undefined));
+  const png = await draw(card, fonts).catch(async () => draw((await english()) || card, undefined));
   if (cache.size >= MAX_CACHED) cache.delete(cache.keys().next().value!);
   cache.set(key, png);
   return new Response(png, { headers: HEADERS });

@@ -1,0 +1,52 @@
+import type { Translate } from '@/lib/core/i18n/translator';
+import type { PanelLink, ViewModeLink } from '@/lib/map/view-mode-link';
+import type { MapView } from '../map-link';
+import type { Place, PlaceKind } from './place';
+
+/**
+ * A topic is what a place page is about: transit, cameras, hiking, earthquakes over a century. Each lives in two
+ * files, because src/lib can't import components: this module in lib/platform/site/places/topics/<id>.ts, and
+ * its body in components/site/places/topics/<id>-body.tsx. Both are listed in their folder's registry.
+ *
+ * Everything a page says has to be true of TAKIP's data, and specific to the place: a page that reads the same
+ * for every city is the copy-paste that search engines mark the whole site down for.
+ */
+export interface PlaceTopic<D = unknown, L = unknown> {
+  id: string;
+  /** What the topic is called in the overview's links, as msg(). */
+  label: string;
+  kinds: readonly PlaceKind[];
+  /**
+   * The topic's pages for a place, with the data each renders; [] when there is nothing real to say. Must be cheap
+   * and offline (read the topic's table): the sitemap and the "nearby" cards call it for thousands of places.
+   */
+  pages(place: Place): TopicPage<D>[];
+  header(place: Place, page: TopicPage<D>, t: Translate): PlaceCopy;
+  /** One line for the place's overview, naming what this page holds there. */
+  summary(place: Place, page: TopicPage<D>, t: Translate): string;
+  /** Where "Open the live map" lands. */
+  open(place: Place, page: TopicPage<D>): MapLink;
+  /** What is true right now, fetched when the page renders, over loopback (live/own-api.ts); null leaves it out. */
+  live?(place: Place, page: TopicPage<D>, t: Translate): Promise<L | null>;
+}
+
+export interface TopicPage<D = unknown> {
+  /** The URL segment, /city/<place>/<slug>. Unique among a place's pages. */
+  slug: string;
+  data: D;
+  /** Enough real data to be worth a search result. A page below it still renders, with noindex, and stays out of the sitemap. */
+  index: boolean;
+}
+
+/** The <title> (up to 60 characters), meta description (110 to 160), heading and lede. */
+export interface PlaceCopy { title: string; description: string; heading: string; lede: string }
+
+export interface MapLink {
+  /** Switched on, replacing the visitor's set; leave out to keep theirs (a History or Space page). */
+  layers?: string[];
+  /** Defaults to the place at `zoom`. */
+  view?: MapView;
+  zoom?: number;
+  mode?: ViewModeLink;
+  panel?: PanelLink;
+}

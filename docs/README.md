@@ -11,7 +11,9 @@
 |---|---|
 | [`cctv-adding-sources.md`](cctv-adding-sources.md) | Adding or fixing a camera source |
 | [`architecture/code-map.md`](architecture/code-map.md) | What each src/lib domain, component group and API route family holds, and who uses it |
+| [`architecture/embeds.md`](architecture/embeds.md) | The live map the public pages frame: `/embed/<slug>` and `/embed?…`, the spec a URL carries, past windows (earthquakes over any area and period) and how it scales to place-and-period pages |
 | [`architecture/public-pages.md`](architecture/public-pages.md) | What search engines and link previews see: share-link metadata, the `/map` layer pages, `/about`, the site address |
+| [`architecture/place-pages.md`](architecture/place-pages.md) | City and country pages (`/city/cincinnati/transit`): the gazetteer, topic tables, how to add a topic, what gets indexed |
 | [`space-view.md`](space-view.md) | The space view: what is built, decisions, where the code is, what is left |
 | [`data-sources.md`](data-sources.md) | Candidate public data sources, and how to choose one |
 | [`inspiration-sources/`](inspiration-sources/README.md) | Sources and features surveyed in World Monitor, Provenance, Argus, God's Eye View and NASA Worldview |

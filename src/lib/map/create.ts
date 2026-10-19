@@ -2,7 +2,8 @@ import * as maplibregl from 'maplibre-gl';
 
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY;
 
-export function createMap(container: HTMLDivElement): maplibregl.Map | undefined {
+/** `overrides` replace the defaults below; the embed opens at its own view with cooperative gestures. */
+export function createMap(container: HTMLDivElement, overrides: Partial<maplibregl.MapOptions> = {}): maplibregl.Map | undefined {
   // CARTO's Dark Matter look over OpenFreeMap tiles; CARTO's own tiles are the alternative (lib/map/basemap).
   const styleUrl = '/dark-matter-style.json';
 
@@ -15,7 +16,6 @@ export function createMap(container: HTMLDivElement): maplibregl.Map | undefined
      planet. This used to open on Bulgaria at zoom 6.5 for everyone. */
   const facingLng = Math.max(-180, Math.min(180, -new Date().getTimezoneOffset() / 4));
   const baseOptions = {
-    container,
     style: styleUrl,
     center: [facingLng, 20] as [number, number], zoom: 1.8, minZoom: 1.5, maxZoom: 18,
     /* The basemap is drawn from OpenStreetMap, and the places on it are searched
@@ -33,6 +33,8 @@ export function createMap(container: HTMLDivElement): maplibregl.Map | undefined
       }
       return { url };
     },
+    ...overrides,
+    container,
   };
 
   // MapLibre asks for a high-performance WebGL2 context and throws outright if it

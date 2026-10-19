@@ -10,6 +10,8 @@ Edited by Batuhan. 2026-10-16. Clear the title number and delete this time next 
 
 In order. "(you)" marks the user's own steps.
 
+## Easy win for transit, if we have the route show the user the route. showing the route with the stops
+
 ### 1.0 A new name
 1. (you) Make a Cloudflare token with Account → Registrar (Edit), and save it with the account ID in `~/.config/cloudflare/registrar.env`.
 2. Check the shortlist with the Registrar `domain-check` API, which shows price and premium tier. `domain-search` gives more ideas.
@@ -112,15 +114,16 @@ Chosen by the user on 2026-10-15. Details are in [`inspiration-sources/gods-eye-
 3. **Map looks:** night vision, thermal, noir and snow, opt-in and on the map only (design rule added 2026-10-15). Later.
 
 ### 1.7 Being found
-Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages under `/map` (layers, History and deep time, the Space view, Replay and the tools), an `/about` page, and a generated robots.txt and sitemap, each page in ten languages at its own URL (`/tr/map/…`) and leading with a picture of the map ([`architecture/public-pages.md`](architecture/public-pages.md)). Links open History at a year, deep time, Space at a body, Replay or a panel (`?view=…`, `?panel=…`). City, country and time-range pages and guides: being built by another session (2026-10-19); `/embed/<slug>`, a minimal live map for the pages: likewise.
+Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages under `/map` (layers, History and deep time, the Space view, Replay and the tools), an `/about` page, and a generated robots.txt and sitemap, each page in ten languages at its own URL (`/tr/map/…`) and leading with a picture of the map ([`architecture/public-pages.md`](architecture/public-pages.md)). Links open History at a year, deep time, Space at a body, Replay or a panel (`?view=…`, `?panel=…`). City and country pages, also since 2026-10-19: `/city/<place>/<topic>` for transit, cameras, flights and weather across 31,762 GeoNames places, 24.7k of them indexed, and `/country/<place>` listing its places ([`architecture/place-pages.md`](architecture/place-pages.md)); more topics and time-range pages are being added in parallel, and guides are being written. The pages' live map is `/embed/<slug>`, and any place, layers and period is `/embed?…` ([`architecture/embeds.md`](architecture/embeds.md)), with earthquakes over any area and window.
 1. (you) Once the domain is bought (1.0): set `SITE_URL`, verify the domain in Google Search Console and Bing Webmaster Tools, and submit `/sitemap.xml`. Nothing can rank on the rotating tunnel link.
 2. More History pages, one per era people search for (the Cold War, 1492, the Mongol Empire, the British Empire at its height), and a `&layer=` parameter so a link can open History with a border layer on, such as World War II in Europe.
-3. Camera pages per city (`/cameras/<city>`), since "live cam <city>" is a big search. Group the catalogue by `city` and `country` (mixed names and codes today) on the server, and index only cities with enough working cameras.
+3. Camera sources where people search and the catalogue has none. "nevşehir kameraları izle" finds no page: there is no camera within 60 km of Nevşehir, and Kayseri's 42 are off air. Cappadocia's public webcams (Göreme's balloon streams) would give it one.
 4. Earthquake pages (`/quakes/<usgs id>`), only if they add what USGS's own page lacks (cameras, flights and ships near the epicentre); otherwise they are thin copies.
-5. Embeds: `/embed/<layer>` for blogs and news sites, which earns links back.
+5. Embeds, next (`architecture/embeds.md`, Scaling out): a place table (admin-0 and admin-1 boxes and names in ten languages, Natural Earth) for place-and-period pages; more windowed layers (FIRMS, IBTrACS, `history.db`'s events); "Open the full map" from a windowed embed opening the map on that window; `/tr/embed/…` following the page's language; then other sites (`frame-ancestors` on `/embed` only), which earns links back.
 6. Share cards in Arabic: Satori can't lay out Arabic, so `/og` draws them in English.
 7. Outreach: Show HN, r/MapPorn, r/space, r/aurora, r/OSINT, and short screen recordings of the globe. Measure with the referrers in Admin → Analytics and Search Console's queries.
 8. (you) Visitors from search get the anonymous 15 minutes a day of map time. Decide whether a first visit should get more.
+9. Pictures for place pages: `tools/site/shots.ts` shoots the layer pages, and place pages show the world sketch. Shoot the few hundred biggest indexed places, not all 24k.
 
 ### 1.8 Languages
 Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/README.md`, Language).
