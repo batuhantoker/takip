@@ -40,7 +40,7 @@ export default function AdblockNotice() {
 
   return (
     <div role="dialog" aria-labelledby="adblock-title" data-hud
-      className={cx('fixed right-[62px] bottom-[calc(var(--shell-bottom,28px)+12px)] z-[900] w-[min(380px,calc(100vw-88px))] rounded-float border border-line bg-surface-1 p-4 shadow-float max-md:right-3 max-md:bottom-[calc(var(--shell-bottom,56px)+12px+env(safe-area-inset-bottom))]', ENTER, 'starting:translate-y-1')}>
+      className={cx('fixed right-[var(--beside-controls,62px)] bottom-[calc(var(--shell-bottom,var(--shell-foot,28px))+12px)] z-[900] w-[min(380px,calc(100vw-88px))] rounded-float border border-line bg-surface-1 p-4 shadow-float max-md:right-3 max-md:bottom-[calc(var(--shell-bottom,56px)+12px+env(safe-area-inset-bottom))]', ENTER, 'starting:translate-y-1')}>
       <div className="flex items-start gap-3">
         <Heart className="mt-0.5 size-4 shrink-0 text-ink-3" strokeWidth={1.75} aria-hidden />
         <div className="min-w-0 flex-1">

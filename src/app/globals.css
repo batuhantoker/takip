@@ -390,11 +390,22 @@ html:has(.admin-root) body {
 .maplibregl-map .maplibregl-ctrl button:focus { box-shadow: none; }
 .maplibregl-map .maplibregl-ctrl button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* Attribution is on by design (map-create.ts, issue #16): a collapsed info
-   button just left of the map controls (12 px margin + 38 px capsule + 8 px),
-   level with their foot; the top-right belongs to the inspect card. */
-.maplibregl-map .maplibregl-ctrl-bottom-right { top: auto; bottom: calc(var(--shell-bottom, 28px) + 12px); right: 58px; z-index: 241; }
-.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib {
+/* Cards parked beside the map controls (the ad-block note, Style studio) keep clear of
+   them only while the person keeps the controls in the bottom-right corner. */
+:root { --beside-controls: 12px; }
+:root:has([data-corner="bottom-right"] [data-map-cluster]) { --beside-controls: 62px; }
+
+/* Attribution is on by design (map/create.ts, issue #16): MapCredits mounts MapLibre's
+   control in a 24 px box beside the map controls, which keeps its place in their corner.
+   The box carries that corner's maplibregl-ctrl-* class, so the opened credits spread
+   over the map from the corner side and MapLibre puts the button on that side. */
+.map-credits.map-credits { position: relative; width: 24px; height: 24px; pointer-events: auto; z-index: 1; }
+.map-credits.map-credits > .maplibregl-ctrl { position: absolute; float: none; }
+.map-credits.maplibregl-ctrl-bottom-right > .maplibregl-ctrl { right: 0; bottom: 0; }
+.map-credits.maplibregl-ctrl-bottom-left > .maplibregl-ctrl { left: 0; bottom: 0; }
+.map-credits.maplibregl-ctrl-top-right > .maplibregl-ctrl { right: 0; top: 0; }
+.map-credits.maplibregl-ctrl-top-left > .maplibregl-ctrl { left: 0; top: 0; }
+.map-credits .maplibregl-ctrl.maplibregl-ctrl-attrib {
   margin: 0;
   padding: 2px 8px;
   font-family: var(--font-body);
@@ -405,19 +416,19 @@ html:has(.admin-root) body {
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
 }
-.maplibregl-map .maplibregl-ctrl-attrib a { color: var(--ink-2); }
-.maplibregl-map .maplibregl-ctrl-attrib a:hover { color: var(--ink-1); }
-.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact {
+.map-credits .maplibregl-ctrl-attrib a { color: var(--ink-2); }
+.map-credits .maplibregl-ctrl-attrib a:hover { color: var(--ink-1); }
+.map-credits .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact {
   min-height: 24px;
   max-width: min(380px, calc(100vw - 24px));
   padding: 3px 28px 3px 8px;
   border-radius: 12px;
 }
-.maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) {
+.map-credits .maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) {
   padding: 0;
   min-width: 24px;
 }
-.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button {
+.map-credits .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button {
   top: 0;
   right: 0;
   width: 24px;
@@ -426,10 +437,15 @@ html:has(.admin-root) body {
   background-color: transparent;
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23A4AAB2' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='6.5'/%3E%3Cpath d='M12 11.25v3.5M12 9h.01'/%3E%3C/svg%3E");
 }
-.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button { background-color: var(--surface-3); }
-.maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button:hover { background-color: var(--surface-2); }
-/* Out in space the map and its credits are hidden behind the scene. */
-[data-in-space] .maplibregl-map .maplibregl-ctrl-bottom-right { display: none; }
+.map-credits .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-button { background-color: var(--surface-3); }
+.map-credits .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button:hover { background-color: var(--surface-2); }
+.map-credits .maplibregl-ctrl-attrib-button:focus { box-shadow: none; }
+.map-credits .maplibregl-ctrl-attrib-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* On the left of the controls the button sits on its left, and the credits open rightward. */
+.map-credits.maplibregl-ctrl-bottom-left > .maplibregl-ctrl-attrib.maplibregl-compact,
+.map-credits.maplibregl-ctrl-top-left > .maplibregl-ctrl-attrib.maplibregl-compact { padding: 3px 8px 3px 28px; }
+.map-credits.maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button,
+.map-credits.maplibregl-ctrl-top-left .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button { left: 0; right: auto; }
 
 /* ── Camera and news previews on the map ── */
 .cctv-tile {
@@ -498,8 +514,6 @@ path.ai-graph-in { animation: ai-edge-in 0.9s ease-out both; }
 @media (max-width: 768px) {
   :root { --edge-pad: 8px; --panel-gap: 6px; }
   .maplibregl-map .maplibregl-popup { max-width: min(320px, calc(100vw - 24px)) !important; }
-  /* Beside the phone's map controls (12 px + 42 px capsule + 8 px), level with their foot. */
-  .maplibregl-map .maplibregl-ctrl-bottom-right { right: 62px; bottom: calc(var(--shell-bottom, 56px) + 12px + env(safe-area-inset-bottom)); }
 }
 
 @media (max-width: 390px) {

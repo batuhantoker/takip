@@ -14,7 +14,7 @@ export function ExpandedView({ onExit, rail, footer, children }: {
   children: ReactNode;
 }) {
   const node = (
-    <div className="fixed top-0 right-0 bottom-7 left-[72px] z-[1200] flex justify-center p-4">
+    <div className="fixed top-0 right-0 bottom-[var(--shell-foot,28px)] left-[72px] z-[1200] flex justify-center p-4">
       <div aria-hidden className="absolute inset-0 bg-surface-0/70" onClick={onExit} />
       <Panel
         title="Recon"

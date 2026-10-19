@@ -5,6 +5,7 @@ import { Map as MapIcon, Moon, Mountain, Satellite } from 'lucide-react';
 import { Popover } from '@/components/ui/popover';
 import { cx, FOCUS_RING, TRANSITION, type IconType } from '@/components/ui/class-names';
 import type { MapStyle } from '@/components/shell/state/types';
+import { towardMiddle, type Corner } from '@/components/shell/layout/lib/model';
 import StyleStudio from '@/components/shell/map-look/style-studio';
 import { countAction } from '@/lib/platform/usage-actions';
 import { ClusterButton } from './cluster-button';
@@ -60,18 +61,21 @@ export function BaseMapPicker({ mapStyle, setMapStyle, labelledBy }: {
  * The base map: three big choices, and under them how the map is drawn
  * (day and night, 3D, theme, tile provider), which `options` brings.
  */
-export function BaseMapButton({ mapStyle, setMapStyle, options, touch }: {
+export function BaseMapButton({ mapStyle, setMapStyle, options, touch, corner = 'bottom-right' }: {
   mapStyle: MapStyle;
   setMapStyle: Dispatch<SetStateAction<MapStyle>>;
   /** Rendered under the swatches; given `openStudio` to hand over to the Style Studio. */
   options?: (openStudio: () => void, close: () => void) => ReactNode;
   touch: boolean;
+  /** Where the controls sit, so the menu opens toward the middle of the map. */
+  corner?: Corner;
 }) {
   const [studio, setStudio] = useState(false);
+  const menu = towardMiddle(corner);
   const labelId = useId();
   return (
     <>
-      <Popover label="Base map and options" placement="left" align="end" className="w-[296px] p-3"
+      <Popover label="Base map and options" placement={menu.sideways} align={menu.alongEdge} className="w-[296px] p-3"
         trigger={<ClusterButton label="Base map and options" touch={touch}><MapIcon aria-hidden className="size-4" strokeWidth={1.75} /></ClusterButton>}>
         {close => (
           <>

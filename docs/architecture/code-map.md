@@ -77,7 +77,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `places/areas/` | Areas of interest: drawing, watch rules, AOI export, geoBoundaries outlines | panels/areas, map/interaction, shell/showing; api/boundaries; lib platform/workspaces, feeds/imagery |
 | `places/route/` | Route planning and turn-by-turn | panels/route |
 | `places/labels/` | A labelled place on the base map: matching it to its Wikipedia article, and its popup | map/interaction; api/map |
-| `places/` root | Nominatim, country centroids, recent places, landing cities | panels/route, shell/search, shell/state; api/health, api/outbreaks, api/cloudflare-radar, region-dossier; lib intel, map/splash, platform/workspaces, ai |
+| `places/` root | Nominatim, country centroids, recent places, landing cities, the place under the pointer (`pointer-place.ts`) | panels/route, shell/search, shell/state, shell/status-bar, map/inspect; api/health, api/outbreaks, api/cloudflare-radar, region-dossier; lib intel, map/splash, platform/workspaces, ai |
 
 ## src/components
 
@@ -85,7 +85,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 |---|---|---|---|
 | `panels/` | One folder per sidebar tab, entry `<tab>-panel.tsx` | ui; lib ai, space, history, intel/recon, intel/alerts, places, intel/markets, map/layers | shell, app pages |
 | `map/` | World map, basemap, layers, interaction, inspect, cameras, imagery, replay, windows, controls, dossier, country chart, menu | ui, shell, site/report; lib map, history, feeds/*, space, ai | app pages, panels, shell |
-| `shell/` | The frame: sidebar, status bar, mobile, keyboard, splash, map look, state (feed polling), search, showing, settings, ads | ui, panels, site, map; lib map, map/layers, history | app pages, panels, site, map |
+| `shell/` | The frame: sidebar, status bar, mobile, keyboard, splash, map look, state (feed polling), search, showing, settings, ads, layout (what the person shows or hides and where: model, store, the map's corner slots) | ui, panels, site, map; lib map, map/layers, history | app pages, panels, site, map |
 | `site/` | Pages off the map: docs (and the API catalogue), kit, admin, account, the issue report dialog | ui, shell; lib platform/account, platform/ads, platform/reports | app pages, workspaces, shell/more, map/menu |
 | `ui/` | The kit, flat; imports nothing else in the app | — | every group |
 | `workspaces/` | Workspace host, chip, dialogs, shared links | site, ui; lib platform/workspaces | `app/w/[slug]` |

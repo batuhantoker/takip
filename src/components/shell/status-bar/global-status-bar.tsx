@@ -13,7 +13,7 @@ export default function GlobalStatusBar({ revealed = true, left, right }: { reve
         'transition-opacity duration-150 ease-out motion-reduce:transition-none',
         revealed ? 'opacity-100' : 'opacity-0',
       )}>
-      <div className="flex min-w-0 flex-1 items-center">{left}</div>
+      <div className="flex min-w-0 flex-1 items-center gap-4">{left}</div>
       <div className="flex shrink-0 items-center gap-4">{right}</div>
     </footer>
   );

@@ -6,16 +6,18 @@ import { showAccountDialog } from '@/components/site/account/account-dialog-stat
 import AccountSettings from '@/components/site/account/settings/account-settings';
 import { Modal } from '@/components/ui/modal';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
+import { useT } from '@/components/ui/use-t';
 import { SETTINGS_TABS, settingsTab, type SettingsTab } from './lib/tabs';
 import { showSettingsTab } from './open-settings';
 import GeneralTab from './parts/general-tab';
+import LayoutTab from './parts/layout-tab';
 import MapTab, { type MapSettings } from './parts/map-tab';
 
 export type { MapSettings };
 
 type View = { tab?: SettingsTab; notice?: string };
 
-/** Settings: General, Map and Account. The account dialog's `settings` view shows it; `map` is the page's map state. */
+/** Settings: General, Map, Layout and Account. The account dialog's `settings` view shows it; `map` is the page's map state. */
 export default function SettingsWindow({ view, map }: { view: View | null; map?: MapSettings }) {
   const [studio, setStudio] = useState(false);
   const isMobile = useIsMobile();
@@ -31,13 +33,15 @@ export default function SettingsWindow({ view, map }: { view: View | null; map?:
 }
 
 function Window({ view, map, onOpenStudio }: { view: View; map?: MapSettings; onOpenStudio: () => void }) {
+  const t = useT();
   const tab = settingsTab(view);
   return (
-    <Modal open onClose={() => showAccountDialog(null)} title="Settings" className="max-w-[480px]" bare
-      tabs={{ options: SETTINGS_TABS, value: tab, onChange: next => showSettingsTab(next, view.notice) }}>
+    <Modal open onClose={() => showAccountDialog(null)} title={t('Settings')} className="max-w-[480px]" bare
+      tabs={{ options: SETTINGS_TABS.map(o => ({ ...o, label: t(o.label) })), value: tab, onChange: next => showSettingsTab(next, view.notice) }}>
       <div key={tab} className="styled-scrollbar h-[min(70vh,620px)] min-h-0 overflow-y-auto border-t border-line">
         {tab === 'general' ? <GeneralTab />
           : tab === 'map' ? <MapTab map={map} onOpenStudio={onOpenStudio} />
+          : tab === 'layout' ? <LayoutTab />
           : <AccountSettings notice={view.notice} />}
       </div>
     </Modal>

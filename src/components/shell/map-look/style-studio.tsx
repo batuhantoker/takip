@@ -4,7 +4,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ClipboardPaste, Copy, RotateCcw } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
-import { Select, Switch } from '@/components/ui/field';
+import { Select } from '@/components/ui/field';
 import { Panel, PanelSection } from '@/components/ui/panel';
 import { cx, ENTER, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { MAP_DEFAULTS, type MapPaletteKey } from '@/lib/map/style/palette';
@@ -113,7 +113,7 @@ function StyleStudio({ onClose, isMobile }: { onClose: () => void; isMobile?: bo
   return createPortal(
     <div className={cx(
       'fixed z-[400] flex',
-      isMobile ? 'inset-x-3 top-20 bottom-3' : 'right-[62px] bottom-[calc(var(--shell-bottom,28px)+12px)] h-[min(720px,calc(100vh-92px))] w-[340px]',
+      isMobile ? 'inset-x-3 top-20 bottom-3' : 'right-[var(--beside-controls,62px)] bottom-[calc(var(--shell-bottom,var(--shell-foot,28px))+12px)] h-[min(720px,calc(100vh-92px))] w-[340px]',
       ENTER, 'starting:translate-y-1',
     )}>
       <Panel docked={false} title="Style studio" subtitle="Live, and saved in this browser" onClose={onClose} className="w-full"
@@ -145,10 +145,6 @@ function StyleStudio({ onClose, isMobile }: { onClose: () => void; isMobile?: bo
           <Row label="Warning"><Swatch label="Warning colour" value={s.alertOrange} onChange={v => set('alertOrange', v)} /></Row>
           <Row label="Healthy"><Swatch label="Healthy colour" value={s.alertGreen} onChange={v => set('alertGreen', v)} /></Row>
           <Row label="Information"><Swatch label="Information colour" value={s.alertBlue} onChange={v => set('alertBlue', v)} /></Row>
-        </PanelSection>
-
-        <PanelSection title="Map controls">
-          <Switch label="Zoom buttons" description="The + and − on the map" checked={s.mapControls} onChange={v => set('mapControls', v)} />
         </PanelSection>
 
         <PanelSection title="Map layers" hint="presets leave these alone">

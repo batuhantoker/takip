@@ -14,6 +14,7 @@ import type { HistorySession } from '@/lib/history/session';
 import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import { onWorldRequest } from '@/lib/space/world-events';
 import type { TerrainStatus } from '@/lib/map/terrain/terrain';
+import { useShown } from '@/components/shell/layout/use-page-layout';
 import AppHeader from './app-header';
 import SharePanel from './share-panel';
 import MobileNav from './mobile-nav';
@@ -56,6 +57,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
     setMobilePanel(null);
   };
   const tracked = trackedCount(data);
+  const shown = useShown();
   // Like the sidebar's History tab, opening the sheet starts History.
   const choose = (panel: MobilePanel | null) => {
     if (panel === 'history') history.open();
@@ -69,7 +71,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
 
   return (
     <>
-      <AppHeader revealed={revealed} />
+      {shown('logo') && <AppHeader revealed={revealed} />}
       {/* The route planner claims the top of the screen; this would sit under its destination field. */}
       {!directions.showDirections && !directions.navSession && <MobileStatus revealed={revealed} onOpenMarkets={() => setMobilePanel('markets')} />}
 

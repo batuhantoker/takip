@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { geocodeCell } from '@/lib/places/pointer-place';
 import { seaName } from './format';
 
 export interface Place {
@@ -11,18 +12,17 @@ export interface Place {
 
 // The API answers per 0.1° cell at city level, so the cache keys on the same cell.
 const cache = new Map<string, Place>();
-const keyFor = (lat: number, lng: number) => `${(Math.round(lat * 10) / 10).toFixed(1)},${(Math.round(lng * 10) / 10).toFixed(1)}`;
 
 /** The town or sea nearest a position, reverse-geocoded through our own route. */
 export function usePlaceName(lat: number | null, lng: number | null): Place | null {
-  const key = lat == null || lng == null ? null : keyFor(lat, lng);
+  const key = lat == null || lng == null ? null : geocodeCell(lat, lng).key;
   const [last, setLast] = useState<Place | null>(null);
 
   useEffect(() => {
     if (!key || cache.has(key) || lat == null || lng == null) return;
     let live = true;
     const timer = setTimeout(() => {
-      fetch(`/api/geo/reverse?lat=${lat.toFixed(3)}&lng=${lng.toFixed(3)}`)
+      fetch(geocodeCell(lat, lng).url)
         .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
         .then((d: { label?: string | null }) => {
           cache.set(key, d?.label ? { name: d.label, sea: false } : { name: seaName(lat, lng), sea: true });

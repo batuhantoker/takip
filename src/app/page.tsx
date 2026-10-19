@@ -37,19 +37,17 @@ import TimelineBar from '@/components/map/replay/timeline-bar';
 import { useReplay } from '@/components/map/replay/use-replay';
 import { useReplaySatellites } from '@/components/map/replay/use-replay-satellites';
 import SearchSpotlight from '@/components/shell/search/search-spotlight';
-import CursorInfo from '@/components/shell/status-bar/cursor-info';
 import { Dock, DockSlot, DOCK_WIDTH, NAV_WIDTH, type ToolId } from '@/components/shell/sidebar/dock';
 import DockTools from '@/components/shell/sidebar/dock-tools';
-import GlobalStatusBar from '@/components/shell/status-bar/global-status-bar';
+import StatusBar from '@/components/shell/status-bar/status-bar';
 import KeyboardShortcuts from '@/components/shell/keyboard/keyboard-shortcuts';
-import MapCluster from '@/components/map/controls/map-cluster';
+import MapCluster, { LiveScaleBar } from '@/components/map/controls/map-cluster';
 import MapOptions from '@/components/shell/map-look/map-options';
 import MobileShell from '@/components/shell/mobile/mobile-shell';
 import MoreMenu from '@/components/shell/more/more-menu';
-import { countLayersOn, navItems } from '@/components/shell/sidebar/nav-items';
+import { countLayersOn, navItems, railGroups } from '@/components/shell/sidebar/nav-items';
 import { NavSidebar } from '@/components/shell/sidebar/nav-sidebar';
 import SplashScreen from '@/components/shell/splash/splash-screen';
-import { LiveStats } from '@/components/shell/status-bar/status-cluster';
 import { useCursorReadout } from '@/components/shell/status-bar/use-cursor-readout';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { useKeyboardShortcuts } from '@/components/shell/keyboard/use-keyboard-shortcuts';
@@ -64,6 +62,11 @@ import { useStartup } from '@/components/shell/state/use-startup';
 import { useTheme } from '@/components/shell/map-look/use-theme';
 import type { BackendStatus, FlyToTarget, LiveData, MapCenter, MapProjection, MapStyle, MobilePanel } from '@/components/shell/state/types';
 import SpaceSwitcherBar from '@/components/panels/space/view/space-switcher-bar';
+import WorldSwitcher from '@/components/panels/space/view/world-switcher';
+import CornerSlots from '@/components/shell/layout/corner-slots';
+import type { Corner } from '@/components/shell/layout/lib/model';
+import { usePageLayout, useShown } from '@/components/shell/layout/use-page-layout';
+import { useShellFoot } from '@/components/shell/layout/use-shell-foot';
 import ShowingChip from '@/components/shell/showing/showing-chip';
 import { useSpaceMode } from '@/components/panels/space/view/use-space-mode';
 import { warmSpace } from '@/components/panels/space/view/warm-space';
@@ -138,6 +141,8 @@ export default function Dashboard() {
   const splash = useSplash(mapReady);
   const { capabilities, autoLocateCancelled } = useStartup({ setActiveLayers, setFlyToLocation, splashGone: splash.splashGone });
   const cursor = useCursorReadout();
+  const layout = usePageLayout();
+  const shown = useShown();
   const { showCentre } = cursor;
   useEffect(() => { if (mapCenter) showCentre(mapCenter); }, [mapCenter, showCentre]);
   const dossier = useRegionDossier();
@@ -229,6 +234,8 @@ export default function Dashboard() {
   const layersOn = useMemo(() => countLayersOn(activeLayers), [activeLayers]);
   /** Where the map's own controls start: right of the sidebar and of any panel open beside it. */
   const shellLeft = isMobile ? 0 : NAV_WIDTH + (activeTool && !aiTheater ? DOCK_WIDTH : 0);
+  // A timeline's strip stands in for the status bar under the sidebar.
+  useShellFoot(isMobile ? null : shown('statusbar') || replay.session || history.session ? 28 : 0);
 
   const ti: AiPanelProps = {
     ai, selected: session.aiSelected, onSelect: session.setAiSelected, focus: aiFocus, onFocus: toggleAiFocus,
@@ -255,9 +262,19 @@ export default function Dashboard() {
       onClose={() => { directions.closeDirections(); setActiveTool(t => (t === 'directions' ? null : t)); }} />
   );
 
-  const showing = !space.inSpace && (
-    <ShowingChip isMobile={isMobile} revealed={splash.revealed} layers={mapLayers} chosen={activeLayers} setLayers={setActiveLayers} history={history.session} families={history.families}
+  // The map's own pieces, each placed by the layout (Settings → Layout): a corner on a desktop, fixed on a phone.
+  const showing = (corner?: Corner) => !space.inSpace && shown('overlay:showing') && (
+    <ShowingChip isMobile={isMobile} corner={corner} revealed={splash.revealed} layers={mapLayers} chosen={activeLayers} setLayers={setActiveLayers} history={history.session} families={history.families}
       replay={replay.session} arcgis={arcgis} areas={areas.drawnPolygons} onOpen={p => (isMobile ? setMobilePanel('layers') : openTool(p))} />
+  );
+  const cluster = (corner?: Corner) => !space.inSpace && (
+    <MapCluster revealed={splash.revealed} isMobile={isMobile} corner={corner} button={id => shown('overlay:controls') && shown(`control:${id}`)}
+      mapProjection={mapProjection} setMapProjection={setMapProjection} selectFlatMap={selectFlatMap} mapStyle={mapStyle} setMapStyle={setMapStyle}
+      replayOn={replayOn} onReplay={mapReady ? toggleReplay : undefined}
+      options={isMobile ? undefined : openStudio => (
+        <MapOptions activeLayers={activeLayers} setActiveLayers={setActiveLayers} theme={theme} setTheme={setTheme} terrainStatus={terrainStatus}
+          on3DModeSelected={terrain.on3DModeSelected} onTerrainFocus={terrain.onTerrainFocus} onTerrainRetry={terrain.onTerrainRetry} onOpenStudio={openStudio} />
+      )} />
   );
 
   return (
@@ -335,20 +352,27 @@ export default function Dashboard() {
         {isMobile && planner}
       </NavigationBanner>
 
-      <SearchSpotlight isMobile={isMobile} showDesktopSearch={showDesktopSearch} setShowDesktopSearch={setShowDesktopSearch} drawMode={areas.drawMode}
-        navSession={directions.navSession} mapCenter={mapCenter} openDirectionsTo={openDirectionsTo} setFlyToLocation={setFlyToLocation} />
-
-      {!space.inSpace && (
-        <MapCluster revealed={splash.revealed} isMobile={isMobile} mapProjection={mapProjection} setMapProjection={setMapProjection}
-          selectFlatMap={selectFlatMap} mapStyle={mapStyle} setMapStyle={setMapStyle} mapView={mapView} replayOn={replayOn} onReplay={mapReady ? toggleReplay : undefined}
-          options={isMobile ? undefined : openStudio => (
-            <MapOptions activeLayers={activeLayers} setActiveLayers={setActiveLayers} theme={theme} setTheme={setTheme} terrainStatus={terrainStatus}
-              on3DModeSelected={terrain.on3DModeSelected} onTerrainFocus={terrain.onTerrainFocus} onTerrainRetry={terrain.onTerrainRetry} onOpenStudio={openStudio} />
-          )} />
+      {isMobile ? (
+        <>
+          {cluster()}
+          <SpaceSwitcherBar revealed={splash.revealed} inSpace={space.inSpace} focus={space.focus} onMap={space.exit} onSpace={space.enter}
+            switcher={shown('overlay:switcher')} beside={showing()} />
+        </>
+      ) : (
+        <CornerSlots corners={layout.desktop.corners} free={layout.desktop.free} revealed={splash.revealed} pieces={{
+          search: corner => (
+            <SearchSpotlight isMobile={false} corner={corner} hidden={!shown('overlay:search')} showDesktopSearch={showDesktopSearch} setShowDesktopSearch={setShowDesktopSearch}
+              drawMode={areas.drawMode} navSession={directions.navSession} mapCenter={mapCenter} openDirectionsTo={openDirectionsTo} setFlyToLocation={setFlyToLocation} />
+          ),
+          showing,
+          // Out in space it is the way back, so it shows even when hidden.
+          switcher: corner => (shown('overlay:switcher') || space.inSpace) && (
+            <WorldSwitcher corner={corner} inSpace={space.inSpace} focus={space.focus} onMap={space.exit} onSpace={space.enter} />
+          ),
+          controls: cluster,
+          scale: corner => !space.inSpace && shown('overlay:scale') && <LiveScaleBar corner={corner} settled={mapView} />,
+        }} />
       )}
-      <SpaceSwitcherBar revealed={splash.revealed} isMobile={isMobile} inSpace={space.inSpace} focus={space.focus} onMap={space.exit} onSpace={space.enter}
-        beside={isMobile && showing} />
-      {!isMobile && showing}
 
       {isMobile ? (
         <MobileShell revealed={splash.revealed} mobilePanel={mobilePanel} setMobilePanel={setMobilePanel} directions={directions}
@@ -358,8 +382,8 @@ export default function Dashboard() {
           history={{ session: history.session, open: startHistory, exit: exitHistory }} />
       ) : (
         <>
-          <NavSidebar groups={navItems({ layersOn, arcgisCount: arcgis.arcgisLayers.length, historyOn: !!history.session })} active={activeTool} onSelect={toggleTool}
-            revealed={splash.revealed} tiLive={ai.state?.status === 'running' || assist.busy} tiRunning={ai.state?.status === 'running'}
+          <NavSidebar groups={railGroups(navItems({ layersOn, arcgisCount: arcgis.arcgisLayers.length, historyOn: !!history.session }), layout.desktop)}
+            active={activeTool} onSelect={toggleTool} ti={shown('rail:ai')} revealed={splash.revealed} tiLive={ai.state?.status === 'running' || assist.busy} tiRunning={ai.state?.status === 'running'}
             footer={<>
               <MoreMenu rail active={activeTool === 'markets'} onOpenMarkets={() => openTool('markets')} />
               <AccountButton rail />
@@ -379,9 +403,8 @@ export default function Dashboard() {
           </Dock>
           {/* Where the pointer is, and the live state; the replay or history timeline takes its place. */}
           {!replay.session && !history.session && (
-            <GlobalStatusBar revealed={splash.revealed}
-              left={<CursorInfo coordsDisplayRef={cursor.coordsDisplayRef} locationLabel={cursor.locationLabel} hidden={space.inSpace} />}
-              right={<LiveStats backendStatus={backendStatus} data={data} onLocate={(lat, lng) => flyTo(lat, lng, 6)} />} />
+            <StatusBar revealed={splash.revealed} status={layout.desktop.status} shown={shown} cursor={cursor} inSpace={space.inSpace}
+              backendStatus={backendStatus} data={data} onLocate={(lat, lng) => flyTo(lat, lng, 6)} />
           )}
         </>
       )}

@@ -5,7 +5,9 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Popover } from '@/components/ui/popover';
 import { Dot } from '@/components/ui/tag';
+import { useT } from '@/components/ui/use-t';
 import type { ArcgisLayers } from '@/components/panels/arcgis/use-arcgis-layers';
+import { towardMiddle, type Corner } from '@/components/shell/layout/lib/model';
 import type { DrawnShape } from '@/lib/places/areas/draw';
 import type { PicksSnapshot } from '@/lib/history/countries/view';
 import type { HistorySession } from '@/lib/history/session';
@@ -25,14 +27,15 @@ const SEGMENT = cx('flex h-full items-center gap-1.5 rounded-card pr-2 pl-2.5 te
 
 /** The pill as the popover's trigger, so the popover lines up with its edge. */
 function Chip({ count, live, down, ...trigger }: Omit<ComponentProps<'button'>, 'children'> & { count: number; live: boolean; down: boolean }) {
+  const t = useT();
   const open = !!trigger['aria-expanded'];
   const Chevron = down ? ChevronDown : ChevronUp;
   return (
     <div className={PILL}>
       <button type="button" {...trigger} className={cx(SEGMENT, open ? 'bg-surface-3 text-ink-1' : 'text-ink-2 hover:bg-surface-2 hover:text-ink-1')}>
         <Dot tone={live ? 'green' : 'muted'} />
-        Showing
-        <span className="font-mono text-ink-3 tabular-nums">{count}</span>
+        {t('Showing')}
+        <span className="font-mono text-ink-3 tabular-nums">{count.toLocaleString(t.intl)}</span>
         <Chevron aria-hidden className="size-3.5 text-ink-3" strokeWidth={1.75} />
       </button>
     </div>
@@ -42,12 +45,14 @@ function Chip({ count, live, down, ...trigger }: Omit<ComponentProps<'button'>, 
 export type ShowingPanelId = 'layers' | 'history' | 'draw';
 
 /**
- * "Showing 4", at the map's top right (beside Map | Space on a phone): what the map is drawing right now. It opens
+ * "Showing 4", in its corner of the map (top right unless moved; beside Map | Space on a phone): what the map is drawing right now. It opens
  * on the mode and time in words, then every layer, event family, border and colouring on the map, each with its switch,
  * then what the person had on recently, to switch back on.
  */
-export default function ShowingChip({ isMobile, revealed, layers, chosen, setLayers, history, families, replay, arcgis, areas, onOpen }: {
+export default function ShowingChip({ isMobile, corner = 'top-right', revealed, layers, chosen, setLayers, history, families, replay, arcgis, areas, onOpen }: {
   isMobile: boolean;
+  /** Desktop only: a phone keeps it beside Map | Space. */
+  corner?: Corner;
   revealed: boolean;
   /** What the map is given: today's data is off while History runs. */
   layers: ActiveLayers;
@@ -62,6 +67,7 @@ export default function ShowingChip({ isMobile, revealed, layers, chosen, setLay
   /** Opens a panel; a phone has only Layers. */
   onOpen: (panel: ShowingPanelId) => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const state = useShowingState({ layers, chosen, history, families, replay, arcgis: arcgis.arcgisLayers, areas, clocks: open });
   const groups = rowsFor(state);
@@ -94,23 +100,17 @@ export default function ShowingChip({ isMobile, revealed, layers, chosen, setLay
   const panel: ShowingPanelId = history && !isMobile ? 'history' : 'layers';
   const shown = shownGroups(nextSeen, groups);
   const listed = new Set(shown.flatMap(g => g.rows.map(r => r.id)));
-  const popover = (
-    <Popover label="What the map is showing" placement={isMobile ? 'top' : 'bottom'} align={isMobile ? 'start' : 'end'} open={open} onOpenChange={setOpen}
+  const menu = towardMiddle(isMobile ? 'bottom-left' : corner);
+  return (
+    <Popover label={t('What the map is showing')} placement={menu.vertical} align={menu.alongSide} open={open} onOpenChange={setOpen}
       className={cx('p-0', isMobile ? 'w-[calc(100vw-24px)]' : 'w-[340px]')}
-      trigger={<Chip count={countRows(groups)} live={state.mode === 'live'} down={!isMobile} />}>
+      trigger={<Chip count={countRows(groups)} live={state.mode === 'live'} down={menu.vertical === 'bottom'} />}>
       {close => (
         <ShowingPanel summary={summaryFor(state)} groups={shown} recent={recentFor(recent, state.mode, listed).map(i => ({ ...i, on: false }))}
           tall={isMobile} onSwitch={flip}
           onOpenAreas={isMobile ? undefined : () => { close(); onOpen('draw'); }}
-          footer={{ label: panel === 'history' ? 'Open History' : 'Open Layers', onClick: () => { close(); onOpen(panel); } }} />
+          footer={{ label: panel === 'history' ? t('Open History') : t('Open Layers'), onClick: () => { close(); onOpen(panel); } }} />
       )}
     </Popover>
-  );
-  if (isMobile) return popover;
-  // data-hud-top: the docked window column starts below it.
-  return (
-    <div data-hud data-hud-top className={cx('pointer-events-none absolute top-3 right-3 z-[240] transition-opacity duration-150 ease-out motion-reduce:transition-none', revealed ? 'opacity-100' : 'opacity-0')}>
-      {popover}
-    </div>
   );
 }

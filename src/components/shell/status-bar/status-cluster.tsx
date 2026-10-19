@@ -6,13 +6,15 @@ import { IconButton } from '@/components/ui/button';
 import { Dot } from '@/components/ui/tag';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cx } from '@/components/ui/class-names';
+import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import AccountButton from '@/components/site/account/account-button';
-import { LatestQuake } from './latest-quake';
 import MoreMenu from '@/components/shell/more/more-menu';
 import { showShortcuts } from '@/components/shell/keyboard/shortcuts-state';
 import type { BackendStatus, LiveData } from '@/components/shell/state/types';
 
-function UtcClock() {
+export function UtcClock() {
+  const t = useT();
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -20,10 +22,10 @@ function UtcClock() {
     const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
   }, []);
-  const local = now?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const local = now?.toLocaleTimeString(t.intl, { hour: '2-digit', minute: '2-digit' });
   return (
-    <Tooltip label={local ? `Local time ${local}` : 'Coordinated Universal Time'} side="top">
-      <span aria-label="Coordinated Universal Time">
+    <Tooltip label={local ? t('Local time {time}', { time: local }) : t('Coordinated Universal Time')} side="top">
+      <span aria-label={t('Coordinated Universal Time')}>
         <span className="font-mono tabular-nums text-ink-2">{now ? now.toISOString().slice(11, 19) : '--:--:--'}</span> UTC
       </span>
     </Tooltip>
@@ -31,39 +33,43 @@ function UtcClock() {
 }
 
 const STATE: Record<BackendStatus, { tone: 'green' | 'amber' | 'red'; label: string }> = {
-  connected: { tone: 'green', label: 'Live' },
-  connecting: { tone: 'amber', label: 'Connecting' },
-  error: { tone: 'red', label: 'Offline' },
+  connected: { tone: 'green', label: msg('Live') },
+  connecting: { tone: 'amber', label: msg('Connecting') },
+  error: { tone: 'red', label: msg('Offline') },
 };
 
 /** Everything the live layers have on the map right now. */
 export const trackedCount = (data: LiveData) =>
   Object.values(data ?? {}).reduce<number>((sum, v) => sum + (Array.isArray(v) ? v.length : 0), 0);
 
-/** The status bar's right end: the live state, how much is on the map, the time, and the shortcuts. */
-export function LiveStats({ backendStatus, data, onLocate }: {
-  backendStatus: BackendStatus;
-  data: LiveData;
-  onLocate: (lat: number, lng: number) => void;
-}) {
-  const tracked = trackedCount(data);
+/** Live, Connecting or Offline. */
+export function LiveState({ backendStatus }: { backendStatus: BackendStatus }) {
+  const t = useT();
   const state = STATE[backendStatus];
   return (
-    <>
-      <span className="hidden min-w-0 xl:flex"><LatestQuake quakes={data?.earthquakes} onLocate={onLocate} /></span>
-      <span role="status" className="flex items-center gap-1.5">
-        <Dot tone={state.tone} />
-        <span className={cx(backendStatus === 'connected' ? 'text-ink-2' : 'text-ink-1')}>{state.label}</span>
-      </span>
-      {tracked > 0 && (
-        <span className="hidden lg:inline">
-          <span className="font-mono tabular-nums text-ink-2">{tracked.toLocaleString('en-US')}</span> tracked
-        </span>
-      )}
-      <UtcClock />
-      <IconButton label="Keyboard shortcuts" kbd="?" icon={CircleHelp} size="sm" tooltipSide="top" onClick={showShortcuts} className="-ml-2" />
-    </>
+    <span role="status" className="flex items-center gap-1.5">
+      <Dot tone={state.tone} />
+      <span className={cx(backendStatus === 'connected' ? 'text-ink-2' : 'text-ink-1')}>{t(state.label)}</span>
+    </span>
   );
+}
+
+/** How much the live layers have on the map; wide screens only. */
+export function TrackedCount({ data }: { data: LiveData }) {
+  const t = useT();
+  const tracked = trackedCount(data);
+  if (!tracked) return null;
+  return (
+    <span className="hidden lg:inline">
+      {t.rich('{n} tracked', { n: <span className="font-mono tabular-nums text-ink-2">{tracked.toLocaleString(t.intl)}</span> })}
+    </span>
+  );
+}
+
+/** The shortcuts sheet; `tight` tucks it against the clock it usually follows. */
+export function ShortcutsButton({ tight }: { tight: boolean }) {
+  const t = useT();
+  return <IconButton label={t('Keyboard shortcuts')} kbd="?" icon={CircleHelp} size="sm" tooltipSide="top" onClick={showShortcuts} className={tight ? '-ml-2' : undefined} />;
 }
 
 /** The phone's top-right corner: the account, then More. */

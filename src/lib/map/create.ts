@@ -18,15 +18,9 @@ export function createMap(container: HTMLDivElement): maplibregl.Map | undefined
     center: [facingLng, 20] as [number, number], zoom: 1.8, minZoom: 1.5, maxZoom: 18,
     /* The basemap is drawn from OpenStreetMap, and the places on it are searched
        and named through OpenStreetMap too. Both have to be credited on the map
-       itself; this was switched off, which is half of what Nominatim's operators
-       asked us to put right (issue #16). It is collapsed by default so it costs
-       a corner icon, not the view. */
-    attributionControl: {
-      compact: true,
-      // The tile source credits its provider and OSM. CARTO's style licence (CC BY 4.0)
-      // wants its own credit even over other tiles, and Nominatim needs OSM credited for search.
-      customAttribution: ['Style © <a href="https://carto.com/" target="_blank" rel="noopener">CARTO</a>', 'Geocoding © OpenStreetMap contributors'],
-    },
+       itself (issue #16): MapCredits (components/map/controls) mounts MapLibre's
+       control beside the map controls, wherever the person has put those. */
+    attributionControl: false as const,
     // Past about 90° the camera sinks under the flat map's plane at city zooms; 88° still draws, with a little more sky.
     maxPitch: 88,
     // CARTO forbids proxying or caching its tiles server-side and wants each customer's own key (basemap terms §3.b, §9).

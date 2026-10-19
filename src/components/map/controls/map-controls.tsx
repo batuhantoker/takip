@@ -24,22 +24,6 @@ export function useMapCamera() {
   );
 }
 
-/**
- * MapLibre opens its compact credits once, when the first source loads, and only
- * folds them on a drag; fold them that first time so they cost an icon, not the corner.
- */
-function collapseCreditsOnce(map: MlMap) {
-  const el = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
-  const fold = () => {
-    if (!el?.classList.contains('maplibregl-compact-show')) return false;
-    el.classList.remove('maplibregl-compact-show');
-    return true;
-  };
-  const watch = new MutationObserver(() => { if (fold()) watch.disconnect(); });
-  if (el && !fold()) watch.observe(el, { attributes: true, attributeFilter: ['class'] });
-  return watch;
-}
-
 /** One step from anywhere, such as a key press; does nothing before the map exists. */
 export const stepCamera = (move: CameraMove) => current?.step(move);
 
@@ -66,9 +50,7 @@ export default function MapControls({ mapRef, onInteract }: {
     window.addEventListener('blur', controls.release);
     document.addEventListener('visibilitychange', onHidden);
     publish({ map, step: controls.step, press: controls.press, release: controls.release });
-    const credits = collapseCreditsOnce(map);
     return () => {
-      credits.disconnect();
       publish(null);
       controls.dispose();
       window.removeEventListener('blur', controls.release);

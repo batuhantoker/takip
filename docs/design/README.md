@@ -162,7 +162,8 @@ Never below 11 px. Never letter-spaced uppercase.
 - **Showing** sits at the top-right of the map (beside Map / Space on a phone),
   so there is always one place that says what you are looking at. It reads `Showing 4`: a green
   dot when live, a grey one in History or Replay, and the number of things
-  drawn (`Showing 0` with nothing on, so it never goes away). It opens a popover,
+  drawn (`Showing 0` with nothing on, so it never goes away unless the person
+  hides it under Layout). It opens a popover,
   as the Space menu does: first the mode and time in a sentence or two
   ("History · 14 July 1981. World borders of 1981, with wars and battles around
   that date."), then every layer, event family, border layer, colouring,
@@ -180,6 +181,36 @@ Never below 11 px. Never letter-spaced uppercase.
 - **Inspect card** opens at the top-right of the map for a clicked ship,
   aircraft, satellite or camera. 340 px, `surface-1`, `shadow-float`.
 
+### The layout is the person's
+
+What this section draws is the default. Settings → Layout
+(`@/components/shell/layout`) lets each person change it, saved in their browser,
+with a separate layout for phones:
+
+- **Hide** any piece: a sidebar entry or TI, the status bar or any of its pieces,
+  Search, Showing, Map / Space, the scale, the whole control cluster or any of
+  its buttons. On a phone, a bottom-bar entry, Showing, Map / Space, the
+  controls or the mark. Keys still open what is hidden (a hidden Search shows
+  while `/` has it open). Without the status bar the map runs to the bottom
+  edge.
+- **Reorder** the sidebar (and where its gaps fall), each side of the status bar
+  (and which side a piece is on), and a phone's bottom bar.
+- **Move** Search, Showing, Map / Space, the controls and the scale to any of
+  the map's four corners, in any order there. A top corner stacks downwards, a
+  bottom one sideways; menus open towards the middle of the map.
+- **Place freely**: Arrange (under Layout) outlines those pieces on the map to
+  be dragged anywhere, or nudged with the arrow keys; Done or Escape ends it. A
+  placed piece hangs from its nearest corner, so a narrower window or a panel
+  opening beside the sidebar carries it along. Picking a corner, or Back to
+  corners, puts it back in a stack. Desktop only; a phone's pieces stay put.
+- **Always there:** More and the account (the way to Settings), the map's
+  credits, which travel beside the controls (issue #16), and Map / Space while
+  in space (the way back).
+- The window column runs between whatever sits top-right and bottom-right,
+  and keeps clear of a placed piece in its path; anything parked beside the
+  controls only does so while they are bottom-right. Placed pieces can overlap
+  each other: where they go is the person's call.
+
 ### Windows on the map
 
 Everything that opens over the map is a window (`@/components/map/windows`):
@@ -191,9 +222,9 @@ menu at the pointer, not a window: Region dossier, Satellite images here and Rep
 second right-click straight after still opens the dossier. A camera window
 has a thin `ink-2` line from its nearest edge to the camera's ring on the map.
 
-- **Stacked.** Windows dock in a column at the top-right, below Showing (12 px in, cards
-  340 px wide, video as wide as it needs), newest on top, 8 px apart, ending
-  above the control cluster. When the column runs out, older windows open with
+- **Stacked.** Windows dock in a column at the top-right, below whatever sits in that
+  corner (Showing, by default; 12 px in, cards 340 px wide, video as wide as it needs),
+  newest on top, 8 px apart, ending above whatever sits bottom-right (the control cluster). When the column runs out, older windows open with
   a scroll or fold to their header; click a folded one to bring it to the top.
   Clicking something that already has a window brings that window forward.
 - **Windowed.** Drag a window by its header to free it anywhere in the map

@@ -26,6 +26,8 @@ interface SearchBarProps {
   onDirections?: (place: PlaceLike) => void;
   /** Inside another container (the phone drawer): no frame of its own, always open. */
   embedded?: boolean;
+  /** In a bottom corner: the field stays at the bottom and the results open above it. */
+  upward?: boolean;
 }
 
 const TRY_COORDS = '35.6586, 139.7454';
@@ -37,7 +39,7 @@ const TRY = ['Eiffel Tower', '10 Downing Street', TRY_COORDS];
  * last; each result can be handed to Directions. Arrows and Enter choose,
  * Shift+Enter routes, Esc clears and then closes.
  */
-export default function SearchBar({ onLocate, center = null, open = true, onOpen, onClose, onDirections, embedded = false }: SearchBarProps) {
+export default function SearchBar({ onLocate, center = null, open = true, onOpen, onClose, onDirections, embedded = false, upward = false }: SearchBarProps) {
   const { value, results, loading, answered, search } = useGeoSearch(center);
   const [selected, setSelected] = useState(0);
   const [recent, setRecent] = useState<RecentPlace[]>(() => (typeof window === 'undefined' ? [] : loadRecent()));
@@ -155,7 +157,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
   let index = 0;
 
   return (
-    <div ref={boxRef} className={embedded ? 'flex flex-col' : 'pointer-events-auto flex max-h-[min(72vh,600px)] flex-col overflow-hidden rounded-float border border-line bg-surface-1 shadow-float'}>
+    <div ref={boxRef} className={embedded ? 'flex flex-col' : cx('pointer-events-auto flex max-h-[min(72vh,600px)] overflow-hidden rounded-float border border-line bg-surface-1 shadow-float', upward ? 'flex-col-reverse' : 'flex-col')}>
       <div className={cx(
         'relative flex shrink-0 items-center gap-2.5',
         embedded ? 'h-10 rounded-card border border-line-strong bg-surface-2 px-3 focus-within:border-accent' : 'h-[38px] px-3',
@@ -189,7 +191,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
 
       {showing && (
         <>
-          <div className={cx('min-h-0 overflow-y-auto styled-scrollbar', embedded ? 'pt-3' : 'border-t border-line p-1.5')}>
+          <div className={cx('min-h-0 overflow-y-auto styled-scrollbar', embedded ? 'pt-3' : cx('border-line p-1.5', upward ? 'border-b' : 'border-t'))}>
             <div id={listId} role="listbox" aria-label={typing ? 'Places found' : 'Suggestions'}>
               {sections.map(s => (
                 <div key={s.title || 'top'} role="group" aria-label={s.title || undefined} className="not-first:mt-2">
@@ -250,7 +252,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
             )}
           </div>
 
-          <div className={cx('flex shrink-0 items-center gap-3 text-meta text-ink-3', embedded ? 'pt-2' : 'h-8 border-t border-line px-3')}>
+          <div className={cx('flex shrink-0 items-center gap-3 text-meta text-ink-3', embedded ? 'pt-2' : cx('h-8 border-line px-3', upward ? 'border-b' : 'border-t'))}>
             {!embedded && (
               <span className="flex items-center gap-3">
                 <span className="flex items-center gap-1"><Key>↑</Key><Key>↓</Key> move</span>

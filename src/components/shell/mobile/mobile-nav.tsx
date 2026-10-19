@@ -4,9 +4,11 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { Hourglass, Layers, Orbit, Radar, Route, Search, TriangleAlert } from 'lucide-react';
 import { AiMark } from '@/components/panels/ti-agent/atoms';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { isShown, type BarId } from '@/components/shell/layout/lib/model';
+import { usePageLayout } from '@/components/shell/layout/use-page-layout';
 import type { ActiveRoute, MobilePanel, NavSession } from '@/components/shell/state/types';
 
-type Tab = { id: MobilePanel | 'route'; label: string; glyph: ReactNode };
+type Tab = { id: BarId; label: string; glyph: ReactNode };
 
 const ICON = 'size-[18px]';
 const TABS: Tab[] = [
@@ -21,7 +23,7 @@ const TABS: Tab[] = [
   { id: 'route', label: 'Route', glyph: <Route className={ICON} strokeWidth={1.75} /> },
 ];
 
-/** The phone's bottom bar: one sheet at a time, and Route, which opens at the top instead. */
+/** The phone's bottom bar, in the person's order without what they hid: one sheet at a time, and Route, which opens at the top instead. */
 export default function MobileNav({ mobilePanel, setMobilePanel, showDirections, setShowDirections, navSession, setActiveRoute }: {
   mobilePanel: MobilePanel | null;
   setMobilePanel: (panel: MobilePanel | null) => void;
@@ -30,11 +32,13 @@ export default function MobileNav({ mobilePanel, setMobilePanel, showDirections,
   navSession: NavSession | null;
   setActiveRoute: Dispatch<SetStateAction<ActiveRoute | null>>;
 }) {
+  const layout = usePageLayout();
+  const tabs = layout.phone.bar.filter(id => isShown(layout, 'phone', `bar:${id}`)).map(id => TABS.find(t => t.id === id)!);
   return (
     <nav data-hud aria-label="Tools"
       className="fixed inset-x-0 bottom-0 z-[450] border-t border-line bg-surface-1 px-1 pb-[env(safe-area-inset-bottom)]">
       <div className="flex h-14 items-stretch gap-0.5 py-1">
-        {TABS.map(tab => {
+        {tabs.map(tab => {
           // The route planner needs the room above the keyboard, and guidance has to stay readable while driving.
           const isRoute = tab.id === 'route';
           const active = isRoute ? showDirections || Boolean(navSession) : mobilePanel === tab.id;
