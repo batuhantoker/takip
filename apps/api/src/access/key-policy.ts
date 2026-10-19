@@ -21,8 +21,8 @@ export const KEY_POLICY_GROUPS = [
   { group: 'replay', label: 'Replay and History data', paths: ['/api/replay/*'], keyRequired: true },
 ] as const;
 
-/** Account and meta routes: never gated, so signing in, keys and the console keep working. */
-export const OPEN_GROUPS = ['auth', 'me', 'plans', 'key-policy', 'usage', 'keys', 'account', 'workspaces', 'w', 'reports', 'openapi.json', 'docs'] as const;
+/** Account, meta and the site's own usage reports: never gated, so signing in, keys, the console and page counts keep working. */
+export const OPEN_GROUPS = ['auth', 'me', 'page-view', 'plans', 'key-policy', 'usage', 'keys', 'account', 'workspaces', 'w', 'reports', 'openapi.json', 'docs'] as const;
 
 export type KeyPolicyView = {
   group: string;

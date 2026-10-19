@@ -83,6 +83,10 @@ export function accountExport(db: AppDb, userId: string, { access, currentSessio
       SELECT visitor_id AS visitorId, first_seen_at AS firstSeenAt, last_seen_at AS lastSeenAt, user_agent AS userAgent, referrer, landing
       FROM visitor WHERE user_id = ? ORDER BY first_seen_at`, userId)
       .map(row => times(row, 'firstSeenAt', 'lastSeenAt')),
+    pagesRead: all(`
+      SELECT visitor_id AS visitorId, day, path, locale, referrer, views FROM page_read
+      WHERE visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = ?) ORDER BY day, path`, userId)
+      .map((row): Json => ({ ...row, day: isoDay(row.day as number) })),
     audit: all(`
       SELECT at, actor_type AS actorType, actor_id AS actorId, action, subject_type AS subjectType, subject_id AS subjectId, data
       FROM audit_event WHERE (subject_type = 'user' AND subject_id = ?) OR actor_id = ? ORDER BY audit_id`, userId, userId)

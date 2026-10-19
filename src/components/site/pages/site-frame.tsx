@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { PageView } from '@/components/site/page-view';
 import { LOCALES, LOCALE_NAMES } from '@/lib/core/i18n/locales';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { isReadingPath, localePath } from '@/lib/platform/site/locale-path';
@@ -34,6 +35,7 @@ export function SiteFrame({ t, path, trail = [], children }: {
   return (
     // docs-root releases the full-screen map's scroll lock (see globals.css), so the page scrolls.
     <main className="docs-root min-h-screen bg-surface-0 px-5 py-10 text-ink-1 sm:px-8 sm:py-12">
+      <PageView path={path} locale={t.locale} />
       <div className="mx-auto max-w-[72rem]">
         <nav aria-label={t('Breadcrumb')} className="flex flex-wrap items-center gap-2 text-[13px] text-ink-3">
           <Link href="/" className={cx('font-semibold tracking-[0.02em] text-ink-1 hover:text-accent', FOCUS_RING)}>TAKIP</Link>

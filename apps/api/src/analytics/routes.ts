@@ -9,6 +9,7 @@ import { apiUsage } from './api-usage';
 import { audience } from './audience';
 import { dataAccumulation, historyCounts } from './data';
 import { engagement } from './engagement';
+import { pages } from './pages';
 import { rangeOf, rangeQuery, type Range } from './range';
 import { cachedAsync, scanStorage, type StorageDirs } from './storage';
 import { system } from './system';
@@ -49,6 +50,7 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   get('/data', async (r, refresh) => dataAccumulation(dirs.dataDir, r, await history(refresh)));
   get('/system', r => system(db, r, { metrics, startedAt, backupDir: dirs.backupDir, now: now() }));
   get('/visitors', r => visitors(db, r));
+  get('/pages', r => pages(db, r));
 
   // Before /visitors/:id, which would otherwise take 'list' for an id.
   app.get('/visitors/list', c => {

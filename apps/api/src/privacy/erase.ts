@@ -29,6 +29,7 @@ const OWNED: readonly { table: string; where: string }[] = [
   { table: 'visitor_day', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
   { table: 'visitor_feature', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
   { table: 'visitor_hour', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
+  { table: 'page_read', where: 'visitor_id IN (SELECT visitor_id FROM visitor WHERE user_id = @id)' },
   { table: 'visitor', where: 'user_id = @id' },
   { table: 'auth_two_factor', where: 'userId = @id' },
   { table: 'auth_account', where: 'userId = @id' },

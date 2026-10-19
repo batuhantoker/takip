@@ -4,12 +4,13 @@ import { useState, useSyncExternalStore } from 'react';
 import { PageTitle, Select } from '@/components/site/admin/parts/admin-parts';
 import { Switch } from '@/components/site/admin/parts/admin-switch';
 import type {
-  AnalyticsApi, AnalyticsAudience, AnalyticsData, AnalyticsEngagement, AnalyticsStorage, AnalyticsSystem, AnalyticsVisitors,
+  AnalyticsApi, AnalyticsAudience, AnalyticsData, AnalyticsEngagement, AnalyticsPages, AnalyticsStorage, AnalyticsSystem, AnalyticsVisitors,
 } from '@/components/site/admin/analytics/analytics-types';
 import { useAnalyticsData } from '@/components/site/admin/analytics/lib/use-analytics-data';
 import { OverviewSection } from '@/components/site/admin/analytics/overview-section';
 import { AudienceSection } from '@/components/site/admin/analytics/audience-section';
 import { VisitorsSection } from '@/components/site/admin/analytics/visitors-section';
+import { PagesSection } from '@/components/site/admin/analytics/pages-section';
 import { EngagementSection } from '@/components/site/admin/analytics/engagement-section';
 import { ApiSection } from '@/components/site/admin/analytics/api-section';
 import { StorageSection } from '@/components/site/admin/analytics/storage-section';
@@ -21,6 +22,7 @@ const SECTIONS = [
   { id: 'overview', label: 'Overview' },
   { id: 'audience', label: 'Audience' },
   { id: 'visitors', label: 'Visitors' },
+  { id: 'pages', label: 'Pages' },
   { id: 'engagement', label: 'Engagement' },
   { id: 'api', label: 'API' },
   { id: 'data', label: 'Data & storage' },
@@ -48,6 +50,7 @@ export default function AnalyticsPage() {
 
   const audience = useAnalyticsData<AnalyticsAudience>(`/analytics/audience${range}`);
   const visitors = useAnalyticsData<AnalyticsVisitors>(`/analytics/visitors${range}`);
+  const pages = useAnalyticsData<AnalyticsPages>(`/analytics/pages${range}`);
   const engagement = useAnalyticsData<AnalyticsEngagement>(`/analytics/engagement${range}`);
   const api = useAnalyticsData<AnalyticsApi>(`/analytics/api${range}`);
   const data = useAnalyticsData<AnalyticsData>(`/analytics/data${range}`);
@@ -86,6 +89,7 @@ export default function AnalyticsPage() {
         {section === 'overview' && <OverviewSection audience={audience} engagement={engagement} api={api} storage={storage} data={data} />}
         {section === 'audience' && <AudienceSection query={audience} />}
         {section === 'visitors' && <VisitorsSection query={visitors} days={days} />}
+        {section === 'pages' && <PagesSection query={pages} />}
         {section === 'engagement' && <EngagementSection query={engagement} />}
         {section === 'api' && <ApiSection query={api} />}
         {section === 'data' && (

@@ -16,14 +16,37 @@ export function visitorId(): string | null {
 
 export type Arrival = { referrer: string | null; landing: string };
 
-/** The other site that sent this page load, if any, and the address it landed on. */
-export function arrival(): Arrival {
-  let referrer: string | null = null;
+const ARRIVAL_KEY = 'takip.arrival';
+
+/** The other site that sent this page load, if any. */
+export function outsideReferrer(): string | null {
   try {
     const host = new URL(document.referrer).hostname;
-    if (host && host !== location.hostname) referrer = host;
+    return host && host !== location.hostname ? host : null;
   } catch {
-    // No referrer, or not a URL.
+    return null; // No referrer, or not a URL.
   }
-  return { referrer, landing: location.pathname + location.search };
+}
+
+/**
+ * Where this browser first came in: a public page notes it, so a reader who goes on to the map is counted as
+ * sent by that page and the site before it, not as arriving at the map from nowhere.
+ */
+export function noteArrival() {
+  try {
+    if (!localStorage.getItem(ARRIVAL_KEY)) localStorage.setItem(ARRIVAL_KEY, JSON.stringify({ referrer: outsideReferrer(), landing: location.pathname }));
+  } catch {
+    // Storage blocked: the map reports its own arrival.
+  }
+}
+
+/** The other site that sent this browser and the address it landed on: the first public page it read, or this load. */
+export function arrival(): Arrival {
+  try {
+    const kept = JSON.parse(localStorage.getItem(ARRIVAL_KEY) ?? 'null') as Arrival | null;
+    if (kept && typeof kept.landing === 'string') return { referrer: typeof kept.referrer === 'string' ? kept.referrer : null, landing: kept.landing };
+  } catch {
+    // Unreadable: fall back to this load.
+  }
+  return { referrer: outsideReferrer(), landing: location.pathname + location.search };
 }

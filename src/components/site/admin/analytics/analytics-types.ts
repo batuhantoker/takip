@@ -338,3 +338,15 @@ export type VisitorAnalytics = AnalyticsRange & {
   devicePlaces: DevicePlace[];
   actions: { action: string; count: number; days: number }[];
 };
+
+/** GET /api/admin/analytics/pages (apps/api analytics/pages.ts): the public reading pages. */
+export interface AnalyticsPages {
+  today: string;
+  since: string | null;
+  totals: { views: number; readers: number; pages: number; toMap: number };
+  daily: { day: string; views: number; readers: number }[];
+  pages: { path: string; views: number; readers: number; toMap: number }[];
+  sections: { section: string; views: number; readers: number }[];
+  referrers: { referrer: string | null; views: number; readers: number }[];
+  locales: { locale: string; views: number }[];
+}

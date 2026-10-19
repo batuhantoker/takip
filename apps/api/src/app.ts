@@ -10,6 +10,7 @@ import { accessRoutes } from './access/routes';
 import { createUsage, meter, type Usage } from './access/usage';
 import { usageRoutes } from './access/usage-routes';
 import { createAdminGate } from './admin/gate';
+import { createPageReads, pageReadRoutes } from './analytics/page-reads';
 import type { AnalyticsOptions } from './analytics/routes';
 import { adminRoutes } from './admin/routes';
 import type { Auth } from './auth/auth';
@@ -54,6 +55,7 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   app.use('/api/v1/*', rateLimit(usage, { enforce: enforceLimits }), meter(usage));
   app.route('/api/v1', accessRoutes(access, policy));
   app.route('/api/v1', mapTimeRoutes(mapTime, { cloudflare: trust.cloudflare }));
+  app.route('/api/v1', pageReadRoutes(createPageReads(db)));
   app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', keyRoutes(keys));
   app.route('/api/v1', privacyRoutes({ db, auth, usage }));

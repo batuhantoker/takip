@@ -376,6 +376,20 @@ const MIGRATIONS: string[] = [
   ) STRICT, WITHOUT ROWID;
   CREATE INDEX IF NOT EXISTS device_place_last ON device_place (last_seen_at);
   `,
+  // Reading the public pages (/map, /city, /guides…), which have no map minutes: per browser, day, page (its English
+  // path), language and the outside site that sent it ('' for none), with how many times it was opened.
+  `
+  CREATE TABLE IF NOT EXISTS page_read (
+    visitor_id  TEXT NOT NULL,
+    day         INTEGER NOT NULL,
+    path        TEXT NOT NULL,
+    locale      TEXT NOT NULL,
+    referrer    TEXT NOT NULL,
+    views       INTEGER NOT NULL,
+    PRIMARY KEY (visitor_id, day, path, locale, referrer)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS page_read_day ON page_read (day);
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {
