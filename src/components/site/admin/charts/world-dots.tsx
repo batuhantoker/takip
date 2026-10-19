@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { NEUTRAL } from '@/components/site/admin/analytics/lib/series';
+import { WORLD_LAND_PATH } from '@/lib/platform/site/world-land.generated';
 
 export type WorldPoint = { latitude: number; longitude: number; value: number };
 
@@ -16,8 +17,8 @@ const coord = (lat: number, lon: number) =>
   `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`;
 
 /**
- * Dots on an equirectangular world, area in proportion to the value, over a faint graticule: no basemap, so it loads
- * nothing. The readout line above names the dot under the pointer (the biggest one otherwise).
+ * Dots on an equirectangular world, area in proportion to the value, over Natural Earth's land and a faint graticule:
+ * no basemap, so it loads nothing. The readout line above names the dot under the pointer (the biggest one otherwise).
  */
 export function WorldDots({ points, label, format }: { points: WorldPoint[]; label: string; format: (n: number) => string }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -41,6 +42,8 @@ export function WorldDots({ points, label, format }: { points: WorldPoint[]; lab
         <rect x={0} y={0} width={W} height={H} rx={6} fill="none" stroke="var(--line)" />
         {LONS.map(lon => <line key={`m${lon}`} x1={x(lon)} x2={x(lon)} y1={0} y2={H} stroke={lon === 0 ? 'var(--line-strong)' : 'var(--line)'} />)}
         {LATS.map(lat => <line key={`p${lat}`} x1={0} x2={W} y1={y(lat)} y2={y(lat)} stroke={lat === 0 ? 'var(--line-strong)' : 'var(--line)'} />)}
+        {/* The land path is one unit per degree (360 × 180). */}
+        <path d={WORLD_LAND_PATH} transform={`scale(${W / 360} ${H / 180})`} className="fill-surface-3" />
         {dots.map(d => (
           <g key={d.i} onPointerEnter={() => setHover(d.i)}>
             <circle cx={x(d.longitude)} cy={y(d.latitude)} r={d.r} fill={NEUTRAL} fillOpacity={hover === d.i ? 1 : 0.8} stroke="var(--surface-1)" strokeWidth={2} />
