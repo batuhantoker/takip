@@ -30,8 +30,14 @@ export function indexedPages(kind?: PlaceKind): { place: Place; slug?: string }[
   });
 }
 
-/** A country's places with an indexed page, most populous first. */
-export function indexedPlacesIn(cc: string, limit = 400): Place[] {
-  return allPlaces().filter(p => p.kind === 'city' && p.cc === cc).sort((a, b) => b.pop - a.pop)
-    .filter(p => placePages(p).some(x => x.page.index)).slice(0, limit);
+const hasIndexed = (p: Place) => placePages(p).some(x => x.page.index);
+
+/** What an overview leads to, most populous first: a country's states and cities, a state's counties and cities, a county's cities and towns. */
+export function childPlaces(place: Place, limit = 400): Place[] {
+  if (place.kind === 'city') return [];
+  const inside = (kind: PlaceKind) => allPlaces().filter(p => p.kind === kind && p.cc === place.cc
+    && (place.kind === 'country' || p.parents?.includes(place.id))).sort((a, b) => b.pop - a.pop).filter(hasIndexed);
+  if (place.kind === 'town') return [];
+  if (place.kind === 'county') return [...inside('city'), ...inside('town')].slice(0, limit);
+  return [...(place.kind === 'country' ? inside('state') : inside('county')), ...inside('city')].slice(0, limit);
 }

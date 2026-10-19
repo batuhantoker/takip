@@ -34,6 +34,7 @@ export const LICENCES = [
   { code: 'stanford-shl-nc', name: 'Stanford Spatial History Lab: scholarly reuse, no commercial use', url: 'https://web.stanford.edu/group/spatialhistory/static/publications/pub51.html', commercial: 0, redistribution: 'attribution' },
   { code: 'gpl-3.0', name: 'GNU General Public License v3.0', url: 'https://www.gnu.org/licenses/gpl-3.0.html', commercial: 1, redistribution: 'share_alike' },
   { code: 'cc0-1.0', name: 'Creative Commons CC0 1.0 (public domain dedication)', url: 'https://creativecommons.org/publicdomain/zero/1.0/', commercial: 1, redistribution: 'public_domain' },
+  { code: 'odbl-1.0', name: 'Open Data Commons Open Database License 1.0', url: 'https://opendatacommons.org/licenses/odbl/1-0/', commercial: 1, redistribution: 'share_alike' },
   { code: 'unknown', name: 'No licence stated', url: null, commercial: null, redistribution: 'unknown' },
   { code: 'oecd-terms', name: 'OECD terms: any use, commercial included, with attribution carried into sub-licences', url: 'https://www.oecd.org/en/about/terms-conditions.html', commercial: 1, redistribution: 'attribution' },
   { code: 'imf-terms', name: 'IMF copyright and terms: attribution; commercial reuse and systematic download need written permission', url: 'https://www.imf.org/en/About/copyright-and-terms', commercial: 0, redistribution: 'attribution' },
@@ -87,6 +88,9 @@ export const SOURCES: SourceSeed[] = [
   { code: 'cliopatria', name: 'Cliopatria: world polities 3400 BCE – 2024', owner: 'Seshat Global History Databank', url: 'https://github.com/Seshat-Global-History-Databank/cliopatria', licence: 'cc-by-4.0' },
   // NASA's catalogue: "openly shared, without restriction"; the codebook asks for a citation of the data descriptor.
   { code: 'gdis', name: 'Geocoded Disasters (GDIS) 1960–2018', owner: 'Rosvold & Buhaug (PRIO), NASA SEDAC; disasters from EM-DAT (CRED)', url: 'https://doi.org/10.7927/zz3b-8y61', licence: 'cc-by-4.0', events: true },
+  { code: 'us-counties', name: 'US counties: 2024 boundaries, gazetteer and population estimates', owner: 'US Census Bureau', url: 'https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html', licence: 'public-domain' },
+  { code: 'us-places', name: 'US places: 2024 boundaries, gazetteer and population estimates for incorporated places and CDPs', owner: 'US Census Bureau', url: 'https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html', licence: 'public-domain' },
+  { code: 'deflock-alpr', name: 'Licence-plate readers mapped on OpenStreetMap', owner: 'OpenStreetMap contributors, via DeFlock', url: 'https://deflock.me', licence: 'odbl-1.0' },
 ];
 
 const TIERS = ['anon', 'free', 'paid', 'internal'] as const;

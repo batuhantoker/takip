@@ -9,12 +9,12 @@ import { localePath } from '@/lib/platform/site/locale-path';
 import { readingMetadata } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
-import { placeBySlug, type PlaceKind } from '@/lib/platform/site/places/gazetteer';
+import { countryPlace, placeById, placeBySlug, type PlaceKind } from '@/lib/platform/site/places/gazetteer';
 import { overviewCopy } from '@/lib/platform/site/places/overview';
-import { findPlacePage, indexedPlacesIn, nearbyWith, overviewIndexed, placePages, type PlacePageRef } from '@/lib/platform/site/places/pages';
+import { childPlaces, findPlacePage, nearbyWith, overviewIndexed, placePages, type PlacePageRef } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placeCardKey } from '@/lib/platform/site/places/card';
-import { placePath } from '@/lib/platform/site/places/paths';
+import { KIND_INDEX, KIND_LABEL, placePath } from '@/lib/platform/site/places/paths';
 import { shotUrl } from '@/lib/platform/site/shots';
 import { siteText } from '@/lib/platform/site/text';
 import { PlaceArticle, type PageLive } from './place-article';
@@ -22,16 +22,13 @@ import { PlaceArticle, type PageLive } from './place-article';
 /** The topics whose "right now" also shows on a place's overview. */
 const OVERVIEW_LIVE = ['transit', 'weather'];
 
-/** The index of each kind of place, and what it is called in the trail. */
-export const KIND_INDEX: Record<PlaceKind, string> = { city: '/city', country: '/country' };
-
 /** The place and page a URL names, if it has one. Shared by the metadata and the page within one request. */
 const load = cache(async (kind: PlaceKind, slug: string, pageSlug?: string) => {
   const place = placeBySlug(kind, slug);
   if (!place) return null;
   const pages = placePages(place);
-  // A country's overview also leads to its places, so it stands even before any country topic does.
-  const places = place.kind === 'country' && pageSlug === undefined ? indexedPlacesIn(place.cc) : [];
+  // A country's, state's or county's overview also leads to its places, so it stands even before any topic of its own does.
+  const places = pageSlug === undefined ? childPlaces(place) : [];
   if (!pages.length && !places.length) return null;
   const current = pageSlug === undefined ? undefined : findPlacePage(place, pageSlug);
   if (pageSlug !== undefined && !current) return null;
@@ -79,14 +76,17 @@ export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: s
   const origin = configuredOrigin() ?? publicOrigin(await headers());
   const index = localePath(text.locale, KIND_INDEX[place.kind]);
   const overview = localePath(text.locale, placePath(place));
-  const kindLabel = place.kind === 'city' ? t('Places') : t('Countries');
+  const kindLabel = t(KIND_LABEL[place.kind]);
   const name = nameOf(place, t);
+  // United States › Georgia › Fulton County › Atlanta.
+  const country = place.kind === 'state' || place.parents?.length ? countryPlace(place.cc) : undefined;
+  const parents = [country, ...(place.parents ?? []).map(placeById)].filter(p => !!p).map(p => ({ href: localePath(text.locale, placePath(p)), label: nameOf(p, t) }));
+  const trail = [{ href: index, label: kindLabel }, ...parents, ...(current ? [{ href: overview, label: name }] : [])];
   return (
-    <SiteFrame t={t} path={placePath(place, current?.page.slug)} trail={[{ href: index, label: kindLabel }, ...(current ? [{ href: overview, label: name }] : [])]}>
+    <SiteFrame t={t} path={placePath(place, current?.page.slug)} trail={trail}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbs(origin, [
         { name: 'TAKIP', path: '/' },
-        { name: kindLabel, path: index },
-        ...(current ? [{ name, path: overview }] : []),
+        ...trail.map(c => ({ name: c.label, path: c.href })),
         { name: copy.heading, path: localePath(text.locale, placePath(place, current?.page.slug)) },
       ])) }} />
       <PlaceArticle text={text} place={place} copy={copy} pages={pages} places={places} current={current} lives={lives}

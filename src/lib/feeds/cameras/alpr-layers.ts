@@ -13,7 +13,7 @@ export const ALPR_FOV_ZOOM = 13;
 export const ALPR_ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors · <a href="https://deflock.me" target="_blank" rel="noopener">DeFlock</a>';
 
 // Tiles outside an extract 404 (MapLibre ignores those). Canada's TileJSON stops at 51.2° N today; the box allows for growth.
-const EXTRACTS = [
+export const ALPR_EXTRACTS = [
   { id: 'us', bounds: [-159.61, 17.68, -64.59, 61.62] },
   { id: 'ca', bounds: [-141.01, 41.67, -52.62, 63] },
 ] as const;
@@ -23,8 +23,8 @@ const MAX_BEARINGS = 4;
 const FOV_IMAGE = 'alpr-fov';
 
 /** The markers: hover and click land here, never on the cones, whose icon box is mostly empty. */
-export const ALPR_PICK_LAYERS = EXTRACTS.map(e => `alpr-${e.id}-dots`);
-export const ALPR_LAYERS = EXTRACTS.flatMap(e => [
+export const ALPR_PICK_LAYERS = ALPR_EXTRACTS.map(e => `alpr-${e.id}-dots`);
+export const ALPR_LAYERS = ALPR_EXTRACTS.flatMap(e => [
   ...Array.from({ length: MAX_BEARINGS }, (_, n) => `alpr-${e.id}-fov-${n}`),
   `alpr-${e.id}-dots`,
 ]);
@@ -94,7 +94,7 @@ function addFovImage(map: maplibregl.Map) {
 /** Sources and hidden layers; MapLibre fetches no tiles until a layer is shown. */
 export function addAlprLayers(map: maplibregl.Map) {
   addFovImage(map);
-  for (const { id, bounds } of EXTRACTS) {
+  for (const { id, bounds } of ALPR_EXTRACTS) {
     const source = `alpr-${id}`;
     map.addSource(source, {
       type: 'vector',

@@ -1,6 +1,7 @@
 import type { Locale } from '@/lib/core/i18n/locales';
 
-export type PlaceKind = 'city' | 'country';
+/** Towns, counties and states are US-only, from the Census (us-areas.ts). */
+export type PlaceKind = 'city' | 'town' | 'county' | 'state' | 'country';
 
 /** A place a public page can be about, from data/site/gazetteer.json (tools/site/build-gazetteer.ts). */
 export interface Place {
@@ -23,8 +24,10 @@ export interface Place {
   /** [lon, lat]; a country's is where its label goes. */
   at: [number, number];
   pop: number;
-  /** A country's area in km². */
+  /** A country's, state's or county's area in km². */
   area?: number;
+  /** The places it lies within, outermost first: a county's state, a US city's or town's state and county. */
+  parents?: number[];
 }
 
 export interface GazetteerFile {

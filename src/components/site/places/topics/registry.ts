@@ -1,3 +1,4 @@
+import { ALPR_VIEW } from './alpr-body';
 import { AURORA_VIEW } from './aurora-body';
 import { CAMERAS_VIEW } from './cameras-body';
 import { FLIGHTS_VIEW } from './flights-body';
@@ -14,6 +15,7 @@ import { WEATHER_VIEW } from './weather-body';
 export const TOPIC_VIEWS: Record<string, TopicView<any, any>> = {
   transit: TRANSIT_VIEW,
   cameras: CAMERAS_VIEW,
+  alpr: ALPR_VIEW,
   flights: FLIGHTS_VIEW,
   weather: WEATHER_VIEW,
   ports: PORTS_VIEW,

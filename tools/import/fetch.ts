@@ -1,6 +1,6 @@
 /*
  * Downloads the keyless sources the second batch of importers reads into RAW_MORE (gitignored).
- *   npx tsx tools/import/fetch.ts <noaa|wikidata|attacks|conflicts|wpp|war-battles|sitelinks|articles|test-series|usgs-articles|wdi|owid|nuclear|covid|cliopatria|gdis|cckp|wup|idb|gep|imf|oecd-lt|all>
+ *   npx tsx tools/import/fetch.ts <noaa|wikidata|attacks|conflicts|wpp|war-battles|sitelinks|articles|test-series|usgs-articles|wdi|owid|nuclear|covid|cliopatria|gdis|cckp|wup|idb|gep|imf|oecd-lt|deflock|us-counties|us-places|all>
  * Files are replaced whole; importers hash them, so an unchanged download is skipped on import.
  */
 import { execFileSync } from 'node:child_process';
@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { zipEntry } from '../../src/lib/core/net/remote-zip';
 import { RAW_MORE, REPO } from './context';
+import { deflock, usCounties, usPlaces } from './fetch-places';
 import { readCsv } from './csv';
 import { WIKI_DIR } from './wiki';
 
@@ -478,7 +479,7 @@ async function cckp() {
   }
 }
 
-const FETCHERS: Record<string, () => Promise<void>> = { noaa, wikidata, attacks, conflicts, wpp, 'war-battles': warBattles, sitelinks, articles, 'test-series': testSeries, 'usgs-articles': usgsArticles, wdi, owid, nuclear, covid, cliopatria, gdis, cckp, wup, idb, gep, imf, 'oecd-lt': oecdLt };
+const FETCHERS: Record<string, () => Promise<void>> = { noaa, wikidata, attacks, conflicts, wpp, 'war-battles': warBattles, sitelinks, articles, 'test-series': testSeries, 'usgs-articles': usgsArticles, wdi, owid, nuclear, covid, cliopatria, gdis, cckp, wup, idb, gep, imf, 'oecd-lt': oecdLt, deflock, 'us-counties': usCounties, 'us-places': usPlaces };
 
 async function main() {
   const names = process.argv.slice(2);

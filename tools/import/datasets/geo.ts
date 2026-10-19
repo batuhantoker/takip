@@ -13,7 +13,7 @@ const COUNTRIES = join(REPO, 'public/data/boundaries/countries.json');
 const UNESCO = join(RAW, 'UNESCO Heritage siteswhc-sites(tangibles)-2021.csv');
 const GLWD = join(RAW, 'Global Lakes and Wetlands Database.csv');
 
-async function buildLayer(ctx: Ctx, ds: Dataset, spec: Omit<GeoLayerSpec, 'sourceId'>, fill: (w: GeoLayerWriter) => Promise<void>) {
+export async function buildLayer(ctx: Ctx, ds: Dataset, spec: Omit<GeoLayerSpec, 'sourceId'>, fill: (w: GeoLayerWriter) => Promise<void>) {
   const w = GeoLayerWriter.open(ctx.layout, ctx.catalog, { ...spec, sourceId: ds.sourceId });
   try {
     await fill(w);

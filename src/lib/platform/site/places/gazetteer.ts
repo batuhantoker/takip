@@ -1,7 +1,8 @@
-import { readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Locale } from '@/lib/core/i18n/locales';
 import type { GazetteerFile, Place, PlaceKind } from './place';
+import type { UsAreasFile } from './us-areas';
 
 export type { Place, PlaceKind } from './place';
 
@@ -13,22 +14,31 @@ export const DATA_RECHECK_MS = 30_000;
 
 let loaded: { mtime: number; checked: number; places: Place[]; bySlug: Map<string, Place>; byId: Map<number, Place>; regions: NonNullable<GazetteerFile['regions']> } | null = null;
 
+/** Both files' times, so rebuilding either is noticed. */
+const mtimeOf = (gazetteer: string, areas: string) => statSync(gazetteer).mtimeMs + (existsSync(areas) ? statSync(areas).mtimeMs : 0);
+
 function gazetteer() {
   const path = join(SITE_DATA, 'gazetteer.json');
+  const areasPath = join(SITE_DATA, 'us-areas.json');
   const now = Date.now();
   if (loaded && now - loaded.checked > DATA_RECHECK_MS) {
     loaded.checked = now;
-    if (statSync(path).mtimeMs !== loaded.mtime) loaded = null;
+    if (mtimeOf(path, areasPath) !== loaded.mtime) loaded = null;
   }
   if (!loaded) {
-    const mtime = statSync(path).mtimeMs;
+    const mtime = mtimeOf(path, areasPath);
     const file = JSON.parse(readFileSync(path, 'utf8')) as GazetteerFile;
+    const areas = existsSync(areasPath) ? JSON.parse(readFileSync(areasPath, 'utf8')) as UsAreasFile : null;
+    const places = [
+      ...(areas ? file.places.map(p => (areas.parents[p.id] ? { ...p, parents: areas.parents[p.id] } : p)) : file.places),
+      ...(areas?.places ?? []),
+    ];
     loaded = {
       mtime,
       checked: now,
-      places: file.places,
-      bySlug: new Map(file.places.map(p => [`${p.kind}/${p.slug}`, p])),
-      byId: new Map(file.places.map(p => [p.id, p])),
+      places,
+      bySlug: new Map(places.map(p => [`${p.kind}/${p.slug}`, p])),
+      byId: new Map(places.map(p => [p.id, p])),
       regions: file.regions ?? {},
     };
   }

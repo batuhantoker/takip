@@ -130,7 +130,8 @@ Open data rarely includes true network topology, such as which substation feeds 
 | Himawari | Near-live imagery of Asia-Pacific | Verify |
 | FAA WeatherCams, NPS, USGS volcano cams | Government cameras | OK |
 | ALERTCalifornia, HPWREN | Wildfire cameras | Verify |
-| DeFlock (OpenStreetMap `surveillance:type=ALPR`) | Licence-plate reader locations, US and Canada, as hourly vector tiles: the Plate Readers layer (in use) | OK (ODbL; credit OpenStreetMap contributors and DeFlock) |
+| DeFlock (OpenStreetMap `surveillance:type=ALPR`) | Licence-plate reader locations, US and Canada, as hourly vector tiles: the Plate Readers layer (in use). Its region files (`cdn.deflock.me/regions`, 20° squares, worldwide, about 156,000 readers on 2026-10-19) are imported into `data/db` as the `alpr` layer (`npm run import -- deflock-alpr`), which the plate-reader place pages count | OK (ODbL; credit OpenStreetMap contributors and DeFlock) |
+| US Census Bureau boundaries, gazetteers and estimates | 2024 cartographic boundaries (1:500k), gazetteer files and Vintage 2024 population estimates for counties and for places (incorporated places and CDPs): the `us-counties` and `us-places` layers in `data/db`, behind the county, state and town pages (in use) | OK (public domain); keyless downloads from www2.census.gov |
 
 ### Infrastructure and energy
 

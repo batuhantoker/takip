@@ -1,17 +1,22 @@
+import { msg } from '@/lib/core/i18n/translator';
 import { mapHref } from '../map-link';
-import type { Place } from './place';
+import type { Place, PlaceKind } from './place';
 import type { MapLink } from './topic';
+
+/** The index of each kind of place, and what it is called in the trail, as msg(). */
+export const KIND_INDEX: Record<PlaceKind, string> = { city: '/city', town: '/town', county: '/county', state: '/state', country: '/country' };
+export const KIND_LABEL: Record<PlaceKind, string> = { city: msg('Places'), town: msg('Towns'), county: msg('Counties'), state: msg('States'), country: msg('Countries') };
 
 /** /city/cincinnati, /city/cincinnati/transit, /country/turkey/earthquakes-last-100-years. */
 export const placePath = (place: Place, page?: string) => `/${place.kind}/${place.slug}${page ? `/${page}` : ''}`;
 
-/** Close enough to see the whole country: Luxembourg at 7, Türkiye at about 5, the US at 3. */
+/** Close enough to see the whole country: Luxembourg at 7, Türkiye at about 5, the US at 3; a county at up to 10. */
 export function countryZoom(place: Place): number {
   const side = Math.sqrt(place.area ?? 250_000);
-  return Math.min(7, Math.max(2, 9 - Math.log2(side / 50)));
+  return Math.min(place.kind === 'country' ? 7 : 10, Math.max(2, 9 - Math.log2(side / 50)));
 }
 
-export const placeZoom = (place: Place, zoom?: number) => zoom ?? (place.kind === 'country' ? countryZoom(place) : 11);
+export const placeZoom = (place: Place, zoom?: number) => zoom ?? (place.kind === 'city' ? 11 : place.kind === 'town' ? 13 : countryZoom(place));
 
 export function placeOpenPath(place: Place, link: MapLink): string {
   const view = link.view ?? { lat: place.at[1], lon: place.at[0], zoom: placeZoom(place, link.zoom) };

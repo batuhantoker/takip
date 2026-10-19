@@ -1,6 +1,7 @@
 import type { Ctx } from '../context';
 import { importCowInterstate } from './cow';
 import { importCowTerritorial } from './cow-territorial';
+import { importDeflock } from './deflock';
 import { importAdmin0, importGlwd, importUnesco } from './geo';
 import { importGtd } from './gtd';
 import { importIcow } from './icow';
@@ -33,6 +34,8 @@ import { importWw2Borders } from './ww2';
 import { importOwidCovid } from './owid-covid';
 import { importCliopatria } from './cliopatria';
 import { importGdis } from './gdis';
+import { importUsCounties } from './us-counties';
+import { importUsPlaces } from './us-places';
 
 /**
  * Run order matters: later importers link to events earlier ones loaded (COW → WAC same_as, UCDP → WAC/COW,
@@ -78,4 +81,8 @@ export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
   'owid-longrun': importOwidLongRun,
   cliopatria: importCliopatria,
   gdis: importGdis,
+  'us-counties': importUsCounties,
+  'us-places': importUsPlaces,
+  // After us-counties and us-places: each reader in the US gets its county and place.
+  'deflock-alpr': importDeflock,
 };

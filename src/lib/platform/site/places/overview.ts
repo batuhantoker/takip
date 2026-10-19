@@ -6,7 +6,7 @@ import type { PlaceCopy } from './topic';
 
 /** A place's overview page: what it has on the map, by its topics' own names and summaries. */
 export function overviewCopy(place: Place, pages: PlacePageRef[], t: Translate, places = 0): PlaceCopy {
-  if (!pages.length && place.kind === 'country') return countryOverview(place, t, places);
+  if (!pages.length && place.kind !== 'city') return countryOverview(place, t, places);
   const name = (t: Translate) => nameOf(place, t);
   // A topic with several pages (earthquakes over 10 and 100 years) is named once.
   const labels = (t: Translate, k: number) => listOf([...new Set(pages.map(p => t(p.topic.inline)))].slice(0, k), t);
@@ -28,7 +28,7 @@ export function overviewCopy(place: Place, pages: PlacePageRef[], t: Translate, 
   };
 }
 
-/** A country with no pages of its own yet: the way to its places. */
+/** A country, state or county with no pages of its own yet: the way to its places. */
 function countryOverview(place: Place, t: Translate, places: number): PlaceCopy {
   const name = (t: Translate) => nameOf(place, t);
   return {

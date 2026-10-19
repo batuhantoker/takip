@@ -48,10 +48,11 @@ export const HAZARDS: PlaceTopic<HazardData, HazardsNow> = {
   pages(place) {
     const { meta } = table();
     const row = tableRow<HazardRow>('hazards', place.id);
-    if (!row || !meta) return [];
+    const kind = place.kind;
+    if (!row || !meta || (kind !== 'city' && kind !== 'country')) return [];
     const box: Bbox = row.box ?? placeBox(place, meta.cityKm);
     return HAZARD_RANGES.flatMap(range => {
-      const facts = hazardFacts(row, range, meta, place.kind);
+      const facts = hazardFacts(row, range, meta, kind);
       return facts ? [{ slug: SLUG[range], label: LABEL[range], data: { facts, box }, index: facts.index }] : [];
     });
   },

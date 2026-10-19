@@ -24,9 +24,12 @@ function qualifier(place: Place, t: Translate) {
   return place.region && placeSlugBase(place.region) !== placeSlugBase(place.name) ? regionLabel(place, t.locale)! : countryName(place.cc, t);
 }
 
-/** The place's name in the reader's language: "Nevşehir", "ネヴシェヒル", and "London, Ontario" where the plain name is taken. */
+/** The place's name in the reader's language: "Nevşehir", "ネヴシェヒル", "Fulton County, GA", and "London, Ontario" where the plain name is taken. */
 export function nameOf(place: Place, t: Translate): string {
   if (place.kind === 'country') return countryName(place.cc, t);
+  if (place.kind === 'state') return placeLabel(place, t.locale);
+  // Thirty states have a Washington County.
+  if (place.kind === 'county' || place.kind === 'town') return `${placeLabel(place, t.locale)}, ${place.regionCode}`;
   const label = placeLabel(place, t.locale);
   return sharesName(place) ? `${label}, ${qualifier(place, t)}` : label;
 }
@@ -34,6 +37,8 @@ export function nameOf(place: Place, t: Translate): string {
 /** "Cincinnati, Ohio", "Nevşehir, Türkiye", "London, Ontario, Canada"; a country is just itself. */
 export function placeName(place: Place, t: Translate): string {
   if (place.kind === 'country') return countryName(place.cc, t);
+  if (place.kind === 'state') return `${placeLabel(place, t.locale)}, ${countryName(place.cc, t)}`;
+  if (place.kind === 'county' || place.kind === 'town') return `${placeLabel(place, t.locale)}, ${regionLabel(place, t.locale)}`;
   if (sharesName(place)) return `${nameOf(place, t)}${qualifier(place, t) === regionLabel(place, t.locale) ? `, ${countryName(place.cc, t)}` : ''}`;
   return `${nameOf(place, t)}, ${WITH_REGION.has(place.cc) && place.region ? regionLabel(place, t.locale) : countryName(place.cc, t)}`;
 }
