@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { getClientIp, isRateLimited, isPublicIp, visitorIp } from './ssrf-guard';
+import { getClientIp, isRateLimited, isPublicIp, validateHost, visitorIp } from './ssrf-guard';
 
 const req = (headers: Record<string, string>) => new Request('https://takip.test/api/scanner', { headers });
 
@@ -96,6 +96,18 @@ describe('isPublicIp', () => {
   it('rejects things that are not addresses', () => {
     expect(isPublicIp('unknown')).toBe(false);
     expect(isPublicIp('2130706433')).toBe(false);
+  });
+});
+
+describe('validateHost', () => {
+  it('blocks reserved IPv6 written in long or hex form', async () => {
+    for (const ip of ['0::1', '0:0:0:0:0:0:0:1', '[0::ffff:192.168.1.1]', '0:0:0:0:0:ffff:7f00:1', '::ffff:a00:1', 'FE80::1', '0064:ff9b::a00:1', 'fe80::1%eth0']) {
+      expect((await validateHost(ip)).ok, ip).toBe(false);
+    }
+  });
+
+  it('passes a public IPv6 and hands back the form it checked', async () => {
+    expect(await validateHost('[2606:4700:0:0:0:0:0:1111]')).toEqual({ ok: true, resolved: ['2606:4700::1111'] });
   });
 });
 

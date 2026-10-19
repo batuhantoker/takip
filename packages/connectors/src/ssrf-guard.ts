@@ -66,8 +66,19 @@ function ipv4InBlocked(ip: string): boolean {
   return false;
 }
 
+/** The WHATWG short form (`0:0::ffff:7f00:1` → `::ffff:7f00:1`), or null when it isn't an IPv6 literal. */
+function canonicalIPv6(ip: string): string | null {
+  try {
+    return new URL(`http://[${ip.replace(/^\[|\]$/g, '')}]`).hostname.slice(1, -1);
+  } catch {
+    return null;
+  }
+}
+
 function ipv6InBlocked(ip: string): boolean {
-  const lower = ip.toLowerCase().replace(/^\[/, '').replace(/\]$/, '');
+  // The prefixes below only match the short form; a long form like `0::1` would slip past them.
+  const lower = canonicalIPv6(ip);
+  if (lower === null) return true;
   // Exact-match singletons first
   if (lower === '::' || lower === '::1') return true;
   for (const prefix of IPV6_BLOCK_PREFIXES) {
@@ -148,7 +159,7 @@ export async function validateHost(host: string): Promise<ValidationResult> {
   }
   if (ipFamily === 6) {
     if (ipv6InBlocked(bracketed)) return { ok: false, reason: 'IPv6 in reserved range' };
-    return { ok: true, resolved: [bracketed] };
+    return { ok: true, resolved: [canonicalIPv6(bracketed)!] };
   }
 
   // Hostname — basic syntax check then resolve and re-check
