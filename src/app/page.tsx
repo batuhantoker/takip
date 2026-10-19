@@ -219,7 +219,7 @@ export default function Dashboard() {
     setActiveTool(tool);
   };
   const closeTool = () => { if (activeTool) toggleTool(activeTool); };
-  const exitHistory = () => { closeHistory(); setActiveTool(t => (t === 'history' ? null : t)); };
+  const exitHistory = () => { closeHistory(); setActiveTool(t => (t === 'history' ? null : t)); setMobilePanel(p => (p === 'history' ? null : p)); };
   const openTool = (tool: ToolId) => { if (activeTool !== tool) toggleTool(tool); };
   useKeyboardShortcuts({
     setShowDesktopSearch, onTool: toggleTool, onReplay: toggleReplay, setAiMode, setAiAutoFocus, setMobilePanel, setActiveTool, setFlyToLocation, setActiveLayers, setMapProjection,
@@ -354,7 +354,8 @@ export default function Dashboard() {
         <MobileShell revealed={splash.revealed} mobilePanel={mobilePanel} setMobilePanel={setMobilePanel} directions={directions}
           data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} capabilities={capabilities} terrain={terrain}
           theme={theme} setTheme={setTheme} ti={ti} spaceWeather={spaceWeather} mapCenter={mapCenter} mapView={mapView}
-          openDirectionsTo={openDirectionsTo} setFlyToLocation={setFlyToLocation} onSweep={recon.setSweepData} />
+          openDirectionsTo={openDirectionsTo} setFlyToLocation={setFlyToLocation} onSweep={recon.setSweepData}
+          history={{ session: history.session, open: startHistory, exit: exitHistory }} />
       ) : (
         <>
           <NavSidebar groups={navItems({ layersOn, arcgisCount: arcgis.arcgisLayers.length, historyOn: !!history.session })} active={activeTool} onSelect={toggleTool}
@@ -377,13 +378,15 @@ export default function Dashboard() {
             )}
           </Dock>
           {/* Where the pointer is, and the live state; the replay or history timeline takes its place. */}
-          {replay.session ? <TimelineBar session={replay.session} onExit={replay.toggle} /> : history.session ? <HistoryTimelineBar session={history.session} onExit={exitHistory} /> : (
+          {!replay.session && !history.session && (
             <GlobalStatusBar revealed={splash.revealed}
               left={<CursorInfo coordsDisplayRef={cursor.coordsDisplayRef} locationLabel={cursor.locationLabel} hidden={space.inSpace} />}
               right={<LiveStats backendStatus={backendStatus} data={data} onLocate={(lat, lng) => flyTo(lat, lng, 6)} />} />
           )}
         </>
       )}
+      {replay.session ? <TimelineBar session={replay.session} onExit={replay.toggle} compact={isMobile} />
+        : history.session && <HistoryTimelineBar session={history.session} onExit={exitHistory} compact={isMobile} />}
 
       <MapTimeWall features={timeFeatures} />
       <AccountDialog map={{ mapStyle, setMapStyle, activeLayers, setActiveLayers, ...terrain }} />

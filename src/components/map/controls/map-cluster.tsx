@@ -39,7 +39,7 @@ export default function MapCluster({ revealed, isMobile, mapProjection, setMapPr
     <div data-hud className={cx(
       'pointer-events-none absolute right-3 z-[240] flex items-end gap-2',
       'transition-[opacity,bottom] duration-150 ease-out motion-reduce:transition-none',
-      isMobile ? 'bottom-[calc(68px+env(safe-area-inset-bottom))]' : 'bottom-[calc(var(--shell-bottom,28px)+12px)]',
+      isMobile ? 'bottom-[calc(var(--shell-bottom,56px)+12px+env(safe-area-inset-bottom))]' : 'bottom-[calc(var(--shell-bottom,28px)+12px)]',
       revealed ? 'opacity-100' : 'opacity-0',
     )}>
       {!isMobile && (

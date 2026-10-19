@@ -1,7 +1,7 @@
 'use client';
 
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { Layers, Radar, Route, Search, TriangleAlert } from 'lucide-react';
+import { Hourglass, Layers, Orbit, Radar, Route, Search, TriangleAlert } from 'lucide-react';
 import { AiMark } from '@/components/panels/ti-agent/atoms';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import type { ActiveRoute, MobilePanel, NavSession } from '@/components/shell/state/types';
@@ -12,6 +12,8 @@ const ICON = 'size-[18px]';
 const TABS: Tab[] = [
   { id: 'layers', label: 'Layers', glyph: <Layers className={ICON} strokeWidth={1.75} /> },
   { id: 'intel', label: 'Alerts', glyph: <TriangleAlert className={ICON} strokeWidth={1.75} /> },
+  { id: 'history', label: 'History', glyph: <Hourglass className={ICON} strokeWidth={1.75} /> },
+  { id: 'space', label: 'Space', glyph: <Orbit className={ICON} strokeWidth={1.75} /> },
   { id: 'recon', label: 'Recon', glyph: <Radar className={ICON} strokeWidth={1.75} /> },
   { id: 'ai', label: 'TI', glyph: <AiMark size={18} /> },
   { id: 'search', label: 'Search', glyph: <Search className={ICON} strokeWidth={1.75} /> },
@@ -22,7 +24,7 @@ const TABS: Tab[] = [
 /** The phone's bottom bar: one sheet at a time, and Route, which opens at the top instead. */
 export default function MobileNav({ mobilePanel, setMobilePanel, showDirections, setShowDirections, navSession, setActiveRoute }: {
   mobilePanel: MobilePanel | null;
-  setMobilePanel: Dispatch<SetStateAction<MobilePanel | null>>;
+  setMobilePanel: (panel: MobilePanel | null) => void;
   showDirections: boolean;
   setShowDirections: Dispatch<SetStateAction<boolean>>;
   navSession: NavSession | null;

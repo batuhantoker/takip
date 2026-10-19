@@ -304,6 +304,9 @@ rather than opening a dead player.
 ## Phones
 
 Desktop first. Phones get the map, search, a bottom sheet for one panel at a
-time and the same tokens. Nothing on a phone may depend on hover.
-Map / Space and Showing sit above the bottom bar, and their popovers open
-over the map, never beside a sheet.
+time and the same tokens. The bottom bar holds Layers, Alerts, History, Space,
+Recon, TI, Search and Route; Areas and ArcGIS stay on the desktop. Nothing on a
+phone may depend on hover. Map / Space and Showing sit above the bottom bar, and
+their popovers open over the map, never beside a sheet. While History or Replay
+runs, its timeline sits between them and the bottom bar in two rows, without the
+range menu (Go to and seeking earlier widen the range); an open sheet covers it.

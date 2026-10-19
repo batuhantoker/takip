@@ -8,7 +8,7 @@ import { atMa, formatMa, maAt, parseDeepJump, PERIODS, periodAt } from '@/lib/hi
 import { formatTime, parseJump } from '@/lib/map/replay/time-input';
 import { GoToPopover } from '@/components/map/replay/go-to-popover';
 import { BackToLive, ChoiceMenu, PlayButton, TimeReadout } from '@/components/map/replay/timeline-controls';
-import { TimelineDock } from '@/components/map/replay/timeline-dock';
+import { TimelineDock, TimelineRow } from '@/components/map/replay/timeline-dock';
 import TimelineScrubber, { type Band } from '@/components/map/replay/timeline-scrubber';
 import { calendarTicks, deepTicks } from '@/lib/map/replay/timeline-ticks';
 import { useRemembered } from '@/components/map/replay/use-remembered';
@@ -40,8 +40,9 @@ const displayMa = (ma: number, playing: boolean) => (playing ? formatMa(ma) : fo
 /**
  * In place of the status bar while History is on: play, the date, speed, the track, its range, "Go to" and the way back to live.
  * While the countries show projections the track runs past today to their end, the projected years marked.
+ * `compact` is the phone's two rows, without the range: Go to and seeking earlier widen it.
  */
-export default function HistoryTimelineBar({ session, onExit }: { session: HistorySession; onExit: () => void }) {
+export default function HistoryTimelineBar({ session, onExit, compact }: { session: HistorySession; onExit: () => void; compact?: boolean }) {
   useHistoryTick(session);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   const [rangeId, setRangeId] = useRemembered<RangeId>('takip.history.range', '1900', RANGES.map(r => r.id));
@@ -121,32 +122,56 @@ export default function HistoryTimelineBar({ session, onExit }: { session: Histo
   else if (session.layers().length > 0) above = <WarLegend session={session} />;
   else if (session.countries.state().status !== 'off') above = <CountryLegend session={session} />;
 
+  const play = <PlayButton playing={playing} onToggle={toggle} />;
+  const readout = (
+    <TimeReadout className={compact ? undefined : 'w-[154px]'}
+      primary={deep ? displayMa(ma, clock.playing()) : formatTime(time, Number.POSITIVE_INFINITY)}
+      secondary={deep ? <><Swatch color={period.color} />{period.name}</> : projectedAt(projection, time) ? <span title={projection!.label}>{allProjectedAt(projection, time) ? projection!.short : 'Some countries projected'}</span> : ago(time, openedAt)} />
+  );
+  const speed = (
+    <ChoiceMenu label="Speed" value={clock.speed()} display={storyRunning ? 'Story pace' : speedLabel(clock.speed(), deep)}
+      groups={[{ options: deep ? DEEP_SPEEDS : SPEEDS }]} className={compact ? 'max-w-32' : undefined}
+      onChange={x => { hold(); clock.setSpeed(x); rerender(); }} />
+  );
+  const scrubber = (
+    <TimelineScrubber label={deep ? 'Age' : 'Date'} lo={lo} hi={hi} time={time} step={clock.speed() * 1000}
+      onSeek={seek} onTogglePlay={toggle} format={formatAt}
+      ticksFor={max => (deep ? deepTicks(lo, hi, max) : calendarTicks(lo, hi, max))}
+      bands={deep ? periodBands(lo, hi) : undefined}
+      today={projection ? openedAt : undefined}
+      provisionalFrom={projection ? msAt(projection.from) : undefined}
+      notes={projection ? { provisional: projection.simulated ? projection.short : projection.label } : undefined} />
+  );
+  const goToButton = (
+    <GoToPopover open={goTo} onOpenChange={setGoTo} onGo={go} title="Go to a date or age"
+      placeholder={projection ? '1916, 1939-09-01, 2050, 250 Ma' : '1916, 1939-09-01, 500 BCE, 250 Ma'}
+      hint="Try a year, a date such as 1939-09-01, or an age such as 250 Ma or Jurassic."
+      examples={GO_TO_EXAMPLES} />
+  );
+  const exit = <BackToLive onExit={onExit} />;
+
   return (
-    <TimelineDock label={deep ? 'Deep time timeline' : 'History timeline'} above={above}
+    <TimelineDock label={deep ? 'Deep time timeline' : 'History timeline'} above={above} compact={compact}
       status={<><Dot tone="muted" />{deep ? 'Deep time' : 'History'} · live layers paused</>}>
-      <PlayButton playing={playing} onToggle={toggle} />
-      <TimeReadout className="w-[154px]"
-        primary={deep ? displayMa(ma, clock.playing()) : formatTime(time, Number.POSITIVE_INFINITY)}
-        secondary={deep ? <><Swatch color={period.color} />{period.name}</> : projectedAt(projection, time) ? <span title={projection!.label}>{allProjectedAt(projection, time) ? projection!.short : 'Some countries projected'}</span> : ago(time, openedAt)} />
-      <ChoiceMenu label="Speed" value={clock.speed()} display={storyRunning ? 'Story pace' : speedLabel(clock.speed(), deep)}
-        groups={[{ options: deep ? DEEP_SPEEDS : SPEEDS }]}
-        onChange={x => { hold(); clock.setSpeed(x); rerender(); }} />
-      <TimelineScrubber label={deep ? 'Age' : 'Date'} lo={lo} hi={hi} time={time} step={clock.speed() * 1000}
-        onSeek={seek} onTogglePlay={toggle} format={formatAt}
-        ticksFor={max => (deep ? deepTicks(lo, hi, max) : calendarTicks(lo, hi, max))}
-        bands={deep ? periodBands(lo, hi) : undefined}
-        today={projection ? openedAt : undefined}
-        provisionalFrom={projection ? msAt(projection.from) : undefined}
-        notes={projection ? { provisional: projection.simulated ? projection.short : projection.label } : undefined} />
-      <div className="flex shrink-0 items-center gap-1">
-        <ChoiceMenu label="Range" value={deep ? deepRange.id : range.id} groups={RANGE_GROUPS} onChange={pickRange} />
-        <GoToPopover open={goTo} onOpenChange={setGoTo} onGo={go} title="Go to a date or age"
-          placeholder={projection ? '1916, 1939-09-01, 2050, 250 Ma' : '1916, 1939-09-01, 500 BCE, 250 Ma'}
-          hint="Try a year, a date such as 1939-09-01, or an age such as 250 Ma or Jurassic."
-          examples={GO_TO_EXAMPLES} />
-        <span className="mx-1 h-5 w-px bg-line" aria-hidden />
-        <BackToLive onExit={onExit} />
-      </div>
+      {compact ? (
+        <>
+          <TimelineRow>{play}<div className="min-w-0 flex-1 overflow-hidden">{readout}</div>{goToButton}{exit}</TimelineRow>
+          <TimelineRow>{scrubber}{speed}</TimelineRow>
+        </>
+      ) : (
+        <>
+          {play}
+          {readout}
+          {speed}
+          {scrubber}
+          <div className="flex shrink-0 items-center gap-1">
+            <ChoiceMenu label="Range" value={deep ? deepRange.id : range.id} groups={RANGE_GROUPS} onChange={pickRange} />
+            {goToButton}
+            <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+            {exit}
+          </div>
+        </>
+      )}
     </TimelineDock>
   );
 }

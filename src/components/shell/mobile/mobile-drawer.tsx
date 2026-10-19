@@ -10,6 +10,8 @@ const TITLES: Record<MobilePanel, string> = {
   layers: 'Layers',
   markets: 'Markets',
   intel: 'Alerts',
+  history: 'History',
+  space: 'Space',
   search: 'Search',
   recon: 'Recon',
   ai: 'TI',
@@ -19,11 +21,13 @@ const TITLES: Record<MobilePanel, string> = {
 const DISMISS_AT = 72;
 
 /** The phone's one sheet, above the bottom bar: a title, a close button, and whatever was opened. Pull the top down to close it. */
-export function MobileDrawer({ mobilePanel, setMobilePanel, subtitle, children }: {
+export function MobileDrawer({ mobilePanel, setMobilePanel, subtitle, actions, children }: {
   mobilePanel: MobilePanel | null;
   setMobilePanel: Dispatch<SetStateAction<MobilePanel | null>>;
   /** One quiet line under the title. */
   subtitle?: ReactNode;
+  /** Buttons before Close. */
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   const [pull, setPull] = useState(0);
@@ -64,7 +68,10 @@ export function MobileDrawer({ mobilePanel, setMobilePanel, subtitle, children }
             <h2 className="truncate text-title font-semibold text-ink-1">{TITLES[mobilePanel]}</h2>
             {subtitle && <p className="truncate text-meta text-ink-3">{subtitle}</p>}
           </div>
-          <IconButton label="Close" icon={X} onClick={close} />
+          <div className="flex shrink-0 items-center gap-0.5">
+            {actions}
+            <IconButton label="Close" icon={X} onClick={close} />
+          </div>
         </header>
       </div>
       <div className="styled-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>

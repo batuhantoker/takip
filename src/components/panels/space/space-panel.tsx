@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { cx } from '@/components/ui/class-names';
 import { Panel } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
+import { Segmented, segmentId, type SegmentedOption } from '@/components/ui/segmented';
 import { age } from '@/lib/space/format';
 import CraftList from '@/components/panels/space/parts/craft-list';
 import IssLive from '@/components/panels/space/parts/iss-live';
@@ -18,6 +19,11 @@ import { useExoplanets, useExoplanetsFailed, useFleet, useFleetFailed } from './
 
 type Tab = 'craft' | 'planets' | 'iss';
 const TAB_KEY = 'takip.space.tab';
+const TABS: SegmentedOption<Tab>[] = [
+  { value: 'craft', label: 'Spacecraft' },
+  { value: 'planets', label: 'Planets' },
+  { value: 'iss', label: 'ISS live' },
+];
 
 function loadTab(): Tab {
   try {
@@ -26,7 +32,9 @@ function loadTab(): Tab {
   } catch { return 'craft'; }
 }
 
-export default function SpaceDock({ onClose }: { onClose: () => void }) {
+/** `embedded`: body only, for the phone's sheet, which has its own title and close and does the scrolling. */
+export default function SpaceDock({ onClose, embedded }: { onClose: () => void; embedded?: boolean }) {
+  const id = useId();
   const [tab, setTabState] = useState<Tab>(() => (typeof window === 'undefined' ? 'craft' : loadTab()));
   const [craftQuery, setCraftQuery] = useState('');
   const [planetQuery, setPlanetQuery] = useState('');
@@ -52,23 +60,32 @@ export default function SpaceDock({ onClose }: { onClose: () => void }) {
   const query = tab === 'craft' ? craftQuery : planetQuery;
   const setQuery = tab === 'craft' ? setCraftQuery : setPlanetQuery;
 
+  const list = tab === 'craft' ? <CraftList fleet={fleet} failed={fleetFailed} query={craftQuery} />
+    : tab === 'planets' ? <PlanetList exo={exo} failed={exoFailed} query={planetQuery} />
+      : <IssLive />;
+  const placeholder = tab === 'craft' ? 'Find a spacecraft' : 'Find a star or planet';
+
+  if (embedded) return (
+    <>
+      <div className="sticky top-0 z-10 -mx-4 flex flex-col gap-2 bg-surface-1 px-4 pb-2">
+        <Segmented value={tab} onChange={setTab} options={TABS} id={id} semantics="tabs" label="Space" size="sm" full />
+        {/* iOS zooms into inputs under 16 px. */}
+        {searchable && <SearchField value={query} onChange={setQuery} autoComplete="off" spellCheck={false} placeholder={placeholder} className="h-10 [&_input]:text-base" />}
+        <p className="truncate text-meta text-ink-3">{subtitle}</p>
+      </div>
+      <div key={tab} role="tabpanel" aria-labelledby={segmentId(id, tab)} className="-mx-4">{list}</div>
+    </>
+  );
+
   return (
-    <Panel<Tab> title="Space" subtitle={subtitle} onClose={onClose} bare
-      tabs={{ value: tab, onChange: setTab, options: [
-        { value: 'craft', label: 'Spacecraft' },
-        { value: 'planets', label: 'Planets' },
-        { value: 'iss', label: 'ISS live' },
-      ] }}>
+    <Panel<Tab> title="Space" subtitle={subtitle} onClose={onClose} bare tabs={{ value: tab, onChange: setTab, options: TABS }}>
       {searchable && (
         <div className={cx('shrink-0 border-b px-4 pb-2 transition-colors duration-150', scrolled ? 'border-line' : 'border-transparent')}>
-          <SearchField value={query} onChange={setQuery} autoComplete="off" spellCheck={false}
-            placeholder={tab === 'craft' ? 'Find a spacecraft' : 'Find a star or planet'} />
+          <SearchField value={query} onChange={setQuery} autoComplete="off" spellCheck={false} placeholder={placeholder} />
         </div>
       )}
       <div key={tab} className="styled-scrollbar min-h-0 flex-1 overflow-y-auto" onScroll={e => setScrolled(e.currentTarget.scrollTop > 0)}>
-        {tab === 'craft' ? <CraftList fleet={fleet} failed={fleetFailed} query={craftQuery} />
-          : tab === 'planets' ? <PlanetList exo={exo} failed={exoFailed} query={planetQuery} />
-            : <IssLive />}
+        {list}
       </div>
     </Panel>
   );

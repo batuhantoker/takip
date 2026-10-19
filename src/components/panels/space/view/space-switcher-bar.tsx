@@ -20,7 +20,7 @@ export default function SpaceSwitcherBar({ revealed, isMobile, inSpace, focus, o
     <div data-hud
       className={cx(
         'pointer-events-none absolute z-[240] flex items-center gap-2 transition-[opacity,left] duration-150 ease-out motion-reduce:transition-none',
-        isMobile ? 'bottom-[calc(68px+env(safe-area-inset-bottom))] left-3 max-w-[calc(100vw-80px)] overflow-x-auto [scrollbar-width:none]' : 'bottom-[calc(var(--shell-bottom,28px)+12px)]',
+        isMobile ? 'bottom-[calc(var(--shell-bottom,56px)+12px+env(safe-area-inset-bottom))] left-3 max-w-[calc(100vw-80px)] overflow-x-auto [scrollbar-width:none]' : 'bottom-[calc(var(--shell-bottom,28px)+12px)]',
         revealed ? 'opacity-100' : 'opacity-0',
       )}
       style={isMobile ? undefined : { left: 'calc(var(--shell-left, 72px) + 12px)' }}>

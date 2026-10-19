@@ -8,7 +8,7 @@ import type { ReplaySession } from '@/lib/map/replay/session';
 import { formatTime, HISTORY_START, parseJump } from '@/lib/map/replay/time-input';
 import { type GoToExample, GoToPopover } from './go-to-popover';
 import { BackToLive, ChoiceMenu, JumpButton, PlayButton, TimeReadout } from './timeline-controls';
-import { TimelineDock } from './timeline-dock';
+import { TimelineDock, TimelineRow } from './timeline-dock';
 import TimelineScrubber, { coverageGaps } from './timeline-scrubber';
 import { calendarTicks } from '@/lib/map/replay/timeline-ticks';
 import { useReplayTick } from './use-replay';
@@ -84,8 +84,11 @@ function examples(now: number): GoToExample[] {
   ];
 }
 
-/** In place of the status bar while replay is on: play, the time, speed, the track with what was recorded, its range, "Go to" and the way back to live. */
-export default function TimelineBar({ session, onExit }: { session: ReplaySession; onExit: () => void }) {
+/**
+ * In place of the status bar while replay is on: play, the time, speed, the track with what was recorded, its range, "Go to" and the way back to live.
+ * `compact` is the phone's two rows, without the range: jumping or going to an earlier time widens it.
+ */
+export default function TimelineBar({ session, onExit, compact }: { session: ReplaySession; onExit: () => void; compact?: boolean }) {
   const now = useReplayTick(session);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   const [rangeId, setRangeId] = useRemembered<RangeId>('takip.replay.range', 'day', RANGES.map(r => r.id));
@@ -129,30 +132,48 @@ export default function TimelineBar({ session, onExit }: { session: ReplaySessio
 
   const status = error ? errorText(error) : stats.state === 'ok' ? `${stats.shown.toLocaleString('en')} tracks in view` : STATE_TEXT[stats.state];
 
+  const play = <PlayButton playing={clock.playing()} onToggle={toggle} />;
+  const back = <JumpButton dir={-1} span={jumpSpan} onJump={jump} />;
+  const ahead = <JumpButton dir={1} span={jumpSpan} onJump={jump} />;
+  const speed = <ChoiceMenu label="Speed" value={clock.speed()} groups={[{ options: SPEEDS }]} onChange={x => { clock.setSpeed(x); rerender(); }} />;
+  const scrubber = (
+    <TimelineScrubber label="Replay time" lo={lo} hi={hi} time={time} step={clock.speed() * 1000}
+      onSeek={seek} onTogglePlay={toggle} format={t => pointerText(t, span)}
+      ticksFor={max => calendarTicks(lo, hi, max)}
+      gaps={coverageGaps(manifest?.coverage ?? [], lo, hi)} provisionalFrom={hi - SEAL_DELAY_MS}
+      notes={{ gap: 'not recorded', provisional: 'provisional until two hours old' }} />
+  );
+  const goToButton = (
+    <GoToPopover open={goTo} onOpenChange={setGoTo} onGo={go} placeholder={`${ymd(hi - DAY_MS)} 14:30`}
+      hint={`Try a date such as ${ymd(hi - DAY_MS)}, or a date and time such as ${ymd(hi - DAY_MS)} 14:30.`}
+      examples={examples(hi)} />
+  );
+  const exit = <BackToLive onExit={onExit} />;
+
+  if (compact) {
+    return (
+      <TimelineDock label="Replay timeline" compact
+        above={error && <p role="status" className="rounded-card border border-line bg-surface-1 px-3 py-2 text-small text-red shadow-float">{status}</p>}>
+        <TimelineRow>{play}<div className="min-w-0 flex-1 overflow-hidden"><TimeReadout primary={primary} secondary={secondary} /></div>{goToButton}{exit}</TimelineRow>
+        <TimelineRow>{back}{scrubber}{ahead}{speed}</TimelineRow>
+      </TimelineDock>
+    );
+  }
+
   // The strip under an open panel has room for the status; the bar shows it only when wide, or when it's an error.
   return (
     <TimelineDock label="Replay timeline" status={<><Dot tone={error ? 'red' : 'muted'} />Replay · {status.charAt(0).toLowerCase() + status.slice(1)}</>}>
-      <div className="flex shrink-0 items-center gap-1">
-        <JumpButton dir={-1} span={jumpSpan} onJump={jump} />
-        <PlayButton playing={clock.playing()} onToggle={toggle} />
-        <JumpButton dir={1} span={jumpSpan} onJump={jump} />
-      </div>
+      <div className="flex shrink-0 items-center gap-1">{back}{play}{ahead}</div>
       <TimeReadout className={span <= 2 * DAY_MS ? 'w-[124px]' : 'w-[154px]'} primary={primary} secondary={secondary} />
-      <ChoiceMenu label="Speed" value={clock.speed()} groups={[{ options: SPEEDS }]} onChange={x => { clock.setSpeed(x); rerender(); }} />
-      <TimelineScrubber label="Replay time" lo={lo} hi={hi} time={time} step={clock.speed() * 1000}
-        onSeek={seek} onTogglePlay={toggle} format={t => pointerText(t, span)}
-        ticksFor={max => calendarTicks(lo, hi, max)}
-        gaps={coverageGaps(manifest?.coverage ?? [], lo, hi)} provisionalFrom={hi - SEAL_DELAY_MS}
-        notes={{ gap: 'not recorded', provisional: 'provisional until two hours old' }} />
+      {speed}
+      {scrubber}
       <p role="status" title={error ?? undefined}
         className={cx('max-w-[220px] shrink-0 truncate text-small', error ? 'text-red' : 'hidden text-ink-3 @6xl/timeline:block')}>{status}</p>
       <div className="flex shrink-0 items-center gap-1">
         <ChoiceMenu label="Range" value={rangeId} groups={[{ options: RANGES.map(r => ({ value: r.id, label: r.label })) }]} onChange={setRangeId} />
-        <GoToPopover open={goTo} onOpenChange={setGoTo} onGo={go} placeholder={`${ymd(hi - DAY_MS)} 14:30`}
-          hint={`Try a date such as ${ymd(hi - DAY_MS)}, or a date and time such as ${ymd(hi - DAY_MS)} 14:30.`}
-          examples={examples(hi)} />
+        {goToButton}
         <span className="mx-1 h-5 w-px bg-line" aria-hidden />
-        <BackToLive onExit={onExit} />
+        {exit}
       </div>
     </TimelineDock>
   );

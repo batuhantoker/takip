@@ -4,65 +4,49 @@ import { Hourglass } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
-import { Dot } from '@/components/ui/tag';
-import { allProjectedAt, projectedAt } from '@/lib/history/projection';
 import type { HistorySession } from '@/lib/history/session';
-import { longMa, maAt, periodAt } from '@/lib/history/paleo/deep-time';
-import { CHAPTERS } from '@/lib/history/paleo/story';
-import { longDate, shortDate } from '@/components/panels/history/lib/format-date';
 import { CountriesSection } from '@/components/panels/history/parts/history-countries-section';
 import { DeepTimeSection } from '@/components/panels/history/parts/history-deep-section';
 import { BordersSection, EventsSection, type FlyTo, MomentsSection } from '@/components/panels/history/parts/history-sections';
+import { HistoryBackToLive, WhereInTime } from '@/components/panels/history/parts/where-in-time';
 import { useHistoryTick } from './use-history';
 
-type Props = { onClose: () => void; onExit?: () => void; onFlyTo?: FlyTo };
+type Props = {
+  onClose: () => void;
+  onExit?: () => void;
+  onFlyTo?: FlyTo;
+  /** Body only, for the phone's sheet, which has its own title and close. */
+  embedded?: boolean;
+};
 
-/** Where the clock stands, in words: "Showing 2 October 1914", "250 million years ago · Triassic". Ticks with the timeline so the two agree. */
-function WhereInTime({ session }: { session: HistorySession }) {
-  useHistoryTick(session);
-  if (!session.deep()) {
-    const t = session.clock.time();
-    const projection = session.countries.projection();
-    // The short date leaves room for the tag in the panel's subtitle.
-    if (!projectedAt(projection, t)) return <>Showing {longDate(t)}</>;
-    return <>Showing {shortDate(t)} · {allProjectedAt(projection, t) ? 'projected' : 'partly projected'}</>;
-  }
-  const ma = maAt(session.deepClock.time());
-  const open = session.story.index();
-  return <>{open === null ? `${longMa(ma)} · ${periodAt(ma).name}` : `${CHAPTERS[open].title} · ${longMa(ma)}`}</>;
-}
-
-function SessionPanel({ session, onClose, onExit, onFlyTo }: Props & { session: HistorySession }) {
+function Sections({ session, onFlyTo }: { session: HistorySession; onFlyTo?: FlyTo }) {
   useHistoryTick(session, { clocks: false });
+  if (session.deep()) return <DeepTimeSection session={session} />;
   return (
-    <Panel title="History" subtitle={<WhereInTime session={session} />} onClose={onClose}
-      actions={onExit && (
-        <Button variant="ghost" size="sm" onClick={onExit}>
-          <Dot tone="green" />
-          Back to live
-        </Button>
-      )}>
-      {session.deep() ? <DeepTimeSection session={session} /> : (
-        <>
-          <EventsSection session={session} />
-          <BordersSection session={session} onFlyTo={onFlyTo} />
-          <CountriesSection session={session} />
-          <MomentsSection session={session} onFlyTo={onFlyTo} />
-          <DeepTimeSection session={session} />
-        </>
-      )}
-    </Panel>
+    <>
+      <EventsSection session={session} />
+      <BordersSection session={session} onFlyTo={onFlyTo} />
+      <CountriesSection session={session} />
+      <MomentsSection session={session} onFlyTo={onFlyTo} />
+      <DeepTimeSection session={session} />
+    </>
   );
 }
 
 /** The History tab: what the historical map shows. The mode starts when the tab opens and ends with "Back to live". */
-export default function HistoryPanel({ session, onOpen, ...props }: Props & { session: HistorySession | null; onOpen: () => void }) {
-  if (session) return <SessionPanel session={session} {...props} />;
-  return (
-    <Panel title="History" onClose={props.onClose}>
-      <EmptyState icon={Hourglass} title="See the world at another time"
-        body="Wars, battles and country statistics back to 10,000 BCE, and the continents drifting over 1.8 billion years."
-        action={<Button variant="primary" onClick={onOpen}>Show history on the map</Button>} />
-    </Panel>
+export default function HistoryPanel({ session, onOpen, onClose, onExit, onFlyTo, embedded }: Props & { session: HistorySession | null; onOpen: () => void }) {
+  if (session) {
+    if (embedded) return <Sections session={session} onFlyTo={onFlyTo} />;
+    return (
+      <Panel title="History" subtitle={<WhereInTime session={session} />} onClose={onClose} actions={onExit && <HistoryBackToLive onExit={onExit} />}>
+        <Sections session={session} onFlyTo={onFlyTo} />
+      </Panel>
+    );
+  }
+  const empty = (
+    <EmptyState icon={Hourglass} title="See the world at another time"
+      body="Wars, battles and country statistics back to 10,000 BCE, and the continents drifting over 1.8 billion years."
+      action={<Button variant="primary" onClick={onOpen}>Show history on the map</Button>} />
   );
+  return embedded ? empty : <Panel title="History" onClose={onClose}>{empty}</Panel>;
 }

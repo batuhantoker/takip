@@ -499,7 +499,7 @@ path.ai-graph-in { animation: ai-edge-in 0.9s ease-out both; }
   :root { --edge-pad: 8px; --panel-gap: 6px; }
   .maplibregl-map .maplibregl-popup { max-width: min(320px, calc(100vw - 24px)) !important; }
   /* Beside the phone's map controls (12 px + 42 px capsule + 8 px), level with their foot. */
-  .maplibregl-map .maplibregl-ctrl-bottom-right { right: 62px; bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .maplibregl-map .maplibregl-ctrl-bottom-right { right: 62px; bottom: calc(var(--shell-bottom, 56px) + 12px + env(safe-area-inset-bottom)); }
 }
 
 @media (max-width: 390px) {
