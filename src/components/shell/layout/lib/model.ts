@@ -43,9 +43,20 @@ export type PhonePiece = `bar:${BarId}` | `overlay:${PhoneOverlayId}` | 'logo';
 export type Piece = DesktopPiece | PhonePiece;
 export type Form = 'desktop' | 'phone';
 
-/** A piece placed by hand: its nearest corner, and how far in from that corner's two edges, in px. */
+/** What a piece placed by hand hangs from: a corner, the middle of an edge, or the middle of the map. */
+export type Anchor = Corner | 'top' | 'bottom' | 'left' | 'right' | 'center';
+/** In reading order, as a number pad lays them out from 7 to 3. */
+export const ANCHORS: readonly Anchor[] = ['top-left', 'top', 'top-right', 'left', 'center', 'right', 'bottom-left', 'bottom', 'bottom-right'];
+
+export function axes(anchor: Anchor) {
+  const v = anchor.startsWith('top') ? 'top' : anchor.startsWith('bottom') ? 'bottom' : 'middle';
+  const h = anchor.endsWith('left') ? 'left' : anchor.endsWith('right') ? 'right' : 'middle';
+  return { h, v } as const;
+}
+
+/** A piece placed by hand, in px from its anchor: in from an edge, or either side of a middle. */
 export interface FreeSpot {
-  corner: Corner;
+  anchor: Anchor;
   x: number;
   y: number;
 }
@@ -141,16 +152,20 @@ function spread<K extends string, T extends string>(raw: unknown, defaults: Reco
   return out;
 }
 
-/** Far enough for any screen; a spot past the edge is pulled back in by the corner it hangs from. */
-const offset = (v: number) => Math.round(Math.max(0, Math.min(4000, v)));
+/** Far enough for any screen; only a middle takes a side, so only it goes negative. */
+const offset = (v: number, middle: boolean) => Math.round(Math.max(middle ? -4000 : 0, Math.min(4000, v)));
 
 function freeSpots(raw: unknown): Partial<Record<OverlayId, FreeSpot>> {
   const src = isRecord(raw) ? raw : {};
   const out: Partial<Record<OverlayId, FreeSpot>> = {};
   for (const id of OVERLAY_IDS) {
     const s = src[id];
-    if (!isRecord(s) || !CORNERS.includes(s.corner as Corner) || typeof s.x !== 'number' || typeof s.y !== 'number' || !Number.isFinite(s.x) || !Number.isFinite(s.y)) continue;
-    out[id] = { corner: s.corner as Corner, x: offset(s.x), y: offset(s.y) };
+    if (!isRecord(s) || typeof s.x !== 'number' || typeof s.y !== 'number' || !Number.isFinite(s.x) || !Number.isFinite(s.y)) continue;
+    // Spots saved before edges and the middle had only a corner.
+    const anchor = ANCHORS.find(a => a === s.anchor) ?? CORNERS.find(c => c === s.corner);
+    if (!anchor) continue;
+    const { h, v } = axes(anchor);
+    out[id] = { anchor, x: offset(s.x, h === 'middle'), y: offset(s.y, v === 'middle') };
   }
   return out;
 }
@@ -259,8 +274,16 @@ export function backToCorners(layout: PageLayout): PageLayout {
   return { ...layout, desktop: { ...layout.desktop, free: {} } };
 }
 
-/** The corner a piece hangs from, by hand or in its stack: its menus open away from it. */
-export const anchorOf = (layout: PageLayout, id: OverlayId): Corner => layout.desktop.free[id]?.corner ?? cornerOf(layout, id);
+/** The corner a piece's menus treat as home, so they open toward the map's middle: off a middle, as from the top left. */
+export function menuCorner(anchor: Anchor): Corner {
+  const { h, v } = axes(anchor);
+  return `${v === 'bottom' ? 'bottom' : 'top'}-${h === 'right' ? 'right' : 'left'}` as Corner;
+}
+
+export function menuCornerOf(layout: PageLayout, id: OverlayId): Corner {
+  const spot = layout.desktop.free[id];
+  return spot ? menuCorner(spot.anchor) : cornerOf(layout, id);
+}
 
 export function setBar(layout: PageLayout, bar: BarId[]): PageLayout {
   return { ...layout, phone: { ...layout.phone, bar } };

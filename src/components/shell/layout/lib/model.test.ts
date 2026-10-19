@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_LAYOUT, anchorOf, backToCorners, cornerOf, fromStudio, isDefault, isShown, moveBy, moveToCorner, normalize, placeFreely, resetForm, restore,
+  DEFAULT_LAYOUT, backToCorners, cornerOf, fromStudio, isDefault, isShown, menuCornerOf, moveBy, moveToCorner, normalize, placeFreely, resetForm, restore,
   setRailBreak, setShown, setStatusSide, sideOf,
 } from './model';
 
@@ -116,25 +116,34 @@ describe('changes', () => {
 });
 
 describe('placed by hand', () => {
-  const spot = { corner: 'bottom-left' as const, x: 300, y: 40 };
+  const spot = { anchor: 'bottom-left' as const, x: 300, y: 40 };
 
   it('keeps a valid spot and drops a broken one', () => {
-    const l = normalize({ desktop: { free: { showing: spot, search: { corner: 'middle', x: 1, y: 1 }, scale: { corner: 'top-left', x: 'a', y: 2 }, nope: spot } } });
+    const l = normalize({ desktop: { free: { showing: spot, search: { anchor: 'middle', x: 1, y: 1 }, scale: { anchor: 'top-left', x: 'a', y: 2 }, nope: spot } } });
     expect(l.desktop.free).toEqual({ showing: spot });
     expect(normalize({ desktop: { free: { showing: { ...spot, x: -50, y: 1e9 } } } }).desktop.free.showing).toEqual({ ...spot, x: 0, y: 4000 });
   });
 
-  it('hangs a placed piece from its spot’s corner, and a corner pick puts it back in a stack', () => {
+  it('lets only a middle take a side', () => {
+    expect(normalize({ desktop: { free: { showing: { anchor: 'top', x: -200, y: -5 } } } }).desktop.free.showing).toEqual({ anchor: 'top', x: -200, y: 0 });
+  });
+
+  it('reads a spot saved with only a corner', () => {
+    expect(normalize({ desktop: { free: { showing: { corner: 'top-right', x: 20, y: 30 } } } }).desktop.free.showing).toEqual({ anchor: 'top-right', x: 20, y: 30 });
+  });
+
+  it('opens a placed piece’s menus toward the middle, and a corner pick puts it back in a stack', () => {
     const placed = placeFreely(DEFAULT_LAYOUT, 'showing', spot);
-    expect(anchorOf(placed, 'showing')).toBe('bottom-left');
-    expect(anchorOf(placed, 'search')).toBe('top-left');
+    expect(menuCornerOf(placed, 'showing')).toBe('bottom-left');
+    expect(menuCornerOf(placeFreely(DEFAULT_LAYOUT, 'showing', { anchor: 'right', x: 12, y: 0 }), 'showing')).toBe('top-right');
+    expect(menuCornerOf(placed, 'search')).toBe('top-left');
     const back = moveToCorner(placed, 'showing', 'top-right');
     expect(back.desktop.free).toEqual({});
     expect(back.desktop.corners['top-right']).toEqual(['showing']);
   });
 
   it('puts everything back in its corner', () => {
-    const placed = placeFreely(placeFreely(DEFAULT_LAYOUT, 'showing', spot), 'search', { corner: 'top-right', x: 12, y: 12 });
+    const placed = placeFreely(placeFreely(DEFAULT_LAYOUT, 'showing', spot), 'search', { anchor: 'top', x: 0, y: 12 });
     expect(isDefault(backToCorners(placed), 'desktop')).toBe(true);
   });
 });

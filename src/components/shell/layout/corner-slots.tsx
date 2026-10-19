@@ -5,10 +5,11 @@ import { refreshMapArea } from '@/components/map/windows/map-area';
 import { cx } from '@/components/ui/class-names';
 import { useT } from '@/components/ui/use-t';
 import ArrangeBar from './arrange/arrange-bar';
+import ArrangeTargets from './arrange/arrange-targets';
 import { useArranging } from './arrange/arrange-state';
 import PieceFrame from './arrange/piece-frame';
 import { OVERLAY_LABELS } from './lib/labels';
-import { CORNERS, OVERLAY_IDS, type Corner, type FreeSpot, type OverlayId } from './lib/model';
+import { CORNERS, OVERLAY_IDS, menuCorner, type Corner, type FreeSpot, type OverlayId } from './lib/model';
 import { spotStyle } from './lib/spot';
 
 // Clear of the sidebar and any panel beside it (--shell-left), and above the status bar or a timeline (--shell-bottom).
@@ -27,7 +28,7 @@ const HUD = 'pointer-events-none absolute flex transition-[opacity,left,bottom] 
 /**
  * The desktop map's pieces (Settings → Layout). Each sits in one of the four corners, the first nearest the corner:
  * stacked down from a top corner, side by side along the bottom. One the person dragged elsewhere sits where they
- * left it. The window column reads the right-hand corners and those pieces (map/windows/map-area.ts) to stay clear.
+ * left it, hung from a corner, an edge's middle or the map's. The window column reads the right-hand corners and those pieces (map/windows/map-area.ts) to stay clear.
  */
 export default function CornerSlots({ corners, free, revealed, pieces }: {
   corners: Record<Corner, OverlayId[]>;
@@ -62,10 +63,11 @@ export default function CornerSlots({ corners, free, revealed, pieces }: {
         const spot = free[id];
         return spot && (
           <div key={id} data-hud data-free style={spotStyle(spot)} className={cx(HUD, layer([id]), shown)}>
-            {piece(id, spot.corner)}
+            {piece(id, menuCorner(spot.anchor))}
           </div>
         );
       })}
+      {arranging && <ArrangeTargets />}
       {arranging && <ArrangeBar placed={Object.keys(free).length} />}
     </>
   );
