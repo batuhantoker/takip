@@ -5,11 +5,15 @@ import { clearOverride, grantPlan, revokePlan, setOverride, setPlanValue, type A
 import type { KeyPolicy } from '../access/key-policy';
 import type { AccessResolver } from '../access/resolver';
 import type { Usage } from '../access/usage';
+import { rangeOf } from '../analytics/range';
+import { analyticsRoutes, type AnalyticsOptions } from '../analytics/routes';
+import { userList, usersQuery } from '../analytics/users';
 import type { Auth } from '../auth/auth';
 import type { BillingProvider } from '../billing/provider';
 import type { AppDb } from '../db/app-db';
 import type { ApiKeys } from '../keys/api-keys';
 import { adminKeyRoutes } from '../keys/admin-routes';
+import type { Metrics } from '../obs/metrics';
 import { adminBillingRoutes } from './billing-routes';
 import type { AdminEnv, AdminGate } from './gate';
 import { impersonation } from './impersonation';
@@ -51,9 +55,9 @@ function change(c: Context, run: () => void, access: AccessResolver) {
 }
 
 /** Mounted at /api/admin. Everything but status, unlock and stopping an impersonation sits behind the gate. */
-export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, billing, policy }: {
+export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, billing, policy, metrics, analytics }: {
   auth: Auth; db: AppDb; access: AccessResolver; gate: AdminGate; switchboard?: SourceSwitchboard; keys: ApiKeys; usage: Usage; billing: BillingProvider | null;
-  policy: KeyPolicy;
+  policy: KeyPolicy; metrics?: Metrics; analytics?: AnalyticsOptions;
 }) {
   const app = new Hono<AdminEnv>();
   const queries = adminQueries(db, access);
@@ -88,14 +92,17 @@ export function adminRoutes({ auth, db, access, gate, switchboard, keys, usage, 
   app.route('/usage', adminUsageRoutes({ db, usage }));
   app.route('/billing', adminBillingRoutes({ db, provider: billing }));
   app.route('/reports', adminReportRoutes({ db }));
+  app.route('/analytics', analyticsRoutes({ db, access, usage, metrics, ...analytics }));
 
   app.get('/overview', c => c.json({ ...queries.overview(), recent: queries.audit({ limit: 10 }) }));
 
   app.get('/users', c => {
-    const q = c.req.query('q') ?? '';
-    const offset = Math.max(0, Number(c.req.query('offset')) || 0);
-    const limit = Math.min(100, Math.max(1, Number(c.req.query('limit')) || 50));
-    return c.json(queries.users({ q, offset, limit }));
+    const parsed = usersQuery.safeParse(c.req.query());
+    if (!parsed.success) return c.json({ error: 'invalid_request', message: z.prettifyError(parsed.error) }, 400);
+    // Counters reach the table every 10 s; flushing first includes the last few seconds.
+    usage.flush();
+    const now = Date.now();
+    return c.json(userList(db, access, parsed.data, rangeOf({ days: parsed.data.days, admins: 'include' }, now), now));
   });
 
   app.get('/users/:id', c => {

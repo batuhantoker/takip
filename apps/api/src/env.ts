@@ -38,6 +38,7 @@ const schema = z
     // Days of usage_counter kept for accounts and their keys, and for anonymous visitors.
     USAGE_RETENTION_DAYS: z.coerce.number().int().positive().default(400),
     USAGE_ANON_RETENTION_DAYS: z.coerce.number().int().positive().default(35),
+    ACTIVITY_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
     // Days of audit_event kept.
     AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
     // Days finished jobs are kept: email.send payloads hold addresses and emailed links.

@@ -247,6 +247,89 @@ const MIGRATIONS: string[] = [
   CREATE INDEX IF NOT EXISTS issue_report_status ON issue_report (status, report_id);
   CREATE INDEX IF NOT EXISTS issue_report_user ON issue_report (user_id) WHERE user_id IS NOT NULL;
   `,
+  // Where map minutes go (access/map-time.ts): per subject and feature ('view:history', 'panel:layers', 'layer:flights'),
+  // and per UTC hour for everyone. map_time is now kept for the usage retention instead of one day.
+  `
+  CREATE TABLE IF NOT EXISTS feature_time (
+    day           INTEGER NOT NULL,
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('anon','user')),
+    subject_id    TEXT NOT NULL,
+    feature       TEXT NOT NULL,
+    minutes       INTEGER NOT NULL,
+    PRIMARY KEY (day, subject_type, subject_id, feature)
+  ) STRICT, WITHOUT ROWID;
+  CREATE TABLE IF NOT EXISTS activity_hour (
+    day           INTEGER NOT NULL,
+    hour          INTEGER NOT NULL CHECK (hour BETWEEN 0 AND 23),
+    subject_type  TEXT NOT NULL CHECK (subject_type IN ('anon','user')),
+    minutes       INTEGER NOT NULL,
+    PRIMARY KEY (day, hour, subject_type)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS map_time_subject ON map_time (subject_type, subject_id, day);
+  `,
+  // Per-account analytics: each account's map minutes by UTC hour, and every sign-in (Better Auth deletes a session's
+  // row on sign-out, so auth_session alone loses them). Both are pruned with the other activity (access/usage-prune.ts).
+  `
+  CREATE TABLE IF NOT EXISTS user_hour (
+    user_id  TEXT NOT NULL,
+    day      INTEGER NOT NULL,
+    hour     INTEGER NOT NULL CHECK (hour BETWEEN 0 AND 23),
+    minutes  INTEGER NOT NULL,
+    PRIMARY KEY (user_id, day, hour)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS user_hour_day ON user_hour (day);
+  CREATE INDEX IF NOT EXISTS feature_time_subject ON feature_time (subject_type, subject_id, day);
+  CREATE TABLE IF NOT EXISTS sign_in (
+    sign_in_id       INTEGER PRIMARY KEY,
+    user_id          TEXT NOT NULL,
+    at               INTEGER NOT NULL,
+    ip_address       TEXT,
+    user_agent       TEXT,
+    impersonated_by  TEXT
+  ) STRICT;
+  CREATE INDEX IF NOT EXISTS sign_in_user ON sign_in (user_id, at);
+  CREATE INDEX IF NOT EXISTS sign_in_at ON sign_in (at);
+  `,
+  // Visitors across days (access/map-time.ts): a random id the browser keeps in localStorage and sends with each tick.
+  // Their minutes, features and hours while signed out; user_id is the account last signed in from that browser.
+  `
+  CREATE TABLE IF NOT EXISTS visitor (
+    visitor_id     TEXT PRIMARY KEY,
+    first_seen_at  INTEGER NOT NULL,
+    last_seen_at   INTEGER NOT NULL,
+    user_agent     TEXT,
+    referrer       TEXT,
+    landing        TEXT,
+    user_id        TEXT,
+    linked_at      INTEGER
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS visitor_last_seen ON visitor (last_seen_at);
+  CREATE INDEX IF NOT EXISTS visitor_first_seen ON visitor (first_seen_at);
+  CREATE INDEX IF NOT EXISTS visitor_user ON visitor (user_id) WHERE user_id IS NOT NULL;
+  CREATE TABLE IF NOT EXISTS visitor_day (
+    visitor_id    TEXT NOT NULL,
+    day           INTEGER NOT NULL,
+    minutes       INTEGER NOT NULL,
+    last_tick_at  INTEGER NOT NULL,
+    PRIMARY KEY (visitor_id, day)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS visitor_day_day ON visitor_day (day);
+  CREATE TABLE IF NOT EXISTS visitor_feature (
+    visitor_id  TEXT NOT NULL,
+    day         INTEGER NOT NULL,
+    feature     TEXT NOT NULL,
+    minutes     INTEGER NOT NULL,
+    PRIMARY KEY (visitor_id, day, feature)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS visitor_feature_day ON visitor_feature (day);
+  CREATE TABLE IF NOT EXISTS visitor_hour (
+    visitor_id  TEXT NOT NULL,
+    day         INTEGER NOT NULL,
+    hour        INTEGER NOT NULL CHECK (hour BETWEEN 0 AND 23),
+    minutes     INTEGER NOT NULL,
+    PRIMARY KEY (visitor_id, day, hour)
+  ) STRICT, WITHOUT ROWID;
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

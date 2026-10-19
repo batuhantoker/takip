@@ -21,8 +21,8 @@ function until(iso: string, now = Date.now()) {
  * Covers the map once today's minutes run out (the plan's map.minutes_per_day). Visitors are offered a free
  * account, members their plans. Under the account dialog, so its buttons open on top of it.
  */
-export default function MapTimeWall() {
-  const time = useMapTime();
+export default function MapTimeWall({ features }: { features?: readonly string[] }) {
+  const time = useMapTime(features);
   const signedIn = useSignedIn();
   const plans = usePlans();
   const titleId = useId();

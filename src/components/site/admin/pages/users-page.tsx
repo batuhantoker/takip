@@ -3,66 +3,55 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useAdminData } from '@/components/site/admin/admin-api';
-import { Badge, Button, ErrorText, Input, Muted, PageTitle, TABLE, TD, TH, when } from '@/components/site/admin/parts/admin-parts';
+import { Button, ErrorText, Input, Muted, PageTitle, Select } from '@/components/site/admin/parts/admin-parts';
 import type { UserList } from '@/components/site/admin/admin-types';
+import type { UserSort } from '@/components/site/admin/analytics/analytics-types';
+import UsersTable from '@/components/site/admin/tables/users-table';
 
 const PAGE = 50;
+const RANGES = [7, 30, 90] as const;
 
 export default function UsersPage() {
   const [q, setQ] = useState('');
   const [offset, setOffset] = useState(0);
-  const { data, error } = useAdminData<UserList>(`/users?q=${encodeURIComponent(q)}&offset=${offset}&limit=${PAGE}`);
+  const [days, setDays] = useState<number>(30);
+  const [sort, setSort] = useState<UserSort>('joined');
+  const { data, error } = useAdminData<UserList>(`/users?q=${encodeURIComponent(q)}&offset=${offset}&limit=${PAGE}&days=${days}&sort=${sort}`);
 
   const search = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setQ(String(new FormData(e.currentTarget).get('q')).trim());
     setOffset(0);
   };
+  const sortBy = (next: UserSort) => {
+    setSort(next);
+    setOffset(0);
+  };
+  const idle = data && data.users.length > 0 && data.users.every(u => !u.activity.minutes);
 
   return (
     <>
       <PageTitle title="Users">
-        <form onSubmit={search} className="flex gap-2">
-          <Input name="q" placeholder="Email or name" defaultValue={q} className="w-64" />
-          <Button type="submit">Search</Button>
-        </form>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <form onSubmit={search} className="flex gap-2">
+            <Input name="q" placeholder="Email or name" defaultValue={q} className="w-64" />
+            <Button type="submit">Search</Button>
+          </form>
+          <Select value={days} onChange={e => { setDays(Number(e.target.value)); setOffset(0); }} aria-label="Activity range">
+            {RANGES.map(n => <option key={n} value={n}>Last {n} days</option>)}
+          </Select>
+        </div>
       </PageTitle>
+      <p className="-mt-3 mb-4 text-[12px] text-ink-3">
+        Activity over the last {data?.days ?? days} days: map time, API requests and sign-ins. Open an account for everything it did, or see the totals in{' '}
+        <Link href="/admin/analytics" className="text-accent hover:underline">Analytics</Link>.
+      </p>
       <ErrorText message={error} />
       {data && (
         <>
+          {idle && <p className="mb-2 text-[12px] text-ink-3">No map minutes in this range yet. They are counted once a minute while someone has the map open, from the day that started.</p>}
           <div className="overflow-x-auto border border-line bg-surface-1">
-            <table className={TABLE}>
-              <thead>
-                <tr>
-                  <th className={TH}>User</th>
-                  <th className={TH}>Plan</th>
-                  <th className={TH}>Status</th>
-                  <th className={TH}>Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.users.map(user => (
-                  <tr key={user.id} className="hover:bg-surface-2">
-                    <td className={TD}>
-                      <Link href={`/admin/users/${user.id}`} className="block hover:underline">
-                        <span className="text-ink-1">{user.email}</span>
-                        <span className="block text-[11px] text-ink-3">{user.name}</span>
-                      </Link>
-                    </td>
-                    <td className={TD}><Badge tone={user.plan === 'free' ? 'muted' : 'gold'}>{user.plan}</Badge></td>
-                    <td className={TD}>
-                      <div className="flex flex-wrap gap-1">
-                        {user.role === 'admin' && <Badge tone="gold">admin</Badge>}
-                        {user.banned && <Badge tone="danger">banned</Badge>}
-                        {!user.emailVerified && <Badge tone="muted">unconfirmed</Badge>}
-                        {user.twoFactorEnabled && <Badge tone="muted">2FA</Badge>}
-                      </div>
-                    </td>
-                    <td className={`${TD} whitespace-nowrap text-ink-3`}>{when(user.createdAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <UsersTable list={data} onSort={sortBy} />
             {!data.users.length && <div className="p-4"><Muted>No users match.</Muted></div>}
           </div>
           <div className="flex items-center gap-3 mt-3 text-[12px] text-ink-3">

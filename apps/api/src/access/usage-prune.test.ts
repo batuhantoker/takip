@@ -58,12 +58,49 @@ describe('pruning usage_counter', () => {
   it('keeps the windows it is configured with', async () => {
     seed([0, 7, 8, 90, 91]);
     schedulePruneUsage(t.jobs.queue, Date.now());
-    await runner({ days: 90, anonDays: 7 }).runDue();
+    await runner({ days: 90, anonDays: 7, activityDays: 90 }).runDue();
     expect(kept()).toEqual({ anon: [0, 7], user: [0, 7, 8, 90], key: [0, 7, 8, 90] });
   });
 
+  it('keeps every kind of user activity for 90 days, visitors\' daily hashes included', async () => {
+    const day = (age: number) => TODAY - age;
+    const at = (age: number) => (TODAY - age) * DAY_MS;
+    for (const age of [0, 90, 91]) {
+      for (const [type, id] of [['anon', 'visitor'], ['user', 'u1']]) {
+        t.db.prepare('INSERT INTO map_time (day, subject_type, subject_id, minutes, last_tick_at) VALUES (?, ?, ?, 1, 0)').run(day(age), type, id);
+        t.db.prepare("INSERT INTO feature_time (day, subject_type, subject_id, feature, minutes) VALUES (?, ?, ?, 'view:map', 1)").run(day(age), type, id);
+      }
+      t.db.prepare("INSERT INTO activity_hour (day, hour, subject_type, minutes) VALUES (?, 3, 'user', 1)").run(day(age));
+      t.db.prepare("INSERT INTO user_hour (user_id, day, hour, minutes) VALUES ('u1', ?, 3, 1)").run(day(age));
+      t.db.prepare('INSERT INTO visitor (visitor_id, first_seen_at, last_seen_at) VALUES (?, ?, ?)').run(`v${age}`, at(age), at(age));
+      for (const table of ['visitor_day (visitor_id, day, minutes, last_tick_at) VALUES (?, ?, 1, 0)', "visitor_feature (visitor_id, day, feature, minutes) VALUES (?, ?, 'view:map', 1)", 'visitor_hour (visitor_id, day, hour, minutes) VALUES (?, ?, 3, 1)']) {
+        t.db.prepare(`INSERT INTO ${table}`).run(`v${age}`, day(age));
+      }
+      t.db.prepare("INSERT INTO sign_in (user_id, at) VALUES ('u1', ?)").run(at(age));
+    }
+    schedulePruneUsage(t.jobs.queue, Date.now());
+    await runner().runDue();
+    const ages = (sql: string) => (t.db.prepare(sql).pluck().all() as number[]).map(d => TODAY - d);
+    for (const table of ['map_time', 'feature_time']) {
+      for (const type of ['anon', 'user']) expect(ages(`SELECT day FROM ${table} WHERE subject_type = '${type}' ORDER BY day DESC`), `${table} ${type}`).toEqual([0, 90]);
+    }
+    for (const table of ['activity_hour', 'user_hour', 'visitor_day', 'visitor_feature', 'visitor_hour']) {
+      expect(ages(`SELECT day FROM ${table} ORDER BY day DESC`), table).toEqual([0, 90]);
+    }
+    expect(t.db.prepare('SELECT visitor_id FROM visitor ORDER BY visitor_id').pluck().all()).toEqual(['v0', 'v90']);
+    expect((t.db.prepare('SELECT at FROM sign_in ORDER BY at DESC').pluck().all() as number[]).map(ms => TODAY - ms / DAY_MS)).toEqual([0, 90]);
+  });
+
+  it('takes its activity window from the configuration', async () => {
+    for (const age of [0, 7, 8]) t.db.prepare("INSERT INTO user_hour (user_id, day, hour, minutes) VALUES ('u1', ?, 3, 1)").run(TODAY - age);
+    schedulePruneUsage(t.jobs.queue, Date.now());
+    await runner({ days: 400, anonDays: 35, activityDays: 7 }).runDue();
+    expect((t.db.prepare('SELECT day FROM user_hour ORDER BY day DESC').pluck().all() as number[]).map(d => TODAY - d)).toEqual([0, 7]);
+  });
+
   it('reads its windows from the environment', () => {
-    expect(loadEnv({})).toMatchObject({ USAGE_RETENTION_DAYS: 400, USAGE_ANON_RETENTION_DAYS: 35 });
+    expect(loadEnv({})).toMatchObject({ USAGE_RETENTION_DAYS: 400, USAGE_ANON_RETENTION_DAYS: 35, ACTIVITY_RETENTION_DAYS: 90 });
+    expect(loadEnv({ ACTIVITY_RETENTION_DAYS: '30' })).toMatchObject({ ACTIVITY_RETENTION_DAYS: 30 });
     expect(loadEnv({ USAGE_RETENTION_DAYS: '90', USAGE_ANON_RETENTION_DAYS: '7' })).toMatchObject({ USAGE_RETENTION_DAYS: 90, USAGE_ANON_RETENTION_DAYS: 7 });
     for (const bad of ['0', '-1', '1.5', 'forever']) expect(() => loadEnv({ USAGE_ANON_RETENTION_DAYS: bad }), bad).toThrow(/USAGE_ANON_RETENTION_DAYS/);
   });

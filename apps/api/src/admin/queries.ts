@@ -3,7 +3,7 @@ import type { AppDb } from '../db/app-db';
 
 /* Read models for the console. Better Auth stores dates as ISO text and booleans as 0/1. */
 
-type RawUser = {
+export type RawUser = {
   id: string;
   name: string;
   email: string;
@@ -16,9 +16,9 @@ type RawUser = {
   createdAt: string;
 };
 
-const USER_COLUMNS = 'id, name, email, emailVerified, role, banned, banReason, banExpires, twoFactorEnabled, createdAt';
+export const USER_COLUMNS = 'id, name, email, emailVerified, role, banned, banReason, banExpires, twoFactorEnabled, createdAt';
 
-const toUser = (row: RawUser) => ({
+export const toUser = (row: RawUser) => ({
   ...row,
   emailVerified: row.emailVerified === 1,
   banned: row.banned === 1,
@@ -29,15 +29,6 @@ export function adminQueries(db: AppDb, access: AccessResolver) {
   const planOf = (id: string) => access.resolve({ type: 'user', id }).plan.id;
 
   return {
-    users({ q, offset, limit }: { q: string; offset: number; limit: number }) {
-      const like = `%${q.trim()}%`;
-      const where = q.trim() ? 'WHERE email LIKE ? OR name LIKE ?' : '';
-      const params = q.trim() ? [like, like] : [];
-      const total = db.prepare(`SELECT count(*) FROM auth_user ${where}`).pluck().get(...params) as number;
-      const rows = db.prepare(`SELECT ${USER_COLUMNS} FROM auth_user ${where} ORDER BY createdAt DESC LIMIT ? OFFSET ?`).all(...params, limit, offset) as RawUser[];
-      return { total, users: rows.map(row => ({ ...toUser(row), plan: planOf(row.id) })) };
-    },
-
     user(id: string) {
       const row = db.prepare(`SELECT ${USER_COLUMNS} FROM auth_user WHERE id = ?`).get(id) as RawUser | undefined;
       if (!row) return null;

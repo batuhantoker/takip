@@ -135,11 +135,15 @@ describe('console actions', () => {
 
   const planOf = async (jar: Jar) => (await json<{ plan: { id: string } }>(await call(jar, 'GET', '/api/v1/me/access'))).plan.id;
 
-  it('lists and searches users with their plan', async () => {
-    const all = await json<{ total: number; users: { email: string; plan: string }[] }>(await call(root, 'GET', '/api/admin/users'));
-    expect(all.total).toBe(2);
-    const found = await json<{ total: number; users: { email: string; plan: string }[] }>(await call(root, 'GET', '/api/admin/users?q=ada'));
-    expect(found.users).toMatchObject([{ email: USER.email, plan: 'free' }]);
+  it('lists and searches users with their plan and activity', async () => {
+    type List = { total: number; days: number; sort: string; users: { email: string; plan: string; activity: Record<string, unknown> }[] };
+    const all = await json<List>(await call(root, 'GET', '/api/admin/users'));
+    expect(all).toMatchObject({ total: 2, days: 30, sort: 'joined' });
+    const found = await json<List>(await call(root, 'GET', '/api/admin/users?q=ada'));
+    expect(found.users).toMatchObject([{ email: USER.email, plan: 'free', activity: { minutes: 0, activeDays: 0, apiRequests: 0, keys: 0 } }]);
+    t.db.prepare("INSERT INTO map_time (day, subject_type, subject_id, minutes, last_tick_at) VALUES (?, 'user', ?, 3, ?)").run(Math.floor(Date.now() / 86_400_000), targetId, Date.now());
+    const byMinutes = await json<List>(await call(root, 'GET', '/api/admin/users?sort=minutes&days=7'));
+    expect(byMinutes).toMatchObject({ days: 7, sort: 'minutes', users: [{ email: USER.email, activity: { minutes: 3 } }, {}] });
   });
 
   it('shows one user with sign-in methods, devices, access and history', async () => {

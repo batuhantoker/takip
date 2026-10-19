@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createTransport } from 'nodemailer';
 import { ipTrust } from './access/client-ip';
 import { createMapTime } from './access/map-time';
@@ -52,7 +53,7 @@ schedulePruneUsage(jobs, Date.now());
 schedulePruneAudit(jobs, Date.now());
 schedulePruneJobs(jobs, Date.now());
 scheduleBackup(jobs, Date.now());
-const retention = { days: env.USAGE_RETENTION_DAYS, anonDays: env.USAGE_ANON_RETENTION_DAYS };
+const retention = { days: env.USAGE_RETENTION_DAYS, anonDays: env.USAGE_ANON_RETENTION_DAYS, activityDays: env.ACTIVITY_RETENTION_DAYS };
 const stopJobs = createJobRunner(jobs, {
   ...billingJobs({ db, access, provider: billing, queue: jobs, logger }),
   ...usageJobs({ db, queue: jobs, retention, logger }),
@@ -63,7 +64,20 @@ const stopJobs = createJobRunner(jobs, {
 const stopMail = mail.start();
 
 const metrics = createMetrics({ defaults: true });
-const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage, keys, mapTime });
+const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
+const analytics = {
+  startedAt: Date.now() - process.uptime() * 1000,
+  dirs: {
+    root: repoRoot,
+    dataDir: env.TAKIP_DATA_DIR,
+    archiveDir: env.TAKIP_ARCHIVE_DIR ?? join(env.TAKIP_DATA_DIR, 'archive'),
+    backupDir: env.APP_BACKUP_DIR,
+    // The web app's file caches: the camera catalogue, vessels, geocoder and the like.
+    cacheDir: join(repoRoot, '.cache'),
+    appDbPath: env.APP_DB_PATH,
+  },
+};
+const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage, keys, mapTime, analytics });
 
 const server = serve({ fetch: app.fetch, hostname: env.API_HOST, port: env.API_PORT }, info => {
   logger.info(`listening on http://${info.address}:${info.port}`);

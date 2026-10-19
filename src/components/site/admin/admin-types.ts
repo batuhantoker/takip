@@ -1,6 +1,7 @@
 import type { Access } from '@takip/core/entitlements';
 import type { ApiKey } from '@/lib/platform/account/api-keys';
 import type { ReportView } from '@/lib/platform/reports/report-view';
+import type { UserActivitySummary, UserSort } from './analytics/analytics-types';
 
 /* Response shapes of apps/api/src/admin/routes.ts. */
 
@@ -34,7 +35,8 @@ export type AdminUser = {
   createdAt: string;
 };
 
-export type UserList = { total: number; users: (AdminUser & { plan: string })[] };
+/** `activity` covers the last `days` days (users?days=, default 30); `sort` is the order the api applied. */
+export type UserList = { total: number; days: number; sort: UserSort; users: (AdminUser & { plan: string; activity: UserActivitySummary })[] };
 
 export type UserDetail = {
   user: AdminUser;

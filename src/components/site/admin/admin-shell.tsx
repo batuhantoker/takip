@@ -15,6 +15,7 @@ type GateStatus = { signedIn: boolean; admin: boolean; twoFactor: boolean; imper
 
 const NAV = [
   { href: '/admin', label: 'Overview' },
+  { href: '/admin/analytics', label: 'Analytics' },
   { href: '/admin/users', label: 'Users' },
   { href: '/admin/reports', label: 'Reports' },
   { href: '/admin/plans', label: 'Plans' },

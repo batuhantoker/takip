@@ -2,13 +2,13 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  Bot, Camera, ChevronDown, ExternalLink, HardDrive, KeyRound, Map as MapIcon, Megaphone, MessageCircle, Search, ShieldCheck, Sparkles, UserX, EyeOff,
+  Activity, Bot, Camera, ChevronDown, ExternalLink, HardDrive, KeyRound, Map as MapIcon, Megaphone, MessageCircle, Search, ShieldCheck, Sparkles, UserRound,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Privacy',
   description:
-    'Privacy at TAKIP, in plain words: no accounts, no analytics, your settings on your device, how ads work, and exactly which services hear from us when you use a feature.',
+    'Privacy at TAKIP, in plain words: optional accounts, the usage data we keep to improve TAKIP, your settings on your device, how ads work, and exactly which services hear from us when you use a feature.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -25,10 +25,11 @@ export const metadata: Metadata = {
  * src/lib/intel/markets/donbot.ts, src/components/panels/ti-agent/assist/voice.ts, use-live-voice.ts,
  * src/lib/ai/assist/actions/{nearby,weather}.ts, the CCTV sources, and
  * src/components/shell/ads/* and src/lib/platform/ads.ts, and every localStorage and
- * sessionStorage key in src/.
+ * sessionStorage key in src/. Usage data (2026-10-19): apps/api/src/access/map-time.ts,
+ * src/lib/platform/visitor.ts, apps/api/src/auth/sign-ins.ts and their retention in usage-prune.ts and audit-prune.ts.
  */
 
-const REVIEWED = '12 October 2026';
+const REVIEWED = '19 October 2026';
 
 /* ───────────── The pieces ───────────── */
 
@@ -96,11 +97,12 @@ const STORED: { what: string; detail: string }[] = [
   { what: 'How the map looks', detail: 'Your Style Studio colours, which layers are switched on, and the last city the map opened on.' },
   { what: 'Your market watchlist and recent fingerprint searches', detail: 'So they are there next time. The search list can be cleared from the search panel.' },
   { what: 'When you last waved off the ad blocker note', detail: 'So it asks at most once a day.' },
+  { what: 'A random visitor id', detail: 'Sent with the map’s once-a-minute usage count (see What we measure). It is not your name or address; clearing this site’s data replaces it with a new one.' },
 ];
 
 const PROMISES: { icon: ReactNode; title: string; body: string }[] = [
-  { icon: <UserX className="h-4 w-4" />, title: 'No account, ever', body: 'There is nothing to sign up for and nothing to log in to. We do not know who you are, and we have not asked.' },
-  { icon: <EyeOff className="h-4 w-4" />, title: 'No tracking of our own', body: 'No analytics, and no profile of you or of what you do here. The free plans show a few Google ads, and Google sets its own cookies for them; Pro has none.' },
+  { icon: <UserRound className="h-4 w-4" />, title: 'An account is optional', body: 'The map opens without one. An account keeps your email and sign-in details, and you can download or delete everything it holds from Account settings.' },
+  { icon: <Activity className="h-4 w-4" />, title: 'Usage data, to make TAKIP better', body: 'We count how long the map is open and which tools and layers get used, to improve TAKIP and build better tools. It stays on our server, with no analytics company involved. The free plans show a few Google ads, and Google sets its own cookies for them; Pro has none.' },
   { icon: <HardDrive className="h-4 w-4" />, title: 'Your things stay with you', body: 'Your settings, history and keys are kept in your own browser, where you can see them and clear them. Not on our servers.' },
   { icon: <KeyRound className="h-4 w-4" />, title: 'Your AI key is yours', body: 'Used only for the request you make, passed straight to the provider you chose, and never stored on our servers or written to a log.' },
 ];
@@ -137,7 +139,8 @@ export default function PrivacyPage() {
               'When you look something up, the question goes to the service that holds the answer, and only for that lookup.',
               'Your preferences and history live in your browser. Clearing this site’s data in your browser removes all of it.',
               'Features that use AI run on the key and provider you choose, and we pass your request straight through.',
-              'We do not keep a record of what you search. Your address is held only briefly, in memory, to keep usage fair for everyone.',
+              'We do not keep a record of what you search. Signed out, your address is used only in memory and as a daily scrambled count, to keep usage fair for everyone.',
+              'We count map time and which tools and layers are in use, per account or per browser, to see what helps and improve it. What we measure below says exactly what.',
               'If you report an issue, we keep your message, a snapshot of your map view and your browser’s details, tied to your account if you are signed in. Deleting the account deletes its reports.',
               'The site reaches you through Cloudflare, which carries the connection between your browser and our server, as it does for much of the web.',
               'The free plans show a few ads from Google, never on the map. Google may use cookies to choose and measure them. Pro shows none.',
@@ -151,7 +154,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section id="device" title="What stays on your device"
-          intro="These are kept in your browser’s own storage on this device. We never receive them unless a feature you use needs one, like your AI key for a TI request. Clearing this site’s data in your browser settings removes them all.">
+          intro="These are kept in your browser’s own storage on this device. We receive one only when a feature needs it, like your AI key for a TI request, or the visitor id that goes with the map’s minute count. Clearing this site’s data in your browser settings removes them all.">
           <div className="divide-y divide-line rounded-card border border-line bg-surface-1">
             {STORED.map(s => (
               <div key={s.what} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
@@ -160,6 +163,17 @@ export default function PrivacyPage() {
               </div>
             ))}
           </div>
+        </Section>
+
+        <Section id="usage" title="What we measure, and why"
+          intro="We use this to see which tools people rely on and which go unused, so we can improve TAKIP and build better tools. It stays on our own server: it is not shared with the ad network or with any analytics company.">
+          <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-ink-2">
+            <li><span className="text-ink-1">Map time.</span> While the map is open and on screen, it tells our server once a minute. That minute counts toward the day’s map time, and is noted against the view (map, space, history or replay), the open panel, the data layers switched on, any open window such as a camera, and whether it is a phone. Not where you look on the map, what you search or what you type.</li>
+            <li><span className="text-ink-1">Signed out,</span> those minutes are tied to the random visitor id this browser keeps, along with the browser’s name, the site that first sent you here and the page you landed on. Clearing this site’s data starts a new id.</li>
+            <li><span className="text-ink-1">Signed in,</span> they are tied to your account, and the browser’s visitor id is linked to it. Each sign-in is recorded with its time, address and browser.</li>
+            <li><span className="text-ink-1">How long:</span> all of this, sign-ins included, is kept for 90 days and then deleted. Counts of API requests, which plan limits rely on, are kept for up to 400 days (35 for visitors).</li>
+            <li><span className="text-ink-1">Yours to take or delete:</span> your account’s download includes all of it, and deleting the account deletes it, with the browsers linked to it.</li>
+          </ul>
         </Section>
 
         <Section id="services" title="When we reach out to other services"

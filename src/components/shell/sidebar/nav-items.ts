@@ -5,7 +5,8 @@ import type { NavItem } from './nav-sidebar';
 const DATA_LAYERS = primary(LAYER_GROUPS.filter(g => g.label !== 'DISPLAY').flatMap(g => g.layers));
 
 /** Data layers switched on: display toggles and sub-layer filters don't count. */
-export const countLayersOn = (active: Record<string, boolean>) => DATA_LAYERS.filter(l => active[l.key]).length;
+export const dataLayersOn = (active: Record<string, boolean>) => DATA_LAYERS.filter(l => active[l.key]).map(l => l.key);
+export const countLayersOn = (active: Record<string, boolean>) => dataLayersOn(active).length;
 
 /**
  * The sidebar, top to bottom, in three groups by how often people reach for them:

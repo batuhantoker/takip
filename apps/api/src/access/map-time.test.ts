@@ -20,8 +20,9 @@ afterEach(() => {
 });
 
 type State = { limit: number; used: number; remaining: number; blocked: boolean; resetsAt: string };
-const call = async (method: 'GET' | 'POST', { jar, peer = '203.0.113.5', headers = {} }: { jar?: Jar; peer?: string; headers?: Record<string, string> } = {}) => {
-  const res = await t.app.request('/api/v1/me/time', { method, headers: { ...headers, ...(jar && { cookie: jar.get() }) } }, from(peer));
+const call = async (method: 'GET' | 'POST', { jar, peer = '203.0.113.5', headers = {}, features }: { jar?: Jar; peer?: string; headers?: Record<string, string>; features?: unknown } = {}) => {
+  const body = features === undefined ? undefined : JSON.stringify({ features });
+  const res = await t.app.request('/api/v1/me/time', { method, body, headers: { ...headers, ...(jar && { cookie: jar.get() }), ...(body && { 'content-type': 'application/json' }) } }, from(peer));
   expect(res.status).toBe(200);
   return (await res.json()) as State;
 };
@@ -66,20 +67,20 @@ describe('map time', () => {
     expect(await call('POST')).toMatchObject({ used: 2, blocked: true });
   });
 
-  it('starts again at UTC midnight and forgets the old days', async () => {
+  it('starts again at UTC midnight and keeps the old days for analytics', async () => {
     setLimit('anon', 1);
     expect(await call('POST')).toMatchObject({ blocked: true });
     vi.setSystemTime(new Date('2026-10-17T00:00:05.000Z'));
     expect(await call('GET')).toMatchObject({ used: 0, blocked: false, resetsAt: '2026-10-18T00:00:00.000Z' });
-    expect(t.db.prepare('SELECT count(*) FROM map_time').pluck().get()).toBe(0);
+    expect(t.db.prepare('SELECT count(*) FROM map_time').pluck().get()).toBe(1);
   });
 
-  it('has no limit at 0, and never counts plans without one or API keys', async () => {
+  it('has no limit at 0 but still counts the minutes, and never counts API keys', async () => {
     const jar = await t.signUpVerified();
     const userId = (await t.session(jar.get()))!.user.id;
     grantPlan(t.db, { userId, planId: 'pro', actor: OPERATOR });
     t.access.invalidate();
-    expect(await call('POST', { jar })).toEqual({ limit: 0, used: 0, remaining: 0, blocked: false, resetsAt: '2026-10-17T00:00:00.000Z' });
+    expect(await call('POST', { jar })).toEqual({ limit: 0, used: 1, remaining: 0, blocked: false, resetsAt: '2026-10-17T00:00:00.000Z' });
 
     const created = await t.app.request('/api/v1/keys', {
       method: 'POST',
@@ -88,6 +89,108 @@ describe('map time', () => {
     });
     const { key } = (await created.json()) as { key: string };
     expect(await call('POST', { headers: { authorization: `Bearer ${key}` } })).toMatchObject({ limit: 0, blocked: false });
-    expect(t.db.prepare('SELECT count(*) FROM map_time').pluck().get()).toBe(0);
+    expect(t.db.prepare('SELECT subject_type AS type, minutes FROM map_time').all()).toEqual([{ type: 'user', minutes: 1 }]);
+  });
+});
+
+describe('where the minutes go', () => {
+  const features = () => t.db.prepare('SELECT feature, minutes FROM feature_time ORDER BY feature').all();
+
+  it('books each counted minute to the features the tick reports and to its UTC hour', async () => {
+    await call('POST', { features: ['view:map', 'panel:layers', 'layer:flights', 'device:desktop'] });
+    await call('POST', { features: ['view:map', 'panel:alerts'] });
+    later(MINUTE);
+    await call('POST', { features: ['view:history', 'panel:history'] });
+    expect(features()).toEqual([
+      { feature: 'device:desktop', minutes: 1 },
+      { feature: 'layer:flights', minutes: 1 },
+      { feature: 'panel:history', minutes: 1 },
+      { feature: 'panel:layers', minutes: 1 },
+      { feature: 'view:history', minutes: 1 },
+      { feature: 'view:map', minutes: 1 },
+    ]);
+    expect(t.db.prepare('SELECT hour, subject_type AS type, minutes FROM activity_hour').all()).toEqual([{ hour: 10, type: 'anon', minutes: 2 }]);
+  });
+
+  it('drops features it does not know, and counts the minute without them', async () => {
+    const junk = ['view:wall', 'panel:admin', 'layer:Flights', 'layer:a:b', 'device', 42, 'x'.repeat(500), 'window:camera'];
+    expect(await call('POST', { features: junk })).toMatchObject({ used: 1 });
+    expect(await call('GET')).toMatchObject({ used: 1 });
+    expect(features()).toEqual([{ feature: 'window:camera', minutes: 1 }]);
+    later(MINUTE);
+    expect(await call('POST', { features: 'view:map' })).toMatchObject({ used: 2 });
+  });
+
+  it('books an account\'s minutes to its own hours', async () => {
+    const jar = await t.signUpVerified();
+    await call('POST', { jar, features: ['view:map'] });
+    later(MINUTE);
+    await call('POST', { jar, features: ['view:map'] });
+    expect(t.db.prepare('SELECT hour, minutes FROM user_hour').all()).toEqual([{ hour: 10, minutes: 2 }]);
+  });
+
+  it('books minutes behind the wall as view:wall, not as map time', async () => {
+    setLimit('anon', 1);
+    await call('POST', { features: ['view:map'] });
+    later(MINUTE);
+    expect(await call('POST', { features: ['view:map'] })).toMatchObject({ used: 1, blocked: true });
+    await call('POST', { features: ['view:map'] });
+    expect(features()).toEqual([{ feature: 'view:map', minutes: 1 }, { feature: 'view:wall', minutes: 1 }]);
+    expect(t.db.prepare('SELECT sum(minutes) FROM activity_hour').pluck().get()).toBe(1);
+  });
+});
+
+describe('visitors across days', () => {
+  const ID = 'visitor-0123456789abcdef';
+  const visitor = (extra: object = {}) => ({ id: ID, ...extra });
+  const row = () => t.db.prepare('SELECT * FROM visitor WHERE visitor_id = ?').get(ID) as Record<string, unknown> | undefined;
+  const days = () => t.db.prepare('SELECT day, minutes FROM visitor_day WHERE visitor_id = ? ORDER BY day').all(ID);
+  const tick = (opts: { peer?: string; features?: unknown; jar?: Jar; visitorBody?: unknown } = {}) =>
+    t.app.request('/api/v1/me/time', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0 (Macintosh) Chrome/141.0', ...(opts.jar && { cookie: opts.jar.get() }) },
+      body: JSON.stringify({ features: opts.features ?? ['view:map'], visitor: opts.visitorBody ?? visitor() }),
+    }, from(opts.peer ?? '203.0.113.5'));
+
+  it('keeps one visitor across days, with how they first arrived', async () => {
+    await tick({ visitorBody: visitor({ referrer: 'News.Example.com', landing: '/?utm_source=hn&token=secret&w=abc' }) });
+    vi.setSystemTime(new Date('2026-10-17T09:00:00.000Z'));
+    await tick({ visitorBody: visitor({ referrer: 'other.example', landing: '/docs' }) });
+    expect(days()).toEqual([{ day: 20742, minutes: 1 }, { day: 20743, minutes: 1 }]);
+    expect(row()).toMatchObject({
+      first_seen_at: Date.parse('2026-10-16T10:00:00.000Z'), last_seen_at: Date.parse('2026-10-17T09:00:00.000Z'),
+      referrer: 'news.example.com', landing: '/?utm_source=hn&w=abc', user_agent: 'Mozilla/5.0 (Macintosh) Chrome/141.0', user_id: null,
+    });
+    expect(t.db.prepare('SELECT feature, minutes FROM visitor_feature ORDER BY day').all()).toEqual([
+      { feature: 'view:map', minutes: 1 }, { feature: 'view:map', minutes: 1 },
+    ]);
+    expect(t.db.prepare('SELECT hour FROM visitor_hour ORDER BY day').pluck().all()).toEqual([10, 9]);
+  });
+
+  it('counts two visitors behind one address block apart, but limits them together', async () => {
+    setLimit('anon', 1);
+    await tick();
+    await tick({ visitorBody: { id: 'another-visitor-0000000' } });
+    expect(t.db.prepare('SELECT visitor_id AS id, minutes FROM visitor_day ORDER BY visitor_id').all()).toEqual([
+      { id: 'another-visitor-0000000', minutes: 0 },
+      { id: ID, minutes: 1 },
+    ]);
+    expect(t.db.prepare("SELECT visitor_id FROM visitor_feature WHERE feature = 'view:wall'").pluck().all()).toEqual(['another-visitor-0000000']);
+  });
+
+  it('links the browser to the account that signs in on it, without booking minutes there', async () => {
+    await tick();
+    const jar = await t.signUpVerified();
+    const userId = (await t.session(jar.get()))!.user.id;
+    later(MINUTE);
+    await tick({ jar });
+    expect(row()).toMatchObject({ user_id: userId, linked_at: Date.now() });
+    expect(days()).toEqual([{ day: 20742, minutes: 1 }]);
+  });
+
+  it('ignores ids it cannot trust', async () => {
+    for (const id of ['short', 'has spaces in it at all', 'x'.repeat(65), 42]) await tick({ visitorBody: { id } });
+    expect(t.db.prepare('SELECT count(*) FROM visitor').pluck().get()).toBe(0);
+    expect(await call('GET')).toMatchObject({ used: 1 });
   });
 });

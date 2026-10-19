@@ -7,6 +7,7 @@ import ErrorBoundary from '@/components/ui/error-boundary';
 import AccountButton from '@/components/site/account/account-button';
 import AccountDialog from '@/components/site/account/account-dialog';
 import MapTimeWall from '@/components/site/account/map-time/map-time-wall';
+import { mapTimeFeatures } from '@/components/site/account/map-time/map-time-features';
 import ReportDialog from '@/components/site/report/report-dialog';
 import { trackKey, trackedNow } from '@/components/map/inspect/track-request';
 import { reportMode, type ViewInputs } from '@/lib/platform/reports/report-view';
@@ -243,6 +244,12 @@ export default function Dashboard() {
       baseMap: mapStyle, projection: mapProjection, theme, panel: isMobile ? mobilePanel : activeTool,
     };
   };
+  const panelOpen = isMobile ? mobilePanel : activeTool;
+  const timeFeatures = useMemo(() => mapTimeFeatures({
+    view: history.session ? 'history' : replay.session ? 'replay' : space.inSpace ? 'space' : 'map',
+    panel: panelOpen, layers: mapLayers, mobile: isMobile,
+    windows: [!!activeCamera && 'camera', !!feed.liveFeedUrl && 'feed', !!dossier.regionDossier && 'dossier', showDesktopSearch && 'search'],
+  }), [history.session, replay.session, space.inSpace, panelOpen, mapLayers, isMobile, activeCamera, feed.liveFeedUrl, dossier.regionDossier, showDesktopSearch]);
   const planner = directions.showDirections && (
     <RoutePlanner directions={directions} center={mapCenter ? { lat: mapCenter.lat, lng: mapCenter.lng } : null} onLocate={flyTo}
       onClose={() => { directions.closeDirections(); setActiveTool(t => (t === 'directions' ? null : t)); }} />
@@ -378,7 +385,7 @@ export default function Dashboard() {
         </>
       )}
 
-      <MapTimeWall />
+      <MapTimeWall features={timeFeatures} />
       <AccountDialog map={{ mapStyle, setMapStyle, activeLayers, setActiveLayers, ...terrain }} />
       <ReportDialog view={reportView} />
       <LiveFeedModal liveFeedUrl={feed.liveFeedUrl} liveFeedName={feed.liveFeedName} liveFeedEmbedAllowed={feed.liveFeedEmbedAllowed} setLiveFeedUrl={feed.setLiveFeedUrl} />

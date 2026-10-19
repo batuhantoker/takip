@@ -7,6 +7,7 @@ import { Badge, Button, Card, ErrorText, Muted, PageTitle, when } from '@/compon
 import type { PlansResponse, UserDetail } from '@/components/site/admin/admin-types';
 import AuditTable from '@/components/site/admin/tables/audit-table';
 import { useAdminAction } from '@/components/site/admin/use-admin-action';
+import UserActivity from '@/components/site/admin/user/user-activity';
 import UserBanCard from '@/components/site/admin/user/user-ban-card';
 import UserImpersonateCard from '@/components/site/admin/user/user-impersonate-card';
 import UserKeysCard from '@/components/site/admin/user/user-keys-card';
@@ -80,6 +81,8 @@ export default function UserPage({ id }: { id: string }) {
         <UserOverridesCard detail={data} catalogue={plans.data.catalogue} reload={reload} />
         <UserKeysCard userId={id} email={user.email} onChange={reload} />
       </div>
+
+      <UserActivity id={id} />
 
       <Card title="History" className="mt-4">
         <AuditTable events={data.audit} showSubject={false} />

@@ -11,6 +11,7 @@ import type { EmailSender } from '../mail/sender';
 import type { Env } from '../env';
 import { deletedBy, eraseUser } from '../privacy/erase';
 import { clearPlaintextOAuthTokens, withoutIdToken } from './oauth-tokens';
+import { signInLog } from './sign-ins';
 import { socialProviders, type SocialEnv } from './social-providers';
 
 const DAY_S = 24 * 60 * 60;
@@ -27,6 +28,7 @@ const SIGN_IN_FAILED = '/?account=sign-in-failed';
 function authOptions(db: AppDb, env: AuthEnv, email: EmailSender, { billingPortal = false }: AuthOptions) {
   const social = socialProviders(env);
   const deletion = deletionGuard(db, { billingPortal });
+  const logSignIn = signInLog(db);
   return {
     appName: APP_NAME,
     baseURL: env.BETTER_AUTH_URL,
@@ -75,6 +77,7 @@ function authOptions(db: AppDb, env: AuthEnv, email: EmailSender, { billingPorta
     databaseHooks: {
       user: { delete: { before: async (user, ctx) => void eraseUser(db, user, deletedBy(user.id, ctx?.context.session?.user.id)) } },
       account: { create: { before: withoutIdToken }, update: { before: withoutIdToken } },
+      session: { create: { after: async session => logSignIn(session) } },
     },
     verification: { modelName: 'auth_verification' },
     plugins: [
