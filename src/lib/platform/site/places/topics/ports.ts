@@ -4,7 +4,7 @@ import type { Place } from '../gazetteer';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
 import { foldName, placePorts, PORT_KM, type PlacePorts, type PortsMeta, type PortsRow } from './ports-data';
-import { portStory, renderSentence, type PortKind, type PortStory } from './ports-facts';
+import { portStory, renderSentence, straitName, type PortKind, type PortStory } from './ports-facts';
 import { shipsNow, type ShipsNow } from './ports-live';
 
 /**
@@ -56,7 +56,7 @@ export const PORTS: PlaceTopic<PortsData, ShipsNow> = {
 
   header(place, { data }, t) {
     const { story } = data;
-    const v = (t: Translate) => ({ city: nameOf(place, t), port: portLabel(story.lead.name, place, t), strait: data.chokepoint?.name ?? '' });
+    const v = (t: Translate) => ({ city: nameOf(place, t), port: portLabel(story.lead.name, place, t), strait: data.chokepoint ? straitName(data.chokepoint.name, t) : '' });
     const heard = data.ais && (story.coverage === 'heard' || story.coverage === 'busy') ? story.watch : undefined;
     const counted = (t: Translate) => ({
       ...v(t), place: placeName(place, t), n: count(story.watch.heard ?? 0, t),

@@ -21,6 +21,13 @@ export const PORT_INDEX = {
   minHeard: 10,
 } as const;
 
+/** The map's chokepoints (lib/feeds/maritime/ports.ts keeps them in English for the API), so pages can name them in the reader's language. */
+const STRAITS = new Set<string>([
+  msg('Strait of Hormuz'), msg('Strait of Malacca'), msg('Suez Canal'), msg('Bab el-Mandeb'), msg('Panama Canal'),
+  msg('Turkish Straits'), msg('Danish Straits'), msg('Cape of Good Hope'), msg('Taiwan Strait'), msg('Lombok Strait'),
+]);
+export const straitName = (name: string, t: Translate) => (STRAITS.has(name) ? t(name) : name);
+
 /** Within this of a chokepoint's point the place is on the strait, not just near it. */
 export const STRAIT_KM = 30;
 
@@ -220,7 +227,7 @@ export function renderSentence(sentence: PortSentence, place: string, t: Transla
         ? t('{port} is a naval base, home to the {fleet}.', { port: s.port, fleet: s.fleet })
         : t('{port} is a naval base.', { port: s.port });
     case 'strait':
-      return t('{place} lies on the {strait}, one of the ten chokepoints where the map counts the ships going through.', { place, strait: s.strait });
+      return t('{place} lies on the {strait}, one of the ten chokepoints where the map counts the ships going through.', { place, strait: straitName(s.strait, t) });
     case 'use':
       return t('By the World Port Index, {port} is {use, select, ferry {a ferry port} fishing {a fishing harbour} military {a military harbour} other {a cargo port}}.', { port: s.port, use: s.use });
     case 'cargo':
@@ -252,7 +259,7 @@ export function renderSentence(sentence: PortSentence, place: string, t: Transla
     case 'major-nearby':
       return t('{port}, {km} km away, is one of the major ports the map marks.', { port: s.port, km: s.km });
     case 'chokepoint-near':
-      return t('It is about {km} km from the point where the map counts the ships going through the {strait}.', { km: s.km, strait: s.strait });
+      return t('It is about {km} km from the point where the map counts the ships going through the {strait}.', { km: s.km, strait: straitName(s.strait, t) });
     case 'ais-dark':
       return t('Warships often sail with AIS switched off, so most of a navy is missing from the live map.');
     case 'coverage': {
