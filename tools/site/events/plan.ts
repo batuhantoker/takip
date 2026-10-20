@@ -15,6 +15,8 @@ export interface EventRow {
   wiki: string | null;
   /** False when `wiki` is the article of what the event mentions, not of the event: a year-page line's subject. */
   ownWiki?: boolean;
+  /** False for a page whose text is in a language the site doesn't lead with (a year-page line from another Wikipedia). */
+  indexable?: boolean;
   sourceId: number;
   /** Retracted by its source, or from a source the public may not see: no page. */
   gone: boolean;
@@ -69,7 +71,7 @@ export function planPages(rows: EventRow[], ledger: Ledger, label: (kind: string
   const byArticle = new Map<string, Planned[]>();
   for (const p of pages) if (p.wiki && p.row.canonical === p.row.id && p.row.ownWiki !== false) byArticle.set(p.wiki, [...(byArticle.get(p.wiki) ?? []), p]);
   const owners = new Set([...byArticle.values()].map(ps => ps.sort(notability)[0]));
-  for (const p of pages) p.indexed = p.row.canonical === p.row.id && (owners.has(p) || p.sources >= 2);
+  for (const p of pages) p.indexed = p.row.canonical === p.row.id && p.row.indexable !== false && (owners.has(p) || p.sources >= 2);
 
   const aliases = assignSlugs(pages, ledger, label);
   return { pages, aliases };

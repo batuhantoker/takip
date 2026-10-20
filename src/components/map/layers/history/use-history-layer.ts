@@ -2,6 +2,7 @@
 
 import { type RefObject, useEffect, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
+import { activeLocale } from '@/lib/core/i18n/active';
 import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryFeature } from '@/lib/history/popup';
 import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/style/tokens';
 import type { ReplayClock } from '@/lib/map/replay/clock';
@@ -172,7 +173,7 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, kinds, p
       };
       loaded = next;
       const mine = ++generation;
-      const url = `/api/replay/history/events?bbox=${next.w},${next.s},${next.e},${next.n}&from=${Math.round(next.from)}&to=${Math.round(next.to)}&z=${z}&families=${familyKey}${kindKey ? `&kinds=${kindKey}` : ''}`;
+      const url = `/api/replay/history/events?bbox=${next.w},${next.s},${next.e},${next.n}&from=${Math.round(next.from)}&to=${Math.round(next.to)}&z=${z}&families=${familyKey}${kindKey ? `&kinds=${kindKey}` : ''}&lang=${activeLocale()}`;
       fetch(url).then(async res => {
         if (mine !== generation) return;
         if (res.status === 429) {

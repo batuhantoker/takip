@@ -58,6 +58,11 @@ export type EventCandidateQuery = {
   kinds?: readonly string[];
   /** Licence gating (§8.7): only these sources are returned. */
   sourceIds: ReadonlySet<number>;
+  /**
+   * Sources telling the same stories in different languages (Wikipedia's year pages): only `prefer`'s and `base`'s are
+   * drawn, each story once, in `prefer`'s language where it has a row there, else in `base`'s.
+   */
+  languages?: { sources: readonly number[]; base: number | null; prefer: number | null };
   limit?: number;
 };
 

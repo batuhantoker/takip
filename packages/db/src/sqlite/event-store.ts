@@ -26,7 +26,16 @@ const IN_WINDOW = `
   FROM ev_event_rtree r JOIN ev_event e ON e.event_id = r.id JOIN ev_kind k ON k.kind_id = e.kind_id
   WHERE r.min_x <= @e AND r.max_x >= @w AND r.min_y <= @n AND r.max_y >= @s AND r.min_t < @tHi AND r.max_t >= @tLo
     AND e.t_lo < @tHi AND e.t_hi > @tLo
-    AND e.retracted_at IS NULL AND e.event_id = e.canonical_id
+    AND e.retracted_at IS NULL
+    AND CASE
+      WHEN @langs IS NULL OR e.source_id NOT IN (SELECT value FROM json_each(@langs)) THEN e.event_id = e.canonical_id
+      -- The reader's language: its own stories, and its telling of a story another language's row stands for.
+      WHEN e.source_id = @prefer THEN e.event_id = e.canonical_id
+        OR (SELECT c.source_id FROM ev_event c WHERE c.event_id = e.canonical_id) IN (SELECT value FROM json_each(@langs) WHERE value <> @prefer)
+      WHEN e.source_id = @base THEN e.event_id = e.canonical_id
+        AND NOT EXISTS (SELECT 1 FROM ev_event t WHERE t.canonical_id = e.event_id AND t.source_id = @prefer AND t.retracted_at IS NULL)
+      ELSE 0
+    END
     AND +e.source_id IN (SELECT value FROM json_each(@sources))
     AND (@families IS NULL OR k.family IN (SELECT value FROM json_each(@families)))
     AND (@kinds IS NULL OR k.code IN (SELECT value FROM json_each(@kinds)))`;
@@ -322,6 +331,9 @@ export class SqliteEventStore implements EventStore {
       sources: JSON.stringify([...q.sourceIds]),
       families: q.families ? JSON.stringify(q.families) : null,
       kinds: q.kinds ? JSON.stringify(q.kinds) : null,
+      langs: q.languages ? JSON.stringify(q.languages.sources) : null,
+      base: q.languages?.base ?? null,
+      prefer: q.languages?.prefer ?? null,
     };
   }
 

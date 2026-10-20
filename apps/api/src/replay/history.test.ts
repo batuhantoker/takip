@@ -8,7 +8,7 @@ import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AccessEnv } from '../access/middleware';
 import { openReplayData, type ReplayData } from './data';
-import { boxes, splitAt180 } from './history';
+import { boxes, splitAt180, yearPageLanguages } from './history';
 import { replayRoutes } from './routes';
 
 const SOMME = Date.parse('1916-07-01T00:00:00Z');
@@ -163,5 +163,16 @@ describe('/api/replay/history', () => {
     seed([]);
     expect((await app().request(`/api/replay/history/events?bbox=0,0,1,1`)).status).toBe(400);
     expect((await app().request(`/api/replay/history/events?bbox=0,0,1,1&from=10&to=5`)).status).toBe(400);
+  });
+});
+
+describe('yearPageLanguages', () => {
+  const sources = [{ sourceId: 1, code: 'usgs' }, { sourceId: 75, code: 'wikipedia-years-en' }, { sourceId: 76, code: 'wikipedia-years-tr' }, { sourceId: 77, code: 'wikipedia-years-de' }];
+
+  it('prefers the reader\'s language over English, and English alone without one', () => {
+    expect(yearPageLanguages(sources, 'tr')).toEqual({ sources: [75, 76, 77], base: 75, prefer: 76 });
+    expect(yearPageLanguages(sources, 'pt-BR')).toEqual({ sources: [75, 76, 77], base: 75, prefer: null });
+    expect(yearPageLanguages(sources, undefined)).toEqual({ sources: [75, 76, 77], base: 75, prefer: null });
+    expect(yearPageLanguages([{ sourceId: 1, code: 'usgs' }], 'tr')).toBeUndefined();
   });
 });

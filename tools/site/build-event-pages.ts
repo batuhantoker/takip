@@ -88,6 +88,7 @@ export function build(dataDb = DB, out = OUT) {
       magnitude: r.magnitude, wiki: typeof r.wiki === 'string' && r.wiki.trim() ? r.wiki.trim() : null, sourceId: r.source_id,
       // A year-page line names its event's article only when it links a dated Wikidata event.
       ownWiki: r.family !== 'events' || r.wikidata !== null,
+      indexable: r.family !== 'events' || source.code === 'wikipedia-years-en',
       gone: r.retracted !== null || !source.viewable,
     }];
   });

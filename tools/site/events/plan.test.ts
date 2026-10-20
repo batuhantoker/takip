@@ -76,4 +76,9 @@ describe('planPages', () => {
     const { pages } = planPages([row(1, { wiki: 'Isaac Newton', ownWiki: false }), row(2, { wiki: 'Battle of X' })], emptyLedger(), k => k);
     expect(pages.map(p => p.indexed)).toEqual([false, true]);
   });
+
+  it('does not index a page in a language the site does not lead with', () => {
+    const { pages } = planPages([row(1, { wiki: 'Schlacht', indexable: false }), row(2, { wiki: 'Battle of X' })], emptyLedger(), k => k);
+    expect(pages.map(p => p.indexed)).toEqual([false, true]);
+  });
 });

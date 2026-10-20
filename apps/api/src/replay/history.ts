@@ -118,6 +118,21 @@ const lineFeature = (r: EventCandidate, geometry: Geometry) => ({
   properties: { line: 1, id: r.id, kind: r.kind, family: r.family, t0: r.t0 / 1000, t1: r.t1 / 1000, geoPrec: r.geoPrec },
 });
 
+/** Wikipedia year-page sources by language ("wikipedia-years-tr"): one story told per language, see `languages`. */
+const YEAR_PAGES = /^wikipedia-years-([a-z]{2,3})$/;
+
+/** The reader's language and English among the year-page sources, or undefined when there are none. */
+export function yearPageLanguages(sources: readonly { sourceId: number; code: string }[], lang: string | undefined) {
+  const byLang = new Map(sources.flatMap(s => {
+    const m = YEAR_PAGES.exec(s.code);
+    return m ? [[m[1], s.sourceId] as const] : [];
+  }));
+  if (!byLang.size) return undefined;
+  const base = byLang.get('en') ?? null;
+  const prefer = lang && lang !== 'en' ? byLang.get(lang.slice(0, 2).toLowerCase()) ?? null : null;
+  return { sources: [...byLang.values()], base, prefer };
+}
+
 const cellFeature = (r: EventCell) => point(r.lon, r.lat, { cell: 1, family: r.family, t0: r.t0 / 1000, t1: r.t1 / 1000, n: r.n, magnitude: r.magSum });
 
 export function historyRoutes(data: ReplayData) {
@@ -130,7 +145,7 @@ export function historyRoutes(data: ReplayData) {
     return { catalog, history, sourceIds: catalog.policy(c.var.access.entitlements['data.licence_tier']).sourceIds };
   };
 
-  /** ?bbox=w,s,e,n&from=&to=&z=&families=&kinds=: events in the view, with their lines; dense families as cells × BINS time bins. */
+  /** ?bbox=w,s,e,n&from=&to=&z=&families=&kinds=&lang=: events in the view, with their lines; dense families as cells × BINS time bins. */
   app.get('/events', c => {
     const s = scope(c);
     if (!s) return notReady(c);
@@ -143,7 +158,8 @@ export function historyRoutes(data: ReplayData) {
     }
     const families = c.req.query('families')?.split(',').filter(Boolean);
     const kinds = c.req.query('kinds')?.split(',').filter(Boolean);
-    const window = { tLo: from * 1000, tHi: to * 1000, sourceIds: s.sourceIds, families, kinds: kinds?.length ? kinds : undefined };
+    const languages = yearPageLanguages(s.catalog.sources(), c.req.query('lang'));
+    const window = { tLo: from * 1000, tHi: to * 1000, sourceIds: s.sourceIds, families, kinds: kinds?.length ? kinds : undefined, languages };
     const cellDeg = 360 / 2 ** z / CELLS_PER_TILE;
     const binMs = Math.max(DAY_MS, Math.ceil((window.tHi - window.tLo) / BINS));
 

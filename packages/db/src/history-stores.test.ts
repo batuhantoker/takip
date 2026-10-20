@@ -95,6 +95,29 @@ describe('EventStore', () => {
     expect(events.candidates({ ...q, bbox: { w: 100, s: 0, e: 130, n: 20 } })).toHaveLength(1);
   });
 
+  it('draws a story told in several languages once, in the reader\'s language, else the base one', () => {
+    const EN = 10;
+    const TR = 11;
+    const DE = 12;
+    const row = (sourceId: number, sourceRecordId: string) => war({ sourceId, sourceRecordId, title: sourceRecordId });
+    events.upsertEvents([
+      row(1, 'war'), row(EN, 'en-a'), row(TR, 'tr-a'), row(EN, 'en-b'), row(TR, 'tr-c'), row(DE, 'de-d'),
+      row(DE, 'de-e'), row(TR, 'tr-e'), row(TR, 'tr-g'), row(TR, 'tr-f'),
+    ]);
+    const twin = (a: [number, string], b: [number, string]) => events.relate(events.eventId(...a)!, 'same_as', events.eventId(...b)!);
+    twin([TR, 'tr-a'], [EN, 'en-a']);
+    twin([TR, 'tr-e'], [DE, 'de-e']);
+    twin([TR, 'tr-f'], [TR, 'tr-g']);
+    events.resolveCanonical([EN, DE, TR]);
+    const q = { bbox: { w: 0, s: 40, e: 20, n: 60 }, tLo: Y(1916), tHi: Y(1917), sourceIds: new Set([1, EN, TR, DE]) };
+    const titles = (languages?: { sources: number[]; base: number; prefer: number | null }) =>
+      events.candidates({ ...q, languages }).map(c => c.title).sort();
+
+    expect(titles()).toEqual(['de-d', 'de-e', 'en-a', 'en-b', 'tr-c', 'tr-g', 'war']);
+    expect(titles({ sources: [EN, TR, DE], base: EN, prefer: TR })).toEqual(['en-b', 'tr-a', 'tr-c', 'tr-e', 'tr-g', 'war']);
+    expect(titles({ sources: [EN, TR, DE], base: EN, prefer: null })).toEqual(['en-a', 'en-b', 'war']);
+  });
+
   it('links children to parents loaded earlier and refuses unknown parents', () => {
     events.upsertEvents([war({ sourceRecordId: 'claim' })]);
     events.upsertEvents([war({ sourceRecordId: 'dyad', parentRecordId: 'claim' })]);
