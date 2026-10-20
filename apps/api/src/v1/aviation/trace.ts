@@ -2,71 +2,11 @@ import { nearestAirport, type Airport } from '@takip/connectors/airports';
 import type { AircraftDetail } from './schemas';
 
 type DepartureFix = NonNullable<AircraftDetail['departureFix']>;
-type Row = Array<number | string | null>;
 
-export interface TraceFile {
-  icao?: string;
-  r?: string;
-  t?: string;
-  desc?: string;
-  ownOp?: string;
-  timestamp?: number;
-  /** [Δseconds, lat, lon, altitude, groundSpeed, track, flags, …] */
-  trace?: Row[];
-}
+/** An OpenSky /tracks waypoint: [unix seconds, lat, lon, barometric altitude m, true track °, on the ground]. */
+export type Waypoint = [number, number | null, number | null, number | null, number | null, boolean];
 
-/** readsb shards traces by the last two characters of the hex address. */
-export function shardFor(icao24: string): string {
-  return icao24.trim().toLowerCase().slice(-2);
-}
-
-/**
- * Keep only the leg the aircraft is currently flying.
- *
- * A full trace covers 24 hours, which for an airliner is five or six separate
- * flights strung end to end — drawn as one polyline it reads as random lines
- * criss-crossing the country. Ground reports delimit the legs, so walk back
- * from the newest point: skip time parked, take the airborne run, and stop at
- * the previous stint on the ground.
- */
-export function currentLeg(
-  rows: Row[],
-  /** Ground samples in a row before it counts as a real stop, not a blip. */
-  minGroundRun = 4,
-): Row[] {
-  if (rows.length === 0) return rows;
-  const isGround = (r: Row) => r?.[3] === 'ground';
-
-  let i = rows.length - 1;
-  while (i >= 0 && isGround(rows[i])) i--;   // currently parked? rewind to the flight
-  if (i < 0) return rows.slice(-2);          // never left the ground in this window
-  const end = i;
-
-  // Scanning backwards, remember where each ground run *ends* (its newest
-  // sample) — the leg resumes there, not at the point the run was confirmed.
-  let run = 0;
-  let runNewest = -1;
-  let start = 0;
-  while (i >= 0) {
-    if (isGround(rows[i])) {
-      if (run === 0) runNewest = i;
-      if (++run >= minGroundRun) { start = runNewest + 1; break; }
-    } else {
-      run = 0;
-    }
-    i--;
-  }
-  // readsb flags the first row of each leg it detects (flags & 2). That catches
-  // turnarounds with no ground reports at all, like DAL67's three hours at Rome,
-  // which otherwise drew Atlanta–Rome–back as one flight.
-  for (let j = end; j > start; j--) {
-    const flags = rows[j]?.[6];
-    if (typeof flags === 'number' && flags & 2) { start = j; break; }
-  }
-  const leg = rows.slice(start, end + 1);
-  // A trace with no ground reports at all is one continuous leg.
-  return leg.length > 1 ? leg : rows;
-}
+const M_TO_FT = 3.28084;
 
 /** Above this, the leg was picked up in the cruise, not seen to depart. */
 const DEPARTURE_CEILING_FT = 10_000;
@@ -119,41 +59,24 @@ export function downsample<T>(points: T[], max: number): T[] {
   return out;
 }
 
-/** Pull identity and the flown path out of a readsb trace file. */
-export function parseTrace(
-  json: TraceFile,
+/** The flown path of the flight in progress, from OpenSky's waypoints for it, oldest first. */
+export function parseTrack(
+  path: Waypoint[] | null | undefined,
   maxPoints = 700,
-  /** Draw only the flight in progress; the full history is rarely meaningful. */
-  legOnly = true,
-): Omit<AircraftDetail, 'operator' | 'source'> {
+): Pick<AircraftDetail, 'track' | 'altitudes' | 'points' | 'departure' | 'departureFix' | 'arrival'> {
   const track: [number, number][] = [];
   const altitudes: (number | null)[] = [];
-
-  const rows = legOnly ? currentLeg(json?.trace || []) : (json?.trace || []);
-  for (const row of rows) {
-    const lat = row?.[1];
-    const lng = row?.[2];
+  for (const [, lat, lng, alt, , ground] of path ?? []) {
     if (typeof lat !== 'number' || typeof lng !== 'number') continue;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
     track.push([lng, lat]);
-    // Altitude is feet, or the string "ground".
-    const alt = row?.[3];
-    altitudes.push(typeof alt === 'number' ? alt : null);
+    altitudes.push(ground || alt == null ? null : Math.round(alt * M_TO_FT));
   }
 
-  const idx = track.map((_, i) => i);
-  const keep = downsample(idx, maxPoints);
-
-  // Trailing ground reports are trimmed off the leg, so the landing has to be
-  // read from the untrimmed trace.
-  const raw = json?.trace || [];
-  const landed = raw.length > 0 && raw[raw.length - 1]?.[3] === 'ground';
+  const keep = downsample(track.map((_, i) => i), maxPoints);
+  const landed = !!path?.length && path[path.length - 1]?.[5] === true;
 
   return {
-    icao24: (json?.icao || '').toLowerCase(),
-    registration: json?.r?.trim() || null,
-    typeCode: json?.t?.trim() || null,
-    model: json?.desc?.trim() || null,
     track: keep.map((i) => track[i]),
     altitudes: keep.map((i) => altitudes[i]),
     points: keep.length,

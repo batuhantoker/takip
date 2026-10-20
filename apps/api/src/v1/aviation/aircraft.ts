@@ -3,16 +3,15 @@ import { httpJson, optional } from '@takip/connectors/http-json';
 import { cachedSource } from '@takip/connectors/source-cache';
 import { ErrorBody, json, queryParam } from '../schemas';
 import { mergeIdentity, type AdsbdbResponse, type AdsbFiAircraft } from './identity';
+import { fetchTrack } from './opensky-track';
 import { AircraftDetail, AircraftNotFound } from './schemas';
-import { parseTrace, shardFor, type TraceFile } from './trace';
+import { parseTrack } from './trace';
 
-const TRACE_BASE = 'https://adsb.lol/data/traces';
 const ADSBDB = 'https://api.adsbdb.com/v0/aircraft';
-// adsb.fi's aircraft database is refreshed more often than the one stamped into
-// adsb.lol's traces, so it still names airframes those two leave blank.
+// adsb.fi's aircraft database is refreshed more often than adsbdb's, so it names airframes adsbdb leaves blank.
 const ADSBFI_HEX = 'https://opendata.adsb.fi/api/v2/hex';
 
-// Identity is effectively static; the track only matters for the current leg.
+// Identity is effectively static, and a track costs OpenSky credits.
 const TTL_MS = 2 * 60 * 1000;
 
 export const aircraftRoute = createRoute({
@@ -21,23 +20,15 @@ export const aircraftRoute = createRoute({
   tags: ['Aviation'],
   summary: 'Identify an aircraft and its flown track',
   description:
-    'Registration, type, model and operator for an airframe, with the path it actually flew on its current leg ' +
-    'and the airports that leg was seen to leave and land at. The track comes from adsb.lol trace files; ' +
-    'adsbdb and adsb.fi fill in what the traces leave blank. Cached for two minutes per airframe.',
+    'Registration, type, model and operator for an airframe, with the path it has flown on the flight in progress ' +
+    'and the airports that flight was seen to leave and land at. The track comes from OpenSky while the ' +
+    "server's daily OpenSky credits last; adsbdb and adsb.fi name the airframe. Cached for two minutes per airframe.",
   request: {
     query: z.object({
       icao24: queryParam().openapi({
         param: { required: true },
         description: 'The 24-bit ICAO address, as six hex characters.',
         example: 'ae291a',
-      }),
-      detail: queryParam().openapi({
-        description: '"recent" reads only the recent trace; anything else reads the full 24 hours.',
-        example: 'recent',
-      }),
-      legs: queryParam().openapi({
-        description: '"all" keeps the whole 24-hour history; anything else keeps only the leg in progress.',
-        example: 'all',
       }),
     }),
   },
@@ -49,38 +40,33 @@ export const aircraftRoute = createRoute({
   },
 });
 
-function fetchTrace(icao24: string, full: boolean): Promise<TraceFile> {
-  const kind = full ? 'full' : 'recent';
-  return httpJson<TraceFile>(`${TRACE_BASE}/${shardFor(icao24)}/trace_${kind}_${icao24}.json`, { timeoutMs: 12000 });
-}
-
-async function lookUp(icao24: string, full: boolean, legOnly: boolean): Promise<AircraftDetail[]> {
-  const [trace, db] = await Promise.all([
-    optional(fetchTrace(icao24, full)),
+async function lookUp(icao24: string): Promise<AircraftDetail[]> {
+  const [path, db] = await Promise.all([
+    optional(fetchTrack(icao24)),
     optional(httpJson<AdsbdbResponse>(`${ADSBDB}/${icao24}`, { timeoutMs: 8000 })),
   ]);
 
   const ac = db?.response?.aircraft;
-  const parsed = trace ? parseTrace(trace, 700, legOnly) : null;
+  const flown = path?.length ? parseTrack(path) : null;
 
-  let identity = mergeIdentity(parsed, ac, null);
+  let identity = mergeIdentity(ac, null);
   if (!identity.registration || !identity.typeCode) {
     const live = await optional(httpJson<{ ac?: AdsbFiAircraft[] }>(`${ADSBFI_HEX}/${icao24}`, { timeoutMs: 6000 }));
-    identity = mergeIdentity(parsed, ac, live?.ac?.[0]);
+    identity = mergeIdentity(ac, live?.ac?.[0]);
   }
 
-  if (!parsed && !identity.registration && !identity.typeCode && !identity.model) return [];
+  if (!flown && !identity.registration && !identity.typeCode && !identity.model) return [];
 
   return [{
     icao24,
     ...identity,
-    track: parsed?.track || [],
-    altitudes: parsed?.altitudes || [],
-    points: parsed?.points || 0,
-    departure: parsed?.departure || null,
-    departureFix: parsed?.departureFix || null,
-    arrival: parsed?.arrival || null,
-    source: parsed ? 'adsb.lol' : ac ? 'adsbdb' : 'adsb.fi',
+    track: flown?.track || [],
+    altitudes: flown?.altitudes || [],
+    points: flown?.points || 0,
+    departure: flown?.departure || null,
+    departureFix: flown?.departureFix || null,
+    arrival: flown?.arrival || null,
+    source: flown ? 'opensky' : ac ? 'adsbdb' : 'adsb.fi',
   }];
 }
 
@@ -88,15 +74,12 @@ export const aircraft: RouteHandler<typeof aircraftRoute> = async c => {
   try {
     const query = c.req.valid('query');
     const icao24 = (query.icao24 || '').trim().toLowerCase();
-    const full = query.detail !== 'recent';
-    const legOnly = query.legs !== 'all';
 
     if (!/^[0-9a-f]{6}$/.test(icao24)) {
       return c.json({ error: 'icao24 must be a 6-character hex address' }, 400);
     }
 
-    const key = `aircraft:${icao24}:${full ? 'full' : 'recent'}:${legOnly ? 'leg' : 'all'}`;
-    const detail = await cachedSource(key, () => lookUp(icao24, full, legOnly), TTL_MS)();
+    const detail = await cachedSource(`aircraft:${icao24}`, () => lookUp(icao24), TTL_MS)();
 
     if (!detail.length) return c.json({ error: 'Aircraft not found', icao24 }, 404);
 

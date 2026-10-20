@@ -21,9 +21,18 @@ type Deps = {
   now?: () => number;
   frame?: (cb: (ms: number) => void) => number;
   cancelFrame?: (id: number) => void;
+  /** Calls back when the tab is shown again; returns the unsubscribe. */
+  onVisible?: (cb: () => void) => () => void;
 };
 
-export function createReplayClock(start: number, { now = Date.now, frame = requestAnimationFrame, cancelFrame = cancelAnimationFrame }: Deps = {}): ReplayClock {
+const documentVisible = (cb: () => void) => {
+  if (typeof document === 'undefined') return () => {};
+  const listener = () => { if (!document.hidden) cb(); };
+  document.addEventListener('visibilitychange', listener);
+  return () => document.removeEventListener('visibilitychange', listener);
+};
+
+export function createReplayClock(start: number, { now = Date.now, frame = requestAnimationFrame, cancelFrame = cancelAnimationFrame, onVisible = documentVisible }: Deps = {}): ReplayClock {
   let t = Math.min(start, now());
   let playing = false;
   let speed = 60;
@@ -32,6 +41,8 @@ export function createReplayClock(start: number, { now = Date.now, frame = reque
   let last: number | undefined;
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach(l => l());
+  // A hidden tab runs no frames; back in view, the next frame only takes the time again instead of playing the absence.
+  const offVisible = onVisible(() => { last = undefined; });
 
   const step = (ms: number) => {
     if (last !== undefined) {
@@ -82,6 +93,7 @@ export function createReplayClock(start: number, { now = Date.now, frame = reque
     },
     dispose() {
       clock.pause();
+      offVisible();
       listeners.clear();
     },
   };

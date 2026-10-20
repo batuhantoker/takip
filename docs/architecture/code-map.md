@@ -46,7 +46,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 
 | Domain | Holds | Used by |
 |---|---|---|
-| `aviation/` | Airports, flight paths and corridor watch, airport delays; emergency squawks; the viewport feed laid over the global snapshot | map/inspect, map/interaction, map/layers; api/airport-status |
+| `aviation/` | Airports, flight paths and corridor watch, airport delays; emergency squawks; the viewport feed laid over the global snapshot; flight search (flight numbers through the generated airline table) | map/inspect, map/interaction, map/layers, shell/search, site/pages; api/airport-status, api/flights |
 | `aviation-weather/` | METAR and international SIGMETs from aviationweather.gov, their map layers and popups | api/aviation-weather; map/layers, map/interaction, panels/layers; lib map/basemap, ai |
 | `cameras/` | Camera sources (`catalog/`, `sources/<group>/`, `generated/`), the map catalogue, liveness, previews, SkylineWebcams and YouTube resolvers, ALPR layers | api/cctv; map/cameras, map/interaction, map/layers; lib/intel/vision |
 | `hazards/` | Popup and shaping helpers: quake twins, fire incidents and US perimeters, NHC forecast cones, war alerts, outbreaks, GNSS, service status | map/interaction, map/layers; api/earthquakes |

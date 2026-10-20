@@ -10,6 +10,7 @@ import ViewPresets from '@/components/map/controls/view-presets';
 import type { PlaceLike } from '@/components/shell/search/places';
 import type { AiPanelProps } from '@/components/panels/ti-agent/ti-panel';
 import type { Directions } from '@/components/panels/route/use-directions';
+import type { FlightHit } from '@/lib/feeds/aviation/flight-search';
 import type { HistorySession } from '@/lib/history/session';
 import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import { onWorldRequest } from '@/lib/space/world-events';
@@ -32,7 +33,7 @@ const SpacePanel = dynamic(() => import('@/components/panels/space/space-panel')
 
 /** The phone's view: the mark, More and the account up top, the bottom bar, and the one sheet it opens. */
 export default function MobileShell({ revealed, mobilePanel, setMobilePanel, directions, data, activeLayers, setActiveLayers, capabilities,
-  terrain, theme, setTheme, ti, spaceWeather, mapCenter, mapView, openDirectionsTo, setFlyToLocation, onSweep, history }: {
+  terrain, theme, setTheme, ti, spaceWeather, mapCenter, mapView, openDirectionsTo, trackFlight, setFlyToLocation, onSweep, history }: {
   revealed: boolean;
   mobilePanel: MobilePanel | null;
   setMobilePanel: Dispatch<SetStateAction<MobilePanel | null>>;
@@ -49,6 +50,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
   mapCenter: MapCenter | null;
   mapView: MapView;
   openDirectionsTo: (p: PlaceLike) => void;
+  trackFlight?: (f: FlightHit) => void;
   setFlyToLocation: Dispatch<SetStateAction<FlyToTarget | null>>;
   onSweep: (data: any) => void;
   history: { session: HistorySession | null; open: () => void; exit: () => void };
@@ -100,7 +102,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
         {mobilePanel === 'space' && <SpacePanel embedded onClose={() => setMobilePanel(null)} />}
         {mobilePanel === 'search' && (
           <>
-            <SearchBar embedded center={mapCenter} onDirections={openDirectionsTo} onLocate={flyAndClose} />
+            <SearchBar embedded center={mapCenter} onDirections={openDirectionsTo} onTrackFlight={trackFlight} onLocate={flyAndClose} />
             <SharePanel center={mapCenter} zoom={mapView.zoom} activeLayers={activeLayers} />
           </>
         )}

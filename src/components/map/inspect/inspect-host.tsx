@@ -10,6 +10,7 @@ import { FloatingWindow } from '@/components/map/windows';
 import type { MapRef } from '@/components/map/types';
 import type { FlightTelemetry, WatchedFlight } from '@/lib/feeds/aviation/flight-watch';
 import { AircraftInspect } from '@/components/map/inspect/cards/aircraft-inspect';
+import { useAircraftFocus } from './aircraft-focus';
 import { findFlight, findShip } from './live';
 import { useRing } from './rings';
 import { SatelliteInspect, type SatelliteDetail } from '@/components/map/inspect/cards/satellite-inspect';
@@ -109,6 +110,7 @@ function TargetCard({ target, data, mapRef, watch, onClose, sheet }: {
   // A tracked vehicle draws its own ring, which glides with it.
   const at = target.kind === 'aircraft' ? (liveFlight ?? target) : target.kind === 'ship' ? (liveShip ?? target) : null;
   useRing(id, at ? { lat: at.lat, lng: at.lng } : null);
+  useAircraftFocus(target.kind === 'aircraft' ? target.icao24 : '', at?.lat ?? 0, at?.lng ?? 0);
 
   let card = null;
   let label = '';

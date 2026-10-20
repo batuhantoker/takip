@@ -22,6 +22,8 @@ const YEAR_MS = 365.25 * DAY_MS;
 /** Simulated seconds per second, and what a jump of JUMP_S seconds of playback covers at each. */
 const SPEEDS = [
   { value: 1, label: msg('Real time'), jump: msg('10 s') },
+  { value: 10, label: msg('10 s / s'), jump: msg('100 s') },
+  { value: 30, label: msg('30 s / s'), jump: msg('5 min') },
   { value: 60, label: msg('1 min / s'), jump: msg('10 min') },
   { value: 3600, label: msg('1 hour / s'), jump: msg('10 hours') },
   { value: 86_400, label: msg('1 day / s'), jump: msg('10 days') },

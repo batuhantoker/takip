@@ -13,4 +13,8 @@ describe('groupHits', () => {
     expect(groups.map(g => g.title)).toEqual(['Cities and towns', 'Regions']);
     expect(groups[0].items.map(h => h.label)).toEqual(['Paris', 'Paris, TX']);
   });
+
+  it('keeps the heading for one kind when another list sits beside it', () => {
+    expect(groupHits([hit('Paris', 'city')], true)).toEqual([{ title: 'Cities and towns', items: [hit('Paris', 'city')] }]);
+  });
 });

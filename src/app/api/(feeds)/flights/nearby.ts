@@ -10,7 +10,8 @@ import { classifyFlight } from './classify';
 /** adsb.lol's radius cap, in nautical miles. */
 export const NEARBY_NM = 250;
 const SNAP_DEG = 0.25;
-const TTL_MS = 12_000;
+// Under the open card's 10 s poll, so each of its reads is a new one; GAP_MS is what spares adsb.lol.
+const TTL_MS = 9_000;
 const GAP_MS = 5_000;
 const COOLDOWN_MS = 30_000;
 const MAX_ANCHORS = 64;

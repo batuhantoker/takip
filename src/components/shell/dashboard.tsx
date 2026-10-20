@@ -9,7 +9,7 @@ import AccountDialog from '@/components/site/account/account-dialog';
 import MapTimeWall from '@/components/site/account/map-time/map-time-wall';
 import { mapTimeFeatures } from '@/components/site/account/map-time/map-time-features';
 import ReportDialog from '@/components/site/report/report-dialog';
-import { trackKey, trackedNow } from '@/components/map/inspect/track-request';
+import { requestTrack, trackKey, trackedNow } from '@/components/map/inspect/track-request';
 import { reportMode, type ViewInputs } from '@/lib/platform/reports/report-view';
 import LiveFeedModal from '@/components/map/cameras/live-feed-modal';
 import { useLiveFeed } from '@/components/map/cameras/use-live-feed';
@@ -37,6 +37,8 @@ import TimelineBar from '@/components/map/replay/timeline-bar';
 import { useReplay } from '@/components/map/replay/use-replay';
 import { useReplaySatellites } from '@/components/map/replay/use-replay-satellites';
 import SearchSpotlight from '@/components/shell/search/search-spotlight';
+import { FLIGHT_KIND } from '@/components/shell/search/use-flight-search';
+import type { FlightHit } from '@/lib/feeds/aviation/flight-search';
 import { Dock, DockSlot, DOCK_WIDTH, NAV_WIDTH, type ToolId } from '@/components/shell/sidebar/dock';
 import DockTools from '@/components/shell/sidebar/dock-tools';
 import StatusBar from '@/components/shell/status-bar/status-bar';
@@ -210,6 +212,18 @@ export default function Dashboard() {
     setFlyToLocation({ lat: p.lat, lng: p.lng, zoom: 14, ts: Date.now() });
   }, [setRouteTarget, setActiveRoute, setShowDirections]);
 
+  // Search offers live aircraft only; in Replay and History they would be today's, not the map's.
+  const timeTravel = !!replay.session || !!history.session;
+  /** From Search: switch on the aircraft's layer, go to it, and follow it once the feed has it. */
+  const trackFlight = useCallback((f: FlightHit) => {
+    const layer = FLIGHT_KIND[f.bucket].layer;
+    setActiveLayers(prev => (prev[layer] ? prev : { ...prev, [layer]: true }));
+    setShowDesktopSearch(false);
+    setMobilePanel(null);
+    setFlyToLocation({ lat: f.lat, lng: f.lng, zoom: 8, ts: Date.now() });
+    requestTrack({ kind: 'aircraft', id: f.icao24 });
+  }, [setActiveLayers]);
+
   const closeAi = () => { setActiveTool(null); setAiTheater(false); setAiAutoFocus(false); };
   /** A sidebar entry: opens its panel, or closes the one already showing. */
   const toggleTool = (tool: ToolId) => {
@@ -367,7 +381,7 @@ export default function Dashboard() {
         <CornerSlots corners={layout.desktop.corners} free={layout.desktop.free} revealed={splash.revealed} pieces={{
           search: corner => (
             <SearchSpotlight isMobile={false} corner={corner} hidden={!shown('overlay:search')} showDesktopSearch={showDesktopSearch} setShowDesktopSearch={setShowDesktopSearch}
-              drawMode={areas.drawMode} navSession={directions.navSession} mapCenter={mapCenter} openDirectionsTo={openDirectionsTo} setFlyToLocation={setFlyToLocation} />
+              drawMode={areas.drawMode} navSession={directions.navSession} mapCenter={mapCenter} openDirectionsTo={openDirectionsTo} trackFlight={timeTravel ? undefined : trackFlight} setFlyToLocation={setFlyToLocation} />
           ),
           showing,
           // Out in space it is the way back, so it shows even when hidden.
@@ -383,7 +397,7 @@ export default function Dashboard() {
         <MobileShell revealed={splash.revealed} mobilePanel={mobilePanel} setMobilePanel={setMobilePanel} directions={directions}
           data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} capabilities={capabilities} terrain={terrain}
           theme={theme} setTheme={setTheme} ti={ti} spaceWeather={spaceWeather} mapCenter={mapCenter} mapView={mapView}
-          openDirectionsTo={openDirectionsTo} setFlyToLocation={setFlyToLocation} onSweep={recon.setSweepData}
+          openDirectionsTo={openDirectionsTo} trackFlight={timeTravel ? undefined : trackFlight} setFlyToLocation={setFlyToLocation} onSweep={recon.setSweepData}
           history={{ session: history.session, open: startHistory, exit: exitHistory }} />
       ) : (
         <>

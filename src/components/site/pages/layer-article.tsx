@@ -10,6 +10,7 @@ import { openPath, pagePath, type LayerPage } from '@/lib/platform/site/layer-pa
 import type { LiveLine } from '@/lib/platform/site/live/lines';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { sectionIn, type SiteText } from '@/lib/platform/site/text';
+import { FlightFinder } from './flight-finder';
 import { LiveWindow } from './live-window';
 import { LocalClock, SpokenText } from './local-clock';
 import { MapWindow } from './map-window';
@@ -52,6 +53,7 @@ export function LayerArticle({ text, page, image, live, related }: {
             <a href={open} className={LINK_BUTTON.primary}>{t('Open the live map')}<ArrowUpRight className="size-4" aria-hidden /></a>
             <Link href={localePath(text.locale, '/map')} className={LINK_BUTTON.secondary}>{t('Everything on the map')}</Link>
           </div>
+          {page.findFlights && <FlightFinder className="mt-8" />}
           {live && (
             <div className="mt-8 rounded-card border border-line bg-surface-1 p-4">
               <p className="flex items-center gap-2 text-[12px] font-medium text-ink-3">

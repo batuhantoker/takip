@@ -21,6 +21,8 @@ export interface LayerPage {
   layers: string[];
   /** What the map follows on opening, as `satellite:25544`. */
   track?: string;
+  /** A box under the heading that finds an aircraft in the air and opens the map following it. */
+  findFlights?: boolean;
   /** Another view to open: History at a year, deep time, Space or Replay. */
   mode?: ViewModeLink;
   /** A sidebar panel to open. */

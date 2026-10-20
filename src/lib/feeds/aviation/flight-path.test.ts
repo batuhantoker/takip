@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bearing, flightPathFeatures, greatCircle, routeFor, unwrap } from './flight-path';
+import { bearing, extendTrack, flightPathFeatures, greatCircle, routeFor, unwrap } from './flight-path';
 import type { Airport } from './flight-watch';
 
 const ap = (icao: string, iata: string, lat: number, lng: number): Airport => ({ icao, iata, lat, lng });
@@ -101,5 +101,22 @@ describe('flightPathFeatures', () => {
 
   it('draws nothing at all with no track and no route', () => {
     expect(flightPathFeatures({ track: [], here: [0, 0], heading: 0, origin: null, destination: null }).features).toEqual([]);
+  });
+});
+
+describe('extendTrack', () => {
+  const track: [number, number][] = [[-84, 40], [-83, 40]];
+
+  it('adds a newer position ahead of the track', () => {
+    expect(extendTrack(track, [-82.5, 40], 90)).toEqual([...track, [-82.5, 40]]);
+  });
+
+  it('keeps the track when the position lags behind it or has barely moved', () => {
+    expect(extendTrack(track, [-83.5, 40], 90)).toBe(track);
+    expect(extendTrack(track, [-83.001, 40], 90)).toBe(track);
+  });
+
+  it('starts a track from the first position', () => {
+    expect(extendTrack([], [-83, 40], 90)).toEqual([[-83, 40]]);
   });
 });

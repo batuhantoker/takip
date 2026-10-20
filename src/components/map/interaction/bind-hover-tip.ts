@@ -16,6 +16,8 @@ import { flowTip, trafficTip } from '@/lib/feeds/traffic/describe';
 import { TRAFFIC_FLOW_LAYER, TRAFFIC_LAYER } from '@/lib/feeds/traffic/map-layers';
 import { transitTipMeta, transitTitle } from '@/lib/feeds/transit/describe';
 import type { SatelliteRow } from '@/components/map/types';
+import { REPLAY_SLOP, replayAt, replayFlightLayer } from '@/components/map/replay/replay-pick';
+import type { ReplayEntity } from '@/lib/map/replay/track-sample';
 
 const DELAY_MS = 150;
 const OFFSET = 14;
@@ -77,6 +79,10 @@ function transit(p: Props): Tip {
   return { key: `transit:${p.key}`, name: transitTitle(p), meta: transitTipMeta(p, mono) };
 }
 
+const replayTip = (e: ReplayEntity): Tip => e.cls === 'aircraft'
+  ? { key: `replay:${e.entity}`, name: e.label.trim() || t('Aircraft'), meta: t(FLIGHT_LAYER_LABEL[replayFlightLayer(e.category)]) }
+  : { key: `replay:${e.entity}`, name: e.label.trim() || t('Unnamed vessel'), meta: htmlEsc(t(SHIP_CLASSES.find(c => c.type === e.category)?.label ?? 'Vessel')) };
+
 const satTip = (s: SatelliteRow): Tip => ({
   key: `satellite:${s.noradId ?? s.name}`,
   name: s.name,
@@ -116,12 +122,24 @@ export function bindHoverTip(map: maplibregl.Map, inspected: (key: string) => bo
     el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
   };
 
+  // Replay's pick projects every drawn entity, so it runs at most 10 times a second.
+  let replayHit: ReplayEntity | null = null;
+  let replayAsked = -Infinity;
+  const replayUnder = (p: maplibregl.Point) => {
+    if (performance.now() - replayAsked > 100) {
+      replayAsked = performance.now();
+      replayHit = replayAt(p.x, p.y, REPLAY_SLOP);
+    }
+    return replayHit;
+  };
+
   const update = () => {
     frame = 0;
     if (!point || map.isMoving() || paused()) { hide(); return; }
     const present = LAYERS.filter(id => map.getLayer(id));
     const f = present.length ? map.queryRenderedFeatures(point, { layers: present })[0] : undefined;
-    const tip = f?.layer ? DESCRIBE[f.layer.id]?.(f.properties ?? {}, f.layer.id) ?? null : sat ? satTip(sat) : null;
+    const replayed = f?.layer || sat ? null : replayUnder(point);
+    const tip = f?.layer ? DESCRIBE[f.layer.id]?.(f.properties ?? {}, f.layer.id) ?? null : sat ? satTip(sat) : replayed ? replayTip(replayed) : null;
     if (!tip || inspected(tip.key)) { hide(); return; }
     if (tip.key === shown) { place(point); return; }
     if (tip.key === pending) return;

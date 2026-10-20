@@ -4,6 +4,7 @@ import { record } from '@takip/archive/recorder';
 import { TAKIP_USER_AGENT } from '@/lib/core/net/user-agent';
 import { classifyFlight } from './classify';
 import { interferenceCells, navSamplesFrom } from './gnss-interference';
+import { publishFlights } from './latest';
 import {
   adsbLolLastAttempt, adsbLolTypeSnapshot, awaitAdsbLolTypeSnapshot, fetchAdsbLolMil, withAircraftType, type TypeSnapshot,
 } from './adsb-lol';
@@ -414,6 +415,7 @@ export async function GET() {
     const data = await fetchPromise;
     cachedData = data;
     lastFetchTime = Date.now();
+    publishFlights(data);
     fetchPromise = null;
     return NextResponse.json(data, {
       headers: {

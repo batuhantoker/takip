@@ -1,4 +1,5 @@
 import { Plane } from 'lucide-react';
+import { FlightFinder } from '@/components/site/pages/flight-finder';
 import { Section } from '@/components/site/pages/site-frame';
 import type { Translate } from '@/lib/core/i18n/translator';
 import type { StationNow } from '@/lib/platform/site/places/live/metar-now';
@@ -37,6 +38,9 @@ export const FLIGHTS_VIEW: TopicView<FlightsData, StationNow[]> = {
     ];
     return (
       <>
+        <Section title={t('Find a flight')}>
+          <FlightFinder near={{ lat: place.at[1], lng: place.at[0] }} />
+        </Section>
         <Section title={t('Airports')}>
           <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
             {data.airports.map(a => (

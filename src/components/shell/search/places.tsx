@@ -7,7 +7,7 @@
  */
 import { createElement, type ReactNode } from 'react';
 import {
-  Building2, Clock, Globe2, Home, Landmark, LocateFixed, Map as MapIcon, MapPin, Signpost, type LucideIcon,
+  Building2, Clock, Globe2, Home, Landmark, LocateFixed, Map as MapIcon, MapPin, Plane, Signpost, type LucideIcon,
 } from 'lucide-react';
 import { Kbd } from '@/components/ui/kbd';
 import { cx, TRANSITION } from '@/components/ui/class-names';
@@ -33,6 +33,7 @@ const KIND: Record<string, { icon: LucideIcon; label: string; group: string }> =
   coordinate: { icon: MapPin, label: msg('Coordinates'), group: msg('Coordinates') },
   current: { icon: LocateFixed, label: msg('You'), group: msg('You') },
   recent: { icon: Clock, label: msg('Recent'), group: msg('Recent') },
+  flight: { icon: Plane, label: msg('Flight'), group: msg('Flights') },
 };
 
 export const kindIcon = (kind?: string): LucideIcon => KIND[kind ?? '']?.icon ?? MapPin;
@@ -99,7 +100,7 @@ export function PlaceRow({ place, query = '', on, onPick, onHover, from, trailin
       <KindTile kind={kind} on={on} />
       <button type="button" onClick={onPick} tabIndex={-1}
         className="min-w-0 flex-1 text-left outline-none after:absolute after:inset-0 after:rounded-control">
-        <span className={cx('block truncate text-body text-ink-1', place.kind === 'coordinate' && 'font-mono tabular-nums')}>
+        <span className={cx('block truncate text-body text-ink-1', (place.kind === 'coordinate' || place.kind === 'flight') && 'font-mono tabular-nums')}>
           <Highlight text={place.label} query={query} />
         </span>
         {place.context && <span className="block truncate text-small text-ink-3">{place.context}</span>}

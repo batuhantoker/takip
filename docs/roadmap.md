@@ -41,9 +41,10 @@ Needs 1.3.
 2. Index the backfilled day: `npm run ingest -- backfill adsblol-history 2026-10-11 --index-only` (streams 3.2 GB again).
 3. Run adsb.lol daily history as a scheduled worker job. A day holds ~55k aircraft against ~17k from live polling, fills our own outages, and takes load off OpenSky, which uses ~75% of its daily credits.
 4. Add the missing aircraft types to `TYPE_BATCHES` (`src/app/api/(feeds)/flights/adsb-lol.ts`): the batches reach 13,956 of 18,064 aircraft. Missing: E75L 347, E145 48, AT75 32, S92 29, E545 28, H25B 27, DHC6 24.
-5. Trace route in `apps/api` (through the backend lead): one aircraft's full trace for a day as TRK1, cached; then clicking a replayed aircraft draws it.
+5. Trace route in `apps/api` (through the backend lead): one aircraft's full trace for a day as TRK1, cached, and `/api/replay/entity/{id}` for its icao24. A click or Search already opens a replayed aircraft's card and follows it (2026-10-20, `components/map/replay/replay-inspect.tsx`), with only its callsign and sampled altitude, speed and heading; the trace would draw its whole day and the icao24 would bring in the route and airframe. Live cards could then draw their flown line from it too, instead of OpenSky's `/tracks/all` (4 credits a card, skipped below 1,000 left; `apps/api/src/v1/aviation/opensky-track.ts`).
 6. A second ship source: Digitraffic AIS (data-roadmap §1 #6). AISStream allows 3 open connections, has no SLA, and reconnected 3 times in one hour.
 7. Days built on demand: `202 building` with `Retry-After` from the chunk route while the worker streams a release, one build per day; the timeline marks such days as fetchable.
+8. (you) airplanes.live answers 403 and asks for an email to contact@airplanes.live with links and a description of the project. Until then `/api/v1/flight-route` has no third route source (`apps/api/src/v1/aviation/route-sources.ts`).
 
 ### 1.5 Finish the half-built pieces
 

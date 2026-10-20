@@ -1,10 +1,15 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { MapMouseEvent } from 'maplibre-gl';
 import { lodForZoom } from '@takip/core/tracks';
 import { chunkUrls, lodBucketS, type ReplaySession, type ReplayTrack } from '@/lib/map/replay/session';
-import { BRIDGE_S, createReplayTrackLayer, HOLD_S, type ReplayEntity, TRAIL_S } from '@/lib/map/replay/track-layer';
+import { createReplayTrackLayer, TRAIL_S } from '@/lib/map/replay/track-layer';
+import { BRIDGE_S, HOLD_S, type ReplayEntity } from '@/lib/map/replay/track-sample';
 import { SHIP_CLASSES, SHIP_FALLBACK_COLOR, SHIPS_UNDERWAY, UNDERWAY_KNOTS } from '@/lib/feeds/maritime/ship-filter';
+import { globeCamera, inFrontOfGlobe } from '@/lib/map/camera/globe-occlusion';
+import { hitsClickableLayer } from '@/lib/map/clickable-layers';
+import { attachReplayPicker, REPLAY_SLOP } from '@/components/map/replay/replay-pick';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 /* Ships and aircraft at the replay clock's time, through one WebGL layer, in the live layers' colours. */
@@ -49,6 +54,17 @@ function colorsFor() {
     cls === 'aircraft' ? aircraft[category] ?? aircraft.commercial : ships[category] ?? rgb(SHIP_FALLBACK_COLOR, SHIP_FALLBACK_COLOR);
 }
 
+/** On the globe, whether a ground point faces the camera; the flat map sees everything. */
+function nearSide(map: NonNullable<MapRef['current']>) {
+  if (!JSON.stringify(map.getProjection()?.type ?? '').includes('globe')) return () => true;
+  const c = map.getCenter();
+  const camera = globeCamera({
+    lng: c.lng, lat: c.lat, zoom: map.getZoom(), pitch: map.getPitch(), bearing: map.getBearing(),
+    fovDeg: map.getVerticalFieldOfView(), heightPx: map.getCanvas().clientHeight,
+  });
+  return (lng: number, lat: number) => inFrontOfGlobe({ lng, lat, radius: 1 }, camera);
+}
+
 /** Segments grouped by entity, in time order; category and label from the latest. */
 function toEntities(tracks: ReplayTrack[], color: ReturnType<typeof colorsFor>): ReplayEntity[] {
   const byId = new Map<number, ReplayEntity>();
@@ -85,6 +101,14 @@ export function useReplayLayer({ mapRef, mapReady, replay, activeLayers }: {
     let shown = 0;
     const layer = createReplayTrackLayer(LAYER_ID, { onCount: n => { shown = n; } });
     map.addLayer(layer);
+    let loaded: ReplayEntity[] = [];
+    const detach = attachReplayPicker({
+      at: (x, y, slop) => layer.pick(x, y, slop, nearSide(map)),
+      drawn: () => layer.drawn(),
+      entity: id => loaded.find(e => e.entity === id) ?? null,
+      select: id => layer.setSelected(id),
+      time: () => replay.clock.time() / 1000,
+    });
     const color = colorsFor();
     layer.setFilter(filterFor(layersRef.current));
 
@@ -113,12 +137,12 @@ export function useReplayLayer({ mapRef, mapReady, replay, activeLayers }: {
       wanted = key;
       const mine = ++generation;
       if (!urls?.length) {
-        layer.setEntities([]);
+        layer.setEntities((loaded = []));
         return;
       }
       replay.tracks(urls).then(({ tracks, retryAfterMs }) => {
         if (mine !== generation) return;
-        layer.setEntities(toEntities(tracks, color));
+        layer.setEntities((loaded = toEntities(tracks, color)));
         // Rate-limited chunks: ask again once allowed; the cache keeps the ones that arrived.
         if (retryAfterMs) {
           clearTimeout(retry);
@@ -154,11 +178,28 @@ export function useReplayLayer({ mapRef, mapReady, replay, activeLayers }: {
       replay.setStats({ shown, state: !manifest ? 'loading' : none ? 'nothing_selected' : early ? 'before_window' : zoomIn ? 'zoom_in' : !recorded ? 'nothing_recorded' : 'ok' });
     }, 500);
 
+    // A pointer over a replayed ship or aircraft says it can be clicked; checked at most 10 times a second.
+    let lastHover = -Infinity;
+    let ownPointer = false;
+    const onHover = (e: MapMouseEvent) => {
+      if (map.isMoving() || performance.now() - lastHover < 100) return;
+      lastHover = performance.now();
+      const canvas = map.getCanvas();
+      if (canvas.style.cursor && !ownPointer) return;
+      const hit = !hitsClickableLayer(map, e.point) && layer.pick(e.point.x, e.point.y, REPLAY_SLOP, nearSide(map));
+      ownPointer = !!hit;
+      canvas.style.cursor = hit ? 'pointer' : '';
+    };
+
     const unclock = replay.clock.subscribe(onClock);
     const unsession = replay.subscribe(load);
     map.on('moveend', load);
+    map.on('mousemove', onHover);
     onClock();
     return () => {
+      detach();
+      map.off('mousemove', onHover);
+      if (ownPointer) map.getCanvas().style.cursor = '';
       generation++;
       clearTimeout(retry);
       clearInterval(stats);

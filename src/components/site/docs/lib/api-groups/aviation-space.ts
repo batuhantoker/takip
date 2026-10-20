@@ -37,6 +37,19 @@ export const AVIATION_SPACE: ApiGroup = {
       notes: 'The point snaps to a 0.25° grid, so nearby asks share one read; each is held 12 s. Rows have the `/api/flights` shape plus `emergency` when the transponder sends an ADS-B emergency status. `stale` is true when adsb.lol is busy and the last read is served instead.',
     },
     {
+      path: '/api/flights/search',
+      method: 'GET',
+      summary: 'Aircraft in the air now matching a flight number, callsign, registration, ICAO address or airline name.',
+      params: [
+        { name: 'q', required: true, desc: 'What to look for: TK1, THY1, TC-JJE, 4bb1c2 or Turkish.', example: 'TK1' },
+        { name: 'limit', required: false, desc: 'How many to return, 1 to 25 (default 8).', example: '8' },
+        { name: 'lat', required: false, desc: 'With lng, puts the nearest first among equal matches.', example: '41.0' },
+        { name: 'lng', required: false, desc: 'Longitude for lat.', example: '28.9' },
+      ],
+      returns: ['results', 'total', 'at'],
+      notes: 'Searches the latest `/api/flights` snapshot, so positions can be a few minutes old. A flight number is read through the airline\'s ICAO code (TK1 → THY1, from OpenFlights\' airline list); whole matches come first, then callsigns and registrations that start with the query, then an airline\'s fleet. `total` counts every match before `limit`.',
+    },
+    {
       path: '/api/airport-status',
       method: 'GET',
       summary: 'US airport delay programmes, ground stops and closures from FAA NAS Status.',

@@ -1,5 +1,7 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as MlMap } from 'maplibre-gl';
 import type { DecodedTrack } from '@takip/core/trk';
+import { MAP_INK } from '@/lib/map/style/tokens';
+import { at, fixAt, sample, type ReplayEntity } from './track-sample';
 
 /*
  * Replay ships and aircraft as one WebGL layer (replay-database.md §8.3). Positions are interpolated
@@ -9,20 +11,6 @@ import type { DecodedTrack } from '@takip/core/trk';
  * globe's far side is clipped by the prelude's own z.
  */
 
-export type ReplayEntity = {
-  entity: number;
-  cls: 'vessel' | 'aircraft';
-  category: string;
-  label: string;
-  /** This entity's segments in time order; they never overlap. */
-  segs: DecodedTrack[];
-  color: [number, number, number];
-};
-
-/** Bridged gaps are drawn as a straight run between two segments, dimmer than measured track. */
-export const BRIDGE_S = 20 * 60;
-/** After its last fix an entity stays at it, fading, for this long. */
-export const HOLD_S = 15 * 60;
 export const TRAIL_S = 10 * 60;
 
 const INSTANCE_FLOATS = 8; // x, y, heading, r, g, b, alpha, kind
@@ -105,96 +93,13 @@ void main() {
   fragColor = vec4(v_color, 0.55 * (1.0 - age / u_trail));
 }`;
 
+const SELECTED = [1, 3, 5].map(i => parseInt(MAP_INK.ink1.slice(i, i + 2), 16) / 255);
+
 const mercX = (lon: number) => (lon + 180) / 360;
 const mercY = (lat: number) => {
   const l = Math.max(-85.0511, Math.min(85.0511, lat)) * (Math.PI / 180);
   return 0.5 - Math.log(Math.tan(Math.PI / 4 + l / 2)) / (2 * Math.PI);
 };
-const bearingRad = (lon1: number, lat1: number, lon2: number, lat2: number) => {
-  const r = Math.PI / 180;
-  const y = Math.sin((lon2 - lon1) * r) * Math.cos(lat2 * r);
-  const x = Math.cos(lat1 * r) * Math.sin(lat2 * r) - Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos((lon2 - lon1) * r);
-  return Math.atan2(y, x);
-};
-
-/** Index of the last fix at or before t; -1 before the segment. */
-function fixAt(times: Float64Array, t: number) {
-  if (t < times[0]) return -1;
-  let lo = 0;
-  let hi = times.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi + 1) >> 1;
-    if (times[mid] <= t) lo = mid;
-    else hi = mid - 1;
-  }
-  return lo;
-}
-
-// The sample under construction, written by sample() without allocating.
-let sLon = 0;
-let sLat = 0;
-let sHeading = 0;
-let sSpeed = 0;
-let sAlpha = 0;
-
-function headingOf(seg: DecodedTrack, i: number) {
-  if (seg.heading) return seg.heading[i] * (Math.PI / 180);
-  const j = Math.min(i, seg.n - 2);
-  return j >= 0 ? bearingRad(seg.lon[j], seg.lat[j], seg.lon[j + 1], seg.lat[j + 1]) : 0;
-}
-
-/** Where an entity is at t: inside a segment, across a short gap between two, or held after its last fix. */
-function sample(e: ReplayEntity, t: number): boolean {
-  const segs = e.segs;
-  let k = -1;
-  for (let i = 0; i < segs.length && segs[i].t[0] <= t; i++) k = i;
-  if (k < 0) return false;
-  const seg = segs[k];
-  const last = seg.n - 1;
-  const end = seg.t[last];
-  if (t <= end) {
-    const i = fixAt(seg.t, t);
-    if (i === last) {
-      sLon = seg.lon[i];
-      sLat = seg.lat[i];
-      sHeading = headingOf(seg, i);
-      sSpeed = seg.speed?.[i] ?? 0;
-    } else {
-      const f = (t - seg.t[i]) / (seg.t[i + 1] - seg.t[i] || 1);
-      sLon = seg.lon[i] + (seg.lon[i + 1] - seg.lon[i]) * f;
-      sLat = seg.lat[i] + (seg.lat[i + 1] - seg.lat[i]) * f;
-      sHeading = seg.heading ? headingOf(seg, f < 0.5 ? i : i + 1) : bearingRad(seg.lon[i], seg.lat[i], seg.lon[i + 1], seg.lat[i + 1]);
-      sSpeed = seg.speed ? seg.speed[i] + (seg.speed[i + 1] - seg.speed[i]) * f : 0;
-    }
-    sAlpha = 1;
-    return true;
-  }
-  const next = segs[k + 1];
-  // A short silence between two segments (sparse polling, an hour boundary): bridge it, visibly dimmer.
-  if (next && next.t[0] - end <= BRIDGE_S && Math.abs(next.lon[0] - seg.lon[last]) < 180) {
-    const f = (t - end) / (next.t[0] - end || 1);
-    sLon = seg.lon[last] + (next.lon[0] - seg.lon[last]) * f;
-    sLat = seg.lat[last] + (next.lat[0] - seg.lat[last]) * f;
-    sHeading = bearingRad(seg.lon[last], seg.lat[last], next.lon[0], next.lat[0]);
-    sSpeed = seg.speed?.[last] ?? 0;
-    sAlpha = 0.7;
-    return true;
-  }
-  const age = t - end;
-  if (age > HOLD_S) return false;
-  sLon = seg.lon[last];
-  sLat = seg.lat[last];
-  sHeading = headingOf(seg, last);
-  sSpeed = seg.speed?.[last] ?? 0;
-  sAlpha = 0.8 - 0.55 * (age / HOLD_S);
-  return true;
-}
-
-/** sample() as a value, for tests; the layer itself reads the scratch variables. */
-export function sampleEntity(e: ReplayEntity, t: number) {
-  return sample(e, t) ? { lon: sLon, lat: sLat, heading: (sHeading * 180) / Math.PI, alpha: sAlpha } : null;
-}
-
 type Programs = { marker: WebGLProgram; trail: WebGLProgram };
 
 export function createReplayTrackLayer(id: string, { onCount }: { onCount?: (shown: number) => void } = {}): CustomLayerInterface & {
@@ -203,6 +108,12 @@ export function createReplayTrackLayer(id: string, { onCount }: { onCount?: (sho
   setFilter(show: (e: ReplayEntity, speedKn: number) => boolean): void;
   /** Epoch seconds. */
   setTime(t: number): void;
+  /** Draws this entity on top, in the selection colour; null clears it. */
+  setSelected(entity: number | null): void;
+  /** The drawn entity nearest a screen point, within `slop` px; `visible` rules out the globe's far side. */
+  pick(x: number, y: number, slop: number, visible?: (lon: number, lat: number) => boolean): ReplayEntity | null;
+  /** Every entity drawn at the current time. */
+  drawn(): ReplayEntity[];
 } {
   let gl: WebGL2RenderingContext | null = null;
   let map: MlMap | null = null;
@@ -214,6 +125,7 @@ export function createReplayTrackLayer(id: string, { onCount }: { onCount?: (sho
   let entities: ReplayEntity[] = [];
   let show: (e: ReplayEntity, speedKn: number) => boolean = () => true;
   let time = 0;
+  let selected: number | null = null;
   let instanceData = new Float32Array(0);
   let instanceCount = 0;
   let trailData = new Float32Array(0);
@@ -271,19 +183,25 @@ export function createReplayTrackLayer(id: string, { onCount }: { onCount?: (sho
   const buildInstances = () => {
     if (instanceData.length < entities.length * INSTANCE_FLOATS) instanceData = new Float32Array(entities.length * INSTANCE_FLOATS);
     let n = 0;
-    for (const e of entities) {
-      if (!sample(e, time) || !show(e, sSpeed)) continue;
+    const put = (e: ReplayEntity, color: ArrayLike<number>, alpha: number) => {
       const o = n * INSTANCE_FLOATS;
-      instanceData[o] = mercX(sLon);
-      instanceData[o + 1] = mercY(sLat);
-      instanceData[o + 2] = sHeading;
-      instanceData[o + 3] = e.color[0];
-      instanceData[o + 4] = e.color[1];
-      instanceData[o + 5] = e.color[2];
-      instanceData[o + 6] = sAlpha;
+      instanceData[o] = mercX(at.lon);
+      instanceData[o + 1] = mercY(at.lat);
+      instanceData[o + 2] = at.heading;
+      instanceData[o + 3] = color[0];
+      instanceData[o + 4] = color[1];
+      instanceData[o + 5] = color[2];
+      instanceData[o + 6] = alpha;
       instanceData[o + 7] = e.cls === 'vessel' ? 1 : 0;
       n++;
+    };
+    let pick: ReplayEntity | null = null;
+    for (const e of entities) {
+      if (e.entity === selected) { pick = e; continue; }
+      if (sample(e, time) && show(e, at.speed)) put(e, e.color, at.alpha);
     }
+    // Last, so it is drawn over the rest.
+    if (pick && sample(pick, time) && show(pick, at.speed)) put(pick, SELECTED, Math.max(at.alpha, 0.9));
     instanceCount = n;
     onCount?.(n);
   };
@@ -372,6 +290,28 @@ export function createReplayTrackLayer(id: string, { onCount }: { onCount?: (sho
       trailsDirty = true;
       map?.triggerRepaint();
     },
+    setSelected(entity) {
+      if (entity === selected) return;
+      selected = entity;
+      dirty = true;
+      map?.triggerRepaint();
+    },
+    pick(x, y, slop, visible = () => true) {
+      if (!map) return null;
+      let best: ReplayEntity | null = null;
+      let bestD = slop * slop;
+      for (const e of entities) {
+        if (!sample(e, time) || !show(e, at.speed) || !visible(at.lon, at.lat)) continue;
+        const p = map.project([at.lon, at.lat]);
+        const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+        if (d <= bestD) {
+          bestD = d;
+          best = e;
+        }
+      }
+      return best;
+    },
+    drawn: () => entities.filter(e => sample(e, time) && show(e, at.speed)),
     setTime(t) {
       if (t === time) return;
       time = t;

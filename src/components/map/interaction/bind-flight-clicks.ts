@@ -1,6 +1,6 @@
 import type * as maplibregl from 'maplibre-gl';
 import type { InspectSink, FlightLayer, RouteState } from '@/components/map/inspect/types';
-import { flightPathFeatures, routeFor } from '@/lib/feeds/aviation/flight-path';
+import { extendTrack, flightPathFeatures, routeFor, type PathInput } from '@/lib/feeds/aviation/flight-path';
 import type { AircraftDetail } from '@/lib/feeds/aviation/flight-watch';
 import { EMPTY_FC } from '@/lib/map/basemap/bands/shared';
 import { EMERGENCY_PICK } from '@/lib/feeds/aviation/emergency';
@@ -25,6 +25,8 @@ export interface FlightSelector {
   clear: () => void;
   /** The aircraft whose route is drawn. */
   drawn: () => string | null;
+  /** A newer position for the drawn aircraft: the flown line grows to it and the line ahead starts there. */
+  moveTo: (here: [number, number], heading: number) => void;
 }
 
 export function bindFlightClicks(map: maplibregl.Map, sink: InspectSink, drawing: () => boolean): FlightSelector {
@@ -32,8 +34,12 @@ export function bindFlightClicks(map: maplibregl.Map, sink: InspectSink, drawing
   // already deselected cannot draw over the current selection.
   let flightSel = 0;
   let drawnId: string | null = null;
+  // What the drawn route was built from, once the lookups are in, and where the aircraft is now.
+  let path: Omit<PathInput, 'here' | 'heading'> | null = null;
+  let at: { here: [number, number]; heading: number } = { here: [0, 0], heading: 0 };
   const setFlightPath = (fc: GeoJSON.FeatureCollection) =>
     (map.getSource('selected-flight') as maplibregl.GeoJSONSource | undefined)?.setData(fc as never);
+  const redraw = () => { if (path) setFlightPath(flightPathFeatures({ ...path, ...at })); };
 
   const select = (p: FlightPick, coords: [number, number], layer: FlightLayer) => {
     const cs = String(p.callsign || '').trim();
@@ -53,6 +59,8 @@ export function bindFlightClicks(map: maplibregl.Map, sink: InspectSink, drawing
     if (!opened) return;
     const token = ++flightSel;
     drawnId = id;
+    path = null;
+    at = { here: coords, heading: Number(p.heading) || 0 };
     setFlightPath(EMPTY_FC);
 
     // The live feed carries no identity for most aircraft, so resolve the
@@ -90,10 +98,8 @@ export function bindFlightClicks(map: maplibregl.Map, sink: InspectSink, drawing
       const sched = s.status === 'fulfilled' ? s.value as ScheduleReply | null : null;
       const { origin, destination, scheduled } = routeFor(ac, sched, coords);
 
-      setFlightPath(flightPathFeatures({
-        track: ac?.track ?? [], here: coords, heading: Number(p.heading) || 0,
-        origin, destination, landed: Boolean(ac?.arrival),
-      }));
+      path = { track: ac?.track ?? [], origin, destination, landed: Boolean(ac?.arrival) };
+      redraw();
 
       const tracked = (ac?.track?.length ?? 0) > 1;
       let route: RouteState;
@@ -128,7 +134,13 @@ export function bindFlightClicks(map: maplibregl.Map, sink: InspectSink, drawing
 
   return {
     select,
-    clear: () => { flightSel++; drawnId = null; setFlightPath(EMPTY_FC); },
+    clear: () => { flightSel++; drawnId = null; path = null; setFlightPath(EMPTY_FC); },
     drawn: () => drawnId,
+    moveTo: (here, heading) => {
+      if (!drawnId || (here[0] === at.here[0] && here[1] === at.here[1])) return;
+      at = { here, heading };
+      if (path) path.track = extendTrack(path.track, here, heading);
+      redraw();
+    },
   };
 }

@@ -6,13 +6,18 @@ import { Button, IconButton } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Kbd } from '@/components/ui/kbd';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
+import { FLIGHT_LAYER_LABEL } from '@/components/map/inspect/live';
+import { findReplayAircraft, pickReplay, replayEntity, replayFlightLayer, replayPosition, useReplayOn } from '@/components/map/replay/replay-pick';
 import { useT } from '@/components/ui/use-t';
-import { msg } from '@/lib/core/i18n/translator';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
+import type { FlightHit } from '@/lib/feeds/aviation/flight-search';
+import type { ReplayEntity } from '@/lib/map/replay/track-sample';
 import { forgetRecent, loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
 import { noteDeviceLocation } from '@/lib/platform/device-location';
 import { countAction } from '@/lib/platform/usage-actions';
-import { Key, PlaceRow, type PlaceLike } from './places';
+import { Key, kindGroup, PlaceRow, type PlaceLike } from './places';
 import { groupHits, type Hit } from './search-groups';
+import { FLIGHT_KIND, isFlightQuery, useFlightSearch } from './use-flight-search';
 import { useGeoSearch, ZOOM_BY_KIND } from './use-geo-search';
 
 interface SearchBarProps {
@@ -26,6 +31,8 @@ interface SearchBarProps {
   onClose?: () => void;
   /** Hand a place to Directions as the destination. */
   onDirections?: (place: PlaceLike) => void;
+  /** Find aircraft too, and follow the one picked. */
+  onTrackFlight?: (flight: FlightHit) => void;
   /** Inside another container (the phone drawer): no frame of its own, always open. */
   embedded?: boolean;
   /** In a bottom corner: the field stays at the bottom and the results open above it. */
@@ -35,15 +42,37 @@ interface SearchBarProps {
 const TRY_COORDS = '35.6586, 139.7454';
 const TRY = [msg('Eiffel Tower'), '10 Downing Street', TRY_COORDS];
 
+/** An aircraft as a result row: its callsign, then who flies it, what it is and whether it has landed. */
+const flightHit = (f: FlightHit, t: Translate): Hit => ({
+  label: f.callsign ?? f.registration ?? f.icao24.toUpperCase(),
+  context: [f.airline ?? t(FLIGHT_KIND[f.bucket].label), f.model, f.callsign && f.registration, f.grounded && t('On the ground')].filter(Boolean).join(' · '),
+  lat: f.lat, lng: f.lng, kind: 'flight', zoom: 8, flight: f,
+});
+
+/** A replayed aircraft as a result row, where it is at the replay's time. */
+function replayHit(e: ReplayEntity, t: Translate): Hit | null {
+  const at = replayPosition(e);
+  if (!at) return null;
+  return {
+    label: e.label, context: [t(FLIGHT_LAYER_LABEL[replayFlightLayer(e.category)]), t('Replay')].join(' · '),
+    lat: at.lat, lng: at.lon, kind: 'flight', zoom: 8, replay: e.entity,
+  };
+}
+
 /**
  * A place, an address, a landmark or a pair of coordinates, and the map flies
- * there. Before anything is typed it offers where you are and where you went
- * last; each result can be handed to Directions. Arrows and Enter choose,
- * Shift+Enter routes, Esc clears and then closes.
+ * there; or an aircraft in the air, and the map follows it. Before anything is
+ * typed it offers where you are and where you went last; each place can be
+ * handed to Directions. Arrows and Enter choose, Shift+Enter routes, Esc clears
+ * and then closes.
  */
-export default function SearchBar({ onLocate, center = null, open = true, onOpen, onClose, onDirections, embedded = false, upward = false }: SearchBarProps) {
+export default function SearchBar({ onLocate, center = null, open = true, onOpen, onClose, onDirections, onTrackFlight, embedded = false, upward = false }: SearchBarProps) {
   const t = useT();
   const { value, results, loading, answered, search } = useGeoSearch(center);
+  const flights = useFlightSearch(center);
+  const replayOn = useReplayOn();
+  const [replayFound, setReplayFound] = useState<{ q: string; hits: ReplayEntity[] }>({ q: '', hits: [] });
+  const findsFlights = !!onTrackFlight || replayOn;
   const [selected, setSelected] = useState(0);
   const [recent, setRecent] = useState<RecentPlace[]>(() => (typeof window === 'undefined' ? [] : loadRecent()));
   const [locating, setLocating] = useState(false);
@@ -87,11 +116,25 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
   const typing = value.trim().length > 0;
   const you: Hit = { label: t('Your location'), context: locateNote || t('Fly to where you are'), lat: 0, lng: 0, kind: 'current', zoom: 14 };
   const recentHits: Hit[] = recent.map(r => ({ ...r, zoom: ZOOM_BY_KIND[r.kind ?? ''] ?? 13, recent: true }));
-  const sections = typing ? groupHits(results) : [{ title: '', items: [you] }, ...(recent.length ? [{ title: 'Recent', items: recentHits }] : [])];
+  const replayHits = replayOn && replayFound.q === value ? replayFound.hits.map(e => replayHit(e, t)).filter(h => !!h) : [];
+  const flightHits = [...replayHits, ...(onTrackFlight && flights.answer.q === value ? flights.answer.hits.map(f => flightHit(f, t)) : [])];
+  const flightsPending = !!onTrackFlight && isFlightQuery(value) && flights.answer.q !== value;
+  const squashed = value.toUpperCase().replace(/[\s-]/g, '');
+  // Flights lead only when one is exactly what was typed; an airline's fleet goes under the places.
+  const flightSection = flightHits.length ? [{ title: kindGroup('flight'), items: flightHits }] : [];
+  const placeSections = groupHits(results, flightHits.length > 0);
+  const sections = typing
+    ? (flightHits.some(h => h.flight?.exact || (h.replay != null && h.label.toUpperCase().replace(/\s/g, '') === squashed)) ? [...flightSection, ...placeSections] : [...placeSections, ...flightSection])
+    : [{ title: '', items: [you] }, ...(recent.length ? [{ title: 'Recent', items: recentHits }] : [])];
   const items = sections.flatMap(s => s.items);
   const active = Math.min(selected, Math.max(0, items.length - 1));
 
-  const type = (q: string) => { search(q); setSelected(0); };
+  const type = (q: string) => {
+    search(q);
+    if (onTrackFlight) flights.search(q);
+    if (replayOn) setReplayFound({ q, hits: findReplayAircraft(q) });
+    setSelected(0);
+  };
 
   /** Where you are: the browser's fix when it will give one, else the network's rough idea. */
   const locate = useCallback(async () => {
@@ -126,6 +169,13 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
   const go = (h: Hit) => {
     if (h.kind === 'current') { void locate(); return; }
     countAction('search.pick');
+    if (h.flight || h.replay != null) {
+      if (h.flight) onTrackFlight?.(h.flight);
+      else pickReplay(replayEntity(h.replay!), { follow: true });
+      type('');
+      onClose?.();
+      return;
+    }
     onLocate(h.lat, h.lng, h.zoom);
     remember(h);
     type('');
@@ -133,7 +183,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
   };
 
   const directions = (h: Hit) => {
-    if (!onDirections || h.kind === 'current') return;
+    if (!onDirections || h.kind === 'current' || h.kind === 'flight') return;
     remember(h);
     onDirections({ label: h.label, context: h.context, lat: h.lat, lng: h.lng, kind: h.kind });
   };
@@ -156,7 +206,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
     }
   };
 
-  const noResults = typing && !loading && answered === value && value.trim().length >= 2 && results.length === 0;
+  const noResults = typing && !loading && !flightsPending && answered === value && value.trim().length >= 2 && results.length === 0 && flightHits.length === 0;
   let index = 0;
 
   return (
@@ -173,7 +223,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
           onKeyDown={onKeyDown}
           onFocus={() => { setFocused(true); onOpen?.(); }}
           onBlur={() => setFocused(false)}
-          placeholder={t('Search places, addresses, coordinates')}
+          placeholder={findsFlights ? t('Search places, flights, coordinates') : t('Search places, addresses, coordinates')}
           aria-label={t('Search places')}
           role="combobox"
           aria-expanded={showing && items.length > 0}
@@ -183,7 +233,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
           autoComplete="off"
           spellCheck={false}
         />
-        {loading && <LoaderCircle aria-label={t('Searching')} className="size-4 shrink-0 animate-spin text-ink-3 motion-reduce:animate-none" strokeWidth={1.75} />}
+        {(loading || flightsPending) && <LoaderCircle aria-label={t('Searching')} className="size-4 shrink-0 animate-spin text-ink-3 motion-reduce:animate-none" strokeWidth={1.75} />}
         {value ? (
           <button type="button" onClick={() => { type(''); inputRef.current?.focus(); }} aria-label={t('Clear the search')}
             className={cx('-mr-1 flex size-6 shrink-0 items-center justify-center rounded-control text-ink-3 hover:bg-surface-3 hover:text-ink-1', FOCUS_RING)}>
@@ -213,7 +263,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
                         onPick={() => go(h)} onHover={() => setSelected(i)} from={center} kindOverride={h.recent ? 'recent' : undefined}
                         trailing={h.kind === 'current'
                           ? (locating ? <LoaderCircle aria-label={t('Finding you')} className="mr-1 size-4 animate-spin text-ink-3" strokeWidth={1.75} /> : undefined)
-                          : onDirections && (
+                          : onDirections && h.kind !== 'flight' && (
                             <span className={cx(embedded || i === active ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100 focus-within:opacity-100')}>
                               <IconButton label={t('Directions to {place}', { place: h.label })} kbd="⇧↵" icon={Route} size="sm" tooltipSide="left" onClick={() => directions(h)} />
                             </span>
@@ -242,7 +292,9 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
 
             {noResults && (
               <div role="status">
-                <EmptyState icon={SearchX} title={t('No places match “{query}”', { query: value.trim() })} body={t('Try a city, a street, a landmark, or coordinates such as {example}.', { example: '48.8584, 2.2945' })} className="py-6" />
+                {findsFlights
+                  ? <EmptyState icon={SearchX} title={t('Nothing matches “{query}”', { query: value.trim() })} body={t('Try a city, a street, a landmark, a flight number such as {flight}, or coordinates such as {example}.', { flight: 'TK1', example: '48.8584, 2.2945' })} className="py-6" />
+                  : <EmptyState icon={SearchX} title={t('No places match “{query}”', { query: value.trim() })} body={t('Try a city, a street, a landmark, or coordinates such as {example}.', { example: '48.8584, 2.2945' })} className="py-6" />}
               </div>
             )}
 

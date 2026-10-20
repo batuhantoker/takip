@@ -6,6 +6,8 @@ import { createCloudLayer } from '@/lib/feeds/weather/clouds/layer';
 import type { AiGlobe } from '@/lib/ai/globe/attach';
 import { MAP_DEFAULTS, type MapPalette } from '@/lib/map/style/palette';
 import { InspectHost } from '@/components/map/inspect/inspect-host';
+import { ReplayInspect } from '@/components/map/replay/replay-inspect';
+import { pickReplay } from '@/components/map/replay/replay-pick';
 import { TrackNotice } from '@/components/map/inspect/parts/track-notice';
 import { useTrackRequests } from '@/components/map/inspect/use-track-requests';
 import { MapMenu, type MapMenuAt } from '@/components/map/menu/map-menu';
@@ -158,6 +160,12 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
     const drawn = flightSelectRef.current?.drawn();
     if (drawn && !aircraftOpen.split(' ').includes(drawn)) flightSelectRef.current?.clear();
   }, [aircraftOpen]);
+  // The drawn route keeps up with its aircraft as fresher positions come in.
+  useEffect(() => {
+    const id = flightSelectRef.current?.drawn();
+    const f = id ? findFlight(data, id)?.flight : null;
+    if (f) flightSelectRef.current?.moveTo([f.lng, f.lat], Number(f.heading) || 0);
+  }, [data.commercial_flights, data.private_flights, data.private_jets, data.military_flights]); // eslint-disable-line react-hooks/exhaustive-deps
   /** A row in the watch list: select that aircraft as if it had been clicked, and go to it. */
   const selectWatched = useCallback((flight: WatchedFlight) => {
     const found = findFlight(data, flight.icao24);
@@ -226,7 +234,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
     flightSelectRef.current = bindFlightClicks(map, sink, drawing);
     bindCctvAndQuakeClicks(map, popup, entityClick, sink);
     // Windows stay until closed; a phone's single sheet goes on a tap on the map.
-    const onEmpty = () => { if (!drawing() && isMobileRef.current) { inspectRef.current.closeAll(); clearSat(); } };
+    const onEmpty = () => { if (!drawing() && isMobileRef.current) { inspectRef.current.closeAll(); clearSat(); pickReplay(null); } };
     // What already has a window gets no tooltip.
     const hoverTip = bindHoverTip(map, key => !!windowStore.find(key)
       || inspectRef.current.targets.some(t => inspectId(t) === key) || (!!satSelectedIdRef.current && key === `satellite:${satSelectedIdRef.current}`), drawing);
@@ -394,6 +402,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
         <InspectHost mapRef={mapRef} data={data} targets={inspect.targets} sat={selectedSat}
           onClose={inspect.close} onCloseAll={inspect.closeAll} onCloseSat={clearSat} onSelectFlight={selectWatched} />
       )}
+      {mapReady && replay && <ReplayInspect mapRef={mapRef} session={replay} />}
       {mapReady && <SelectionRings mapRef={mapRef} />}
       {mapReady && <TrackNotice />}
       {contextMenu && mapMenu && (

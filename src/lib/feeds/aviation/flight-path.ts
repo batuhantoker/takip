@@ -98,7 +98,23 @@ export function unwrap(line: LngLat[], startLng?: number): LngLat[] {
   return out;
 }
 
-interface PathInput {
+/**
+ * The trace and the feed refresh on different clocks. A position counts as ahead of the track's end only
+ * when it lies forward of the heading; joining one that lags behind would draw the line doubling back.
+ */
+function isAhead(end: LngLat, here: LngLat, heading: number) {
+  const off = Math.abs(((bearing(end, here) - heading + 540) % 360) - 180);
+  return greatCircleKm(end, here) > 1 && off < 90;
+}
+
+/** The flown track with a newer reported position on the end, when that position is ahead of it. */
+export function extendTrack(track: LngLat[], here: LngLat, heading: number): LngLat[] {
+  const end = track[track.length - 1];
+  if (!end) return [here];
+  return isAhead(end, here, heading) ? [...track, here] : track;
+}
+
+export interface PathInput {
   /** Reported track for the current leg, oldest first. */
   track: LngLat[];
   /** Where the live feed puts the aircraft. */
@@ -119,12 +135,7 @@ export function flightPathFeatures({ track, here, heading, origin, destination, 
 
   if (flown.length) {
     const end = flown[flown.length - 1];
-    // The trace and the feed refresh on different clocks. Join the aircraft to
-    // its track only when it is ahead of the track's end; joining one that lags
-    // behind would draw the line doubling back.
-    const gap = greatCircleKm(end, here);
-    const off = Math.abs(((bearing(end, here) - heading + 540) % 360) - 180);
-    if (gap > 1 && off < 90) {
+    if (isAhead(end, here, heading)) {
       flown.push(unwrap([end, here], end[0])[1]);
       front = flown[flown.length - 1];
     } else {

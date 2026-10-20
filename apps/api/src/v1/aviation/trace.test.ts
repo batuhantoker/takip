@@ -1,18 +1,6 @@
 import { nearestAirport } from '@takip/connectors/airports';
 import { describe, expect, it } from 'vitest';
-import { currentLeg, downsample, legEndpoints, parseTrace, shardFor } from './trace';
-
-describe('shardFor', () => {
-  it('uses the last two hex characters, as readsb shards them', () => {
-    expect(shardFor('ae291a')).toBe('1a');
-    expect(shardFor('ab6fdd')).toBe('dd');
-    expect(shardFor('a0e250')).toBe('50');
-  });
-
-  it('normalises case and whitespace', () => {
-    expect(shardFor(' AE291A ')).toBe('1a');
-  });
-});
+import { downsample, legEndpoints, parseTrack, type Waypoint } from './trace';
 
 describe('downsample', () => {
   it('leaves a short track untouched', () => {
@@ -34,125 +22,6 @@ describe('downsample', () => {
   it('stays in order', () => {
     const out = downsample(Array.from({ length: 500 }, (_, i) => i), 40);
     expect([...out].sort((a, b) => a - b)).toEqual(out);
-  });
-});
-
-describe('parseTrace', () => {
-  // Shape of a readsb trace row: [Δt, lat, lon, alt, gs, track, flags]
-  const trace = {
-    icao: 'AE291A',
-    r: '6043 ',
-    t: 'H60',
-    desc: 'Sikorsky MH-60T Jayhawk',
-    trace: [
-      [0, 57.737091, -152.509017, -150, 28.3, 227.9, 5],
-      [10, 57.74, -152.5, 500, 90, 220, 5],
-      [20, 57.75, -152.4, 'ground', 0, 0, 5],
-    ],
-  };
-
-  it('extracts identity, trimming the source whitespace', () => {
-    const p = parseTrace(trace);
-    expect(p.icao24).toBe('ae291a');
-    expect(p.registration).toBe('6043');
-    expect(p.typeCode).toBe('H60');
-    expect(p.model).toBe('Sikorsky MH-60T Jayhawk');
-  });
-
-  it('emits the flown path as [lng, lat], oldest first', () => {
-    const p = parseTrace(trace, 700, false);
-    expect(p.track[0]).toEqual([-152.509017, 57.737091]);
-    expect(p.points).toBe(3);
-  });
-
-  it('keeps altitudes aligned with the track, nulling non-numeric ones', () => {
-    const p = parseTrace(trace, 700, false);
-    expect(p.altitudes).toEqual([-150, 500, null]);
-    expect(p.altitudes).toHaveLength(p.track.length);
-  });
-
-  it('drops rows with no usable position', () => {
-    const p = parseTrace({
-      ...trace,
-      trace: [[0, null, null, 100], [1, 57.7, -152.5, 200], [2, 'x', 'y', 300]] as never,
-    });
-    expect(p.points).toBe(1);
-  });
-
-  it('thins a long trace but preserves its endpoints', () => {
-    const long = Array.from({ length: 3000 }, (_, i) => [i, 50 + i / 10000, 10 + i / 10000, 1000]);
-    const p = parseTrace({ ...trace, trace: long as never }, 700);
-    expect(p.points).toBe(700);
-    expect(p.track[0]).toEqual([10, 50]);
-    expect(p.track.at(-1)![1]).toBeCloseTo(50 + 2999 / 10000, 6);
-  });
-
-  it('survives an empty or missing trace', () => {
-    expect(parseTrace({}).points).toBe(0);
-    expect(parseTrace({ trace: [] }).track).toEqual([]);
-  });
-});
-
-describe('currentLeg', () => {
-  const air = (t: number, lat: number, alt: number) => [t, lat, 10, alt, 400, 90];
-  const gnd = (t: number, lat: number) => [t, lat, 10, 'ground', 0, 90];
-
-  // A 24h trace is five or six flights; drawn whole it reads as random lines.
-  it('keeps only the flight after the last real stop', () => {
-    const rows = [
-      ...Array.from({ length: 5 }, (_, i) => air(i, 40 + i, 30000)),   // earlier flight
-      ...Array.from({ length: 6 }, (_, i) => gnd(10 + i, 45)),          // parked
-      ...Array.from({ length: 4 }, (_, i) => air(20 + i, 50 + i, 32000)), // current flight
-    ];
-    const leg = currentLeg(rows);
-    expect(leg).toHaveLength(4);
-    expect(leg[0][1]).toBe(50);
-  });
-
-  it('ignores a brief ground blip rather than splitting on it', () => {
-    const rows = [
-      ...Array.from({ length: 4 }, (_, i) => air(i, 40 + i, 30000)),
-      gnd(10, 44),                                                     // single spurious sample
-      ...Array.from({ length: 4 }, (_, i) => air(20 + i, 45 + i, 31000)),
-    ];
-    expect(currentLeg(rows).length).toBeGreaterThan(4);
-  });
-
-  it('returns the last completed flight when the aircraft is parked now', () => {
-    const rows = [
-      ...Array.from({ length: 6 }, (_, i) => gnd(i, 30)),
-      ...Array.from({ length: 5 }, (_, i) => air(10 + i, 40 + i, 30000)),
-      ...Array.from({ length: 6 }, (_, i) => gnd(20 + i, 45)),          // landed, parked
-    ];
-    const leg = currentLeg(rows);
-    expect(leg.every((r) => r[3] !== 'ground')).toBe(true);
-    expect(leg).toHaveLength(5);
-  });
-
-  it('treats a trace with no ground reports as a single leg', () => {
-    const rows = Array.from({ length: 10 }, (_, i) => air(i, 40 + i, 35000));
-    expect(currentLeg(rows)).toHaveLength(10);
-  });
-
-  // DAL67 turned round at Rome with no ground reports; readsb flagged the new leg.
-  it('splits where readsb flags a new leg', () => {
-    const rows = [
-      ...Array.from({ length: 5 }, (_, i) => [...air(i, 40 + i, 35000), 0]),
-      [10, 41.78, 12.24, 500, 150, 90, 2],
-      ...Array.from({ length: 3 }, (_, i) => [...air(20 + i, 45 + i, 36000), 0]),
-    ];
-    const leg = currentLeg(rows);
-    expect(leg).toHaveLength(4);
-    expect(leg[0][1]).toBe(41.78);
-  });
-
-  it('ignores the other flag bits', () => {
-    const rows = Array.from({ length: 6 }, (_, i) => [...air(i, 40 + i, 35000), 5]);
-    expect(currentLeg(rows)).toHaveLength(6);
-  });
-
-  it('copes with an empty trace', () => {
-    expect(currentLeg([])).toEqual([]);
   });
 });
 
@@ -238,41 +107,46 @@ describe('legEndpoints', () => {
   });
 });
 
-describe('parseTrace endpoints', () => {
-  const phx = (t: number, alt: number | string) => [t, 33.4373, -112.0078, alt, 0, 0];
+describe('parseTrack', () => {
+  const wp = (t: number, lat: number | null, lng: number | null, altM: number | null, ground = false): Waypoint => [t, lat, lng, altM, 90, ground];
 
-  it('reports the airport a parsed leg left and landed at', () => {
-    const p = parseTrace({
-      trace: [
-        ...Array.from({ length: 5 }, (_, i) => phx(i, 'ground')),
-        [10, 33.4373, -112.0078, 800, 150, 0],
-        [20, 34, -115, 34000, 450, 270],
-        [30, 33.9425, -118.4081, 600, 150, 270],
-        ...Array.from({ length: 5 }, (_, i) => [40 + i, 33.9425, -118.4081, 'ground', 0, 0]),
-      ] as never,
-    });
+  it('emits the flown path as [lng, lat], oldest first, with altitudes in feet', () => {
+    const p = parseTrack([wp(0, 40.64, -73.78, null, true), wp(60, 40.7, -73.6, 1000), wp(600, 41.5, -72.5, 10668)]);
+    expect(p.track).toEqual([[-73.78, 40.64], [-73.6, 40.7], [-72.5, 41.5]]);
+    expect(p.altitudes).toEqual([null, 3281, 35000]);
+    expect(p.points).toBe(3);
+  });
+
+  it('drops waypoints with no usable position', () => {
+    expect(parseTrack([wp(0, null, 10, 3000), wp(10, 50, Number.NaN, 3000), wp(20, 50, 10, 3000)]).track).toEqual([[10, 50]]);
+  });
+
+  it('thins a long track but keeps its ends', () => {
+    const p = parseTrack(Array.from({ length: 2000 }, (_, i) => wp(i, 40 + i / 1000, 10, 9000)), 100);
+    expect(p.points).toBe(100);
+    expect(p.track[0]).toEqual([10, 40]);
+    expect(p.track.at(-1)).toEqual([10, 40 + 1999 / 1000]);
+  });
+
+  it('reports the airport a flight left and, once on the ground again, landed at', () => {
+    const p = parseTrack([
+      wp(0, 33.4373, -112.0078, null, true),
+      wp(60, 33.44, -112.0, 250),
+      wp(1800, 34, -115, 10363),
+      wp(3600, 33.9425, -118.4081, 180),
+      wp(3700, 33.9425, -118.4081, null, true),
+    ]);
     expect(p.departure?.iata).toBe('PHX');
     expect(p.arrival?.iata).toBe('LAX');
   });
 
-  it('leaves both unknown for a trace with no usable positions', () => {
-    expect(parseTrace({}).departure).toBeNull();
-    expect(parseTrace({}).arrival).toBeNull();
-  });
-});
-
-describe('parseTrace leg trimming', () => {
-  const rows = [
-    ...Array.from({ length: 4 }, (_, i) => [i, 40 + i, 10, 30000]),
-    ...Array.from({ length: 6 }, (_, i) => [10 + i, 45, 10, 'ground']),
-    ...Array.from({ length: 3 }, (_, i) => [20 + i, 50 + i, 10, 32000]),
-  ];
-
-  it('draws only the current flight by default', () => {
-    expect(parseTrace({ trace: rows as never }).points).toBe(3);
+  it('names no departure for a flight first seen at cruise, and no arrival while airborne', () => {
+    const p = parseTrack([wp(0, 34, -115, 10363), wp(600, 33.95, -118.3, 900)]);
+    expect(p).toMatchObject({ departure: null, departureFix: null, arrival: null });
   });
 
-  it('can still return the whole history on request', () => {
-    expect(parseTrace({ trace: rows as never }, 700, false).points).toBe(13);
+  it('survives an empty or missing path', () => {
+    expect(parseTrack(null)).toEqual({ track: [], altitudes: [], points: 0, departure: null, departureFix: null, arrival: null });
+    expect(parseTrack([]).points).toBe(0);
   });
 });

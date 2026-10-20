@@ -3,7 +3,7 @@ import { encodeTrk1, decodeTrk1 } from '@takip/core/trk';
 import { describe, expect, it, vi } from 'vitest';
 import { createReplayClock } from './clock';
 import { chunkUrls, createReplaySession, type Manifest, normaliseBbox } from './session';
-import { BRIDGE_S, HOLD_S, type ReplayEntity, sampleEntity } from './track-layer';
+import { BRIDGE_S, HOLD_S, type ReplayEntity, sampleEntity } from './track-sample';
 import { bearing, sampleAt, trailTo } from './track-math';
 
 const T = 1_791_810_000;
@@ -79,6 +79,20 @@ describe('createReplayClock', () => {
     frames.shift()!(2000);
     expect(clock.time()).toBe(50_000);
     expect(clock.playing()).toBe(true);
+  });
+
+  it('picks up where it was when a hidden tab comes back, rather than jumping by the time away', () => {
+    const frames: ((ms: number) => void)[] = [];
+    let onVisible = () => {};
+    const clock = createReplayClock(0, { now: () => 10_000_000, frame: cb => frames.push(cb), cancelFrame: () => {}, onVisible: cb => { onVisible = cb; return () => {}; } });
+    clock.setSpeed(60);
+    clock.play();
+    frames.shift()!(0);
+    frames.shift()!(100);
+    onVisible();
+    frames.shift()!(60_100);
+    frames.shift()!(60_200);
+    expect(clock.time()).toBe(200 * 60);
   });
 });
 

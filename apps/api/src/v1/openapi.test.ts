@@ -40,7 +40,7 @@ describe('GET /api/v1/openapi.json', () => {
     expect(params('/geo/search')).toEqual(['q', 'lat', 'lng']);
     expect(params('/geo/reverse')).toEqual(['lat!', 'lng!']);
     expect(params('/directions')).toEqual(['from!', 'to!', 'mode', 'via', 'avoid']);
-    expect(params('/aircraft')).toEqual(['icao24!', 'detail', 'legs']);
+    expect(params('/aircraft')).toEqual(['icao24!']);
     expect(params('/flight-route')).toEqual(['callsign!', 'icao24', 'lat', 'lng', 'speed']);
     expect(params('/arcgis')).toEqual(['q', 'service', 'bbox']);
     expect(params('/satellites/orbit')).toEqual(['id!', 't']);

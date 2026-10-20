@@ -37,7 +37,7 @@ export const AircraftDetail = z
       description: 'Where a leg seen from the ground or a low climb began, even when no listed airport is there.',
     }),
     arrival: Airport.nullable().openapi({ description: 'The airport this leg was seen to land at; null while airborne.' }),
-    source: z.enum(['adsb.lol', 'adsbdb', 'adsb.fi']),
+    source: z.enum(['opensky', 'adsbdb', 'adsb.fi']),
   })
   .openapi('AircraftDetail');
 export type AircraftDetail = z.infer<typeof AircraftDetail>;

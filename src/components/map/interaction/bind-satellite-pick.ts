@@ -8,6 +8,7 @@ import { displayElevation, parseColor } from '@/lib/feeds/satellites/points';
 import { touchSlop } from '@/lib/map/touch-targets';
 import { hitsClickableLayer } from '@/lib/map/clickable-layers';
 import type { SatelliteLayer, SatelliteRow } from '@/components/map/types';
+import { pickReplayAt, REPLAY_SLOP } from '@/components/map/replay/replay-pick';
 
 interface SatellitePickArgs {
   satLayerRef: RefObject<SatelliteLayer | null>;
@@ -57,6 +58,8 @@ export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, aiGlobeRef
     if (hitsClickableLayer(map, e.point, touchSlop(e))) return;
     // An AI arc or point is picked on the GPU too, and it is in front: the click is AI's.
     if (aiGlobeRef.current?.hit(e.point)) return;
+    // A replayed ship or aircraft, while Replay is on.
+    if (pickReplayAt(e.point.x, e.point.y, Math.max(REPLAY_SLOP, touchSlop(e)))) return;
     const idx = layer ? layer.pick(e.point.x, e.point.y, visibleTo(map, satRowsRef.current)) : null;
     // Open map; with satellites off this still runs, so the map hears every empty click.
     if (idx == null || !satRowsRef.current[idx] || !layer) { onEmpty(); return; }
