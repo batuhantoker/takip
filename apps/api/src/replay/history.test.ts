@@ -3,15 +3,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type Access, type Entitlements, fallbacks } from '@takip/core/entitlements';
 import { Prec } from '@takip/core/time';
-import { dataLayout, type EventInput, GeoPrec, openWriter, SqliteEventStore } from '@takip/db';
+import { dataLayout, type EventInput, GeoPrec, openWriter, SqliteEventStore, toWkb } from '@takip/db';
 import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AccessEnv } from '../access/middleware';
 import { openReplayData, type ReplayData } from './data';
-import { boxes } from './history';
+import { boxes, splitAt180 } from './history';
 import { replayRoutes } from './routes';
 
 const SOMME = Date.parse('1916-07-01T00:00:00Z');
+const line = (coordinates: [number, number][]) => toWkb({ type: 'LineString', coordinates });
 const S = (iso: string) => Date.parse(iso) / 1000;
 /** opensky's licence is viewable by anon in the catalog seed; `secret` is added below with an paid-only one. */
 const OPEN = 2;
@@ -35,7 +36,7 @@ function seed(events: EventInput[]) {
   `);
   catalog.close();
   const history = new SqliteEventStore(openWriter(layout.history, 'history'));
-  history.ensureKinds([{ code: 'battle', family: 'conflict' }, { code: 'attack.terror', family: 'terror' }]);
+  history.ensureKinds([{ code: 'battle', family: 'conflict' }, { code: 'attack.terror', family: 'terror' }, { code: 'hazard.storm', family: 'hazard' }]);
   history.upsertEvents(events);
   history.db.close();
 }
@@ -56,7 +57,7 @@ function app(over: Partial<Entitlements> = {}) {
   return hono;
 }
 
-type Collection = { binS: number; counts: Record<string, number>; features: { geometry: { coordinates: number[] }; properties: Record<string, number | string | null> }[] };
+type Collection = { binS: number; counts: Record<string, number>; features: { geometry: { type: string; coordinates: number[] }; properties: Record<string, number | string | null> }[] };
 
 const get = async (hono: Hono<AccessEnv>, query: string) => {
   const res = await hono.request(`/api/replay/history/events?${query}`);
@@ -95,7 +96,7 @@ describe('/api/replay/history', () => {
 
   it('merges a dense family into counted cells and keeps sparse ones as events', async () => {
     const attacks = Array.from({ length: 2001 }, (_, i) =>
-      event(OPEN, `a${i}`, { kind: 'attack.terror', tStart: Date.parse('2014-01-01') + (i % 300) * 86_400_000, lon: 44 + (i % 2) * 0.01, lat: 33, magnitude: 1 }));
+      event(OPEN, `a${i}`, { kind: 'attack.terror', tStart: Date.parse('2014-01-01') + (i % 300) * 86_400_000, lon: 44 + (i % 2) * 0.01, lat: 33, magnitude: 1, geom: line([[44, 33], [45, 34]]) }));
     seed([...attacks, event(OPEN, 'Mosul', { tStart: Date.parse('2014-06-10'), lon: 43.1, lat: 36.3 })]);
     const { body } = await get(app(), `bbox=30,20,60,45&from=${S('2014-01-01')}&to=${S('2015-01-01')}&z=3`);
     expect(body.counts).toEqual({ terror: 2001, conflict: 1 });
@@ -105,6 +106,39 @@ describe('/api/replay/history', () => {
     expect(cells.reduce((m, f) => m + Number(f.properties.magnitude), 0)).toBe(2001);
     expect(cells.every(f => Number(f.properties.t1) - Number(f.properties.t0) <= body.binS)).toBe(true);
     expect(body.features.filter(f => !f.properties.cell).map(f => f.properties.title)).toEqual(['Mosul']);
+    expect(body.features.some(f => f.properties.line)).toBe(false);
+  });
+
+  it('sends the line of a sparse event beside its point, with its times, simplified for the zoom', async () => {
+    const track: [number, number][] = Array.from({ length: 41 }, (_, i) => [-75 - i * 0.2, 23 + i * 0.4 + (i % 2) * 0.01]);
+    seed([event(OPEN, 'Katrina', { kind: 'hazard.storm', tStart: Date.parse('2005-08-23'), tEnd: Date.parse('2005-08-31'), lon: -89, lat: 26, geom: line(track), bbox: { w: -83, s: 23, e: -75, n: 39 } })]);
+    const at = (z: number) => get(app(), `bbox=-100,10,-60,45&from=${S('2005-01-01')}&to=${S('2006-01-01')}&z=${z}`);
+    const { body } = await at(2);
+    const [point] = body.features.filter(f => !f.properties.line);
+    const [path] = body.features.filter(f => f.properties.line);
+    expect(path.geometry.type).toBe('LineString');
+    expect(path.properties).toEqual({ line: 1, id: point.properties.id, kind: 'hazard.storm', family: 'hazard', t0: point.properties.t0, t1: point.properties.t1, geoPrec: point.properties.geoPrec });
+    expect(path.geometry.coordinates.length).toBeLessThan(track.length);
+    expect((await at(12)).body.features.find(f => f.properties.line)!.geometry.coordinates).toHaveLength(track.length);
+  });
+
+  it('cuts a line where it crosses 180°, whichever way it is stored', () => {
+    expect(splitAt180([[176, 14], [178, 14], [182, 16], [184, 18]])).toEqual([[[176, 14], [178, 14], [180, 15]], [[-180, 15], [-178, 16], [-176, 18]]]);
+    expect(splitAt180([[-176, 14], [-178, 14], [-182, 16]])).toEqual([[[-176, 14], [-178, 14], [-180, 15]], [[180, 15], [178, 16]]]);
+    expect(splitAt180([[10, 0], [20, 5]])).toEqual([[[10, 0], [20, 5]]]);
+  });
+
+  it('draws only the kinds asked for, in cells as in events', async () => {
+    const attacks = Array.from({ length: 2001 }, (_, i) => event(OPEN, `a${i}`, { kind: 'attack.terror', tStart: Date.parse('2014-01-01') + i * 3_600_000, lon: 44, lat: 33 }));
+    seed([...attacks, event(OPEN, 'Mosul', { tStart: Date.parse('2014-06-10'), lon: 43.1, lat: 36.3 })]);
+    const q = `bbox=30,20,60,45&from=${S('2014-01-01')}&to=${S('2015-01-01')}&z=3`;
+    const battles = await get(app(), `${q}&kinds=battle`);
+    expect(battles.body.counts).toEqual({ conflict: 1 });
+    expect(battles.body.features.map(f => f.properties.title)).toEqual(['Mosul']);
+    const attacksOnly = await get(app(), `${q}&kinds=attack.terror`);
+    expect(attacksOnly.body.counts).toEqual({ terror: 2001 });
+    expect(attacksOnly.body.features.every(f => f.properties.cell && f.properties.family === 'terror')).toBe(true);
+    expect((await get(app(), `${q}&kinds=`)).body.counts).toEqual({ terror: 2001, conflict: 1 });
   });
 
   it('splits a view across the antimeridian', async () => {

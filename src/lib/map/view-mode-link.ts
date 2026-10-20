@@ -1,9 +1,12 @@
+import { KIND_FAMILY } from '@/lib/history/kinds';
 import type { SpaceFocus } from '@/lib/space/worlds';
 
 /** A link that opens the map in one of its other views: History at a year, deep time, Space at a body, or Replay at a moment. */
 export type ViewModeLink =
   | {
     view: 'history'; year: number | null; layer?: HistoryLayerLink | null; range?: { from: number; to: number }; families?: HistoryFamilyLink[];
+    /** Only these event kinds (lib/history/kinds.ts), their families switched on. */
+    kinds?: string[];
     /** Countries coloured by a History metric, from `source` where several publish it, with up to four countries (countries.json `id`) charted. */
     metric?: string; source?: string; countries?: string[];
   }
@@ -16,7 +19,7 @@ export const HISTORY_LAYERS = ['world-borders', 'ww2-europe'] as const;
 export type HistoryLayerLink = (typeof HISTORY_LAYERS)[number];
 
 /** History's event families a link may switch on (lib/history/popup.ts HISTORY_FAMILIES). */
-export const HISTORY_FAMILY_LINKS = ['conflict', 'terror', 'territorial', 'heritage', 'hazard', 'politics', 'nuclear', 'disaster'] as const;
+export const HISTORY_FAMILY_LINKS = ['conflict', 'terror', 'territorial', 'heritage', 'hazard', 'politics', 'nuclear', 'disaster', 'crime', 'space', 'missile', 'slavery', 'events'] as const;
 export type HistoryFamilyLink = (typeof HISTORY_FAMILY_LINKS)[number];
 
 const FOCUS: readonly SpaceFocus[] = ['earth', 'moon', 'mars', 'sun', 'solar', 'stars', 'galaxy', 'universe'];
@@ -38,7 +41,8 @@ const int = (v: string | null, min: number, max: number) => {
 
 /**
  * `?view=history&year=1914&layer=world-borders`, a span of years with `&from=1927&to=2026`, families with
- * `&families=hazard,disaster` and countries coloured with `&metric=wpp:LEx&source=wpp-2024&country=GRC,TUR`;
+ * `&families=hazard,disaster`, only some kinds with `&kinds=accident.aviation,accident.rail` and countries coloured
+ * with `&metric=wpp:LEx&source=wpp-2024&country=GRC,TUR`;
  * `?view=deep&ma=250` or `&chapter=3`, `?view=space&focus=mars`, `?view=replay&at=<epoch ms>`.
  */
 export function parseViewModeLink(p: URLSearchParams, now = Date.now()): ViewModeLink | null {
@@ -49,6 +53,7 @@ export function parseViewModeLink(p: URLSearchParams, now = Date.now()): ViewMod
       const from = int(p.get('from'), -3000, thisYear);
       const to = int(p.get('to'), -3000, thisYear);
       const families = [...new Set((p.get('families') ?? '').split(','))].filter((f): f is HistoryFamilyLink => (HISTORY_FAMILY_LINKS as readonly string[]).includes(f));
+      const kinds = [...new Set((p.get('kinds') ?? '').split(','))].filter(k => Object.hasOwn(KIND_FAMILY, k));
       const metric = matching(p.get('metric'), METRIC);
       const source = metric && matching(p.get('source'), SOURCE);
       const countries = metric ? [...new Set((p.get('country') ?? '').split(','))].filter(c => COUNTRY.test(c)).slice(0, MAX_LINK_COUNTRIES) : [];
@@ -58,6 +63,7 @@ export function parseViewModeLink(p: URLSearchParams, now = Date.now()): ViewMod
         layer: layer && (HISTORY_LAYERS as readonly string[]).includes(layer) ? (layer as HistoryLayerLink) : null,
         ...(from !== null && to !== null && from <= to ? { range: { from, to } } : {}),
         ...(families.length ? { families } : {}),
+        ...(kinds.length ? { kinds } : {}),
         ...(metric ? { metric } : {}),
         ...(source ? { source } : {}),
         ...(countries.length ? { countries } : {}),
@@ -92,6 +98,7 @@ export function viewModeQuery(link: ViewModeLink): string {
     q.set('to', String(link.range.to));
   }
   if (link.view === 'history' && link.families?.length) q.set('families', link.families.join(','));
+  if (link.view === 'history' && link.kinds?.length) q.set('kinds', link.kinds.join(','));
   if (link.view === 'history' && link.metric) {
     q.set('metric', link.metric);
     if (link.source) q.set('source', link.source);

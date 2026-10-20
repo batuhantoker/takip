@@ -15,7 +15,7 @@ import { openHistoryPopup } from './history-popup';
  */
 
 const SOURCE = 'history';
-const LAYERS = ['history-cells', 'history-events', 'history-labels', 'history-cell-counts'];
+const LAYERS = ['history-lines', 'history-cells', 'history-events', 'history-labels', 'history-cell-counts'];
 const CLICKABLE = ['history-cells', 'history-events'];
 const FRAME_MS = 125;
 const DAY_S = 86_400;
@@ -25,10 +25,12 @@ const LINGER_WALL_S = 3;
 const MAX_HOLD_S = 50 * YEAR_S;
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] };
 
-type Loaded = { from: number; to: number; z: number; w: number; s: number; e: number; n: number; families: string };
+type Loaded = { from: number; to: number; z: number; w: number; s: number; e: number; n: number; families: string; kinds: string };
 
 const familyColor = ['match', ['get', 'family'], ...Object.entries(HISTORY_FAMILIES).flatMap(([f, v]) => [f, v.color]), HISTORY_FALLBACK_COLOR];
 const coarse = ['>=', ['get', 'geoPrec'], 4];
+/** Not a track: a circle layer would dot every vertex of one. */
+const mark = ['!', ['has', 'line']];
 
 /** How long an ended event stays drawn: a day when slow, a few seconds of playback when fast. */
 const holdFor = (speed: number) => Math.min(MAX_HOLD_S, Math.max(DAY_S, speed * LINGER_WALL_S));
@@ -40,6 +42,12 @@ const fade = (t: number, hold: number) => ['interpolate', ['linear'], ['-', t, [
 function addLayers(map: maplibregl.Map) {
   if (!map.getSource(SOURCE)) map.addSource(SOURCE, { type: 'geojson', data: EMPTY });
   const add = (layer: Parameters<maplibregl.Map['addLayer']>[0]) => { if (!map.getLayer(layer.id)) map.addLayer(layer); };
+  // First, so the tracks run under every mark.
+  add({ id: 'history-lines', type: 'line', source: SOURCE, filter: ['has', 'line'], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: {
+    'line-color': familyColor as never,
+    'line-width': ['interpolate', ['linear'], ['zoom'], 1, 0.75, 6, 1.25, 10, 2],
+    'line-opacity': 0.5,
+  } });
   // A cell is the server's cluster of events: a quiet bubble with its count, like the camera clusters.
   add({ id: 'history-cells', type: 'circle', source: SOURCE, filter: ['has', 'cell'], paint: {
     'circle-color': MAP_INK.surface1,
@@ -52,7 +60,7 @@ function addLayers(map: maplibregl.Map) {
   const size = ['match', ['get', 'family'],
     'hazard', ['interpolate', ['linear'], ['coalesce', ['get', 'magnitude'], 2.5], 2.5, 2.5, 9, 12],
     ['interpolate', ['linear'], ['ln', ['max', 1, ['coalesce', ['get', 'magnitude'], 1]]], 0, 3, 14, 10]];
-  add({ id: 'history-events', type: 'circle', source: SOURCE, filter: ['!', ['has', 'cell']], paint: {
+  add({ id: 'history-events', type: 'circle', source: SOURCE, filter: ['all', ['!', ['has', 'cell']], mark] as never, paint: {
     'circle-color': familyColor as never,
     'circle-radius': ['interpolate', ['linear'], ['zoom'], 1, ['*', 0.75, size], 8, ['*', 1.25, size]] as never,
     'circle-opacity': 0.85,
@@ -60,7 +68,7 @@ function addLayers(map: maplibregl.Map) {
     'circle-stroke-color': ['case', coarse, familyColor, MAP_INK.surface0] as never,
     'circle-stroke-width': ['case', coarse, 1.25, 1] as never,
   } });
-  add({ id: 'history-labels', type: 'symbol', source: SOURCE, minzoom: 3, filter: ['all', ['!', ['has', 'cell']], ['==', ['get', 'family'], 'conflict']], layout: {
+  add({ id: 'history-labels', type: 'symbol', source: SOURCE, minzoom: 3, filter: ['all', ['!', ['has', 'cell']], mark, ['==', ['get', 'family'], 'conflict']] as never, layout: {
     'text-field': ['get', 'title'],
     'text-font': ['Noto Sans Regular'],
     'text-size': LABEL_SIZE,
@@ -87,10 +95,12 @@ function removeLayers(map: maplibregl.Map) {
 function applyTime(map: maplibregl.Map, t: number, hold: number) {
   const when = inTime(t, hold);
   const f = fade(t, hold);
+  map.setFilter('history-lines', ['all', ['has', 'line'], when] as never);
   map.setFilter('history-cells', ['all', ['has', 'cell'], when] as never);
-  map.setFilter('history-events', ['all', ['!', ['has', 'cell']], when] as never);
-  map.setFilter('history-labels', ['all', ['!', ['has', 'cell']], ['==', ['get', 'family'], 'conflict'], when] as never);
+  map.setFilter('history-events', ['all', ['!', ['has', 'cell']], mark, when] as never);
+  map.setFilter('history-labels', ['all', ['!', ['has', 'cell']], mark, ['==', ['get', 'family'], 'conflict'], when] as never);
   map.setFilter('history-cell-counts', ['all', ['has', 'cell'], ['>=', ['get', 'n'], 2], when] as never);
+  map.setPaintProperty('history-lines', 'line-opacity', ['*', 0.5, f] as never);
   map.setPaintProperty('history-cells', 'circle-opacity', ['*', 0.88, f] as never);
   map.setPaintProperty('history-cells', 'circle-stroke-opacity', f as never);
   map.setPaintProperty('history-events', 'circle-opacity', ['*', ['case', coarse, 0.12, 0.85], f] as never);
@@ -99,16 +109,19 @@ function applyTime(map: maplibregl.Map, t: number, hold: number) {
   map.setPaintProperty('history-cell-counts', 'text-opacity', f as never);
 }
 
-export function useHistoryLayer({ mapRef, mapReady, timeline, families, popupRef }: {
+export function useHistoryLayer({ mapRef, mapReady, timeline, families, kinds, popupRef }: {
   mapRef: MapRef;
   mapReady: boolean;
   /** History's clock, or Replay's for quakes; null draws nothing. */
   timeline: { clock: ReplayClock } | null;
   /** The event families to draw; empty draws none. */
   families: readonly string[];
+  /** Only these kinds of them; empty draws every kind. */
+  kinds: readonly string[];
   popupRef: RefObject<maplibregl.Popup | null>;
 }) {
   const familiesRef = useRef(families);
+  const kindsRef = useRef(kinds);
   const reloadRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -133,6 +146,7 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, popupRef
       const b = map.getBounds();
       const view = z < 3 ? { w: -180, s: -90, e: 180, n: 90 } : { w: b.getWest(), s: b.getSouth(), e: b.getEast(), n: b.getNorth() };
       const familyKey = familiesRef.current.join(',');
+      const kindKey = kindsRef.current.join(',');
       // No families means nothing to draw, not all of them.
       if (!familyKey) {
         if (loaded) (map.getSource(SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData(EMPTY);
@@ -140,7 +154,7 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, popupRef
         generation++;
         return;
       }
-      const inside = loaded && loaded.z === z && loaded.families === familyKey && loaded.from <= lo && hi < loaded.to
+      const inside = loaded && loaded.z === z && loaded.families === familyKey && loaded.kinds === kindKey && loaded.from <= lo && hi < loaded.to
         && loaded.w <= view.w && loaded.e >= view.e && loaded.s <= view.s && loaded.n >= view.n;
       if (inside) return;
       const padX = z < 3 ? 0 : (view.e - view.w) / 2;
@@ -154,10 +168,11 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, popupRef
         e: Math.ceil(view.e + padX),
         n: Math.min(90, Math.ceil(view.n + padY)),
         families: familyKey,
+        kinds: kindKey,
       };
       loaded = next;
       const mine = ++generation;
-      const url = `/api/replay/history/events?bbox=${next.w},${next.s},${next.e},${next.n}&from=${Math.round(next.from)}&to=${Math.round(next.to)}&z=${z}&families=${familyKey}`;
+      const url = `/api/replay/history/events?bbox=${next.w},${next.s},${next.e},${next.n}&from=${Math.round(next.from)}&to=${Math.round(next.to)}&z=${z}&families=${familyKey}${kindKey ? `&kinds=${kindKey}` : ''}`;
       fetch(url).then(async res => {
         if (mine !== generation) return;
         if (res.status === 429) {
@@ -245,6 +260,7 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, popupRef
 
   useEffect(() => {
     familiesRef.current = families;
+    kindsRef.current = kinds;
     reloadRef.current();
-  }, [families]);
+  }, [families, kinds]);
 }

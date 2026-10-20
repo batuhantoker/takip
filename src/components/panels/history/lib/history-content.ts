@@ -8,15 +8,21 @@ const THIS_YEAR = new Date().getUTCFullYear();
 // GTD and the Stanford war borders are non-commercial; each map popup names its record's source.
 /** How the History panel names each event family, the years its sources cover (astronomical: -7499 is 7500 BCE), and what it holds. */
 export const FAMILY_TEXT: Record<string, { name: string; years: [number, number]; note: string }> = {
-  conflict: { name: msg('Wars and battles'), years: [-7499, THIS_YEAR], note: msg('Wars, battles, rebellions and massacres, with death tolls') },
+  conflict: { name: msg('Wars and battles'), years: [-7499, THIS_YEAR], note: msg('Wars, battles, military operations, rebellions, massacres, pogroms and expulsions, with death tolls') },
   terror: { name: msg('Attacks'), years: [-43, THIS_YEAR], note: msg('GTD for 1970–2017, Wikidata before and since') },
   territorial: { name: msg('Territorial claims'), years: [1816, 2018], note: msg('Claims and transfers of land between states') },
   // The danger list is as of 2021, so earlier years show only sites taken off it.
   heritage: { name: msg('Heritage in danger'), years: [1988, 2022], note: msg('Sites UNESCO lists in danger, as of 2021') },
-  hazard: { name: msg('Natural hazards'), years: [-2149, THIS_YEAR], note: msg('Significant quakes, tsunamis and eruptions') },
-  politics: { name: msg('Politics'), years: [-1299, THIS_YEAR], note: msg('Treaties, coups, revolutions and assassinations, from Wikidata') },
+  // One eruption GVP dates to 55,500 BCE; the rest of its record starts in the Holocene.
+  hazard: { name: msg('Natural hazards'), years: [-55499, THIS_YEAR], note: msg('Quakes, tsunamis, eruptions, tropical cyclones and fireballs') },
+  politics: { name: msg('Politics'), years: [-2333, THIS_YEAR], note: msg('Treaties, peace agreements, coups, revolutions, assassinations, protests, riots and strikes') },
   nuclear: { name: msg('Nuclear explosions'), years: [1945, 1998], note: msg('Tests, and Hiroshima and Nagasaki') },
-  disaster: { name: msg('Disasters'), years: [1960, 2018], note: msg('Where floods, storms and droughts struck') },
+  disaster: { name: msg('Disasters'), years: [-2499, THIS_YEAR], note: msg('Famines, epidemics, fires, accidents and shipwrecks, and where floods, storms and droughts struck') },
+  crime: { name: msg('Crime'), years: [725, THIS_YEAR], note: msg('Murders and shootings with a Wikipedia article') },
+  space: { name: msg('Rocket launches'), years: [1945, THIS_YEAR], note: msg('Orbital launches and suborbital rockets, at their pads') },
+  missile: { name: msg('Missile tests'), years: [1942, THIS_YEAR], note: msg('Missile test launches, at their sites') },
+  slavery: { name: msg('Slave trade'), years: [1514, 1866], note: msg('Slave voyages, at the port where people were bought') },
+  events: { name: msg('Events'), years: [-2999, THIS_YEAR], note: msg('Dated events from Wikipedia’s year pages in ten languages, placed by what they link') },
 };
 
 export type Moment = {

@@ -321,6 +321,7 @@ export default function Dashboard() {
           onReplayToggle={toggleReplay}
           history={history.session}
           historyFamilies={history.families}
+          historyKinds={history.kinds}
           flyToLocation={flyToLocation}
           alertPinIds={pinnedAlertIds}
           sweepData={recon.sweepData}

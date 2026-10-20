@@ -56,6 +56,8 @@ export interface WorldMapProps {
   history?: HistorySession | null;
   /** The event families History shows. */
   historyFamilies?: readonly string[];
+  /** Only these event kinds, when History's link asked for some. */
+  historyKinds?: readonly string[];
   /** Which Live Alerts to pin — the reports the feed is showing. Null pins them all. */
   alertPinIds?: string[] | null;
   projection?: 'mercator' | 'globe';

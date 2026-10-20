@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, type MutableRefObject } from 'react';
 import type { HistorySession } from '@/lib/history/session';
+import { familiesOfKinds } from '@/lib/history/kinds';
 import { atMa } from '@/lib/history/paleo/deep-time';
 import { loadCountries } from '@/lib/places/areas/boundary-store';
 import type { ReplaySession } from '@/lib/map/replay/session';
@@ -78,7 +79,9 @@ export function useViewModeLink({ splashGone, autoLocateCancelled: autoLocateCan
     if (!openedRef.current || timedRef.current || !mode) return;
     if (mode.view === 'history' && history) {
       timedRef.current = true;
-      if (mode.families) for (const f of HISTORY_FAMILY_LINKS) history.setFamily(f, mode.families.includes(f));
+      const families = mode.kinds ? [...(mode.families ?? []), ...familiesOfKinds(mode.kinds)] : mode.families;
+      if (families) for (const f of HISTORY_FAMILY_LINKS) history.setFamily(f, families.includes(f));
+      if (mode.kinds) history.setKinds(mode.kinds);
       if (mode.layer) history.setLayer(mode.layer, true);
       // Before the clock moves: the metric only seeks when the clock is outside its years.
       if (mode.metric) history.countries.select(mode.metric, mode.source);

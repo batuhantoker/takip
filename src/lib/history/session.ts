@@ -2,6 +2,7 @@ import { atMa } from '@/lib/history/paleo/deep-time';
 import { createStory, type Story } from '@/lib/history/paleo/story';
 import { createReplayClock, type ReplayClock } from '@/lib/map/replay/clock';
 import { type CountryChart, createCountryChart } from './countries/chart';
+import { familiesOfKinds } from './kinds';
 import { type CountryView, createCountryView, type PicksSnapshot } from './countries/view';
 import { type Projection, projectionEnd } from './projection';
 
@@ -33,10 +34,14 @@ export type HistorySession = {
   chart: CountryChart;
   families(): string[];
   setFamily(family: string, on: boolean): void;
+  /** Only these event kinds are drawn (a topic page's link); empty draws every kind of the families on. */
+  kinds(): string[];
+  /** Switches the kinds' families on; switching on a family outside them later drops the filter, which would hide it. */
+  setKinds(kinds: string[]): void;
   /** Border layers shown (war-layers.ts, world-borders.ts), one at a time; either these or a country metric fill the map, not both. */
   layers(): string[];
   setLayer(code: string, on: boolean): void;
-  /** Called when the families, layers or deep time change. */
+  /** Called when the families, kinds, layers or deep time change. */
   subscribe(listener: () => void): () => void;
   dispose(): void;
 };
@@ -56,6 +61,7 @@ export function createHistorySession(start: number, get: typeof fetch = fetch): 
   deepClock.setSpeed(DEEP_SPEED);
   const listeners = new Set<() => void>();
   let families = [...DEFAULT_FAMILIES];
+  let kinds: string[] = [];
   let layers: string[] = [];
   let deep = false;
   // The calendar's colouring and play state, put back on leaving deep time; its border layers simply wait.
@@ -98,6 +104,14 @@ export function createHistorySession(start: number, get: typeof fetch = fetch): 
     setFamily(family, on) {
       if (families.includes(family) === on) return;
       families = on ? [...families, family] : families.filter(f => f !== family);
+      if (on && kinds.length && !familiesOfKinds(kinds).includes(family)) kinds = [];
+      emit();
+    },
+    kinds: () => kinds,
+    setKinds(next) {
+      const wanted = familiesOfKinds(next);
+      families = [...families, ...wanted.filter(f => !families.includes(f))];
+      kinds = [...new Set(next)];
       emit();
     },
     layers: () => (deep ? [] : layers),

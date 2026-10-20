@@ -43,4 +43,17 @@ describe('history session deep time', () => {
     expect(s.story.index()).toBeNull();
     s.dispose();
   });
+
+  it('draws only the kinds a link asks for, until a family outside them is switched on', () => {
+    const s = createHistorySession(Date.UTC(1950, 0, 1), never);
+    s.setKinds(['accident.aviation', 'accident.rail']);
+    expect(s.kinds()).toEqual(['accident.aviation', 'accident.rail']);
+    expect(s.families()).toEqual(['conflict', 'disaster']);
+    s.setFamily('disaster', false);
+    s.setFamily('disaster', true);
+    expect(s.kinds()).toEqual(['accident.aviation', 'accident.rail']);
+    s.setFamily('hazard', true);
+    expect(s.kinds()).toEqual([]);
+    s.dispose();
+  });
 });

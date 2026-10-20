@@ -97,7 +97,7 @@ import './map-popup.css';
 const NO_FAMILIES: readonly string[] = [];
 const QUAKES: readonly string[] = ['hazard'];
 
-function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, mapOptions, contextMenu = true, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], imageryRequest = null, drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, onGlobeLink, route = null, userLocation = null, pin = null, followUser = false, onFollowInterrupt, navigating = false, onAiGlobe, onAiSelect, onAiHover, onAiFollow, aiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES }: WorldMapProps) {
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, mapOptions, contextMenu = true, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], imageryRequest = null, drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, onGlobeLink, route = null, userLocation = null, pin = null, followUser = false, onFollowInterrupt, navigating = false, onAiGlobe, onAiSelect, onAiHover, onAiFollow, aiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES, historyKinds = NO_FAMILIES }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -331,7 +331,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   usePaleoLayer({ mapRef, mapReady, history, mapStyle });
   const eventFamilies = useMemo(() => (history ? historyFamilies : replay && activeLayers.earthquakes ? QUAKES : NO_FAMILIES),
     [history, historyFamilies, replay, activeLayers.earthquakes]);
-  useHistoryLayer({ mapRef, mapReady, timeline: history ?? replay, families: eventFamilies, popupRef });
+  useHistoryLayer({ mapRef, mapReady, timeline: history ?? replay, families: eventFamilies, kinds: history ? historyKinds : NO_FAMILIES, popupRef });
   useReconLayers({ ...layerArgs, sweepData, scanTargets });
   useReferenceLayers(layerArgs);
 

@@ -15,6 +15,7 @@ import type { Translate } from '@/lib/core/i18n/translator';
 import { yearLabel } from '@/lib/map/replay/timeline-ticks';
 import { FAMILY_TEXT, type Moment, MOMENTS, type Place } from '@/components/panels/history/lib/history-content';
 import { HistoryCard } from './history-card';
+import { KindFilter } from './kind-filter';
 import { ToggleRow } from './toggle-row';
 import { countAction } from '@/lib/platform/usage-actions';
 
@@ -28,6 +29,7 @@ export function EventsSection({ session }: { session: HistorySession }) {
   const all = Object.entries(HISTORY_FAMILIES);
   return (
     <PanelSection title={t('On the map')} hint={t('{n} of {total}', { n: families.length, total: all.length })}>
+      <KindFilter session={session} />
       {all.map(([family, f]) => {
         const text = FAMILY_TEXT[family];
         return (

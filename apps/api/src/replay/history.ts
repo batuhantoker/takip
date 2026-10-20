@@ -1,6 +1,6 @@
 import { DAY_MS } from '@takip/core/time';
 import type { Bbox } from '@takip/core/tiles';
-import type { EventCandidate, EventCell } from '@takip/db';
+import { bandTolerance, type EventCandidate, type EventCell, fromWkb, type Geometry, type Position, simplify, zband } from '@takip/db';
 import { type Context, Hono } from 'hono';
 import type { AccessEnv } from '../access/middleware';
 import type { ReplayData } from './data';
@@ -54,6 +54,70 @@ const eventFeature = (r: EventCandidate) => point(r.lon, r.lat, {
   sourceId: r.sourceId,
 });
 
+const round = (x: number) => Math.round(x * 1000) / 1000;
+
+/** Longitudes made continuous fix to fix, as the importers store them; a no-op on a line that already is. */
+const unwrap = (line: Position[]): Position[] => {
+  const out: Position[] = [];
+  for (const [lon, lat] of line) {
+    const prev = out[out.length - 1];
+    out.push([prev ? lon + 360 * Math.round((prev[0] - lon) / 360) : lon, lat]);
+  }
+  return out;
+};
+
+/** A continuous line cut where it crosses ±180°, each piece back inside [-180, 180], so no stripe runs across the map. */
+export function splitAt180(line: Position[]): Position[][] {
+  const world = (lon: number) => Math.floor((lon + 180) / 360);
+  const parts: Position[][] = [];
+  let part: Position[] = [];
+  const push = (p: Position) => {
+    const last = part[part.length - 1];
+    if (!last || last[0] !== p[0] || last[1] !== p[1]) part.push(p);
+  };
+  line.forEach((p, i) => {
+    const w = world(p[0]);
+    const q = line[i - 1];
+    const v = q && world(q[0]);
+    if (q && v !== w) {
+      const edge = -180 + 360 * Math.max(v, w);
+      const lat = round(q[1] + ((p[1] - q[1]) * (edge - q[0])) / (p[0] - q[0]));
+      push([round(edge - 360 * v), lat]);
+      parts.push(part);
+      part = [];
+      push([round(edge - 360 * w), lat]);
+    }
+    push([round(p[0] - 360 * w), round(p[1])]);
+  });
+  parts.push(part);
+  return parts.filter(l => l.length >= 2);
+}
+
+/** An event's line (a storm's track, a voyage's ports) simplified for the zoom; null when its geom is no line. */
+export function trackOf(wkb: Uint8Array, tolerance: number): Geometry | null {
+  let g: Geometry;
+  try {
+    g = fromWkb(wkb);
+  } catch {
+    return null;
+  }
+  if (g.type !== 'LineString' && g.type !== 'MultiLineString') return null;
+  const lines = g.type === 'LineString' ? [g.coordinates] : g.coordinates;
+  const parts = lines.flatMap(l => {
+    const s = simplify({ type: 'LineString', coordinates: unwrap(l) }, tolerance);
+    return s?.type === 'LineString' ? splitAt180(s.coordinates) : [];
+  });
+  if (!parts.length) return null;
+  return parts.length === 1 ? { type: 'LineString', coordinates: parts[0] } : { type: 'MultiLineString', coordinates: parts };
+}
+
+/** Its point's times, so the map's clock shows and fades both alike. */
+const lineFeature = (r: EventCandidate, geometry: Geometry) => ({
+  type: 'Feature' as const,
+  geometry,
+  properties: { line: 1, id: r.id, kind: r.kind, family: r.family, t0: r.t0 / 1000, t1: r.t1 / 1000, geoPrec: r.geoPrec },
+});
+
 const cellFeature = (r: EventCell) => point(r.lon, r.lat, { cell: 1, family: r.family, t0: r.t0 / 1000, t1: r.t1 / 1000, n: r.n, magnitude: r.magSum });
 
 export function historyRoutes(data: ReplayData) {
@@ -66,7 +130,7 @@ export function historyRoutes(data: ReplayData) {
     return { catalog, history, sourceIds: catalog.policy(c.var.access.entitlements['data.licence_tier']).sourceIds };
   };
 
-  /** ?bbox=w,s,e,n&from=&to=&z=&families=: events in the view, dense families as cells × BINS time bins. */
+  /** ?bbox=w,s,e,n&from=&to=&z=&families=&kinds=: events in the view, with their lines; dense families as cells × BINS time bins. */
   app.get('/events', c => {
     const s = scope(c);
     if (!s) return notReady(c);
@@ -78,7 +142,8 @@ export function historyRoutes(data: ReplayData) {
       return c.json({ error: 'bad_request', message: 'bbox=w,s,e,n and from < to (epoch s) are required' }, 400, NO_STORE);
     }
     const families = c.req.query('families')?.split(',').filter(Boolean);
-    const window = { tLo: from * 1000, tHi: to * 1000, sourceIds: s.sourceIds, families };
+    const kinds = c.req.query('kinds')?.split(',').filter(Boolean);
+    const window = { tLo: from * 1000, tHi: to * 1000, sourceIds: s.sourceIds, families, kinds: kinds?.length ? kinds : undefined };
     const cellDeg = 360 / 2 ** z / CELLS_PER_TILE;
     const binMs = Math.max(DAY_MS, Math.ceil((window.tHi - window.tLo) / BINS));
 
@@ -87,10 +152,18 @@ export function historyRoutes(data: ReplayData) {
     const totals = new Map<string, number>();
     for (const cell of cells) totals.set(cell.family, (totals.get(cell.family) ?? 0) + cell.n);
     const sparse = [...totals].filter(([, n]) => n <= MAX_PER_FAMILY).map(([f]) => f);
-    const events = sparse.length ? views.flatMap(bb => s.history.candidates({ ...window, families: sparse, bbox: bb })) : [];
+    // An event whose box reaches both halves of a view split at 180° comes back from each.
+    const byId = new Map<number, EventCandidate>();
+    if (sparse.length) for (const bb of views) for (const r of s.history.candidates({ ...window, families: sparse, bbox: bb })) byId.set(r.id, r);
+    const events = [...byId.values()];
+    const tolerance = bandTolerance(zband(z));
 
     const features = [
       ...events.map(eventFeature),
+      ...events.flatMap(r => {
+        const track = r.geom && trackOf(r.geom, tolerance);
+        return track ? [lineFeature(r, track)] : [];
+      }),
       ...cells.filter(cell => !sparse.includes(cell.family)).map(cellFeature),
     ];
     return c.json({

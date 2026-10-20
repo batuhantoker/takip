@@ -27,6 +27,7 @@ function saveFamilies(families: string[]) {
 export function useHistory() {
   const [session, setSession] = useState<HistorySession | null>(null);
   const [families, setFamilies] = useState<string[]>([]);
+  const [kinds, setKinds] = useState<string[]>([]);
   // Sessions own timers, so they are made and disposed here rather than in a state updater, which React may run twice.
   const current = useRef<HistorySession | null>(null);
   const resumeAt = useRef(START);
@@ -40,6 +41,7 @@ export function useHistory() {
     current.current = null;
     setSession(null);
     setFamilies([]);
+    setKinds([]);
   }, []);
 
   const open = useCallback(() => {
@@ -51,18 +53,21 @@ export function useHistory() {
     // Deep time has no calendar events to draw.
     unsubscribe.current = s.subscribe(() => {
       setFamilies(s.deep() ? [] : s.families());
+      setKinds(s.kinds());
       saveFamilies(s.families());
     });
     s.clock.play();
     setSession(s);
     setFamilies(s.families());
+    // Dev-only handle: tools/shorts steps the clocks frame by frame.
+    if (process.env.NODE_ENV === 'development') Object.assign(window, { __takipHistory: s });
   }, []);
 
   useEffect(() => () => {
     unsubscribe.current();
     current.current?.dispose();
   }, []);
-  return { session, families, open, close };
+  return { session, families, kinds, open, close };
 }
 
 /** Re-renders a few times a second while either clock moves (unless `clocks` is off), and on every family, country-view or story change. */

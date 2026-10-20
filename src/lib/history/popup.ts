@@ -1,10 +1,11 @@
 import { Prec } from '@takip/core/time';
-import { activeIntl, t } from '@/lib/core/i18n/active';
+import { activeIntl, activeLocale, t } from '@/lib/core/i18n/active';
 import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
 import { createTranslator, msg, type Vars } from '@/lib/core/i18n/translator';
 import { htmlEsc, pop, type PopRow, urlSafe } from '@/lib/map/popups/kit';
 import { languageName } from '@/lib/core/wikipedia/language';
 import { articleRef, articleUrl } from '@/lib/core/wikipedia/refs';
+import { localePath } from '@/lib/platform/site/locale-path';
 import type { ArticleSummary } from './wiki';
 
 /* Popups for the curated history layer (replay mode): wars, battles, claims, attacks, heritage. */
@@ -16,9 +17,18 @@ export const HISTORY_FAMILIES: Record<string, { color: string; label: string; ma
   territorial: { color: '#9B8AFB', label: msg('Territory') },
   heritage: { color: '#5B9CF5', label: msg('Heritage') },
   hazard: { color: '#D8C26A', label: msg('Natural hazards'), magnitude: msg('Magnitude') },
-  politics: { color: '#D99AB4', label: msg('Politics') },
+  politics: { color: '#D99AB4', label: msg('Politics'), magnitude: msg('Deaths') },
   nuclear: { color: '#A9C46A', label: msg('Nuclear explosions'), magnitude: msg('Yield (kt)') },
   disaster: { color: '#5BAE9A', label: msg('Disasters'), magnitude: msg('Places hit') },
+  // MAP_INK.teal, the categorical tone no other family uses.
+  crime: { color: '#5FB3C4', label: msg('Crime'), magnitude: msg('Killed') },
+  // MAP_INK green and amber: the last categorical tones no family uses.
+  space: { color: '#46B97F', label: msg('Rocket launches') },
+  missile: { color: '#E9A23B', label: msg('Missile tests') },
+  // MAP_INK.slate, the last categorical tone; HISTORY_FALLBACK_COLOR shares it but no imported kind falls back.
+  slavery: { color: '#7F8B96', label: msg('Slave trade'), magnitude: msg('People embarked') },
+  // PLACEHOLDER colour (MAP_INK.ink2): Wikipedia year-page events of no other family; the lead picks a tone.
+  events: { color: '#A4AAB2', label: msg('Events') },
 };
 export const HISTORY_FALLBACK_COLOR = '#7F8B96';
 
@@ -32,6 +42,8 @@ export const KINDS: Record<string, string> = {
   'conflict.rebellion': msg('Rebellion'),
   'conflict.massacre': msg('Massacre'),
   'conflict.genocide': msg('Genocide'),
+  'conflict.pogrom': msg('Pogrom'),
+  'conflict.expulsion': msg('Expulsion or deportation'),
   battle: msg('Battle'),
   'claim.territorial': msg('Territorial claim'),
   'change.territorial': msg('Territorial change'),
@@ -55,6 +67,34 @@ export const KINDS: Record<string, string> = {
   'disaster.landslide': msg('Landslide'),
   'disaster.mass_movement': msg('Landslide (dry)'),
   'disaster.volcano': msg('Volcanic activity'),
+  'disaster.famine': msg('Famine'),
+  'disaster.epidemic': msg('Epidemic'),
+  'disaster.fire': msg('Fire'),
+  'disaster.wildfire': msg('Wildfire'),
+  'accident.aviation': msg('Air disaster'),
+  'accident.rail': msg('Rail accident'),
+  'accident.road': msg('Road accident'),
+  'accident.mining': msg('Mining accident'),
+  'accident.explosion': msg('Explosion'),
+  'accident.crowd': msg('Crowd crush'),
+  'accident.industrial': msg('Industrial accident'),
+  'politics.riot': msg('Riot'),
+  'politics.protest': msg('Protest'),
+  'politics.strike': msg('Strike'),
+  'battle.operation': msg('Military operation'),
+  'crime.shooting': msg('Shooting'),
+  'crime.murder': msg('Murder'),
+  'hazard.fireball': msg('Fireball'),
+  'accident.shipwreck': msg('Shipwreck'),
+  'space.launch': msg('Space launch'),
+  'space.suborbital': msg('Suborbital launch'),
+  'missile.test': msg('Missile test'),
+  'politics.coup.attempt': msg('Failed coup'),
+  'politics.coup.conspiracy': msg('Coup plot'),
+  'politics.peace_agreement': msg('Peace agreement'),
+  'hazard.storm': msg('Tropical cyclone'),
+  'slavery.voyage': msg('Slave voyage'),
+  'event.general': msg('Event'),
 };
 
 const kindName = (kind: string) => (KINDS[kind] ? t(KINDS[kind]) : kind);
@@ -65,12 +105,15 @@ const PLACEMENT: Record<number, string> = {
   5: msg('Placed at the country: the source names no closer place.'),
 };
 
-/** An importer that placed the event itself says how in attrs.placed_at; a disaster's magnitude counts the places it hit. */
-function placement(p: HistoryFeature, magnitude: number | null | undefined, d?: HistoryDetail | null) {
-  if (typeof d?.attrs.placed_at === 'string') return t('Placed at the {place}.', { place: d.attrs.placed_at });
-  if (p.family === 'disaster' && (magnitude ?? 1) > 1) return t('Placed at the middle of the places it hit.');
-  return PLACEMENT[p.geoPrec] && t(PLACEMENT[p.geoPrec]);
+/** An importer that placed the event itself says how in attrs.placed_at; a disaster's magnitude counts the places it hit. The event pages say it too. */
+export function placementNote(t: Say, geoPrec: number, family: string, magnitude: number | null | undefined, attrs?: Record<string, unknown>) {
+  if (typeof attrs?.placed_at === 'string') return t('Placed at the {place}.', { place: attrs.placed_at });
+  if (family === 'disaster' && (magnitude ?? 1) > 1) return t('Placed at the middle of the places it hit.');
+  return PLACEMENT[geoPrec] && t(PLACEMENT[geoPrec]);
 }
+
+const placement = (p: HistoryFeature, magnitude: number | null | undefined, d?: HistoryDetail | null) =>
+  placementNote(t, p.geoPrec, p.family, magnitude, d?.attrs);
 
 /** Feature properties as the history route sends them; times are epoch seconds. */
 export type HistoryFeature = {
@@ -186,7 +229,7 @@ export function when(p: HistoryFeature, d?: HistoryDetail | null, t: Say = EN, i
   return end === start ? start : `${start} – ${end}`;
 }
 
-const SKIP = new Set(['url', 'wiki', 'place', 'placed_at', 'net', 'ids', 'status', 'sig', 't_raw', 'crit', 'dyads', 'eventid', 'alt_names', 'phase', 'specificity', 'vicinity', 'doubtterr', 'multiple', 'added_by_compiler']);
+const SKIP = new Set(['url', 'wiki', 'place', 'placed_at', 'geo_method', 'geo_confidence', 'also', 'net', 'ids', 'status', 'sig', 't_raw', 'crit', 'dyads', 'eventid', 'alt_names', 'phase', 'specificity', 'vicinity', 'doubtterr', 'multiple', 'added_by_compiler']);
 
 /** The attrs a reader can use: scalars and lists of strings, plus belligerents as "a vs b". */
 export function facts(attrs: Record<string, unknown>, t: Say = EN): [string, string][] {
@@ -214,8 +257,11 @@ const count = (n: number) => Math.round(n).toLocaleString(activeIntl());
 /** GTD's success: the attack took place (the bomb went off, the plane was taken), whatever it was meant to achieve. */
 const GTD_OUTCOME: Record<number, string> = { 1: msg('Carried out'), 0: msg('Failed or foiled') };
 
-/** A GTD row in words; its coded columns read as raw numbers otherwise. */
-function attackRows(a: Record<string, unknown>): PopRow[] {
+const browserT: Say = (source, vars) => t(source, vars);
+
+/** A GTD row in words; its coded columns read as raw numbers otherwise. The event pages pass their own translator. */
+export function attackRows(a: Record<string, unknown>, t: Say = browserT, intl = activeIntl()): PopRow[] {
+  const count = (n: number) => Math.round(n).toLocaleString(intl);
   const list = <T>(v: unknown) => (Array.isArray(v) ? (v as T[]) : []);
   const uniq = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string => !!x))].join(', ');
   const where = [text(a.city), text(a.provstate), text(a.region)].filter((x, i, xs): x is string => !!x && xs.indexOf(x) === i);
@@ -295,6 +341,7 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
   const rows: PopRow[] = [
     { label: t('When'), value: when(p, d, t, activeIntl()) },
     { label: t('Kind'), value: kindName(p.kind) },
+    ...(typeof d?.attrs.also === 'string' && KINDS[d.attrs.also] ? [{ label: t('Also recorded as'), value: kindName(d.attrs.also) }] : []),
   ];
   // Map features drop null properties, so a missing magnitude arrives as undefined.
   const magnitude = d?.magnitude ?? p.magnitude;
@@ -323,7 +370,12 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
     rows,
     foot: `${story ? `<div class="tk-pop-body">${story}</div>` : ''}${d ? linkedHtml(p, d, x) : ''}` || undefined,
     note: [placement(p, magnitude, d), source, x.wiki ? `· ${t('From {source}, CC BY-SA', { source: wikipedia })}` : null].filter(Boolean).join(' ') || undefined,
-    links: [article ? { href: article, label: wikipedia } : null, link ? { href: link, label: t('Source page') } : null],
+    links: [
+      article ? { href: article, label: wikipedia } : null,
+      link ? { href: link, label: t('Source page') } : null,
+      // /event/<id> answers with the event's page; popups only know ids.
+      typeof window !== 'undefined' ? { href: `${window.location.origin}${localePath(activeLocale(), `/event/${p.id}`)}`, label: t('Page') } : null,
+    ],
     wide: attack,
     pin: view.pin,
   });

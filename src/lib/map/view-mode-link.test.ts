@@ -32,6 +32,13 @@ describe('parseViewModeLink', () => {
     for (const f of HISTORY_FAMILY_LINKS) expect(HISTORY_FAMILIES).toHaveProperty(f);
   });
 
+  it('draws only the event kinds History has', () => {
+    expect(parse('view=history&families=disaster&kinds=accident.aviation,accident.rail,accident.aviation')).toMatchObject({ families: ['disaster'], kinds: ['accident.aviation', 'accident.rail'] });
+    expect(parse('view=history&kinds=battle,aliens,constructor,__proto__')).toMatchObject({ kinds: ['battle'] });
+    expect(parse('view=history&kinds=aliens')).not.toHaveProperty('kinds');
+    expect(parse('view=history&kinds=')).not.toHaveProperty('kinds');
+  });
+
   it('colours countries only by a metric code it can read, with its source and charted country', () => {
     expect(parse('view=history&year=1950&metric=wpp:LEx&source=wpp-2024&country=TUR')).toMatchObject({ metric: 'wpp:LEx', source: 'wpp-2024', countries: ['TUR'] });
     expect(parse('view=history&metric=wdi:NY.GDP.PCAP.KD')).toMatchObject({ metric: 'wdi:NY.GDP.PCAP.KD' });
@@ -71,6 +78,7 @@ describe('parseViewModeLink', () => {
   it('writes what it reads', () => {
     for (const q of [
       'view=history&year=1683&layer=world-borders', 'view=history&year=1927&from=1927&to=2026&families=hazard',
+      'view=history&year=1950&from=1950&to=2026&families=disaster&kinds=accident.aviation%2Caccident.rail',
       'view=history&year=1950&from=1950&to=2026&metric=wpp%3ALEx&source=wpp-2024&country=GRC%2CTUR', 'view=deep&ma=66', 'view=space&focus=moon',
     ]) {
       expect(viewModeQuery(parse(q)!)).toBe(q);
