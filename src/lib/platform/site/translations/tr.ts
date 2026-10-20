@@ -1333,6 +1333,652 @@ const copy: SiteCopy = {
       freshness: 'Ajanslar 5 dakikada bir, kanallar 3 dakikada bir okunur.',
       limits: ['Kaynaklar taraf tutar; her biri eğilimiyle etiketlenir.', 'Bir raporun yeri metninden bulunur; bu yüzden yaklaşıktır.'],
     },
+    'battles-in-history': {
+      title: 'Tarihteki muharebeler: haritada 18.000+ muharebe ve kuşatma',
+      description:
+        'MÖ 3000’den bugüne 18.000’i aşkın muharebe ve kuşatma tek haritada; her biri savaşıldığı yerde ve neredeyse hepsi Vikipedi maddesiyle.',
+      heading: 'Tarihteki muharebeler',
+      lede: '18.000’i aşkın muharebe ve kuşatma; her biri savaşıldığı yere yerleştirilmiş ve kaydın izin verdiği kadar kesin tarihlenmiş. Neredeyse hepsinin Vikipedi maddesi var ve 11.000’den fazlası parçası olduğu savaşı belirtiyor.',
+      shows: [
+        'Yalnızca muharebeler ve kuşatmalar, kırmızı çatışma işaretleri olarak; Tarih panelinden çevrelerindeki savaşlar ve katliamlar geri getirilebilir.',
+        'Her muharebenin adı, 3. yakınlaştırma düzeyinden itibaren yanında.',
+        'Bir muharebenin sayfası ve açılır penceresi tarihini, ait olduğu savaşı ve Vikipedi özetini verir.',
+        'Bu sayfadan açıldığında harita, 1792’den 1815’e Fransız Devrim Savaşları’nı ve Napolyon Savaşları’nı Avrupa üzerinde oynatır.',
+      ],
+      sources: [
+        'Tarihi ve koordinatları olan muharebeler ve kuşatmalar; Wikidata belirtiyorsa her birinin parçası olduğu savaşla birlikte.',
+        'Birinci Dünya Savaşı’nın yaklaşık 300 muharebesi, Vikipedi’deki muharebe listelerinden.',
+      ],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; o zamandan beri orada eklenen bir muharebe bir sonraki içe aktarmadan sonra görünür.',
+      limits: [
+        'Kapsam Vikipedi editörlerine bağlıdır: muharebelerin yaklaşık dörtte biri tek başına Fransa, ABD, İspanya ve İtalya’ya aittir.',
+        'Yaklaşık üçte biri muharebe alanının kendisine değil, yalnızca bir bölgeye yerleştirilmiştir.',
+        'Muharebelerin burada kayıp rakamları yok; bu yüzden harita hepsini aynı boyutta çizer.',
+        'Askeri harekâtlar, baskınlar ve hava saldırıları için ayrı bir sayfa var.',
+      ],
+    },
+    'wars-in-history': {
+      title: 'Tarihteki savaşlar: haritada 3.600+ savaş ve isyan',
+      description:
+        'MÖ 2600’den bugüne savaşlar, iç savaşlar, isyanlar ve silahlı çatışmalar tek haritada; Wikidata, Correlates of War ve Uppsala Conflict Data Program’dan.',
+      heading: 'Tarihteki savaşlar',
+      lede: 'Tunç Çağı’ndan hâlâ süren çatışmalara 3.600’ü aşkın savaş, iç savaş, isyan, başkaldırı ve silahlı çatışma; her biri savaşın tamamı için tek bir işaretle çizilir.',
+      shows: [
+        'Her savaş, savaş sürdükçe haritada kalan, sonra solan tek bir işaret olarak.',
+        'Bir kaynağın ölüleri saydığı yerlerde işaret, ölü sayısıyla birlikte büyür.',
+        'Bir savaşın sayfası, içerdiği muharebeleri ve onu kaydeden her kaynağı listeler.',
+        'Bu sayfadan açıldığında harita 1900’den 2000’e yaklaşık bir dakikada oynatır.',
+      ],
+      sources: [
+        'Tarihi ve yeri olan savaşlar, iç savaşlar, isyanlar ve başkaldırılar: listenin çoğu; neredeyse hepsinin Vikipedi maddesi var.',
+        '1823’ten 2003’e devletlerarası savaşlar, muharebe ölümleriyle.',
+        'Uppsala Conflict Data Program’dan, 1989’dan bu yana silahlı çatışmalar, muharebeyle ilişkili ölümleriyle.',
+        'Kaggle’da yayımlanmış, 20. ve 21. yüzyıl savaşlarını ölü sayılarıyla toplayan bir derleme; kendi kaynakları belirtilmemiş.',
+      ],
+      freshness: 'Her kaynak yayımlandığı hâliyle içe aktarılır; UCDP her seferinde bir yıl ekler.',
+      limits: [
+        'Bir savaş tek bir noktadır: Wikidata’nın verdiği koordinatlar, muharebelerinin ortası ya da savaşa katılan ülkelerin ortası. Onda dokuzu yalnızca bir bölgeye ya da ülkeye yerleştirilmiştir.',
+        'İki kaynak aynı savaşı kaydettiğinde TAKIP eşleştirebildiklerini birleştirir; savaşın sayfası her kaynağı adıyla belirtir.',
+        'Yalnızca yaklaşık dokuz savaştan birinin ölü sayısı var; bu yüzden çoğu aynı boyutta çizilir.',
+      ],
+    },
+    'genocides-and-massacres': {
+      title: 'Tarihteki soykırımlar ve katliamlar haritada',
+      description:
+        'Wikidata’da kayıtlı 3.800’ü aşkın katliam, soykırım, pogrom, kovulma ve sürgün; her biri yaşandığı yerde ve verilmişse ölü sayısıyla.',
+      heading: 'Tarihteki soykırımlar ve katliamlar',
+      lede: 'Wikidata’da kayıtlı katliamlar, soykırımlar, pogromlar, kovulmalar ve sürgünler, toplamda 3.800’ü aşkın; her biri yaşandığı yere yerleştirilmiş, kaydın izin verdiği kadar kesin tarihlenmiş ve verildiği yerlerde öldürülenlerin sayısıyla.',
+      shows: [
+        'Her biri, öldürülenlerin sayısına göre boyutlanan bir çatışma işareti olarak; kayıtların neredeyse dörtte üçü bu sayıyı verir.',
+        'Her biri için tarihi, ölü sayısı ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1900’den bugüne oynatır.',
+      ],
+      sources: [
+        'Tarihi, yeri ve çoğu için ölü sayısı olan katliam, soykırım ya da pogrom öğeleri; %95’inin Vikipedi maddesi var.',
+        'Tarihi ve yeri olan yaklaşık 150 kovulma, sürgün ve zorla yerinden etme.',
+      ],
+      freshness: 'Veri kümeleri içe aktarılırken Wikidata’dan alınır; o zamandan beri orada eklenen ya da düzeltilen bir kayıt bir sonraki içe aktarmadan sonra görünür.',
+      limits: [
+        'Beşte dördünden fazlası 1900 ve sonrasına ait: kayıt, Vikipedi editörlerinin hakkında yazdıklarını izler.',
+        'Bir olayın katliam, soykırım ya da pogrom olarak adlandırılması bir mahkeme kararına değil, Wikidata’nın sınıflandırmasına dayanır.',
+        'Ölü sayısı Wikidata’daki rakamdır ve bunların çoğu tartışmalıdır; bağlamı madde verir.',
+        'Yaklaşık yarısı tam bir yere değil, yalnızca bir bölgeye yerleştirilmiştir.',
+      ],
+    },
+    'assassinations-in-history': {
+      title: 'Tarihteki suikastlar haritada',
+      description:
+        '7. yüzyıldan 2026’ya Wikidata’da kayıtlı yaklaşık 170 suikast; her biri yaşandığı yerde, gün düzeyinde tarihlenmiş ve Vikipedi maddesiyle.',
+      heading: 'Tarihteki suikastlar',
+      lede: 'Wikidata’da kayıtlı suikastlar; yaşandıkları yere yerleştirilmiş ve gün düzeyinde tarihlenmiş. Çoğu son 120 yıla ait.',
+      shows: [
+        'Her suikast, kayıt veriyorsa öldürülenlerin sayısına göre boyutlanan bir siyaset işareti olarak (kayıtların yaklaşık üçte ikisi verir).',
+        'Her biri için tarihi ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1850’den bugüne oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan suikast öğeleri.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; Wikidata büyüdükçe büyür.',
+      limits: [
+        'Yaklaşık 170 olaydan oluşan küçük bir küme: tarihteki suikastların tamamı olmaktan çok uzak.',
+        'Burada en çok kayıt ABD ve Japonya’ya ait: küme eksiksiz bir sayım değil, Wikidata’nın kaydettikleridir.',
+        'Neredeyse yarısı tam noktaya değil, yalnızca bir bölgeye yerleştirilmiştir.',
+      ],
+    },
+    'treaties-in-history': {
+      title: 'Tarihteki antlaşmalar: haritada 2.200 antlaşma',
+      description:
+        'Tunç Çağı’ndan bugüne Wikidata’dan yaklaşık 2.200 antlaşma; her biri Wikidata’nın koyduğu yerde, biliniyorsa gün düzeyinde tarihli ve maddesiyle.',
+      heading: 'Tarihteki antlaşmalar',
+      lede: 'Barış antlaşmalarından ittifaklara, Wikidata’da kayıtlı her türden antlaşma; her biri Wikidata’nın koyduğu yere yerleştirilmiş ve biliniyorsa gün düzeyinde tarihlenmiş.',
+      shows: [
+        'Her antlaşma, tarihinde bir siyaset işareti olarak, hepsi aynı boyutta: bir antlaşmanın sayılacak bir şeyi yoktur.',
+        'Her biri için Vikipedi özeti ve zaman ve yer bakımından ona yakın olaylarla bir sayfa.',
+        'Bu sayfadan açıldığında harita 1600’den 1900’e Avrupa üzerinde oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan antlaşma öğeleri; %93’ünün Vikipedi maddesi var.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; o zamandan beri orada eklenen bir antlaşma bir sonraki içe aktarmadan sonra görünür.',
+      limits: [
+        'Avrupa ağır basar: antlaşmaların yaklaşık yedide biri tek başına Fransa’ya, neredeyse onda dördü ise Fransa, ABD, Almanya ve Britanya’ya birlikte aittir.',
+        'Bir antlaşma bütün ülkeleri bağlasa da tek bir noktadır.',
+        'Kayıt kimin imzaladığını ya da antlaşmanın tutup tutmadığını söylemez; madde söyler.',
+        '1990’dan bu yana yaşanan çatışmaların barış anlaşmaları, PA-X’ten gelen ayrı bir kümedir.',
+      ],
+    },
+    'terrorist-attacks-map': {
+      title: 'Terör saldırıları haritası: 1970’ten beri 180.000 saldırı',
+      description:
+        'Global Terrorism Database’deki 1970–2017 arası her saldırı ve Wikidata’dan daha önceki ve sonraki saldırılar tek haritada; silahı ve ölü sayısıyla.',
+      heading: 'Haritada terör saldırıları',
+      lede: 'Global Terrorism Database’den 1970–2017 arası 180.000’i aşkın saldırı; bu yılların öncesinden ve sonrasından Wikidata’dan yaklaşık 800 saldırıyla birlikte.',
+      shows: [
+        'Saldırılar, öldürülenlerin sayısına göre boyutlanan turuncu işaretler olarak; GTD bu sayıyı neredeyse hepsi için verir.',
+        'Bir görünümde 2.000’den fazla saldırı varsa sayılı balonlarda toplanırlar; her birini görmek için yakınlaştırın.',
+        'Silah, hedef, saldırının gerçekleşip gerçekleşmediği ve üstlenilip üstlenilmediği ile GTD’nin kendi özeti için bir saldırıya tıklayın.',
+        'Bu sayfadan açıldığında harita 1970’ten 2017’ye oynatır.',
+      ],
+      sources: [
+        'START’ın 1970’ten 2017’ye saldırı kaydı: her birinin yeri, silahları, hedefleri, kayıpları ve kısa bir özeti.',
+        '1970 öncesinden ve 2017 sonrasından, her birinin Vikipedi maddesi olan yaklaşık 800 saldırı.',
+      ],
+      freshness: 'Buradaki GTD verisi 2017’de biter; sonraki saldırılar yalnızca Wikidata’dan gelir, bu yüzden son yıllar seyrektir.',
+      limits: [
+        'Neyin terör sayılacağı GTD’nin tanımına dayanır: devlet dışı aktörlerin siyasi, ekonomik, dinî ya da toplumsal bir amaçla uyguladığı şiddet.',
+        '1993 yok: GTD o yılın kayıtlarını kaybetti.',
+        'Saldırıların yaklaşık üçte biri Irak, Pakistan, Afganistan ve Hindistan’da.',
+        'Yaklaşık yedide biri yalnızca şehre ya da bölgeye yerleştirilmiştir.',
+      ],
+    },
+    'earthquakes-in-history': {
+      title: 'Tarihteki depremler: 4.000 yılın önemli depremleri',
+      description:
+        'Yaklaşık 13.800 deprem tek haritada: NOAA’nın MÖ 2150 civarından beri önemli depremleri, EPICA’dan Avrupa’nın 1000–1899 depremleri ve 2026’dan beri USGS depremleri.',
+      heading: 'Tarihteki depremler',
+      lede: 'NOAA’nın MÖ 2150 civarından itibaren ölümcül, hasar verici ve büyük depremleri, EPICA’nın 1000’den 1899’a katalogladığı 5.300 Avrupa depremi ve TAKIP’in 2026’dan beri USGS’ten kaydettiği depremler.',
+      shows: [
+        'Yalnızca depremler, büyüklüğe göre boyutlanan sarı işaretler olarak; Tarih panelinden çevrelerindeki tsunamiler ve yanardağ patlamaları eklenebilir.',
+        'Kaynağın verdiği yerlerde büyüklüğü, derinliği, şiddeti, ölü sayısı ve hasarı ile EPICA’nın merkez üssündeki belirsizlik için bir depreme tıklayın.',
+        'Bu sayfadan açıldığında harita 1900’den bugüne oynatır.',
+      ],
+      sources: [
+        'Significant Earthquake Database: can alan, yaklaşık 1 milyon dolarlık hasar veren, 7,5 büyüklüğe ya da X şiddetine ulaşan veya tsunami yaratan depremler.',
+        'European PreInstrumental Earthquake Catalogue, 1.1 sürümü (Rovida ve Antonucci 2021, INGV): Avrupa’nın 1000’den 1899’a, büyüklüğü tahmin edilmiş depremleri.',
+        'TAKIP’in 2026’da kayda başlamasından beri USGS akışından kaydettiği depremler.',
+      ],
+      freshness: 'NOAA depremleri inceledikçe ekler; EPICA yayımlanmış bir katalogdur; USGS kaydı TAKIP çalıştıkça büyür.',
+      limits: [
+        'İki katalog aynı depremi içerdiğinde (EPICA’dakilerin yaklaşık 390’ı NOAA’da da var) deprem tek bir olaydır.',
+        'EPICA sayesinde 1900 öncesi Avrupa başka her yerden çok daha dolu: depremlerin yaklaşık sekizde biri tek başına İtalya’da.',
+        'Aletli ölçüm öncesi büyüklükler bildirilen hasardan tahmin edilir; depremlerin yaklaşık yedide birinin hiç büyüklüğü yok.',
+        'Yarıdan fazlası yalnızca bir bölgeye yerleştirilmiştir: eski bir merkez üssü belirsizdir, çoğu zaman onlarca kilometre.',
+      ],
+    },
+    'volcanic-eruptions-in-history': {
+      title: 'Tarihteki yanardağ patlamaları: haritada 11.000 patlama',
+      description:
+        'Smithsonian’ın Global Volcanism Program’ından ve NOAA’dan yaklaşık 11.500 patlama; çoğu son 12.000 yıldan, biliniyorsa her patlamanın büyüklüğüyle (VEI).',
+      heading: 'Tarihteki yanardağ patlamaları',
+      lede: 'Smithsonian’ın Volcanoes of the World veri kümesindeki patlamalar, çoğu son 12.000 yılda; NOAA’nın can alan, hasar veren ya da tsunami başlatan patlamalar kaydıyla birlikte.',
+      shows: [
+        'Patlamalar, yanardağın üzerinde doğal tehlike işaretleri olarak, hepsi aynı boyutta: Tarih tehlikeleri büyüklüğe göre boyutlar, patlamalarda ise büyüklük yoktur.',
+        'Volkanik Patlama İndeksi (dörtte üçü için biliniyor), nasıl tarihlendiği ve yanardağın Vikipedi maddesi için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 1800’den bugüne oynatır.',
+      ],
+      sources: [
+        'Global Volcanism Program’ın Volcanoes of the World veri kümesi, 5.3 sürümü: tarihleri, VEI değerleri ve nasıl tarihlendikleriyle Holosen patlamaları.',
+        'Significant Volcanic Eruptions Database: can alan, yaklaşık 1 milyon dolarlık hasar veren, VEI 6’ya ulaşan ya da bir tsunami veya büyük bir depremle birlikte gelen patlamalar.',
+      ],
+      freshness: 'Global Volcanism Program ve NOAA kayıtlarını gözden geçirir; TAKIP bunları veri kümeleri yeniden içe aktarıldığında alır.',
+      limits: [
+        'Yazılı kayıtlardan önceki patlamalar radyokarbon, tefra katmanları ya da göl varvlarıyla tarihlenir, bazıları yalnızca yüzyıl düzeyinde; beşte biri MS 1’den öncesine ait.',
+        'NOAA ile Smithsonian’ın aynı patlamayı kaydettiği yerlerde (yaklaşık 480) patlama tek bir olaydır.',
+        'Patlamaların neredeyse onda üçü Japonya ve Endonezya’da.',
+        'Vikipedi maddesi genellikle patlamaya değil, yanardağa aittir. Smithsonian’ın koşulları yalnızca ticari olmayan kullanıma izin verir.',
+      ],
+    },
+    'tsunamis-in-history': {
+      title: 'Tarihteki tsunamiler: haritada 2.300 tsunami',
+      description:
+        'NOAA’nın kaydettiği 2.300’ü aşkın tsunami, MÖ 1610 civarındaki Thera tsunamisinden bugüne tek haritada; ölçülmüşse ölü sayısı ve en yüksek suyla.',
+      heading: 'Tarihteki tsunamiler',
+      lede: 'NOAA’nın Global Historical Tsunami Database’indeki her tsunami; en eskisi MÖ 1610 civarında Thera’nın patlamasıyla oluşan. Her biri kaynağının bulunduğu bölgeye yerleştirilmiş.',
+      shows: [
+        'Yalnızca tsunamiler, kaynaklarında doğal tehlike işaretleri olarak; Tarih panelinden onlara yol açan depremler ve yanardağ patlamaları eklenebilir.',
+        'Ölü sayısı, en yüksek su ve suyun ölçüldüğü yerlerin sayısı için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 1800’den bugüne oynatır.',
+      ],
+      sources: ['Global Historical Tsunami Database; her olay için gözlemlenen dalga tırmanma yükseklikleriyle.'],
+      freshness: 'NOAA tsunamileri inceledikçe ekler; TAKIP bunları veri kümesi yeniden içe aktarıldığında alır.',
+      limits: [
+        'Yaklaşık dörtte birinde can kaybı kaydı var.',
+        'Yaklaşık yedide biri tek başına Japonya’da.',
+        'Yaklaşık 400’ü 1800 öncesine ait ve yazılı anlatımlardan biliniyor.',
+        'Vikipedi maddesi, varsa, genellikle depreme aittir.',
+      ],
+    },
+    'nuclear-tests-map': {
+      title: 'Nükleer denemeler haritası: 1945’ten 1998’e her patlama',
+      description:
+        '1945’teki Trinity denemesinden 1998’deki Pakistan denemelerine 2.051 nükleer patlama tek haritada, deneme deneme; her biri kiloton cinsinden gücüne göre boyutlu.',
+      heading: 'Nükleer patlamalar, 1945’ten 1998’e',
+      lede: 'Temmuz 1945’teki Trinity denemesinden Mayıs 1998’e, Hiroşima ve Nagasaki’ye atılan bombalar da dahil her nükleer patlama, deneme sahasına yerleştirilmiş.',
+      shows: [
+        'Her patlama, kiloton cinsinden gücüne göre boyutlanan yeşil bir işaret olarak.',
+        'Ülke, saha, tür (kule, havadan atış, yeraltı ve diğerleri), güç ve amaç için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 1945’ten 1998’e oynatır.',
+      ],
+      sources: ['SIPRI ve İsveç Ulusal Savunma Araştırma Enstitüsü’nün (FOA) derlediği, TidyTuesday’in yayımladığı hâliyle nükleer patlamalar listesi.'],
+      freshness: '1998’de biten kapalı bir liste; bu yüzden Kuzey Kore’nin 2006’dan itibaren yaptığı denemeler içinde yok.',
+      limits: [
+        'Buradaki patlamaların neredeyse yarısını ABD, geri kalanların çoğunu Sovyetler Birliği yaptı; Sovyet denemelerinin birçoğu bugünkü Kazakistan’daki Semipalatinsk’te.',
+        'Listenin lisansı belirtilmemiş.',
+      ],
+    },
+    'natural-disasters-since-1960': {
+      title: '1960’tan beri doğal afetler: sel, fırtına ve kuraklık',
+      description:
+        '1960’tan 2018’e yaklaşık 9.900 sel, fırtına, deprem, heyelan, kuraklık, sıcak ve soğuk hava dalgası tek haritada; Geocoded Disasters veri kümesinden.',
+      heading: '1960’tan beri doğal afetler',
+      lede: 'Uluslararası afet veritabanı EM-DAT’taki afetler, GDIS projesinin coğrafi kodladığı hâliyle: 1960’tan 2018’e yaklaşık 9.900 sel, fırtına, deprem, heyelan, kuraklık ve aşırı sıcaklık olayı.',
+      shows: [
+        'Her afet, etkilediği yerlerin ortasında, kaç yeri etkilediğine göre boyutlanan tek bir petrol mavisi işaret olarak.',
+        'Etkilediği il ya da ilçeler için birine tıklayın.',
+        'Bu sayfadan açıldığında harita yalnızca bu felaketleri gösterir; kıtlıkların, salgın hastalıkların, yangınların, kazaların ve gemi batıklarının her birinin kendi sayfası var.',
+        'Bu sayfadan açıldığında harita 1960’tan 2018’e oynatır.',
+      ],
+      sources: ['Geocoded Disasters 1960–2018 (Rosvold ve Buhaug, PRIO, NASA SEDAC aracılığıyla): EM-DAT’taki afetler, etkiledikleri yerlerle eşleştirilmiş.'],
+      freshness: '2018’de biten, yayımlanmış bir veri kümesi.',
+      limits: [
+        'Etkilenen yerler il ya da ilçelerdir; bu yüzden bir afet başladığı yerde değil, bunların ortasında çizilir.',
+        'Ölü ya da hasar yok: GDIS yerleri verir, EM-DAT’ın rakamları onun parçası değildir.',
+        'Olayların onda yedisi sel ve fırtınadır.',
+        'Bir deprem Tarih’te iki kez görünebilir: NOAA’nın depremi olarak ve burada etkilediği yerler olarak.',
+      ],
+    },
+    'border-changes-in-history': {
+      title: '1816’dan beri sınır değişiklikleri ve toprak talepleri',
+      description:
+        'Correlates of War’dan 1816’dan beri devletler arasında el değiştiren topraklar ve ICOW’dan 2001’e kadar toprak talepleri tek haritada; kazananı ve kaybedeniyle.',
+      heading: 'Sınır değişiklikleri ve toprak talepleri',
+      lede: '1816’dan beri toprağın bir devletten diğerine geçtiği yaklaşık 900 durum ve bir devletin başka bir devletin toprağı üzerinde öne sürdüğü yaklaşık 1.200 talep; her biri ilgili toprağa yerleştirilmiş.',
+      shows: [
+        'Her değişiklik ya da talep, toprağın üzerinde mor bir işaret olarak; bir talep, sürdürüldüğü süre boyunca haritada kalır.',
+        'Toprak, onu kimin kazanıp kimin kaybettiği, nasıl (fetih, devir, ilhak ve diğerleri), yüzölçümü ve nüfusu için bir değişikliğe tıklayın.',
+        'Toprak ve onun üzerinde kaç devlet çiftinin anlaşmazlığa düştüğü için bir talebe tıklayın.',
+        'Bu sayfadan açıldığında harita 1816’dan 2001’e oynatır.',
+      ],
+      sources: [
+        'Territorial Change, 6. sürüm: 1816’dan 2015’e devletler arası toprak devirleri.',
+        'Issue Correlates of War’un devletler arası toprak talepleri, 1816’dan 2001’e.',
+        '1938’den 1945’e Avrupa’da 81 ilhak ve işgal.',
+      ],
+      freshness: 'Yayımlanmış veri kümeleri; yazarları yeni bir sürüm yayımladığında değişir.',
+      limits: [
+        'Bir değişiklik, toprağın üzerinde tek bir noktadır; sınırların kendisini Tarih’in sınır katmanı Cliopatria’dan çizer.',
+        'Vikipedi maddesi genellikle değişiklikle değil, toprakla ilgilidir.',
+        'Talepler 2001’de, değişiklikler 2015’te biter.',
+      ],
+    },
+    'world-heritage-in-danger': {
+      title: 'Tehlike Altındaki Dünya Mirası: UNESCO listesi haritada',
+      description:
+        'UNESCO’nun Tehlike Altındaki Dünya Mirası Listesi’nin 2021 baskısındaki 89 Dünya Mirası alanı tek haritada; her biri kendi yerinde, Vikipedi maddesiyle.',
+      heading: 'Tehlike Altındaki Dünya Mirası',
+      lede: 'Antik kentlerden millî parklara, Dünya Mirası Listesi’nin 2021 baskısında UNESCO’nun Tehlike Altındaki Dünya Mirası Listesi’nde yer alan alanlar.',
+      shows: [
+        'Her alan, alanın kendisinde mavi bir işaret olarak.',
+        'Her biri için alanın Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita Tarih’i 2021’de gösterir.',
+      ],
+      sources: ['UNESCO’nun 2021’de yayımladığı hâliyle Dünya Mirası Listesi; tehlike altında olarak işaretlediği alanlarla.'],
+      freshness: '2021’in bir anlık görüntüsü: o tarihten önce listeden çıkarılan ya da sonra listeye eklenen alanlar burada yok.',
+      limits: [
+        'Alanların yaklaşık beşte biri Suriye, Kongo Demokratik Cumhuriyeti ve Libya’da.',
+        'Liste bir alanın tehlikede olduğunu söyler, nedenini söylemez; bunu madde ve UNESCO’nun sayfası söyler.',
+      ],
+    },
+    'military-operations': {
+      title: 'Tarihteki askeri harekâtlar: baskınlar ve hava saldırıları',
+      description:
+        'Wikidata’da kayıtlı 3.100’ü aşkın askeri harekât, baskın ve hava saldırısı; çoğu 20. ve 21. yüzyıldan, her biri savaşıldığı yere yerleştirilmiş.',
+      heading: 'Askeri harekâtlar',
+      lede: 'Wikidata’da kayıtlı, adı konmuş harekâtlar, baskınlar ve hava saldırıları; Antik Çağ’dan bu yılın savaşlarına. Yarıdan fazlası 20. yüzyıldan, neredeyse onda üçü 21. yüzyıldan.',
+      shows: [
+        'Tarih’teki çatışma olayları arasında harekâtlar; muharebeler ve savaşlarla aynı kırmızıda.',
+        'Her biri için tarihi, Vikipedi özeti ve yakınındaki muharebeler ve harekâtlarla bir sayfa.',
+        'Bu sayfadan açıldığında harita, 1939’dan 1945’e İkinci Dünya Savaşı’nı oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan askeri harekât, baskın ya da hava saldırısı öğeleri; %96’sının Vikipedi maddesi var.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; hâlâ süren savaşlardaki harekâtlar Wikidata onları kaydettikçe görünür.',
+      limits: [
+        'Üçte ikisi yalnızca bir bölgeye yerleştirilmiştir: bir harekât geniş bir alana yayılır, Wikidata ise ona tek bir nokta verir.',
+        'Ölü sayısı olanlar onda birden az.',
+        'En çok kayıt Ukrayna, Suriye, Japonya, Rusya, Vietnam ve Irak’a ait; birlikte yaklaşık dörtte bir.',
+      ],
+    },
+    'missile-tests-map': {
+      title: 'Füze denemeleri haritası: 1942’den beri 15.000 fırlatma',
+      description:
+        'Jonathan McDowell’ın fırlatma kaydından, 1942’deki V-2 denemelerinden bugüne 15.000’i aşkın füze fırlatması; her biri fırlatma sahasında ve sonucuyla.',
+      heading: '1942’den beri füze fırlatmaları',
+      lede: 'Gökbilimci Jonathan McDowell’ın kaydettiği balistik ve diğer füze fırlatmaları; Almanya’nın 1942’deki V-2 denemelerinden bu yıla, her biri fırlatıldığı sahaya yerleştirilmiş.',
+      shows: [
+        'Her fırlatma, fırlatma sahasında kehribar rengi bir işaret olarak, hepsi aynı boyutta.',
+        'Bir görünümde 2.000’den fazlası varsa sayılı balonlarda toplanırlar; her birini görmek için yakınlaştırın.',
+        'Füze, onu fırlatan kuvvet, saha ve başarılı olup olmadığı için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 1955’ten 1975’e oynatır.',
+      ],
+      sources: ['Jonathan McDowell’ın General Catalog of Artificial Space Objects’indeki füze fırlatma kaydı: araç, kurum, saha, apoje ve sonuç.'],
+      freshness: 'GCAT fırlatmalar gerçekleştikçe güncellenir; TAKIP onu veri kümesi yeniden içe aktarıldığında alır.',
+      limits: [
+        'Dörtte üçü ABD’den, Rusya’dan ya da Sovyetler Birliği’nin atış alanlarının bulunduğu Kazakistan’dan fırlatıldı.',
+        'Yalnızca denemeler değil: GCAT savaştaki kuvvetlerin fırlatmalarını da kaydeder; aralarında Husi hareketinin Yemen’den yaptığı yaklaşık 600 fırlatma var.',
+        'Fırlatmaların neredeyse onda birinin sonucu bilinmiyor ve bazı sahalar, kaynağın işaretlediği gibi, yalnızca olası sahalardır.',
+      ],
+    },
+    'revolutions-in-history': {
+      title: 'Tarihteki devrimler haritada',
+      description:
+        'Antik Çağ’dan 2025’e Wikidata’da kayıtlı yaklaşık 130 devrim tek haritada; çoğu 19. ve 20. yüzyılda, her biri Vikipedi maddesiyle.',
+      heading: 'Tarihteki devrimler',
+      lede: 'Wikidata’da kayıtlı devrimler, Antik Çağ’dan içinde bulunduğumuz on yıla. Beşte dördü 19. ve 20. yüzyıllara düşer.',
+      shows: [
+        'Her devrim, sürdüğü boyunca haritada kalan pembe bir siyaset işareti olarak.',
+        'Her biri için tarihleri ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1789’dan 1922’ye oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan devrim öğeleri; neredeyse hepsinin Vikipedi maddesi var.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; Wikidata büyüdükçe büyür.',
+      limits: [
+        'Küçük bir küme: devrim diye anılan her çalkantı değil, Wikidata’nın devrim olarak sınıflandırdıkları.',
+        'Neredeyse hepsi tek bir noktaya değil, bir bölgeye ya da ülkeye yerleştirilmiştir.',
+        'Hiçbir ülke bunların yaklaşık yirmide birinden fazlasına sahip değil.',
+      ],
+    },
+    'coups-in-history': {
+      title: '1945’ten beri darbeler: başarılı, başarısız ve tasarlanan',
+      description:
+        'Yaklaşık 1.400 darbe, başarısız girişim ve komplo tek haritada; 1945’ten beri Cline Center’ın darbe verisinden, daha eskileri Wikidata’dan, nasıl sonuçlandıklarıyla.',
+      heading: 'Hükümet darbeleri',
+      lede: 'Başarıya ulaşan darbeler, başarısız olan girişimler ve başlamadan durdurulan komplolar: Cline Center’ın 1945’ten beri tuttuğu kayıt ve Wikidata’nın daha önceki yüzyıllardan bildiği darbeler.',
+      shows: [
+        'Başarılı darbeler, başarısız girişimler ve komplolar üç ayrı siyaset olayı türü olarak; her biri açılır penceresinde ve sayfasında bu adla belirtilir.',
+        'Cline Center’ın kodladığı yerlerde, kimin gerçekleştirdiği (ordu, muhalifler, yönetici elit, yabancı destekçiler ve diğerleri) ve liderin akıbeti için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 1945’ten bugüne oynatır.',
+      ],
+      sources: [
+        'Coup d’État Project, 2.2.2 sürümü, Illinois Üniversitesi’nden: ülke ülke, 1945’ten beri darbeler, girişimler ve komplolar.',
+        'Tarihi ve yeri olan yaklaşık 480 darbe; birçoğu 1945 öncesinden.',
+      ],
+      freshness: 'Cline Center yeni sürümler yayımlar; Wikidata’dakiler Wikidata büyüdükçe büyür. İkisi de içe aktarılırken alınır.',
+      limits: [
+        'Cline Center bir darbeyi ülkenin o dönemki başkentine yerleştirir; bu yüzden üçte ikisi askerlerin hareket ettiği yerde değil, bir başkentte çizilir.',
+        'Cline Center ve Wikidata’nın aynı darbeyi kaydettiği yerlerde (yaklaşık 200) ikisi tek bir olaydır.',
+        'Burada en çok kayıt Bolivya ve Arjantin’e ait.',
+      ],
+    },
+    'peace-agreements': {
+      title: '1990’dan beri barış anlaşmaları haritada',
+      description:
+        'PA-X veritabanından, 1990’dan beri imzalanan yaklaşık 2.200 barış anlaşması: ilk görüşmeler, ateşkesler ve uzlaşmalar; her biri ilgili olduğu çatışmanın yerinde.',
+      heading: '1990’dan beri barış anlaşmaları',
+      lede: 'PA-X Peace Agreements Database’indeki her anlaşma: 1990’dan beri çatışmaları sona erdirmek ya da yönetmek için imzalanan ateşkesler, çerçeve anlaşmalar, ön müzakere metinleri ve uygulama anlaşmaları.',
+      shows: [
+        'Her anlaşma, imzalandığı gün, ilgili olduğu çatışmanın ortasında bir siyaset işareti olarak.',
+        'Barış süreci, aşaması, çatışmanın bir devletin içinde mi yoksa devletler arasında mı olduğu ve nasıl imzalandığı için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 1990’dan 2025’e oynatır.',
+      ],
+      sources: [
+        'PA-X Peace Agreements Database, 10. sürüm, Edinburgh Üniversitesi’ndeki PeaceRep’ten; koşulları yalnızca ticari olmayan kullanıma izin verir (CC BY-NC-SA 4.0).',
+      ],
+      freshness: 'PeaceRep PA-X’in yeni sürümlerini yayımlar; TAKIP bunları veri kümesi yeniden içe aktarıldığında alır.',
+      limits: [
+        'Bir anlaşma imzalandığı yere değil, ilgili olduğu çatışmaya yerleştirilir: yurt dışında imzalanan bir anlaşma da savaştaki ülkede görünür.',
+        'Üçte ikisi bir devletin içindeki çatışmalarla ilgilidir; altıda biri yerel anlaşmalardır.',
+        'Burada en çok kayıt Kolombiya, Filipinler, Bosna-Hersek ve Sudan’a ait; birlikte yaklaşık onda üç.',
+      ],
+    },
+    'riots-protests-and-strikes': {
+      title: 'Ayaklanmalar, protestolar ve grevler haritada: 18.000 olay',
+      description:
+        'Mass Mobilization Project’ten 1990–2020 arası hükümetlere karşı yaklaşık 14.800 protesto ve Wikidata’dan ayaklanmalar, protestolar ve grevler tek haritada.',
+      heading: 'Ayaklanmalar, protestolar ve grevler',
+      lede: 'Mass Mobilization Project’in kaydettiği hâliyle 1990’dan 2020’ye 166 ülkede hükümetlere karşı protestolar ve Wikidata’dan, yüzyıllar boyunca yaklaşık 3.400 ayaklanma, protesto ve grev.',
+      shows: [
+        'Protestolar, ayaklanmalar ve grevler üç ayrı siyaset olayı türü olarak; bir görünümde 2.000’den fazlası varsa sayılı balonlarda toplanırlar.',
+        'Mass Mobilization Project’in kodladığı yerlerde büyüklüğü, protestocuların talepleri ve devletin nasıl karşılık verdiği için bir protestoya tıklayın.',
+        'Bu sayfadan açıldığında harita 1990’dan 2020’ye oynatır.',
+      ],
+      sources: [
+        'David Clark ve Patrick Regan’ın 5.1 sürümü: gazete haberlerinden, 1990’dan 2020’ye hükümetlere karşı 50 ya da daha fazla kişinin katıldığı protestolar.',
+        'Tarihi ve yeri olan ayaklanmalar, protestolar ve grevler; neredeyse hepsinin Vikipedi maddesi var.',
+      ],
+      freshness: 'Mass Mobilization Project Mart 2020’de biter; sonraki olaylar yalnızca Wikidata’dan gelir.',
+      limits: [
+        'Mass Mobilization Project ABD’yi kapsamaz; bu yüzden buradaki ABD protestoları yalnızca Wikidata’da olanlardır.',
+        'Protestoların çoğu şehirlerine yerleştirilmiştir; yaklaşık yedide biri yalnızca ülkeye.',
+        'Haberlerin kodlamasına göre yarıdan fazlası devlet tarafından görmezden gelindi; yaklaşık on ikide biri ateş açılması ya da öldürmelerle karşılaştı.',
+      ],
+    },
+    'murders-and-shootings': {
+      title: 'Tarihteki cinayetler ve silahlı saldırılar haritada',
+      description:
+        '8. yüzyıldan 2026’ya, Vikipedi maddesi olan yaklaşık 3.600 cinayet ve silahlı saldırı tek haritada; kayıtlıysa öldürülenlerin sayısıyla.',
+      heading: 'Cinayetler ve silahlı saldırılar',
+      lede: 'Wikidata’da kayıtlı cinayetler ve silahlı saldırılar, neredeyse hepsi Vikipedi maddesiyle: bir suç istatistiği değil, hakkında yazılmış olaylar.',
+      shows: [
+        'Her biri, öldürülenlerin sayısına göre boyutlanan petrol mavisi bir işaret olarak; kayıtların neredeyse yarısı bu sayıyı verir.',
+        'Her biri için tarihi ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1960’tan bugüne oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan cinayet ya da silahlı saldırı öğeleri; %98’inin Vikipedi maddesi var.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; o zamandan beri orada eklenen bir olay bir sonraki içe aktarmadan sonra görünür.',
+      limits: [
+        'Yalnızca maddesi olan olaylar: kayıt polis rakamlarını değil, basını ve Vikipedi editörlerini izler.',
+        'Yaklaşık üçte biri ABD’de, yaklaşık altıda biri ise Britanya ve Japonya’da birlikte.',
+        'Yaklaşık beşte biri yalnızca bir ilçeye ya da ülkeye yerleştirilmiştir; Wikidata nokta vermediğinde bazıları öğenin açıklamasında adı geçen yere göre.',
+      ],
+    },
+    'transatlantic-slave-trade': {
+      title: 'Atlantik ötesi köle ticareti haritada',
+      description:
+        'SlaveVoyages veritabanlarından 1514–1866 arası yaklaşık 45.000 köle gemisi seferi; her biri ana satın alma limanında, gemiye bindirilen kişi sayısına göre boyutlu.',
+      heading: 'Atlantik ötesi köle ticareti',
+      lede: 'SlaveVoyages veritabanlarına kayıtlı seferler: 1514’ten 1866’ya Afrika’dan Amerika kıtalarına Atlantik’i aşan yaklaşık 34.000 ve Amerika kıtaları içinde yaklaşık 10.600 sefer.',
+      shows: [
+        'Her sefer, ana satın alma limanında bir noktadır ve veritabanlarının kaydettiği ya da tahmin ettiği hâliyle gemiye bindirilen kişi sayısına göre boyutlanır; limanlar kayıtlıysa bir çizgi, rotasını insanların karaya çıkarıldığı yere kadar taşır.',
+        'Bir görünümde 2.000’den fazla sefer varsa sayılı balonlarda toplanırlar; her birini görmek için yakınlaştırın.',
+        'Gemi, bayrağı ve kaptanı, rotası, gemiye bindirilen ve karaya çıkarılan kişiler ve seferin nasıl sona erdiği için bir sefere tıklayın.',
+        'Bu sayfadan açıldığında harita 1700’den 1866’ya oynatır.',
+      ],
+      sources: [
+        'Trans-Atlantic Slave Trade Database (2019): Afrika’dan Amerika kıtalarına yaklaşık 34.000 sefer.',
+        'Intra-American Slave Trade Database (1.0): Amerika kıtalarındaki limanlar arasında yaklaşık 10.600 sefer.',
+      ],
+      freshness: 'Yayımlanmış veritabanları; SlaveVoyages araştırmalar ortaya çıkardıkça sefer ekler, TAKIP de yeni bir sürümü içe aktarıldığında alır.',
+      limits: [
+        'Yaklaşık 7.900 seferde yalnızca “Afrika, liman belirtilmemiş” yazar: bunlar gerçek bir limanda değil, veritabanının bunun için verdiği tek noktada çizilir.',
+        'Daha birçoğu yalnızca Altın Sahili ya da Batı-Orta Afrika gibi bir bölgenin adını verir ve o bölgenin noktasında çizilir.',
+        'Gemiye bindirilen kişi sayıları kısmen veritabanlarının tahminleridir; tarihî verileri kamu malıdır, tahminler ise CC BY-NC 3.0 lisanslıdır.',
+      ],
+    },
+    'tropical-cyclones': {
+      title: '1842’den beri tropikal siklonlar: haritada 13.000 fırtına',
+      description:
+        'IBTrACS’ten 1842’den bugüne 13.000’i aşkın kasırga, tayfun ve siklon; her biri izi boyunca çizilir ve rüzgârlarının zirve yaptığı yerde bir nokta taşır.',
+      heading: '1842’den beri tropikal siklonlar',
+      lede: 'Dünyanın tropikal siklon izleri derlemesi IBTrACS’teki her fırtına; 1842’den bu sezona, her okyanus havzasında, her biri izi boyunca çizilir.',
+      shows: [
+        'Her fırtınanın izi ince bir çizgi olarak; rüzgârlarının en güçlü olduğu noktada bir doğal tehlike noktasıyla.',
+        'En yüksek rüzgârı, kategorisi, havzası ve zirveye ulaştığı zaman için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 2000’den 2025’e oynatır.',
+      ],
+      sources: [
+        'NOAA NCEI’nin International Best Track Archive for Climate Stewardship arşivi, 4.01 sürümü: dünyadaki tahmin kurumlarının izleri, birleştirilmiş hâlde.',
+      ],
+      freshness: 'IBTrACS, kurumlar en iyi iz analizlerini tamamladıkça fırtına ekler; TAKIP bunları veri kümesi yeniden içe aktarıldığında alır.',
+      limits: [
+        'Nokta, fırtınanın zirveye ulaştığı yeri gösterir; bu çoğu zaman denizin çok açıklarındadır. Çizgi ise karaya çıkış dâhil tüm yolunu gösterir.',
+        'Kategoriler, ABD kurumlarının bir dakikalık rüzgârlarına göre Saffir–Simpson ölçeğidir; bu rüzgârların olmadığı fırtınaların (yaklaşık yarısı) kategorisi yoktur.',
+        'Fırtınaların neredeyse üçte biri Kuzeybatı Pasifik’te; uydular okyanusları izlemeye başlamadan önce gemilerden ve karadan uzaktaki zayıf fırtınalar çoğu zaman gözden kaçıyordu.',
+      ],
+    },
+    'fireballs-map': {
+      title: 'Ateş topu haritası: 1988’den beri gökte patlayan meteorlar',
+      description:
+        'NASA CNEOS’un 1988’den beri kaydettiği yaklaşık 900 ateş topu, yani atmosferde patlayan meteorlar; aralarında 2013’teki Çelyabinsk de var, her biri enerjisiyle.',
+      heading: '1988’den beri ateş topları',
+      lede: 'Atmosferde parçalanan parlak meteorlar; NASA’nın Center for Near Earth Object Studies merkezinin 1988’den itibaren listelediği hâliyle, her biri patladığı görülen yere yerleştirilmiş.',
+      shows: [
+        'Her ateş topu, patladığı yerde bir doğal tehlike işareti olarak, hepsi aynı boyutta.',
+        'Kiloton cinsinden çarpma enerjisi, yaydığı enerji, irtifası ve hızı için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 1988’den bugüne oynatır.',
+      ],
+      sources: ['NASA JPL’deki Center for Near Earth Object Studies: ABD hükümetine ait sensörlerden ateş topu ve bolid raporları.'],
+      freshness: 'CNEOS ateş toplarını bildirildikçe, çoğu zaman haftalar sonra ekler; TAKIP bunları veri kümesi yeniden içe aktarıldığında alır.',
+      limits: [
+        'Yalnızca sensörlerin yakaladığı ve CNEOS’un bir yerle listelediği ateş topları; meteorların çoğu çok daha küçüktür.',
+        'Yaklaşık yarısı denizin üzerinde ya da herhangi bir yerleşimden uzakta patladı.',
+        'Açık ara en büyüğü, Şubat 2013’teki yaklaşık 440 kilotonluk Çelyabinsk ateş topu; yaklaşık sekizde biri bir kilotona ulaşır.',
+      ],
+    },
+    'famines-in-history': {
+      title: 'Tarihteki kıtlıklar haritada',
+      description:
+        'Japonya’nın 1181 Yōwa kıtlığından bu on yıla, Vikipedi maddesi olan kıtlıklar tek haritada: 67 kıtlık, her biri yaşandığı yere yerleştirilmiş.',
+      heading: 'Tarihteki kıtlıklar',
+      lede: 'Wikidata’da kayıtlı kıtlıklar, hepsi Vikipedi maddesiyle: Orta Çağ Japonya’sından ve Avrupa’nın 1315 Büyük Kıtlığı’ndan bu on yılda Sudan ve Gazze’ye.',
+      shows: [
+        'Her kıtlık, sürdüğü boyunca haritada kalan petrol mavisi bir felaket işareti olarak.',
+        'Her biri için tarihleri ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1700’den bugüne oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan kıtlık öğeleri.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; Wikidata büyüdükçe büyür.',
+      limits: [
+        '67 kıtlıktan oluşan küçük bir küme, tüm kıtlıklar olmaktan çok uzak; ölü sayısı verilmez, bunu madde verir.',
+        'Yarıdan fazlası yalnızca bir ülkeye yerleştirilmiştir.',
+        'Yaklaşık altıda biri Japonya’da; bunların birçoğu Edo dönemi kıtlıkları.',
+      ],
+    },
+    'epidemics-and-plague': {
+      title: 'Tarihte veba ve salgın hastalıklar: 7.000 salgın',
+      description:
+        'Biraben’in listesinden 1347–1900 arası Avrupa şehirlerinde yaklaşık 6.800 veba salgını ve Wikidata’dan MÖ 430’dan bugüne yaklaşık 400 salgın hastalık.',
+      heading: 'Veba ve salgın hastalıklar',
+      lede: 'Jean-Noël Biraben’in 1347’deki Kara Ölüm’den 1900’e şehir şehir listelediği veba salgınları ve Atina vebasından bu on yıla Wikidata’daki salgın hastalıklar.',
+      shows: [
+        'Her salgın, görüldüğü yıl, şehrinde petrol mavisi bir felaket işareti olarak; bir görünümde 2.000’den fazlası varsa sayılı balonlarda toplanırlar.',
+        'Maddesi olan her salgın hastalık için Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita vebanın yıllarını, 1347’den 1720’ye, Avrupa üzerinde oynatır.',
+      ],
+      sources: [
+        'Biraben’in veba salgınları listesi (1975–76), WSL’de Büntgen ve meslektaşlarınca sayısallaştırılmış: şehir ve yıl başına bir salgın.',
+        'Tarihi ve yeri olan salgın hastalık ya da pandemi öğeleri; çoğunun Vikipedi maddesi var.',
+      ],
+      freshness: 'Veba listesi kapalıdır; Wikidata’daki salgın hastalıklar veri kümesi içe aktarılırken alınır.',
+      limits: [
+        'Veba salgınları yalnızca Avrupa’yı ve Akdeniz kıyılarını, yalnızca da Biraben’in kayıt bulduğu şehirleri kapsar.',
+        'Fransa, salgınların neredeyse onda dördüyle fazla temsil edilir; Britanya’da yaklaşık altıda biri var.',
+        'Bir salgın yıl düzeyinde tarihlenir ve bir şehir, salgın ne kadar sürerse sürsün yılda bir kez sayılır.',
+        'İki kümede de ölü sayısı verilmez.',
+      ],
+    },
+    'fires-in-history': {
+      title: 'Tarihteki büyük yangınlar ve orman yangınları haritada',
+      description:
+        'MS 64’teki Büyük Roma Yangını’ndan bu yılınkilere, Wikidata’da kayıtlı yaklaşık 2.000 şehir, bina ve orman yangını; her biri yandığı yere yerleştirilmiş.',
+      heading: 'Yangınlar ve orman yangınları',
+      lede: 'Wikidata’da kayıtlı, şehirlerde ve binalarda yaklaşık 1.160 yangın ve yaklaşık 860 orman yangını. Onda altısı bu yüzyıldan.',
+      shows: [
+        'Her yangın, yandığı yerde petrol mavisi bir felaket işareti olarak; Wikidata’nın birkaç bölgeye yerleştirdiği bir orman yangını bunların ortasında çizilir.',
+        'Her biri için tarihleri, Wikidata veriyorsa ölü sayısı ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1990’dan bugüne oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan yangın ya da orman yangını öğeleri; %85’inin Vikipedi maddesi var.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; o zamandan beri orada eklenen bir yangın bir sonraki içe aktarmadan sonra görünür.',
+      limits: [
+        'Üçte birinden fazlası ABD’de ve bunların çoğu orman yangını.',
+        'Yaklaşık onda dördü yalnızca bir bölgeye yerleştirilmiştir.',
+        'Yaklaşık dörtte biri için ölü sayısı verilir; harita her yangını aynı boyutta çizer.',
+      ],
+    },
+    'plane-crashes': {
+      title: 'Tarihteki uçak kazaları: haritada 2.800+ hava felaketi',
+      description:
+        '1819’daki bir balon kazasından bu yılın kazalarına, Wikidata’da kayıtlı yaklaşık 2.900 hava felaketi; her biri yaşandığı yerde, ölü sayısıyla.',
+      heading: 'Uçak kazaları ve hava felaketleri',
+      lede: 'Wikidata’da kayıtlı kazalar, havada çarpışmalar ve diğer hava felaketleri, neredeyse hepsi Vikipedi maddesiyle. Üçte ikisi 20. yüzyıldan.',
+      shows: [
+        'Her kaza, yaşandığı yerde petrol mavisi bir felaket işareti olarak.',
+        'Her biri için tarihi, Wikidata veriyorsa ölü ve yaralı sayıları ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1950’den bugüne oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan havacılık kazası ya da olayı öğeleri; %96’sının Vikipedi maddesi var.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; o zamandan beri orada eklenen bir kaza bir sonraki içe aktarmadan sonra görünür.',
+      limits: [
+        'Yalnızca birinin hakkında yazdığı kazalar: neredeyse onda üçü ABD ve Rusya’da.',
+        'Yaklaşık onda üçü yalnızca bir bölgeye yerleştirilmiştir.',
+        'Yaklaşık beşte dördü için ölü sayısı verilir; harita her kazayı aynı boyutta çizer.',
+      ],
+    },
+    'rail-accidents': {
+      title: 'Tarihteki demiryolu kazaları: haritada 1.800 tren felaketi',
+      description:
+        '1815’ten bugüne Wikidata’da kayıtlı yaklaşık 1.800 tren kazası, raydan çıkma ve diğer demiryolu kazası; her biri yaşandığı yerde, ölü sayısıyla.',
+      heading: 'Demiryolu kazaları',
+      lede: 'Buharlı trenlerin ilk günlerinden bu yıla, Wikidata’da kayıtlı çarpışmalar, raydan çıkmalar ve diğer demiryolu kazaları; neredeyse hepsi Vikipedi maddesiyle.',
+      shows: [
+        'Her kaza, yaşandığı yerde petrol mavisi bir felaket işareti olarak.',
+        'Her biri için tarihi, Wikidata veriyorsa ölü ve yaralı sayıları ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1850’den bugüne oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan demiryolu kazası öğeleri; %96’sının Vikipedi maddesi var.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; o zamandan beri orada eklenen bir kaza bir sonraki içe aktarmadan sonra görünür.',
+      limits: [
+        'Yaklaşık üçte biri ABD, Britanya ve Almanya’da.',
+        'Yaklaşık onda üçü yalnızca bir bölgeye yerleştirilmiştir.',
+        'Neredeyse onda dokuzu için ölü sayısı verilir; harita her kazayı aynı boyutta çizer.',
+      ],
+    },
+    'accidents-in-history': {
+      title: 'Tarihteki maden, endüstriyel ve karayolu kazaları',
+      description:
+        'Wikidata’da kayıtlı yaklaşık 1.250 karayolu kazası, patlama, maden faciası, endüstriyel kaza ve izdiham; her biri yaşandığı yerde, ölü sayısıyla.',
+      heading: 'Kazalar: karayolları, madenler, patlamalar ve kalabalıklar',
+      lede: 'Uçak ya da tren dışında kalan, Vikipedi maddesi olan kazalar: yaklaşık 390 karayolu kazası, 380 patlama, 270 maden faciası, 120 endüstriyel kaza ve 100 izdiham.',
+      shows: [
+        'Her kaza, yaşandığı yerde petrol mavisi bir felaket işareti olarak; türü açılır penceresinde ve sayfasında belirtilir.',
+        'Her biri için tarihi, Wikidata veriyorsa ölü ve yaralı sayıları ve Vikipedi özetiyle bir sayfa.',
+        'Bu sayfadan açıldığında harita 1900’den bugüne oynatır.',
+      ],
+      sources: ['Tarihi ve yeri olan karayolu, maden ya da endüstriyel kaza, patlama ya da izdiham öğeleri; %90’ının Vikipedi maddesi var.'],
+      freshness: 'Veri kümesi içe aktarılırken Wikidata’dan alınır; o zamandan beri orada eklenen bir kaza bir sonraki içe aktarmadan sonra görünür.',
+      limits: [
+        'Yarıdan fazlası bu yüzyıldan.',
+        'Yaklaşık onda altısı için ölü sayısı verilir; harita her kazayı aynı boyutta çizer.',
+        'Yaklaşık üçte biri yalnızca bir bölgeye yerleştirilmiştir.',
+      ],
+    },
+    'ancient-shipwrecks': {
+      title: 'Akdeniz’in antik gemi batıkları haritada',
+      description:
+        'Oxford Roman Economy Project’in veritabanından, Akdeniz çevresinde bulunmuş, MÖ 2500 civarından MS 1500’e yaklaşık 1.500 antik ve Orta Çağ gemi batığı.',
+      heading: 'Antik gemi batıkları',
+      lede: 'Oxford Roman Economy Project’in Shipwrecks Database’indeki batıklar: Tunç Çağı’ndan 1500’e Akdeniz’de ve yakın denizlerde kaybolan gemiler; yarısı MS 1’den önce.',
+      shows: [
+        'Her batık, yattığı yerin yakınında içi boş petrol mavisi bir felaket işareti olarak.',
+        'Kayıtlıysa veritabanının onu nasıl tarihlendirdiği, dönemi, yükü ve bulunduğu bölge için birine tıklayın.',
+        'Bu sayfadan açıldığında harita MÖ 300’den MS 300’e oynatır.',
+      ],
+      sources: ['Shipwrecks Database, 2.1 sürümü (Strauss, Wilson ve Flohr 2017); A. J. Parker’ın antik batıklar kataloğu üzerine kurulu.'],
+      freshness: 'Yayımlanmış bir veritabanı; yalnızca yeni bir sürümle değişir.',
+      limits: [
+        'Konumlar, yağmacıları batıklardan uzak tutmak için bilerek bulanıklaştırılmıştır.',
+        'Bir batık buluntularından tarihlenir, çoğu zaman yalnızca bir yüzyıl ya da daha uzun bir aralığa; harita onu bu aralığın tamamı boyunca gösterir.',
+        'Neredeyse onda altısı İtalya ve Fransa’da.',
+        'Veritabanının lisansı belirtilmemiş.',
+      ],
+    },
+    'rocket-launch-history': {
+      title: 'Roket fırlatma tarihi: 1945’ten beri her fırlatma haritada',
+      description:
+        'Jonathan McDowell’ın fırlatma kaydından: 1957’deki Sputnik’ten bugüne yaklaşık 7.400 yörünge fırlatması, 1945’ten beri 52.000 yörünge altı roket; her biri sahasında.',
+      heading: '1945’ten beri roket fırlatmaları',
+      lede: 'Ekim 1957’deki Sputnik’ten beri her yörünge fırlatması ve 1945’ten beri her yörünge altı roket; havayı inceleyen sonda roketlerinden yeni fırlatma araçlarının denemelerine, her biri havalandığı sahada.',
+      shows: [
+        'Yörünge ve yörünge altı fırlatmalar, aynı yeşilde iki ayrı uzay olayı türü olarak, fırlatma sahalarında; bir görünümde 2.000’den fazlası varsa sayılı balonlarda toplanırlar.',
+        'Roket, faydalı yükü, kurum, rampa ve başarılı olup olmadığı için birine tıklayın.',
+        'Bu sayfadan açıldığında harita 1957’den bugüne oynatır.',
+      ],
+      sources: ['Jonathan McDowell’ın General Catalog of Artificial Space Objects’indeki yörünge ve yörünge altı fırlatma kayıtları: araç, faydalı yük, kurum, saha, apoje ve sonuç.'],
+      freshness: 'GCAT fırlatmalar gerçekleştikçe güncellenir; TAKIP onu veri kümesi yeniden içe aktarıldığında alır. Yaklaşan fırlatmaların canlı sayfası ayrıdır.',
+      limits: [
+        'Buradaki fırlatmaların neredeyse onda dokuzu yörünge altıdır ve bunların yarısı meteoroloji roketleridir.',
+        'Yaklaşık üçte biri rampanın kendisine, geri kalanların çoğu fırlatma sahasına yerleştirilmiştir.',
+        'Yörünge fırlatmalarının yaklaşık %7’si tamamen ya da kısmen başarısız oldu; yörünge altı uçuşların altıda birinin sonucu bilinmiyor.',
+        'Füze fırlatmalarının kendi sayfası var.',
+      ],
+    },
   },
 };
 

@@ -42,4 +42,12 @@ describe('LAYER_PAGES', () => {
     expect(url.searchParams.get('track')).toBe('satellite:25544');
     expect(url.searchParams.get('layers')).toContain('sat_science');
   });
+
+  it('opens History on only the kinds a page is about', () => {
+    const url = new URL(openPath(layerPage('plane-crashes', {})!), 'http://x');
+    expect(url.searchParams.get('view')).toBe('history');
+    expect(url.searchParams.get('families')).toBe('disaster');
+    expect(url.searchParams.get('kinds')).toBe('accident.aviation');
+    expect(new URL(openPath(layerPage('iss-tracker', {})!), 'http://x').searchParams.has('kinds')).toBe(false);
+  });
 });

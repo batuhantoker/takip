@@ -3,11 +3,13 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { isWorldSlug, worldMetadata, WorldPage } from '@/components/site/compare/world-page';
+import { TopicEvents } from '@/components/site/events/topic-events';
 import { LayerArticle } from '@/components/site/pages/layer-article';
 import { SiteFrame } from '@/components/site/pages/site-frame';
 import { requestLocale } from '@/lib/core/i18n/request';
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { worldSlugs } from '@/lib/platform/site/compare/world';
+import { topicEvents } from '@/lib/platform/site/events/topic-events';
 import { availablePages, layerPage, pagePath } from '@/lib/platform/site/layer-pages';
 import { liveLine } from '@/lib/platform/site/live/live-line';
 import { localePath } from '@/lib/platform/site/locale-path';
@@ -56,6 +58,7 @@ export default async function LayerPageRoute({ params }: Props) {
   const related = page.related.map(slug => layerPage(slug)).filter(p => !!p)
     .map(p => ({ page: pageIn(text, p), image: shotUrl(p.slug) }));
   const index = localePath(text.locale, '/map');
+  const events = page.eventKinds && topicEvents(page.eventKinds);
   return (
     <SiteFrame t={text.t} path={pagePath(page)} trail={[{ href: index, label: text.t('On the map') }]}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbs(origin, [
@@ -63,7 +66,8 @@ export default async function LayerPageRoute({ params }: Props) {
         { name: sectionIn(text, page.section).label, path: index },
         { name: page.heading, path: localePath(text.locale, pagePath(page)) },
       ])) }} />
-      <LayerArticle text={text} page={page} image={shotUrl(page.slug)} live={live} related={related} />
+      <LayerArticle text={text} page={page} image={shotUrl(page.slug)} live={live} related={related}
+        events={events ? <TopicEvents t={text.t} events={events} /> : undefined} />
     </SiteFrame>
   );
 }

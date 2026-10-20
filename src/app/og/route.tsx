@@ -4,6 +4,8 @@ import { getClientIp, isRateLimited } from '@/lib/core/net/ssrf-guard';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/lib/core/i18n/locales';
 import { getT } from '@/lib/core/i18n/request';
 import { ABOUT } from '@/lib/platform/site/about-copy';
+import { eventCard } from '@/lib/platform/site/events/card';
+import { isSlug } from '@/lib/platform/site/events/slug';
 import { layerPage } from '@/lib/platform/site/layer-pages';
 import { placeCard } from '@/lib/platform/site/places/card';
 import { ogFontFamily, ogFonts } from '@/lib/platform/site/og-fonts';
@@ -60,6 +62,7 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const pageParam = params.get('page');
   const placeParam = params.get('place');
+  const eventParam = params.get('event');
   const langParam = params.get('lang');
 
   let card: Card;
@@ -72,6 +75,13 @@ export async function GET(req: Request) {
     if (!found) return new Response('Not found', { status: 404 });
     card = found;
     key = `place:${placeParam}:${locale}`;
+  } else if (eventParam && isSlug(eventParam)) {
+    // An event's own words from the slug index (lib/platform/site/events), its place marked on the world sketch.
+    locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
+    const found = eventCard(eventParam, (await siteText(locale)).t);
+    if (!found) return new Response('Not found', { status: 404 });
+    card = found;
+    key = `event:${eventParam}:${locale}`;
   } else if (pageParam && /^[a-z0-9-]{1,64}$/.test(pageParam)) {
     locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
     const found = await readingCard(pageParam, locale);
@@ -93,7 +103,9 @@ export async function GET(req: Request) {
   // Drawing is CPU work on a small machine; cached cards above stay free.
   if (isRateLimited(`og:${getClientIp(req)}`, 30)) return new Response('Too many requests', { status: 429 });
 
-  const english = async () => (placeParam ? placeCard(placeParam, (await siteText(DEFAULT_LOCALE)).t) : pageParam ? await readingCard(pageParam, DEFAULT_LOCALE) : null);
+  const english = async () => (placeParam ? placeCard(placeParam, (await siteText(DEFAULT_LOCALE)).t)
+    : eventParam && isSlug(eventParam) ? eventCard(eventParam, (await siteText(DEFAULT_LOCALE)).t)
+    : pageParam ? await readingCard(pageParam, DEFAULT_LOCALE) : null);
   // A script Geist can't draw needs a font fetched for it; without one, the card is drawn in English.
   let fonts = await ogFonts(locale, `${card.kicker}${card.title}${card.subtitle}TAKIP`);
   if (fonts === null) {

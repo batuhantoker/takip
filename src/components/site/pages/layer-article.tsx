@@ -29,12 +29,14 @@ type Related = { page: LayerPage; image: string | null };
  * comes from, what it can't tell you, places to start, and pages that go with it. Copy arrives already in the
  * reader's language.
  */
-export function LayerArticle({ text, page, image, live, related }: {
+export function LayerArticle({ text, page, image, live, related, events }: {
   text: SiteText;
   page: LayerPage;
   image: string | null;
   live: LiveLine | null;
   related: Related[];
+  /** A History topic's own events (events/topic-events.tsx). */
+  events?: ReactNode;
 }) {
   const t: Translate = text.t;
   const section = sectionIn(text, page.section);
@@ -85,8 +87,8 @@ export function LayerArticle({ text, page, image, live, related }: {
 
           <Section title={t('Where the data comes from')}>
             <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
-              {page.sources.map(s => (
-                <li key={s.name} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
+              {page.sources.map((s, i) => (
+                <li key={`${s.name}-${i}`} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
                   <span className="text-[14px] font-medium text-ink-1 sm:w-48 sm:flex-shrink-0">{s.name}</span>
                   <span className="text-[14px] leading-relaxed text-ink-2">{s.detail}</span>
                 </li>
@@ -135,6 +137,8 @@ export function LayerArticle({ text, page, image, live, related }: {
           <AdSlot slot={AD_SLOTS.page} variant="page" />
         </aside>
       </div>
+
+      {events}
 
       {related.length > 0 && (
         <section className="mt-20">

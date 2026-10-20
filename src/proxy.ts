@@ -33,5 +33,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/map/:path*', '/about', '/embed', '/embed/:path*', '/city/:path*', '/town/:path*', '/county/:path*', '/state/:path*', '/country/:path*', '/compare', '/compare/:path*', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)/:path*'],
+  matcher: ['/', '/map/:path*', '/about', '/embed', '/embed/:path*', '/city/:path*', '/town/:path*', '/county/:path*', '/state/:path*', '/country/:path*', '/event/:path*', '/compare', '/compare/:path*', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)/:path*'],
 };

@@ -4,6 +4,10 @@ import { GROUND } from './catalog/ground';
 import { HAZARDS } from './catalog/hazards';
 import { NETWORK } from './catalog/network';
 import { PAST } from './catalog/past';
+import { PAST_ACCIDENTS } from './catalog/past-accidents';
+import { PAST_CONFLICT } from './catalog/past-conflict';
+import { PAST_NATURE } from './catalog/past-nature';
+import { PAST_POLITICS } from './catalog/past-politics';
 import { SEA } from './catalog/sea';
 import { SPACE } from './catalog/space';
 import { SPACE_VIEW } from './catalog/space-view';
@@ -30,7 +34,7 @@ export const SECTIONS: { id: SectionId; label: string; blurb: string }[] = [
 ];
 
 export const LAYER_PAGES: readonly LayerPage[] = [
-  ...AIR, ...SEA, ...SPACE, ...SPACE_VIEW, ...WEATHER, ...HAZARDS, ...CAMERAS, ...GROUND, ...WORLD, ...NETWORK, ...PAST, ...TOOLS,
+  ...AIR, ...SEA, ...SPACE, ...SPACE_VIEW, ...WEATHER, ...HAZARDS, ...CAMERAS, ...GROUND, ...WORLD, ...NETWORK, ...PAST, ...PAST_CONFLICT, ...PAST_POLITICS, ...PAST_NATURE, ...PAST_ACCIDENTS, ...TOOLS,
 ];
 
 /** Pages this server can back: a page whose layer needs a key the server lacks would promise a layer that isn't there. */
@@ -44,8 +48,10 @@ export function layerPage(slug: string, env: Record<string, string | undefined> 
 
 export const pagePath = (page: LayerPage) => `/map/${page.slug}`;
 
-/** "Open on the map": the page's layers at `view` (its own view by default). */
-export const openPath = (page: LayerPage, view: MapView | undefined = page.view) =>
-  mapHref({ layers: page.layers, view, track: page.track, mode: page.mode, panel: page.panel });
+/** "Open on the map": the page's layers at `view` (its own view by default); a History page draws only its kinds. */
+export const openPath = (page: LayerPage, view: MapView | undefined = page.view) => {
+  const mode = page.mode?.view === 'history' && page.eventKinds?.length ? { ...page.mode, kinds: page.eventKinds } : page.mode;
+  return mapHref({ layers: page.layers, view, track: page.track, mode, panel: page.panel });
+};
 
 export const sectionOf = (id: SectionId) => SECTIONS.find(s => s.id === id)!;

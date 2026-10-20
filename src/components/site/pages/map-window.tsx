@@ -7,7 +7,7 @@ import { WorldSketch } from './world-sketch';
  * The page's picture of the map, framed as a window onto it: the whole thing is a link into the full live map,
  * so the picture invites the click rather than standing in for the map.
  */
-export function MapWindow({ href, image, alt, cta, badge, points, priority = false, className = '' }: {
+export function MapWindow({ href, image, alt, cta, badge, points, focus, priority = false, className = '' }: {
   href: string;
   image: string | null;
   alt: string;
@@ -15,6 +15,8 @@ export function MapWindow({ href, image, alt, cta, badge, points, priority = fal
   /** A short label pinned to the corner, such as "Live". */
   badge?: string;
   points?: MapView[];
+  /** Without a picture, the sketch centres on this place. */
+  focus?: MapView;
   priority?: boolean;
   className?: string;
 }) {
@@ -25,7 +27,7 @@ export function MapWindow({ href, image, alt, cta, badge, points, priority = fal
         // eslint-disable-next-line @next/next/no-img-element -- served from .cache by our own route; next/image has no remote patterns here.
         ? <img src={image} alt={alt} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async"
             className="size-full object-cover transition-opacity duration-150 ease-out group-hover:opacity-90 motion-reduce:transition-none" />
-        : <WorldSketch points={points} />}
+        : <WorldSketch points={points} focus={focus} />}
       <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-surface-0/90 to-transparent" />
       {badge && (
         <span className="absolute top-3 left-3 flex items-center gap-1.5 rounded-control border border-line bg-surface-0/80 px-2 py-1 text-[12px] font-medium text-ink-1">
