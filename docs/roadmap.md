@@ -120,7 +120,7 @@ Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages
 4. Earthquake pages (`/quakes/<usgs id>`), only if they add what USGS's own page lacks (cameras, flights and ships near the epicentre); otherwise they are thin copies.
 5. Embeds, next (`architecture/embeds.md`, Scaling out): a place table (admin-0 and admin-1 boxes and names in ten languages, Natural Earth) for place-and-period pages; more windowed layers (FIRMS, IBTrACS, `history.db`'s events); then other sites (`frame-ancestors` on `/embed` only), which earns links back.
 6. Share cards in Arabic: Satori can't lay out Arabic, so `/og` draws them in English.
-7. Outreach: Show HN, r/MapPorn, r/space, r/aurora, r/OSINT, and short screen recordings of the globe. Measure with the referrers in Admin → Analytics and Search Console's queries.
+7. Outreach: Show HN, r/MapPorn, r/space, r/aurora, r/OSINT, and shorts (§1.9). Measure with the referrers in Admin → Analytics and Search Console's queries.
 8. (you) Visitors from search get the anonymous 15 minutes a day of map time. Decide whether a first visit should get more.
 9. Country names inside sentences: German and French need articles ("in der Schweiz", "au Japon"), Russian a case and Turkish a suffix, which a bare `{place}` can't carry, so some country pages read "in Schweiz". A per-language "in <country>" table for the 237 countries, used by the topics' copy.
 10. Place earthquake pages open History, which draws NOAA's damaging quakes, so the map shows fewer than the page counts (USGS M4.5+). A windowed USGS layer on the full map, as `/embed` has, would match.
@@ -140,10 +140,20 @@ Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/RE
 5. TI's action cards and tool summaries stay English, because the model reads them back. Translate them on screen only, keeping the stored text English.
 6. Every non-English page load inlines its language's catalog in the HTML: about 120 KB gzipped for Turkish and 145 KB for Russian (2026-10-19), against 17 KB for the whole English page. Serve each catalog as a hashed, cacheable script (`next/script` beforeInteractive) that the provider reads on the client and a per-locale server cache feeds during SSR, so repeat visits skip it.
 
+### 1.9 Shorts
+`npm run shorts` films 9:16 videos from the app with a voiceover in ten languages (`architecture/shorts.md`): deep time, borders, chronicles, event families, measures into the UN projections, a tour per `/map` feature, and today's situations through `shorts ideas`. `shorts library` writes every story's script for later (2026-10-20).
+1. (you) Record 15–20 s of the narrator's voice and put it at `AI-models/models/tts/voices/narrator.wav`; the clip there now is Kokoro's `af_heart`.
+2. Stories: a day's big quake with its region's past quakes (`/embed`'s windowed layer), active storms with NHC cones, and climate (CCKP projections are a model throughout, so say so).
+3. Tours: more than the Layers tap. History's time bar, an inspect window opened on a marker, TI answering a question, Space.
+4. `ideas`: the day's anniversaries in `history.db`, big fires, air-raid alerts (needs careful wording).
+5. Speed: a camera move into new ground waits on tiles each frame. Run the timeline once without capturing to fill the tile cache, then film.
+
 ## 2. After the action items
 
 - **Weather and disasters** (data-roadmap §1): the GDACS API with polygons, and USGS volcano alert levels; aviationweather.gov international SIGMETs (including volcanic ash) and METARs; the EMSC earthquake WebSocket; NWS / NHC alerts into ingest; MeteoAlarm; river levels and flood warnings; tsunami.gov CAP.
-- **More history** (data-roadmap §2): IBTrACS cyclone tracks; fix the timeline rebuild (it redoes the whole quake family on every load), then backfill USGS ComCat at M4.5+ and re-run `noaa-hazards --force`; the GDACS archive and NOAA Storm Events.
+- **More history** (data-roadmap §2): fix the timeline rebuild (it redoes the whole quake family on every load), then backfill USGS ComCat at M4.5+ and re-run `noaa-hazards --force`; the GDACS archive and NOAA Storm Events.
+- **Geolocation** (`architecture/geolocation.md`): a town and the same-named province tie and are refused (Okinawa, Cluj); merge a settlement into its same-name first-level division. Size hazard and disaster dots per kind (VEI, cyclone category, deaths) rather than by the family's quake magnitude.
+- **Wikipedia year pages** (`architecture/wikipedia-years.md`): fetched and measured for ten wikis, not yet imported into `data/db` (`cli.ts seed wikipedia-years-en … wikipedia-years-ja`). Next: "in X" text for wikis other than English (German "in Dublin" went to a later link); Persian has too few bullets to measure, so all its points are coarse; the Current events portals of other wikis; country-year pages in more wikis than English and French; a story line's event as context for Current events items measured 60 % and stays out.
 - **More history on demand:** GDELT raw files, FIRMS, ERA5, and OpenSky `/tracks/all` for the last 30 days.
 - **GDELT stories:** the live layer works; the ingest connector and history wait on §3.2 (`architecture/gdelt.md`).
 - **TI on live conflicts** (asked 2026-10-16, after the history tools `chronicle` and `past_event`): a read tool over GDELT, alerts and hazards ("what's flaring up near the Red Sea"), then a watch on a region or topic that notifies through alerts.
@@ -156,6 +166,7 @@ Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/RE
 3. **Cameras as their own product:** later.
 4. **Consent for the visitor id (2026-10-19):** the map now keeps a random visitor id in localStorage and sends it with each minute tick (`architecture/backend.md` §8; Admin → Analytics → Visitors). Under ePrivacy, an analytics id like this usually needs consent from visitors in the EU and UK; today it is disclosed on `/privacy` ("What we measure") but not asked. Options: ask first in those regions (and fall back to the daily address hash), or keep it as is.
 5. **Long-run country numbers** (researched 2026-10-16; Maddison GDP per person is already in through `owid-longrun`, value for value, and so is OWID's long-run population (HYDE, Gapminder, UN; year 0–2023) on today's countries). Maddison population and total GDP need: whether totals (population, GDP) may be drawn on historical polities like the USSR, which the series API would paint onto each successor's shape (an `apps/api` change); and Maddison's rule to cite its source papers wherever its data is shown.
+6. **Colour of the `events` family** (Wikipedia year pages, 2026-10-20): every categorical token is taken; it uses `MAP_INK.ink2` (#A4AAB2) as a placeholder in `src/lib/history/popup.ts`. Options: keep ink2 (light grey, reads as "general"), slate (#7F8B96, which `slavery` and the fallback already use), or a new categorical token added to `docs/design/README.md` first.
 
 ## 4. Known issues
 

@@ -106,9 +106,12 @@ For every source, record:
 | [`backend-schema.sqlite.sql`](./backend-schema.sqlite.sql) | The application database (`app.db`) |
 | [`replay-database.md`](./replay-database.md) | The history and replay data platform; schemas in `replay-schema.{sqlite,postgres}.sql` |
 | [`dataset-import-map.md`](./dataset-import-map.md) | How each raw dataset lands in the schema (`tools/import/`) |
+| [`geolocation.md`](./geolocation.md) | The offline geolocation index and resolver for history events, and the benchmark behind its rules (`tools/import/geo/`) |
+| [`wikipedia-years.md`](./wikipedia-years.md) | Events from Wikipedia's year pages and Current events, placed by their links (`tools/import/years/`, `fetch-years.ts`) |
 | [`data-inventory.md`](./data-inventory.md) | What data we hold today, where and how big |
 | [`data-roadmap.md`](./data-roadmap.md) | Live and historical sources to add, and what is broken now |
 | [`map-detail.md`](./map-detail.md) | More detail on the base map, and "who owns or runs this?" lookups |
 | [`gdelt.md`](./gdelt.md) | The GDELT story layer (parked) |
 | [`history-map-notes.md`](./history-map-notes.md) | Where History's map colours and popups come from |
+| [`shorts.md`](./shorts.md) | Short vertical videos filmed from the running app (`tools/shorts`) |
 | [`code-map.md`](./code-map.md) | What each src/lib domain, component group and API route family holds, and who uses it |

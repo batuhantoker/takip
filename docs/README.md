@@ -10,8 +10,11 @@
 | Reference | |
 |---|---|
 | [`cctv-adding-sources.md`](cctv-adding-sources.md) | Adding or fixing a camera source |
+| [`architecture/geolocation.md`](architecture/geolocation.md) | Placing history events on the map: the offline index of Wikipedia, Wikidata, GeoNames and Pleiades places (`data/db/geo-index.db`), the resolver, and its benchmark against known coordinates |
+| [`architecture/wikipedia-years.md`](architecture/wikipedia-years.md) | Dated events from Wikipedia's year pages in ten languages: fetch, placement by the articles each bullet links, duplicates, and the benchmark behind the accepted methods |
 | [`architecture/code-map.md`](architecture/code-map.md) | What each src/lib domain, component group and API route family holds, and who uses it |
 | [`architecture/embeds.md`](architecture/embeds.md) | The live map the public pages frame: `/embed/<slug>` and `/embed?…`, the spec a URL carries, past windows (earthquakes over any area and period) and how it scales to place-and-period pages |
+| [`architecture/shorts.md`](architecture/shorts.md) | Short vertical videos filmed from the app with a voiceover in ten languages: `npm run shorts`, how a frame is stepped, adding a story or tour |
 | [`architecture/public-pages.md`](architecture/public-pages.md) | What search engines and link previews see: share-link metadata, the `/map` layer pages, `/about`, the site address |
 | [`architecture/place-pages.md`](architecture/place-pages.md) | City and country pages (`/city/cincinnati/transit`): the gazetteer, topic tables, how to add a topic, what gets indexed |
 | [`architecture/compare-pages.md`](architecture/compare-pages.md) | Two countries side by side (`/compare/greece-vs-turkey/life-expectancy`) and each History measure around the world (`/map/life-expectancy`): what they say and what gets indexed |
