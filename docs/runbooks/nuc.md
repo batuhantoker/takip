@@ -22,6 +22,17 @@ All of them are systemd **user** services. Linger is on, so they start at boot w
 - **Restart:** `systemctl --user restart takip-web takip-api`.
 - **`intel` doesn't run.** `npm run dev` doesn't start it either, and its server binds every interface. `intel/node_modules` is tracked in git, so an `npm ci` there leaves a change that blocks `git pull`.
 
+## Boot and power
+
+The NUC has to come back by itself after a power cut, with nobody at the keyboard.
+
+- **Power-on:** the BIOS must have *After Power Failure* set to **Power On** (F2 at the Intel splash, or `systemctl reboot --firmware-setup` from the desktop; then Advanced → Power → Secondary Power Settings). *Last State* is not enough: it stays off if the power goes while the NUC is shut down.
+- **No login needed:** linger starts the user services at boot, before the login screen. The Wi‑Fi profile keeps its password system-wide, so it connects without a session, and the disk isn't encrypted. Checked on 2026-10-19: the tunnel was serving about 20 s after boot.
+- **The tunnel's first start fails** at every boot, because the user manager can't wait for `network-online.target` and DNS isn't up yet. `Restart=always` brings it back about 10 s later; the error in the journal is expected.
+- **No sleep:** Ubuntu sets the idle-suspend timeout to 0 for the login screen too, and `sik`'s session has automatic suspend off.
+- **GRUB** shows its menu for 30 s only when the previous boot didn't finish (`recordfail`); a power cut while running doesn't set it.
+- **Test it** by pulling the plug for 10 s while it runs. A plain `reboot` doesn't exercise the BIOS setting.
+
 ## The link
 
 https://takip.dev, and `www.takip.dev` (both in `~/.cloudflared/config.yml`). The domain is registered on Cloudflare (2026-10-19).
