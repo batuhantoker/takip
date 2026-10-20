@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { Translate } from '@/lib/core/i18n/translator';
-import { geocodeCell } from '@/lib/places/pointer-place';
+import { geocodeCell, TOWN_RETRY_MS, TOWN_TRIES } from '@/lib/places/pointer-place';
 import { seaName } from './format';
 
 export interface Place {
@@ -22,15 +22,23 @@ export function usePlaceName(lat: number | null, lng: number | null): Place | nu
   useEffect(() => {
     if (!key || cache.has(key) || lat == null || lng == null) return;
     let live = true;
-    const timer = setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const ask = (left: number) => {
       fetch(geocodeCell(lat, lng).url)
-        .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-        .then((d: { label?: string | null }) => {
+        .then(async r => {
+          if (!r.ok) throw new Error(String(r.status));
+          const d = (await r.json()) as { label?: string | null };
+          // A refused, failed or still-queued lookup is sent no-store: it isn't the sea, so ask again.
+          if (!d?.label && r.headers.get('cache-control')?.includes('no-store')) {
+            if (live && left > 1) timer = setTimeout(ask, TOWN_RETRY_MS, left - 1);
+            return;
+          }
           cache.set(key, d?.label ? { name: d.label, sea: false } : { name: seaName(lat, lng), sea: true });
           if (live) setLast(cache.get(key)!);
         })
         .catch(() => { /* the coordinates still show */ });
-    }, 300);
+    };
+    timer = setTimeout(ask, 300, TOWN_TRIES);
     return () => { live = false; clearTimeout(timer); };
     // lat/lng only matter through the rounded key
     // eslint-disable-next-line react-hooks/exhaustive-deps

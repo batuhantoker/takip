@@ -68,7 +68,7 @@ let chain: Promise<unknown> = Promise.resolve();
 let lastRequestAt = 0;
 
 /** Counted so the log can show what we are actually sending. */
-const stats = { served: 0, fromCache: 0, sent: 0, refused: 0, failed: 0 };
+const stats = { served: 0, fromCache: 0, sent: 0, refused: 0, failed: 0, late: 0 };
 
 const snapshotPath = () => process.env.TAKIP_NOMINATIM_CACHE || join(process.cwd(), '.cache', 'nominatim.json');
 
@@ -140,6 +140,11 @@ export async function nominatim<T>(
   options: {
     /** Answer from the cache or not at all — never send a request for this one. */
     cacheOnly?: boolean;
+    /**
+     * Give up waiting after this long and resolve null. The request stays
+     * queued and still fills the cache, so asking again later finds it.
+     */
+    waitMs?: number;
   } = {},
 ): Promise<T | null> {
   await ensureLoaded();
@@ -155,7 +160,7 @@ export async function nominatim<T>(
   }
 
   const pending = inflight.get(key);
-  if (pending) return pending as Promise<T | null>;
+  if (pending) return within(pending as Promise<T | null>, options.waitMs);
 
   if (options.cacheOnly || queueDepth >= MAX_QUEUE) {
     stats.refused++;
@@ -187,7 +192,20 @@ export async function nominatim<T>(
 
   chain = run.catch(() => undefined);
   inflight.set(key, run);
-  return run.finally(() => inflight.delete(key)) as Promise<T | null>;
+  return within(run.finally(() => inflight.delete(key)) as Promise<T | null>, options.waitMs);
+}
+
+function within<T>(answer: Promise<T | null>, waitMs: number | undefined): Promise<T | null> {
+  if (waitMs === undefined) return answer;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>(resolve => {
+    timer = setTimeout(() => {
+      stats.late++;
+      resolve(null);
+    }, waitMs);
+    timer.unref?.();
+  });
+  return Promise.race([answer, late]).finally(() => clearTimeout(timer));
 }
 
 /** How much we have asked of Nominatim since this process started. */

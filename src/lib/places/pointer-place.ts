@@ -14,6 +14,9 @@ export const REST_MS = 400;
 /** Countries failed to load: try again after this, not on every mouse move. */
 const RETRY_MS = 30_000;
 const MAX_CELLS = 2_000;
+/** The route stops waiting on a busy queue but keeps the lookup queued, so a resting pointer asks again this often. */
+export const TOWN_RETRY_MS = 2_000;
+export const TOWN_TRIES = 4;
 
 /** The route's 0.1° cell; asking for the centre keeps the URL, and so the browser's cached answer, the same. */
 export function geocodeCell(lat: number, lng: number) {
@@ -57,6 +60,7 @@ export function createPointerPlace(): PointerPlace {
   let countriesLoading = false;
   let countriesFailedAt = -Infinity;
   let rest: ReturnType<typeof setTimeout> | null = null;
+  let retrying: { key: string; asked: number } | null = null;
   /** The route's line per cell; null where it has no name (open sea). */
   const named = new Map<string, string | null>();
   const asking = new Set<string>();
@@ -94,8 +98,8 @@ export function createPointerPlace(): PointerPlace {
       .then(async res => {
         if (!res.ok) return;
         const body = (await res.json()) as { label?: string | null };
-        // A refused or failed lookup is sent no-store: ask again on a later rest rather than take it for open sea.
-        if (!body.label && res.headers.get('cache-control')?.includes('no-store')) return;
+        // A refused, failed or still-queued lookup is sent no-store: ask again rather than take it for open sea.
+        if (!body.label && res.headers.get('cache-control')?.includes('no-store')) return retryTown(cell);
         if (named.size >= MAX_CELLS) named.delete(named.keys().next().value!);
         named.set(cell.key, body.label || null);
         refresh();
@@ -104,12 +108,22 @@ export function createPointerPlace(): PointerPlace {
       .finally(() => asking.delete(cell.key));
   }
 
+  // Shares `rest` with follow(), so moving the pointer replaces the retry with its own rest and a fresh count.
+  function retryTown(cell: ReturnType<typeof geocodeCell>) {
+    const asked = retrying?.key === cell.key ? retrying.asked + 1 : 1;
+    if (asked >= TOWN_TRIES || !at || geocodeCell(at.lat, at.lng).key !== cell.key) return;
+    retrying = { key: cell.key, asked };
+    if (rest) clearTimeout(rest);
+    rest = setTimeout(() => { rest = null; askTown(cell); }, TOWN_RETRY_MS);
+  }
+
   // Nothing is fetched while no status bar shows the label: on a phone, or while a timeline replaces it.
   function follow() {
     if (!at || !listeners.size) return;
     ensureCountries();
     refresh();
     if (rest) clearTimeout(rest);
+    retrying = null;
     const cell = geocodeCell(at.lat, at.lng);
     rest = named.has(cell.key) ? null : setTimeout(() => askTown(cell), REST_MS);
   }

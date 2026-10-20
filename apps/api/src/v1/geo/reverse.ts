@@ -1,5 +1,5 @@
 import { createRoute, z, type RouteHandler } from '@hono/zod-openapi';
-import { ATTRIBUTION, nominatim } from '@takip/connectors/nominatim';
+import { ATTRIBUTION, nominatim, requestGapMs } from '@takip/connectors/nominatim';
 import { ErrorBody, json, queryParam } from '../schemas';
 
 interface ReverseRow {
@@ -9,14 +9,16 @@ interface ReverseRow {
 
 /** A tenth of a degree (about 11 km): a moving cursor reuses one answer, and it still names a city. */
 const GRID = 10;
+/** About one place in Nominatim's queue: a pan queues a lookup per cell, and the last one waited ~2 s per cell before it. */
+const WAIT_MS = requestGapMs() + 1_000;
 
-async function lookUp(lat: number, lng: number) {
+async function lookUp(lat: number, lng: number, waitMs?: number) {
   const row = await nominatim<ReverseRow>('reverse', {
     lat: (Math.round(lat * GRID) / GRID).toFixed(1),
     lon: (Math.round(lng * GRID) / GRID).toFixed(1),
     zoom: '10',
     addressdetails: '1',
-  });
+  }, { waitMs });
   const address = row?.address ?? {};
   const label = [
     address.city || address.town || address.village || address.county,
@@ -48,8 +50,8 @@ export const reverseRoute = createRoute({
   responses: {
     200: {
       description:
-        'The place name, or null when Nominatim has none. A null from a failed or refused lookup is sent with ' +
-        'Cache-Control: no-store.',
+        'The place name, or null when Nominatim has none. A null from a failed, refused or still-queued lookup is ' +
+        'sent with Cache-Control: no-store; a queued one is answered from the cache a few seconds later.',
       content: json(z.object({ label: z.string().nullable(), attribution: z.string() })),
     },
     400: { description: 'lat or lng is missing or out of range.', content: json(ErrorBody) },
@@ -65,7 +67,7 @@ export const reverse: RouteHandler<typeof reverseRoute> = async c => {
     return c.json({ error: 'lat and lng required' }, 400);
   }
 
-  const { row, label } = await lookUp(lat, lng);
+  const { row, label } = await lookUp(lat, lng, WAIT_MS);
 
   return c.json(
     { label: label || null, attribution: ATTRIBUTION },

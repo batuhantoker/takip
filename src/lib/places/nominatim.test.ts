@@ -80,6 +80,19 @@ describe('nominatim', () => {
     expect(httpJson.mock.calls.length).toBeLessThanOrEqual(40);
   }, 30_000);
 
+  it('stops a caller waiting on a long queue, but still asks for the next one', async () => {
+    httpJson.mockImplementation(async (url: string) => [{ name: new URL(url).searchParams.get('q') }]);
+    const ahead = Array.from({ length: 5 }, (_, i) => nominatim('search', { q: `ahead ${i}` }));
+
+    expect(await nominatim('search', { q: 'Ankara' }, { waitMs: 30 })).toBeNull();
+    expect(httpJson.mock.calls.length).toBeLessThan(6);
+    expect(nominatimStats()).toMatchObject({ late: 1 });
+
+    expect(await nominatim('search', { q: 'Ankara' })).toEqual([{ name: 'Ankara' }]);
+    await Promise.all(ahead);
+    expect(httpJson).toHaveBeenCalledTimes(6);
+  }, 30_000);
+
   it('leaves the configured gap between the requests it does send', async () => {
     httpJson.mockResolvedValue([]);
     const started = Date.now();

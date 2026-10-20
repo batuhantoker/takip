@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseBoundaries, type PickResult } from './areas/boundaries';
-import { REST_MS, createPointerPlace, geocodeCell, pointerPlace, townOf } from './pointer-place';
+import { REST_MS, TOWN_RETRY_MS, TOWN_TRIES, createPointerPlace, geocodeCell, pointerPlace, townOf } from './pointer-place';
 
 const square = (w: number, s: number, e: number, n: number) => [[w, s], [e, s], [e, n], [w, n], [w, s]];
 const fc = (features: [object, number[][]][]) => ({
@@ -155,5 +155,27 @@ describe('createPointerPlace', () => {
     await settle();
     expect(reverseCalls()).toHaveLength(3);
     expect(place.label()).toBe('West, Alpha');
+  });
+
+  it('asks again while the pointer rests on a still-queued lookup, a few times at most', async () => {
+    const place = shown();
+    reverse = { label: null, cache: 'no-store' };
+    place.point(5, 2);
+    await vi.advanceTimersByTimeAsync(REST_MS);
+    await settle();
+    for (let i = 0; i < TOWN_TRIES + 2; i++) {
+      await vi.advanceTimersByTimeAsync(TOWN_RETRY_MS);
+      await settle();
+    }
+    expect(reverseCalls()).toHaveLength(TOWN_TRIES);
+
+    place.point(5, 2.5);
+    await vi.advanceTimersByTimeAsync(REST_MS);
+    await settle();
+    reverse = { label: 'Townsville, Some Region, Alpha', cache: 'public, max-age=86400' };
+    await vi.advanceTimersByTimeAsync(TOWN_RETRY_MS);
+    await settle();
+    expect(reverseCalls()).toHaveLength(TOWN_TRIES + 2);
+    expect(place.label()).toBe('Townsville, West, Alpha');
   });
 });
