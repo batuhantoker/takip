@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { memoSource } from '@takip/connectors/advisories/source-memo';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,64 +25,70 @@ const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
   VE:[-66,8],VN:[106,16],YE:[48,15.5],ZM:[28,-14],ZW:[30,-20],
 };
 
+async function loadOutages() {
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - 86400; // Last 24 hours
+  const url = `https://api.ioda.inetintel.cc.gatech.edu/v2/outages/events?from=${from}&until=${now}&entityType=country&limit=200`;
+
+  const res = await fetch(url, {
+    signal: AbortSignal.timeout(12000),
+    cache: 'no-store',
+    headers: { 'User-Agent': 'TAKIP/0.1', 'Accept': 'application/json' },
+  });
+
+  console.log('[TAKIP] IODA response status:', res.status);
+
+  if (!res.ok) throw new Error(`IODA ${res.status}`);
+
+  const json = await res.json();
+  const events = json.data || [];
+
+  const outages = events
+    .filter((e: any) => {
+      // IODA uses "location" field like "country/RW"
+      const code = e.location?.split('/')[1];
+      return code && COUNTRY_CENTROIDS[code];
+    })
+    .map((e: any, i: number) => {
+      const code = e.location.split('/')[1];
+      const [lng, lat] = COUNTRY_CENTROIDS[code];
+      // Jitter so overlapping events don't stack
+      const jLng = ((i * 137.5) % 200 - 100) / 100 * 2;
+      const jLat = ((i * 251.3) % 200 - 100) / 100 * 2;
+      return {
+        id: `ioda-${code}-${i}`,
+        lat: lat + jLat,
+        lng: lng + jLng,
+        country: code,
+        code,
+        score: e.score || 0,
+        level: e.severity || 'unknown',
+        from: e.start,
+        until: e.start ? e.start + (e.duration || 0) : null,
+        datasource: (e.datasource || '').replace(/_/g, ' '),
+      };
+    });
+
+  return outages;
+}
+
+// Held here as well as by s-maxage: nothing in front of the NUC caches /api (Cloudflare answers DYNAMIC).
+const outagesMemo = memoSource(() => loadOutages().catch(error => {
+  console.error('[TAKIP] IODA fetch error:', error);
+  throw error;
+}), 5 * 60_000, 60_000);
+
 export async function GET() {
-  try {
-    const now = Math.floor(Date.now() / 1000);
-    const from = now - 86400; // Last 24 hours
-    const url = `https://api.ioda.inetintel.cc.gatech.edu/v2/outages/events?from=${from}&until=${now}&entityType=country&limit=200`;
-
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(12000),
-      cache: 'no-store',
-      headers: { 'User-Agent': 'TAKIP/0.1', 'Accept': 'application/json' },
-    });
-
-    console.log('[TAKIP] IODA response status:', res.status);
-
-    if (!res.ok) {
-      // Fallback: return empty but valid response
-      return NextResponse.json({ outages: [], total: 0, timestamp: new Date().toISOString(), source: 'IODA (offline)' });
-    }
-
-    const json = await res.json();
-    const events = json.data || [];
-
-    const outages = events
-      .filter((e: any) => {
-        // IODA uses "location" field like "country/RW"
-        const code = e.location?.split('/')[1];
-        return code && COUNTRY_CENTROIDS[code];
-      })
-      .map((e: any, i: number) => {
-        const code = e.location.split('/')[1];
-        const [lng, lat] = COUNTRY_CENTROIDS[code];
-        // Jitter so overlapping events don't stack
-        const jLng = ((i * 137.5) % 200 - 100) / 100 * 2;
-        const jLat = ((i * 251.3) % 200 - 100) / 100 * 2;
-        return {
-          id: `ioda-${code}-${i}`,
-          lat: lat + jLat,
-          lng: lng + jLng,
-          country: code,
-          code,
-          score: e.score || 0,
-          level: e.severity || 'unknown',
-          from: e.start,
-          until: e.start ? e.start + (e.duration || 0) : null,
-          datasource: (e.datasource || '').replace(/_/g, ' '),
-        };
-      });
-
-    return NextResponse.json({
-      outages,
-      total: outages.length,
-      timestamp: new Date().toISOString(),
-      source: 'IODA — Georgia Tech Internet Outage Detection',
-    }, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
-    });
-  } catch (error) {
-    console.error('[TAKIP] IODA fetch error:', error);
-    return NextResponse.json({ outages: [], total: 0, error: 'IODA unavailable' }, { status: 500 });
+  const memo = await outagesMemo();
+  if (!memo.loaded) {
+    return NextResponse.json({ outages: [], total: 0, timestamp: new Date().toISOString(), source: 'IODA (offline)' });
   }
+  return NextResponse.json({
+    outages: memo.value,
+    total: memo.value!.length,
+    timestamp: memo.fetchedAt,
+    source: 'IODA — Georgia Tech Internet Outage Detection',
+  }, {
+    headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+  });
 }

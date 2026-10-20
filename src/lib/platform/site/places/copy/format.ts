@@ -8,9 +8,17 @@ export const EN = createTranslator('en', {});
 /** Countries whose towns people name with their state or province. */
 const WITH_REGION = new Set(['US', 'CA', 'AU']);
 
+// Slow to build, and a sitemap or index page names thousands of places: one per language and kind.
+const formatters = new Map<string, unknown>();
+function formatter<T>(key: string, make: () => T): T {
+  let f = formatters.get(key) as T | undefined;
+  if (f === undefined) formatters.set(key, (f = make()));
+  return f;
+}
+
 export const countryName = (cc: string, t: Translate) => {
   try {
-    return new Intl.DisplayNames([t.intl], { type: 'region' }).of(cc) ?? cc;
+    return formatter(`region:${t.intl}`, () => new Intl.DisplayNames([t.intl], { type: 'region' })).of(cc) ?? cc;
   } catch {
     return cc;
   }
@@ -44,13 +52,15 @@ export function placeName(place: Place, t: Translate): string {
 }
 
 /** "a, b and c": English without the serial comma, like the rest of the site. */
-export const listOf = (items: string[], t: Translate) =>
-  new Intl.ListFormat(t.locale === 'en' ? 'en-GB' : t.intl, { type: 'conjunction' }).format(items);
+export const listOf = (items: string[], t: Translate) => {
+  const tag = t.locale === 'en' ? 'en-GB' : t.intl;
+  return formatter(`list:${tag}`, () => new Intl.ListFormat(tag, { type: 'conjunction' })).format(items);
+};
 
-export const count = (n: number, t: Translate) => new Intl.NumberFormat(t.intl).format(n);
+export const count = (n: number, t: Translate) => formatter(`number:${t.intl}`, () => new Intl.NumberFormat(t.intl)).format(n);
 
 export const dayOf = (iso: string, t: Translate) =>
-  new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(Date.parse(iso));
+  formatter(`day:${t.intl}`, () => new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })).format(Date.parse(iso));
 
 const MODE_PLURAL: Record<TransitMode, string> = {
   metro: msg('metro'), rail: msg('trains'), tram: msg('trams'), bus: msg('buses'), trolleybus: msg('trolleybuses'), ferry: msg('ferries'), cable: msg('cable cars'),

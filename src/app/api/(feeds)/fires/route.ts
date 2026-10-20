@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { httpJson } from '@/lib/core/net/http-json';
 import { bcUrl, cwfisUrl, parseBcFires, parseCwfis, type FireIncident } from './cwfis';
+import { memoSource } from '@takip/connectors/advisories/source-memo';
 import { loadFirms } from './firms';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,35 @@ async function loadIncidents(): Promise<FireIncident[]> {
   return incidentsInflight;
 }
 
+async function loadVolcanoes(): Promise<any[]> {
+  const volcRes = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=volcanoes&limit=50', {
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!volcRes.ok) throw new Error(`EONET ${volcRes.status}`);
+  const volcData = await volcRes.json();
+  return (volcData.events || []).map((e: any) => {
+    const geo = e.geometry?.[e.geometry.length - 1];
+    if (!geo?.coordinates) return null;
+    return {
+      lat: geo.coordinates[1],
+      lng: geo.coordinates[0],
+      brightness: 500,
+      confidence: 'high',
+      date: geo.date?.split('T')[0] || '',
+      time: '',
+      frp: 100,
+      title: `[VOLCANO] ${e.title}`,
+      type: 'volcano',
+    };
+  }).filter(Boolean);
+}
+
+// EONET takes about 3 s and nothing in front of the NUC caches /api (Cloudflare answers DYNAMIC); the route promises 10 minutes.
+const volcanoMemo = memoSource(() => loadVolcanoes().catch(e => {
+  console.warn('[TAKIP] Suppressed EONET error:', e instanceof Error ? e.message : e);
+  throw e;
+}), 10 * 60_000, 2 * 60_000);
+
 export async function GET() {
   try {
     const incidentsPromise = loadIncidents();
@@ -47,31 +77,11 @@ export async function GET() {
     let source = firms.source;
 
     // Source 2: Pull volcanoes from EONET for richer data
-    try {
-      const volcRes = await fetch('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&category=volcanoes&limit=50', {
-        signal: AbortSignal.timeout(10000),
-      });
-      if (volcRes.ok) {
-        const volcData = await volcRes.json();
-        const volcanoes = (volcData.events || []).map((e: any) => {
-          const geo = e.geometry?.[e.geometry.length - 1];
-          if (!geo?.coordinates) return null;
-          return {
-            lat: geo.coordinates[1],
-            lng: geo.coordinates[0],
-            brightness: 500,
-            confidence: 'high',
-            date: geo.date?.split('T')[0] || '',
-            time: '',
-            frp: 100,
-            title: `[VOLCANO] ${e.title}`,
-            type: 'volcano',
-          };
-        }).filter(Boolean);
-        fires = [...fires, ...volcanoes];
-        if (!source) source = 'NASA-EONET';
-      }
-    } catch (e) { console.warn('[TAKIP] Suppressed EONET error:', e instanceof Error ? e.message : e); }
+    const volcanoes = await volcanoMemo();
+    if (volcanoes.loaded) {
+      fires = [...fires, ...volcanoes.value!];
+      if (!source) source = 'NASA-EONET';
+    }
 
     return NextResponse.json({
       fires,

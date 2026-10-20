@@ -1,4 +1,4 @@
-import { allPlaces, nearestPlaces, type Place, type PlaceKind } from './gazetteer';
+import { allPlaces, DERIVED_TTL_MS, nearestPlaces, type Place, type PlaceKind } from './gazetteer';
 import type { PlaceTopic, TopicPage } from './topic';
 import { TOPICS } from './topics/registry';
 
@@ -6,9 +6,16 @@ import { TOPICS } from './topics/registry';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each topic has its own data type
 export interface PlacePageRef { topic: PlaceTopic<any, any>; page: TopicPage }
 
-/** Every topic page a place has, in the overview's order. */
+// Keyed by the place object, which a rebuilt gazetteer replaces. Sitemaps, index pages and nearby lists ask for every place.
+const held = new WeakMap<Place, { at: number; pages: PlacePageRef[] }>();
+
+/** Every topic page a place has, in the overview's order. Shared between callers: don't change it. */
 export function placePages(place: Place): PlacePageRef[] {
-  return TOPICS.filter(topic => topic.kinds.includes(place.kind)).flatMap(topic => topic.pages(place).map(page => ({ topic, page })));
+  const kept = held.get(place);
+  if (kept && Date.now() - kept.at < DERIVED_TTL_MS) return kept.pages;
+  const pages = TOPICS.filter(topic => topic.kinds.includes(place.kind)).flatMap(topic => topic.pages(place).map(page => ({ topic, page })));
+  held.set(place, { at: Date.now(), pages });
+  return pages;
 }
 
 export const findPlacePage = (place: Place, slug: string) => placePages(place).find(p => p.page.slug === slug);

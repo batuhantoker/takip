@@ -12,6 +12,12 @@ export const SITE_DATA = process.env.SITE_DATA_DIR || join(process.cwd(), 'data'
 /** A rebuilt file is read again when its time changes, checked at most this often. */
 export const DATA_RECHECK_MS = 30_000;
 
+/**
+ * How long what is worked out from the data (a place's pages, the sitemaps) is kept. Some topics count things
+ * at run time, so it still expires; under `next dev` it follows the data as quickly as the files are rechecked.
+ */
+export const DERIVED_TTL_MS = process.env.NODE_ENV === 'production' ? 60 * 60_000 : DATA_RECHECK_MS;
+
 let loaded: { mtime: number; checked: number; places: Place[]; bySlug: Map<string, Place>; byId: Map<number, Place>; regions: NonNullable<GazetteerFile['regions']> } | null = null;
 
 /** Both files' times, so rebuilding either is noticed. */

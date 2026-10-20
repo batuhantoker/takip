@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { stealthFetch } from '@/lib/core/net/stealth-fetch';
+import { memoSource } from '@takip/connectors/advisories/source-memo';
 
 export const dynamic = 'force-dynamic';
 
@@ -270,10 +271,12 @@ async function fetchAllLiveConflictData(): Promise<{ events: ConflictEvent[]; ev
   return { events: allEvents, eventsByRegion };
 }
 
+// Every request used to fetch the three feeds again: nothing in front of the NUC caches /api (Cloudflare answers DYNAMIC).
+const liveConflicts = memoSource(fetchAllLiveConflictData, 5 * 60_000, 60_000);
+
 export async function GET() {
   try {
-    // Fetch live conflict data from GDELT
-    const { events: liveEvents, eventsByRegion } = await fetchAllLiveConflictData();
+    const { events: liveEvents, eventsByRegion } = (await liveConflicts()).value ?? { events: [], eventsByRegion: {} };
 
     // Build enriched conflict zones
     const zones: ConflictZone[] = KNOWN_CONFLICTS.map(zone => {
