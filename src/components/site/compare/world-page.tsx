@@ -17,7 +17,8 @@ import { readingMetadata } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
 import { placePath } from '@/lib/platform/site/places/paths';
-import { basisOf, formatValue } from '@/lib/platform/site/places/topics/indicators-facts';
+import { SERIES_INK } from '@/lib/map/style/tokens';
+import { basisOf, formatNumber } from '@/lib/platform/site/places/topics/indicators-facts';
 import { siteText, type SiteText } from '@/lib/platform/site/text';
 import { ChartHeader } from './parts/chart-header';
 
@@ -41,34 +42,44 @@ export async function worldMetadata(slug: string): Promise<Metadata> {
   });
 }
 
-/** Every country's latest value, highest first, each leading to its own page for the measure. */
+/** Every country's latest value, highest first, each with a bar to scale and leading to its own page for the measure. */
 function Ranking({ w, text }: { w: WorldMeasure; text: SiteText }) {
   const { t } = text;
   const modelled = basisOf(w.spec) === 'modelled';
+  const top = Math.max(...w.ranked.map(r => Math.abs(r.v))) || 1;
   return (
-    <div className="max-h-[640px] overflow-auto rounded-card border border-line bg-surface-1">
-      <table className="w-full text-left text-[13px]">
-        <thead className="sticky top-0 bg-surface-2 text-ink-3">
-          <tr>
-            <th scope="col" className="px-4 py-2 font-medium">#</th>
-            <th scope="col" className="px-4 py-2 font-medium">{t('Country')}</th>
-            <th scope="col" className="px-4 py-2 font-medium">{modelled ? t('Latest, modelled') : t('Latest')}</th>
-            <th scope="col" className="px-4 py-2 font-medium">{t('Year')}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line text-ink-2">
-          {w.ranked.map((r, i) => (
-            <tr key={r.place.id}>
-              <td className="px-4 py-1.5 font-mono text-ink-3 tabular-nums">{i + 1}</td>
-              <th scope="row" className="px-4 py-1.5 font-normal">
-                <Link href={localePath(t.locale, placePath(r.place, w.spec.slug))} className="text-ink-1 hover:text-accent">{nameOf(r.place, t)}</Link>
-              </th>
-              <td className="px-4 py-1.5 font-mono tabular-nums">{formatValue(w.spec, r.v, t)}</td>
-              <td className="px-4 py-1.5 font-mono text-ink-3 tabular-nums">{r.year}</td>
+    <div className="flex flex-col gap-3">
+      <p className="text-[12px] text-ink-3">{t(w.spec.unit)} · {w.spec.by}</p>
+      <div className="max-h-[40rem] overflow-auto rounded-card border border-line bg-surface-1">
+        <table className="w-full text-[13px]">
+          <thead className="sticky top-0 z-10 bg-surface-2 text-ink-3">
+            <tr>
+              <th scope="col" className="w-12 px-3 py-2 text-right font-medium">#</th>
+              <th scope="col" className="px-3 py-2 text-left font-medium">{t('Country')}</th>
+              <th scope="col" className="px-3 py-2 text-right font-medium">{modelled ? t('Latest, modelled') : t('Latest')}</th>
+              <th scope="col" className="hidden w-[38%] px-3 py-2 sm:table-cell"><span className="sr-only">{t('Latest')}</span></th>
+              <th scope="col" className="w-16 px-3 py-2 text-right font-medium">{t('Year')}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-line text-ink-2">
+            {w.ranked.map((r, i) => (
+              <tr key={r.place.id} className="hover:bg-surface-2/60">
+                <td className="px-3 py-1.5 text-right font-mono text-ink-3 tabular-nums">{i + 1}</td>
+                <th scope="row" className="px-3 py-1.5 text-left font-normal">
+                  <Link href={localePath(t.locale, placePath(r.place, w.spec.slug))} className="text-ink-1 hover:text-accent">{nameOf(r.place, t)}</Link>
+                </th>
+                <td className="px-3 py-1.5 text-right font-mono whitespace-nowrap text-ink-1 tabular-nums">{formatNumber(r.v, w.spec.style, w.spec.digits, t)}</td>
+                <td aria-hidden className="hidden px-3 py-1.5 sm:table-cell">
+                  <span className="block h-1.5 rounded-full bg-surface-3">
+                    <span className="block h-full rounded-full" style={{ width: `${(Math.abs(r.v) / top) * 100}%`, background: SERIES_INK[0], opacity: r.v < 0 ? 0.45 : 0.85 }} />
+                  </span>
+                </td>
+                <td className="px-3 py-1.5 text-right font-mono text-ink-3 tabular-nums">{r.year}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -49,15 +49,21 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
   const view = current && TOPIC_VIEWS[current.topic.id];
   const Body = view?.Body;
   const Hero = view?.Hero;
+  const Wide = view?.Wide;
+  const Lead = view?.Lead;
+  const Aside = view?.Aside;
+  const Footer = view?.Footer;
   const openLabel = current?.topic.openLabel;
 
   return (
     <article>
       <PlaceHeader t={t} kicker={kicker} heading={copy.heading} lede={copy.lede} open={open} embed={embed} image={image} focus={focus}
         live={shown.length ? <LiveBox t={t} at={Math.min(...shown.map(s => s.at))} label={current?.topic.liveLabel}>{shown.map(s => s.node)}</LiveBox> : undefined}
-        hero={Hero && current ? <Hero text={text} place={place} page={current.page} /> : undefined} openLabel={openLabel && t(openLabel)} />
+        hero={Hero && current ? <Hero text={text} place={place} page={current.page} /> : undefined} openLabel={openLabel && t(openLabel)}
+        facts={Lead && current ? <Lead text={text} place={place} page={current.page} /> : undefined} />
       {listed.length > 1 && <TopicNav text={text} place={place} pages={pages} current={current?.page.slug} />}
 
+      {Wide && current && <div className="mt-16"><Wide text={text} place={place} page={current.page} /></div>}
       <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
         <div>
           {!current && listed.length > 0 && (
@@ -84,9 +90,11 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
           )}
         </div>
         <aside className="flex flex-col gap-10">
+          {Aside && current && <Aside text={text} place={place} page={current.page} />}
           <AdSlot slot={AD_SLOTS.page} variant="page" />
         </aside>
       </div>
+      {Footer && current && <div className="mt-16"><Footer text={text} place={place} page={current.page} /></div>}
 
       {nearby.length > 0 && (
         <section className="mt-20">

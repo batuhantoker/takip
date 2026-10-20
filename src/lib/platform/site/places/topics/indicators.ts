@@ -76,7 +76,8 @@ function measureCopy(place: Place, m: IndicatorMeasure, t: Translate): PlaceCopy
       t => t('{metric} in {place}, {start} to {to}: every year’s value charted and listed here, with its source and what it measures.', vars(t)),
     ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
     heading: t('{metric} in {place}', vars(t)),
-    lede: sentences.slice(0, 2).join(' '),
+    // The header's figures carry the rest (indicators-body.tsx).
+    lede: sentences[0],
   };
 }
 

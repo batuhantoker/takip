@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { BOX, domainOf, linePath, points, scales } from '@/components/site/places/topics/lib/chart-geometry';
+import { SparkYears } from '@/components/site/places/topics/parts/spark-years';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { SERIES_INK } from '@/lib/map/style/tokens';
 import type { PairMeasure } from '@/lib/platform/site/compare/compare';
@@ -14,15 +15,19 @@ function PairSparkline({ a, b, className }: { a: { e: Yearly; p?: Yearly }; b: {
   if (!domain) return null;
   const s = scales(domain);
   const stroke = { vectorEffect: 'non-scaling-stroke' as const, fill: 'none', strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, strokeWidth: 1.5 };
+  const measured = [a, b].filter(x => x.p).map(x => points(x.e).at(-1)?.[0]).filter((y): y is number => y !== undefined);
   return (
-    <svg viewBox={`0 0 ${BOX} ${BOX}`} preserveAspectRatio="none" aria-hidden className={cx('overflow-visible', className)}>
-      {[a, b].map((x, i) => (
-        <g key={i}>
-          <path d={linePath(points(x.e), s)} stroke={SERIES_INK[i]} {...stroke} />
-          {x.p && <path d={linePath(points(x.p), s)} stroke={SERIES_INK[i]} strokeDasharray="3 3" opacity={0.8} {...stroke} />}
-        </g>
-      ))}
-    </svg>
+    <>
+      <svg viewBox={`0 0 ${BOX} ${BOX}`} preserveAspectRatio="none" aria-hidden className={cx('overflow-visible', className)}>
+        {[a, b].map((x, i) => (
+          <g key={i}>
+            <path d={linePath(points(x.e), s)} stroke={SERIES_INK[i]} {...stroke} />
+            {x.p && <path d={linePath(points(x.p), s)} stroke={SERIES_INK[i]} strokeDasharray="3 3" opacity={0.8} {...stroke} />}
+          </g>
+        ))}
+      </svg>
+      <SparkYears domain={domain} measuredTo={measured.length ? Math.max(...measured) : undefined} />
+    </>
   );
 }
 
@@ -37,7 +42,7 @@ export function PairCard({ href, names, m, t, big = false }: { href: string; nam
           <span>{t('{place}: {v} in {year}', { place: names[i], v: formatValue(m.spec, s.f.last[1], t), year: String(s.f.last[0]) })}</span>
         </span>
       ))}
-      <PairSparkline a={m.a} b={m.b} className={cx('mt-1.5 w-full', big ? 'h-16' : 'h-8')} />
+      <PairSparkline a={m.a} b={m.b} className={cx('mt-auto w-full pt-1', big ? 'h-16' : 'h-12')} />
     </Link>
   );
 }

@@ -50,43 +50,81 @@ export const chartedFrom = (spec: IndicatorSpec, s: IndicatorSeries) => (spec.ea
 
 const MODELLED = msg('CMIP6 historical run, model median');
 
+type Sentences = { span: string; projection?: string; extremes?: string; rank?: string; world?: string; older?: string };
+
+function sentenceParts(spec: IndicatorSpec, s: IndicatorSeries, meta: IndicatorMetricMeta | undefined, place: string, t: Translate): Sentences {
+  const f = s.f;
+  const v = (x: number) => formatValue(spec, x, t);
+  const out: Sentences = {
+    span: t('{metric} in {place}: {first} in {from} and {last} in {to}, {basis, select, modelled {in the {by} climate models’ median run} observed {by {by} observations} other {by {by} estimates}}.', {
+      metric: t(spec.label), place, first: v(f.first[1]), from: at(f.first[0]), last: v(f.last[1]), to: at(f.last[0]), basis: basisOf(spec), by: spec.by,
+    }),
+  };
+  if (f.proj && spec.projection) {
+    const [year, pv, lo, hi] = f.proj;
+    const projection = projectionName(spec.projection, t);
+    out.projection = lo !== undefined && hi !== undefined && spec.projection.range
+      // WPP's bounds follow fertility, so for an ageing measure its "lower" bound is the higher value.
+      ? t('The {projection} puts it at {v} in {year}, between {lo} and {hi} ({range}).', { projection, v: v(pv), year: at(year), lo: v(Math.min(lo, hi)), hi: v(Math.max(lo, hi)), range: t(spec.projection.range) })
+      : t('The {projection} puts it at {v} in {year}.', { projection, v: v(pv), year: at(year) });
+  }
+  const ends = (p: [number, number]) => p[0] === f.first[0] || p[0] === f.last[0];
+  if (!ends(f.max) || !ends(f.min)) {
+    out.extremes = t('The highest was {max} in {maxYear}, the lowest {min} in {minYear}.', { max: v(f.max[1]), maxYear: at(f.max[0]), min: v(f.min[1]), minYear: at(f.min[0]) });
+  }
+  // A place shared with others (most countries at zero deaths) says nothing.
+  if (f.rank && f.rank.length === 2 && meta?.rankYear !== undefined) {
+    const [rank, n] = f.rank;
+    out.rank = t('{pos, select, top {In {year}, {place} had the highest value of {n} countries.} bottom {In {year}, {place} had the lowest value of {n} countries.} other {In {year}, {place} ranked {rank} of {n} countries, counting from the highest.}}', {
+      pos: rank === 1 ? 'top' : rank === n ? 'bottom' : 'other', year: at(meta.rankYear), place, rank, n,
+    });
+  }
+  if (f.world !== undefined) out.world = t('The world as a whole: {v} in {year}.', { v: v(f.world), year: at(f.last[0]) });
+  const older = spec.earlier ?? spec.longRun;
+  if (f.before && older) {
+    const bv = spec.longRun ? t(spec.longRun.value, { v: formatNumber(f.before[1], 'number', 0, t) }) : v(f.before[1]);
+    out.older = t('Older estimates from {by} reach back to {year}: {v}.', { by: older.by, year: at(f.before[0]), v: bv });
+  }
+  return out;
+}
+
 /**
  * The page's sentences in order: the span, the projection, the extremes, the rank, the World, the older run. The
  * first two are the lede.
  */
 export function indicatorSentences(spec: IndicatorSpec, s: IndicatorSeries, meta: IndicatorMetricMeta | undefined, place: string, t: Translate): string[] {
+  const p = sentenceParts(spec, s, meta, place, t);
+  return [p.span, p.projection, p.extremes, p.rank, p.world, p.older].filter((x): x is string => !!x);
+}
+
+/** What the page says beyond its lede and its figures: the projection, the extremes and the older run. */
+export function indicatorPoints(spec: IndicatorSpec, s: IndicatorSeries, meta: IndicatorMetricMeta | undefined, place: string, t: Translate): string[] {
+  const p = sentenceParts(spec, s, meta, place, t);
+  return [p.projection, p.extremes, p.older].filter((x): x is string => !!x);
+}
+
+export const indicatorLede = (spec: IndicatorSpec, s: IndicatorSeries, meta: IndicatorMetricMeta | undefined, place: string, t: Translate) =>
+  sentenceParts(spec, s, meta, place, t).span;
+
+/** A figure for the page's header: the number, and what it is. */
+export interface IndicatorStat { label: string; value: string; note?: string }
+
+/** The latest value, the change since the first, the rank, the World's value and the projection, where each exists. */
+export function indicatorStats(spec: IndicatorSpec, s: IndicatorSeries, meta: IndicatorMetricMeta | undefined, t: Translate): IndicatorStat[] {
   const f = s.f;
   const v = (x: number) => formatValue(spec, x, t);
-  const out: string[] = [
-    t('{metric} in {place}: {first} in {from} and {last} in {to}, {basis, select, modelled {in the {by} climate models’ median run} observed {by {by} observations} other {by {by} estimates}}.', {
-      metric: t(spec.label), place, first: v(f.first[1]), from: at(f.first[0]), last: v(f.last[1]), to: at(f.last[0]), basis: basisOf(spec), by: spec.by,
-    }),
-  ];
-  if (f.proj && spec.projection) {
-    const [year, pv, lo, hi] = f.proj;
-    const projection = projectionName(spec.projection, t);
-    out.push(lo !== undefined && hi !== undefined && spec.projection.range
-      // WPP's bounds follow fertility, so for an ageing measure its "lower" bound is the higher value.
-      ? t('The {projection} puts it at {v} in {year}, between {lo} and {hi} ({range}).', { projection, v: v(pv), year: at(year), lo: v(Math.min(lo, hi)), hi: v(Math.max(lo, hi)), range: t(spec.projection.range) })
-      : t('The {projection} puts it at {v} in {year}.', { projection, v: v(pv), year: at(year) }));
+  const out: IndicatorStat[] = [{ label: t('Latest, {year}', { year: at(f.last[0]) }), value: v(f.last[1]), ...(basisOf(spec) === 'modelled' && { note: t('Modelled') }) }];
+  if (f.first[0] !== f.last[0]) {
+    const d = f.last[1] - f.first[1];
+    const n = formatNumber(Math.abs(d), spec.style, spec.digits, t);
+    const signed = `${d > 0 ? '+' : d < 0 ? '−' : ''}${spec.value.includes('%') ? t('{v} percentage points', { v: n }) : t(spec.value, { v: n })}`;
+    out.push({ label: t('Since {year}', { year: at(f.first[0]) }), value: signed });
   }
-  const ends = (p: [number, number]) => p[0] === f.first[0] || p[0] === f.last[0];
-  if (!ends(f.max) || !ends(f.min)) {
-    out.push(t('The highest was {max} in {maxYear}, the lowest {min} in {minYear}.', { max: v(f.max[1]), maxYear: at(f.max[0]), min: v(f.min[1]), minYear: at(f.min[0]) }));
-  }
-  // A place shared with others (most countries at zero deaths) says nothing.
   if (f.rank && f.rank.length === 2 && meta?.rankYear !== undefined) {
-    const [rank, n] = f.rank;
-    out.push(t('{pos, select, top {In {year}, {place} had the highest value of {n} countries.} bottom {In {year}, {place} had the lowest value of {n} countries.} other {In {year}, {place} ranked {rank} of {n} countries, counting from the highest.}}', {
-      pos: rank === 1 ? 'top' : rank === n ? 'bottom' : 'other', year: at(meta.rankYear), place, rank, n,
-    }));
+    out.push({ label: t('Rank, {year}', { year: at(meta.rankYear) }), value: t('{rank} of {n}', { rank: f.rank[0], n: f.rank[1] }), note: t('counting from the highest') });
   }
-  if (f.world !== undefined) out.push(t('The world as a whole: {v} in {year}.', { v: v(f.world), year: at(f.last[0]) }));
-  const older = spec.earlier ?? spec.longRun;
-  if (f.before && older) {
-    const bv = spec.longRun ? t(spec.longRun.value, { v: formatNumber(f.before[1], 'number', 0, t) }) : v(f.before[1]);
-    out.push(t('Older estimates from {by} reach back to {year}: {v}.', { by: older.by, year: at(f.before[0]), v: bv }));
-  }
+  if (f.world !== undefined) out.push({ label: t('World, {year}', { year: at(f.last[0]) }), value: v(f.world) });
+  if (f.proj && spec.projection) out.push({ label: t('Projected, {year}', { year: at(f.proj[0]) }), value: v(f.proj[1]), note: projectionName(spec.projection, t) });
   return out;
 }
 

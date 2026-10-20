@@ -143,9 +143,28 @@ export function pairOverviewCopy(pair: CountryPair, measures: PairMeasure[], t: 
       t => t('{a} and {b} compared on {n} measures, each charted year by year for both from {from} to {to}.', vars(t)),
     ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
     heading: t('{a} vs {b}', vars(t)),
-    lede: [
-      t('{n} measures {a} and {b} both have, from {from} to {to}, each charted for the two side by side.', vars(t)),
-      ...(le ? [pairSentences(pair, le, t)[0]] : []),
-    ].join(' '),
+    lede: le ? t('How {a} and {b} compare on {n} measures, from {from} to {to}. The main differences:', vars(t))
+      : t('How {a} and {b} compare on {n} measures, from {from} to {to}.', vars(t)),
   };
+}
+
+/** The overview's bullets, in this order where both have the measure. */
+const HIGHLIGHTS = ['life-expectancy', 'gdp-per-person', 'population', 'military-spending', 'co2-per-person', 'democracy'];
+const MAX_HIGHLIGHTS = 5;
+
+/** "Life expectancy" / "In 2023, Singapore was higher: 83.7 years against 79.3 years". */
+export function pairHighlights(pair: CountryPair, measures: PairMeasure[], t: Translate): { metric: string; line: string }[] {
+  const { a, b } = names(pair, t);
+  return HIGHLIGHTS.flatMap(slug => {
+    const m = measures.find(x => x.spec.slug === slug);
+    const f = m && pairFacts(m);
+    if (!m || !f) return [];
+    const v = (x: number) => formatValue(m.spec, x, t);
+    const line = f.lead === 'tie'
+      ? t('In {year}, both had {v}', { year: at(f.year), v: v(f.av) })
+      : t('In {year}, {lead} was higher: {lv} against {ov}', {
+        year: at(f.year), lead: f.lead === 'a' ? a : b, lv: v(f.lead === 'a' ? f.av : f.bv), ov: v(f.lead === 'a' ? f.bv : f.av),
+      });
+    return [{ metric: t(m.spec.label), line }];
+  }).slice(0, MAX_HIGHLIGHTS);
 }

@@ -1,6 +1,7 @@
 import type { Translate } from '@/lib/core/i18n/translator';
 import type { IndicatorSpec, Yearly } from '@/lib/platform/site/places/topics/indicators-data';
-import { formatValue, seriesNames } from '@/lib/platform/site/places/topics/indicators-facts';
+import { SERIES_INK } from '@/lib/map/style/tokens';
+import { formatNumber, formatValue, seriesNames } from '@/lib/platform/site/places/topics/indicators-facts';
 import { chartWords, measureLines, tickFormat, type Charted } from '../lib/indicator-lines';
 import { IndicatorChart } from './indicator-chart';
 import type { TableColumn } from './indicator-table';
@@ -29,19 +30,29 @@ export function MeasureChartCard({ id, spec, places, world, title, desc, t, band
   );
 }
 
-/** The table's columns: each place's series as the chart draws them, then the World's. */
-export function measureColumns(spec: IndicatorSpec, places: Charted[], world: World, t: Translate): TableColumn[] {
+/**
+ * The year table for the chart: a column a place, its older run and projection folded in, and the World's; a model
+ * run beside measurements (temperature) gets its own column, which its projection continues.
+ */
+export function measureTable(spec: IndicatorSpec, places: Charted[], world: World, t: Translate) {
   const names = seriesNames(spec, t);
   const one = places.length === 1;
-  const label = (place: string, series: string) => (one ? series : t('{place}: {series}', { place, series }));
-  return [
-    ...places.flatMap(({ label: place, series: s }) => [
-      { label: one ? names.main : place, series: s.e, est: s.est, unc: s.unc },
-      ...(spec.earlier && s.l && names.earlier ? [{ label: label(place, names.earlier), series: s.l }] : []),
-      ...(s.m && names.model ? [{ label: label(place, names.model), series: s.m }] : []),
-      ...(s.p && names.projection ? [{ label: label(place, names.range ? `${names.projection} (${names.range})` : names.projection), series: s.p, lo: s.lo, hi: s.hi }] : []),
-    ]),
-    ...(world ? [{ label: t('World'), series: world.e }] : []),
-    ...(world?.p ? [{ label: t('World, projected'), series: world.p }] : []),
+  const ink = (slot: number) => (one ? undefined : SERIES_INK[slot % SERIES_INK.length]);
+  const columns: TableColumn[] = [
+    ...places.flatMap(({ label: place, series: s, slot }) => {
+      const proj = { proj: s.p, lo: s.lo, hi: s.hi };
+      return [
+        { label: s.m && one ? names.main : place, ink: ink(slot), main: s.e, older: spec.earlier ? s.l : undefined, est: s.est, unc: s.unc, ...(s.m ? {} : proj) },
+        ...(s.m && names.model ? [{ label: one ? names.model : t('{place}: {series}', { place, series: names.model }), ink: ink(slot), main: s.m, ...proj }] : []),
+      ];
+    }),
+    ...(world ? [{ label: t('World'), main: world.e, proj: world.p }] : []),
   ];
+  return {
+    columns,
+    caption: `${t(spec.unit)} · ${spec.by}`,
+    number: (v: number) => formatNumber(v, spec.style, spec.digits, t),
+    projection: names.projection,
+    older: names.earlier,
+  };
 }

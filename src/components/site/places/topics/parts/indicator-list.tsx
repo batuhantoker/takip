@@ -29,13 +29,13 @@ export function MeasureCard({ place, m, t, spark = true, big = false }: { place:
       className={cx('flex h-full flex-col gap-1 rounded-card border border-line bg-surface-1 p-3 hover:border-line-strong', FOCUS_RING, TRANSITION)}>
       <span className="text-[14px] font-medium text-ink-1">{t(m.data.spec.label)}</span>
       <span className="text-[12px] text-ink-3">{latestLine(m.data, t)}</span>
-      {spark && <Sparkline e={s.e} p={s.p} ink={SERIES_INK[0]} className={cx('mt-2 w-full', big ? 'h-16' : 'h-8')} />}
+      {spark && <Sparkline e={s.e} p={s.p} ink={SERIES_INK[0]} className={cx('mt-auto w-full pt-1.5', big ? 'h-16' : 'h-12')} />}
     </Link>
   );
 }
 
 /** Every measure the place has, under its group's name, in the table's order. */
-export function MeasureGroups({ place, measures, t, spark = true, skip }: { place: Place; measures: Measure[]; t: Translate; spark?: boolean; skip?: string }) {
+export function MeasureGroups({ place, measures, t, spark = true, skip, wide = false }: { place: Place; measures: Measure[]; t: Translate; spark?: boolean; skip?: string; wide?: boolean }) {
   return (
     <div className="flex flex-col gap-8">
       {INDICATOR_GROUPS.map(g => {
@@ -44,7 +44,7 @@ export function MeasureGroups({ place, measures, t, spark = true, skip }: { plac
         return (
           <section key={g.id}>
             <h3 className="text-[15px] font-semibold text-ink-1">{t(g.label)}</h3>
-            <ul className={cx('mt-3 grid gap-3', spark ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2')}>
+            <ul className={cx('mt-3 grid gap-3', spark ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2', spark && wide && 'xl:grid-cols-4')}>
               {inGroup.map(m => <li key={m.slug}><MeasureCard place={place} m={m} t={t} spark={spark} /></li>)}
             </ul>
           </section>

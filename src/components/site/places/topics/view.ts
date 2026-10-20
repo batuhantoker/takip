@@ -16,6 +16,14 @@ export interface TopicView<D, L = never> {
   Live?(props: TopicViewProps<D> & { live: L }): ReactNode;
   /** Shown in the header instead of the live map, which can't show this topic. */
   Hero?(props: TopicViewProps<D>): ReactNode;
+  /** In the header under the lede: the page's figures. */
+  Lead?(props: TopicViewProps<D>): ReactNode;
+  /** Across the page's whole width, between the header and the body's column. */
+  Wide?(props: TopicViewProps<D>): ReactNode;
+  /** Beside the body, above the ad. */
+  Aside?(props: TopicViewProps<D>): ReactNode;
+  /** Across the page's whole width, after the body. */
+  Footer?(props: TopicViewProps<D>): ReactNode;
   /** On the place's overview, below its pages, for the listed page: the topic at a glance. */
   Overview?(props: TopicViewProps<D>): ReactNode;
 }

@@ -8,7 +8,7 @@ import { MeasureChartCard } from '@/components/site/places/topics/parts/measure-
 import { requestLocale } from '@/lib/core/i18n/request';
 import { AD_SLOTS } from '@/lib/platform/ads';
 import { comparePath, pairMeasures, pairOpen } from '@/lib/platform/site/compare/compare';
-import { pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairSentences } from '@/lib/platform/site/compare/compare-copy';
+import { pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairSentences } from '@/lib/platform/site/compare/compare-copy';
 import { parsePairSlug } from '@/lib/platform/site/compare/pairs';
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { localePath } from '@/lib/platform/site/locale-path';
@@ -18,7 +18,7 @@ import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
 import { siteText } from '@/lib/platform/site/text';
 import { ChartHeader } from './parts/chart-header';
-import { PairMeasureBody, PairOverviewBody, PairOverviewHero } from './parts/pair-bodies';
+import { PairMeasureBody, PairMeasureGrid, PairOverviewBody, PairOverviewHero } from './parts/pair-bodies';
 
 /** The pair and measure a URL names, if any. Shared by the metadata and the page within one request. */
 const load = cache(async (slug: string, measure?: string) => {
@@ -75,17 +75,22 @@ export async function ComparePage({ slug, measure }: { slug: string; measure?: s
         { name: copy.heading, path: localePath(text.locale, path) },
       ])) }} />
       <article>
-        <ChartHeader kicker={trail[trail.length - 1]} heading={copy.heading} lede={copy.lede} open={open} openLabel={t('Watch it change on the map')} hero={hero} />
+        <ChartHeader kicker={trail[trail.length - 1]} heading={copy.heading} lede={copy.lede} open={open} openLabel={t('Watch it change on the map')} hero={hero}
+          points={current ? undefined : pairHighlights(pair, measures, t)} />
+        {!current && <div className="mt-16"><PairMeasureGrid text={text} pair={pair} names={names} measures={measures} /></div>}
         <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
           <div>
             {current
-              ? <PairMeasureBody text={text} pair={pair} names={names} m={current} measures={measures} />
+              ? <PairMeasureBody text={text} pair={pair} names={names} m={current} />
               : <PairOverviewBody text={text} pair={pair} names={names} measures={measures} />}
           </div>
           <aside className="flex flex-col gap-10">
             <AdSlot slot={AD_SLOTS.page} variant="page" />
           </aside>
         </div>
+        {current && measures.length > 1 && (
+          <div className="mt-16"><PairMeasureGrid text={text} pair={pair} names={names} measures={measures} skip={current.spec.slug} /></div>
+        )}
       </article>
     </SiteFrame>
   );

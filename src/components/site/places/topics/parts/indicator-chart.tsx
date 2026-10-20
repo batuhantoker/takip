@@ -2,6 +2,7 @@ import { cx } from '@/components/ui/class-names';
 import type { Yearly } from '@/lib/platform/site/places/topics/indicators-data';
 import { bandPath, BOX, domainOf, linePath, niceTicks, pct, points, scales, yearTicks } from '../lib/chart-geometry';
 import { ChartHover, type HoverRow } from './chart-hover';
+import { SparkYears } from './spark-years';
 
 /**
  * One measure over the years for one or more places, drawn on the server: each place's estimates solid, an older
@@ -188,9 +189,12 @@ export function Sparkline({ e, p, ink, className }: { e: Yearly; p?: Yearly; ink
   if (!domain) return null;
   const s = scales(domain);
   return (
-    <svg viewBox={`0 0 ${BOX} ${BOX}`} preserveAspectRatio="none" aria-hidden className={cx('overflow-visible', className)}>
-      <path d={linePath(points(e), s)} stroke={ink} strokeWidth={1.5} {...STROKE} />
-      {p && <path d={linePath(points(p), s)} stroke={ink} strokeWidth={1.5} strokeDasharray="3 3" opacity={0.8} {...STROKE} />}
-    </svg>
+    <>
+      <svg viewBox={`0 0 ${BOX} ${BOX}`} preserveAspectRatio="none" aria-hidden className={cx('overflow-visible', className)}>
+        <path d={linePath(points(e), s)} stroke={ink} strokeWidth={1.5} {...STROKE} />
+        {p && <path d={linePath(points(p), s)} stroke={ink} strokeWidth={1.5} strokeDasharray="3 3" opacity={0.8} {...STROKE} />}
+      </svg>
+      <SparkYears domain={domain} measuredTo={p ? points(e).at(-1)?.[0] : undefined} />
+    </>
   );
 }

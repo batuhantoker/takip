@@ -4,7 +4,8 @@ import { Notes } from '@/components/site/places/parts/notes';
 import { chartWords } from '@/components/site/places/topics/lib/indicator-lines';
 import { indicatorNotes } from '@/components/site/places/topics/lib/indicator-notes';
 import { IndicatorTable } from '@/components/site/places/topics/parts/indicator-table';
-import { measureColumns } from '@/components/site/places/topics/parts/measure-chart';
+import { measureTable } from '@/components/site/places/topics/parts/measure-chart';
+import { Points } from '@/components/site/places/topics/parts/stat-tiles';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { comparePath, type PairMeasure } from '@/lib/platform/site/compare/compare';
 import { pairSentences } from '@/lib/platform/site/compare/compare-copy';
@@ -15,7 +16,6 @@ import { listOf } from '@/lib/platform/site/places/copy/format';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { HEADLINE, HUB_SLUG } from '@/lib/platform/site/places/topics/indicators';
 import { INDICATOR_GROUPS } from '@/lib/platform/site/places/topics/indicators-data';
-import { formatValue } from '@/lib/platform/site/places/topics/indicators-facts';
 import type { SiteText } from '@/lib/platform/site/text';
 import { PairCard } from './pair-card';
 
@@ -35,7 +35,7 @@ function PairGroups({ pair, names, measures, t, skip }: Omit<Props, 'text'> & { 
         return (
           <section key={g.id}>
             <h3 className="text-[15px] font-semibold text-ink-1">{t(g.label)}</h3>
-            <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {inGroup.map(m => <li key={m.spec.slug}><PairCard href={href(t, comparePath(pair, m.spec.slug))} names={names} m={m} t={t} /></li>)}
             </ul>
           </section>
@@ -67,14 +67,20 @@ export function PairOverviewHero({ pair, names, measures, t }: Omit<Props, 'text
   );
 }
 
+/** Every measure the two share, across the page's whole width; on a measure's page, the others. */
+export function PairMeasureGrid({ text: { t }, pair, names, measures, skip }: Props & { skip?: string }) {
+  return (
+    <Section title={skip ? t('{a} vs {b}', { a: names[0], b: names[1] }) : t('Every measure')}>
+      <PairGroups pair={pair} names={names} measures={measures} t={t} skip={skip} />
+    </Section>
+  );
+}
+
 export function PairOverviewBody({ text, pair, names, measures }: Props) {
   const { t } = text;
   const by = [...new Set(measures.map(m => m.spec.by))];
   return (
     <>
-      <Section title={t('Every measure')}>
-        <PairGroups pair={pair} names={names} measures={measures} t={t} />
-      </Section>
       <Section title={t('Each country on its own')}>
         <OwnPages pair={pair} names={names} t={t} />
       </Section>
@@ -86,7 +92,7 @@ export function PairOverviewBody({ text, pair, names, measures }: Props) {
   );
 }
 
-export function PairMeasureBody({ text, pair, names, measures, m }: Props & { m: PairMeasure }) {
+export function PairMeasureBody({ text, pair, names, m }: Omit<Props, 'measures'> & { m: PairMeasure }) {
   const { t } = text;
   const rest = pairSentences(pair, m, t).slice(2);
   const places = [{ label: names[0], series: m.a, slot: 0 }, { label: names[1], series: m.b, slot: 1 }];
@@ -94,21 +100,15 @@ export function PairMeasureBody({ text, pair, names, measures, m }: Props & { m:
     <>
       {rest.length > 0 && (
         <Section title={t('What the numbers say')}>
-          <p className="text-[15px] leading-relaxed text-ink-2">{rest.join(' ')}</p>
+          <Points points={rest} />
         </Section>
       )}
       <Section title={t('Every year')}>
-        <IndicatorTable summary={t('Show the values year by year')} year={t('Year')} value={v => formatValue(m.spec, v, t)} words={chartWords(t)}
-          columns={measureColumns(m.spec, places, m.meta?.world, t)} />
+        <IndicatorTable year={t('Year')} words={chartWords(t)} {...measureTable(m.spec, places, m.meta?.world, t)} />
       </Section>
       <Section title={t('Each country on its own')}>
         <OwnPages pair={pair} names={names} t={t} slug={m.spec.slug} />
       </Section>
-      {measures.length > 1 && (
-        <Section title={t('{a} vs {b}', { a: names[0], b: names[1] })}>
-          <PairGroups pair={pair} names={names} measures={measures} t={t} skip={m.spec.slug} />
-        </Section>
-      )}
       <Notes text={text} layers={LAYERS} notes={indicatorNotes(m.spec, [m.a, m.b], m.meta, t)} />
     </>
   );

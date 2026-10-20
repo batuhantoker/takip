@@ -1,6 +1,7 @@
-import { ChartLine as ChartIcon } from 'lucide-react';
+import { ArrowUpRight, ChartLine as ChartIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
+import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { SERIES_INK } from '@/lib/map/style/tokens';
 import { localePath } from '@/lib/platform/site/locale-path';
@@ -9,7 +10,7 @@ import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { TopicPage } from '@/lib/platform/site/places/topic';
 import { HEADLINE, HUB_SLUG, INDICATOR_TOPIC, type IndicatorData, type IndicatorMeasure } from '@/lib/platform/site/places/topics/indicators';
-import { basisOf, formatNumber, formatValue, indicatorSentences } from '@/lib/platform/site/places/topics/indicators-facts';
+import { basisOf, formatNumber, indicatorPoints, indicatorSentences, indicatorStats } from '@/lib/platform/site/places/topics/indicators-facts';
 import { comparePath } from '@/lib/platform/site/compare/compare';
 import { comparedWith } from '@/lib/platform/site/compare/pairs';
 import { worldPath } from '@/lib/platform/site/compare/world';
@@ -20,7 +21,8 @@ import { indicatorNotes } from './lib/indicator-notes';
 import { IndicatorChart } from './parts/indicator-chart';
 import { MeasureCard, MeasureGroups } from './parts/indicator-list';
 import { IndicatorTable } from './parts/indicator-table';
-import { MeasureChartCard, measureColumns } from './parts/measure-chart';
+import { MeasureChartCard, measureTable } from './parts/measure-chart';
+import { Points, StatTiles } from './parts/stat-tiles';
 
 /** As many partners as a measure page links to. */
 const MAX_PARTNERS = 8;
@@ -58,48 +60,59 @@ function CompareLinks({ place, m, t }: { place: Place; m: IndicatorMeasure; t: T
   const partners = comparedWith(place).filter(p => indicatorRow(p.id)?.m[m.spec.slug]).slice(0, MAX_PARTNERS);
   const metric = t(m.spec.label);
   return (
-    <Section title={t('{metric} beside other countries', { metric })}>
+    <section>
+      <h2 className="text-[15px] font-semibold text-ink-1">{t('{metric} beside other countries', { metric })}</h2>
       {partners.length > 0 && (
-        <ul className="mb-5 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+        <ul className="mt-3 divide-y divide-line rounded-card border border-line bg-surface-1">
           {partners.map(p => (
-            <li key={p.id} className="text-[14px]">
-              <Link href={localePath(t.locale, comparePath({ a: place, b: p }, m.spec.slug))} className={TEXT_LINK}>{t('{a} vs {b}', { a: nameOf(place, t), b: nameOf(p, t) })}</Link>
+            <li key={p.id}>
+              <Link href={localePath(t.locale, comparePath({ a: place, b: p }, m.spec.slug))}
+                className={cx('flex items-center justify-between gap-3 px-3 py-2 text-[14px] text-ink-2 hover:text-ink-1', FOCUS_RING)}>
+                {t('{a} vs {b}', { a: nameOf(place, t), b: nameOf(p, t) })}
+                <ArrowUpRight className="size-3.5 shrink-0 text-ink-3" aria-hidden />
+              </Link>
             </li>
           ))}
         </ul>
       )}
-      <Link href={localePath(t.locale, worldPath(m.spec.slug))} className={TEXT_LINK}>{t('{metric} around the world', { metric })}</Link>
-    </Section>
+      <p className="mt-4 text-[14px]">
+        <Link href={localePath(t.locale, worldPath(m.spec.slug))} className={TEXT_LINK}>{t('{metric} around the world', { metric })}</Link>
+      </p>
+    </section>
   );
 }
 
 function MeasureBody({ place, m, t }: { place: Place; m: IndicatorMeasure; t: Translate }) {
   const name = nameOf(place, t);
-  const rest = indicatorSentences(m.spec, m.series, m.meta, name, t).slice(2);
-  const hub = INDICATOR_TOPIC.pages(place).find(p => p.slug === HUB_SLUG)?.data;
-  const others = hub?.kind === 'hub' ? hub.measures : [];
+  const points = indicatorPoints(m.spec, m.series, m.meta, name, t);
   return (
     <>
-      {rest.length > 0 && (
+      {points.length > 0 && (
         <Section title={t('What the numbers say')}>
-          <p className="text-[15px] leading-relaxed text-ink-2">{rest.join(' ')}</p>
+          <Points points={points} />
         </Section>
       )}
       <LongRun place={place} m={m} t={t} />
       <Section title={t('Every year')}>
-        <IndicatorTable summary={t('Show the values year by year')} year={t('Year')} value={v => formatValue(m.spec, v, t)} words={chartWords(t)}
-          columns={measureColumns(m.spec, [{ label: name, series: m.series, slot: 0 }], worldSeries(m.spec.slug), t)} />
+        <IndicatorTable year={t('Year')} words={chartWords(t)} {...measureTable(m.spec, [{ label: name, series: m.series, slot: 0 }], worldSeries(m.spec.slug), t)} />
       </Section>
-      <CompareLinks place={place} m={m} t={t} />
-      {others.length > 1 && (
-        <Section title={t('{place} in numbers', { place: name })}>
-          <p className="mb-5">
-            <Link href={localePath(t.locale, placePath(place, HUB_SLUG))} className={TEXT_LINK}>{t('Every measure for {place} on one page', { place: name })}</Link>
-          </p>
-          <MeasureGroups place={place} measures={others} t={t} spark={false} skip={m.spec.slug} />
-        </Section>
-      )}
     </>
+  );
+}
+
+/** The place's other measures, across the page. */
+function OtherMeasures({ place, m, t }: { place: Place; m: IndicatorMeasure; t: Translate }) {
+  const name = nameOf(place, t);
+  const hub = INDICATOR_TOPIC.pages(place).find(p => p.slug === HUB_SLUG)?.data;
+  const others = hub?.kind === 'hub' ? hub.measures : [];
+  if (others.length < 2) return null;
+  return (
+    <Section title={t('{place} in numbers', { place: name })}>
+      <p className="mb-5">
+        <Link href={localePath(t.locale, placePath(place, HUB_SLUG))} className={TEXT_LINK}>{t('Every measure for {place} on one page', { place: name })}</Link>
+      </p>
+      <MeasureGroups place={place} measures={others} t={t} skip={m.spec.slug} wide />
+    </Section>
   );
 }
 
@@ -164,6 +177,26 @@ export const INDICATORS_VIEW: TopicView<IndicatorData> = {
     return data.kind === 'hub' ? <HubHero place={place} measures={data.measures} t={t} /> : <MeasureChart place={place} m={data} t={t} />;
   },
 
+  Lead({ text: { t }, page: { data } }) {
+    return data.kind === 'measure' ? <StatTiles stats={indicatorStats(data.spec, data.series, data.meta, t)} /> : null;
+  },
+
+  Aside({ text: { t }, place, page: { data } }) {
+    return data.kind === 'measure' ? <CompareLinks place={place} m={data} t={t} /> : null;
+  },
+
+  Footer({ text: { t }, place, page: { data } }) {
+    return data.kind === 'measure' ? <OtherMeasures place={place} m={data} t={t} /> : null;
+  },
+
+  Wide({ text: { t }, place, page: { data } }) {
+    return data.kind === 'hub' ? (
+      <Section title={t('Every measure')}>
+        <MeasureGroups place={place} measures={data.measures} t={t} wide />
+      </Section>
+    ) : null;
+  },
+
   Overview({ text: { t }, place, page: { data } }) {
     return data.kind === 'hub' ? <OverviewNumbers place={place} measures={data.measures} t={t} /> : null;
   },
@@ -180,9 +213,6 @@ export const INDICATORS_VIEW: TopicView<IndicatorData> = {
     }
     return (
       <>
-        <Section title={t('Every measure')}>
-          <MeasureGroups place={place} measures={data.measures} t={t} />
-        </Section>
         <HubCompare place={place} t={t} />
         <Notes text={text} notes={hubNotes(data.measures, t)} layers={['country-data-over-time']} />
       </>
