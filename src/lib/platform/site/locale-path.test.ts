@@ -9,6 +9,8 @@ describe('splitLocalePath', () => {
     expect(splitLocalePath('/tr/embed/earthquakes')).toEqual({ locale: 'tr', path: '/embed/earthquakes' });
     expect(splitLocalePath('/tr/city/nevsehir/cameras')).toEqual({ locale: 'tr', path: '/city/nevsehir/cameras' });
     expect(splitLocalePath('/country/turkey')).toEqual({ locale: 'en', path: '/country/turkey' });
+    expect(splitLocalePath('/tr/compare/greece-vs-turkey/life-expectancy')).toEqual({ locale: 'tr', path: '/compare/greece-vs-turkey/life-expectancy' });
+    expect(splitLocalePath('/compare')).toEqual({ locale: 'en', path: '/compare' });
   });
 
   it('leaves everything else alone', () => {

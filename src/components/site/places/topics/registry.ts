@@ -4,6 +4,7 @@ import { CAMERAS_VIEW } from './cameras-body';
 import { FLIGHTS_VIEW } from './flights-body';
 import { HAZARDS_VIEW } from './hazards-body';
 import { HIKING_VIEW } from './hiking-body';
+import { INDICATORS_VIEW } from './indicators-body';
 import { ISS_VIEW } from './iss-body';
 import { PORTS_VIEW } from './ports-body';
 import { TRANSIT_VIEW } from './transit-body';
@@ -23,4 +24,5 @@ export const TOPIC_VIEWS: Record<string, TopicView<any, any>> = {
   aurora: AURORA_VIEW,
   hazards: HAZARDS_VIEW,
   hiking: HIKING_VIEW,
+  indicators: INDICATORS_VIEW,
 };

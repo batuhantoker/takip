@@ -32,6 +32,23 @@ describe('parseViewModeLink', () => {
     for (const f of HISTORY_FAMILY_LINKS) expect(HISTORY_FAMILIES).toHaveProperty(f);
   });
 
+  it('colours countries only by a metric code it can read, with its source and charted country', () => {
+    expect(parse('view=history&year=1950&metric=wpp:LEx&source=wpp-2024&country=TUR')).toMatchObject({ metric: 'wpp:LEx', source: 'wpp-2024', countries: ['TUR'] });
+    expect(parse('view=history&metric=wdi:NY.GDP.PCAP.KD')).toMatchObject({ metric: 'wdi:NY.GDP.PCAP.KD' });
+    expect(parse('view=history&metric=owid:le_0&country=SDS')).toMatchObject({ metric: 'owid:le_0', countries: ['SDS'] });
+    for (const bad of ['metric=LEx', 'metric=wpp:LEx%3Cscript%3E', 'metric=wpp:a%20b', `metric=wpp:${'x'.repeat(60)}`]) {
+      expect(parse(`view=history&${bad}`)).not.toHaveProperty('metric');
+    }
+    expect(parse('view=history&metric=wpp:LEx&source=WPP 2024&country=tr')).toEqual({ view: 'history', year: null, layer: null, metric: 'wpp:LEx' });
+    expect(parse('view=history&source=wpp-2024&country=TUR')).toEqual({ view: 'history', year: null, layer: null });
+  });
+
+  it('charts up to four countries, dropping any id it can not read', () => {
+    expect(parse('view=history&metric=wpp:LEx&country=GRC,TUR,GRC,tur,X1Y')).toMatchObject({ countries: ['GRC', 'TUR'] });
+    expect(parse('view=history&metric=wpp:LEx&country=AAA,BBB,CCC,DDD,EEE')).toMatchObject({ countries: ['AAA', 'BBB', 'CCC', 'DDD'] });
+    expect(parse('view=history&metric=wpp:LEx&country=,')).not.toHaveProperty('countries');
+  });
+
   it('reads deep time by millions of years or by chapter', () => {
     expect(parse('view=deep&ma=250')).toEqual({ view: 'deep', ma: 250, chapter: null });
     expect(parse('view=deep&chapter=2')).toEqual({ view: 'deep', ma: null, chapter: 2 });
@@ -52,7 +69,10 @@ describe('parseViewModeLink', () => {
   });
 
   it('writes what it reads', () => {
-    for (const q of ['view=history&year=1683&layer=world-borders', 'view=history&year=1927&from=1927&to=2026&families=hazard', 'view=deep&ma=66', 'view=space&focus=moon']) {
+    for (const q of [
+      'view=history&year=1683&layer=world-borders', 'view=history&year=1927&from=1927&to=2026&families=hazard',
+      'view=history&year=1950&from=1950&to=2026&metric=wpp%3ALEx&source=wpp-2024&country=GRC%2CTUR', 'view=deep&ma=66', 'view=space&focus=moon',
+    ]) {
       expect(viewModeQuery(parse(q)!)).toBe(q);
     }
   });

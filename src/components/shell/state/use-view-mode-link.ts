@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, type MutableRefObject } from 'react';
 import type { HistorySession } from '@/lib/history/session';
 import { atMa } from '@/lib/history/paleo/deep-time';
+import { loadCountries } from '@/lib/places/areas/boundary-store';
 import type { ReplaySession } from '@/lib/map/replay/session';
 import { HISTORY_FAMILY_LINKS, parsePanelLink, parseViewModeLink, yearStart, type PanelLink, type ViewModeLink } from '@/lib/map/view-mode-link';
 import type { SpaceFocus } from '@/lib/space/worlds';
@@ -79,6 +80,18 @@ export function useViewModeLink({ splashGone, autoLocateCancelled: autoLocateCan
       timedRef.current = true;
       if (mode.families) for (const f of HISTORY_FAMILY_LINKS) history.setFamily(f, mode.families.includes(f));
       if (mode.layer) history.setLayer(mode.layer, true);
+      // Before the clock moves: the metric only seeks when the clock is outside its years.
+      if (mode.metric) history.countries.select(mode.metric, mode.source);
+      if (mode.metric && mode.countries) {
+        const keys = mode.countries;
+        // The outlines the status bar already loads name each country as a click on the map would.
+        loadCountries().then(list => {
+          for (const key of keys) {
+            const found = list.find(c => c.id === key);
+            if (found && !history.chart.countries().some(c => c.key === key)) history.chart.toggle(key, found.name);
+          }
+        }, () => {});
+      }
       if (mode.range) {
         const from = yearStart(mode.range.from), to = Math.min(Date.now(), yearStart(mode.range.to + 1));
         history.clock.seek(from);

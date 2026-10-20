@@ -1,4 +1,5 @@
 import { LOCALES, type Locale } from '@/lib/core/i18n/locales';
+import { compareSitemapPaths } from '../compare/sitemap';
 import { indexedPages } from './pages';
 import { placePath } from './paths';
 
@@ -8,7 +9,8 @@ import { placePath } from './paths';
  */
 const PER_CHUNK = 5_000;
 
-const paths = () => indexedPages().map(({ place, slug }) => placePath(place, slug));
+// The country comparisons (compare/) are chunked with them.
+const paths = () => [...indexedPages().map(({ place, slug }) => placePath(place, slug)), ...compareSitemapPaths()];
 
 /** One spare chunk: the camera pages are counted when the server runs, and may outgrow the build's count. */
 export const placeSitemapIds = () => Array.from({ length: Math.ceil((paths().length * LOCALES.length) / PER_CHUNK) + 1 }, (_, id) => ({ id }));

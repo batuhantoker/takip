@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { PATH_LOCALE_HEADER } from '@/lib/core/i18n/locales';
-import { splitLocalePath } from '@/lib/platform/site/locale-path';
+import { localePath, splitLocalePath } from '@/lib/platform/site/locale-path';
+import { reversedPairPath } from '@/lib/platform/site/compare/pair-path';
 
 /*
  * The public reading pages carry their language in the URL (/tr/map/earthquakes); there is one set of
@@ -17,6 +18,9 @@ export function proxy(request: NextRequest) {
   if (prefix === 'en') return NextResponse.redirect(new URL(pathname.slice(3) || '/', request.url), 308);
 
   const split = splitLocalePath(pathname);
+  // /compare/turkey-vs-greece is /compare/greece-vs-turkey.
+  const canonical = split && reversedPairPath(split.path);
+  if (split && canonical) return NextResponse.redirect(new URL(localePath(split.locale, canonical), request.url), 308);
   const headers = new Headers(request.headers);
   // Only this proxy sets the header; a client's own copy is dropped.
   headers.delete(PATH_LOCALE_HEADER);
@@ -29,5 +33,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/map/:path*', '/about', '/embed', '/embed/:path*', '/city/:path*', '/town/:path*', '/county/:path*', '/state/:path*', '/country/:path*', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)/:path*'],
+  matcher: ['/', '/map/:path*', '/about', '/embed', '/embed/:path*', '/city/:path*', '/town/:path*', '/county/:path*', '/state/:path*', '/country/:path*', '/compare', '/compare/:path*', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)/:path*'],
 };

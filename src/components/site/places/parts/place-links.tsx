@@ -10,12 +10,20 @@ import { placePath } from '@/lib/platform/site/places/paths';
 import type { SiteText } from '@/lib/platform/site/text';
 import { TOPIC_VIEWS } from '../topics/registry';
 
-/** The place's pages side by side: its overview and each topic page. */
+/** The place's listed pages, without those a topic's other page stands for. */
+export const listedPages = (pages: PlacePageRef[]) => pages.filter(p => p.page.listed !== false);
+
+/** The place's pages side by side: its overview and each listed topic page; an unlisted page marks its topic's first. */
 export function TopicNav({ text, place, pages, current }: { text: SiteText; place: Place; pages: PlacePageRef[]; current?: string }) {
   const { t } = text;
+  const unlisted = pages.find(p => p.page.slug === current && p.page.listed === false)?.topic.id;
+  const listed = listedPages(pages);
+  const stands = unlisted && listed.find(p => p.topic.id === unlisted)?.page.slug;
   const items: { href: string; label: string; here: boolean; Icon?: LucideIcon }[] = [
     { href: placePath(place), label: t('Overview'), here: !current },
-    ...pages.map(p => ({ href: placePath(place, p.page.slug), label: t(p.page.label ?? p.topic.label), here: p.page.slug === current, Icon: TOPIC_VIEWS[p.topic.id]?.icon })),
+    ...listed.map(p => ({
+      href: placePath(place, p.page.slug), label: t(p.page.label ?? p.topic.label), here: p.page.slug === current || p.page.slug === stands, Icon: TOPIC_VIEWS[p.topic.id]?.icon,
+    })),
   ];
   return (
     <nav aria-label={t('{city} on TAKIP', { city: nameOf(place, t) })} className="mt-6 flex flex-wrap gap-2">

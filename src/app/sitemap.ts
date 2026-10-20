@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 import { LOCALES } from '@/lib/core/i18n/locales';
 import { availableGuides, guidePath } from '@/lib/platform/site/guides/guides';
+import { worldPath, worldSlugs } from '@/lib/platform/site/compare/world';
 import { availablePages, pagePath } from '@/lib/platform/site/layer-pages';
 import { languageAlternates, localePath } from '@/lib/platform/site/locale-path';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
@@ -19,6 +20,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/`, changeFrequency: 'hourly' },
     ...reading('/map'),
     ...availablePages().flatMap(p => reading(pagePath(p), !!p.live)),
+    // Each History measure around the world; the comparisons are chunked with the place pages.
+    ...worldSlugs().flatMap(slug => reading(worldPath(slug))),
+    ...reading('/compare'),
     ...reading('/about'),
     // English only until the guides are translated; the place pages have their own sitemap (app/places/sitemap.ts).
     { url: `${origin}/guides`, changeFrequency: 'weekly' },

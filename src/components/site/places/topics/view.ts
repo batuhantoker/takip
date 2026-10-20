@@ -14,4 +14,6 @@ export interface TopicView<D, L = never> {
   icon: LucideIcon;
   Body(props: TopicViewProps<D>): ReactNode;
   Live?(props: TopicViewProps<D> & { live: L }): ReactNode;
+  /** Shown in the header instead of the live map, which can't show this topic. */
+  Hero?(props: TopicViewProps<D>): ReactNode;
 }

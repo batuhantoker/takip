@@ -33,6 +33,8 @@ export interface PlaceTopic<D = unknown, L = unknown> {
   live?(place: Place, page: TopicPage<D>, t: Translate): Promise<L | null>;
   /** The live box's heading on this topic's page, as msg() with {time}, where "Right now · as of {time}" isn't true. */
   liveLabel?: string;
+  /** The header's map button, as msg(), where "Open the live map" isn't what it does. */
+  openLabel?: string;
 }
 
 export interface TopicPage<D = unknown> {
@@ -43,6 +45,8 @@ export interface TopicPage<D = unknown> {
   index: boolean;
   /** The page's name in the place's links, as msg(), where its topic has several pages; the topic's label otherwise. */
   label?: string;
+  /** false keeps it out of the place's nav and overview, which list its topic's other pages; one of those stands for it. */
+  listed?: false;
 }
 
 /** The <title> (up to 60 characters), meta description (110 to 160), heading and lede. */
