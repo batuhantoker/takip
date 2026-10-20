@@ -5,6 +5,7 @@ export const SEA: LayerPage[] = [
     slug: 'ship-tracker',
     section: 'sea',
     layers: ['maritime'],
+    places: 'ports',
     requiresEnv: 'AIS_API_KEY',
     title: 'Live ship tracker: vessels on a map right now',
     description: 'Ships at sea right now on a free live map, from AIS: cargo ships, tankers, ferries, fishing boats and warships, with speed, heading and destination.',

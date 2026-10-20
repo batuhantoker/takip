@@ -5350,6 +5350,7 @@
   "{title} on Wikipedia": "维基百科上的 {title}",
   "{tool} for {query}": "对 {query} 运行{tool}",
   "{tool}, {n} of {total}. Enter to {action, select, run {run} other {open}}.": "{tool}，第 {n} 个，共 {total} 个。按 Enter {action, select, run {运行} other {打开}}。",
+  "{topic}, place by place": "各地的{topic}",
   "{total, plural, one {One waymarked hiking route runs within {r} km of {place}, a {level, select, int {international} nat {national} reg {regional} other {local}} one.} other {{count} waymarked hiking routes run within {r} km of {place}, all of them {level, select, int {international} nat {national} reg {regional} other {local}}.}}": "{total, plural, =1 {{place} {r} km 范围内有 1 条有路标的徒步路线，为{level, select, int {国际级} nat {国家级} reg {区域级} other {本地}}路线。} other {{place} {r} km 范围内有 {count} 条有路标的徒步路线，全部为{level, select, int {国际级} nat {国家级} reg {区域级} other {本地}}路线。}}",
   "{total, plural, one {One waymarked hiking route runs} other {{count} waymarked hiking routes run}} within {r} km of {place}: {breakdown}.": "{place} {r} km 范围内有 {total, plural, other {{count} 条}}有路标的徒步路线：{breakdown}。",
   "{total} · {n} upstream": "{total} · {n} 个上游",

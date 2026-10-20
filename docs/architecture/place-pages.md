@@ -25,6 +25,7 @@ Public pages about a place and a topic: `/city/cincinnati/transit`, `/city/nevse
    - A topic with many pages can keep all but one out of the place's nav and overview with `listed: false` on the others: the listed one stands for them and is marked current on them (statistics: the hub is listed, its 39 measures are not). `openLabel` renames the header's map button where it doesn't open the live map ("Watch it change on the map").
 3. `components/site/places/topics/<topic>-body.tsx` exporting a `TopicView` (icon, `Body`, optional `Live`, and an optional `Hero` the header shows instead of the live map, for what the embed can't show), and a line in that folder's registry.
 4. No other file changes: the route, sitemap, nav and cards pick the topic up from the registries.
+5. Optionally, `places: '<topic id>'` on the layer pages it is the close-up of (`lib/platform/site/catalog/`): those pages then list the biggest places' pages of it (`components/site/places/topic-places.tsx`). The links go the other way through `parts/notes.tsx`, and `/city` and a country's place list link each place's topics.
 
 ## Rules for the copy
 

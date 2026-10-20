@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LAYERS } from '@/lib/map/layers/defaults';
 import { availablePages, LAYER_PAGES, layerPage, openPath, SECTIONS } from './layer-pages';
+import { TOPICS } from './places/topics/registry';
 
 describe('LAYER_PAGES', () => {
   it('has unique, URL-safe slugs', () => {
@@ -25,6 +26,7 @@ describe('LAYER_PAGES', () => {
     expect(p.shows.length).toBeGreaterThan(0);
     expect(p.layers.length > 0 || !!p.mode || !!p.panel || !!p.view, 'opens something').toBe(true);
     expect(p.sources.length).toBeGreaterThan(0);
+    if (p.places) expect(TOPICS.map(x => x.id)).toContain(p.places);
   });
 
   it('leaves out pages whose layer needs a key the server lacks', () => {

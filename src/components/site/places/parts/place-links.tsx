@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import { Fragment } from 'react';
 import { ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { countryName, nameOf } from '@/lib/platform/site/places/copy/format';
-import { placePages, type PlacePageRef } from '@/lib/platform/site/places/pages';
+import { placePages, topicPages, type PlacePageRef } from '@/lib/platform/site/places/pages';
 import { regionLabel } from '@/lib/platform/site/places/gazetteer';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
@@ -71,7 +72,7 @@ export function PlaceCards({ text, places, page }: { text: SiteText; places: Pla
   );
 }
 
-/** Many places as plain links, each with what its page covers. */
+/** Many places as plain links, each with its topics linked to their pages there. */
 export function PlaceList({ text, places }: { text: SiteText; places: Place[] }) {
   const { t } = text;
   return (
@@ -79,7 +80,12 @@ export function PlaceList({ text, places }: { text: SiteText; places: Place[] })
       {places.map(p => (
         <li key={p.id} className="text-[14px]">
           <Link href={localePath(t.locale, placePath(p))} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{nameOf(p, t)}</Link>
-          <span className="text-ink-3"> · {[...new Set(placePages(p).filter(x => x.page.index).map(x => t(x.topic.label)))].join(', ')}</span>
+          <span className="text-ink-3"> · {topicPages(p).map((x, i) => (
+            <Fragment key={x.topic.id}>
+              {i > 0 && ', '}
+              <Link href={localePath(t.locale, placePath(p, x.page.slug))} className={cx('hover:text-ink-1', FOCUS_RING)}>{t(x.topic.label)}</Link>
+            </Fragment>
+          ))}</span>
         </li>
       ))}
     </ul>

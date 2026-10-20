@@ -5350,6 +5350,7 @@
   "{title} on Wikipedia": "Wikipedia の {title}",
   "{tool} for {query}": "{query} の {tool}",
   "{tool}, {n} of {total}. Enter to {action, select, run {run} other {open}}.": "{tool}、{total} 件中 {n} 件目。Enter で{action, select, run {実行} other {開く}}。",
+  "{topic}, place by place": "{topic}（地域別）",
   "{total, plural, one {One waymarked hiking route runs within {r} km of {place}, a {level, select, int {international} nat {national} reg {regional} other {local}} one.} other {{count} waymarked hiking routes run within {r} km of {place}, all of them {level, select, int {international} nat {national} reg {regional} other {local}}.}}": "{total, plural, =1 {{place}から {r} km 以内には、道標のあるハイキングルートが1本あり、{level, select, int {国際} nat {国内} reg {地域} other {ローカル}}ルートです。} other {{place}から {r} km 以内には、道標のあるハイキングルートが {count} 本あり、すべて{level, select, int {国際} nat {国内} reg {地域} other {ローカル}}ルートです。}}",
   "{total, plural, one {One waymarked hiking route runs} other {{count} waymarked hiking routes run}} within {r} km of {place}: {breakdown}.": "{place}から {r} km 以内には、道標のあるハイキングルートが {total, plural, =1 {1 本} other {{count} 本}}あります（{breakdown}）。",
   "{total} · {n} upstream": "{total} · 上流 {n}",

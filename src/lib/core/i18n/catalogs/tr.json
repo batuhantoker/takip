@@ -5352,6 +5352,7 @@
   "{title} on Wikipedia": "Vikipedi'de {title}",
   "{tool} for {query}": "{query} için {tool}",
   "{tool}, {n} of {total}. Enter to {action, select, run {run} other {open}}.": "{tool}, {n}/{total}. {action, select, run {Çalıştırmak} other {Açmak}} için Enter.",
+  "{topic}, place by place": "{topic}: yerlere göre",
   "{total, plural, one {One waymarked hiking route runs within {r} km of {place}, a {level, select, int {international} nat {national} reg {regional} other {local}} one.} other {{count} waymarked hiking routes run within {r} km of {place}, all of them {level, select, int {international} nat {national} reg {regional} other {local}}.}}": "{total, plural, one {{place} çevresindeki {r} km içinde bir işaretli yürüyüş rotası var; {level, select, int {uluslararası} nat {ulusal} reg {bölgesel} other {yerel}} bir rota.} other {{place} çevresindeki {r} km içinde {count} işaretli yürüyüş rotası var; hepsi {level, select, int {uluslararası} nat {ulusal} reg {bölgesel} other {yerel}}.}}",
   "{total, plural, one {One waymarked hiking route runs} other {{count} waymarked hiking routes run}} within {r} km of {place}: {breakdown}.": "{place} çevresindeki {r} km içinde {total, plural, one {bir işaretli yürüyüş rotası} other {{count} işaretli yürüyüş rotası}} var: {breakdown}.",
   "{total} · {n} upstream": "{total} · {n} üst ağ",

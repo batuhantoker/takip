@@ -10,6 +10,7 @@ import { openPath, pagePath, type LayerPage } from '@/lib/platform/site/layer-pa
 import type { LiveLine } from '@/lib/platform/site/live/lines';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { sectionIn, type SiteText } from '@/lib/platform/site/text';
+import { TopicPlaces } from '@/components/site/places/topic-places';
 import { FlightFinder } from './flight-finder';
 import { LiveWindow } from './live-window';
 import { LocalClock, SpokenText } from './local-clock';
@@ -104,6 +105,8 @@ export function LayerArticle({ text, page, image, live, related }: {
               </ul>
             </Section>
           )}
+
+          {page.places && <TopicPlaces text={text} topicId={page.places} />}
         </div>
 
         <aside className="flex flex-col gap-10">

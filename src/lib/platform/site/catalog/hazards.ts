@@ -5,6 +5,7 @@ export const HAZARDS: LayerPage[] = [
     slug: 'earthquakes',
     section: 'hazards',
     layers: ['earthquakes'],
+    places: 'hazards',
     live: 'earthquakes',
     title: 'Earthquakes today: live earthquake map worldwide',
     description: 'Every earthquake of magnitude 2.5 or more in the last 24 hours, worldwide, from USGS and EMSC on one live map, with magnitude, depth and place.',

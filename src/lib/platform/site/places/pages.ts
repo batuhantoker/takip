@@ -39,6 +39,29 @@ export function indexedPages(kind?: PlaceKind): { place: Place; slug?: string }[
 
 const hasIndexed = (p: Place) => placePages(p).some(x => x.page.index);
 
+/** Each topic a place has indexed pages of, once: its first listed page, which stands for the rest. */
+export function topicPages(place: Place): PlacePageRef[] {
+  const out = new Map<string, PlacePageRef>();
+  for (const x of placePages(place)) {
+    if (x.page.index && (!out.has(x.topic.id) || out.get(x.topic.id)!.page.listed === false)) out.set(x.topic.id, x);
+  }
+  return [...out.values()];
+}
+
+const byTopic = new Map<string, { at: number; refs: { place: Place; slug: string }[] }>();
+
+/** The most populous places with an indexed page of this topic, for the layer page it is the close-up of. */
+export function topicPlaces(topicId: string, limit = 24): { place: Place; slug: string }[] {
+  const kept = byTopic.get(topicId);
+  if (kept && Date.now() - kept.at < DERIVED_TTL_MS && kept.refs.length >= limit) return kept.refs.slice(0, limit);
+  const refs = allPlaces().flatMap(place => {
+    const ref = topicPages(place).find(x => x.topic.id === topicId);
+    return ref ? [{ place, slug: ref.page.slug }] : [];
+  }).sort((a, b) => b.place.pop - a.place.pop).slice(0, limit);
+  byTopic.set(topicId, { at: Date.now(), refs });
+  return refs;
+}
+
 /** What an overview leads to, most populous first: a country's states and cities, a state's counties and cities, a county's cities and towns. */
 export function childPlaces(place: Place, limit = 400): Place[] {
   if (place.kind === 'city') return [];

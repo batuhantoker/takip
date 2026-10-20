@@ -5350,6 +5350,7 @@
   "{title} on Wikipedia": "{title} en Wikipedia",
   "{tool} for {query}": "{tool} para {query}",
   "{tool}, {n} of {total}. Enter to {action, select, run {run} other {open}}.": "{tool}, {n} de {total}. Enter para {action, select, run {ejecutar} other {abrir}}.",
+  "{topic}, place by place": "{topic}, lugar por lugar",
   "{total, plural, one {One waymarked hiking route runs within {r} km of {place}, a {level, select, int {international} nat {national} reg {regional} other {local}} one.} other {{count} waymarked hiking routes run within {r} km of {place}, all of them {level, select, int {international} nat {national} reg {regional} other {local}}.}}": "{total, plural, one {Una ruta de senderismo señalizada pasa a menos de {r} km de {place}, de nivel {level, select, int {internacional} nat {nacional} reg {regional} other {local}}.} other {{count} rutas de senderismo señalizadas pasan a menos de {r} km de {place}, todas de nivel {level, select, int {internacional} nat {nacional} reg {regional} other {local}}.}}",
   "{total, plural, one {One waymarked hiking route runs} other {{count} waymarked hiking routes run}} within {r} km of {place}: {breakdown}.": "{total, plural, one {Una ruta de senderismo señalizada pasa} other {{count} rutas de senderismo señalizadas pasan}} a menos de {r} km de {place}: {breakdown}.",
   "{total} · {n} upstream": "{total} · {n} de tránsito",

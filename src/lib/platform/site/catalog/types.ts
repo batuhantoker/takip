@@ -21,6 +21,8 @@ export interface LayerPage {
   layers: string[];
   /** What the map follows on opening, as `satellite:25544`. */
   track?: string;
+  /** The place topic that is this layer close up (`weather`): the page links the biggest places' pages of it. */
+  places?: string;
   /** A box under the heading that finds an aircraft in the air and opens the map following it. */
   findFlights?: boolean;
   /** Another view to open: History at a year, deep time, Space or Replay. */
