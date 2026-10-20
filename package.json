@@ -19,7 +19,8 @@
     "admin": "npm run admin -w @takip/api --",
     "ingest": "npm run ingest -w @takip/ingest --",
     "import": "tsx tools/import/cli.ts",
-    "i18n": "tsx tools/i18n/cli.ts"
+    "i18n": "tsx tools/i18n/cli.ts",
+    "shorts": "tsx tools/shorts/cli.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -49,6 +50,8 @@
     "ws": "^8.21.0"
   },
   "devDependencies": {
+    "@anthropic-ai/bedrock-sdk": "^0.35.0",
+    "@anthropic-ai/sdk": "^0.135.0",
     "@tailwindcss/postcss": "^4",
     "@types/google-libphonenumber": "^7.4.30",
     "@types/node": "^20",

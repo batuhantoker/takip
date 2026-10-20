@@ -47,7 +47,7 @@ export default function MobileNav({ mobilePanel, setMobilePanel, showDirections,
           const isRoute = tab.id === 'route';
           const active = isRoute ? showDirections || Boolean(navSession) : mobilePanel === tab.id;
           return (
-            <button key={tab.id} type="button" aria-pressed={active}
+            <button key={tab.id} type="button" aria-pressed={active} data-tab={tab.id}
               // Mid-drive this must not clear the route under the driver; guidance ends from its own exit.
               disabled={isRoute && Boolean(navSession)}
               onClick={() => {

@@ -76,6 +76,8 @@ scanner_backend_backup.js
 /data/backups/
 # Raw feed archive and the other replay data areas (docs/architecture/replay-database.md §4.1)
 /data/archive/
+# Rendered shorts, their scripts and voice clips (tools/shorts)
+/data/shorts/
 # NDW traffic site lines, rebuilt with tools/traffic/build-ndw.ts
 /data/traffic/
 /data/cold/

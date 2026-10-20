@@ -22,6 +22,8 @@ export function useReplay() {
       current.current.clock.play();
     }
     setSession(current.current);
+    // Dev-only handle: tools/shorts steps the clock frame by frame.
+    if (process.env.NODE_ENV === 'development') Object.assign(window, { __takipReplay: current.current });
   }, []);
   useEffect(() => () => current.current?.dispose(), []);
   return { session, toggle };
