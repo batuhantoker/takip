@@ -83,10 +83,11 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
     return () => { unsubscribe(); window.removeEventListener('pointerdown', unsubscribe); stopTracking(); };
   }, [spec.track]);
 
-  // Read once, as the map is built. Framed in a page, one finger and the wheel scroll the page, not the map.
+  // Read once, as the map is built. The wheel always zooms; framed in a page on a touch screen, one finger
+  // scrolls the page and two move the map.
   const [mapOptions] = useState<Partial<MapOptions>>(() => ({
     ...startCamera(spec),
-    cooperativeGestures: typeof window !== 'undefined' && window.self !== window.top,
+    cooperativeGestures: typeof window !== 'undefined' && window.self !== window.top && window.matchMedia('(pointer: coarse)').matches,
     locale: {
       'CooperativeGesturesHandler.WindowsHelpText': t('Use Ctrl + scroll to zoom the map'),
       'CooperativeGesturesHandler.MacHelpText': t('Use ⌘ + scroll to zoom the map'),
