@@ -65,7 +65,7 @@ function notes(f: HazardFacts, place: Place, t: Translate): string[] {
     t('Deaths are NOAA’s total for each event, wherever people died, its tsunami and fires included. A tsunami counts the dead its runup records give for this place: NOAA’s total for a tsunami includes its source quake’s.'),
     t('A tsunami from elsewhere counts where one of its runups killed or rose a metre or more.'),
     ...(f.scope === 'city' ? [] : [t('The map frames the box around {place}, its neighbours’ quakes included, so its count runs higher than this page’s.', { place: name })]),
-    t('Counted to {date}. The map and the last 30 days ask USGS again.', { date: hazardDate(f.asOf, t) }),
+    t('Counted to {date}, as is the map. The last 30 days ask USGS again.', { date: hazardDate(f.asOf, t) }),
   ];
 }
 

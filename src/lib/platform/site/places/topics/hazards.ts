@@ -131,7 +131,8 @@ export const HAZARDS: PlaceTopic<HazardData, HazardsNow> = {
       mode: { view: 'history', year: from, layer: null, range: { from, to: f.to }, families: ['hazard'] },
       embed: {
         layers: ['earthquakes'], bbox: box, minMag: f.floor,
-        window: { from: Date.UTC(f.usgsFrom, 0, 1), to: Date.parse(f.asOf) + 86_400_000 },
+        // Up to the day counted to, as data/site/earthquakes.json holds it, so the map answers from disk.
+        window: { from: Date.UTC(f.usgsFrom, 0, 1), to: Date.parse(f.asOf) },
       },
     };
   },

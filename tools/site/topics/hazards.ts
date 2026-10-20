@@ -20,12 +20,14 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import Database from 'better-sqlite3';
 import { TAKIP_USER_AGENT } from '../../../src/lib/core/net/user-agent';
+import type { QuakeArchive } from '../../../src/lib/feeds/hazards/quake-archive';
 import type { TopicTable } from '../../../src/lib/platform/site/places/tables';
 import { HAZARD_RANGES, type HazardEvent, type HazardKind, type HazardMeta, type HazardRange, type HazardRangeId, type HazardRow } from '../../../src/lib/platform/site/places/topics/hazards-data';
 import { hazardIndexed } from '../../../src/lib/platform/site/places/topics/hazards-facts';
 import { countryBox, Countries, FAR_SEA_KM, km, nearby, SEA_KM, type Lnglat } from './hazards-geo';
 
 const OUT = 'data/site/topics/hazards.json';
+const QUAKES_OUT = 'data/site/earthquakes.json';
 const CACHE = join('.cache', 'site', 'hazards');
 const FDSN = 'https://earthquake.usgs.gov/fdsnws/event/1/query';
 const FLOORS: Record<HazardRangeId, number> = { '10y': 4.5, '100y': 6, all: 6 };
@@ -51,7 +53,7 @@ const PEAK_DAYS = 30;
 const PEAK_KM = 150;
 const SKIP_CODES = new Set(['PPLX', 'PPLH', 'PPLQ', 'PPLW']);
 
-export interface UsgsQuake { id: string; t: number; at: Lnglat; mag: number; place: string }
+export interface UsgsQuake { id: string; t: number; at: Lnglat; mag: number; place: string; depth: number; net: string }
 export interface NoaaEvent {
   id: number; rec: string; kind: HazardKind; t: number; prec: number; at: Lnglat | null;
   mag: number | null; deaths: number | null; h: number | null; where?: string; wiki?: string;
@@ -102,9 +104,10 @@ async function usgsFile(file: string, start: string, end: string, minMag: number
     await sleep(2000);
   }
   const [head, ...rows] = csvRows(readFileSync(path, 'utf8'));
-  const [ti, la, lo, ma, id, pl] = ['time', 'latitude', 'longitude', 'mag', 'id', 'place'].map(c => head.indexOf(c));
+  const [ti, la, lo, ma, id, pl, de, ne] = ['time', 'latitude', 'longitude', 'mag', 'id', 'place', 'depth', 'net'].map(c => head.indexOf(c));
   return rows.filter(r => r.length === head.length).map(r => ({
     id: r[id], t: Date.parse(r[ti]), at: [Number(r[lo]), Number(r[la])] as Lnglat, mag: Math.round(Number(r[ma]) * 10) / 10, place: r[pl],
+    depth: Number(r[de]) || 0, net: r[ne],
   })).filter(q => Number.isFinite(q.t) && Number.isFinite(q.mag) && Math.abs(q.at[1]) <= 90 && Math.abs(q.at[0]) <= 180);
 }
 
@@ -350,6 +353,20 @@ function loadCities(): City[] {
     .map(r => ({ id: Number(r[0]), name: r[1], cc: r[8], at: [Number(r[5]), Number(r[4])] as Lnglat, pop: Number(r[14]) }));
 }
 
+/** Every quake loaded, for the embed's windows over these pages (src/lib/feeds/hazards/quake-archive.ts). One per line. */
+function writeQuakes(usgs: UsgsQuake[], asOf: string) {
+  const archive: QuakeArchive = {
+    generated: new Date().toISOString().slice(0, 10),
+    until: asOf,
+    tiers: [{ floor: FLOORS.all, since: `${USGS_SINCE}-01-01` }, { floor: FLOORS['10y'], since: `${yearOf(Date.parse(asOf)) - 9}-01-01` }],
+    rows: usgs.map(q => [q.id, q.t, round(q.at[0], 3), round(q.at[1], 3), round(q.depth, 1), q.mag, q.place, q.net]),
+  };
+  const { rows, ...head } = archive;
+  const json = `${JSON.stringify(head).slice(0, -1)},"rows":[\n${rows.map(r => JSON.stringify(r)).join(',\n')}\n]}\n`;
+  writeFileSync(QUAKES_OUT, json);
+  console.log(`wrote ${rows.length} quakes, ${(json.length / 1024).toFixed(0)} KB to ${QUAKES_OUT}`);
+}
+
 async function main() {
   const asOfArg = process.argv.indexOf('--as-of');
   const asOf = asOfArg > 0 ? process.argv[asOfArg + 1] : new Date().toISOString().slice(0, 10);
@@ -359,6 +376,7 @@ async function main() {
   mkdirSync('data/site/topics', { recursive: true });
 
   const usgs = (await loadUsgs(asOf)).filter(q => q.t < Date.parse(asOf));
+  writeQuakes(usgs, asOf);
   const noaa = loadNoaa().filter(e => e.t < Date.parse(asOf));
   const matched = matchNoaa(noaa, usgs);
   const noaaOf = new Map(noaa.filter(e => e.usgs).map(e => [e.usgs!.id, e]));

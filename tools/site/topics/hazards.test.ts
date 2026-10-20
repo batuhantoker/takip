@@ -3,7 +3,7 @@ import { addRunup, csvRows, hitDeaths, matchNoaa, rangeStats, type Bag, type Noa
 import { countryBox } from './hazards-geo';
 
 const T = Date.parse('2023-02-06T01:17:34Z');
-const usgs = (id: string, t: number, mag: number, at: [number, number] = [37.04, 37.23]): UsgsQuake => ({ id, t, at, mag, place: `${id} place` });
+const usgs = (id: string, t: number, mag: number, at: [number, number] = [37.04, 37.23]): UsgsQuake => ({ id, t, at, mag, place: `${id} place`, depth: 10, net: 'us' });
 const noaa = (id: number, kind: NoaaEvent['kind'], t: number, extra: Partial<NoaaEvent> = {}): NoaaEvent => ({
   id, rec: `${kind === 'q' ? 'eq' : kind === 't' ? 'ts' : 'vo'}:${id}`, kind, t, prec: 9, at: [37.02, 37.17], mag: 7.8, deaths: null, h: null, links: [], ...extra,
 });

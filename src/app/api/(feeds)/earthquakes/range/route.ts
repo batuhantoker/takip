@@ -4,6 +4,7 @@ import { getClientIp, isRateLimited } from '@/lib/core/net/ssrf-guard';
 import { parseEmbedSpec, resolveWindow, type Bbox } from '@/lib/map/embed/spec';
 import { WINDOWED_LAYERS } from '@/lib/map/embed/windows';
 import { mapUsgsQuake, parseFeatures, type Quake, type UsgsFeature } from '../catalog';
+import { archivedRange } from './archive';
 import { defaultMinMag } from './floor';
 
 /**
@@ -11,7 +12,8 @@ import { defaultMinMag } from './floor';
  * &bbox=w,s,e,n and &minmag= (the embed's own grammar, lib/map/embed/spec.ts).
  * USGS ComCat (US public domain) returns at most 20,000 events a query, so this asks for the
  * LIMIT largest and the count, and the embed says how many it shows of how many. A worldwide
- * window takes USGS 10–30 s at any floor (2026-10-19), so it is cached, and the count may give up.
+ * window takes USGS 10–30 s at any floor (2026-10-19), so it is cached, and the count may give up. A window
+ * data/site/earthquakes.json holds whole, as every place page's does, is answered from it instead.
  */
 
 const FDSN = 'https://earthquake.usgs.gov/fdsnws/event/1';
@@ -83,8 +85,10 @@ export async function GET(req: Request) {
   const from = Math.max(window.from, WINDOWED_LAYERS.get('earthquakes')!.since);
   const to = Math.min(window.to, Date.now() + 86_400_000);
   if (from >= to) return NextResponse.json({ error: 'The window is before the catalogue starts' }, { status: 400 });
+  const minMag = spec.minMag ?? defaultMinMag(spec.bbox, from, to);
   try {
-    const [payload] = await loader(from, to, spec.minMag ?? defaultMinMag(spec.bbox, from, to), spec.bbox)();
+    const local = archivedRange(from, to, minMag, spec.bbox, LIMIT);
+    const [payload] = local ? [{ ...local, limit: LIMIT, from, to, minMag }] : await loader(from, to, minMag, spec.bbox)();
     if (!payload) throw new Error('no earthquake data');
     const ttl = Math.round(ttlFor(from, to) / 1000);
     return NextResponse.json({ ...payload, source: 'USGS' }, {
