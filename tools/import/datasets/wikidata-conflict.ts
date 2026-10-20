@@ -3,9 +3,10 @@ import { join } from 'node:path';
 import { GeoPrec } from '@takip/db';
 import { type Ctx, importDataset, type Reporter, sourceId } from '../context';
 import { EventBatch, resolveCanonical } from '../events';
-import { REBELLION_CLASSES, WAR_CLASSES } from '../fetch';
+import { EXPULSION_CLASSES, GENOCIDE_CLASSES, MASS_MURDER_CLASSES, MASSACRE_CLASSES, POGROM_CLASSES, REBELLION_CLASSES, WAR_CLASSES } from '../fetch-wikidata';
 import { enwikiTitle, otherArticle } from '../wiki';
 import { ATTACKS, BATTLES, DIR, duringWar, POLITICS, WAR_BATTLES, classes, read, readSitelinks, sitelinkFiles, start, url, wdPoint, wdTime, type Row } from './wikidata';
+import { type Dated, loadRecovery, type Place, recoverFiles, type Recovery } from './wikidata-recover';
 
 /* Wars and rebellions, revolutions and assassinations, massacres and genocides from Wikidata (CC0); fetch.ts `conflicts`. */
 
@@ -21,7 +22,6 @@ const WORLD_WAR = 'Q103495';
 const ASSASSINATION = 'Q3882219';
 /** Items Wikidata files under revolution that were changes in how people lived, not political events. */
 export const NOT_POLITICAL = new Set(['Q180548']); // Neolithic Revolution
-const GENOCIDE = 'Q41397';
 const WAR_SET = new Set(WAR_CLASSES);
 const REBELLION_SET = new Set(REBELLION_CLASSES);
 
@@ -34,20 +34,20 @@ export function warKind(cls: Set<string>): string {
   return 'war';
 }
 
-type Place = { lon: number; lat: number; geoPrec: GeoPrec; placedAt?: string };
-
 /**
  * Its own point, else its location's, else the middle of its battles, else its country's. The country comes last:
- * a war between several is sampled to one of them, so it says less than where the battles were.
+ * a war between several is sampled to one of them, so it says less than where the battles were. Without `country`,
+ * the caller tries closer places first (wikidata-recover.ts).
  */
-export function wdPlace(r: Row, battles?: Place): Place | null {
+export function wdPlace(r: Row, battles?: Place, country = true): Place | null {
   const own = wdPoint(r.coord);
   if (own) return { ...own, geoPrec: GeoPrec.exact };
   const loc = wdPoint(r.locCoord);
   if (loc) return { ...loc, geoPrec: GeoPrec.area };
   if (battles) return battles;
-  const country = wdPoint(r.countryCoord);
-  return country ? { ...country, geoPrec: GeoPrec.country } : null;
+  if (!country) return null;
+  const sampled = wdPoint(r.countryCoord);
+  return sampled ? { ...sampled, geoPrec: GeoPrec.country } : null;
 }
 
 
@@ -56,7 +56,10 @@ const median = (xs: number[]) => {
   return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
 };
 
-/** For a war Wikidata places nowhere: the middle of the battles it lists under it (median, so one far battle doesn't drag it). */
+/**
+ * For a war Wikidata places nowhere: the middle of the battles it lists under it (median, so one far battle doesn't
+ * drag it). Approximate: such middles lie a median 83 km from the war's own point (geolocation.md §3).
+ */
 export function battleMiddles(battles: Row[]): Map<string, Place> {
   const points = new Map<string, { lon: number; lat: number }[]>();
   for (const b of battles) {
@@ -64,7 +67,7 @@ export function battleMiddles(battles: Row[]): Map<string, Place> {
     if (!p) continue;
     for (const war of b.wars?.split('|') ?? []) points.set(war, [...(points.get(war) ?? []), p]);
   }
-  return new Map([...points].map(([war, ps]) => [war, { lon: median(ps.map(p => p.lon)), lat: median(ps.map(p => p.lat)), geoPrec: GeoPrec.area, placedAt: 'middle of its battles' }]));
+  return new Map([...points].map(([war, ps]) => [war, { lon: median(ps.map(p => p.lon)), lat: median(ps.map(p => p.lat)), geoPrec: GeoPrec.approximate, placedAt: 'middle of its battles' }]));
 }
 
 /** "60000000/20000000/100000000" (amount/lower/upper; bounds may be blank) or a bare number. */
@@ -75,10 +78,10 @@ export function deathToll(v: string | undefined): { deaths: number; range?: [num
   return Number.isFinite(lo) && Number.isFinite(hi) && lo !== hi ? { deaths: amount, range: [lo, hi] } : { deaths: amount };
 }
 
-const itemsOf = (...files: string[]) => new Set(files.filter(f => existsSync(f)).flatMap(f => read<Row[]>(f).map(r => r.item)));
+export const itemsOf = (...files: string[]) => new Set(files.filter(f => existsSync(f)).flatMap(f => read<Row[]>(f).map(r => r.item)));
 
-/** Rows to events for one source; `taken` holds items another source already imports. */
-function addRows(batch: EventBatch, rep: Reporter, rows: Row[], taken: Set<string>, kindOf: (cls: Set<string>) => string, fallback = new Map<string, Place>()) {
+/** Rows to events for one source; `taken` holds items another source already imports, `recovery` fills what a row lacks. */
+export function addRows(batch: EventBatch, rep: Reporter, rows: Row[], taken: Set<string>, kindOf: (cls: Set<string>) => string, fallback = new Map<string, Place>(), recovery?: Recovery) {
   const sitelinks = readSitelinks();
   for (const r of rows) {
     rep.rows++;
@@ -86,18 +89,19 @@ function addRows(batch: EventBatch, rep: Reporter, rows: Row[], taken: Set<strin
       rep.reject('held by another Wikidata source', r.item);
       continue;
     }
-    const label = r.label ?? r.otherLabel;
-    const at = start(r);
+    const label = r.label ?? r.otherLabel ?? recovery?.label(r, rep);
+    const at: Dated | null = start(r) ?? (label && recovery ? recovery.date(r, 'other', rep, label) : null);
     if (!label || !at) {
       rep.reject(label ? 'no date' : 'no label', r.item);
       continue;
     }
-    const place = wdPlace(r, fallback.get(r.item));
+    const country = wdPoint(r.countryCoord);
+    const place = wdPlace(r, fallback.get(r.item), !recovery) ?? recovery?.place(r, 'other', rep, country && { ...country, geoPrec: GeoPrec.country }, new Date(at.t).getUTCFullYear());
     if (!place) {
       rep.reject('no place', r.item);
       continue;
     }
-    const end = wdTime(r.t1);
+    const end = wdTime(r.t1) ?? at.end ?? null;
     const toll = deathToll(r.deaths);
     batch.add({
       kind: kindOf(classes(r)),
@@ -114,6 +118,8 @@ function addRows(batch: EventBatch, rep: Reporter, rows: Row[], taken: Set<strin
       attrs: {
         description: r.desc ?? null,
         ...(place.placedAt && { placed_at: place.placedAt }),
+        ...(at.from && { date_from: at.from }),
+        ...(place.method && { geo_method: place.method, geo_confidence: place.confidence }),
         ...(toll?.range && { magnitude_range: toll.range }),
         ids: { wikidata: r.item },
         url: url(r),
@@ -125,11 +131,11 @@ function addRows(batch: EventBatch, rep: Reporter, rows: Row[], taken: Set<strin
 
 /** Wars and rebellions. A war WAC or COW already has becomes their duplicate; battles Wikidata puts under a war link to it. */
 export async function importWikidataWars(ctx: Ctx) {
-  await importDataset(ctx, { source: 'wikidata-wars', version: AS_OF, asOf: AS_OF, files: [WARS, ...sitelinkFiles()], importerVersion: '2' }, async ds => {
+  await importDataset(ctx, { source: 'wikidata-wars', version: AS_OF, asOf: AS_OF, files: [WARS, ...sitelinkFiles(), ...recoverFiles()], importerVersion: '3' }, async ds => {
     const batch = new EventBatch(ctx, ds);
     const rows = read<Row[]>(WARS);
     const middles = existsSync(BATTLES) ? battleMiddles(read<Row[]>(BATTLES)) : undefined;
-    addRows(batch, ds.report, rows, itemsOf(BATTLES, POLITICS, ATTACKS), warKind, middles);
+    addRows(batch, ds.report, rows, itemsOf(BATTLES, POLITICS, ATTACKS), warKind, middles, loadRecovery());
     const publish = batch.finish();
 
     ctx.events.clearRelations(ds.sourceId);
@@ -188,20 +194,69 @@ function linkBattles(ctx: Ctx, wars: number, batch: EventBatch) {
 
 /** Revolutions and assassinations, unless a war, coup or treaty item covers them. */
 export async function importWikidataRevolutions(ctx: Ctx) {
-  await importDataset(ctx, { source: 'wikidata-revolutions', version: AS_OF, asOf: AS_OF, files: [REVOLUTIONS, ...sitelinkFiles()], importerVersion: '2' }, async ds => {
+  await importDataset(ctx, { source: 'wikidata-revolutions', version: AS_OF, asOf: AS_OF, files: [REVOLUTIONS, ...sitelinkFiles(), ...recoverFiles()], importerVersion: '3' }, async ds => {
     const batch = new EventBatch(ctx, ds);
     addRows(batch, ds.report, read<Row[]>(REVOLUTIONS).filter(r => !NOT_POLITICAL.has(r.item) || (ds.report.reject('not a political event (NOT_POLITICAL)', r.item), false)), itemsOf(BATTLES, POLITICS, ATTACKS, WARS),
-      cls => (cls.has(ASSASSINATION) ? 'politics.assassination' : 'politics.revolution'));
+      cls => (cls.has(ASSASSINATION) ? 'politics.assassination' : 'politics.revolution'), undefined, loadRecovery());
     return batch.finish();
   });
 }
 
-/** Massacres and genocides that are not terrorist attacks (those are GTD's or wikidata-attacks'), battles or wars. */
+/** fetch.ts `conflicts` added mass murder and pogroms to massacres.json, and displacements.json, on this day. */
+export const ATROCITIES_AS_OF = '2026-10-20';
+
+const GENOCIDES = new Set(GENOCIDE_CLASSES);
+const KILLINGS = new Set([...MASSACRE_CLASSES, ...MASS_MURDER_CLASSES]);
+const POGROMS = new Set(POGROM_CLASSES);
+const NAMED_ATROCITY = new Set([...GENOCIDE_CLASSES, ...MASSACRE_CLASSES, ...POGROM_CLASSES, ...EXPULSION_CLASSES]);
+
+/** One kind per item, the gravest its classes give: genocide, then massacre (mass murder too), pogrom, expulsion. */
+export function atrocityKind(cls: Set<string>): string {
+  const any = (set: Set<string>) => [...cls].some(c => set.has(c));
+  if (any(GENOCIDES)) return 'conflict.genocide';
+  if (any(KILLINGS)) return 'conflict.massacre';
+  if (any(POGROMS)) return 'conflict.pogrom';
+  return 'conflict.expulsion';
+}
+
+/**
+ * Crimes and attacks Wikidata also files under mass murder: mass, school and university shootings, shootings and
+ * shootouts, school massacre, murder–suicide, familicide, family annihilation, spree killing, amok, stabbing, knife
+ * attack, robbery-murder, bank robbery, arson, deliberate murder, homicide (Japanese penal code), pedicide,
+ * infanticide, unsolved crime, deliberate poisoning, mass suicide, aircraft crash, pilot suicide, suicide attack and
+ * attempted suicide bombing (the last two are GTD's).
+ */
+const NOT_ATROCITY = new Set([
+  'Q21480300', 'Q473853', 'Q136281265', 'Q2252077', 'Q2406205', 'Q21175615', 'Q3307578', 'Q5400895', 'Q124727129',
+  'Q66975460', 'Q473814', 'Q464643', 'Q61039291', 'Q11487748', 'Q806824', 'Q327541', 'Q4676786', 'Q11547135',
+  'Q13587273', 'Q916412', 'Q11519624', 'Q51159762', 'Q142824', 'Q3002150', 'Q19689353', 'Q217327', 'Q113747929',
+]);
+/** War crime, crime against humanity, and their subclasses that name who committed them (German, Japanese, Nazi…). */
+const WAR_CRIME = new Set(['Q135010', 'Q173462', 'Q715434', 'Q680121', 'Q701321', 'Q474884', 'Q2514383', 'Q1787901', 'Q6983405', 'Q1340848', 'Q1370835']);
+
+/**
+ * Why an item that is only a mass murder stays out, or null. It comes in when Wikidata puts it in a conflict (P361 or
+ * P607), files it as a war crime, or names a perpetrator that is not a person (a state, army or group).
+ */
+export function massMurderReject(r: Row): string | null {
+  const cls = [...classes(r)];
+  if (!cls.some(c => MASS_MURDER_CLASSES.includes(c)) || cls.some(c => NAMED_ATROCITY.has(c))) return null;
+  if (cls.some(c => NOT_ATROCITY.has(c))) return 'mass murder that is a private crime or attack';
+  if (r.wars || r.orgPerp || cls.some(c => WAR_CRIME.has(c))) return null;
+  return 'mass murder with no conflict, war-crime class or collective perpetrator';
+}
+
+/** Massacres, genocides and pogroms that are not terrorist attacks (those are GTD's or wikidata-attacks'), battles or wars. */
 export async function importWikidataMassacres(ctx: Ctx) {
-  await importDataset(ctx, { source: 'wikidata-massacres', version: AS_OF, asOf: AS_OF, files: [MASSACRES, ...sitelinkFiles()], importerVersion: '1' }, async ds => {
+  const spec = { source: 'wikidata-massacres', version: ATROCITIES_AS_OF, asOf: ATROCITIES_AS_OF, files: [MASSACRES, ...sitelinkFiles(), ...recoverFiles()], importerVersion: '3' };
+  await importDataset(ctx, spec, async ds => {
     const batch = new EventBatch(ctx, ds);
-    addRows(batch, ds.report, read<Row[]>(MASSACRES), itemsOf(BATTLES, ATTACKS, WARS, REVOLUTIONS),
-      cls => (cls.has(GENOCIDE) ? 'conflict.genocide' : 'conflict.massacre'));
+    const rows = read<Row[]>(MASSACRES).filter(r => {
+      const why = massMurderReject(r);
+      if (why) ds.report.reject(why, r.item);
+      return !why;
+    });
+    addRows(batch, ds.report, rows, itemsOf(BATTLES, ATTACKS, WARS, REVOLUTIONS), atrocityKind, undefined, loadRecovery());
     return batch.finish();
   });
 }

@@ -43,6 +43,22 @@ export const LICENCES = [
     code: 'sipri-terms', name: 'SIPRI terms; commercial use needs authorisation', url: 'https://www.sipri.org/databases/terms', commercial: 0, redistribution: 'display',
     attribution: 'Information from the Stockholm International Peace Research Institute (SIPRI) Military Expenditure Database, https://doi.org/10.55163/CQGC9685',
   },
+  // GVP's terms page: personal, educational and other non-commercial use, crediting the Smithsonian; www.si.edu/termsofuse 403s to scripts. Agreement pending.
+  {
+    code: 'smithsonian-terms', name: 'Smithsonian terms of use: personal, educational and non-commercial use, with credit', url: 'https://volcano.si.edu/gvp_termsofuse.cfm', commercial: 0, redistribution: 'attribution',
+    attribution: 'Global Volcanism Program, Smithsonian Institution: Volcanoes of the World v5.3, https://doi.org/10.5479/si.GVP.VOTW5-2025.5.3',
+  },
+  // PA-X terms of use (v1, 2023): CC BY-NC-SA 4.0, research/teaching use, no fee and no commercial use, no re-use of the database
+  // whole or a substantial part as a similar database, and data produced from it should be notified to peacerep@ed.ac.uk.
+  {
+    code: 'pax-terms', name: 'PA-X terms of use: CC BY-NC-SA 4.0, non-commercial, no wholesale re-use of the database', url: 'https://www.peaceagreements.org/media/documents/Terms_of_Use.pdf', commercial: 0, redistribution: 'share_alike',
+    attribution: 'PA-X Peace Agreements Database v10 (Bell & Badanjak 2019), www.peaceagreements.org; copyright and database right University of Edinburgh',
+  },
+  // SlaveVoyages' Legal page: data from historical documents is public domain; imputed data (the site's asterisked
+  // variables, which place, date and count most voyages here) is CC BY-NC 3.0 US. Cite the database, year and site.
+  {
+    code: 'slavevoyages-terms', name: 'SlaveVoyages: historical data public domain, imputed data CC BY-NC 3.0 US', url: 'https://creativecommons.org/licenses/by-nc/3.0/us/', commercial: 0, redistribution: 'attribution',
+  },
 ] as const;
 
 type SourceSeed = { code: string; name: string; owner: string; url?: string; licence: string; events?: boolean; attribution?: string };
@@ -87,6 +103,7 @@ export const SOURCES: SourceSeed[] = [
   { code: 'wikidata-wars', name: 'Wikidata: wars and rebellions', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q198', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-revolutions', name: 'Wikidata: revolutions and assassinations', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q10931', licence: 'cc0-1.0', events: true },
   { code: 'wikidata-massacres', name: 'Wikidata: massacres and genocides', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q3199915', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-displacements', name: 'Wikidata: expulsions and deportations', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q837556', licence: 'cc0-1.0', events: true },
   // SIPRI report (Bergkvist and Ferm, 2000) via TidyTuesday; no licence stated, shown while terms are pending.
   { code: 'sipri-nuclear', name: 'Nuclear explosions 1945–1998', owner: 'SIPRI / FOA, via TidyTuesday', url: 'https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-08-20', licence: 'unknown', events: true },
   { code: 'owid-longrun', name: 'OWID: long-run country indicators (Maddison, V-Dem, Gapminder, UNESCO, GCB)', owner: 'Our World in Data', url: 'https://ourworldindata.org/', licence: 'cc-by-4.0' },
@@ -99,6 +116,32 @@ export const SOURCES: SourceSeed[] = [
   { code: 'sipri-milex', name: 'SIPRI Military Expenditure Database', owner: 'Stockholm International Peace Research Institute (SIPRI)', url: 'https://www.sipri.org/databases/milex', licence: 'sipri-terms' },
   // COW asks users to give the version number and cite Singer, Bremer & Stuckey (1972).
   { code: 'cow-nmc', name: 'COW National Material Capabilities v7.0', owner: 'Correlates of War Project', url: 'https://correlatesofwar.org/data-sets/national-material-capabilities/', licence: 'cow-terms' },
+  { code: 'wikidata-disasters', name: 'Wikidata: famines, epidemics and fires', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q168247', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-unrest', name: 'Wikidata: riots, protests, strikes and revolts', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q124757', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-accidents', name: 'Wikidata: air, rail, road, mining and industrial accidents', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q744913', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-operations', name: 'Wikidata: military operations, raids and air strikes', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q645883', licence: 'cc0-1.0', events: true },
+  { code: 'wikidata-crimes', name: 'Wikidata: shootings and murders', owner: 'Wikidata contributors', url: 'https://www.wikidata.org/wiki/Q132821', licence: 'cc0-1.0', events: true },
+  // The live WFS layer, newer than the v5.3.1 the DOI names (current eruptions run to March 2026).
+  { code: 'gvp-eruptions', name: 'Smithsonian GVP Volcanoes of the World: Holocene eruptions', owner: 'Global Volcanism Program, Smithsonian Institution', url: 'https://doi.org/10.5479/si.GVP.VOTW5-2025.5.3', licence: 'smithsonian-terms', events: true },
+  // Outbreaks someone recorded, not every outbreak: Roosen & Curtis (2018) find France over-represented and some places imprecise.
+  { code: 'plague-outbreaks', name: 'Plague outbreaks 1347–1900 by town (Biraben’s list, digitised by Büntgen et al. 2012)', owner: 'Büntgen et al. 2012, WSL; data from J.-N. Biraben (1975–76)', url: 'https://doi.org/10.16904/envidat.181', licence: 'odbl-1.0', events: true },
+  // GCAT is CC BY and asks for the credit 'data from GCAT (J. McDowell, planet4589.org/space/gcat)', so the name carries it.
+  { code: 'gcat-launches', name: 'GCAT launch log (J. McDowell, planet4589.org/space/gcat)', owner: 'Jonathan C. McDowell', url: 'https://planet4589.org/space/gcat/', licence: 'cc-by-4.0', events: true },
+  { code: 'cneos-fireballs', name: 'CNEOS fireball and bolide reports', owner: 'NASA JPL Center for Near Earth Object Studies', url: 'https://cneos.jpl.nasa.gov/fireballs/', licence: 'public-domain', events: true },
+  { code: 'epica', name: 'EPICA v1.1, European preinstrumental earthquakes 1000–1899 (Rovida & Antonucci 2021)', owner: 'INGV', url: 'https://doi.org/10.13127/epica.1.1', licence: 'cc-by-4.0', events: true },
+  // No licence stated; the page asks for the citation "J. Strauss, A. I. Wilson, M. Flohr (2017). OxREP Shipwrecks Database. Version 2.1".
+  { code: 'oxrep-shipwrecks', name: 'OxREP Shipwrecks Database v2.1 (Strauss, Wilson & Flohr 2017)', owner: 'Oxford Roman Economy Project', url: 'https://oxrep.web.ox.ac.uk/shipwrecks-database', licence: 'unknown', events: true },
+  // Cline asks for the citation: Peyton, Bajjalieh, Martin & Gerald (2026), Cline Center Coup d'État Project Dataset v2.2.2, doi:10.13012/B2IDB-9651987_V10.
+  { code: 'cline-coups', name: 'Cline Center Coup d’État Project v2.2.2', owner: 'Cline Center for Advanced Social Research, University of Illinois', url: 'https://doi.org/10.13012/B2IDB-9651987_V10', licence: 'cc-by-4.0', events: true },
+  { code: 'pax', name: 'PA-X Peace Agreements Database v10', owner: 'PeaceRep, University of Edinburgh', url: 'https://www.peaceagreements.org/', licence: 'pax-terms', events: true },
+  { code: 'ibtracs', name: 'IBTrACS v04r01: tropical cyclone best tracks since 1842', owner: 'NOAA National Centers for Environmental Information', url: 'https://doi.org/10.25921/82ty-9e16', licence: 'public-domain', events: true },
+  { code: 'mass-mobilization', name: 'Mass Mobilization Project v5.1: protests against governments, 1990–2020 (Clark & Regan)', owner: 'David Clark and Patrick Regan', url: 'https://doi.org/10.7910/DVN/HTTWYL', licence: 'cc0-1.0', events: true },
+  { code: 'slave-voyages', name: 'The Trans-Atlantic Slave Trade Database (2019), SlaveVoyages, slavevoyages.org', owner: 'SlaveVoyages Consortium', url: 'https://www.slavevoyages.org/voyage/database', licence: 'slavevoyages-terms', events: true },
+  { code: 'slave-voyages-intra', name: 'The Intra-American Slave Trade Database (1.0), SlaveVoyages, slavevoyages.org', owner: 'SlaveVoyages Consortium', url: 'https://www.slavevoyages.org/voyage/database', licence: 'slavevoyages-terms', events: true },
+  // One per language: the Events sections of each year page, and English's Current events days.
+  ...([['en', 'English'], ['tr', 'Turkish'], ['de', 'German'], ['fr', 'French'], ['ru', 'Russian'], ['es', 'Spanish'], ['ar', 'Arabic'], ['fa', 'Persian'], ['zh', 'Chinese'], ['ja', 'Japanese']] as const).map(([lang, name]) => ({
+    code: `wikipedia-years-${lang}`, name: `Wikipedia year pages (${name}), by Wikipedia contributors`, owner: 'Wikipedia contributors', url: `https://${lang}.wikipedia.org/`, licence: 'cc-by-sa-4.0', events: true,
+  })),
 ];
 
 const TIERS = ['anon', 'free', 'paid', 'internal'] as const;
@@ -134,6 +177,8 @@ export const KINDS: EventKindInput[] = [
   { code: 'conflict.rebellion', family: 'conflict' },
   { code: 'conflict.massacre', family: 'conflict' },
   { code: 'conflict.genocide', family: 'conflict' },
+  { code: 'conflict.pogrom', family: 'conflict' },
+  { code: 'conflict.expulsion', family: 'conflict' },
   { code: 'nuclear.test', family: 'nuclear' },
   { code: 'nuclear.combat', family: 'nuclear' },
   // Where a disaster struck (EM-DAT's affected places), as opposed to hazard.*, the physical event.
@@ -145,6 +190,40 @@ export const KINDS: EventKindInput[] = [
   { code: 'disaster.landslide', family: 'disaster' },
   { code: 'disaster.mass_movement', family: 'disaster' },
   { code: 'disaster.volcano', family: 'disaster' },
+  // Wikidata's famines, epidemics, fires and accidents: one event at its own place, not the places a hazard hit.
+  { code: 'disaster.famine', family: 'disaster' },
+  { code: 'disaster.epidemic', family: 'disaster' },
+  { code: 'disaster.fire', family: 'disaster' },
+  { code: 'disaster.wildfire', family: 'disaster' },
+  { code: 'accident.aviation', family: 'disaster' },
+  { code: 'accident.rail', family: 'disaster' },
+  { code: 'accident.road', family: 'disaster' },
+  { code: 'accident.mining', family: 'disaster' },
+  { code: 'accident.explosion', family: 'disaster' },
+  { code: 'accident.crowd', family: 'disaster' },
+  { code: 'accident.industrial', family: 'disaster' },
+  { code: 'politics.riot', family: 'politics' },
+  { code: 'politics.protest', family: 'politics' },
+  { code: 'politics.strike', family: 'politics' },
+  { code: 'battle.operation', family: 'conflict', parent: 'battle' },
+  { code: 'crime.shooting', family: 'crime' },
+  { code: 'crime.murder', family: 'crime' },
+  { code: 'hazard.fireball', family: 'hazard' },
+  { code: 'accident.shipwreck', family: 'disaster' },
+  { code: 'space.launch', family: 'space' },
+  { code: 'space.suborbital', family: 'space' },
+  { code: 'missile.test', family: 'missile' },
+  // Cline's unrealized coups: action taken that failed, and plots stopped before any attempt.
+  { code: 'politics.coup.attempt', family: 'politics', parent: 'politics.coup' },
+  { code: 'politics.coup.conspiracy', family: 'politics', parent: 'politics.coup' },
+  // PA-X: ceasefires, framework and implementation texts, joint statements; most are not treaties.
+  { code: 'politics.peace_agreement', family: 'politics' },
+  // A tropical cyclone's track (IBTrACS), placed at its peak.
+  { code: 'hazard.storm', family: 'hazard' },
+  // A slave-trade voyage (SlaveVoyages), placed where the captives were bought; the port sequence is its geom.
+  { code: 'slavery.voyage', family: 'slavery' },
+  // A dated event from a Wikipedia year page whose linked article has no class TAKIP maps to a kind.
+  { code: 'event.general', family: 'events' },
 ];
 
 export const ROLES = [

@@ -7,6 +7,9 @@ export function utc(year: number, month = 1, day = 1) {
   return d.getTime();
 }
 
+/** NCEI and GVP write BCE as negative years with no year 0 (-122 is 122 BCE); utc() wants astronomical years. */
+export const astronomical = (y: number) => (y < 0 ? y + 1 : y);
+
 export type Stated = { t: number; prec: Prec };
 
 /**

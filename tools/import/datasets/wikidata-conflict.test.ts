@@ -1,8 +1,8 @@
 import { GeoPrec } from '@takip/db';
 import { describe, expect, it } from 'vitest';
-import { REBELLION_CLASSES, WAR_CLASSES } from '../fetch';
+import { REBELLION_CLASSES, WAR_CLASSES } from '../fetch-wikidata';
 import { KINDS } from '../seed';
-import { battleMiddles, deathToll, warKind, wdPlace } from './wikidata-conflict';
+import { atrocityKind, battleMiddles, deathToll, massMurderReject, warKind, wdPlace } from './wikidata-conflict';
 import type { Row } from './wikidata';
 
 const row = (fields: Partial<Row>): Row => ({ item: 'Q1', classes: '', ...fields });
@@ -30,7 +30,7 @@ describe('wikidata wars', () => {
 
   it('seeds every kind it writes', () => {
     const seeded = new Set(KINDS.map(k => k.code));
-    for (const k of ['war', 'war.civil', 'conflict.rebellion', 'conflict.massacre', 'conflict.genocide', 'politics.revolution', 'politics.assassination']) {
+    for (const k of ['war', 'war.civil', 'conflict.rebellion', 'conflict.massacre', 'conflict.genocide', 'conflict.pogrom', 'conflict.expulsion', 'politics.revolution', 'politics.assassination']) {
       expect(seeded.has(k), k).toBe(true);
     }
   });
@@ -45,7 +45,7 @@ describe('wikidata places', () => {
   });
 
   it('puts the middle of its battles before a sampled country', () => {
-    const battles = { lon: 7, lat: 49, geoPrec: GeoPrec.area, placedAt: 'middle of its battles' };
+    const battles = { lon: 7, lat: 49, geoPrec: GeoPrec.approximate, placedAt: 'middle of its battles' };
     expect(wdPlace(row({ countryCoord: 'Point(2 46)' }), battles)).toBe(battles);
     expect(wdPlace(row({ locCoord: 'Point(8 50)' }), battles)).toEqual({ lon: 8, lat: 50, geoPrec: GeoPrec.area });
   });
@@ -59,7 +59,7 @@ describe('wars placed by their battles', () => {
       row({ item: 'B3', wars: 'W', locCoord: 'Point(170 60)' }),
       row({ item: 'B4', wars: 'W' }),
     ]);
-    expect(m.get('W')).toEqual({ lon: 121, lat: 15, geoPrec: GeoPrec.area, placedAt: 'middle of its battles' });
+    expect(m.get('W')).toEqual({ lon: 121, lat: 15, geoPrec: GeoPrec.approximate, placedAt: 'middle of its battles' });
     expect(m.get('V')).toMatchObject({ lon: 121, lat: 15 });
   });
 });
@@ -71,5 +71,33 @@ describe('death tolls', () => {
     expect(deathToll('500/500/500')).toEqual({ deaths: 500 });
     expect(deathToll('1200')).toEqual({ deaths: 1200 });
     expect(deathToll(undefined)).toBeNull();
+  });
+});
+
+describe('massacres, pogroms and expulsions', () => {
+  const kind = (...cls: string[]) => atrocityKind(new Set(cls));
+
+  it('gives an item the gravest kind its classes name', () => {
+    expect(kind('Q41397', 'Q837556')).toBe('conflict.genocide'); // genocide and forced displacement
+    expect(kind('Q786766', 'Q750215')).toBe('conflict.genocide'); // autogenocide and mass murder
+    expect(kind('Q3199915', 'Q177716')).toBe('conflict.massacre');
+    expect(kind('Q750215', 'Q177716')).toBe('conflict.massacre');
+    expect(kind('Q177716', 'Q379693')).toBe('conflict.pogrom');
+    expect(kind('Q154278', 'Q3289720')).toBe('conflict.expulsion');
+  });
+
+  it('keeps a mass murder only when something ties it to a conflict', () => {
+    const mm = (fields: Partial<Row>) => massMurderReject(row({ classes: 'Q750215', ...fields }));
+    expect(mm({ orgPerp: '1' })).toBeNull();
+    expect(mm({ wars: 'Q362' })).toBeNull();
+    expect(mm({ classes: 'Q750215|Q135010' })).toBeNull();
+    expect(mm({})).toMatch(/no conflict/);
+    expect(mm({ classes: 'Q750215|Q21480300', wars: 'Q1' })).toMatch(/private crime/);
+  });
+
+  it('leaves every other class alone', () => {
+    expect(massMurderReject(row({ classes: 'Q750215|Q3199915|Q21480300' }))).toBeNull();
+    expect(massMurderReject(row({ classes: 'Q750215|Q177716' }))).toBeNull();
+    expect(massMurderReject(row({ classes: 'Q177716' }))).toBeNull();
   });
 });

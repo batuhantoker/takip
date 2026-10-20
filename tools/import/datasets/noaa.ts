@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { Prec } from '@takip/core/time';
 import { GeoPrec } from '@takip/db';
 import { type Ctx, importDataset, RAW_MORE, type Reporter } from '../context';
-import { utc } from '../dates';
+import { astronomical, utc } from '../dates';
 import { EventBatch, resolveCanonical, validLonLat } from '../events';
 import { Resolver } from '../resolver';
 import { articleFiles, Articles } from '../articles';
@@ -30,8 +30,9 @@ const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : nul
 
 /** Year to second, at the finest part NCEI gives. */
 export function nceiTime(i: Item): { t: number; prec: Prec } | null {
-  const year = n(i.year);
-  if (year === null) return null;
+  const stated = n(i.year);
+  if (stated === null) return null;
+  const year = astronomical(stated);
   const month = n(i.month);
   const day = n(i.day);
   if (month === null) return { t: utc(year), prec: Prec.year };
@@ -96,7 +97,7 @@ function rejectNoTime(rep: Reporter, kind: string, i: Item) {
 
 /** NCEI significant earthquakes, tsunami events and volcanic eruptions (public domain), from 2150 BCE. */
 export async function importNoaa(ctx: Ctx) {
-  await importDataset(ctx, { source: 'noaa-hazards', version: AS_OF, asOf: AS_OF, files: [...Object.values(FILES), ...articleFiles()], importerVersion: '5' }, async ds => {
+  await importDataset(ctx, { source: 'noaa-hazards', version: AS_OF, asOf: AS_OF, files: [...Object.values(FILES), ...articleFiles()], importerVersion: '6' }, async ds => {
     const rep = ds.report;
     const batch = new EventBatch(ctx, ds);
     const links: [from: string, to: string][] = [];

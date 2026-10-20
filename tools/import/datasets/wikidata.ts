@@ -5,7 +5,9 @@ import { GeoPrec } from '@takip/db';
 import { type Ctx, importDataset, RAW_MORE, sourceId } from '../context';
 import { utc } from '../dates';
 import { EventBatch, resolveCanonical, validLonLat } from '../events';
+import { EXPULSION_CLASSES, GENOCIDE_CLASSES, MASS_MURDER_CLASSES, MASSACRE_CLASSES, POGROM_CLASSES } from '../fetch-wikidata';
 import { enwikiTitle, otherArticle } from '../wiki';
+import { type Dated, loadRecovery, type Place, recoverFiles } from './wikidata-recover';
 
 export const DIR = join(RAW_MORE, 'wikidata');
 export const BATTLES = join(DIR, 'battles.json');
@@ -19,8 +21,16 @@ const SITELINKS = join(DIR, 'sitelinks.json');
 const AS_OF = '2026-10-12';
 
 const SIEGE = 'Q188055';
+/** Atrocity classes a battle item may also carry, gravest first, as wikidata-conflict's atrocityKind orders them. */
+const ALSO: [kind: string, classes: Set<string>][] = [
+  ['conflict.genocide', new Set(GENOCIDE_CLASSES)],
+  ['conflict.massacre', new Set([...MASSACRE_CLASSES, ...MASS_MURDER_CLASSES])],
+  ['conflict.pogrom', new Set(POGROM_CLASSES)],
+  ['conflict.expulsion', new Set(EXPULSION_CLASSES)],
+];
+export const alsoAtrocity = (cls: Set<string>) => ALSO.find(([, set]) => [...cls].some(c => set.has(c)))?.[0];
 const NAVAL = 'Q1261499';
-const COUP = 'Q45382';
+export const COUP = 'Q45382';
 /** WAC's canonical world wars, which Wikidata's world-war battles are part of. */
 export const WAR_PARENT: Record<string, string> = { Q361: 'CNF-0001', Q362: 'CNF-0013' };
 /** Their years, a year either side: Wikidata's part-of chains reach earlier battles too (an 1825 one under World War II). */
@@ -132,9 +142,10 @@ export const classes = (r: Row) => new Set(r.classes.split('|'));
 
 /** Wikidata battles and sieges (CC0), 3300 BCE to today. World-war battles join WAC's wars and replace nothing. */
 export async function importWikidataBattles(ctx: Ctx) {
-  await importDataset(ctx, { source: 'wikidata-battles', version: AS_OF, asOf: AS_OF, files: [BATTLES, WORLD_WARS, ...(existsSync(WAR_BATTLES) ? [WAR_BATTLES] : []), ...sitelinkFiles()], importerVersion: '6' }, async ds => {
+  await importDataset(ctx, { source: 'wikidata-battles', version: AS_OF, asOf: AS_OF, files: [BATTLES, WORLD_WARS, ...(existsSync(WAR_BATTLES) ? [WAR_BATTLES] : []), ...sitelinkFiles(), ...recoverFiles()], importerVersion: '8' }, async ds => {
     const rep = ds.report;
     const sitelinks = readSitelinks();
+    const recovery = loadRecovery();
     const batch = new EventBatch(ctx, ds);
     const worldWar = new Map(read<{ item: string; war: string }[]>(WORLD_WARS).map(w => [w.item, w.war]));
     const articles = new Map<string, string>();
@@ -148,18 +159,20 @@ export async function importWikidataBattles(ctx: Ctx) {
         rep.reject('duplicate of another item (DUPLICATES)', `${r.item} → ${kept}`);
         continue;
       }
-      const label = r.label ?? r.otherLabel;
+      const label = r.label ?? r.otherLabel ?? recovery.label(r, rep);
       if (!label) {
         rep.reject('no label', r.item);
         continue;
       }
-      const stated = start(r);
+      const stated: Dated | null = start(r) ?? recovery.date(r, 'battle', rep, label);
       if (!stated) {
         rep.reject('no date', r.item);
         continue;
       }
       const own = wdPoint(r.coord);
-      const place = own ?? wdPoint(r.locCoord);
+      const loc = wdPoint(r.locCoord);
+      // A battle without its own coordinates is placed at its location item, which may be a region.
+      const place: Place | null = own ? { ...own, geoPrec: GeoPrec.exact } : loc ? { ...loc, geoPrec: GeoPrec.area } : recovery.place(r, 'battle', rep, null, new Date(stated.t).getUTCFullYear());
       if (!place) {
         rep.reject('no coordinates', r.item);
         continue;
@@ -167,7 +180,7 @@ export async function importWikidataBattles(ctx: Ctx) {
       const fix = stated.prec <= Prec.year ? DATES[r.item] : undefined;
       if (fix) rep.sentinel('year-only date → DATES');
       const at = fix ? isoDate(fix[0]) : stated;
-      const end = fix ? (fix[1] ? isoDate(fix[1]) : null) : wdTime(r.t1);
+      const end = fix ? (fix[1] ? isoDate(fix[1]) : null) : (wdTime(r.t1) ?? stated.end ?? null);
       const cls = classes(r);
       const named = worldWar.get(r.item) ?? r.wars?.split('|').find(w => WAR_PARENT[w]);
       const year = new Date(at.t).getUTCFullYear();
@@ -183,11 +196,14 @@ export async function importWikidataBattles(ctx: Ctx) {
         tEndPrec: end && end.t >= at.t ? end.prec : null,
         lon: place.lon,
         lat: place.lat,
-        // A battle without its own coordinates is placed at its location item, which may be a region.
-        geoPrec: own ? GeoPrec.exact : GeoPrec.area,
+        geoPrec: place.geoPrec,
         attrs: {
           description: r.desc ?? null,
+          ...(place.placedAt && { placed_at: place.placedAt }),
+          ...(stated.from && { date_from: stated.from }),
+          ...(place.method && { geo_method: place.method, geo_confidence: place.confidence }),
           naval: cls.has(NAVAL) || undefined,
+          also: alsoAtrocity(cls),
           war: war ? (war === 'Q361' ? 'World War I' : 'World War II') : undefined,
           ids: { wikidata: r.item },
           url: url(r),
@@ -271,38 +287,46 @@ function linkWars(ctx: Ctx, battles: number, batch: EventBatch) {
   return { part_of: linked.size, wars: new Set(links.map(l => warEvent.get(l.war)).filter(w => w !== undefined)).size };
 }
 
+/** A treaty's event is its signing (point in time); start and end times are usually when it was in force. */
+export const politicsDate = (r: Row, coup: boolean) => (coup ? start(r) : (wdTime(r.t) ?? wdTime(r.inception) ?? wdTime(r.t0)));
+
+/** A treaty where it was signed, a coup at the country's capital, unless either is placed closer. */
+export function politicsPlace(r: Row, coup: boolean): Place | null {
+  const capital = wdPoint(r.capital?.split(' ').slice(1).join(' '));
+  const own = wdPoint(r.coord);
+  const places: [ReturnType<typeof wdPoint>, GeoPrec][] = coup
+    ? [[own, GeoPrec.exact], [capital, GeoPrec.city], [wdPoint(r.locCoord), GeoPrec.approximate]]
+    : [[own, GeoPrec.exact], [wdPoint(r.signCoord), GeoPrec.city], [wdPoint(r.locCoord), GeoPrec.city]];
+  const hit = places.find(([p]) => p);
+  return hit ? { ...hit[0]!, geoPrec: hit[1] } : null;
+}
+
 /** Wikidata treaties (where they were signed) and coups (at the country's capital unless placed closer); CC0. */
 export async function importWikidataPolitics(ctx: Ctx) {
-  await importDataset(ctx, { source: 'wikidata-politics', version: AS_OF, asOf: AS_OF, files: [POLITICS, ...sitelinkFiles()], importerVersion: '3' }, async ds => {
+  await importDataset(ctx, { source: 'wikidata-politics', version: AS_OF, asOf: AS_OF, files: [POLITICS, ...sitelinkFiles(), ...recoverFiles()], importerVersion: '4' }, async ds => {
     const rep = ds.report;
     const sitelinks = readSitelinks();
+    const recovery = loadRecovery();
     const batch = new EventBatch(ctx, ds);
     for (const r of read<Row[]>(POLITICS)) {
       rep.rows++;
       const coup = classes(r).has(COUP);
-      const label = r.label ?? r.otherLabel;
+      const label = r.label ?? r.otherLabel ?? recovery.label(r, rep);
       if (!label) {
         rep.reject('no label', r.item);
         continue;
       }
-      // A treaty's event is its signing (point in time); start and end times are usually when it was in force.
-      const at = coup ? start(r) : (wdTime(r.t) ?? wdTime(r.inception) ?? wdTime(r.t0));
+      const at: Dated | null = politicsDate(r, coup) ?? recovery.date(r, coup ? 'other' : 'treaty', rep, label);
       if (!at) {
         rep.reject(`${coup ? 'coup' : 'treaty'}: no date`, r.item);
         continue;
       }
-      const capital = wdPoint(r.capital?.split(' ').slice(1).join(' '));
-      const own = wdPoint(r.coord);
-      const places: [ReturnType<typeof wdPoint>, GeoPrec][] = coup
-        ? [[own, GeoPrec.exact], [capital, GeoPrec.city], [wdPoint(r.locCoord), GeoPrec.approximate]]
-        : [[own, GeoPrec.exact], [wdPoint(r.signCoord), GeoPrec.city], [wdPoint(r.locCoord), GeoPrec.city]];
-      const hit = places.find(([p]) => p);
-      if (!hit) {
+      const place = politicsPlace(r, coup) ?? recovery.place(r, coup ? 'other' : 'treaty', rep, null, new Date(at.t).getUTCFullYear());
+      if (!place) {
         rep.reject(`${coup ? 'coup' : 'treaty'}: no place`, r.item);
         continue;
       }
-      const [place, geoPrec] = hit as [{ lon: number; lat: number }, GeoPrec];
-      const end = coup ? wdTime(r.t1) : null;
+      const end = coup ? (wdTime(r.t1) ?? at.end ?? null) : null;
       batch.add({
         kind: coup ? 'politics.coup' : 'politics.treaty',
         sourceRecordId: r.item,
@@ -313,8 +337,16 @@ export async function importWikidataPolitics(ctx: Ctx) {
         tEndPrec: end && end.t >= at.t ? end.prec : null,
         lon: place.lon,
         lat: place.lat,
-        geoPrec,
-        attrs: { description: r.desc ?? null, ids: { wikidata: r.item }, url: url(r), wiki: enwikiTitle(r.article) ?? otherArticle(sitelinks[r.item]) },
+        geoPrec: place.geoPrec,
+        attrs: {
+          description: r.desc ?? null,
+          ...(place.placedAt && { placed_at: place.placedAt }),
+          ...(at.from && { date_from: at.from }),
+          ...(place.method && { geo_method: place.method, geo_confidence: place.confidence }),
+          ids: { wikidata: r.item },
+          url: url(r),
+          wiki: enwikiTitle(r.article) ?? otherArticle(sitelinks[r.item]),
+        },
       });
     }
     return batch.finish();
@@ -326,14 +358,15 @@ const GTD_YEARS = [1970, 2017];
 
 /** Wikidata terrorist attacks (CC0) from outside GTD's years: before 1970 and since 2018. */
 export async function importWikidataAttacks(ctx: Ctx) {
-  await importDataset(ctx, { source: 'wikidata-attacks', version: AS_OF, asOf: AS_OF, files: [ATTACKS, ...sitelinkFiles()], importerVersion: '1' }, async ds => {
+  await importDataset(ctx, { source: 'wikidata-attacks', version: AS_OF, asOf: AS_OF, files: [ATTACKS, ...sitelinkFiles(), ...recoverFiles()], importerVersion: '2' }, async ds => {
     const rep = ds.report;
     const batch = new EventBatch(ctx, ds);
     const sitelinks = readSitelinks();
+    const recovery = loadRecovery();
     for (const r of read<Row[]>(ATTACKS)) {
       rep.rows++;
-      const label = r.label ?? r.otherLabel;
-      const at = start(r);
+      const label = r.label ?? r.otherLabel ?? recovery.label(r, rep);
+      const at: Dated | null = start(r) ?? (label ? recovery.date(r, 'other', rep, label) : null);
       if (!label || !at) {
         rep.reject(label ? 'no date' : 'no label', r.item);
         continue;
@@ -344,12 +377,13 @@ export async function importWikidataAttacks(ctx: Ctx) {
         continue;
       }
       const own = wdPoint(r.coord);
-      const place = own ?? wdPoint(r.locCoord);
+      const loc = wdPoint(r.locCoord);
+      const place: Place | null = own ? { ...own, geoPrec: GeoPrec.exact } : loc ? { ...loc, geoPrec: GeoPrec.area } : recovery.place(r, 'other', rep, null, new Date(at.t).getUTCFullYear());
       if (!place) {
         rep.reject('no coordinates', r.item);
         continue;
       }
-      const end = wdTime(r.t1);
+      const end = wdTime(r.t1) ?? at.end ?? null;
       const deaths = Number(r.deaths);
       const injured = Number(r.injured);
       batch.add({
@@ -362,11 +396,14 @@ export async function importWikidataAttacks(ctx: Ctx) {
         tEndPrec: end && end.t >= at.t ? end.prec : null,
         lon: place.lon,
         lat: place.lat,
-        geoPrec: own ? GeoPrec.exact : GeoPrec.area,
+        geoPrec: place.geoPrec,
         magnitude: r.deaths !== undefined && Number.isFinite(deaths) ? deaths : null,
         // nwound as GTD names it, so the attack popup shows it.
         attrs: {
           description: r.desc ?? null,
+          ...(place.placedAt && { placed_at: place.placedAt }),
+          ...(at.from && { date_from: at.from }),
+          ...(place.method && { geo_method: place.method, geo_confidence: place.confidence }),
           nwound: r.injured !== undefined && Number.isFinite(injured) ? injured : null,
           ids: { wikidata: r.item },
           url: url(r),

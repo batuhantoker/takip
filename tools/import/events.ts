@@ -17,10 +17,15 @@ export const CANONICAL_ORDER = [
   'wikidata-wars',
   'usgs',
   'noaa-hazards',
+  // NCEI's twin carries the death toll; the popup never shows a same_as twin.
+  'gvp-eruptions',
+  'epica',
   'ww1-wiki',
   'wikidata-battles',
   'ww2-borders',
   'cow-territorial',
+  // Over Mass Mobilization's coded rows, whichever loads first.
+  'wikidata-unrest',
 ];
 
 export function resolveCanonical(ctx: Ctx) {
