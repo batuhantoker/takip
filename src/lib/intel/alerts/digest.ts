@@ -19,7 +19,7 @@ export type Bloc = 'western' | 'russian' | 'regional' | 'independent';
 export const BLOCS: Record<Bloc, { label: string; short: string; color: string }> = {
   western: { label: msg('Western / Ukrainian'), short: msg('WEST'), color: '#4F9CFF' },
   russian: { label: msg('Russian-aligned'), short: msg('RU-ALIGNED'), color: '#A78BFA' },
-  regional: { label: msg('Regional (Turkey, Middle East)'), short: msg('REGIONAL'), color: '#2DD4BF' },
+  regional: { label: msg('Regional (Middle East, Asia, Africa, Latin America)'), short: msg('REGIONAL'), color: '#2DD4BF' },
   independent: { label: msg('Independent aggregator'), short: msg('INDEPENDENT'), color: '#C8C2B4' },
 };
 

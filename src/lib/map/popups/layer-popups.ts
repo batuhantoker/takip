@@ -6,6 +6,7 @@ import { activeIntl, t } from '@/lib/core/i18n/active';
 import { msg } from '@/lib/core/i18n/translator';
 import { weatherLabel } from '@/lib/feeds/weather/weather-field';
 import { formatTemperature, getTemperatureUnit } from '@/lib/feeds/weather/temperature-unit';
+import type { LinkPreview } from '@/lib/core/link-preview/parse';
 
 export { htmlEsc, urlSafe };
 
@@ -96,15 +97,29 @@ const storyLink = (l: GdeltLinkProps, note = '') => `<a href="${urlSafe(l.url)}"
 
 const hhmm = (v: unknown) => String(v ?? '').slice(11, 16);
 
-export function gdeltEventPopupHtml(p: FeatureProps): string {
+/** The lead article as its own page describes it: picture, headline, standfirst. */
+const previewCard = (lead: GdeltLinkProps, p: LinkPreview) => {
+  const img = p.image && /^https?:\/\//i.test(p.image) ? `<img class="tk-pop-media" src="${urlSafe(p.image)}" referrerpolicy="no-referrer" alt="">` : '';
+  return `<a class="tk-pop-preview" href="${urlSafe(lead.url)}" target="_blank" rel="noopener noreferrer">${img}
+      <span class="tk-pop-preview-title">${htmlEsc(p.title ?? lead.title)}</span>
+      ${p.description ? `<span class="tk-pop-preview-text">${htmlEsc(p.description)}</span>` : ''}
+      <span class="tk-pop-list-meta">${htmlEsc(p.site ?? lead.outlet)}</span>
+    </a>`;
+};
+
+/** `preview` is the lead link's card, once /api/link-preview has answered. */
+export function gdeltEventPopupHtml(p: FeatureProps, preview?: LinkPreview | null): string {
   const family = GDELT_FAMILY[String(p.family ?? '')] ?? { label: msg('Event'), tone: 'neutral' as PopTone };
   const reports = Number(p.reports) || 1;
   const outlets = Number(p.outlets) || 1;
   const who = [p.actor1, p.actor2].filter(Boolean).map(htmlEsc).join(' → ');
-  const links = listProp(p.links).map(l => storyLink(l)).join('');
+  const all = listProp(p.links);
+  const lead = preview && all[0] ? previewCard(all[0], preview) : '';
+  const links = (lead ? all.slice(1) : all).map(l => storyLink(l)).join('');
   const others = listProp(p.others).map(l => storyLink(l, ` · ${htmlEsc(t('{n, plural, one {# report} other {# reports}}', { n: Number(l.reports) || 0 }))}`)).join('');
   const body = [
     who || p.action ? `<div>${who}${who && p.action ? ' · ' : ''}${htmlEsc(p.action)}</div>` : '',
+    lead,
     links ? `<div class="tk-pop-list">${links}</div>` : '',
     others ? `<div class="tk-pop-label">${htmlEsc(t('Other stories here'))}</div><div class="tk-pop-list">${others}</div>` : '',
   ].join('');

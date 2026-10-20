@@ -20,6 +20,8 @@ import { useAlertItems } from '@/components/panels/alerts/hooks/use-alert-items'
 import { useAlertList, type AlertTab, type NewsKind } from '@/components/panels/alerts/hooks/use-alert-list';
 import { useOverview } from '@/components/panels/alerts/hooks/use-overview';
 import { usePersisted } from '@/components/panels/alerts/hooks/use-persisted';
+import { useGdeltStories } from '@/components/panels/alerts/hooks/use-gdelt-stories';
+import StoryFilters, { isStoryPrefs, narrowStories, STORY_PREFS } from '@/components/panels/alerts/parts/story-filters';
 
 interface LiveAlertsProps {
   data: LiveAlertsData;
@@ -59,10 +61,13 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
   }, []);
 
   const { news, quakes, warnings, threads, overviewPayload } = useAlertItems(data);
+  const [storyPrefs, setStoryPrefs] = usePersisted('takip.alerts.gdelt', STORY_PREFS, isStoryPrefs);
+  const { stories: allStories, reload: reloadStories } = useGdeltStories(storyPrefs.on);
+  const stories = useMemo(() => narrowStories(allStories ?? [], storyPrefs), [allStories, storyPrefs]);
   const activeThread = threads.find(th => th.id === threadId) ?? null;
   const q = query.trim().toLowerCase();
   const { newsFiltersActive, list, pinned, groups } = useAlertList({
-    tab, bloc, newsKind, q, activeThread, news, quakes, warnings, now, onPinnedChange,
+    tab, bloc, newsKind, q, activeThread, news, stories, quakes, warnings, now, onPinnedChange,
   });
   const overview = useOverview('alerts', overviewPayload, `${news[0]?.id ?? ''}|${news.length}|${quakes[0]?.id ?? ''}`);
 
@@ -86,9 +91,9 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
 
   const lastDay = useMemo(() => {
     const day = (ts: number) => now - ts < 24 * HOUR;
-    return news.filter(n => day(n.ts)).length + quakes.filter(k => day(k.ts)).length
+    return news.filter(n => day(n.ts)).length + stories.filter(s => day(s.ts)).length + quakes.filter(k => day(k.ts)).length
       + warnings.filter(w => w.severity === 'high' && day(w.ts)).length;
-  }, [news, quakes, warnings, now]);
+  }, [news, stories, quakes, warnings, now]);
 
   const clearFilters = useCallback(() => { setQuery(''); setBloc('all'); setThreadId(null); setNewsKind(null); }, [setBloc]);
 
@@ -115,8 +120,8 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
   const refresh = useCallback(async () => {
     if (!onRefresh || refreshing) return;
     setRefreshing(true);
-    try { await onRefresh(); } finally { setRefreshing(false); setNow(Date.now()); }
-  }, [onRefresh, refreshing]);
+    try { await Promise.all([onRefresh(), storyPrefs.on && reloadStories()]); } finally { setRefreshing(false); setNow(Date.now()); }
+  }, [onRefresh, refreshing, storyPrefs.on, reloadStories]);
 
   const toggleBrief = () => {
     setBriefOpen(o => !o);
@@ -173,7 +178,8 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
 
       <div ref={top} className="mt-5">
         <AlertFilters tab={tab} query={query} setQuery={setQuery} bloc={bloc} setBloc={setBloc}
-          news={news} threads={threads} threadId={threadId} selectThread={selectThread} showThreads={!briefOpen} />
+          news={news} threads={threads} threadId={threadId} selectThread={selectThread} showThreads={!briefOpen}
+          reportFilters={<StoryFilters prefs={storyPrefs} setPrefs={setStoryPrefs} stories={allStories ?? []} />} />
       </div>
 
       {filtersActive && list.length > 0 && (

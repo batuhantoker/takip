@@ -125,7 +125,7 @@ export interface WorldMapProps {
 export type MapRef = RefObject<maplibregl.Map | null>;
 export type SatelliteLayer = ReturnType<typeof createSatelliteLayer>;
 export type SetGeo = (source: string, features: unknown[]) => void;
-export type ShowPopup = (coords: maplibregl.LngLatLike | number[], html: string) => void;
+export type ShowPopup = (coords: maplibregl.LngLatLike | number[], html: string) => maplibregl.Popup | undefined;
 
 export interface LayerHookArgs {
   mapRef: MapRef;

@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { ListFilter } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
@@ -27,7 +28,7 @@ const PERSPECTIVE: Record<AlertThread['perspective'], string> = {
 };
 
 /** Search, the side a report comes from, and the stories the feed clusters into. */
-export default function AlertFilters({ tab, query, setQuery, bloc, setBloc, news, threads, threadId, selectThread, showThreads = true }: {
+export default function AlertFilters({ tab, query, setQuery, bloc, setBloc, news, threads, threadId, selectThread, showThreads = true, reportFilters }: {
   tab: AlertTab;
   query: string;
   setQuery: (q: string) => void;
@@ -39,6 +40,8 @@ export default function AlertFilters({ tab, query, setQuery, bloc, setBloc, news
   selectThread: (id: string | null) => void;
   /** Off while the brief lists the same stories. */
   showThreads?: boolean;
+  /** More controls beside the side filter, shown while the list holds reports. */
+  reportFilters?: ReactNode;
 }) {
   const t = useT();
   const aboutReports = tab === 'all' || tab === 'news';
@@ -49,7 +52,7 @@ export default function AlertFilters({ tab, query, setQuery, bloc, setBloc, news
       <div className="flex items-center gap-2">
         <SearchField value={query} onChange={setQuery} placeholder={t(PLACEHOLDER[tab])} label={t('Search alerts')} className="flex-1" />
         {aboutReports && (
-          <Popover role="menu" label={t('Filter by side')} placement="bottom" align="end" className="w-64 p-1"
+          <Popover role="menu" label={t('Filter by side')} placement="bottom" align="end" className="w-80 p-1"
             trigger={<IconButton label={bloc === 'all' ? t('Filter by side') : t('Showing {side} only', { side: t(BLOCS[bloc].label) })} icon={ListFilter} active={bloc !== 'all'} />}>
             {close => (
               <>
@@ -65,6 +68,7 @@ export default function AlertFilters({ tab, query, setQuery, bloc, setBloc, news
             )}
           </Popover>
         )}
+        {aboutReports && reportFilters}
       </div>
 
       {aboutReports && showThreads && threads.length > 0 && (

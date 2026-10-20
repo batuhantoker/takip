@@ -38,7 +38,7 @@ export default function SourceHealth({ sources, now }: { sources: Source[]; now:
     .filter(g => g.rows.length);
 
   return (
-    <Popover label={t('Sources')} placement="top" align="start" className="w-80 p-3"
+    <Popover label={t('Sources')} placement="top" align="start" className="max-h-[min(560px,calc(100vh-120px))] w-80 p-3"
       trigger={
         <button type="button" className={cx('-ml-2 inline-flex h-7 items-center gap-2 rounded-control px-2 text-meta text-ink-3 hover:bg-surface-2 hover:text-ink-1', FOCUS_RING, TRANSITION)}>
           <Dot tone={live === sources.length ? 'green' : live === 0 ? 'red' : 'amber'} />

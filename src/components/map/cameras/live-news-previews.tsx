@@ -70,16 +70,10 @@ export interface PreviewFeed {
 /**
  * The player URL for a feed, or null if it cannot be embedded.
  *
- * Seven of the fifteen feeds are already published in YouTube's
- * `embed/live_stream?channel=…` form, which plays whatever that channel is
- * broadcasting now without resolving a video id first — exactly what a 24/7
- * news channel needs, since the id changes every time the stream restarts.
- *
- * The rest are `/channel/…/live` links, which name a channel rather than a
- * broadcast and would need a server round-trip per feed to resolve, and Rumble,
- * which is not an embed at all. Those are also the ones flagged
- * `embed_allowed: false` upstream, so there is nothing to gain by chasing them:
- * the operator has said no.
+ * Feeds come in YouTube's `embed/live_stream?channel=…` form (lib/intel/alerts/
+ * live-tv), which plays whatever that channel is broadcasting now without
+ * resolving a video id first — exactly what a 24/7 news channel needs, since
+ * the id changes every time the stream restarts.
  */
 export function embedUrl(url: string, embedAllowed: boolean): string | null {
   if (!embedAllowed) return null;

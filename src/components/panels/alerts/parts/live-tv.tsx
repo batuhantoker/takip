@@ -27,7 +27,7 @@ export default function LiveTv({ onWatch }: { onWatch: (feed: Feed) => void }) {
           <div key={region} role="group" aria-label={t(label)}>
             <p className="px-2 pt-2 pb-1 text-meta font-medium text-ink-3">{t(label)}</p>
             {feeds.map(f => (
-              <MenuItem key={f.name} hint={f.city} onSelect={() => { onWatch(f); close(); }}>{f.name}</MenuItem>
+              <MenuItem key={f.id} hint={f.language === 'en' ? f.city : `${f.city} · ${f.language.toUpperCase()}`} onSelect={() => { onWatch(f); close(); }}>{f.name}</MenuItem>
             ))}
           </div>
         );

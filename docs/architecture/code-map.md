@@ -11,9 +11,10 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 
 | Domain | Holds | Used by |
 |---|---|---|
-| `net/` | HTTP helpers: `http-json`, `source-cache`, `stealth-fetch`, `ssrf-guard`, `http2`, `fetch-pool`, `remote-zip`, `user-agent` (most re-export `@takip/connectors`) | almost every API route; lib feeds/cameras, intel/recon, intel/cyber, feeds/traffic, ai; tools/transit, tools/traffic, tools/import |
+| `net/` | HTTP helpers: `http-json`, `source-cache`, `stealth-fetch`, `ssrf-guard`, `http2`, `fetch-pool`, `remote-zip`, `read-capped`, `user-agent` (most re-export `@takip/connectors`) | almost every API route; lib feeds/cameras, intel/recon, intel/cyber, feeds/traffic, ai; tools/transit, tools/traffic, tools/import |
 | `wikipedia/` | Everything Wikipedia that isn't tied to one tab: the server client (`client.ts`), `WikiSummary` and `trimExtract` (`summary.ts`), stored article refs such as "fr:Titre" (`refs.ts`), the reader's Wikipedia and language names (`language.ts`) | api/map, api/history, api/space; map/layers, map/interaction, panels/space, shell/settings; lib history, places/labels, ai |
 | `i18n/` | The UI's languages: which one a visitor gets (`pick-locale.ts`, `country-languages.ts`, `request.ts`), the message format (`message.ts`), translators (`translator.ts`, browser-only `active.ts`) and one catalog per language (`catalogs/`); `tools/i18n` checks and merges them | app/layout, every translated component through `components/ui/use-t`; lib map, wikipedia |
+| `link-preview/` | A web page's preview card from its `<head>`: the parser, the server reader with its cache (`fetch.ts`, behind `/api/link-preview`), the browser client | api/link-preview, api/gdelt-events; map/interaction, panels/alerts |
 | `geodesic.ts` | Geodesic maths | places/areas, feeds/cameras, feeds/hazards, intel/vision, ai; panels/areas, shell/search |
 
 ## platform
@@ -63,7 +64,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 
 | Domain | Holds | Used by |
 |---|---|---|
-| `alerts/` | News shaping, Telegram parsing, alert digest and places, GDELT events, country risk | panels/alerts; api/news, api/gdelt-events, api/country-risk, api/ai; map layers |
+| `alerts/` | News shaping, the channel and wire roster (`news-sources.ts`), Telegram parsing, alert digest and places, GDELT events and their Alerts rows (`gdelt-alerts.ts`), the live TV channels (`live-tv.ts`), country risk | panels/alerts; api/news, api/live-news, api/gdelt-events, api/country-risk, api/ai; map layers |
 | `recon/` | RECON: account gate, lookups, sanctions; `chain/`, `fingerprint/`, `network/`, `people/`, `username/` | api/osint, api/chain; panels/recon |
 | `cyber/` | Feodo C2 indicators; `malware/` (URLhaus store, geolocation, live feed) | api/malware, api/cyber-attacks; map/layers |
 | `markets/` | Markets panel helpers, terminal, DonBot embed | panels/markets |
@@ -100,7 +101,7 @@ Route groups mirror lib; the parentheses don't appear in URLs.
 | Group | Routes | Lib they use | Called by |
 |---|---|---|---|
 | `(feeds)` | flights, airport-status, aviation-weather, maritime, chokepoints, nav-warnings, transit, traffic, cctv, satellites, weather, weather-field, weather-grid, air-quality, earthquakes, fires, radiation, outbreaks, sentinel, hiking, reference, infrastructure | core/net, feeds/* | shell/state, map/layers, map/inspect, map/cameras |
-| `(intel)` | news, live-news, gdelt, gdelt-events, conflicts, frontlines, war-alerts, country-risk, advisories, markets, crypto, scm-suppliers, cyber-attacks, cyber-threats, malware, osint, chain, radar, cloudflare-radar, service-status, ai | intel/*, core/net, platform/account | shell/state, panels/recon, panels/alerts, map/layers |
+| `(intel)` | news, live-news, gdelt, gdelt-events, link-preview, conflicts, frontlines, war-alerts, country-risk, advisories, markets, crypto, scm-suppliers, cyber-attacks, cyber-threats, malware, osint, chain, radar, cloudflare-radar, service-status, ai | intel/*, core/net, platform/account | shell/state, panels/recon, panels/alerts, map/layers |
 | `(space)` | space, launches, space-weather, aurora | space, core/net | panels/space, shell/state |
 | `(ai)` | ai, mcp | ai | panels/ti-agent; outside MCP clients |
 | `(places)` | boundaries, geo, map | places, core/net | shell/search, panels/route, map/inspect, map/interaction, lib places/areas |

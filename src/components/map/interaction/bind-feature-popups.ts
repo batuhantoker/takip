@@ -27,6 +27,7 @@ import { flowPopupHtml, trafficPopupHtml } from '@/lib/feeds/traffic/describe';
 import { TRAFFIC_FLOW_LAYER, TRAFFIC_LAYER } from '@/lib/feeds/traffic/map-layers';
 import { airportWxPopupHtml, sigmetPopupHtml } from '@/lib/feeds/aviation-weather/popups';
 import { nearestClickable } from '@/lib/map/clickable-layers';
+import { loadLinkPreview } from '@/lib/core/link-preview/client';
 import { chokepointFlowPopupHtml } from '@/lib/feeds/maritime/chokepoint-flow';
 import { outbreakPopupHtml } from '@/lib/feeds/hazards/outbreaks';
 import { TRANSIT_CITY_LAYER, TRANSIT_PICK_LAYERS } from '@/lib/feeds/transit/map-layers';
@@ -93,7 +94,11 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
     if (!e.features?.length) return;
     const p = e.features[0].properties as any;
     const coords = (e.features[0].geometry as any).coordinates;
-    popup(coords, gdeltEventPopupHtml(p));
+    const open = popup(coords, gdeltEventPopupHtml(p));
+    if (!open || typeof p.url !== 'string') return;
+    loadLinkPreview(p.url).then(preview => {
+      if (preview && open.isOpen()) open.setHTML(gdeltEventPopupHtml(p, preview));
+    });
   });
 
   // ── Cloudflare Radar: internet outage ──

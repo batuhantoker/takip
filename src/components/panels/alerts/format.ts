@@ -1,6 +1,7 @@
 import type { DotTone } from '@/components/ui/tag';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import type { AlertItem, QuakeAlert, WarningAlert } from '@/lib/intel/alerts/live-alerts';
+import type { StoryAlert } from '@/lib/intel/alerts/gdelt-alerts';
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -98,10 +99,17 @@ export function quakeTone(m: number): DotTone {
   return m >= 6 ? 'red' : m >= 5 ? 'amber' : 'muted';
 }
 
+// GDELT's families, in the tones the map layer paints them; protest has no violet dot, so blue.
+export const STORY_TONE: Record<StoryAlert['family'], DotTone> = { violence: 'red', protest: 'blue', tension: 'amber', cooperation: 'green' };
+export const STORY_LABEL: Record<StoryAlert['family'], string> = {
+  violence: msg('Violence'), protest: msg('Protest'), tension: msg('Tension'), cooperation: msg('Cooperation'),
+};
+
 /** Colour only where it says how grave something is; everything else stays muted. */
 export function toneOf(item: AlertItem): DotTone {
   if (item.kind === 'warning') return item.severity === 'high' ? 'red' : item.severity === 'medium' ? 'amber' : 'blue';
   if (item.kind === 'quake') return quakeTone(item.magnitude);
+  if (item.kind === 'story') return STORY_TONE[item.family];
   if (item.alertKind === 'rocket') return 'red';
   if (item.alertKind === 'event') return 'amber';
   return 'muted';
@@ -110,6 +118,7 @@ export function toneOf(item: AlertItem): DotTone {
 export const toneLabel = (item: AlertItem): string | undefined => {
   if (item.kind === 'warning') return SEVERITY_LABEL[item.severity];
   if (item.kind === 'quake') return item.magnitude >= 5 ? msg('Strong earthquake') : undefined;
+  if (item.kind === 'story') return STORY_LABEL[item.family];
   return item.alertKind === 'rocket' ? msg('Rocket or missile report') : item.alertKind === 'event' ? msg('Incident report') : undefined;
 };
 

@@ -22,6 +22,7 @@
  * time and size limit each: a slow or hostile site costs only its own item.
  */
 import { safeFetch } from '@/lib/core/net/ssrf-guard';
+import { readCapped } from '@/lib/core/net/read-capped';
 import { terms } from './words';
 import { text } from '../parse/values';
 import { namesIn, type ResearchPlan } from './plan';
@@ -293,30 +294,6 @@ export function articleText(html: string, words: string[], max = 520): { excerpt
     site: meta(html, 'og:site_name'),
     published: meta(html, 'article:published_time'),
   };
-}
-
-/** A response's text, up to `cap` bytes: the rest is never read. */
-async function readCapped(res: Response, cap: number): Promise<string> {
-  const reader = res.body?.getReader();
-  if (!reader) return '';
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  while (size < cap) {
-    const { done, value } = await reader.read();
-    if (done || !value) break;
-    chunks.push(value);
-    size += value.length;
-  }
-  await reader.cancel().catch(() => undefined);
-  const all = new Uint8Array(Math.min(size, cap));
-  let at = 0;
-  for (const c of chunks) {
-    const part = c.subarray(0, Math.min(c.length, all.length - at));
-    all.set(part, at);
-    at += part.length;
-    if (at >= all.length) break;
-  }
-  return new TextDecoder('utf-8', { fatal: false }).decode(all);
 }
 
 async function readArticle(a: GdeltArticle, words: string[], deps: WebDeps, signal: AbortSignal): Promise<{ excerpt: string; site: string; published: string } | null> {

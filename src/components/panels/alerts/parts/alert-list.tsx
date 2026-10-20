@@ -11,6 +11,7 @@ import type { AlertItem, LocateOptions } from '@/lib/intel/alerts/live-alerts';
 import NewsRow, { newsTarget } from '@/components/panels/alerts/rows/news-row';
 import QuakeRow from '@/components/panels/alerts/rows/quake-row';
 import StatementRow from '@/components/panels/alerts/rows/statement-row';
+import StoryRow, { storyTarget } from '@/components/panels/alerts/rows/story-row';
 import type { AlertEntry, AlertGroup, AlertTab } from '@/components/panels/alerts/hooks/use-alert-list';
 import WarningRow from '@/components/panels/alerts/rows/warning-row';
 import { countAction } from '@/lib/platform/usage-actions';
@@ -21,6 +22,7 @@ type Locate = (lat: number, lng: number, options?: LocateOptions) => void;
 function targetOf(item: AlertItem): [number, number, LocateOptions?] | null {
   if (item.kind === 'news') return newsTarget(item);
   if (item.kind === 'warning') return [item.lat, item.lng, { zoom: 6 }];
+  if (item.kind === 'story') return storyTarget(item);
   return [item.lat, item.lng];
 }
 
@@ -113,6 +115,7 @@ export default function AlertList({ tab, groups, loading, filtersActive, now, op
               const { item, similar } = entry;
               if (item.kind === 'warning') return <WarningRow key={entry.key} item={item} similar={similar} now={now} selected={open} onSelect={onSelect} onLocate={onLocate} />;
               if (item.kind === 'quake') return <QuakeRow key={entry.key} item={item} now={now} selected={open} onSelect={onSelect} onLocate={onLocate} />;
+              if (item.kind === 'story') return <StoryRow key={entry.key} item={item} now={now} selected={open} onSelect={onSelect} onLocate={onLocate} />;
               return <NewsRow key={entry.key} item={item} similar={similar} now={now} selected={open} onSelect={onSelect} onLocate={onLocate} />;
             })}
           </ul>

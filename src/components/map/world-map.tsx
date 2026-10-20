@@ -208,6 +208,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
       if (drawing()) return;
       popupRef.current?.remove();
       popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '420px', offset: 14 }).setLngLat(coords).setHTML(html).addTo(map);
+      return popupRef.current;
     };
 
     // Overlapping markers each get the click; the first handler (aircraft, then camera, then ship) wins.

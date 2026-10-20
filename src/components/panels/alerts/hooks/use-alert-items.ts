@@ -43,7 +43,8 @@ export function useAlertItems(data: LiveAlertsData) {
 
   // Only what the overview reads — not the whole dashboard state.
   const overviewPayload = useMemo(() => ({
-    news: digestReports,
+    // The brief reads the newest 200; sending more only makes the request heavier.
+    news: digestReports.slice(0, 200),
     earthquakes: quakes.map(q => ({ magnitude: q.magnitude, place: q.place, time: q.ts, tsunami: q.tsunami ? 1 : 0, url: q.url })),
     weather_events: (data.weather_events ?? []).slice(0, 100).map(w => ({ type: str(rec(w).type), severity: str(rec(w).severity) })),
   }), [digestReports, quakes, data.weather_events]);

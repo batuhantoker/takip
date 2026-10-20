@@ -4,6 +4,7 @@ import { cachedSource } from '@/lib/core/net/source-cache';
 import { fingerprint, htmlToText, parseChannelPage, splitHeadline, type TelegramPost } from '@/lib/intel/alerts/telegram';
 import type { Bloc } from '@/lib/intel/alerts/digest';
 import { alertKind, budgetedLookup, locateReport, type AlertKind, type AlertPlace } from '@/lib/intel/alerts/alert-places';
+import { TELEGRAM_CHANNELS, WIRE_FEEDS, type Feed } from '@/lib/intel/alerts/news-sources';
 
 /**
  * TAKIP — Live Alerts news feed.
@@ -20,72 +21,12 @@ import { alertKind, budgetedLookup, locateReport, type AlertKind, type AlertPlac
  * emptying the feed.
  */
 
-// Public Telegram OSINT channels, picked for what they report rather than what
-// they argue. Measured over 72 hours of live posts, each one carries more
-// events — strikes, impacts, intercepts, damage, movements — than commentary,
-// and the roster spans the spectrum so no single narrative owns the feed.
-// `lean` and `bloc` travel with every item to the UI: a partisan field report
-// is still a partisan source, and is labelled as one.
-//
-// Dropped 2026-09-18 for talking more than they report (event share over
-// quote share, same window): Middle East Spectator 12/41, NEXTA Live 15/45
-// (and 1% English), Bellum Acta 25/44 (also runs advertising in its footer).
-// Earlier: OSINTtechnical (silent since June 2022), Clash Report and Liveuamap.
-interface Feed { handle: string; name: string; lean: string; bloc: Bloc }
-
-const TELEGRAM_CHANNELS: Feed[] = [
-  // Incident feeds: what happened, where, with footage. Least commentary of any source measured.
-  { handle: 'Osintdefender',         name: 'OSINTdefender',         lean: 'Global incident OSINT',         bloc: 'independent' },
-  { handle: 'WarMonitors',           name: 'War Monitor',           lean: 'Global conflict monitor',       bloc: 'independent' },
-  // Russia–Ukraine, reported from both sides of the line.
-  { handle: 'rybar_in_english',      name: 'Rybar',                 lean: 'Russian military OSINT',        bloc: 'russian' },
-  { handle: 'DDGeopolitics',         name: 'DD Geopolitics',        lean: 'Multipolar / Russian',          bloc: 'russian' },
-  { handle: 'KyivIndependent_official', name: 'Kyiv Independent',   lean: 'Ukrainian newsroom',            bloc: 'western' },
-  // Gaza, the West Bank and south Lebanon, from newsrooms on the ground.
-  { handle: 'QudsNen',               name: 'Quds News Network',     lean: 'Palestinian / Gaza & West Bank', bloc: 'regional' },
-  { handle: 'AlMayadeenEnglish',     name: 'Al Mayadeen English',   lean: 'Lebanese / Resistance Axis',    bloc: 'regional' },
-  // Added 2026-09-20 after measuring the same 72-hour window: both report
-  // events in English more often than they comment on them.
-  { handle: 'intelslava',            name: 'Intel Slava Z',         lean: 'Russian military OSINT',        bloc: 'russian' },
-  { handle: 'PressTV',               name: 'Press TV',              lean: 'Iranian state broadcaster',     bloc: 'regional' },
-];
 type Channel = Feed;
 
-/*
- * Wire services and national newsrooms. The channels above are fast and carry
- * footage, but they follow a handful of wars: nothing in the roster reports
- * Africa, South and East Asia, or Latin America unless a war reaches them, and
- * if Telegram blocks the host the feed goes dark. These cover that ground,
- * publish on a schedule, and are labelled for who runs them — a state
- * broadcaster is a state broadcaster whatever it is reporting.
- *
- * Checked 2026-09-20: each answers, carries at least ten items, and its newest
- * item was under an hour old. Left out because they do not: Reuters (feed
- * retired), AP and Al Arabiya (403 to any reader), Xinhua and NHK (404),
- * France 24 (empty), Kyiv Independent (404 — its Telegram channel is above),
- * Jerusalem Post (items dated 2025).
- *
- * Added 2026-10-12 on the same test: The Independent and Times of India. Left
- * out: Euronews (newest item two hours old), and Jerusalem Post's
- * rssfeedsinternational, which stamps Israeli local time as GMT.
- */
-const WIRE_FEEDS: (Feed & { url: string })[] = [
-  { handle: 'bbc',        url: 'https://feeds.bbci.co.uk/news/world/rss.xml',        name: 'BBC World',        lean: 'British public broadcaster',   bloc: 'western' },
-  { handle: 'guardian',   url: 'https://www.theguardian.com/world/rss',              name: 'The Guardian',     lean: 'British newsroom',             bloc: 'western' },
-  { handle: 'aljazeera',  url: 'https://www.aljazeera.com/xml/rss/all.xml',          name: 'Al Jazeera',       lean: 'Qatari broadcaster',           bloc: 'regional' },
-  { handle: 'timesofisrael', url: 'https://www.timesofisrael.com/feed/',             name: 'Times of Israel',  lean: 'Israeli newsroom',             bloc: 'regional' },
-  { handle: 'tass',       url: 'https://tass.com/rss/v2.xml',                        name: 'TASS',             lean: 'Russian state agency',         bloc: 'russian' },
-  { handle: 'anadolu',    url: 'https://www.aa.com.tr/en/rss/default?cat=world',     name: 'Anadolu Agency',   lean: 'Turkish state agency',         bloc: 'regional' },
-  { handle: 'scmp',       url: 'https://www.scmp.com/rss/91/feed',                   name: 'SCMP',             lean: 'Hong Kong newsroom',           bloc: 'regional' },
-  { handle: 'cna',        url: 'https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml', name: 'CNA', lean: 'Singaporean broadcaster', bloc: 'regional' },
-  { handle: 'africanews', url: 'https://www.africanews.com/feed/rss',                name: 'Africanews',       lean: 'Pan-African newsroom',         bloc: 'regional' },
-  { handle: 'independent', url: 'https://www.independent.co.uk/news/world/rss',      name: 'The Independent',  lean: 'British newsroom',             bloc: 'western' },
-  { handle: 'timesofindia', url: 'https://timesofindia.indiatimes.com/rssfeeds/296589292.cms', name: 'Times of India', lean: 'Indian newsroom', bloc: 'regional' },
-];
-
-const POSTS_PER_CHANNEL = 8;
+/** A channel page holds about twenty posts; the age window decides how many of them stay. */
+const POSTS_PER_CHANNEL = 20;
 /** A wire publishes far more than a channel, so it contributes fewer items. */
-const ITEMS_PER_WIRE = 5;
+const ITEMS_PER_WIRE = 10;
 const CHANNEL_TTL_MS = 3 * 60_000;
 const WIRE_TTL_MS = 5 * 60_000;
 /** A live feed shows live posts: anything older is left out, however quiet the channel. */
@@ -224,7 +165,10 @@ const wireFeeds = WIRE_FEEDS.map(feed => ({
       headers: { 'User-Agent': BROWSER_UA, Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8' },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const items = parseRSSItems(await res.text(), feed.name).slice(0, ITEMS_PER_WIRE);
+    // Not every feed lists newest first (The Guardian, AllAfrica), so sort before cutting.
+    const items = parseRSSItems(await res.text(), feed.name)
+      .sort((a, b) => Date.parse(b.pubDate) - Date.parse(a.pubDate))
+      .slice(0, ITEMS_PER_WIRE);
     // Oldest first, as a channel page arrives, so recentPosts takes the newest.
     return items
       .map(item => wirePost(item, feed))
@@ -234,9 +178,10 @@ const wireFeeds = WIRE_FEEDS.map(feed => ({
 
 export interface RssItem { title: string; description: string; link: string; pubDate: string; source: string }
 
-function parseRSSItems(xml: string, sourceName: string): RssItem[] {
+export function parseRSSItems(xml: string, sourceName: string): RssItem[] {
   const items: RssItem[] = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+  // Dawn puts an xmlns on every <item>.
+  const itemRegex = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
   let match;
 
   while ((match = itemRegex.exec(xml)) !== null) {

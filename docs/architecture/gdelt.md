@@ -10,6 +10,9 @@ Parked 2026-10-13. The live layer works; history and the ingest connector are no
 - Parsing and reduction: `packages/connectors/src/gdelt/` (`parse.ts`, `reduce.ts`, `slug.ts`, `cameo.ts`), tested against real rows in `fixtures/export.tsv`.
 - Map: the paint is in `src/lib/map/basemap/bands/ground.ts`, the popup in `src/lib/map/popups/layer-popups.ts`, colours in `src/lib/intel/alerts/gdelt-display.ts`.
 - Query: `hours` (1–6, default 2), `min_reports` (default 2; 1 brings back single reports), `family` (violence, protest, tension, cooperation or all; cooperation is off by default), `limit`.
+- Alerts panel: the stories are also rows in All and News, on by default whether or not the layer is on. The globe button beside the search hides them or narrows them by family and outlet count (`takip.alerts.gdelt` in localStorage). Conversion: `src/lib/intel/alerts/gdelt-alerts.ts`; row: `src/components/panels/alerts/rows/story-row.tsx`. A story is listed at its first report, capped at now, since GDELT stamps a window by its end.
+- Headlines and pictures: `/api/link-preview?url=` reads an article's `<head>` (og: and twitter: tags) through the SSRF guard and caches it for 6 hours (`src/lib/core/link-preview/`). The popup and an opened row show the lead article's picture, headline and standfirst from it. The route also reads every story's lead article in the background, four at a time, and adds `headline` once it has it; a non-Latin headline gives way to the slug, which GDELT's translation spells in Latin.
+- Each answer is shared for two minutes across callers, since every open Alerts panel asks for it.
 
 `/api/gdelt` is not GDELT: it serves GDACS disaster alerts, and `src/components/site/docs/api-catalog.ts` describes it wrongly. `/api/conflicts` says GDELT in its header but reads BBC, Al Jazeera and NYT RSS. Neither is renamed yet.
 
@@ -30,7 +33,7 @@ Result on the live data: about 40 stories in two hours, from about 14,800 rows, 
 ## Known limits
 
 - The family follows GDELT's coding. A Houthi missile strike on Riyadh comes out as tension ("Threatened"), because few of its events are coded as violence.
-- Links come from slugs, not page titles. Translated-feed links read in the original language, sometimes transliterated (Greek, Russian).
+- Links other than the lead come from slugs, not page titles. Translated-feed links read in the original language, sometimes transliterated (Greek, Russian); a lead headline is in the page's own language.
 - Some weak pairs still join, such as two unrelated Ohio shootings or two different hurricanes in Florida.
 - The live layer forgets everything outside its window. Corroboration that arrives later is lost.
 
@@ -40,5 +43,4 @@ Result on the live data: about 40 stories in two hours, from about 14,800 rows, 
 2. **History** (the History tab, not Replay). Open decision: which of these to build?
    - Story markers per day, replayed on the timeline. This is the same parser over past days. GDELT 2.0 files go back to February 2015: about 96 windows a day, a few hundred KB each. Run it per requested day or keep the top stories per day; a full backfill would be tens of GB.
    - Country-level intensity over years. This uses GDELT 1.0 daily files (no mentions, so counts only) or GDELT's public BigQuery tables.
-3. **Headlines.** Take `<PAGE_TITLE>` from the GKG file's `V2EXTRASXML` for the kept articles only. The file is about 5 MB per window; read it as it streams and don't store it.
-4. Rename `/api/gdelt` (GDACS) and fix the wrong labels in `/api/conflicts` and `api-catalog.ts`.
+3. Rename `/api/gdelt` (GDACS) and fix the wrong labels in `/api/conflicts` and `api-catalog.ts`.

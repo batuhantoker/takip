@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scoreRisk, findCoords, mergeCrossPosts, recentPosts, wirePost, sourceRef, type ChannelPost, type RssItem } from './route';
+import { scoreRisk, findCoords, mergeCrossPosts, parseRSSItems, recentPosts, wirePost, sourceRef, type ChannelPost, type RssItem } from './route';
 import type { TelegramPost } from '@/lib/intel/alerts/telegram';
 
 describe('scoreRisk', () => {
@@ -73,10 +73,11 @@ describe('recentPosts', () => {
   });
 
   it('keeps only the newest posts per channel', () => {
-    const posts = Array.from({ length: 12 }, (_, i) => post(`a/${i}`, `Post ${i}`, new Date(now - (12 - i) * 60_000).toISOString()));
+    const posts = Array.from({ length: 25 }, (_, i) => post(`a/${i}`, `Post ${i}`, new Date(now - (25 - i) * 60_000).toISOString()));
     const kept = recentPosts(posts, now);
-    expect(kept).toHaveLength(8);
-    expect(kept.at(-1)?.id).toBe('a/11');
+    expect(kept).toHaveLength(20);
+    expect(kept[0]?.id).toBe('a/5');
+    expect(kept.at(-1)?.id).toBe('a/24');
   });
 });
 
@@ -158,5 +159,17 @@ describe('sourceRef', () => {
     expect(sourceRef({ handle: 'QudsNen', name: 'Quds News Network', lean: '', bloc: 'regional' })).toBe('t.me/QudsNen');
     expect(sourceRef({ handle: 'bbc', name: 'BBC World', lean: '', bloc: 'western' })).toBe('feeds.bbci.co.uk');
     expect(sourceRef({ handle: 'tass', name: 'TASS', lean: '', bloc: 'russian' })).toBe('tass.com');
+  });
+});
+
+describe('parseRSSItems', () => {
+  it('reads items whose tag carries attributes, as Dawn sends them', () => {
+    const xml = `<rss><channel>
+      <item xmlns:dc="http://purl.org/dc/elements/1.1/"><title><![CDATA[Floods hit Sindh]]></title><link>https://www.dawn.com/news/1</link><pubDate>Tue, 20 Oct 2026 14:00:00 +0500</pubDate></item>
+      <item><title>Second</title><link>https://www.dawn.com/news/2</link><pubDate>Tue, 20 Oct 2026 15:00:00 +0500</pubDate></item>
+    </channel></rss>`;
+    const items = parseRSSItems(xml, 'Dawn');
+    expect(items.map(i => i.title)).toEqual(['Floods hit Sindh', 'Second']);
+    expect(items[0].pubDate).toBe('2026-10-20T09:00:00.000Z');
   });
 });
