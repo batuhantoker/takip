@@ -1,6 +1,7 @@
 import { createRoute, z, type RouteHandler } from '@hono/zod-openapi';
-import { ATTRIBUTION, nominatim, requestGapMs } from '@takip/connectors/nominatim';
+import { ATTRIBUTION, nominatim } from '@takip/connectors/nominatim';
 import { ErrorBody, json, queryParam } from '../schemas';
+import { GEONAMES_ATTRIBUTION, nearestTown } from './nearest-place';
 
 interface ReverseRow {
   address?: Record<string, string>;
@@ -9,13 +10,18 @@ interface ReverseRow {
 
 /** A tenth of a degree (about 11 km): a moving cursor reuses one answer, and it still names a city. */
 const GRID = 10;
-/** About one place in Nominatim's queue: a pan queues a lookup per cell, and the last one waited ~2 s per cell before it. */
-const WAIT_MS = requestGapMs() + 1_000;
+/** Nominatim sends one request every 2 s, and a pan queues one per cell: callers ask again rather than wait in line. */
+const WAIT_MS = 1_000;
 
+/** A listed town whose reach holds the cell, else Nominatim; `answered` is false for a failed or still-queued lookup. */
 async function lookUp(lat: number, lng: number, waitMs?: number) {
+  const cellLat = Math.round(lat * GRID) / GRID;
+  const cellLng = Math.round(lng * GRID) / GRID;
+  const town = nearestTown(cellLat, cellLng);
+  if (town) return { answered: true, label: town, attribution: GEONAMES_ATTRIBUTION };
   const row = await nominatim<ReverseRow>('reverse', {
-    lat: (Math.round(lat * GRID) / GRID).toFixed(1),
-    lon: (Math.round(lng * GRID) / GRID).toFixed(1),
+    lat: cellLat.toFixed(1),
+    lon: cellLng.toFixed(1),
     zoom: '10',
     addressdetails: '1',
   }, { waitMs });
@@ -25,10 +31,10 @@ async function lookUp(lat: number, lng: number, waitMs?: number) {
     address.state || address.region,
     address.country,
   ].filter(Boolean).join(', ');
-  return { row, label };
+  return { answered: row !== null, label, attribution: ATTRIBUTION };
 }
 
-/** "City, region, country" for a point, on the same shared grid and cache as GET /reverse; null when Nominatim has none or is busy. */
+/** "City, region, country" for a point, on the same shared grid and cache as GET /reverse; null when there is none or Nominatim is busy. */
 export async function nameCoordinate(lat: number, lng: number): Promise<string | null> {
   return (await lookUp(lat, lng)).label || null;
 }
@@ -39,8 +45,9 @@ export const reverseRoute = createRoute({
   tags: ['Geo'],
   summary: 'Name a coordinate',
   description:
-    'The "city, region, country" line for a point. The point is rounded to a tenth of a degree, so everyone ' +
-    'looking at the same area shares one Nominatim lookup.',
+    'The "city, region, country" line for a point, rounded to a tenth of a degree. It names the GeoNames town ' +
+    '(about 15,000 people and up) whose reach holds the point; elsewhere it asks Nominatim, and everyone looking ' +
+    'at the same area shares that lookup. `attribution` says which answered.',
   request: {
     query: z.object({
       lat: queryParam().openapi({ param: { required: true }, description: 'Latitude, -90 to 90.', example: '48.8584' }),
@@ -50,8 +57,8 @@ export const reverseRoute = createRoute({
   responses: {
     200: {
       description:
-        'The place name, or null when Nominatim has none. A null from a failed, refused or still-queued lookup is ' +
-        'sent with Cache-Control: no-store; a queued one is answered from the cache a few seconds later.',
+        'The place name, or null when there is none. A null from a failed, refused or still-queued Nominatim ' +
+        'lookup is sent with Cache-Control: no-store; a queued one is answered from the cache a few seconds later.',
       content: json(z.object({ label: z.string().nullable(), attribution: z.string() })),
     },
     400: { description: 'lat or lng is missing or out of range.', content: json(ErrorBody) },
@@ -67,12 +74,12 @@ export const reverse: RouteHandler<typeof reverseRoute> = async c => {
     return c.json({ error: 'lat and lng required' }, 400);
   }
 
-  const { row, label } = await lookUp(lat, lng, WAIT_MS);
+  const { answered, label, attribution } = await lookUp(lat, lng, WAIT_MS);
 
   return c.json(
-    { label: label || null, attribution: ATTRIBUTION },
+    { label: label || null, attribution },
     200,
     // A tenth of a degree does not change: a month at the edge, a day in the browser. Never a failed lookup.
-    { 'Cache-Control': row ? 'public, s-maxage=2592000, max-age=86400, stale-while-revalidate=86400' : 'no-store' },
+    { 'Cache-Control': answered ? 'public, s-maxage=2592000, max-age=86400, stale-while-revalidate=86400' : 'no-store' },
   );
 };

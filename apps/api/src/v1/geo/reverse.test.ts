@@ -12,6 +12,9 @@ const NOMINATIM = 'https://nominatim.openstreetmap.org/reverse';
 const CACHED = 'public, s-maxage=2592000, max-age=86400, stale-while-revalidate=86400';
 const ATTRIBUTION = '© OpenStreetMap contributors';
 const PARIS = { address: { city: 'Paris', state: 'Île-de-France', country: 'France' }, display_name: 'Paris, Île-de-France, France' };
+// Open sea: out of every listed town's reach, so these go to Nominatim (whose answers are stubbed).
+const SEA = '?lat=30.0123&lng=-44.9876';
+const SEA_UPSTREAM = `${NOMINATIM}?format=jsonv2&accept-language=en&lat=30.0&lon=-45.0&zoom=10&addressdetails=1`;
 
 let t: TestApp;
 
@@ -32,21 +35,32 @@ describe('GET /api/v1/geo/reverse', () => {
     }
   });
 
-  it('names the tenth-of-a-degree cell around a point', async () => {
+  it('names a listed town whose reach holds the point without asking Nominatim', async () => {
+    const [res] = await check('?lat=35.6895&lng=139.6917');
+    expect(res).toEqual({
+      status: 200,
+      type: 'application/json',
+      cache: CACHED,
+      body: { label: 'Tokyo, Japan', attribution: 'GeoNames (CC BY 4.0)' },
+      upstream: [],
+    });
+  });
+
+  it('asks Nominatim for the tenth-of-a-degree cell around a point out of every town’s reach', async () => {
     upstream.on(NOMINATIM, () => PARIS);
-    const [res] = await check('?lat=48.8584&lng=2.2945');
+    const [res] = await check(SEA);
     expect(res).toEqual({
       status: 200,
       type: 'application/json',
       cache: CACHED,
       body: { label: 'Paris, Île-de-France, France', attribution: ATTRIBUTION },
-      upstream: [`${NOMINATIM}?format=jsonv2&accept-language=en&lat=48.9&lon=2.3&zoom=10&addressdetails=1`],
+      upstream: [SEA_UPSTREAM],
     });
   });
 
   it('falls back through town, village and county, and region', async () => {
     upstream.on(NOMINATIM, () => ({ address: { town: 'Ely', region: 'East', country: 'UK' } }));
-    const [res] = await check('?lat=52.4&lng=0.26');
+    const [res] = await check(SEA);
     expect(res.body).toEqual({ label: 'Ely, East, UK', attribution: ATTRIBUTION });
   });
 
@@ -71,7 +85,7 @@ describe('GET /api/v1/geo/reverse', () => {
 
   it('answers a nearby point in the same cell from the cache', async () => {
     upstream.on(NOMINATIM, () => PARIS);
-    const [first, nearby] = await check('?lat=48.8584&lng=2.2945', '?lat=48.87&lng=2.31');
+    const [first, nearby] = await check(SEA, '?lat=29.97&lng=-45.03');
     expect(first.upstream).toHaveLength(1);
     expect(nearby.upstream).toEqual([]);
     expect(nearby.body).toEqual(first.body);
@@ -79,7 +93,7 @@ describe('GET /api/v1/geo/reverse', () => {
 
   it('reads a repeated parameter as its first value', async () => {
     upstream.on(NOMINATIM, () => PARIS);
-    const [res] = await check('?lat=48.8584&lat=10&lng=2.2945');
-    expect(res.upstream).toEqual([`${NOMINATIM}?format=jsonv2&accept-language=en&lat=48.9&lon=2.3&zoom=10&addressdetails=1`]);
+    const [res] = await check('?lat=30.0123&lat=10&lng=-44.9876');
+    expect(res.upstream).toEqual([SEA_UPSTREAM]);
   });
 });
