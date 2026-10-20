@@ -21,7 +21,7 @@ export function useTrackRequests({ mapRef, mapReady, data, satRowsRef, flightSel
   satRowsRef: RefObject<SatelliteRow[]>;
   flightSelectRef: RefObject<FlightSelector | null>;
   sink: InspectSink;
-  selectSatellite: RefObject<((index: number) => void) | null>;
+  selectSatellite: RefObject<((index: number, quiet?: boolean) => void) | null>;
 }) {
   const request = useTrackStatus();
   const acquiring = request?.status === 'acquiring' ? request : null;
@@ -57,8 +57,8 @@ export function useTrackRequests({ mapRef, mapReady, data, satRowsRef, flightSel
       const index = satRowsRef.current?.findIndex(r => r.noradId === id) ?? -1;
       const row = satRowsRef.current?.[index];
       if (!row || !selectSatellite.current) return;
-      selectSatellite.current(index);
-      go(row.lng, row.lat, 3);
+      selectSatellite.current(index, acquiring.watch);
+      go(row.lng, row.lat, acquiring.watch ? 0 : 3);
     }
     settleTrack('tracking');
   }, [acquiring, mapReady, data, mapRef, satRowsRef, flightSelectRef, sink, selectSatellite]);

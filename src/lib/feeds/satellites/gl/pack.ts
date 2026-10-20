@@ -58,3 +58,26 @@ export function packOrbit(segment: { lng: number; lat: number; altKm: number }[]
   }
   return out;
 }
+
+/**
+ * A packed orbit segment (packOrbit) as a ribbon of triangles, which the shader widens: GL draws a line strip
+ * one device pixel wide, a hairline on a high-density screen. Per vertex: its point, the neighbour its segment
+ * runs to, and which side of the line it goes.
+ */
+export function packOrbitRibbon(points: Float32Array): Float32Array<ArrayBuffer> {
+  const n = points.length / 3;
+  const out = new Float32Array(Math.max(0, n - 1) * 6 * 7);
+  let o = 0;
+  const put = (at: number, to: number, side: number) => {
+    out.set(points.subarray(at * 3, at * 3 + 3), o);
+    out.set(points.subarray(to * 3, to * 3 + 3), o + 3);
+    out[o + 6] = side;
+    o += 7;
+  };
+  for (let i = 0; i + 1 < n; i++) {
+    // From the far end the segment runs the other way, so the same side is the opposite sign.
+    put(i, i + 1, 1); put(i, i + 1, -1); put(i + 1, i, -1);
+    put(i, i + 1, -1); put(i + 1, i, 1); put(i + 1, i, -1);
+  }
+  return out;
+}

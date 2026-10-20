@@ -8,7 +8,7 @@ import { nameOf } from '@/lib/platform/site/places/copy/format';
 import type { PlacePageRef } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placeOpenPath, placePath, placeZoom } from '@/lib/platform/site/places/paths';
-import type { PlaceCopy } from '@/lib/platform/site/places/topic';
+import type { MapLink, PlaceCopy } from '@/lib/platform/site/places/topic';
 import type { SiteText } from '@/lib/platform/site/text';
 import { LiveBox } from './parts/live-box';
 import { PlaceHeader } from './parts/place-header';
@@ -37,10 +37,12 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
 }) {
   const { t } = text;
   const listed = listedPages(pages);
-  const link = current ? current.topic.open(place, current.page) : { layers: listed.flatMap(p => p.topic.open(place, p.page).layers ?? []).slice(0, 4) };
+  const link: MapLink = current ? current.topic.open(place, current.page) : { layers: listed.flatMap(p => p.topic.open(place, p.page).layers ?? []).slice(0, 4) };
   const open = placeOpenPath(place, link);
   const focus = { lat: place.at[1], lon: place.at[0], zoom: placeZoom(place, link.zoom) };
-  const embed = embedHref('embed' in link && link.embed ? link.embed : { layers: link.layers ?? [], view: focus });
+  // Following something away from the place, the map keeps it marked.
+  const pin = link.track ? { lat: focus.lat, lon: focus.lon, name: nameOf(place, t) } : undefined;
+  const embed = embedHref(link.embed ?? { layers: link.layers ?? [], view: focus, track: link.track, pin });
   const shown = lives.flatMap(({ ref, live, at }) => {
     const Live = TOPIC_VIEWS[ref.topic.id]?.Live;
     const node: ReactNode = Live ? <Live key={ref.page.slug} text={text} place={place} page={ref.page} live={live} /> : null;

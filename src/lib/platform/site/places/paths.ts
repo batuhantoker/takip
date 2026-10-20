@@ -20,7 +20,7 @@ export const placeZoom = (place: Place, zoom?: number) => zoom ?? (place.kind ==
 
 export function placeOpenPath(place: Place, link: MapLink): string {
   const view = link.view ?? { lat: place.at[1], lon: place.at[0], zoom: placeZoom(place, link.zoom) };
-  return mapHref({ layers: link.layers ?? [], view, mode: link.mode, panel: link.panel });
+  return mapHref({ layers: link.layers ?? [], view, track: link.track, mode: link.mode, panel: link.panel });
 }
 
 /** The square around the place's centre, [w, s, e, n], `radiusKm` each way. */

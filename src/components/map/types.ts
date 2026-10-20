@@ -30,6 +30,8 @@ export interface ImageryRequest {
   seq: number;
 }
 
+export interface MapPin { lat: number; lng: number; name?: string }
+
 export interface WorldMapProps {
   data: any;
   activeLayers: Record<string, boolean>;
@@ -100,6 +102,8 @@ export interface WorldMapProps {
   } | null;
   /** Live position from the browser — drawn as a pulsing dot with accuracy ring. */
   userLocation?: { lat: number; lng: number; accuracy?: number; heading?: number | null } | null;
+  /** The place a page is about, marked: its frame's camera may be on something else (the ISS). */
+  pin?: MapPin | null;
   /** Keep the camera centred on userLocation as it moves. */
   followUser?: boolean;
   /** Fired when the operator pans/zooms/rotates while follow mode is on. */

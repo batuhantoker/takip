@@ -16,6 +16,7 @@ import { useSdkEntities } from '@/components/shell/state/use-sdk-entities';
 import type { BackendStatus, FlyToTarget, LiveData, MapCenter } from '@/components/shell/state/types';
 import { embedLayers, type EmbedSpec } from '@/lib/map/embed/spec';
 import { useWindowData } from '../hooks/use-window-data';
+import { WatchLabel } from './watch-label';
 import { WindowCaption } from './window-caption';
 
 const WorldMap = dynamic(() => import('@/components/map/world-map'), { ssr: false });
@@ -62,13 +63,15 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
   useMalwareStream({ dataRef, setDataVersion, setBackendStatus, activeLayers: live });
   useSdkEntities({ dataRef, data, dataVersion, activeLayers: live });
   const shown = useWindowData({ spec, dataRef, setDataVersion });
+  const pin = useMemo(() => (spec.pin ? { lat: spec.pin.lat, lng: spec.pin.lon, name: spec.pin.name } : null), [spec.pin]);
 
   useEffect(() => {
     const target = parseTrack(spec.track);
     if (!target) return;
-    requestTrack(target);
-    // Its card opens folded to the header, so a small frame keeps the map; a click unfolds it. Each time it
-    // appears (StrictMode mounts it twice), until the person first touches the page.
+    // A satellite is watched: its ring and orbit, without a card to cover a small frame.
+    requestTrack(target, target.kind === 'satellite');
+    // An aircraft's or ship's card opens folded to the header, so a small frame keeps the map; a click unfolds
+    // it. Each time it appears (StrictMode mounts it twice), until the person first touches the page.
     const id = trackKey(target);
     let shown = false;
     const fold = () => {
@@ -105,8 +108,9 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
     <>
       <ErrorBoundary name="Map">
         <WorldMap data={data} activeLayers={layers} mapOptions={mapOptions} contextMenu={false} flyToLocation={flyTo}
-          onEntityClick={onEntityClick} onViewStateChange={onViewStateChange} onMapCenter={setMapCenter} />
+          onEntityClick={onEntityClick} onViewStateChange={onViewStateChange} onMapCenter={setMapCenter} pin={pin} />
       </ErrorBoundary>
+      <WatchLabel satellites={data.satellites} />
       {shown && <WindowCaption shown={shown} />}
       <div className="absolute right-3 bottom-3 z-30">
         <MapCredits corner="bottom-right" />

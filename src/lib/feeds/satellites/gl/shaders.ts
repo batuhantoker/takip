@@ -5,6 +5,7 @@ in vec3 a_color;
 in float a_size;
 uniform vec2 u_viewport;
 uniform int u_selected;
+uniform float u_hot;
 uniform vec3 u_cam;
 uniform float u_sky_fade;
 out vec2 v_corner;
@@ -29,7 +30,7 @@ void main() {
   // One satellite out of nineteen thousand is invisible unless it is told to
   // stand out; the selected one gets size and a ring.
   v_hot = gl_InstanceID == u_selected ? 1.0 : 0.0;
-  px += v_hot * 9.0;
+  px += v_hot * u_hot;
   // Expand the quad in clip space. Multiplying by clip.w cancels the
   // perspective divide, so the marker keeps a constant size in pixels.
   gl_Position = clip + vec4(a_corner * px / u_viewport * 2.0 * clip.w, 0.0, 0.0);
@@ -108,8 +109,18 @@ void main() {
  */
 export const ORBIT_VERT = `
 in vec3 a_pos;
+in vec3 a_other;    // the neighbouring track point this vertex's segment runs to
+in float a_side;
+uniform vec2 u_viewport;
+uniform float u_width;
 void main() {
-  gl_Position = projectTileFor3D(a_pos.xy, a_pos.z);
+  vec4 clip = projectTileFor3D(a_pos.xy, a_pos.z);
+  vec4 other = projectTileFor3D(a_other.xy, a_other.z);
+  // Widened across the line on screen, so the track keeps its width in pixels at any zoom.
+  vec2 d = (other.xy / other.w - clip.xy / clip.w) * u_viewport;
+  vec2 dir = length(d) > 0.0001 ? normalize(d) : vec2(1.0, 0.0);
+  vec2 across = vec2(-dir.y, dir.x) * a_side;
+  gl_Position = clip + vec4(across * u_width / u_viewport * clip.w, 0.0, 0.0);
 }`;
 
 export const ORBIT_FRAG = `

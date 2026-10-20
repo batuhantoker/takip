@@ -12,7 +12,8 @@ import { followKey, followedKey, subscribeFollow } from './use-follow';
 export type TrackKind = 'aircraft' | 'ship' | 'satellite';
 export interface TrackTarget { kind: TrackKind; id: string }
 export type TrackStatus = 'acquiring' | 'tracking' | 'not-found';
-export interface TrackState { target: TrackTarget; status: TrackStatus; since: number }
+/** `watch`: a page's frame on a satellite, followed from straight above at the frame's zoom, with no card. */
+export interface TrackState { target: TrackTarget; status: TrackStatus; since: number; watch?: boolean }
 
 const KINDS: readonly TrackKind[] = ['aircraft', 'ship', 'satellite'];
 
@@ -38,10 +39,13 @@ export function trackLink(origin: string, target: TrackTarget, view: { lat: numb
   return `${origin}/?${p.toString().replace(/%2C/g, ',').replace(/%3A/g, ':')}`;
 }
 
-export function requestTrack(target: TrackTarget) {
-  state = { target: parseTrack(trackKey(target)) ?? target, status: 'acquiring', since: Date.now() };
+export function requestTrack(target: TrackTarget, watch = false) {
+  state = { target: parseTrack(trackKey(target)) ?? target, status: 'acquiring', since: Date.now(), ...(watch ? { watch } : {}) };
   emit();
 }
+
+/** Whether `key` is followed for a watch request rather than a ride. */
+export const isWatched = (key: string) => state?.status === 'tracking' && !!state.watch && trackKey(state.target) === key;
 
 export function stopTracking() {
   const key = followedKey();

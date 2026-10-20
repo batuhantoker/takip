@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { displayElevation, type SatPoint } from '../points';
-import { packOrbit, packVertices } from './pack';
+import { packOrbit, packOrbitRibbon, packVertices } from './pack';
 
 const sat = (o: Partial<SatPoint> = {}): SatPoint =>
   ({ lng: 0, lat: 0, altKm: 400, color: 0x00e5ff, size: 1, ...o });
@@ -88,5 +88,38 @@ describe('packOrbit', () => {
 
   it('scales with exaggeration like the markers do', () => {
     expect(packOrbit(seg, 2)[2] / packOrbit(seg, 1)[2]).toBeCloseTo(2, 4);
+  });
+});
+
+describe('packOrbitRibbon', () => {
+  const track = packOrbit([
+    { lng: 0, lat: 0, altKm: 400 },
+    { lng: 10, lat: 5, altKm: 420 },
+    { lng: 20, lat: 10, altKm: 440 },
+  ]);
+  const vertex = (v: Float32Array, k: number) => Array.from(v.subarray(k * 7, k * 7 + 7));
+  const point = (i: number) => Array.from(track.subarray(i * 3, i * 3 + 3));
+
+  it('lays out two triangles of 7 floats for each segment', () => {
+    expect(packOrbitRibbon(track)).toHaveLength(2 * 6 * 7);
+    expect(packOrbitRibbon(packOrbit([{ lng: 0, lat: 0, altKm: 400 }]))).toHaveLength(0);
+  });
+
+  it('gives each vertex its point and the neighbour its segment runs to', () => {
+    const v = packOrbitRibbon(track);
+    expect(vertex(v, 0)).toEqual([...point(0), ...point(1), 1]);
+    expect(vertex(v, 2)).toEqual([...point(1), ...point(0), -1]);
+    expect(vertex(v, 6)).toEqual([...point(1), ...point(2), 1]);
+  });
+
+  it('puts a corner on each side of the line at both ends of a segment', () => {
+    const v = packOrbitRibbon(track);
+    const corners = [0, 1, 2, 3, 4, 5].map(k => vertex(v, k));
+    // A far-end vertex faces back along the segment, so its side is the other way round on screen.
+    const across = (x: number[]) => (x[0] === point(0)[0] ? x[6] : -x[6]);
+    for (const end of [0, 1]) {
+      const at = corners.filter(x => x[0] === point(end)[0]).map(across);
+      expect(new Set(at)).toEqual(new Set([1, -1]));
+    }
   });
 });

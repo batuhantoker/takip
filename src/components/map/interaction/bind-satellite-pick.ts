@@ -67,7 +67,7 @@ export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, aiGlobeRef
   });
 
   /** Selects the satellite at this index of the catalogue: ring, readout and orbit. */
-  function select(idx: number) {
+  function select(idx: number, quiet = false) {
     const layer = satLayerRef.current;
     const p = satRowsRef.current[idx];
     if (!layer || !p) return;
@@ -80,7 +80,8 @@ export function bindSatellitePick(map: maplibregl.Map, { satLayerRef, aiGlobeRef
     satPickedRef.current = idx;
     satSelectedIdRef.current = p.noradId ?? null;
     layer.setSelected(idx);
-    setSelectedSat({ ...p, periodMinutes: null, track: p.noradId ? 'loading' : 'unavailable' });
+    layer.setEmphasis(quiet);
+    setSelectedSat({ ...p, periodMinutes: null, track: p.noradId ? 'loading' : 'unavailable', ...(quiet ? { quiet } : {}) });
 
     // Draw the selected satellite's orbit. Fetched per click rather than
     // bundled with the catalogue: that payload is already megabytes, and an

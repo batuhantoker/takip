@@ -23,6 +23,8 @@ export interface EmbedSpec {
   bbox?: Bbox;
   /** `satellite:25544`, as the map's links carry it. */
   track?: string;
+  /** The place the frame is about, marked on the map: `pin=lat,lon&pinname=Dalmine`. */
+  pin?: { lat: number; lon: number; name?: string };
   window?: EmbedWindow;
   /** Earthquakes from this magnitude up. */
   minMag?: number;
@@ -85,6 +87,13 @@ export function parseEmbedSpec(p: URLSearchParams, now = Date.now()): EmbedSpec 
   }
   const track = p.get('track')?.trim();
   if (track && TRACK.test(track)) spec.track = track;
+  const at = (p.get('pin') ?? '').split(',');
+  const pinLat = num(at[0], -85, 85);
+  const pinLon = num(at[1] ?? null, -180, 180);
+  if (at.length === 2 && pinLat !== null && pinLon !== null) {
+    const name = p.get('pinname')?.replace(/\p{C}/gu, '').trim().slice(0, 60);
+    spec.pin = { lat: pinLat, lon: pinLon, ...(name ? { name } : {}) };
+  }
   const window = parseWindow(p, now);
   if (window) spec.window = window;
   const minMag = num(p.get('minmag'), 0, 9.9);
@@ -103,6 +112,10 @@ export function embedQuery(spec: EmbedSpec): string {
   }
   if (spec.bbox) p.set('bbox', spec.bbox.map(v => +v.toFixed(4)).join(','));
   if (spec.track) p.set('track', spec.track);
+  if (spec.pin) {
+    p.set('pin', `${spec.pin.lat.toFixed(4)},${spec.pin.lon.toFixed(4)}`);
+    if (spec.pin.name) p.set('pinname', spec.pin.name);
+  }
   if (spec.window && 'last' in spec.window) p.set('last', `${spec.window.last.n}${spec.window.last.unit}`);
   else if (spec.window) {
     p.set('from', isoDay(spec.window.from));

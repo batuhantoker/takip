@@ -1,7 +1,7 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as MlMap } from 'maplibre-gl';
 import { cameraPosition } from '@/lib/space/globe/sky-projection';
 import { createSatelliteProgramCache } from './gl/programs';
-import { movePacked, packOrbit, packVertices } from './gl/pack';
+import { movePacked, packOrbit, packOrbitRibbon, packVertices } from './gl/pack';
 import { compile, FRAG, ORBIT_FRAG, ORBIT_VERT, PICK_FRAG, PICK_VERT, VERT } from './gl/shaders';
 import { SAT_MAX_ZOOM, type SatPoint } from './points';
 
@@ -37,6 +37,12 @@ const SKY_FADE_MIN = 0.15;
 const SKY_FADE_FROM = 3.5;
 const SKY_FADE_TO = 5.5;
 
+/** How much larger the selected marker is drawn, in device pixels; a watched one, in CSS pixels. */
+const HOT_PX = 9;
+const WATCHED_PX = 10;
+/** The orbit track's width in CSS pixels. */
+const ORBIT_PX = 1.5;
+
 /**
  * A MapLibre custom layer drawing satellites as points at altitude.
  *
@@ -58,6 +64,8 @@ export function createSatelliteLayer(id: string): CustomLayerInterface & {
   setOrbit(segments: { lng: number; lat: number; altKm: number }[][] | null, color?: number): void;
   /** Highlights one index from the last setPoints(); null clears it. */
   setSelected(index: number | null): void;
+  /** Draws the selection larger still, for one a page's frame is watching; cleared with the selection. */
+  setEmphasis(on: boolean): void;
 } {
   let gl: WebGL2RenderingContext | null = null;
   let map: MlMap | null = null;
@@ -80,6 +88,7 @@ export function createSatelliteLayer(id: string): CustomLayerInterface & {
   let orbitColor = 0x00e5ff;
   let orbitDirty = false;
   let selected = -1;
+  let emphasis = false;
   let vertices: Float32Array<ArrayBuffer> = new Float32Array(0);
   let count = 0;
   let exaggeration = 1;
@@ -246,6 +255,12 @@ export function createSatelliteLayer(id: string): CustomLayerInterface & {
 
     setSelected(index: number | null) {
       selected = index ?? -1;
+      if (index === null) emphasis = false;
+      map?.triggerRepaint();
+    },
+
+    setEmphasis(on: boolean) {
+      emphasis = on;
       map?.triggerRepaint();
     },
 
@@ -378,11 +393,11 @@ export function createSatelliteLayer(id: string): CustomLayerInterface & {
       if (orbitDirty && orbitProgram) {
         for (const o of orbitBuffers) gl.deleteBuffer(o.buf);
         orbitBuffers = (orbitSegments ?? []).filter(seg => seg.length > 1).map(seg => {
-          const data = packOrbit(seg, exaggeration);
+          const data = packOrbitRibbon(packOrbit(seg, exaggeration));
           const buf = gl!.createBuffer()!;
           gl!.bindBuffer(gl!.ARRAY_BUFFER, buf);
           gl!.bufferData(gl!.ARRAY_BUFFER, data, gl!.STATIC_DRAW);
-          return { buf, count: seg.length };
+          return { buf, count: data.length / 7 };
         });
         orbitDirty = false;
       }
@@ -391,17 +406,23 @@ export function createSatelliteLayer(id: string): CustomLayerInterface & {
         setProjectionUniforms(orbitProgram, proj);
         gl.uniform3f(gl.getUniformLocation(orbitProgram, 'u_color'),
           ((orbitColor >> 16) & 0xff) / 255, ((orbitColor >> 8) & 0xff) / 255, (orbitColor & 0xff) / 255);
-        const loc = gl.getAttribLocation(orbitProgram, 'a_pos');
+        gl.uniform2f(gl.getUniformLocation(orbitProgram, 'u_viewport'), gl.drawingBufferWidth, gl.drawingBufferHeight);
+        gl.uniform1f(gl.getUniformLocation(orbitProgram, 'u_width'), ORBIT_PX * (map?.getPixelRatio() ?? 1));
+        const attributes = [['a_pos', 3, 0], ['a_other', 3, 12], ['a_side', 1, 24]] as const;
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.depthMask(false);
         for (const o of orbitBuffers) {
           gl.bindBuffer(gl.ARRAY_BUFFER, o.buf);
-          gl.enableVertexAttribArray(loc);
-          gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
-          gl.vertexAttribDivisor(loc, 0);
-          gl.drawArrays(gl.LINE_STRIP, 0, o.count);
+          for (const [name, size, offset] of attributes) {
+            const loc = gl.getAttribLocation(orbitProgram, name);
+            gl.enableVertexAttribArray(loc);
+            gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 28, offset);
+            gl.vertexAttribDivisor(loc, 0);
+          }
+          gl.drawArrays(gl.TRIANGLES, 0, o.count);
         }
+        for (const [name] of attributes) gl.disableVertexAttribArray(gl.getAttribLocation(orbitProgram, name));
         gl.depthMask(true);
         gl.useProgram(program);
         setProjectionUniforms(program, proj);
@@ -410,6 +431,7 @@ export function createSatelliteLayer(id: string): CustomLayerInterface & {
       const cornerLoc = bindAttributes(program);
       gl.uniform2f(gl.getUniformLocation(program, 'u_viewport'), gl.drawingBufferWidth, gl.drawingBufferHeight);
       gl.uniform1i(gl.getUniformLocation(program, 'u_selected'), selected);
+      gl.uniform1f(gl.getUniformLocation(program, 'u_hot'), emphasis ? WATCHED_PX * (map?.getPixelRatio() ?? 1) : HOT_PX);
       const cam = proj ? cameraPosition(proj.mainMatrix) : null;
       if (cam) gl.uniform3f(gl.getUniformLocation(program, 'u_cam'), cam[0], cam[1], cam[2]);
       const t = map ? Math.min(1, Math.max(0, (map.getZoom() - SKY_FADE_FROM) / (SKY_FADE_TO - SKY_FADE_FROM))) : 0;

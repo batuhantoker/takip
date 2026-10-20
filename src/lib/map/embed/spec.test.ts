@@ -34,6 +34,13 @@ describe('parseEmbedSpec', () => {
   it('reads a magnitude floor to one decimal', () => {
     expect(parse('minmag=4.55').minMag).toBe(4.6);
   });
+
+  it('reads a pin and its name, dropping a malformed one', () => {
+    expect(parse('pin=45.6833,9.6&pinname=Dalmine').pin).toEqual({ lat: 45.6833, lon: 9.6, name: 'Dalmine' });
+    expect(parse('pin=45.6833,9.6').pin).toEqual({ lat: 45.6833, lon: 9.6 });
+    expect(parse('pin=95,9.6&pinname=Dalmine').pin).toBeUndefined();
+    expect(parse('pin=45.6833').pin).toBeUndefined();
+  });
 });
 
 describe('embedQuery', () => {
@@ -41,6 +48,7 @@ describe('embedQuery', () => {
     const specs: EmbedSpec[] = [
       { layers: ['earthquakes'], bbox: [26, 35.8, 45, 42.1], window: { last: { n: 100, unit: 'y' } }, minMag: 4 },
       { layers: ['sat_science'], view: { lat: 0, lon: 0, zoom: 2 }, track: 'satellite:25544' },
+      { layers: ['sat_science'], view: { lat: 45.6833, lon: 9.6, zoom: 1.8 }, track: 'satellite:25544', pin: { lat: 45.6833, lon: 9.6, name: 'Далмине' } },
       { layers: ['earthquakes'], window: { from: Date.UTC(1999, 7, 17), to: Date.UTC(1999, 7, 18) } },
     ];
     for (const spec of specs) expect(parse(embedQuery(spec))).toEqual(spec);

@@ -58,6 +58,8 @@ export interface MapLink {
   /** Defaults to the place at `zoom`. */
   view?: MapView;
   zoom?: number;
+  /** What the map and the header's live map follow, as `satellite:25544`. */
+  track?: string;
   mode?: ViewModeLink;
   panel?: PanelLink;
   /** What the header's live map shows, when it isn't `layers` at the place: an area over a past window. */

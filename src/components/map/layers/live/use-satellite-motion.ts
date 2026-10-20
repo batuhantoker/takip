@@ -2,6 +2,7 @@
 
 import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import type { SatelliteDetail } from '@/components/map/inspect/cards/satellite-inspect';
+import { isWatched } from '@/components/map/inspect/track-request';
 import { isFollowed } from '@/components/map/inspect/use-follow';
 import type { MapRef, SatelliteLayer, SatelliteRow } from '@/components/map/types';
 import { satColorFor, type MapPalette } from '@/lib/map/style/palette';
@@ -169,7 +170,9 @@ export function useSatelliteMotion({ mapRef, replay, satLayerRef, satRowsRef, sa
       if (ride?.id !== id) {
         const from = { zoom: map.getZoom(), pitch: map.getPitch() };
         // Flat, the satellite's height isn't along the line of sight, so tilting would push it off centre.
-        ride = { id: id!, start: now, from, to: { zoom: elevM > HIGH_ELEV_M ? RIDE_ZOOM_HIGH : RIDE_ZOOM, pitch: globe ? RIDE_PITCH : from.pitch } };
+        ride = { id: id!, start: now, from, to: isWatched(`satellite:${id}`)
+          ? { zoom: from.zoom, pitch: 0 }
+          : { zoom: elevM > HIGH_ELEV_M ? RIDE_ZOOM_HIGH : RIDE_ZOOM, pitch: globe ? RIDE_PITCH : from.pitch } };
       }
       const k = Math.min(1, (now - ride.start) / RIDE_IN_MS);
       const e = k * k * (3 - 2 * k);

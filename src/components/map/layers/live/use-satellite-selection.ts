@@ -11,7 +11,7 @@ export function useSatelliteSelection() {
   // matching catalogue rows are kept in the same order to resolve it.
   const satRowsRef = useRef<SatelliteRow[]>([]);
   /** Selects a satellite by catalogue index, as a click on it would; for a shared link. */
-  const satSelectRef = useRef<((index: number) => void) | null>(null);
+  const satSelectRef = useRef<((index: number, quiet?: boolean) => void) | null>(null);
   /** Index of the selected satellite in the array last handed to setPoints. */
   const satPickedRef = useRef<number | null>(null);
   /** The selection's NORAD id. The index moves whenever the catalogue is

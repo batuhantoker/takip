@@ -3,7 +3,7 @@ import { DESCRIPTION_RANGE, fit, nameOf, placeName, TITLE_MAX } from '../copy/fo
 import type { Place } from '../place';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
-import { issElementsNow, issReport, type IssReport } from './iss-passes';
+import { ISS_NORAD, issElementsNow, issReport, type IssReport } from './iss-passes';
 import { latitudeOf } from './sky-copy';
 import type { IssRow } from './sky-data';
 import { SKY_RULES, issBestElevation } from './sky-rules';
@@ -100,7 +100,8 @@ export const ISS: PlaceTopic<IssData, IssLive> = {
       : t('The next visible passes in local time; it climbs at most {best}° here.', { best: data.best });
   },
 
-  open: () => ({ layers: ['sat_science'], zoom: 3 }),
+  // Far enough out that the orbit curves around the globe in the header's frame.
+  open: () => ({ layers: ['sat_science'], zoom: 1.8, track: `satellite:${ISS_NORAD}` }),
 
   live: (place, { data }) => passesNow(place, data),
 

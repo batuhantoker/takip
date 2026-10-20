@@ -32,6 +32,8 @@ export interface SatelliteDetail {
   /** The element set the marker is propagated from, when the catalogue sent it. */
   line1?: string;
   line2?: string;
+  /** Picked by a page's frame, not a click: ringed with its orbit, but no card. */
+  quiet?: boolean;
 }
 
 const EARTH_RADIUS_KM = 6371;
