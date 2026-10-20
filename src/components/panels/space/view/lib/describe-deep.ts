@@ -3,7 +3,7 @@ import { C_KM_S, LY_KM, norm, sub } from '@/lib/space/astro';
 import { DEEP_FEATURES } from '@/lib/space/deep/features';
 import type { ExoHost, PlanetRow } from '@/lib/space/deep/exoplanets';
 import { angleBetween, bodyDirection } from '@/lib/space/frames';
-import { distance, lightTime, speed } from '@/lib/space/format';
+import { distance, lightTime, magnitude, speed } from '@/lib/space/format';
 import { jdFromMs, type Vec3 } from '@/lib/space/horizons';
 import { absoluteMag, spectralClass, starLy, temperatureK } from '@/lib/space/deep/nearby-stars';
 import { VISITORS } from '@/lib/space/deep/outer';
@@ -26,8 +26,6 @@ export interface CardData {
   /** Shown as a tag: the thing is a model, not a measurement. */
   illustration?: boolean;
 }
-
-const fmtMag = (m: number) => (m >= 0 ? '+' : '−') + Math.abs(m).toFixed(2);
 
 function planetLine(p: PlanetRow, t: Translate): string {
   const [name, period, radius, mass, year] = p;
@@ -71,7 +69,7 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     const id = c.ids[sel.index];
     const fields: [string, string][] = [
       [t('From the Sun'), uncertain ? t('Unknown') : distance(ly * LY_KM, t)], [t('From here'), here(scene.nearby.position(sel.index))],
-      [t('Apparent magnitude'), fmtMag(s[3])], [t('Absolute magnitude'), uncertain ? '—' : fmtMag(absoluteMag(s[3], ly))],
+      [t('Apparent magnitude'), magnitude(s[3], t)], [t('Absolute magnitude'), uncertain ? '—' : magnitude(absoluteMag(s[3], ly), t)],
       [t('Temperature'), `${(Math.round(temperatureK(s[4]) / 100) * 100).toLocaleString(t.intl)} K`], [t('RA / Dec'), raDecOf([s[0], s[1], s[2]])],
     ];
     const spectral = t('{class} star', { class: spectralClass(s[4]) });
@@ -98,7 +96,7 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
       title: h.name,
       subtitle: t('{n, plural, one {# known planet} other {# known planets}}', { n: h.planets.length }),
       color: '#7CF7C4',
-      fields: [[t('From the Sun'), distance(h.ly * LY_KM, t)], [t('From here'), here(scene.nearby.hostPosition(i))], [t('Apparent magnitude'), h.vmag !== null ? fmtMag(h.vmag) : '—'], [t('RA / Dec'), `${h.ra.toFixed(2)}° / ${h.dec.toFixed(2)}°`]],
+      fields: [[t('From the Sun'), distance(h.ly * LY_KM, t)], [t('From here'), here(scene.nearby.hostPosition(i))], [t('Apparent magnitude'), h.vmag !== null ? magnitude(h.vmag, t) : '—'], [t('RA / Dec'), `${h.ra.toFixed(2)}° / ${h.dec.toFixed(2)}°`]],
       note: planetsNote(h, t),
       source: 'NASA Exoplanet Archive',
       link: { href: `https://exoplanetarchive.ipac.caltech.edu/overview/${encodeURIComponent(h.name)}`, label: 'Exoplanet Archive' },
@@ -136,7 +134,7 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     const ly = st.mly * 1e6;
     return {
       title: st.name, subtitle: /void/i.test(st.name) ? t('Cosmic void') : t('Large-scale structure'), color: '#E6D9FF',
-      fields: [[t('From the Sun'), distance(ly * LY_KM, t)], [t('From here'), here(at.position)], [t('Redshift'), st.z.toFixed(4)], [t('RA / Dec'), `${st.ra.toFixed(2)}° / ${st.dec.toFixed(2)}°`]],
+      fields: [[t('From the Sun'), distance(ly * LY_KM, t)], [t('From here'), here(at.position)], [t('Redshift'), st.z.toLocaleString(t.intl, { minimumFractionDigits: 4, maximumFractionDigits: 4 })], [t('RA / Dec'), `${st.ra.toFixed(2)}° / ${st.dec.toFixed(2)}°`]],
       note: t('Placed by its redshift: comoving distance, {cosmology}. The dots around it are 2MASS Redshift Survey galaxies ({local}) and SDSS galaxies and quasars ({deep} sampled).', { cosmology: m.cosmology, local: m.local.count, deep: m.deep.count }),
     };
   }

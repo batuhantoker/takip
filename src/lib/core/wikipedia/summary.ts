@@ -6,6 +6,9 @@ export interface WikiSummary {
   url: string;
 }
 
+/** A summary in the reader's Wikipedia when it has the article, else the English one; `lang` says which. */
+export type WikiArticle = WikiSummary & { lang: string };
+
 /** The lead cut at a sentence end near `max` characters. */
 export function trimExtract(text: string, max = 420): string {
   if (text.length <= max) return text;

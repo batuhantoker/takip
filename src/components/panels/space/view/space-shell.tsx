@@ -24,6 +24,7 @@ import SpacePanelLeft from './space-panel-left';
 import { useNow } from '@/components/panels/space/use-space-data';
 import { useSpaceScene } from './use-space-scene';
 import { useEscape } from '@/components/ui/use-escape';
+import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { useT } from '@/components/ui/use-t';
 
 /**
@@ -73,6 +74,7 @@ export default function SpaceShell({ request, satellites, map, onFocus, onExit }
   onExit: (to?: MapTarget) => void;
 }) {
   const t = useT();
+  const isMobile = useIsMobile();
   const [isPresent, safeToRemove] = usePresence();
   const [leaving, setLeaving] = useState<Leaving | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -299,13 +301,10 @@ export default function SpaceShell({ request, satellites, map, onFocus, onExit }
       <div data-hud inert={!!leaving} className={`pointer-events-none absolute top-16 bottom-[96px] z-[205] hidden flex-col transition-opacity duration-150 ease-out md:flex ${leaving ? 'opacity-0' : ''}`} style={{ left: 'calc(var(--shell-left, 72px) + 12px)' }}>
         <SpacePanelLeft camera={camera} layers={layers} setLayers={setLayers} fleet={fleet} satelliteCount={satellites?.length ?? 0} deep={{ outer, exoplanets, catalog }} />
       </div>
-      {/* Where the map's inspect card opens, so a picked thing reads the same in space. */}
-      {selection && !leaving && (
-        <div data-hud className="pointer-events-none absolute top-3 right-3 bottom-[96px] z-[205] hidden flex-col items-end md:flex">
-          <SpaceCard selection={selection} now={now} sky={sky} fleet={fleet} surfaces={surfaces} scene={scene}
-            onClose={() => setSelection(null)} onFly={() => fly(selection)}
-            onReplay={selection.kind === 'craft' && fleet?.craft.find(c => c.id === selection.id)?.region !== 'earth-orbit' ? () => setReplayId(selection.id) : undefined} />
-        </div>
+      {selection && !leaving && !isMobile && (
+        <SpaceCard selection={selection} now={now} sky={sky} fleet={fleet} surfaces={surfaces} scene={scene}
+          onClose={() => setSelection(null)} onFly={() => fly(selection)}
+          onReplay={selection.kind === 'craft' && fleet?.craft.find(c => c.id === selection.id)?.region !== 'earth-orbit' ? () => setReplayId(selection.id) : undefined} />
       )}
       {replayId !== null && !leaving && (
         <div className="pointer-events-none absolute bottom-[88px] z-[206] flex justify-center" style={{ left: 'var(--shell-left, 72px)', right: 0 }}>

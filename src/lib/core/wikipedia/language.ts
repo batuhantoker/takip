@@ -12,6 +12,7 @@ const isCode = (v: string | null): v is string => !!v && /^[a-z][a-z0-9-]{1,15}$
 
 /** Where storage is blocked, the choice lasts until the page reloads. */
 let session: string | null = null;
+const listeners = new Set<() => void>();
 
 export function getWikiLanguage(): string {
   let v = session;
@@ -33,7 +34,13 @@ export function setWikiLanguage(lang: string) {
   } catch {
     // Storage blocked.
   }
+  for (const l of listeners) l();
 }
+
+export const subscribeWikiLanguage = (l: () => void) => {
+  listeners.add(l);
+  return () => { listeners.delete(l); };
+};
 
 /** "French" for fr, in the language `intl` names; the code itself where the browser has no name for it. */
 export function languageName(lang: string, intl = 'en'): string {

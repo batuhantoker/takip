@@ -42,7 +42,7 @@ export function describeNear(sel: SpaceSelection, now: number, sky: SkyPayload |
     if (b.key !== 'sun') fields.push([t('From the Sun'), distance(norm(b.helio), t)], [t('Orbital speed'), speed(norm(b.vel), t)]);
     fields.push([t('Radius'), distance(b.radiusKm, t)]);
     if (b.key === 'moon' && s?.illum !== undefined && s.elong !== undefined) {
-      fields.push([t('Phase'), t(PHASES[Math.floor(((s.elong + 22.5) % 360) / 45)])], [t('Lit'), `${Math.round(s.illum * 100)}%`]);
+      fields.push([t('Phase'), t(PHASES[Math.floor(((s.elong + 22.5) % 360) / 45)])], [t('Lit'), new Intl.NumberFormat(t.intl, { style: 'percent', maximumFractionDigits: 0 }).format(s.illum)]);
     }
     if (s) fields.push([t('RA / Dec'), `${s.ra.toFixed(2)}° / ${s.dec.toFixed(2)}°`]);
     return {

@@ -2,7 +2,7 @@
  * Wikipedia lookups for server routes, English unless a wiki code is given. Keyless; Wikimedia asks for a
  * descriptive User-Agent and a gentle request rate.
  */
-import { trimExtract, type WikiSummary } from './summary';
+import { trimExtract, type WikiArticle, type WikiSummary } from './summary';
 
 const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
 const API = 'https://en.wikipedia.org';
@@ -62,4 +62,14 @@ export async function wikiLanguages(title: string, lang = 'en'): Promise<{ lang:
   const params = { action: 'query', format: 'json', formatversion: '2', prop: 'langlinks', lllimit: 'max', redirects: '1', titles: title };
   const body = await getJson<{ query?: { pages?: { langlinks?: { lang: string; title: string }[] }[] } }>(`${wikiHost(lang)}/w/api.php?${new URLSearchParams(params)}`);
   return body.query?.pages?.[0]?.langlinks ?? [];
+}
+
+/** An English article as the `lang` Wikipedia has it, else as it is; the language list is a nicety. */
+export async function wikiInLanguage(en: WikiSummary, lang: string): Promise<WikiArticle> {
+  if (lang !== 'en') {
+    const there = (await wikiLanguages(en.title, 'en').catch(() => [])).find(l => l.lang === lang);
+    const summary = there && await wikiSummary(there.title, there.lang).catch(() => null);
+    if (summary) return { ...summary, lang };
+  }
+  return { ...en, lang: 'en' };
 }

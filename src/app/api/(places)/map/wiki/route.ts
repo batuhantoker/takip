@@ -4,7 +4,7 @@ import type { WikiSummary } from '@/lib/core/wikipedia/summary';
 import type { PlaceArticle } from '@/lib/places/labels/place-popup';
 import { getClientIp, isRateLimited } from '@/lib/core/net/ssrf-guard';
 import { cachedSource } from '@/lib/core/net/source-cache';
-import { wikiGeosearch, wikiLanguages, wikiSearch, wikiSummary } from '@/lib/core/wikipedia/client';
+import { wikiGeosearch, wikiInLanguage, wikiSearch, wikiSummary } from '@/lib/core/wikipedia/client';
 
 /**
  * TAKIP — the Wikipedia article for a labelled place on the base map:
@@ -37,15 +37,7 @@ async function resolve(names: string[], kind: PlaceKind, at: { lat: number; lon:
   return first(rankCandidates(names, usable));
 }
 
-/** The English article as the reader's Wikipedia has it, else as it is; the language list is a nicety. */
-async function inLanguage(en: WikiSummary, lang: string): Promise<PlaceArticle> {
-  if (lang !== 'en') {
-    const there = (await wikiLanguages(en.title, 'en').catch(() => [])).find(l => l.lang === lang);
-    const summary = there && await wikiSummary(there.title, there.lang).catch(() => null);
-    if (summary) return { ...summary, lang, matched: en.title };
-  }
-  return { ...en, lang: 'en', matched: en.title };
-}
+const inLanguage = async (en: WikiSummary, lang: string): Promise<PlaceArticle> => ({ ...await wikiInLanguage(en, lang), matched: en.title });
 
 export async function GET(req: Request) {
   if (isRateLimited(`map-wiki:${getClientIp(req)}`, 30, 60_000)) {

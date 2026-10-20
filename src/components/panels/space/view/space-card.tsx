@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ExternalLink, History, Navigation } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
+import { FloatingWindow, WindowFoldButton } from '@/components/map/windows';
 import { Panel } from '@/components/ui/panel';
 import { Property, PropertyList } from '@/components/ui/property-list';
 import { Tag } from '@/components/ui/tag';
@@ -12,12 +13,13 @@ import type { FleetPayload } from '@/lib/space/craft/fleet';
 import type { SpaceSelection } from '@/lib/space/selection';
 import type { SkyPayload } from '@/lib/space/sky';
 import type { SurfacePayload } from '@/lib/space/bodies/surface';
+import { languageName } from '@/lib/core/wikipedia/language';
 import type { WikiSummary } from '@/lib/core/wikipedia/summary';
 import { wikiTopic } from '@/lib/space/wiki-topic';
 import { describeDeep } from '@/components/panels/space/view/lib/describe-deep';
 import { describeNear } from '@/components/panels/space/view/lib/describe-near';
 import { fieldLabel } from '@/components/panels/space/view/lib/field-label';
-import { useWiki } from '@/components/panels/space/use-wiki';
+import { useWiki, useWikiLanguage } from '@/components/panels/space/use-wiki';
 import type { SpaceScene } from '@/lib/space/scene/space-scene';
 
 /** The space view's inspect card: what the selected thing is, and where it is right now. */
@@ -54,6 +56,7 @@ export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene,
   const t = useT();
   const card = describeNear(selection, now, sky, fleet, surfaces, t) ?? describeDeep(selection, scene, now, t);
   const wiki = useWiki(card ? wikiTopic(selection, card.title) : null);
+  const wikiLang = useWikiLanguage();
   if (!card) return null;
   const footer = (onReplay || card.link) ? (
     <>
@@ -68,33 +71,38 @@ export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene,
   ) : undefined;
 
   return (
-    // Escape belongs to the space view, which steps back from the card, then the replay, then space itself.
-    <Panel docked={false} closeOnEscape={false} className="pointer-events-auto w-[320px] shrink-0" title={card.title} onClose={onClose}
-      subtitle={(
-        <span className="inline-flex max-w-full items-center gap-1.5">
-          <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: card.color }} />
-          <span className="truncate">{card.subtitle}</span>
-        </span>
-      )}
-      actions={<IconButton label={t('Fly here')} icon={Navigation} onClick={onFly} />}
-      footer={footer}>
-      {wiki?.image && <WikiImage key={wiki.image.src} wiki={wiki} image={wiki.image} />}
-      {card.illustration && <div className="mb-3"><Tag>{t('Illustration')}</Tag></div>}
-      {card.fields.length > 0 && (
-        <PropertyList>
-          {card.fields.map(([label, value]) => <Property key={label} label={fieldLabel(label)} value={value} />)}
-        </PropertyList>
-      )}
-      {card.note && <p className="mt-3 text-small text-ink-2">{card.note}</p>}
-      {card.source && <p className="mt-2 text-meta text-ink-3">{card.source}</p>}
-      {wiki?.extract && (
-        <div className="mt-4 border-t border-line pt-3">
-          <p className="line-clamp-4 text-small text-ink-2" title={wiki.extract}>{wiki.extract}</p>
-          <a href={wiki.url} target="_blank" rel="noopener noreferrer" className={cx('mt-1.5 inline-flex items-center gap-1 rounded-[4px] text-meta text-ink-3 hover:text-ink-1', FOCUS_RING)}>
-            {t('More on Wikipedia')} <ExternalLink aria-hidden className="size-3" strokeWidth={1.75} />
-          </a>
-        </div>
-      )}
-    </Panel>
+    // A window like the map's inspect cards, so it docks in the person's layout and can be moved; the window answers Escape.
+    <FloatingWindow id="space-card" kind="inspect" label={card.title} onClose={onClose}>
+      <Panel docked={false} closeOnEscape={false} className="pointer-events-auto" title={card.title} onClose={onClose}
+        subtitle={(
+          <span className="inline-flex max-w-full items-center gap-1.5">
+            <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: card.color }} />
+            <span className="truncate">{card.subtitle}</span>
+          </span>
+        )}
+        actions={<><IconButton label={t('Fly here')} icon={Navigation} onClick={onFly} /><WindowFoldButton /></>}
+        footer={footer}>
+        {wiki?.image && <WikiImage key={wiki.image.src} wiki={wiki} image={wiki.image} />}
+        {card.illustration && <div className="mb-3"><Tag>{t('Illustration')}</Tag></div>}
+        {card.fields.length > 0 && (
+          <PropertyList>
+            {card.fields.map(([label, value]) => <Property key={label} label={fieldLabel(label)} value={value} />)}
+          </PropertyList>
+        )}
+        {card.note && <p className="mt-3 text-small text-ink-2">{card.note}</p>}
+        {card.source && <p className="mt-2 text-meta text-ink-3">{card.source}</p>}
+        {wiki?.extract && (
+          <div className="mt-4 border-t border-line pt-3">
+            {wiki.lang !== wikiLang && (
+              <p className="mb-1.5 text-meta text-ink-3">{t('No article in {language}, so this is the English one.', { language: languageName(wikiLang, t.intl) })}</p>
+            )}
+            <p lang={wiki.lang} dir="auto" className="line-clamp-4 text-small text-ink-2" title={wiki.extract}>{wiki.extract}</p>
+            <a href={wiki.url} target="_blank" rel="noopener noreferrer" className={cx('mt-1.5 inline-flex items-center gap-1 rounded-[4px] text-meta text-ink-3 hover:text-ink-1', FOCUS_RING)}>
+              {t('More on Wikipedia')} <ExternalLink aria-hidden className="size-3" strokeWidth={1.75} />
+            </a>
+          </div>
+        )}
+      </Panel>
+    </FloatingWindow>
   );
 }

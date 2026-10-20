@@ -47,6 +47,12 @@ export function lightTime(seconds: number, t: Translate = ENGLISH): string {
   return t('{amount} years', { amount: compact(years, t.intl) });
 }
 
+/** "+1.23", "−1.46": a magnitude always shows its sign. */
+export function magnitude(m: number, t: Translate = ENGLISH): string {
+  if (!Number.isFinite(m)) return '—';
+  return new Intl.NumberFormat(t.intl, { signDisplay: 'always', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(m).replace('-', '−');
+}
+
 export function speed(kmS: number, t: Translate = ENGLISH): string {
   return Number.isFinite(kmS) ? `${fixed(kmS, kmS < 10 ? 2 : 1, t.intl)} km/s` : '—';
 }

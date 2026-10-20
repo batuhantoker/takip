@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { age, distance, latLng, lightTime, speed } from './format';
+import { createTranslator } from '@/lib/core/i18n/translator';
+import { age, distance, latLng, lightTime, magnitude, speed } from './format';
+
+const de = createTranslator('de', {});
 
 describe('distance', () => {
   it('switches from kilometres to astronomical units', () => {
@@ -35,6 +38,21 @@ describe('speed and latLng', () => {
     expect(speed(1.6562)).toBe('1.66 km/s');
     expect(speed(16.98)).toBe('17.0 km/s');
     expect(latLng(-4.8246, 137.3878)).toBe('4.82°S 137.39°E');
+  });
+
+  it('writes numbers the way the page language does', () => {
+    expect(distance(25_000_000_000, de)).toBe('167,1 AU');
+    expect(speed(16.98, de)).toBe('17,0 km/s');
+  });
+});
+
+describe('magnitude', () => {
+  it('always signs, with a true minus, in the page language', () => {
+    expect(magnitude(1.234)).toBe('+1.23');
+    expect(magnitude(-1.46)).toBe('−1.46');
+    expect(magnitude(0)).toBe('+0.00');
+    expect(magnitude(1.234, de)).toBe('+1,23');
+    expect(magnitude(NaN)).toBe('—');
   });
 });
 
