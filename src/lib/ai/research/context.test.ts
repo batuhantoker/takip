@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { gatherContext, marketLine, scoreNews, selectContext, terms, type RawNews, type Sources } from './context';
 
 const NOW = Date.parse('2026-10-02T12:00:00Z');
@@ -68,7 +68,11 @@ describe('marketLine', () => {
 });
 
 describe('gatherContext', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
   it('carries on without a source that fails', async () => {
+    // It judges the stories' age by the clock, and they are dated from NOW.
+    vi.setSystemTime(NOW);
     const sources: Sources = {
       news: async () => NEWS,
       quakes: async () => { throw new Error('USGS down'); },
