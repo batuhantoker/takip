@@ -1,6 +1,8 @@
-import type { PolityKey, PolityRender, SeriesPointRow } from '@takip/db';
+import type { PolityKey, PolityRender, SeriesPointRow, SeriesStore } from '@takip/db';
 import { type Context, Hono } from 'hono';
 import type { AccessEnv } from '../access/middleware';
+import { cachedAsync } from '../analytics/storage';
+import { breathe } from '../db/breathe';
 import type { ReplayData } from './data';
 
 /*
@@ -11,7 +13,8 @@ import type { ReplayData } from './data';
 
 /** A metric covering fewer polities than this isn't worth a map (one-country FRED series). */
 const MIN_SUBJECTS = 10;
-const CATALOGUE_TTL_MS = 5 * 60_000;
+const CATALOGUE_TTL_MS = 30 * 60_000;
+const METRIC_SLICE = 64;
 const CACHE = { 'Cache-Control': 'private, max-age=300' };
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -102,9 +105,24 @@ export function shapeSeries(rows: readonly SeriesPointRow[], polities: readonly 
   return { values, names, years: Number.isFinite(lo) ? [lo, hi] as [number, number] : null };
 }
 
+/** Yearly and daily (or weekly) metrics with enough polities to map, a slice of ids at a time: read whole, it stalled the api 1.3–1.6 s on the NUC. */
+async function catalogue(series: SeriesStore, sourceIds: ReadonlySet<number>) {
+  const top = series.metrics().reduce((max, m) => Math.max(max, m.metricId), 0);
+  const rows: ReturnType<SeriesStore['entityMetrics']> = [];
+  for (let from = 0; from <= top; from += METRIC_SLICE) {
+    await breathe();
+    rows.push(...series.entityMetrics(sourceIds, { from, to: from + METRIC_SLICE }));
+  }
+  const metrics = rows
+    .filter(m => MAPPED.has(m.granularity) && m.subjects >= MIN_SUBJECTS)
+    .sort((a, b) => (a.code < b.code ? -1 : 1))
+    .map(m => ({ code: m.code, name: m.name, unit: m.unit, topic: m.topic, subjects: m.subjects, years: yearsOf(m.first, m.last, m.granularity as Step) }));
+  return { metrics };
+}
+
 export function seriesRoutes(data: ReplayData) {
   const app = new Hono<AccessEnv>();
-  const catalogues = new Map<string, { at: number; body: unknown }>();
+  const catalogues = new Map<string, () => Promise<Awaited<ReturnType<typeof catalogue>>>>();
 
   const scope = (c: Context<AccessEnv>) => {
     const catalog = data.catalog();
@@ -113,18 +131,16 @@ export function seriesRoutes(data: ReplayData) {
     return { catalog, series, policy: catalog.policy(c.var.access.entitlements['data.licence_tier']) };
   };
 
-  /** Yearly and daily (or weekly) metrics with enough polities to map. */
-  app.get('/', c => {
+  app.get('/', async c => {
     const s = scope(c);
     if (!s) return notReady(c);
-    const cached = catalogues.get(s.policy.hash);
-    if (cached && data.now() - cached.at < CATALOGUE_TTL_MS) return c.json(cached.body, 200, CACHE);
-    const metrics = s.series.entityMetrics(s.policy.sourceIds)
-      .filter(m => MAPPED.has(m.granularity) && m.subjects >= MIN_SUBJECTS)
-      .map(m => ({ code: m.code, name: m.name, unit: m.unit, topic: m.topic, subjects: m.subjects, years: yearsOf(m.first, m.last, m.granularity as Step) }));
-    const body = { metrics };
-    catalogues.set(s.policy.hash, { at: data.now(), body });
-    return c.json(body, 200, CACHE);
+    let read = catalogues.get(s.policy.hash);
+    if (!read) {
+      const { series, policy } = s;
+      read = cachedAsync(() => catalogue(series, policy.sourceIds), CATALOGUE_TTL_MS, data.now);
+      catalogues.set(policy.hash, read);
+    }
+    return c.json(await read(), 200, CACHE);
   });
 
   /** ?source=code picks among the sources that publish the metric; the default is the one with the most points. */

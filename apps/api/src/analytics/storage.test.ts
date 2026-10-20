@@ -92,14 +92,33 @@ describe('scanStorage', () => {
 });
 
 describe('cachedAsync', () => {
-  it('shares one run for the ttl, and runs again when asked or once it lapses', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
+  it('shares one run for the ttl, and runs again when asked', async () => {
     let runs = 0;
     const get = cachedAsync(async () => ++runs, 60_000);
     expect(await Promise.all([get(), get()])).toEqual([1, 1]);
     expect(await get(true)).toBe(2);
+  });
+
+  it('once the ttl lapses, serves the old result while one run replaces it, and keeps it if that run fails', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    let runs = 0;
+    let fail = false;
+    const get = cachedAsync(async () => {
+      runs++;
+      if (fail) throw new Error('scan failed');
+      return runs;
+    }, 60_000);
+    expect(await get()).toBe(1);
     vi.setSystemTime(Date.now() + 60_000);
-    expect(await get()).toBe(3);
+    expect(await Promise.all([get(), get()])).toEqual([1, 1]);
+    expect(runs).toBe(2);
+    await new Promise(resolve => setImmediate(resolve));
+    expect(await get()).toBe(2);
+    vi.setSystemTime(Date.now() + 60_000);
+    fail = true;
+    expect(await get()).toBe(2);
+    await new Promise(resolve => setImmediate(resolve));
+    expect(await get()).toBe(2);
     vi.useRealTimers();
   });
 });

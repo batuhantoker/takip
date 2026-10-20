@@ -1,5 +1,6 @@
 import { dataLayout, openReader, type Db } from '@takip/db';
 import { DAY_MS, isoDay } from '../access/usage';
+import { breathe } from '../db/breathe';
 import { dayStartMs, eachDay, type Range } from './range';
 
 type SourceRun = { code: string; name: string; record: number; build: number; runs: number; failed: number; records: number; inserted: number; bytes: number };
@@ -15,18 +16,53 @@ const withReader = <T>(path: string, read: (db: Db) => T): T | undefined => {
   }
 };
 
-/** Row counts of a database's tables, leaving out SQLite's own, virtual tables (R*Tree, full-text) and their shadow tables. */
-export function tableCounts(db: Db) {
-  const tables = db.prepare("SELECT name, sql FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as { name: string; sql: string }[];
-  const virtual = tables.filter(t => /^CREATE VIRTUAL/i.test(t.sql)).map(t => t.name);
-  return tables
-    .filter(t => !virtual.some(v => t.name === v || t.name.startsWith(`${v}_`)))
-    .map(t => ({ table: t.name, rows: db.prepare(`SELECT count(*) FROM "${t.name.replaceAll('"', '""')}"`).pluck().get() as number }))
-    .sort((a, b) => b.rows - a.rows || a.table.localeCompare(b.table));
+/** A table with fewer rows than this is counted in one statement. */
+const SMALL = 50_000;
+const SLICES = 256;
+
+const quote = (name: string) => `"${name.replaceAll('"', '""')}"`;
+
+/** count(*), over slices of the table's key when it's big, so other requests run in between. */
+async function countRows(db: Db, name: string, withoutRowid: boolean) {
+  const table = quote(name);
+  const head = db.prepare(`SELECT count(*) FROM (SELECT 1 FROM ${table} LIMIT ${SMALL})`).pluck().get() as number;
+  if (head < SMALL) return head;
+  const pk = withoutRowid ? (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string; pk: number }[]).find(c => c.pk === 1) : undefined;
+  const key = withoutRowid ? pk && quote(pk.name) : 'rowid';
+  const lo = key && db.prepare(`SELECT min(${key}) FROM ${table}`).pluck().get();
+  const hi = key && db.prepare(`SELECT max(${key}) FROM ${table}`).pluck().get();
+  if (typeof lo !== 'number' || typeof hi !== 'number') return db.prepare(`SELECT count(*) FROM ${table}`).pluck().get() as number;
+  const slice = db.prepare(`SELECT count(*) FROM ${table} WHERE ${key} >= ? AND ${key} < ?`).pluck();
+  const step = Math.ceil((hi - lo + 1) / SLICES);
+  let rows = 0;
+  for (let from = lo; from <= hi; from += step) {
+    await breathe();
+    rows += slice.get(from, from + step) as number;
+  }
+  return rows;
 }
 
-// count(*) takes ~0.1 s over history.db's 16 M ts_point rows here, so the route caches it rather than estimating from rowids.
-export const historyCounts = (dataDir: string) => withReader(dataLayout(dataDir).history, tableCounts) ?? [];
+/** Row counts of a database's tables, leaving out SQLite's own, virtual tables (R*Tree, full-text) and their shadow tables. */
+export async function tableCounts(db: Db) {
+  const tables = db.prepare("SELECT name, sql FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as { name: string; sql: string }[];
+  const virtual = tables.filter(t => /^CREATE VIRTUAL/i.test(t.sql)).map(t => t.name);
+  const counts: { table: string; rows: number }[] = [];
+  for (const t of tables.filter(t => !virtual.some(v => t.name === v || t.name.startsWith(`${v}_`)))) {
+    counts.push({ table: t.name, rows: await countRows(db, t.name, /\bWITHOUT\s+ROWID\b/i.test(t.sql)) });
+  }
+  return counts.sort((a, b) => b.rows - a.rows || a.table.localeCompare(b.table));
+}
+
+// One count(*) pass over history.db (1 GB, 16 M ts_point rows) took 2–4 s on the NUC, with the whole api waiting on it.
+export async function historyCounts(dataDir: string) {
+  const db = openReader(dataLayout(dataDir).history);
+  if (!db) return [];
+  try {
+    return await tableCounts(db);
+  } finally {
+    db.close();
+  }
+}
 
 /** What the ingest worker has gathered, from catalog.db (GET /api/admin/analytics/data). `history` comes in cached. */
 export function dataAccumulation(dataDir: string | undefined, r: Range, history: { table: string; rows: number }[]) {

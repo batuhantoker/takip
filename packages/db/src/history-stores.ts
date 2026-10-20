@@ -170,8 +170,11 @@ export interface SeriesStore {
   points(metricCode: string, sourceIds: ReadonlySet<number>, from?: number, to?: number): SeriesPointRow[];
   /** One subject's series for a metric. */
   subjectPoints(metricCode: string, subjectType: 'entity' | 'event', subjectId: number, sourceIds: ReadonlySet<number>): SeriesPointRow[];
-  /** Metrics with entity series from the given sources, how many entities each covers, and its first and last point (epoch ms). */
-  entityMetrics(sourceIds: ReadonlySet<number>): (MetricRow & { subjects: number; first: number | null; last: number | null })[];
+  /**
+   * Metrics with entity series from the given sources, how many entities each covers, and its first and last point (epoch ms).
+   * `ids` limits it to metric ids in [from, to), for a caller that reads it in slices.
+   */
+  entityMetrics(sourceIds: ReadonlySet<number>, ids?: { from: number; to: number }): (MetricRow & { subjects: number; first: number | null; last: number | null })[];
 }
 
 export type DocumentInput = {

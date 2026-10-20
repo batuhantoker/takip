@@ -19,6 +19,7 @@ import { visitorList, visitorsQuery } from './visitor-list';
 import { visitors } from './visitors';
 
 const SCAN_TTL_MS = 60_000;
+const HISTORY_TTL_MS = 10 * 60_000;
 
 /** `locate` places sign-in and last-seen addresses as they're read (geoip/ip-location.ts); without it they stay unplaced. */
 export type AnalyticsOptions = { dirs?: StorageDirs; startedAt?: number; locate?: IpLocator };
@@ -28,9 +29,9 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   db: AppDb; access: AccessResolver; usage: Usage; metrics?: Metrics; now?: () => number;
 } & AnalyticsOptions) {
   const app = new Hono();
-  // Walking the data directory and counting history.db take a while, so both are held for a minute; ?refresh=1 redoes them.
+  // Walking the data directory and counting history.db take a while, so both are held (the count reads all 1 GB); ?refresh=1 redoes them.
   const storage = cachedAsync(() => scanStorage(db, dirs, now()), SCAN_TTL_MS, now);
-  const history = cachedAsync(async () => (dirs.dataDir ? historyCounts(dirs.dataDir) : []), SCAN_TTL_MS, now);
+  const history = cachedAsync(async () => (dirs.dataDir ? historyCounts(dirs.dataDir) : []), HISTORY_TTL_MS, now);
 
   const get = (path: string, run: (r: Range, refresh: boolean) => object | Promise<object>) =>
     app.get(path, async c => {

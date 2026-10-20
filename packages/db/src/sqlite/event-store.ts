@@ -21,12 +21,13 @@ const CANDIDATE_COLS = `
   e.geo_prec AS geoPrec, e.magnitude, e.severity, e.confidence, e.geom`;
 
 /** FROM and WHERE for a box and window: canonical, unretracted, licence-gated events (§8.4, §8.7). */
+// The unary + keeps the planner on the R*Tree; led by the source index it walked every event the tier may see (250 ms vs 6 ms).
 const IN_WINDOW = `
   FROM ev_event_rtree r JOIN ev_event e ON e.event_id = r.id JOIN ev_kind k ON k.kind_id = e.kind_id
   WHERE r.min_x <= @e AND r.max_x >= @w AND r.min_y <= @n AND r.max_y >= @s AND r.min_t < @tHi AND r.max_t >= @tLo
     AND e.t_lo < @tHi AND e.t_hi > @tLo
     AND e.retracted_at IS NULL AND e.event_id = e.canonical_id
-    AND e.source_id IN (SELECT value FROM json_each(@sources))
+    AND +e.source_id IN (SELECT value FROM json_each(@sources))
     AND (@families IS NULL OR k.family IN (SELECT value FROM json_each(@families)))
     AND (@kinds IS NULL OR k.code IN (SELECT value FROM json_each(@kinds)))`;
 

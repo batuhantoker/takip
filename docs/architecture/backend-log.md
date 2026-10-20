@@ -98,7 +98,7 @@ apps/api/src/
   auth/      Better Auth config (auth.ts), emails, social providers, routes (+ email-password, social, account-settings tests)
   access/    resolver (plan ⊕ overrides, 60 s cache), grants (operator writes + audit), middleware (withAccess, requires), routes
   admin/     gate (role + 2FA + 12 h step-up), queries, routes (+ tests)
-  db/        app-db.ts (pragmas), migrations.ts (our tables, PRAGMA user_version, append-only)
+  db/        app-db.ts (pragmas), migrations.ts (our tables, PRAGMA user_version, append-only), breathe.ts (yield between slices of a long read)
   mail/      EmailSender: console in dev, SMTP via nodemailer
   cli/       plan.ts (npm run plan), admin.ts (npm run admin)
   testing/   helpers.ts (startApp, Inbox, Jar, signUpVerified, googleApproves, viaGoogle), totp.ts
@@ -230,6 +230,11 @@ tools/    dev.mjs (web + api)  screenshot.mjs (headless Chrome with a session co
   - To restore endings, rebuild from `git show HEAD:<file>`, keeping unchanged lines (`difflib` over CR-stripped lines).
 - **`npm install` peer conflicts** come from Better Auth's optional framework peers (SvelteKit, TanStack Start). vitest 4 resolved them; don't use `--legacy-peer-deps`.
 - **New workspace packages** must also be copied in the `Dockerfile` deps stage (`COPY packages/<name>/package.json`).
+
+### 3.4 SQLite reads
+
+- **better-sqlite3 runs each statement synchronously**, so a long read holds every other request. On the NUC, counting history.db (1 GB) froze the api for 2–4 s. Read big things in slices with `await breathe()` between them (`apps/api/src/db/breathe.ts`, used by `analytics/data.ts` and `replay/series.ts`), and hold the result with `cachedAsync`, which serves the old value while one run refreshes it.
+- **Event window queries put `+` on `e.source_id`** (`IN_WINDOW` in `packages/db/src/sqlite/event-store.ts`) so SQLite starts from the R*Tree. Starting from the source index, it walked every event the tier may see.
 
 ## 4. Workstreams
 

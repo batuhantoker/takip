@@ -130,20 +130,38 @@ export async function scanStorage(db: AppDb, dirs: StorageDirs, now = Date.now()
     total: groups.reduce((n, g) => n + g.bytes, 0),
     groups,
     archive,
-    appTables: tableCounts(db),
+    appTables: await tableCounts(db),
   };
 }
 
-/** Holds a slow async result for `ttlMs`; concurrent callers share one run, and `fresh` forces a new one. */
+/**
+ * Holds a slow async result for `ttlMs`, then keeps serving it while one run replaces it. Concurrent callers share
+ * a run, and `fresh` waits for a new one.
+ */
 export function cachedAsync<T>(run: () => Promise<T>, ttlMs = 60_000, now = () => Date.now()) {
   let held: { at: number; value: Promise<T> } | null = null;
+  let refreshing = false;
+  const start = () => {
+    const entry = { at: now(), value: run() };
+    entry.value.catch(() => {
+      if (held === entry) held = null;
+    });
+    return entry;
+  };
   return (fresh = false) => {
-    if (fresh || !held || now() - held.at >= ttlMs) {
-      const value = run();
-      held = { at: now(), value };
-      value.catch(() => {
-        if (held?.value === value) held = null;
-      });
+    if (fresh || !held) {
+      held = start();
+    } else if (now() - held.at >= ttlMs && !refreshing) {
+      const stale = held;
+      const next = start();
+      refreshing = true;
+      next.value
+        .then(() => {
+          if (held === stale) held = next;
+        }, () => {})
+        .finally(() => {
+          refreshing = false;
+        });
     }
     return held.value;
   };

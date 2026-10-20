@@ -65,14 +65,29 @@ describe('dataAccumulation', () => {
 });
 
 describe('historyCounts', () => {
-  it('counts history.db tables, not the shadow tables of its R*Tree and full-text index', () => {
-    expect(historyCounts(dir)).toEqual([]);
+  it('counts history.db tables, not the shadow tables of its R*Tree and full-text index', async () => {
+    expect(await historyCounts(dir)).toEqual([]);
     const db = openWriter(dataLayout(dir).history, 'history');
     db.exec("INSERT INTO ev_kind (code, family) VALUES ('quake', 'hazard'), ('fire', 'hazard')");
     db.close();
-    const counts = historyCounts(dir);
+    const counts = await historyCounts(dir);
     expect(counts[0]).toEqual({ table: 'ev_kind', rows: 2 });
     expect(counts.some(c => /_(node|parent|rowid|data|idx|docsize|config)$/.test(c.table))).toBe(false);
     expect(counts.map(c => c.table)).toContain('ts_point');
+  });
+
+  it('counts big tables exactly in slices of their key, rowid or a WITHOUT ROWID primary key', async () => {
+    const db = openWriter(dataLayout(dir).history, 'history');
+    db.exec(`
+      CREATE TEMP TABLE n AS WITH RECURSIVE n(v) AS (SELECT 1 UNION ALL SELECT v + 1 FROM n WHERE v < 70003) SELECT v FROM n;
+      CREATE TABLE x_gappy (id INTEGER PRIMARY KEY);
+      INSERT INTO x_gappy SELECT v * 7 FROM n WHERE v <= 60001;
+      CREATE TABLE x_keyed (k INTEGER, t INTEGER, PRIMARY KEY (k, t)) WITHOUT ROWID;
+      INSERT INTO x_keyed SELECT v % 997, v FROM n;
+      CREATE TABLE x_named (k TEXT PRIMARY KEY) WITHOUT ROWID;
+      INSERT INTO x_named SELECT 'k' || v FROM n WHERE v <= 50001;`);
+    db.close();
+    const counts = await historyCounts(dir);
+    expect(counts.slice(0, 3)).toEqual([{ table: 'x_keyed', rows: 70003 }, { table: 'x_gappy', rows: 60001 }, { table: 'x_named', rows: 50001 }]);
   });
 });
