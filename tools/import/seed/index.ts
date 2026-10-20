@@ -38,6 +38,11 @@ export const LICENCES = [
   { code: 'unknown', name: 'No licence stated', url: null, commercial: null, redistribution: 'unknown' },
   { code: 'oecd-terms', name: 'OECD terms: any use, commercial included, with attribution carried into sub-licences', url: 'https://www.oecd.org/en/about/terms-conditions.html', commercial: 1, redistribution: 'attribution' },
   { code: 'imf-terms', name: 'IMF copyright and terms: attribution; commercial reuse and systematic download need written permission', url: 'https://www.imf.org/en/About/copyright-and-terms', commercial: 0, redistribution: 'attribution' },
+  // Charts and citations need only the credit line; reproducing over 10% of a dataset, or any commercial use, needs SIPRI's permission.
+  {
+    code: 'sipri-terms', name: 'SIPRI terms; commercial use needs authorisation', url: 'https://www.sipri.org/databases/terms', commercial: 0, redistribution: 'display',
+    attribution: 'Information from the Stockholm International Peace Research Institute (SIPRI) Military Expenditure Database, https://doi.org/10.55163/CQGC9685',
+  },
 ] as const;
 
 type SourceSeed = { code: string; name: string; owner: string; url?: string; licence: string; events?: boolean; attribution?: string };
@@ -91,6 +96,9 @@ export const SOURCES: SourceSeed[] = [
   { code: 'us-counties', name: 'US counties: 2024 boundaries, gazetteer and population estimates', owner: 'US Census Bureau', url: 'https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html', licence: 'public-domain' },
   { code: 'us-places', name: 'US places: 2024 boundaries, gazetteer and population estimates for incorporated places and CDPs', owner: 'US Census Bureau', url: 'https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html', licence: 'public-domain' },
   { code: 'deflock-alpr', name: 'Licence-plate readers mapped on OpenStreetMap', owner: 'OpenStreetMap contributors, via DeFlock', url: 'https://deflock.me', licence: 'odbl-1.0' },
+  { code: 'sipri-milex', name: 'SIPRI Military Expenditure Database', owner: 'Stockholm International Peace Research Institute (SIPRI)', url: 'https://www.sipri.org/databases/milex', licence: 'sipri-terms' },
+  // COW asks users to give the version number and cite Singer, Bremer & Stuckey (1972).
+  { code: 'cow-nmc', name: 'COW National Material Capabilities v7.0', owner: 'Correlates of War Project', url: 'https://correlatesofwar.org/data-sets/national-material-capabilities/', licence: 'cow-terms' },
 ];
 
 const TIERS = ['anon', 'free', 'paid', 'internal'] as const;
@@ -164,11 +172,11 @@ export async function seed(ctx: Ctx) {
 
   db.transaction(() => {
     const lic = db.prepare(`
-      INSERT INTO meta_licence (code, name, url, commercial_use, redistribution) VALUES (?, ?, ?, ?, ?)
+      INSERT INTO meta_licence (code, name, url, commercial_use, redistribution, attribution) VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT (code) DO UPDATE SET name = excluded.name, url = excluded.url, commercial_use = excluded.commercial_use,
-        redistribution = excluded.redistribution
+        redistribution = excluded.redistribution, attribution = excluded.attribution
     `);
-    for (const l of LICENCES) lic.run(l.code, l.name, l.url, l.commercial, l.redistribution);
+    for (const l of LICENCES) lic.run(l.code, l.name, l.url, l.commercial, l.redistribution, 'attribution' in l ? l.attribution : null);
     const src = db.prepare(`
       INSERT INTO meta_source (code, name, owner, url, licence_id, delivery, event_table)
       VALUES (?, ?, ?, ?, (SELECT licence_id FROM meta_licence WHERE code = ?), 'bulk', ?)

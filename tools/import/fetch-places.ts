@@ -11,7 +11,7 @@ import { RAW_MORE } from './context';
 
 const UA = 'TAKIP-history-import/0.1 (+https://takip.dev)';
 
-async function get(url: string): Promise<Buffer> {
+export async function get(url: string): Promise<Buffer> {
   for (let attempt = 1; ; attempt++) {
     const res = await fetch(url, { headers: { 'User-Agent': UA } }).catch(() => null);
     if (res?.ok) return Buffer.from(await res.arrayBuffer());

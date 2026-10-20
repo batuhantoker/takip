@@ -1,5 +1,6 @@
 import type { Ctx } from '../context';
 import { importCowInterstate } from './cow';
+import { importCowNmc } from './cow-nmc';
 import { importCowTerritorial } from './cow-territorial';
 import { importDeflock } from './deflock';
 import { importAdmin0, importGlwd, importUnesco } from './geo';
@@ -15,6 +16,7 @@ import {
   importOwidMental,
   importOwidWater,
 } from './owid';
+import { importSipri } from './sipri';
 import { importUcdp } from './ucdp';
 import { importWac1914 } from './wac1914';
 import { importWdi } from './wdi';
@@ -58,6 +60,8 @@ export const DATASETS: Record<string, (ctx: Ctx) => Promise<void>> = {
   'wb-gep': importGep,
   'imf-weo': importImf,
   'oecd-lt-eo117': importOecdLt,
+  'sipri-milex': importSipri,
+  'cow-nmc': importCowNmc,
   'owid-conflict': importOwidConflict,
   'owid-le': importOwidLifeExpectancy,
   'owid-le-hmd': importOwidLifeExpectancyHmd,

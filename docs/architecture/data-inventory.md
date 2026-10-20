@@ -194,6 +194,8 @@ All imported on 2026-10-12, all `active`.
 | `imf-weo` | IMF World Economic Outlook (October 2026), from the CSV the user downloads by hand: GDP growth, GDP per person, inflation, unemployment, government debt and population, 196 economies; years after each series' last actual year are `.proj` | 1980 → 2031 | 2,153 series, 48,800 points |
 | `wb-gep` | World Bank Global Economic Prospects (June 2026): real GDP growth, 2025 an estimate, 2026–2028 forecasts (`.proj`) | 2023 → 2028 | 314 series, 939 points |
 | `wb-cckp` | World Bank Climate Change Knowledge Portal: 8 climate variables (mean temperature, hottest day, days above 35 and 40 °C, tropical nights, precipitation, heavy-rain days, longest dry spell) for 241 countries. `cckp:<v>` is the CMIP6 ensemble median throughout (historical run, then SSP2-4.5 as `.proj` and four other SSPs, with the models' 10th–90th percentile as `.lo` / `.hi`); `era5:<v>` is the observed ERA5 series, kept apart because the models' median sits well off it for counts of days | 1950 → 2100 (all modelled); ERA5 1950 → 2025 | 32,776 series, 2.76 M points |
+| `sipri-milex` | SIPRI Military Expenditure Database (1949–2025, v1.2 of 2026-04-27), importer added 2026-10-19: spending in constant 2024 and current US$, per person, and as shares of GDP and of government spending, for up to 172 polities, historical states included (USSR, GDR, West Germany, Czechoslovakia, Serbia and Montenegro). SIPRI's estimates (blue) and highly uncertain figures (red) are flagged; its footnotes are notes | 1949 → 2025 | 846 series, 36,275 points (trial import on a copy) |
+| `cow-nmc` | Correlates of War National Material Capabilities v7.0, importer added 2026-10-19: military spending (£ to 1913, US$ from 1914), military personnel, iron and steel, primary energy, population, urban population and the CINC score for 217 states, historical ones on their own polities; North Vietnam (1954–75) is left out, having no polity in the catalog | 1816 → 2022 | 1,609 series, 116,345 points (trial import on a copy) |
 | `naturalearth`, `glwd` | Modern borders, lakes and wetlands | static | 242 + 3,721 features |
 
 **Known gaps** (`meta_dataset_gap`): GTD has no 1993 records (lost by the publisher).
@@ -243,10 +245,11 @@ From `meta_licence` and `meta_access_policy`. `commercial_use` is blank where it
 | cc-by-sa-4.0 | ww1-wiki | not set | share-alike |
 | cc-by-3.0-igo | wpp-2024, wup-2025 | yes | attribution |
 | cc-by-sa-3.0-igo | unesco-whc | not set | share-alike |
-| cow-terms | cow-interstate, cow-territorial, icow | not set (the COW page says **no**: "not to be used for any commercial activity", and no redistribution without written permission) | attribution |
+| cow-terms | cow-interstate, cow-territorial, icow, cow-nmc | not set (the COW page says **no**: "not to be used for any commercial activity", and no redistribution without written permission) | attribution |
 | opensky-terms | opensky | **no** | none |
 | oecd-terms | oecd-lt-eo117 | yes | attribution, carried into sub-licences |
 | imf-terms | imf-weo | **no**: commercial reuse and systematic download need the IMF's written permission | attribution |
+| sipri-terms | sipri-milex | **no**: commercial use needs SIPRI's authorisation and licence, and reproducing over 10% of a dataset needs its permission | display: charts and citations with SIPRI's credit line |
 | gtd-terms | gtd | **no**; public display also needs written permission from START | none |
 | glwd-terms | glwd | **no** | attribution |
 | stanford-shl-nc | ww2-borders | **no** | attribution |
