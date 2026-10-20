@@ -72,6 +72,10 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
               </ul>
             </Section>
           )}
+          {!current && listed.map(p => {
+            const Overview = TOPIC_VIEWS[p.topic.id]?.Overview;
+            return Overview ? <Overview key={p.page.slug} text={text} place={place} page={p.page} /> : null;
+          })}
           {Body && current && <Body text={text} place={place} page={current.page} />}
           {places.length > 0 && (
             <Section title={t('Places in {country}', { country: nameOf(place, t) })}>

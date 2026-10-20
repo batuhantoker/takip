@@ -112,6 +112,24 @@ function HubHero({ place, measures, t }: { place: Place; measures: TopicPage<Ind
   );
 }
 
+/** What a country's overview shows of its numbers, in this order, filled up from the rest. */
+const OVERVIEW = ['life-expectancy', 'population', 'gdp-per-person', 'military-spending', 'co2-per-person', 'democracy', 'internet-users', 'temperature'];
+
+function OverviewNumbers({ place, measures, t }: { place: Place; measures: TopicPage<IndicatorMeasure>[]; t: Translate }) {
+  const shown = [...OVERVIEW.flatMap(slug => measures.filter(m => m.slug === slug)), ...measures.filter(m => !OVERVIEW.includes(m.slug))].slice(0, OVERVIEW.length);
+  const name = nameOf(place, t);
+  return (
+    <Section title={t('{place} in numbers', { place: name })}>
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {shown.map(m => <li key={m.slug}><MeasureCard place={place} m={m} t={t} /></li>)}
+      </ul>
+      <p className="mt-4 text-[14px]">
+        <Link href={localePath(t.locale, placePath(place, HUB_SLUG))} className={TEXT_LINK}>{t('Every measure for {place} on one page', { place: name })}</Link>
+      </p>
+    </Section>
+  );
+}
+
 function HubCompare({ place, t }: { place: Place; t: Translate }) {
   const partners = comparedWith(place);
   if (!partners.length) return null;
@@ -144,6 +162,10 @@ export const INDICATORS_VIEW: TopicView<IndicatorData> = {
 
   Hero({ text: { t }, place, page: { data } }) {
     return data.kind === 'hub' ? <HubHero place={place} measures={data.measures} t={t} /> : <MeasureChart place={place} m={data} t={t} />;
+  },
+
+  Overview({ text: { t }, place, page: { data } }) {
+    return data.kind === 'hub' ? <OverviewNumbers place={place} measures={data.measures} t={t} /> : null;
   },
 
   Body({ text, place, page: { data } }) {

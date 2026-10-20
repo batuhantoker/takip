@@ -16,4 +16,6 @@ export interface TopicView<D, L = never> {
   Live?(props: TopicViewProps<D> & { live: L }): ReactNode;
   /** Shown in the header instead of the live map, which can't show this topic. */
   Hero?(props: TopicViewProps<D>): ReactNode;
+  /** On the place's overview, below its pages, for the listed page: the topic at a glance. */
+  Overview?(props: TopicViewProps<D>): ReactNode;
 }
