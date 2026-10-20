@@ -60,6 +60,22 @@ It builds `origin/dev` in a throwaway worktree with the NUC's own `.env.local` a
 - The api runs migrations on start. Take an `app.db` snapshot before a risky update (`npm run backup -w @takip/api`).
 - The IP location database (`data/geoip/dbip-city-lite.mmdb`, DB-IP Lite, ~130 MB) isn't in git. DB-IP publishes a new one each month: `npm run geoip -w @takip/api`, then restart `takip-api`.
 
+## History data
+
+History is imported on the Mac (`npm run import`, see `docs/architecture/dataset-import-map.md`); the NUC never imports. After an import that changed `history.db`, and after `tools/deploy-nuc.sh` so the NUC runs code that knows any new kinds:
+
+```sh
+tools/deploy-nuc-history.sh
+```
+
+The NUC's databases aren't plain copies of the Mac's, so this merges rather than copies:
+
+- **`history.db`** becomes the Mac's, plus what the NUC's ingest wrote since (live `usgs` quakes, and its newer revisions of them).
+- **`catalog.db` stays the NUC's.** Its ingest keeps the recorded tracks, ingest runs and coverage there. The Mac's new licences, sources and datasets are added with the Mac's ids, because the copied events point at them. If a source an event uses has another meaning on the NUC, the merge stops before changing anything and the services come back on the old data. Source ids 53 and 54 (`us-places`, `deflock-alpr`) are swapped between the two machines; no event uses them.
+- **`event-pages.db` stays the NUC's** and is rebuilt there (`tools/site/build-event-pages.ts`, about 25 s): it is the ledger of every `/event/…` slug the live site has handed out, and a slug must never move.
+
+The site is down for a minute or two while the services are stopped. The previous `history.db`, `catalog.db` and `event-pages.db` go to `~/takip/.cache/deploy-data/backup-<date>/`; the last two backups are kept. The merge is `tools/deploy-nuc-history-merge.ts`. The NUC has no `sqlite3` command: query its databases with node and better-sqlite3 from `~/takip`.
+
 ## Pictures for the public pages
 
 The `/map/…` pages lead with pictures of the map kept in `.cache/site-shots/`, outside git. Take them on the Mac against the dev server (`nice npx tsx tools/site/shots.ts`) and copy them over: `rsync -a .cache/site-shots/ user@nuc:takip/.cache/site-shots/`. Without them the pages show a sketch of the world instead.
