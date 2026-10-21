@@ -118,7 +118,7 @@ const STORED: { what: string; detail: string }[] = [
 
 const PROMISES: { icon: ReactNode; title: string; body: string }[] = [
   { icon: <UserRound className="h-4 w-4" />, title: msg('An account is optional'), body: msg('The map opens without one. An account keeps your email and sign-in details, and you can download or delete everything it holds from Account settings.') },
-  { icon: <Activity className="h-4 w-4" />, title: msg('Usage data, to make TAKIP better'), body: msg('We count how long the map is open, which tools and layers get used and where it is used from, to improve TAKIP and build better tools. It stays on our server, with no analytics company involved. The free plans show a few Google ads, and Google sets its own cookies for them; Pro has none.') },
+  { icon: <Activity className="h-4 w-4" />, title: msg('Usage data, to make TAKIP better'), body: msg('We count how long the map is open, which tools and layers get used and where it is used from, to improve TAKIP and build better tools. It stays on our server; the only outside measure is Cloudflare’s count of page loads and their speed. The free plans show a few Google ads, and Google sets its own cookies for them; Pro has none.') },
   { icon: <HardDrive className="h-4 w-4" />, title: msg('Your things stay with you'), body: msg('Your settings, history and keys are kept in your own browser, where you can see them and clear them. Not on our servers.') },
   { icon: <KeyRound className="h-4 w-4" />, title: msg('Your AI key is yours'), body: msg('Used only for the request you make, passed straight to the provider you chose, and never stored on our servers or written to a log.') },
 ];
@@ -131,7 +131,7 @@ const SHORT = [
   msg('We do not keep a record of what you search, look up or type. We do keep the address you use the map from, and the town it points to, to see where TAKIP is used.'),
   msg('We count map time, which tools and layers are in use and which actions people take (a search, a route), per account or per browser, to see what helps and improve it. What we measure below says exactly what.'),
   msg('If you report an issue, we keep your message, a snapshot of your map view and your browser’s details, tied to your account if you are signed in. Deleting the account deletes its reports.'),
-  msg('The site reaches you through Cloudflare, which carries the connection between your browser and our server, as it does for much of the web.'),
+  msg('The site reaches you through Cloudflare, which carries the connection between your browser and our server, as it does for much of the web. Cloudflare also counts page loads and how fast they are (Web Analytics), without cookies.'),
   msg('The free plans show a few ads from Google, never on the map. Google may use cookies to choose and measure them. Pro shows none.'),
 ];
 

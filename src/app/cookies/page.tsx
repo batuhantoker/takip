@@ -34,7 +34,7 @@ const SECTIONS: LegalSection[] = [
     items: [
       msg('Google AdSense, on the free plans: cookies such as __gads, __gpi and __eoi on this site, and Google’s own on its domains, to choose and count ads and to stop ad fraud. Where the law requires your consent, Google’s consent message asks for it first. Pro shows no ads, so these are not set.'),
       msg('YouTube and other video services: some cameras and live news channels are their videos, and when one plays, that service may set its own cookies.'),
-      msg('Cloudflare carries the connection to TAKIP and may set a cookie to tell people from automated traffic.'),
+      msg('Cloudflare carries the connection to TAKIP and may set a cookie to tell people from automated traffic. Its count of page loads and their speed (Web Analytics) uses no cookies.'),
     ],
   },
   {
