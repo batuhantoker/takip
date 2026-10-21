@@ -105,5 +105,20 @@ export function methodFor(cc: string): PrayerMethod {
 
 export const alternativeFor = (cc: string) => ALTERNATIVE[cc];
 
+/** Minutes before Fajr that a country's Ramadan timetables put imsak, the end of sehri; elsewhere it is Fajr itself. */
+const IMSAK_BEFORE_FAJR: Partial<Record<string, number>> = {
+  // e-solat.gov.my: Kuala Lumpur's imsak 05:39 and Subuh 05:49 on 2026-10-21.
+  MY: 10,
+  // MUIS's Imsakiah Ramadhan 2024: imsak 5:45, Subuh 5:55 on the first day.
+  SG: 10,
+  // Kemenag's Tim Hisab dan Rukyat: imsak 10 minutes before Subuh (detik.com, d-6638782).
+  ID: 10,
+  // Brunei: the same 10 minutes in guides to its Ramadan; mora.gov.bn's own timetable not checked.
+  BN: 10,
+  // TR: none. Diyanet's İmsak is Fajr: "sabah namazının kılınmaya başlanabileceği en erken vakit" (diyanet.gov.tr).
+};
+
+export const imsakMargin = (cc: string) => IMSAK_BEFORE_FAJR[cc] ?? 0;
+
 /** adhan's Singapore method, and JAKIM's built on it, round every time up to the minute. */
 export const roundsUp = (m: PrayerMethod) => m.params().rounding === Rounding.Up;

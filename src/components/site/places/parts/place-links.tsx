@@ -4,8 +4,9 @@ import { ArrowUpRight, type LucideIcon } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { countryName, nameOf } from '@/lib/platform/site/places/copy/format';
-import { placePages, topicPages, type PlacePageRef } from '@/lib/platform/site/places/pages';
+import { inNavOrder, placePages, topicPages, type PlacePageRef } from '@/lib/platform/site/places/pages';
 import { regionLabel } from '@/lib/platform/site/places/gazetteer';
+import { topicShown } from '@/lib/platform/site/places/topics/faith-reach';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { SiteText } from '@/lib/platform/site/text';
@@ -17,9 +18,10 @@ export const listedPages = (pages: PlacePageRef[]) => pages.filter(p => p.page.l
 /** The place's pages side by side: its overview and each listed topic page; an unlisted page marks its topic's first. */
 export function TopicNav({ text, place, pages, current }: { text: SiteText; place: Place; pages: PlacePageRef[]; current?: string }) {
   const { t } = text;
-  const unlisted = pages.find(p => p.page.slug === current && p.page.listed === false)?.topic.id;
-  const listed = listedPages(pages);
-  const stands = unlisted && listed.find(p => p.topic.id === unlisted)?.page.slug;
+  const unlisted = pages.find(p => p.page.slug === current && p.page.listed === false)?.topic;
+  const listed = inNavOrder(place, listedPages(pages));
+  // A faith page is marked by the Prayers entry where that page lists it.
+  const stands = unlisted && listed.find(p => p.topic.id === unlisted.id || (p.topic.faith && topicShown(place, unlisted.id)))?.page.slug;
   const items: { href: string; label: string; here: boolean; Icon?: LucideIcon }[] = [
     { href: placePath(place), label: t('Overview'), here: !current },
     ...listed.map(p => ({
@@ -60,11 +62,12 @@ export function PlaceCards({ text, places, page }: { text: SiteText; places: Pla
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {places.map(p => {
         const pages = placePages(p).filter(x => x.page.index);
+        const named = pages.filter(x => !x.topic.faith);
         const to = page && pages.some(x => x.page.slug === page) ? page : undefined;
         return (
           <li key={p.id}>
             <LinkCard href={localePath(t.locale, placePath(p, to))} title={nameOf(p, t)}
-              line={`${regionLabel(p, t.locale) ?? countryName(p.cc, t)} · ${[...new Set(pages.map(x => t(x.topic.label)))].join(', ')}`} />
+              line={`${regionLabel(p, t.locale) ?? countryName(p.cc, t)} · ${[...new Set(named.map(x => t(x.topic.label)))].join(', ')}`} />
           </li>
         );
       })}

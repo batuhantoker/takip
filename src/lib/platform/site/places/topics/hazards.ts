@@ -18,7 +18,7 @@ import { hazardsNow, type HazardsNow } from './hazards-now';
 export interface HazardData { facts: HazardFacts; box: Bbox }
 
 const SLUG: Record<HazardRangeId, string> = { '10y': 'earthquakes-last-10-years', '100y': 'earthquakes-last-100-years', all: 'earthquake-history' };
-const LABEL: Record<HazardRangeId, string> = { '10y': msg('Earthquakes, 10 years'), '100y': msg('Earthquakes, 100 years'), all: msg('Earthquake history') };
+export const HAZARD_LABEL: Record<HazardRangeId, string> = { '10y': msg('Earthquakes, 10 years'), '100y': msg('Earthquakes, 100 years'), all: msg('Earthquake history') };
 
 const table = () => topicTable<HazardRow, HazardMeta>('hazards');
 
@@ -51,10 +51,13 @@ export const HAZARDS: PlaceTopic<HazardData, HazardsNow> = {
     const kind = place.kind;
     if (!row || !meta || (kind !== 'city' && kind !== 'country')) return [];
     const box: Bbox = row.box ?? placeBox(place, meta.cityKm);
-    return HAZARD_RANGES.flatMap(range => {
+    const pages = HAZARD_RANGES.flatMap(range => {
       const facts = hazardFacts(row, range, meta, kind);
-      return facts ? [{ slug: SLUG[range], label: LABEL[range], data: { facts, box }, index: facts.index }] : [];
+      return facts ? [{ slug: SLUG[range], label: HAZARD_LABEL[range], data: { facts, box }, index: facts.index }] : [];
     });
+    // One nav entry, "Earthquakes": the whole record, which people search as "<place> earthquake history".
+    const lead = pages.find(p => p.slug === SLUG.all) ?? pages[0];
+    return pages.map(p => (p === lead ? { ...p, label: undefined } : { ...p, listed: false as const }));
   },
 
   header(place, { data: { facts: f } }, t) {

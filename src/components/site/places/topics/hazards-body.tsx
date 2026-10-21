@@ -1,10 +1,15 @@
 import { Activity } from 'lucide-react';
+import Link from 'next/link';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
+import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { articleUrl } from '@/lib/core/wikipedia/refs';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
+import { localePath } from '@/lib/platform/site/locale-path';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { placePages } from '@/lib/platform/site/places/pages';
+import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
-import type { HazardData } from '@/lib/platform/site/places/topics/hazards';
+import { HAZARD_LABEL, type HazardData } from '@/lib/platform/site/places/topics/hazards';
 import type { HazardKind } from '@/lib/platform/site/places/topics/hazards-data';
 import { hazardDate, hazardLinks, hazardSentences, type HazardEventFact, type HazardFacts } from '@/lib/platform/site/places/topics/hazards-facts';
 import type { HazardsNow } from '@/lib/platform/site/places/topics/hazards-now';
@@ -97,11 +102,24 @@ export const HAZARDS_VIEW: TopicView<HazardData, HazardsNow> = {
     );
   },
 
-  Body({ text, place, page: { data: { facts: f } } }) {
+  Body({ text, place, page: { slug, data: { facts: f } } }) {
     const { t } = text;
     const sentences = hazardSentences(f, nameOf(place, t), t).slice(2);
+    // The nav lists one range; the others are a click away here.
+    const ranges = placePages(place).filter(p => p.topic.id === 'hazards');
     return (
       <>
+        {ranges.length > 1 && (
+          <nav aria-label={t('Earthquakes')} className="flex flex-wrap gap-2">
+            {ranges.map(r => (
+              <Link key={r.page.slug} href={localePath(t.locale, placePath(place, r.page.slug))} aria-current={r.page.slug === slug ? 'page' : undefined}
+                className={cx('inline-flex h-8 items-center rounded-control border px-2.5 text-[13px]', FOCUS_RING, TRANSITION,
+                  r.page.slug === slug ? 'border-line-strong bg-surface-3 text-ink-1' : 'border-line bg-surface-1 text-ink-2 hover:text-ink-1')}>
+                {t(HAZARD_LABEL[(r.page.data as HazardData).facts.range])}
+              </Link>
+            ))}
+          </nav>
+        )}
         {sentences.length > 0 && (
           <Section title={t('What the record holds')}>
             <p className="text-[15px] leading-relaxed text-ink-2">{sentences.join(' ')}</p>

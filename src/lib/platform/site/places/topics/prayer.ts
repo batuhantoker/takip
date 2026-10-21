@@ -3,6 +3,7 @@ import { count, DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX
 import type { Place } from '../gazetteer';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
+import { muslimPages } from './faith-reach';
 import { AT_THE_KAABA_KM, compassOf, degreesOf } from './prayer-copy';
 import { methodFor } from './prayer-methods';
 import { nextPrayer, prayerDays, qiblaOf, type PrayerName, type PrayerReport } from './prayer-times';
@@ -48,11 +49,12 @@ export const PRAYER: PlaceTopic<PrayerData, PrayerNow> = {
   label: msg('Prayer times'),
   inline: msg('prayer times'),
   kinds: ['city'],
+  faith: true,
 
   pages(place) {
     const row = topicTable<IssRow>('iss').rows[place.id];
-    if (!row) return [];
-    return [{ slug: 'prayer-times', data: { tz: row.tz }, index: sunIndexed(place) }];
+    if (!row || !muslimPages(place)) return [];
+    return [{ slug: 'prayer-times', data: { tz: row.tz }, index: sunIndexed(place), listed: false }];
   },
 
   header(place, _page, t) {

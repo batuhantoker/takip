@@ -4,10 +4,14 @@ import { CAMERAS_VIEW } from './cameras-body';
 import { FLIGHTS_VIEW } from './flights-body';
 import { HAZARDS_VIEW } from './hazards-body';
 import { HIKING_VIEW } from './hiking-body';
+import { HOLIDAYS_VIEW } from './holidays-body';
 import { INDICATORS_VIEW } from './indicators-body';
 import { ISS_VIEW } from './iss-body';
 import { PORTS_VIEW } from './ports-body';
 import { PRAYER_VIEW } from './prayer-body';
+import { PRAYERS_VIEW } from './prayers-body';
+import { RAMADAN_VIEW } from './ramadan-body';
+import { SHABBAT_VIEW } from './shabbat-body';
 import { SUN_VIEW } from './sun-body';
 import { TRANSIT_VIEW } from './transit-body';
 import type { TopicView } from './view';
@@ -24,9 +28,13 @@ export const TOPIC_VIEWS: Record<string, TopicView<any, any, any>> = {
   ports: PORTS_VIEW,
   iss: ISS_VIEW,
   sun: SUN_VIEW,
+  prayers: PRAYERS_VIEW,
   prayer: PRAYER_VIEW,
+  ramadan: RAMADAN_VIEW,
+  shabbat: SHABBAT_VIEW,
   aurora: AURORA_VIEW,
   hazards: HAZARDS_VIEW,
   hiking: HIKING_VIEW,
   indicators: INDICATORS_VIEW,
+  holidays: HOLIDAYS_VIEW,
 };

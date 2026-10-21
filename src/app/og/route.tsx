@@ -27,7 +27,7 @@ const cache = new Map<string, ArrayBuffer>();
 const HEADERS = { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800' };
 
 /** What each non-layer reading page shows behind its card. */
-const PICTURE: Record<string, string> = { map: 'flight-tracker', about: 'world-map-1914' };
+const PICTURE: Record<string, string> = { map: 'flight-tracker', about: 'world-map-1914', ramadan: 'day-night-map', easter: 'moon-3d', 'jewish-holidays': 'night-sky' };
 
 type Card = { kicker: string; title: string; subtitle: string; points?: { lat: number; lon: number }[]; picture?: string; focus?: { lat: number; lon: number } | null };
 
@@ -35,6 +35,9 @@ async function readingCard(page: string, locale: Locale): Promise<Card | null> {
   const text = await siteText(locale);
   const { t } = text;
   if (page === 'map') return { kicker: 'TAKIP', title: t('Everything on the map'), subtitle: t(SITE_DESCRIPTION), picture: PICTURE.map };
+  if (page === 'ramadan') return { kicker: t('Umm al-Qura calendar'), title: t('Ramadan dates'), subtitle: t('When Ramadan begins and ends, with Laylat al-Qadr and both Eids, for every year from ten back to ten ahead.'), picture: PICTURE.ramadan };
+  if (page === 'easter') return { kicker: t('Western and Orthodox churches'), title: t('Easter dates'), subtitle: t('When Easter falls for Western and Orthodox churches, with Good Friday, Ascension and Pentecost, for every year from ten back to ten ahead.'), picture: PICTURE.easter };
+  if (page === 'jewish-holidays') return { kicker: t('Hebrew calendar'), title: t('Jewish holidays'), subtitle: t('When Rosh Hashanah, Yom Kippur, Passover, Hanukkah and the other holidays fall, for every year from ten back to ten ahead.'), picture: PICTURE['jewish-holidays'] };
   if (page === 'about') {
     const about = text.copy.about ?? {};
     const s = (k: 'heading' | 'kicker') => (typeof about[k] === 'string' ? about[k] as string : ABOUT[k]);

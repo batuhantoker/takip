@@ -7,6 +7,7 @@ import { nameOf } from '@/lib/platform/site/places/copy/format';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { latitudeOf, dayIn, zoneName } from '@/lib/platform/site/places/topics/sky-copy';
+import { faithShown } from '@/lib/platform/site/places/topics/faith-reach';
 import { sunToday, type SunData } from '@/lib/platform/site/places/topics/sun';
 import { changeOf, dateIn, hoursOf, longitudeOf, sunAt, timeOn, twilightAt } from '@/lib/platform/site/places/topics/sun-copy';
 import type { SunDate, SunReport } from '@/lib/platform/site/places/topics/sun-report';
@@ -145,10 +146,13 @@ export const SUN_VIEW: TopicView<SunData, SunReport> = {
         <Section title={t('Twilight and golden hour today')}>
           <TodayTable r={r} tz={data.tz} t={t} />
           <p className="mt-2 text-[13px] text-ink-3">{t('Each twilight begins at the morning time and ends at the evening one.')}</p>
-          <p className="mt-3 text-[14px] text-ink-2">
-            {t('Fajr, Dhuhr, Asr, Maghrib and Isha:')}{' '}
-            <Link href={localePath(t.locale, placePath(place, 'prayer-times'))} className={TEXT_LINK}>{t('Prayer times in {city}', { city })}</Link>
-          </p>
+          {/* Only where Islam is the country's majority faith: faith-reach.ts. */}
+          {faithShown(place).includes('muslim') && (
+            <p className="mt-3 text-[14px] text-ink-2">
+              {t('Fajr, Dhuhr, Asr, Maghrib and Isha:')}{' '}
+              <Link href={localePath(t.locale, placePath(place, 'prayer-times'))} className={TEXT_LINK}>{t('Prayer times in {city}', { city })}</Link>
+            </p>
+          )}
         </Section>
         {facts.length > 0 && (
           <Section title={t('The year in {city}', { city })}>

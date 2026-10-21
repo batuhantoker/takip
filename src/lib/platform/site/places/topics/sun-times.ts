@@ -106,6 +106,11 @@ export function shadowTime(lat: number, lon: number, localNoon: number, factor: 
   return typeof t === 'number' ? t : null;
 }
 
+/** When the Sun sinks to `h` degrees on the evening of the day around `localNoon`, or which side of it it stays. */
+export function eveningAt(lat: number, lon: number, localNoon: number, h: number): Crossing {
+  return crossing(lat, lon, solarNoon(lon, localNoon), h, -1);
+}
+
 /** Sunrise and sunset alone, for scanning a year. */
 export function riseSet(lat: number, lon: number, localNoon: number): Pick<SunDay, 'rise' | 'set'> {
   const day = solarNoon(lon, localNoon);

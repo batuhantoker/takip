@@ -31,6 +31,7 @@
     "@vercel/analytics": "^2.0.1",
     "adhan": "^4.4.6",
     "better-auth": "^1.7.7",
+    "date-holidays": "^3.37.0",
     "framer-motion": "^12.38.0",
     "google-libphonenumber": "^3.2.44",
     "hls.js": "^1.6.16",

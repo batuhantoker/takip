@@ -26,6 +26,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Each History measure around the world; the comparisons are chunked with the place pages.
     ...worldSlugs().flatMap(slug => reading(worldPath(slug))),
     ...reading('/compare'),
+    ...reading('/ramadan'),
+    ...reading('/easter'),
+    ...reading('/jewish-holidays'),
     ...reading('/about'),
     // English only until the guides are translated; the place pages have their own sitemap (app/places/sitemap.ts).
     { url: `${origin}/guides`, changeFrequency: 'weekly' },

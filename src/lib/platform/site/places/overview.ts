@@ -1,29 +1,31 @@
 import type { Translate } from '@/lib/core/i18n/translator';
 import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from './copy/format';
-import type { PlacePageRef } from './pages';
+import { inNavOrder, type PlacePageRef } from './pages';
 import type { Place } from './place';
 import type { PlaceCopy } from './topic';
 
 /** A place's overview page: what it has on the map, by its topics' own names and summaries. */
-export function overviewCopy(place: Place, pages: PlacePageRef[], t: Translate, places = 0): PlaceCopy {
+export function overviewCopy(place: Place, all: PlacePageRef[], t: Translate, places = 0): PlaceCopy {
+  // Faith pages are reached from the place's Prayers page, not named among its topics; a country names its strongest first.
+  const pages = inNavOrder(place, all.filter(p => !p.topic.faith));
   if (!pages.length && place.kind !== 'city') return countryOverview(place, t, places);
   const name = (t: Translate) => nameOf(place, t);
   // A topic with several pages (earthquakes over 10 and 100 years) is named once.
   const labels = (t: Translate, k: number) => listOf([...new Set(pages.map(p => t(p.topic.inline)))].slice(0, k), t);
-  const all = pages.length;
+  const n = pages.length;
   return {
     title: fit(placeFirst(place, [
-      ...[all, 3, 2].map(k => (t: Translate, city: string) => t('{city} live map: {things}', { city, things: labels(t, k) })),
+      ...[n, 3, 2].map(k => (t: Translate, city: string) => t('{city} live map: {things}', { city, things: labels(t, k) })),
       (t, city) => t('{city} live map', { city }),
     ]), t, TITLE_MAX),
     description: fit([
-      ...[all, 3, 2].map(k => (t: Translate) => t('{place} on one free live map: {things}, each with where its data comes from and what is true right now.', { place: placeName(place, t), things: labels(t, k) })),
-      ...[all, 3, 2].map(k => (t: Translate) => t('{city} on one free live map: {things}, with where the data comes from.', { city: name(t), things: labels(t, k) })),
+      ...[n, 3, 2].map(k => (t: Translate) => t('{place} on one free live map: {things}, each with where its data comes from and what is true right now.', { place: placeName(place, t), things: labels(t, k) })),
+      ...[n, 3, 2].map(k => (t: Translate) => t('{city} on one free live map: {things}, with where the data comes from.', { city: name(t), things: labels(t, k) })),
       t => t('{place} on one free live map, with where each layer’s data comes from and what is true there right now.', { place: placeName(place, t) }),
     ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
     heading: t('{city}, live', { city: name(t) }),
     lede: t('What TAKIP’s live map has for {place}: {things}. Each page says where its data comes from and what is true there right now.', {
-      place: placeName(place, t), things: labels(t, all),
+      place: placeName(place, t), things: labels(t, n),
     }),
   };
 }

@@ -5,15 +5,15 @@ import type { Translate } from '@/lib/core/i18n/translator';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
 import { placePath } from '@/lib/platform/site/places/paths';
-import type { Place } from '@/lib/platform/site/places/place';
 import { kaabaKm, prayerToday, type PrayerData, type PrayerNow } from '@/lib/platform/site/places/topics/prayer';
-import { AT_THE_KAABA_KM, compassOf, degreesOf, hijriIn, longDay, methodRules, PRAYER_LABEL, prayerClock, shortDay, waitOf } from '@/lib/platform/site/places/topics/prayer-copy';
+import { AT_THE_KAABA_KM, compassOf, degreesOf, hijriIn, longDay, PRAYER_LABEL, prayerClock, shortDay, waitOf } from '@/lib/platform/site/places/topics/prayer-copy';
 import { RAMADAN, ramadanNear } from '@/lib/platform/site/places/topics/prayer-hijri';
-import { alternativeFor, roundsUp } from '@/lib/platform/site/places/topics/prayer-methods';
 import { PRAYERS, qiblaOf, type PrayerDay, type PrayerReport } from '@/lib/platform/site/places/topics/prayer-times';
-import { latitudeOf, onDay, zoneName } from '@/lib/platform/site/places/topics/sky-copy';
-import { longitudeOf } from '@/lib/platform/site/places/topics/sun-copy';
+import { ramadanLabel } from '@/lib/platform/site/places/topics/ramadan';
+import { nearestRamadan } from '@/lib/platform/site/places/topics/ramadan-calendar';
+import { onDay, zoneName } from '@/lib/platform/site/places/topics/sky-copy';
 import { Notes } from '../parts/notes';
+import { prayerNotes } from './lib/prayer-notes';
 import type { TopicView } from './view';
 
 const CELL = 'px-3 py-1.5 text-right whitespace-nowrap';
@@ -89,44 +89,10 @@ function ramadanLine(r: PrayerReport, tz: string, t: Translate): string | null {
   if (!near) return null;
   if (near.kind === 'during') {
     return t('Ramadan {year}, day {day}: suhur ends at Fajr (imsak), {fajr}, and iftar is at Maghrib, {maghrib}.', {
-      year: near.year, day: near.day, fajr: prayerClock(today.times.fajr, tz, t), maghrib: prayerClock(today.times.maghrib, tz, t),
+      year: String(near.year), day: near.day, fajr: prayerClock(today.times.fajr, tz, t), maghrib: prayerClock(today.times.maghrib, tz, t),
     });
   }
-  return t('Ramadan {year} begins on {date} in the Umm al-Qura calendar; where it begins with the sighting of the new moon, it may start a day earlier or later.', { year: near.year, date: longDay(near.starts, t) });
-}
-
-function highLatitudeNotes(place: Place, r: PrayerReport, t: Translate): string[] {
-  const lat = latitudeOf(place.at[1], t);
-  const held = r.days.filter(d => d.held.fajr || d.held.isha).length;
-  const polar = r.days.filter(d => d.polar).length;
-  return [
-    ...(r.rule === 'seventh' && held > 0
-      ? [t('At {lat}, twilight lasts long: on {n} of the next 30 days Fajr is kept no earlier than the last seventh of the night, or Isha no later than the first seventh, the usual rule beyond 48°. Those times are marked *.', { lat, n: held })]
-      : []),
-    ...(r.rule === 'moonsighting'
-      ? [Math.abs(place.at[1]) >= 55
-        ? t('At {lat}, the Moonsighting Committee puts Fajr a seventh of the night before sunrise and Isha a seventh after sunset, as it does from 55° on.', { lat })
-        : t('Where twilight runs long, as in summer here, the Moonsighting Committee keeps Fajr and Isha within its own seasonal limits.')]
-      : []),
-    ...(polar > 0
-      ? [t('On {n} of the next 30 days the Sun doesn’t rise or doesn’t set in {city}. Those days, marked *, take their times from the nearest latitude where it does (aqrab al-bilad), as moonsighting.com does.', { n: polar, city: nameOf(place, t) })]
-      : []),
-  ];
-}
-
-function notes(place: Place, r: PrayerReport, t: Translate): string[] {
-  const alt = alternativeFor(place.cc);
-  return [
-    t('Times follow the {method} method: {rules}.', { method: t(r.method.name), rules: methodRules(r.method, t) }),
-    ...(r.method.id === 'ummAlQura' ? [t('In Ramadan, Umm al-Qura puts Isha two hours after Maghrib rather than 90 minutes, and so do the times here.')] : []),
-    ...(alt ? [t(alt)] : []),
-    ...highLatitudeNotes(place, r, t),
-    t('Hijri dates follow the Umm al-Qura calendar. Where a month begins with the sighting of the new moon, it can start a day earlier or later.'),
-    roundsUp(r.method)
-      ? t('Worked out when the page loads for {lat}, {lon} with the adhan library, from Jean Meeus’s astronomical equations, and rounded up to the minute.', { lat: latitudeOf(place.at[1], t), lon: longitudeOf(place.at[0], t) })
-      : t('Worked out when the page loads for {lat}, {lon} with the adhan library, from Jean Meeus’s astronomical equations, and rounded to the minute.', { lat: latitudeOf(place.at[1], t), lon: longitudeOf(place.at[0], t) }),
-    t('Your local mosque may set its own times; follow it.'),
-  ];
+  return t('Ramadan {year} begins on {date} in the Umm al-Qura calendar; where it begins with the sighting of the new moon, it may start a day earlier or later.', { year: String(near.year), date: longDay(near.starts, t) });
 }
 
 export const PRAYER_VIEW: TopicView<PrayerData, PrayerNow> = {
@@ -155,6 +121,7 @@ export const PRAYER_VIEW: TopicView<PrayerData, PrayerNow> = {
     const city = nameOf(place, t);
     const qibla = qiblaOf(place.at[1], place.at[0]);
     const last = r.days[r.days.length - 1];
+    const ramadan = nearestRamadan();
     return (
       <>
         <Section title={t('Prayer times today, {day}', { day: longDay(r.days[0].date, t) })}>
@@ -169,6 +136,14 @@ export const PRAYER_VIEW: TopicView<PrayerData, PrayerNow> = {
           <p className="mt-3 text-[14px] text-ink-2">
             {t('Sunrise, sunset, twilight and day length:')}{' '}
             <Link href={localePath(t.locale, placePath(place, 'sun'))} className={TEXT_LINK}>{t('Sunrise and sunset in {city}', { city })}</Link>
+          </p>
+          <p className="mt-1 text-[14px] text-ink-2">
+            {t('Sehri and iftar for each day of the month:')}{' '}
+            <Link href={localePath(t.locale, placePath(place, ramadan.slug))} className={TEXT_LINK}>{t('Ramadan {year} in {city}', { city, year: ramadanLabel(ramadan, t) })}</Link>
+          </p>
+          <p className="mt-1 text-[14px] text-ink-2">
+            {t('When Ramadan begins and ends, every year:')}{' '}
+            <Link href={localePath(t.locale, '/ramadan')} className={TEXT_LINK}>{t('Ramadan dates')}</Link>
           </p>
         </Section>
         <Section title={t('Qibla direction from {city}', { city })}>
@@ -187,7 +162,7 @@ export const PRAYER_VIEW: TopicView<PrayerData, PrayerNow> = {
           <p className="mb-3 text-[14px] text-ink-2">{t('Namaz times in {city} from {from} to {to}, in local time.', { city, from: longDay(r.days[0].date, t), to: longDay(last.date, t) })}</p>
           <MonthTable r={r} tz={data.tz} t={t} />
         </Section>
-        <Notes text={text} notes={notes(place, r, t)} layers={['day-night-map']} />
+        <Notes text={text} notes={prayerNotes(place, r, 'next', t)} layers={['day-night-map']} />
       </>
     );
   },

@@ -5,11 +5,13 @@ import { embedHref } from '@/lib/map/embed/spec';
 import { AD_SLOTS } from '@/lib/platform/ads';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { countryMap } from '@/lib/platform/site/places/country-live';
 import type { PlacePageRef } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placeOpenPath, placePath, placeZoom } from '@/lib/platform/site/places/paths';
 import type { MapLink, PlaceCopy } from '@/lib/platform/site/places/topic';
 import type { SiteText } from '@/lib/platform/site/text';
+import { CountryLive } from './parts/country-live';
 import { LiveBox } from './parts/live-box';
 import { PlaceHeader } from './parts/place-header';
 import { LinkCard, listedPages, PlaceCards, PlaceList, TopicNav } from './parts/place-links';
@@ -39,7 +41,10 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
 }) {
   const { t } = text;
   const listed = listedPages(pages);
-  const link: MapLink = current ? current.topic.open(place, current.page) : { layers: listed.flatMap(p => p.topic.open(place, p.page).layers ?? []).slice(0, 4) };
+  // The overview's cards and map leave out faith pages, which the nav's Prayers entry leads to.
+  const browse = listed.filter(p => !p.topic.faith);
+  const link: MapLink = current ? current.topic.open(place, current.page)
+    : place.kind === 'country' ? countryMap(place) : { layers: browse.flatMap(p => p.topic.open(place, p.page).layers ?? []).slice(0, 4) };
   const open = placeOpenPath(place, link);
   const focus = { lat: place.at[1], lon: place.at[0], zoom: placeZoom(place, link.zoom) };
   // Following something away from the place, the map keeps it marked.
@@ -70,10 +75,11 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
       {Wide && current && <div className="mt-16"><Wide text={text} place={place} page={current.page} detail={detail} /></div>}
       <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
         <div>
-          {!current && listed.length > 0 && (
+          {!current && place.kind === 'country' && <CountryLive text={text} place={place} />}
+          {!current && browse.length > 0 && (
             <Section title={t('{city} on the map', { city: nameOf(place, t) })}>
               <ul className="grid gap-3 sm:grid-cols-2">
-                {listed.map(p => (
+                {browse.map(p => (
                   <li key={p.page.slug}>
                     <LinkCard href={localePath(t.locale, placePath(place, p.page.slug))} title={p.topic.header(place, p.page, t).heading}
                       line={p.topic.summary(place, p.page, t)} Icon={TOPIC_VIEWS[p.topic.id]?.icon} />
@@ -82,7 +88,7 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
               </ul>
             </Section>
           )}
-          {!current && listed.map(p => {
+          {!current && browse.map(p => {
             const Overview = TOPIC_VIEWS[p.topic.id]?.Overview;
             return Overview ? <Overview key={p.page.slug} text={text} place={place} page={p.page} /> : null;
           })}

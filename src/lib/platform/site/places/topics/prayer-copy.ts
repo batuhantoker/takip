@@ -35,6 +35,18 @@ export const shortDay = (date: string, t: Translate) =>
 export const longDay = (date: string, t: Translate) =>
   new Intl.DateTimeFormat(intlOf(t), { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(Date.parse(`${date}T12:00:00Z`));
 
+/** "Monday 8 February 2027" */
+export const fullDay = (date: string, t: Translate) =>
+  new Intl.DateTimeFormat(intlOf(t), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(Date.parse(`${date}T12:00:00Z`));
+
+/** "Mon 8 Feb", with the year where it isn't the one around it. */
+export const shortDate = (date: string, t: Translate, year?: number) =>
+  new Intl.DateTimeFormat(intlOf(t), { weekday: 'short', day: 'numeric', month: 'short', ...(Number(date.slice(0, 4)) === year ? {} : { year: 'numeric' }), timeZone: 'UTC' }).format(Date.parse(`${date}T12:00:00Z`));
+
+/** "8 February" */
+export const dayMonth = (date: string, t: Translate) =>
+  new Intl.DateTimeFormat(intlOf(t), { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(Date.parse(`${date}T12:00:00Z`));
+
 /** "151.6°" */
 export const degreesOf = (deg: number, t: Translate) =>
   t('{deg}°', { deg: new Intl.NumberFormat(t.intl, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(deg) });
