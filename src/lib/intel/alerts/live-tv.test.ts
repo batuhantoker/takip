@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LIVE_CHANNELS, liveEmbedUrl } from './live-tv';
+import { LIVE_CHANNELS, liveEmbedUrl, videoEmbedUrl } from './live-tv';
 
 describe('LIVE_CHANNELS', () => {
   it('names each channel once, by a well-formed YouTube channel id', () => {
@@ -19,5 +19,6 @@ describe('LIVE_CHANNELS', () => {
   it('plays a channel muted, from the origin the map tiles listen to', () => {
     expect(liveEmbedUrl({ channel: 'UCknLrEdhRCp1aegoMqRaCZg' }))
       .toBe('https://www.youtube.com/embed/live_stream?channel=UCknLrEdhRCp1aegoMqRaCZg&autoplay=1&mute=1');
+    expect(videoEmbedUrl('gCNeDWCI0vo')).toBe('https://www.youtube.com/embed/gCNeDWCI0vo?autoplay=1&mute=1');
   });
 });

@@ -1,10 +1,10 @@
 /**
  * Live TV news: YouTube channels that were broadcasting live, and allowed an
- * embedded player, when checked on 2026-10-20 (83 of 104 tried, from a Mac in
- * the US; what plays can differ by country). The player embeds
- * `live_stream?channel=`, which plays whatever the channel is broadcasting:
- * about a third of them start a new video every day, and some put an event on
- * their live slot in place of the 24/7 stream (Sky News, BFMTV, N+).
+ * embedded player, when checked on 2026-10-20 (83 of 104 tried) and 2026-10-21
+ * (41 more of 104), from a Mac; what plays can differ by country. What each is showing now comes
+ * from live-tv-status.ts: about a third of them start a new video every day,
+ * and some put an event on their live slot in place of the 24/7 stream (Sky
+ * News, BFMTV, N+).
  *
  * Left out because they were not live then: C-SPAN (events only), UKRINFORM,
  * Al Mayadeen, LBCI, SABC, Kurdistan24, CCTV, ABS-CBN, Global News, CTV.
@@ -50,6 +50,14 @@ export const LIVE_CHANNELS: LiveChannel[] = [
   { id: 'tn',             name: 'TN Todo Noticias',         channel: 'UCj6PcyLvpnIRT_2W_mwa9Aw', city: 'Buenos Aires', country: 'AR', lat: -34.627, lng: -58.384, region: 'americas', category: 'mainstream', language: 'es' },
   { id: 'c5n',            name: 'C5N',                      channel: 'UCFgk2Q2mVO1BklRQhSv6p0w', city: 'Buenos Aires', country: 'AR', lat: -34.603, lng: -58.381, region: 'americas', category: 'mainstream', language: 'es' },
   { id: 'noticiascaracol',name: 'Noticias Caracol',         channel: 'UC2Xq2PK-got3Rtz9ZJ32hLQ', city: 'Bogotá', country: 'CO', lat: 4.687, lng: -74.05, region: 'americas', category: 'mainstream', language: 'es' },
+  { id: 'globalnews',     name: 'Global News',              channel: 'UChLtXXpo4Ge1ReTEboVvTDg', city: 'Toronto', country: 'CA', lat: 43.651, lng: -79.383, region: 'americas', category: 'mainstream', language: 'en' },
+  { id: 'cp24',           name: 'CP24',                     channel: 'UCs3o4RhBiP2wcwqkZR2QVLw', city: 'Toronto', country: 'CA', lat: 43.651, lng: -79.383, region: 'americas', category: 'mainstream', language: 'en' },
+  { id: 'scrippsnews',    name: 'Scripps News',             channel: 'UCTln5ss6h6L_xNfMeujfPbg', city: 'Washington', country: 'US', lat: 38.907, lng: -77.037, region: 'americas', category: 'mainstream', language: 'en' },
+  { id: 'cnnee',          name: 'CNN en Español',           channel: 'UC_lEiu6917IJz03TnntWUaQ', city: 'Atlanta', country: 'US', lat: 33.749, lng: -84.388, region: 'americas', category: 'mainstream', language: 'es' },
+  { id: 'noticiasrcn',    name: 'Noticias RCN',             channel: 'UCnr6pbeXJmkNQJ9PSYle7QQ', city: 'Bogotá', country: 'CO', lat: 4.711, lng: -74.072, region: 'americas', category: 'mainstream', language: 'es' },
+  { id: 'rpp',            name: 'RPP Noticias',             channel: 'UC5j8-2FT0ZMMBkmK72R4aeA', city: 'Lima', country: 'PE', lat: -12.046, lng: -77.043, region: 'americas', category: 'mainstream', language: 'es' },
+  { id: 'a24',            name: 'A24',                      channel: 'UCR9120YBAqMfntqgRTKmkjQ', city: 'Buenos Aires', country: 'AR', lat: -34.604, lng: -58.382, region: 'americas', category: 'mainstream', language: 'es' },
+  { id: 'recordnews',     name: 'Record News',              channel: 'UCuiLR4p6wQ3xLEm15pEn1Xw', city: 'São Paulo', country: 'BR', lat: -23.551, lng: -46.633, region: 'americas', category: 'mainstream', language: 'pt' },
   // ── Europe, Turkey, Russia and Ukraine ──
   { id: 'skynews',        name: 'Sky News',                 channel: 'UCoMdktPbSTixAyNGwb-UYkQ', city: 'London', country: 'GB', lat: 51.488, lng: -0.33, region: 'europe', category: 'mainstream', language: 'en' },
   { id: 'bbcnews',        name: 'BBC News',                 channel: 'UC16niRr50-MSBwiO3YDb3RA', city: 'London', country: 'GB', lat: 51.519, lng: -0.144, region: 'europe', category: 'mainstream', language: 'en' },
@@ -79,6 +87,12 @@ export const LIVE_CHANNELS: LiveChannel[] = [
   { id: 'trthaber',       name: 'TRT Haber',                channel: 'UCBgTP2LOFVPmq15W-RH-WXA', city: 'Ankara', country: 'TR', lat: 39.893, lng: 32.854, region: 'europe', category: 'state', language: 'tr' },
   { id: 'freedom',        name: 'FREEДOM',                  channel: 'UCt3igz3aIXfS108KV_jZsMA', city: 'Kyiv', country: 'UA', lat: 50.45, lng: 30.523, region: 'europe', category: 'conflict', language: 'ru' },
   { id: 'espreso',        name: 'Espreso TV',               channel: 'UCMEiyV8N2J93GdPNltPYM6w', city: 'Kyiv', country: 'UA', lat: 50.45, lng: 30.523, region: 'europe', category: 'conflict', language: 'uk' },
+  { id: 'tagesschau',     name: 'tagesschau',               channel: 'UC5NOEUbkLheQcaaRldYW5GA', city: 'Hamburg', country: 'DE', lat: 53.551, lng: 9.994, region: 'europe', category: 'mainstream', language: 'de' },
+  { id: 'talktv',         name: 'TalkTV',                   channel: 'UCm0yTweyAa0PwEIp0l3N_gA', city: 'London', country: 'GB', lat: 51.507, lng: -0.128, region: 'europe', category: 'mainstream', language: 'en' },
+  { id: 'currenttime',    name: 'Current Time',             channel: 'UCBG57608Hukev3d0d-gvLhQ', city: 'Prague', country: 'CZ', lat: 50.076, lng: 14.438, region: 'europe', category: 'state', language: 'ru' },
+  { id: 'sozcutv',        name: 'Sözcü TV',                 channel: 'UCOulx_rep5O4i9y6AyDqVvw', city: 'Istanbul', country: 'TR', lat: 41.008, lng: 28.978, region: 'europe', category: 'mainstream', language: 'tr' },
+  { id: 'ahaber',         name: 'A Haber',                  channel: 'UCKQhfw-lzz0uKnE1fY1PsAA', city: 'Istanbul', country: 'TR', lat: 41.008, lng: 28.978, region: 'europe', category: 'mainstream', language: 'tr' },
+  { id: 'tgrthaber',      name: 'TGRT Haber',               channel: 'UCzgrZ-CndOoylh2_e72nSBQ', city: 'Istanbul', country: 'TR', lat: 41.008, lng: 28.978, region: 'europe', category: 'mainstream', language: 'tr' },
   // ── The Middle East ──
   { id: 'aljazeera',      name: 'Al Jazeera English',       channel: 'UCNye-wNBqNL5ZzHSJj3l8Bg', city: 'Doha', country: 'QA', lat: 25.286, lng: 51.534, region: 'middleeast', category: 'mainstream', language: 'en' },
   { id: 'aljazeeraar',    name: 'Al Jazeera Arabic',        channel: 'UCfiwzLy-8yKzIbsmZTzxDgw', city: 'Doha', country: 'QA', lat: 25.286, lng: 51.534, region: 'middleeast', category: 'mainstream', language: 'ar' },
@@ -90,6 +104,10 @@ export const LIVE_CHANNELS: LiveChannel[] = [
   { id: 'i24en',          name: 'i24NEWS English',          channel: 'UCvHDpsWKADrDia0c99X37vg', city: 'Tel Aviv', country: 'IL', lat: 32.054, lng: 34.751, region: 'middleeast', category: 'mainstream', language: 'en' },
   { id: 'rudaw',          name: 'Rudaw',                    channel: 'UCAUHoE2Ykw0sguyi5AjhrjQ', city: 'Erbil', country: 'IQ', lat: 36.191, lng: 44.009, region: 'middleeast', category: 'mainstream', language: 'ku' },
   { id: 'iranintl',       name: 'Iran International',       channel: 'UCat6bC0Wrqq9Bcq7EkH_yQw', city: 'London', country: 'GB', lat: 51.5, lng: -0.02, region: 'middleeast', category: 'mainstream', language: 'fa' },
+  { id: 'alghad',         name: 'Alghad',                   channel: 'UCH4UNKBHSNwstan99YDoCVg', city: 'Cairo', country: 'EG', lat: 30.044, lng: 31.236, region: 'middleeast', category: 'mainstream', language: 'ar' },
+  { id: 'trtarabi',       name: 'TRT Arabi',                channel: 'UC5GvVahlgulCyo4cshSmbcg', city: 'Istanbul', country: 'TR', lat: 41.008, lng: 28.978, region: 'middleeast', category: 'state', language: 'ar' },
+  { id: 'roya',           name: 'Roya News',                channel: 'UCsDQbVxQjBuFOa98vxRlbVQ', city: 'Amman', country: 'JO', lat: 31.954, lng: 35.911, region: 'middleeast', category: 'mainstream', language: 'ar' },
+  { id: 'almamlaka',      name: 'Al Mamlaka',               channel: 'UC0jiFAzTgl17k7awGbuoYew', city: 'Amman', country: 'JO', lat: 31.954, lng: 35.911, region: 'middleeast', category: 'state', language: 'ar' },
   // ── Africa ──
   { id: 'africanews',     name: 'Africanews',               channel: 'UC1_E8NeF5QHY2dtdLRBCCLA', city: 'Pointe-Noire', country: 'CG', lat: -4.778, lng: 11.865, region: 'africa', category: 'mainstream', language: 'en' },
   { id: 'enca',           name: 'eNCA',                     channel: 'UCI3RT5PGmdi1KVp9FG_CneA', city: 'Johannesburg', country: 'ZA', lat: -26.123, lng: 28.034, region: 'africa', category: 'mainstream', language: 'en' },
@@ -100,6 +118,9 @@ export const LIVE_CHANNELS: LiveChannel[] = [
   { id: 'ntvkenya',       name: 'NTV Kenya',                channel: 'UCqBJ47FjJcl61fmSbcadAVg', city: 'Nairobi', country: 'KE', lat: -1.284, lng: 36.823, region: 'africa', category: 'mainstream', language: 'en' },
   { id: 'ktnnews',        name: 'KTN News Kenya',           channel: 'UCKVsdeoHExltrWMuK0hOWmg', city: 'Nairobi', country: 'KE', lat: -1.292, lng: 36.822, region: 'africa', category: 'mainstream', language: 'en' },
   { id: 'joynews',        name: 'JoyNews',                  channel: 'UChd1DEecCRlxaa0-hvPACCw', city: 'Accra', country: 'GH', lat: 5.603, lng: -0.187, region: 'africa', category: 'mainstream', language: 'en' },
+  { id: 'ntvuganda',      name: 'NTV Uganda',               channel: 'UCwga1dPCqBddbtq5KYRii2g', city: 'Kampala', country: 'UG', lat: 0.347, lng: 32.582, region: 'africa', category: 'mainstream', language: 'en' },
+  { id: 'tv47',           name: 'TV47',                     channel: 'UC_zA9UIWE1fB-jfFk_DBSYw', city: 'Nairobi', country: 'KE', lat: -1.292, lng: 36.822, region: 'africa', category: 'mainstream', language: 'sw' },
+  { id: 'k24',            name: 'K24',                      channel: 'UCt3SE-Mvs3WwP7UW-PiFdqQ', city: 'Nairobi', country: 'KE', lat: -1.292, lng: 36.822, region: 'africa', category: 'mainstream', language: 'en' },
   // ── Asia and Oceania ──
   { id: 'nhkworld',       name: 'NHK World-Japan',          channel: 'UCSPEjw8F2nQDtmUKPFNF7_A', city: 'Tokyo', country: 'JP', lat: 35.665, lng: 139.696, region: 'asia', category: 'mainstream', language: 'en' },
   { id: 'annnews',        name: 'ANN News (TV Asahi)',      channel: 'UCGCZAYq5Xxojl_tSXcVJhiQ', city: 'Tokyo', country: 'JP', lat: 35.659, lng: 139.729, region: 'asia', category: 'mainstream', language: 'ja' },
@@ -120,9 +141,32 @@ export const LIVE_CHANNELS: LiveChannel[] = [
   { id: 'abcau',          name: 'ABC News Australia',       channel: 'UCVgO39Bk5sMo66-6o6Spn6Q', city: 'Sydney', country: 'AU', lat: -33.88, lng: 151.198, region: 'asia', category: 'mainstream', language: 'en' },
   { id: 'gma',            name: 'GMA News',                 channel: 'UCqYw-CTd1dU2yGI71sEyqNw', city: 'Quezon City', country: 'PH', lat: 14.635, lng: 121.043, region: 'asia', category: 'mainstream', language: 'tl' },
   { id: 'kompastv',       name: 'Kompas TV',                channel: 'UC5BMIWZe9isJXLZZWPWvBlg', city: 'Jakarta', country: 'ID', lat: -6.205, lng: 106.797, region: 'asia', category: 'mainstream', language: 'id' },
+  { id: 'cnnnews18',      name: 'CNN-News18',               channel: 'UCef1-8eOpJgud7szVPlZQAQ', city: 'Noida', country: 'IN', lat: 28.535, lng: 77.391, region: 'asia', category: 'mainstream', language: 'en' },
+  { id: 'republicworld',  name: 'Republic World',           channel: 'UCwqusr8YDwM-3mEYTDeJHzw', city: 'Mumbai', country: 'IN', lat: 19.076, lng: 72.878, region: 'asia', category: 'mainstream', language: 'en' },
+  { id: 'timesnow',       name: 'Times Now',                channel: 'UC6RJ7-PaXg6TIH2BzZfTV7w', city: 'Mumbai', country: 'IN', lat: 19.076, lng: 72.878, region: 'asia', category: 'mainstream', language: 'en' },
+  { id: 'mirrornow',      name: 'Mirror Now',               channel: 'UCWCEYVwSqr7Epo6sSCfUgiw', city: 'Mumbai', country: 'IN', lat: 19.076, lng: 72.878, region: 'asia', category: 'mainstream', language: 'en' },
+  { id: 'abpnews',        name: 'ABP News',                 channel: 'UCRWFSbif-RFENbBrSiez1DA', city: 'Noida', country: 'IN', lat: 28.535, lng: 77.391, region: 'asia', category: 'mainstream', language: 'hi' },
+  { id: 'zeenews',        name: 'Zee News',                 channel: 'UCIvaYmXn910QMdemBG3v1pQ', city: 'Noida', country: 'IN', lat: 28.535, lng: 77.391, region: 'asia', category: 'mainstream', language: 'hi' },
+  { id: 'ndtvindia',      name: 'NDTV India',               channel: 'UC9CYT9gSNLevX5ey2_6CK0Q', city: 'New Delhi', country: 'IN', lat: 28.614, lng: 77.209, region: 'asia', category: 'mainstream', language: 'hi' },
+  { id: 'samaa',          name: 'Samaa TV',                 channel: 'UCJekW1Vj5fCVEGdye_mBN6Q', city: 'Karachi', country: 'PK', lat: 24.861, lng: 67.01, region: 'asia', category: 'mainstream', language: 'ur' },
+  { id: 'dawnnews',       name: 'Dawn News',                channel: 'UCaxR-D8FjZ-2otbU0_Y2grg', city: 'Karachi', country: 'PK', lat: 24.861, lng: 67.01, region: 'asia', category: 'mainstream', language: 'ur' },
+  { id: 'jamunatv',       name: 'Jamuna TV',                channel: 'UCN6sm8iHiPd0cnoUardDAnw', city: 'Dhaka', country: 'BD', lat: 23.81, lng: 90.412, region: 'asia', category: 'mainstream', language: 'bn' },
+  { id: 'metrotv',        name: 'Metro TV',                 channel: 'UCzl0OrB3-ehunyotIQvK77A', city: 'Jakarta', country: 'ID', lat: -6.209, lng: 106.846, region: 'asia', category: 'mainstream', language: 'id' },
+  { id: 'tvone',          name: 'tvOne',                    channel: 'UCER4rvDnRBPr_ncYW4UCZjg', city: 'Jakarta', country: 'ID', lat: -6.209, lng: 106.846, region: 'asia', category: 'mainstream', language: 'id' },
+  { id: 'fnn',            name: 'FNN',                      channel: 'UCoQBJMzcwmXrRSHBFAlTsIw', city: 'Tokyo', country: 'JP', lat: 35.676, lng: 139.65, region: 'asia', category: 'mainstream', language: 'ja' },
+  { id: 'ntvnews',        name: 'Nippon TV News 24',        channel: 'UCuTAXTexrhetbOe3zgskJBQ', city: 'Tokyo', country: 'JP', lat: 35.676, lng: 139.65, region: 'asia', category: 'mainstream', language: 'ja' },
+  { id: 'weathernews',    name: 'Weathernews',              channel: 'UCNsidkYpIAQ4QaufptQBPHQ', city: 'Chiba', country: 'JP', lat: 35.607, lng: 140.106, region: 'asia', category: 'mainstream', language: 'ja' },
+  { id: 'mbcnews',        name: 'MBC News',                 channel: 'UCF4Wxdo3inmxP-Y59wXDsFw', city: 'Seoul', country: 'KR', lat: 37.566, lng: 126.978, region: 'asia', category: 'mainstream', language: 'ko' },
+  { id: 'jtbc',           name: 'JTBC News',                channel: 'UCsU-I-vHLiaMfV_ceaYz5rQ', city: 'Seoul', country: 'KR', lat: 37.566, lng: 126.978, region: 'asia', category: 'mainstream', language: 'ko' },
+  { id: 'yonhapnewstv',   name: 'Yonhap News TV',           channel: 'UCTHCOPwqNfZ0uiKOvFyhGwg', city: 'Seoul', country: 'KR', lat: 37.566, lng: 126.978, region: 'asia', category: 'mainstream', language: 'ko' },
+  { id: 'ebcnews',        name: 'EBC News',                 channel: 'UCR3asjvr_WAaxwJYEDV_Bfw', city: 'Taipei', country: 'TW', lat: 25.033, lng: 121.565, region: 'asia', category: 'mainstream', language: 'zh' },
+  { id: 'ftvnews',        name: 'FTV News',                 channel: 'UC2VmWn8dAqkzlQqvy02E1PA', city: 'Taipei', country: 'TW', lat: 25.033, lng: 121.565, region: 'asia', category: 'mainstream', language: 'zh' },
 ];
 
-/** A muted, autoplaying player for whatever the channel is live with now. */
+/** A muted, autoplaying player for whatever the channel is live with now; most channels refuse it, so it is the fallback. */
 // www.youtube.com, not -nocookie: the map's tiles only hear player errors from that origin.
 export const liveEmbedUrl = (c: Pick<LiveChannel, 'channel'>) =>
   `https://www.youtube.com/embed/live_stream?channel=${c.channel}&autoplay=1&mute=1`;
+
+/** A muted, autoplaying player for one broadcast. */
+export const videoEmbedUrl = (video: string) => `https://www.youtube.com/embed/${video}?autoplay=1&mute=1`;

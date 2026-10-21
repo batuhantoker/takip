@@ -7,7 +7,7 @@ import type { LayerHookArgs } from '@/components/map/types';
 export function useLiveNewsLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('live-news', activeLayers.live_news && data.live_feeds ? data.live_feeds.map((f: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [f.lng, f.lat] }, properties: { name: f.name, city: f.city, country: f.country, url: f.url, category: f.category, embed_allowed: f.embed_allowed !== false } })) : []);
+    setGeo('live-news', activeLayers.live_news && data.live_feeds ? data.live_feeds.map((f: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [f.lng, f.lat] }, properties: { id: f.id, name: f.name, city: f.city, country: f.country, language: f.language, url: f.url, watch: f.watch_url, category: f.category, embed_allowed: f.embed_allowed !== false, offline: f.live === false } })) : []);
   }, [mapReady, data.live_feeds, activeLayers.live_news, setGeo]);
 }
 

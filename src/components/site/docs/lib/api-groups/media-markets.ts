@@ -16,8 +16,9 @@ export const MEDIA_MARKETS: ApiGroup = {
     {
       path: '/api/live-news',
       method: 'GET',
-      summary: '24/7 broadcast streams grouped by category.',
-      returns: ['feeds', 'categories', 'total', 'timestamp'],
+      summary: 'Live news channels on YouTube, each with its newsroom, whether it is on air, and a player for the broadcast it is showing now.',
+      returns: ['feeds', 'categories', 'total', 'live', 'timestamp'],
+      notes: 'Each channel’s YouTube /live page is read every 30 minutes, one at a time. `live` is null until the first look; such a feed plays the channel’s `live_stream` player, which YouTube refuses for many channels.',
     },
     {
       path: '/api/markets',

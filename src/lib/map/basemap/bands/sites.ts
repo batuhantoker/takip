@@ -84,10 +84,12 @@ export function addSiteLayers(map: maplibregl.Map, satLayerRef: { current: Retur
   }, paint: labelPaint() });
 
   // Live news streams
+  // Off-air channels keep their pin, faded, as cameras do.
   map.addLayer({ id: 'news-dots', type: 'circle', source: 'live-news', paint: {
     'circle-radius': markerRadius(3, 4.5, 6),
-    'circle-color': MAP_INK.rose, 'circle-opacity': 0.9,
+    'circle-color': MAP_INK.rose, 'circle-opacity': ['case', ['==', ['get', 'offline'], true], 0.35, 0.9],
     ...MARKER_STROKE,
+    'circle-stroke-opacity': ['case', ['==', ['get', 'offline'], true], 0.4, 0.8],
   }});
   map.addLayer({ id: 'news-label', type: 'symbol', source: 'live-news', minzoom: 5, layout: {
     'text-field': ['get','name'], 'text-size': LABEL_SIZE, 'text-font': ['Noto Sans Regular'],

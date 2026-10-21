@@ -13,6 +13,7 @@ import {
 } from '@/lib/map/popups/cyber-popups';
 import { bindCctvClusterClicks } from '@/lib/feeds/cameras/map-layers';
 import { launchPopupHtml } from '@/lib/space/globe/launch-popup';
+import { newsroomPopupHtml, offAirPopupHtml, type NewsPin } from '@/lib/intel/alerts/live-tv-popup';
 import { serviceStatusPopupHtml } from '@/lib/feeds/hazards/service-status-popup';
 import { gnssPopupHtml } from '@/lib/feeds/hazards/gnss-popup';
 import { warAlertPopupHtml } from '@/lib/feeds/hazards/war-alerts';
@@ -399,18 +400,35 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
     popup(coords, chokepointPopupHtml(p));
   });
 
-  // ── Live News (opens feed viewer) ──
+  // ── Live News: a channel opens its player; an off-air one, or several under the click, a popup ──
   map.on('click', 'news-dots', e => {
-    const p = e.features?.[0]?.properties;
-    if (!p) return;
-    onEntityClick?.({
-      type: 'live_news',
-      name: p.name,
-      city: p.city,
-      country: p.country,
-      url: p.url,
-      category: p.category,
-      embed_allowed: p.embed_allowed !== false && p.embed_allowed !== 'false',
+    const pins: (NewsPin & { url: string; country: string; category: string; embedAllowed: boolean })[] = [];
+    for (const f of e.features ?? []) {
+      const p = f.properties ?? {};
+      if (!p.name || pins.some(o => o.name === p.name)) continue;
+      pins.push({
+        name: p.name, city: p.city, country: p.country, language: p.language ?? '', category: p.category, url: p.url, watch: p.watch,
+        offline: p.offline === true || p.offline === 'true',
+        embedAllowed: p.embed_allowed !== false && p.embed_allowed !== 'false',
+      });
+    }
+    if (!pins.length) return;
+    pins.sort((a, b) => a.name.localeCompare(b.name));
+    const watch = (p: (typeof pins)[number]) => onEntityClick?.({
+      type: 'live_news', name: p.name, city: p.city, country: p.country, url: p.url, category: p.category, embed_allowed: p.embedAllowed,
+    });
+    const coords = (e.features![0].geometry as GeoJSON.Point).coordinates;
+    if (pins.length === 1) {
+      if (pins[0].offline) popup(coords, offAirPopupHtml(pins[0]));
+      else watch(pins[0]);
+      return;
+    }
+    const box = popup(coords, newsroomPopupHtml(pins));
+    box?.getElement().addEventListener('click', ev => {
+      const i = (ev.target as HTMLElement).closest<HTMLElement>('[data-news-feed]')?.dataset.newsFeed;
+      if (i == null) return;
+      box.remove();
+      watch(pins[Number(i)]);
     });
   });
 }

@@ -44,6 +44,7 @@ const DESCRIBE: Record<string, (p: Props, layer: string) => Tip | null> = {
     const meta = r ? join([t('Camera'), [r.city, r.country].filter(Boolean).join(', '), offAir]) : join([String(p.source ?? ''), offAir]);
     return { key: `camera:${id}`, name: String(r?.name || t('Camera')), meta: htmlEsc(meta), load: r === undefined ? () => cameraDetail(id) : undefined };
   },
+  'news-dots': p => ({ key: `news:${p.id}`, name: String(p.name || t('Live TV')), meta: htmlEsc(join([String(p.city || ''), (p.offline === true || p.offline === 'true') && t('Off air')])) }),
   'alert-pin-dots': p => ({ key: `alert:${p.id}`, name: String(p.title || t('Report')), meta: htmlEsc(join([p.kind === 'rocket' ? t('Rocket alert') : p.kind === 'event' ? t('Event') : t('News'), String(p.place_name || '')])) }),
   'eq-circles': p => {
     const m = n(p.magnitude);

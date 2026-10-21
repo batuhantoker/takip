@@ -242,7 +242,7 @@ function LiveNewsPreviews({ mapRef, active, feeds, onOpen }: {
       const url = String(f?.url ?? '');
       const lng = Number(f?.lng);
       const lat = Number(f?.lat);
-      if (!name || !url || seen.has(name) || dead.has(name)) continue;
+      if (!name || !url || seen.has(name) || dead.has(name) || f?.live === false) continue;
       if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
 
       const embed = embedUrl(url, f?.embed_allowed !== false && f?.embed_allowed !== 'false');

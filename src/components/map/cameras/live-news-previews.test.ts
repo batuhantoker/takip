@@ -14,6 +14,10 @@ describe('embedUrl', () => {
     expect(url!).toContain('channel=UCoMdktPbSTixAyNGwb-UYkQ');
   });
 
+  it('accepts one broadcast by its video id, which is what an on-air channel is served as', () => {
+    expect(embedUrl('https://www.youtube.com/embed/gCNeDWCI0vo?autoplay=1&mute=1', true)).toContain('/embed/gCNeDWCI0vo?');
+  });
+
   it('forces the parameters a muted background player needs', () => {
     // A tile that asks for sound is a tile the browser refuses to autoplay.
     const p = new URL(embedUrl(SKY, true)!).searchParams;

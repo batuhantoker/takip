@@ -109,6 +109,7 @@ a.tk-pop-item-title:hover { text-decoration: underline; }
   padding: 6px; margin: 2px -6px 0; border: 0; border-radius: 6px;
   background: none; color: var(--ink-1); font: inherit; text-align: left; cursor: pointer;
 }
+a.tk-pop-route { text-decoration: none; }
 .tk-pop-route:hover { background: var(--surface-2); }
 .tk-pop-route-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tk-pop-route .tk-pop-list-meta { margin: 0; }
