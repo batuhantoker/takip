@@ -54,6 +54,10 @@ const schema = z
     TAKIP_ARCHIVE_DIR: z.string().optional().transform(p => (p ? resolve(repoRoot, p) : undefined)),
     // DB-IP Lite city database (npm run geoip -w @takip/api); defaults to data/geoip/dbip-city-lite.mmdb.
     GEOIP_PATH: z.string().optional().transform(p => (p ? resolve(repoRoot, p) : undefined)),
+    // Google Search Console for Admin → Analytics → Search: a service account's JSON key, and the property when the
+    // account can read more than one (sc-domain:takip.dev or https://takip.dev/). Unset: the tab says how to set it up.
+    GSC_CREDENTIALS: z.string().optional().transform(p => (p ? resolve(repoRoot, p) : undefined)),
+    GSC_SITE: z.string().optional(),
     // Peers whose X-Forwarded-For is believed (IPs or CIDR ranges). Loopback covers the Next rewrite in development.
     TRUSTED_PROXIES: z.string().default(LOOPBACK).refine(isProxyList, 'comma-separated IPs or CIDR ranges'),
     // Cloudflare is the edge: believe cf-connecting-ip from a trusted peer.

@@ -8,6 +8,7 @@ import { createAccess } from './access/resolver';
 import { createUsage } from './access/usage';
 import { schedulePruneUsage, usageJobs } from './access/usage-prune';
 import { createPresence } from './analytics/presence';
+import { createSearchConsole, type SearchConsole } from './analytics/search-console';
 import { auditJobs, schedulePruneAudit } from './audit/audit-prune';
 import { createApp } from './app';
 import { createAuth } from './auth/auth';
@@ -71,8 +72,15 @@ const stopMail = mail.start();
 
 const metrics = createMetrics({ defaults: true });
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
+let searchConsole: SearchConsole | null = null;
+try {
+  searchConsole = createSearchConsole({ credentialsPath: env.GSC_CREDENTIALS, site: env.GSC_SITE, host: new URL(env.BETTER_AUTH_URL).hostname });
+} catch (err) {
+  logger.warn({ err, path: env.GSC_CREDENTIALS }, 'the Search Console key could not be read; Admin → Analytics → Search stays off');
+}
 const analytics = {
   locate,
+  searchConsole,
   startedAt: Date.now() - process.uptime() * 1000,
   dirs: {
     root: repoRoot,

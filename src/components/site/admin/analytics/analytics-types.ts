@@ -470,3 +470,31 @@ export type AnalyticsCrawlers = {
   paths: { path: string; hits: number; bots: number; lastAt: number }[];
   recent: { at: number; bot: string; kind: CrawlerKind; path: string }[];
 };
+
+/** Clicks, impressions, click rate and Google's average position (1 = top; impression-weighted when summed). */
+export type SearchStats = { clicks: number; impressions: number; ctr: number; position: number | null };
+
+/** What Search Console said over the range; types and totals come from per-page rows, searches leave out Google's private rare ones. */
+export type SearchData = {
+  /** The per-page rows stopped at 100,000; totals and types then miss the rest. */
+  truncated: boolean;
+  totals: SearchStats & { pages: number };
+  daily: { day: string; clicks: number; impressions: number; position: number | null }[];
+  types: (SearchStats & { type: string; pages: number })[];
+  languages: (SearchStats & { locale: string })[];
+  pages: (SearchStats & { path: string; type: string })[];
+  queries: (SearchStats & { query: string })[];
+  /** The top searches that showed each page type. */
+  typeQueries: (SearchStats & { type: string; query: string })[];
+  /** Two-letter codes; null for Google's unknown. */
+  countries: (SearchStats & { country: string | null })[];
+  devices: (SearchStats & { device: string })[];
+};
+
+/**
+ * GET /api/admin/analytics/search?days= (apps/api analytics/search-report.ts), kept an hour unless refreshed. `site` is
+ * null when the service account reads no property yet; `error` is what Google said when it failed.
+ */
+export type AnalyticsSearch =
+  | { configured: false }
+  | ({ configured: true; account: string; from: string; to: string; fetchedAt: number; site: string | null; error: string | null } & Partial<SearchData>);

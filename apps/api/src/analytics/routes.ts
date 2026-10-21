@@ -14,6 +14,8 @@ import { crawlers, crawlersQuery, createCrawlLog, type CrawlLog } from './crawls
 import { journeys, pageDetail } from './journeys';
 import { loadVisits, recentVisits, visitsQuery } from './page-visits';
 import { pages } from './pages';
+import type { SearchConsole } from './search-console';
+import { searchReport } from './search-report';
 import { createPresence, type Presence } from './presence';
 import { rangeOf, rangeQuery, type Range } from './range';
 import { cachedAsync, scanStorage, type StorageDirs } from './storage';
@@ -25,15 +27,18 @@ import { visitors } from './visitors';
 
 const SCAN_TTL_MS = 60_000;
 const HISTORY_TTL_MS = 10 * 60_000;
+// Search Console's numbers move a few times a day, and each look costs six API calls.
+const SEARCH_TTL_MS = 60 * 60_000;
 
 /**
  * `locate` places sign-in and last-seen addresses as they're read (geoip/ip-location.ts); without it they stay unplaced.
- * `presence` is who is on the site now, as the map's tick and the page views tell it; `crawls` the crawler requests the web app hands over.
+ * `presence` is who is on the site now, as the map's tick and the page views tell it; `crawls` the crawler requests the web app hands over;
+ * `searchConsole` reads Google Search, null when no key is set.
  */
-export type AnalyticsOptions = { dirs?: StorageDirs; startedAt?: number; locate?: IpLocator; presence?: Presence; crawls?: CrawlLog };
+export type AnalyticsOptions = { dirs?: StorageDirs; startedAt?: number; locate?: IpLocator; presence?: Presence; crawls?: CrawlLog; searchConsole?: SearchConsole | null };
 
 /** Mounted at /api/admin/analytics behind the gate. Shapes: src/components/site/admin/analytics/analytics-types.ts. */
-export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, startedAt = Date.now() - process.uptime() * 1000, locate, presence = createPresence(), crawls: crawlLog, now = () => Date.now() }: {
+export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, startedAt = Date.now() - process.uptime() * 1000, locate, presence = createPresence(), crawls: crawlLog, searchConsole = null, now = () => Date.now() }: {
   db: AppDb; access: AccessResolver; usage: Usage; metrics?: Metrics; now?: () => number;
 } & AnalyticsOptions) {
   const app = new Hono();
@@ -61,6 +66,16 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   get('/visitors', r => visitors(db, r));
   get('/pages', r => ({ ...pages(db, r), journeys: journeys(db, loadVisits(db, r)) }));
   get('/live', r => live(db, presence, r));
+  const searches = new Map<string, (fresh?: boolean) => Promise<object>>();
+  get('/search', (r, refresh) => {
+    const key = `${r.days}:${r.today}`;
+    if (!searches.has(key)) {
+      // A new day's ranges replace yesterday's.
+      if (searches.size > 6) searches.clear();
+      searches.set(key, cachedAsync(() => searchReport(searchConsole, r, now()), SEARCH_TTL_MS, now));
+    }
+    return searches.get(key)!(refresh);
+  });
 
   app.get('/pages/visits', c => {
     const parsed = visitsQuery.safeParse(c.req.query());

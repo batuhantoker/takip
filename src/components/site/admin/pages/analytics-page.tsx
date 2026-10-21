@@ -11,6 +11,7 @@ import { useAnalyticsData } from '@/components/site/admin/analytics/lib/use-anal
 import { OverviewSection } from '@/components/site/admin/analytics/overview-section';
 import { LiveSection } from '@/components/site/admin/analytics/live-section';
 import { CrawlersSection } from '@/components/site/admin/analytics/crawlers-section';
+import { SearchSection } from '@/components/site/admin/analytics/search-section';
 import { AudienceSection } from '@/components/site/admin/analytics/audience-section';
 import { VisitorsSection } from '@/components/site/admin/analytics/visitors-section';
 import { PagesSection } from '@/components/site/admin/analytics/pages-section';
@@ -27,6 +28,7 @@ const SECTIONS = [
   { id: 'audience', label: 'Audience' },
   { id: 'visitors', label: 'Visitors' },
   { id: 'pages', label: 'Pages' },
+  { id: 'search', label: 'Search' },
   { id: 'crawlers', label: 'Crawlers' },
   { id: 'engagement', label: 'Engagement' },
   { id: 'api', label: 'API' },
@@ -90,7 +92,7 @@ export default function AnalyticsPage() {
             className={`-mb-px h-9 whitespace-nowrap border-b-2 px-3 text-[13px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${section === s.id ? 'border-accent text-ink-1' : 'border-transparent text-ink-3 hover:text-ink-1'}`}
           >
             {s.label}
-            {s.id !== 'overview' && s.id !== 'live' && s.id !== 'crawlers' && flagged.has(s.id) && <span aria-label="needs a look" className="ml-1.5 inline-block size-1.5 rounded-full bg-amber align-middle" />}
+            {s.id !== 'overview' && s.id !== 'live' && s.id !== 'search' && s.id !== 'crawlers' && flagged.has(s.id) && <span aria-label="needs a look" className="ml-1.5 inline-block size-1.5 rounded-full bg-amber align-middle" />}
           </button>
         ))}
       </div>
@@ -101,6 +103,7 @@ export default function AnalyticsPage() {
         {section === 'audience' && <AudienceSection query={audience} />}
         {section === 'visitors' && <VisitorsSection query={visitors} days={days} />}
         {section === 'pages' && <PagesSection query={pages} range={range} />}
+        {section === 'search' && <SearchSection range={range} />}
         {section === 'crawlers' && <CrawlersSection range={range} />}
         {section === 'engagement' && <EngagementSection query={engagement} />}
         {section === 'api' && <ApiSection query={api} />}
