@@ -349,4 +349,124 @@ export interface AnalyticsPages {
   sections: { section: string; views: number; readers: number }[];
   referrers: { referrer: string | null; views: number; readers: number }[];
   locales: { locale: string; views: number }[];
+  journeys: PageJourneys;
 }
+
+/** What a visit did after the page it landed on. */
+export type NextStep = 'map' | 'page' | 'left';
+
+/** How a visit arrived (apps/api analytics/sources.ts). */
+export type Channel = 'search' | 'ai' | 'social' | 'site' | 'direct';
+
+/**
+ * Visits, from the view log (apps/api analytics/page-visits.ts, journeys.ts): one browser's page views and map openings
+ * ('/') with under half an hour between them. A flow's `origin` is the source that sent it ('Google', or a host), null
+ * when typed, bookmarked or hidden. Hours are UTC, dow 0 = Sunday.
+ */
+export interface PageJourneys {
+  /** First day the view log has. */
+  since: string | null;
+  totals: {
+    visits: number; views: number; left: number; readOn: number; toMap: number; landedOnMap: number; returning: number; avgSteps: number;
+    medianMs: number | null;
+  };
+  flow: { origin: string | null; landing: string; next: NextStep; visits: number }[];
+  channels: { channel: Channel; visits: number }[];
+  sources: { source: string; channel: Channel; hosts: string[]; visits: number }[];
+  /** Linking pages, host + path, where the other site shared them. */
+  links: { url: string; visits: number }[];
+  steps: { from: string; to: string; visits: number }[];
+  /** Per page: visits through it, visits that began and ended there, median time before the next step. */
+  pages: { path: string; visits: number; landings: number; exits: number; medianMs: number | null }[];
+  hours: { dow: number; hour: number; visits: number }[];
+  countries: { country: string | null; visits: number }[];
+  cities: { country: string | null; region: string | null; city: string; visits: number }[];
+  points: { latitude: number; longitude: number; city: string | null; country: string | null; visits: number }[];
+  devices: { device: string; visits: number }[];
+  browsers: { browser: string; visits: number }[];
+  oses: { os: string; visits: number }[];
+  campaigns: { campaign: string; visits: number }[];
+}
+
+/** GET /api/admin/analytics/pages/page?path=: one page across the range's visits. */
+export interface PageDetail {
+  path: string;
+  visits: number;
+  landings: number;
+  exits: number;
+  medianMs: number | null;
+  /** A page path, or 'origin:<source>' ('origin:' for direct) for visits that began here. */
+  cameFrom: { from: string; visits: number }[];
+  /** A page path, or '' where the visit ended. */
+  wentTo: { to: string; visits: number }[];
+  countries: { country: string | null; visits: number }[];
+  devices: { device: string; visits: number }[];
+}
+
+export type PageVisit = {
+  visitorId: string;
+  start: number;
+  end: number;
+  origin: string | null;
+  originPath: string | null;
+  source: string | null;
+  channel: Channel;
+  campaign: string | null;
+  locale: string;
+  place: { country: string | null; region: string | null; city: string | null } | null;
+  agent: { browser: string; os: string; device: string };
+  steps: { path: string; at: number }[];
+  views: number;
+  next: NextStep;
+  /** Seen before this visit: an earlier view, or the map. */
+  returning: boolean;
+  /** The browser has used the map, so it has a visitor page. */
+  known: boolean;
+  user: { id: string; email: string } | null;
+};
+
+/** What the recent visits are narrowed to; origin is a source or host, 'direct' for none. */
+export type VisitFilter = { origin?: string; page?: string; country?: string; next?: NextStep; channel?: Channel; returning?: 'new' | 'returning' };
+
+/** GET /api/admin/analytics/pages/visits?days=&origin=&page=&country=&next=&offset=&limit= */
+export type PageVisitList = { total: number; visits: PageVisit[] };
+
+/** GET /api/admin/analytics/live: who is on the map (ticked in the last 2½ minutes) or opened a page in the last 5. */
+export type AnalyticsLive = {
+  people: {
+    key: string;
+    kind: 'map' | 'page';
+    /** The page's English path; '/' on the map. */
+    path: string;
+    /** The map's features at its last tick: view:, panel:, layer:, section:, window:, device:. */
+    features: string[];
+    /** The latest actions on the map, newest first (packages/core usage.ts names). */
+    actions: { action: string; at: number }[];
+    referrer: string | null;
+    place: { country: string | null; region: string | null; city: string | null; latitude: number | null; longitude: number | null } | null;
+    agent: { browser: string; os: string; device: string } | null;
+    since: number;
+    at: number;
+    visitorId: string | null;
+    known: boolean;
+    user: { id: string; email: string; name: string } | null;
+    admin: boolean;
+  }[];
+};
+
+export type CrawlerKind = 'search' | 'ai' | 'seo' | 'preview' | 'ads' | 'monitor' | 'script' | 'archive' | 'other';
+
+/**
+ * GET /api/admin/analytics/crawlers?days=&bot= (apps/api analytics/crawls.ts): crawler and script requests the web app's
+ * proxy saw, told by user agent. `paths` cover the last `pathDays` days only; `recent` is held in the api's memory.
+ */
+export type AnalyticsCrawlers = {
+  since: string | null;
+  pathDays: number;
+  totals: { hits: number; bots: number; pages: number };
+  daily: { day: string; kinds: Record<CrawlerKind, number> }[];
+  bots: { bot: string; kind: CrawlerKind; hits: number; days: number; lastDay: string }[];
+  sections: { section: string; hits: number; bots: { bot: string; hits: number }[] }[];
+  paths: { path: string; hits: number; bots: number; lastAt: number }[];
+  recent: { at: number; bot: string; kind: CrawlerKind; path: string }[];
+};

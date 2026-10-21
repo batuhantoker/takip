@@ -395,6 +395,52 @@ const MIGRATIONS: string[] = [
   INSERT OR IGNORE INTO bill_plan_entitlement (plan_id, key, value) VALUES
     ('anon', 'recon.scan', 'false'), ('free', 'recon.scan', 'false'), ('pro', 'recon.scan', 'true');
   `,
+  // Each view of a public page and each opening of the map (path '/'), in order, which page_read's daily counts can't
+  // show: when, the page read before it in the same tab, the linking page when the other site shares it, and the browser
+  // and town it came from (with the town's rough position). The address isn't kept.
+  `
+  CREATE TABLE IF NOT EXISTS page_view (
+    view_id     INTEGER PRIMARY KEY,
+    visitor_id  TEXT NOT NULL,
+    at          INTEGER NOT NULL,
+    day         INTEGER NOT NULL,
+    path        TEXT NOT NULL,
+    locale      TEXT NOT NULL,
+    referrer    TEXT NOT NULL,
+    referrer_path TEXT,
+    from_path   TEXT,
+    campaign    TEXT,
+    country     TEXT,
+    region      TEXT,
+    city        TEXT,
+    latitude    REAL,
+    longitude   REAL,
+    browser     TEXT NOT NULL,
+    os          TEXT NOT NULL,
+    device      TEXT NOT NULL
+  ) STRICT;
+  CREATE INDEX IF NOT EXISTS page_view_day ON page_view (day);
+  CREATE INDEX IF NOT EXISTS page_view_visitor ON page_view (visitor_id, at);
+  `,
+  // Crawlers and scripts reaching the web app's pages, robots.txt and sitemaps, as its proxy tells by their user agent
+  // (packages/core crawlers.ts): requests per day, crawler and section, and per page for the last two weeks.
+  `
+  CREATE TABLE IF NOT EXISTS crawl_hit (
+    day      INTEGER NOT NULL,
+    bot      TEXT NOT NULL,
+    section  TEXT NOT NULL,
+    hits     INTEGER NOT NULL,
+    PRIMARY KEY (day, bot, section)
+  ) STRICT, WITHOUT ROWID;
+  CREATE TABLE IF NOT EXISTS crawl_path (
+    day      INTEGER NOT NULL,
+    bot      TEXT NOT NULL,
+    path     TEXT NOT NULL,
+    hits     INTEGER NOT NULL,
+    last_at  INTEGER NOT NULL,
+    PRIMARY KEY (day, bot, path)
+  ) STRICT, WITHOUT ROWID;
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

@@ -28,6 +28,16 @@ export function outsideReferrer(): string | null {
   }
 }
 
+/** The page on that other site, when its referrer policy shares more than the site's address; the api keeps it for some sites only. */
+export function outsideReferrerPath(): string | null {
+  try {
+    const url = new URL(document.referrer);
+    return url.hostname !== location.hostname && url.pathname !== '/' ? url.pathname : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Where this browser first came in: a public page notes it, so a reader who goes on to the map is counted as
  * sent by that page and the site before it, not as arriving at the map from nowhere.
@@ -49,4 +59,20 @@ export function arrival(): Arrival {
     // Unreadable: fall back to this load.
   }
   return { referrer: outsideReferrer(), landing: location.pathname + location.search };
+}
+
+const PAGE_KEY = 'takip.page';
+
+/**
+ * Notes `path` as the page this tab shows (a public page's English path, '/' for the map) and returns the one it
+ * showed before, so a view can say where the reader came from. Per tab: sessionStorage.
+ */
+export function notePage(path: string): string | null {
+  try {
+    const before = sessionStorage.getItem(PAGE_KEY);
+    sessionStorage.setItem(PAGE_KEY, path);
+    return before;
+  } catch {
+    return null;
+  }
 }

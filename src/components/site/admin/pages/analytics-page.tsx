@@ -9,6 +9,8 @@ import type {
 import { attention, flaggedTabs } from '@/components/site/admin/analytics/lib/attention';
 import { useAnalyticsData } from '@/components/site/admin/analytics/lib/use-analytics-data';
 import { OverviewSection } from '@/components/site/admin/analytics/overview-section';
+import { LiveSection } from '@/components/site/admin/analytics/live-section';
+import { CrawlersSection } from '@/components/site/admin/analytics/crawlers-section';
 import { AudienceSection } from '@/components/site/admin/analytics/audience-section';
 import { VisitorsSection } from '@/components/site/admin/analytics/visitors-section';
 import { PagesSection } from '@/components/site/admin/analytics/pages-section';
@@ -21,9 +23,11 @@ import { SystemSection } from '@/components/site/admin/analytics/system-section'
 const RANGES = [7, 30, 90] as const;
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
+  { id: 'live', label: 'Live' },
   { id: 'audience', label: 'Audience' },
   { id: 'visitors', label: 'Visitors' },
   { id: 'pages', label: 'Pages' },
+  { id: 'crawlers', label: 'Crawlers' },
   { id: 'engagement', label: 'Engagement' },
   { id: 'api', label: 'API' },
   { id: 'data', label: 'Data & storage' },
@@ -86,16 +90,18 @@ export default function AnalyticsPage() {
             className={`-mb-px h-9 whitespace-nowrap border-b-2 px-3 text-[13px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${section === s.id ? 'border-accent text-ink-1' : 'border-transparent text-ink-3 hover:text-ink-1'}`}
           >
             {s.label}
-            {s.id !== 'overview' && flagged.has(s.id) && <span aria-label="needs a look" className="ml-1.5 inline-block size-1.5 rounded-full bg-amber align-middle" />}
+            {s.id !== 'overview' && s.id !== 'live' && s.id !== 'crawlers' && flagged.has(s.id) && <span aria-label="needs a look" className="ml-1.5 inline-block size-1.5 rounded-full bg-amber align-middle" />}
           </button>
         ))}
       </div>
 
       <div role="tabpanel" aria-label={SECTIONS.find(s => s.id === section)?.label} className="flex flex-col gap-4 pb-10">
         {section === 'overview' && <OverviewSection attention={notes} audience={audience} visitors={visitors} pages={pages} engagement={engagement} api={api} storage={storage} system={system} />}
+        {section === 'live' && <LiveSection hideAdmins={hideAdmins} />}
         {section === 'audience' && <AudienceSection query={audience} />}
         {section === 'visitors' && <VisitorsSection query={visitors} days={days} />}
-        {section === 'pages' && <PagesSection query={pages} />}
+        {section === 'pages' && <PagesSection query={pages} range={range} />}
+        {section === 'crawlers' && <CrawlersSection range={range} />}
         {section === 'engagement' && <EngagementSection query={engagement} />}
         {section === 'api' && <ApiSection query={api} />}
         {section === 'data' && (

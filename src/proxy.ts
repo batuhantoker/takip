@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { LOCALE_COOKIE, PATH_LOCALE_HEADER } from '@/lib/core/i18n/locales';
 import { localePath, splitLocalePath } from '@/lib/platform/site/locale-path';
 import { reversedPairPath } from '@/lib/platform/site/compare/pair-path';
+import { noteCrawler } from '@/lib/platform/site/crawl-log';
 import { languageRedirect } from '@/lib/platform/site/language-redirect';
 
 /*
@@ -12,6 +13,7 @@ import { languageRedirect } from '@/lib/platform/site/language-redirect';
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  noteCrawler(request.headers.get('user-agent'), pathname);
   const prefix = /^\/([a-z]{2})(?:\/|$)/.exec(pathname)?.[1];
   // A bare /tr opens that language's index of the map.
   if (prefix && prefix !== 'en' && /^\/[a-z]{2}\/?$/.test(pathname)) {
@@ -44,5 +46,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/map/:path*', '/about', '/embed', '/embed/:path*', '/city/:path*', '/town/:path*', '/county/:path*', '/state/:path*', '/country/:path*', '/event/:path*', '/compare', '/compare/:path*', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)/:path*'],
+  matcher: ['/', '/map/:path*', '/about', '/embed', '/embed/:path*', '/city/:path*', '/town/:path*', '/county/:path*', '/state/:path*', '/country/:path*', '/event/:path*', '/compare', '/compare/:path*', '/guides', '/guides/:path*', '/docs', '/docs/:path*', '/robots.txt', '/sitemap.xml', '/sitemap-index.xml', '/privacy', '/terms', '/cookies', '/contact', '/disclaimer', '/copyright', '/places', '/live', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)', '/(en|tr|es|pt|fr|de|ru|ar|zh|ja)/:path*'],
 };

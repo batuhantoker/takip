@@ -10,7 +10,9 @@ import { accessRoutes } from './access/routes';
 import { createUsage, meter, type Usage } from './access/usage';
 import { usageRoutes } from './access/usage-routes';
 import { createAdminGate } from './admin/gate';
+import { createCrawlLog, crawlIntakeRoutes, type CrawlLog } from './analytics/crawls';
 import { createPageReads, pageReadRoutes } from './analytics/page-reads';
+import { createPresence, type Presence } from './analytics/presence';
 import type { AnalyticsOptions } from './analytics/routes';
 import { adminRoutes } from './admin/routes';
 import type { Auth } from './auth/auth';
@@ -33,9 +35,9 @@ import { v1Routes } from './v1/openapi';
 
 export type AppObs = { logger?: Logger; metrics?: Metrics; metricsAllow?: readonly string[] };
 
-export function createApp({ auth, access, db, replay, switchboard, billing = null, obs = {}, trust = ipTrust(), usage = createUsage(db), keys = createApiKeys(db), policy = createKeyPolicy(db), mapTime = createMapTime(db), analytics, enforceLimits = true, enforceKeyPolicy = true }: {
+export function createApp({ auth, access, db, replay, switchboard, billing = null, obs = {}, trust = ipTrust(), usage = createUsage(db), keys = createApiKeys(db), policy = createKeyPolicy(db), presence = createPresence(), crawls = createCrawlLog(db), mapTime = createMapTime(db, { presence }), analytics, enforceLimits = true, enforceKeyPolicy = true }: {
   auth: Auth; access: AccessResolver; db: AppDb; replay?: ReplayData; switchboard?: SourceSwitchboard; billing?: BillingProvider | null;
-  obs?: AppObs; trust?: IpTrust; usage?: Usage; keys?: ApiKeys; policy?: KeyPolicy; mapTime?: MapTime; analytics?: AnalyticsOptions; enforceLimits?: boolean; enforceKeyPolicy?: boolean;
+  obs?: AppObs; trust?: IpTrust; usage?: Usage; keys?: ApiKeys; policy?: KeyPolicy; presence?: Presence; crawls?: CrawlLog; mapTime?: MapTime; analytics?: AnalyticsOptions; enforceLimits?: boolean; enforceKeyPolicy?: boolean;
 }) {
   const { logger = silentLogger, metrics = createMetrics(), metricsAllow = [] } = obs;
   const app = new Hono();
@@ -45,6 +47,7 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   app.use(httpMetrics(metrics), requestId(), requestLogger(logger));
   app.get('/metrics', metricsEndpoint(metrics, metricsAllow));
   app.get('/health', c => c.json({ ok: true }));
+  app.route('/internal', crawlIntakeRoutes(crawls));
   // Before the auth routes: Better Auth records the address it resolves.
   app.use('/api/*', clientIp(trust));
   // Before the access middleware, so sign-in traffic never pays for a plan lookup.
@@ -55,7 +58,7 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
   app.use('/api/v1/*', rateLimit(usage, { enforce: enforceLimits }), meter(usage));
   app.route('/api/v1', accessRoutes(access, policy));
   app.route('/api/v1', mapTimeRoutes(mapTime, { cloudflare: trust.cloudflare }));
-  app.route('/api/v1', pageReadRoutes(createPageReads(db)));
+  app.route('/api/v1', pageReadRoutes(createPageReads(db, { locate: analytics?.locate, presence }), { cloudflare: trust.cloudflare }));
   app.route('/api/v1', usageRoutes(usage));
   app.route('/api/v1', keyRoutes(keys));
   app.route('/api/v1', privacyRoutes({ db, auth, usage }));
@@ -67,6 +70,6 @@ export function createApp({ auth, access, db, replay, switchboard, billing = nul
     app.route('/api/replay', replayRoutes(replay));
   }
   app.route('/api/billing', billingRoutes({ db, auth, access, provider: billing }));
-  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard, keys, usage, billing, policy, metrics, analytics }));
+  app.route('/api/admin', adminRoutes({ auth, db, access, gate: createAdminGate(auth, db), switchboard, keys, usage, billing, policy, metrics, analytics: { ...analytics, presence, crawls } }));
   return app;
 }

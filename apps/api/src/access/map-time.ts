@@ -2,6 +2,8 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { Hono } from 'hono';
 import type { AppDb } from '../db/app-db';
 import { noLocator, type IpLocator } from '../geoip/ip-location';
+import type { Presence } from '../analytics/presence';
+import { parseUserAgent } from '../analytics/user-agent';
 import { activityBook, type ActionSubject, type NamePoint, type PlaceSubject } from './activity-book';
 import { addressBlock } from './client-ip';
 import { edgeCountry, parseActions, parseDevice, parseFeatures, parseVisitor, type ActionCounts, type DeviceFix, type VisitorTick } from './map-time-input';
@@ -32,9 +34,10 @@ export type TickReport = { features?: readonly string[]; visitor?: VisitorTick |
  * A tick may also name the browser's visitor id. Signed out, its minutes are booked to that id as well, with their
  * own one-a-minute check, since several visitors can share an address block; signed in, the id is linked to the
  * account. The limit stays on the address block: an id the browser can clear can't buy more time. Each booked
- * minute also notes the address it came from (activity-book.ts), and actions are counted on every tick.
+ * minute also notes the address it came from (activity-book.ts), and actions are counted on every tick. Each tick
+ * also tells `presence` who is on the map now and what they have open.
  */
-export function createMapTime(db: AppDb, { now = () => Date.now(), salt = randomBytes(16) as Buffer | string, locate = noLocator as IpLocator, name = undefined as NamePoint | undefined } = {}) {
+export function createMapTime(db: AppDb, { now = () => Date.now(), salt = randomBytes(16) as Buffer | string, locate = noLocator as IpLocator, name = undefined as NamePoint | undefined, presence = null as Presence | null } = {}) {
   const read = db.prepare('SELECT minutes, last_tick_at AS lastTickAt FROM map_time WHERE day = ? AND subject_type = ? AND subject_id = ?');
   const tick = db.prepare(`
     INSERT INTO map_time (day, subject_type, subject_id, minutes, last_tick_at) VALUES (?, ?, ?, 1, ?)
@@ -129,6 +132,20 @@ export function createMapTime(db: AppDb, { now = () => Date.now(), salt = random
         if (principal.kind === 'user') extra.place({ type: 'user', id: principal.userId }, principal.ip, at, walled ? 0 : 1, country);
         if (!walled) used += 1;
       }
+      presence?.note({
+        key: visitor?.id ?? `${subject.type}:${subject.id}`,
+        kind: 'map',
+        visitorId: visitor?.id ?? null,
+        userId: principal.kind === 'user' ? principal.userId : null,
+        path: '/',
+        features: walled ? ['view:wall'] : features,
+        actions: actions.map(([action]) => action),
+        // The tick's referrer is the browser's first arrival ever; the map's opening view carries this visit's.
+        referrer: null,
+        place: locate(principal.ip),
+        agent: visitor?.userAgent ? parseUserAgent(visitor.userAgent) : null,
+        at,
+      });
     }
     if (actions.length) extra.actions(actionSubject(principal, day, visitor), day, actions);
     // A second tab's tick still carries a fresh fix, so this isn't behind the minute's check.

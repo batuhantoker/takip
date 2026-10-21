@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { NEUTRAL } from '@/components/site/admin/analytics/lib/series';
 import { WORLD_LAND_PATH } from '@/lib/platform/site/world-land.generated';
 
-export type WorldPoint = { latitude: number; longitude: number; value: number };
+/** `title` names the dot in the readout instead of its coordinates; `color` overrides the neutral ink. */
+export type WorldPoint = { latitude: number; longitude: number; value: number; title?: string; color?: string };
 
 const W = 720;
 const H = 360;
@@ -33,7 +34,7 @@ export function WorldDots({ points, label, format }: { points: WorldPoint[]; lab
       <p className="h-4 text-[12px] text-ink-2" aria-live="polite">
         {focus && (
           <>
-            <span className="text-ink-3">{hover == null ? 'Most: ' : ''}{coord(focus.latitude, focus.longitude)} · </span>
+            <span className="text-ink-3">{hover == null ? 'Most: ' : ''}{focus.title ?? coord(focus.latitude, focus.longitude)} · </span>
             <span className="font-mono tabular-nums text-ink-1">{format(focus.value)}</span>
           </>
         )}
@@ -46,7 +47,7 @@ export function WorldDots({ points, label, format }: { points: WorldPoint[]; lab
         <path d={WORLD_LAND_PATH} transform={`scale(${W / 360} ${H / 180})`} className="fill-surface-3" />
         {dots.map(d => (
           <g key={d.i} onPointerEnter={() => setHover(d.i)}>
-            <circle cx={x(d.longitude)} cy={y(d.latitude)} r={d.r} fill={NEUTRAL} fillOpacity={hover === d.i ? 1 : 0.8} stroke="var(--surface-1)" strokeWidth={2} />
+            <circle cx={x(d.longitude)} cy={y(d.latitude)} r={d.r} fill={d.color ?? NEUTRAL} fillOpacity={hover === d.i ? 1 : 0.8} stroke="var(--surface-1)" strokeWidth={2} />
             {/* A hit target bigger than the mark. */}
             <circle cx={x(d.longitude)} cy={y(d.latitude)} r={d.r + 5} fill="transparent" />
           </g>

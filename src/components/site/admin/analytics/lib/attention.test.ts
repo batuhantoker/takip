@@ -31,7 +31,11 @@ describe('attention', () => {
       }),
       pages: { today: '2026-10-19', since: '2026-10-19', totals: { views: 3, readers: 2, pages: 1, toMap: 1 }, daily: [],
         pages: [{ path: '/tr/city/nevsehir/cameras', views: 3, readers: 2, toMap: 1 }], sections: [], locales: [],
-        referrers: [{ referrer: 'www.google.com', views: 2, readers: 2 }] } as AnalyticsPages,
+        referrers: [{ referrer: 'www.google.com', views: 2, readers: 2 }],
+        journeys: {
+          since: null, totals: { visits: 0, views: 0, left: 0, readOn: 0, toMap: 0, landedOnMap: 0, returning: 0, avgSteps: 0, medianMs: null },
+          flow: [], channels: [], sources: [], links: [], steps: [], pages: [], hours: [], countries: [], cities: [], points: [], devices: [], browsers: [], oses: [], campaigns: [],
+        } } as AnalyticsPages,
     }, NOW);
     expect(items.map(i => [i.tone, i.tab, i.text])).toEqual([
       ['problem', 'system', '2 background jobs failed (email.send): SMTP refused'],

@@ -7,6 +7,7 @@ import { createMapTime } from './access/map-time';
 import { createAccess } from './access/resolver';
 import { createUsage } from './access/usage';
 import { schedulePruneUsage, usageJobs } from './access/usage-prune';
+import { createPresence } from './analytics/presence';
 import { auditJobs, schedulePruneAudit } from './audit/audit-prune';
 import { createApp } from './app';
 import { createAuth } from './auth/auth';
@@ -45,8 +46,10 @@ const switchboard = openSourceSwitchboard({ dataDir: env.TAKIP_DATA_DIR, archive
 const usage = createUsage(db, { logger });
 const keys = createApiKeys(db, { logger });
 const locate = openIpLocator(env.GEOIP_PATH ?? join(env.TAKIP_DATA_DIR, 'geoip', 'dbip-city-lite.mmdb'), logger);
+// Who is on the site now (Admin → Analytics → Live), told by both the map's tick and the page views.
+const presence = createPresence();
 // A stable salt keeps visitors' map minutes across restarts.
-const mapTime = createMapTime(db, { locate, name: nameCoordinate, ...(env.BETTER_AUTH_SECRET ? { salt: env.BETTER_AUTH_SECRET } : {}) });
+const mapTime = createMapTime(db, { locate, name: nameCoordinate, presence, ...(env.BETTER_AUTH_SECRET ? { salt: env.BETTER_AUTH_SECRET } : {}) });
 const stopUsage = usage.start();
 const trust = ipTrust({ trustedProxies: env.TRUSTED_PROXIES, cloudflare: env.CLOUDFLARE_EDGE });
 
@@ -81,7 +84,7 @@ const analytics = {
     appDbPath: env.APP_DB_PATH,
   },
 };
-const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage, keys, mapTime, analytics });
+const app = createApp({ auth, access, db, replay, switchboard, billing, obs: { logger, metrics, metricsAllow: env.METRICS_ALLOW }, trust, usage, keys, presence, mapTime, analytics });
 
 const server = serve({ fetch: app.fetch, hostname: env.API_HOST, port: env.API_PORT }, info => {
   logger.info(`listening on http://${info.address}:${info.port}`);

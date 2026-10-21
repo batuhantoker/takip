@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAY_MS, isoDay } from '../access/usage';
 import { adminKit } from '../admin/testing';
 import { Jar, startApp, type TestApp } from '../testing/helpers';
-import { parsePageRead } from './page-reads';
+import { openAppDb } from '../db/app-db';
+import { migrateAppSchema } from '../db/migrations';
+import { createPageReads, parsePageRead } from './page-reads';
+import { createPresence } from './presence';
 
 const NOW = Date.UTC(2026, 9, 14, 12);
 const TODAY = Math.floor(NOW / DAY_MS);
@@ -13,14 +16,45 @@ const from = (remoteAddress: string) => ({ incoming: { socket: { remoteAddress }
 describe('a view report', () => {
   const body = (over: object = {}) => ({ visitor: { id: ALPHA, referrer: 'www.Google.com' }, path: '/city/cincinnati/transit', locale: 'tr', ...over });
 
-  it('keeps the page, its language and the site that sent the reader', () => {
-    expect(parsePageRead(body(), CHROME)).toEqual({ visitorId: ALPHA, path: '/city/cincinnati/transit', locale: 'tr', referrer: 'www.google.com' });
+  it('keeps the page, its language, the site that sent the reader and the page before it', () => {
+    expect(parsePageRead(body({ from: '/guides/how-to-track-a-flight-live' }), CHROME)).toEqual({
+      visitorId: ALPHA, path: '/city/cincinnati/transit', locale: 'tr', referrer: 'www.google.com', referrerPath: null,
+      from: '/guides/how-to-track-a-flight-live', campaign: null, userAgent: CHROME,
+    });
     expect(parsePageRead(body({ visitor: { id: ALPHA } }), CHROME)?.referrer).toBe('');
+    expect(parsePageRead(body({ from: '/admin/users' }), CHROME)?.from).toBeNull();
+  });
+
+  it('keeps the linking page for social and other sites, never a search or an AI chat', () => {
+    const linked = (referrer: string, referrerPath: string) => parsePageRead(body({ visitor: { id: ALPHA, referrer }, referrerPath }), CHROME)?.referrerPath;
+    expect(linked('old.reddit.com', '/r/maps/comments/abc123/live_flights/')).toBe('/r/maps/comments/abc123/live_flights/');
+    expect(linked('someblog.example', '/2026/10/maps')).toBe('/2026/10/maps');
+    expect(linked('www.google.com', '/search')).toBeNull();
+    expect(linked('chatgpt.com', '/c/6801-private')).toBeNull();
+    expect(linked('someblog.example', '/')).toBeNull();
+    expect(linked('someblog.example', '/a b')).toBeNull();
+  });
+
+  it('takes the campaign from the address it opened with', () => {
+    const campaign = (landing: string) => parsePageRead(body({ visitor: { id: ALPHA, landing } }), CHROME)?.campaign;
+    expect(campaign('/city/cincinnati?utm_source=Newsletter&utm_medium=email')).toBe('newsletter');
+    expect(campaign('/city/cincinnati?ref=hn')).toBe('hn');
+    expect(campaign('/city/cincinnati?token=secret')).toBeNull();
+    expect(campaign('/city/cincinnati')).toBeNull();
+  });
+
+  it('takes every public section, new ones included', () => {
+    for (const path of ['/town/frederick-md/flock-cameras', '/event/1906-san-francisco-earthquake', '/compare/greece-vs-turkey/life-expectancy', '/ramadan', '/westminster'])
+      expect(parsePageRead(body({ path }), CHROME)?.path, path).toBe(path);
+  });
+
+  it('takes the map opening as well, by its path /', () => {
+    expect(parsePageRead(body({ path: '/', from: '/city/cincinnati/transit' }), CHROME)).toMatchObject({ path: '/', from: '/city/cincinnati/transit' });
   });
 
   it('drops anything that is not a reader on a public page', () => {
     expect(parsePageRead(body(), 'Mozilla/5.0 (compatible; Googlebot/2.1)')).toBeNull();
-    for (const path of ['/', '/admin', '/city/a/b/c', '/city/Cincinnati', '/docs', '/city/x?token=1']) expect(parsePageRead(body({ path }), CHROME), path).toBeNull();
+    for (const path of ['/admin', '/admin/users', '/docs/api', '/w/abc', '/city/a/b/c', '/city/Cincinnati', '/docs', '/city/x?token=1', '//']) expect(parsePageRead(body({ path }), CHROME), path).toBeNull();
     expect(parsePageRead(body({ locale: 'xx' }), CHROME)).toBeNull();
     expect(parsePageRead(body({ visitor: { id: 'short' } }), CHROME)).toBeNull();
     expect(parsePageRead(null, CHROME)).toBeNull();
@@ -62,6 +96,51 @@ describe('reading the public pages', () => {
   it('counts a page reloaded over and over 50 times a day at most', async () => {
     for (let i = 0; i < 55; i++) await view({ id: BETA }, '/map/earthquakes');
     expect(rows()).toMatchObject([{ path: '/map/earthquakes', views: 50 }]);
+  });
+
+  const logged = () => t.db.prepare('SELECT visitor_id AS id, at, path, referrer, from_path AS fromPath, browser, os, device FROM page_view ORDER BY view_id').all();
+
+  it('logs each view in order with the browser it came from, and the map’s opening without counting it as a page', async () => {
+    await view({ id: ALPHA, referrer: 'www.google.com' }, '/city/cincinnati/transit');
+    vi.setSystemTime(NOW + 60_000);
+    await view({ id: ALPHA }, '/');
+    expect(rows()).toHaveLength(1);
+    expect(logged()).toEqual([
+      { id: ALPHA, at: NOW, path: '/city/cincinnati/transit', referrer: 'www.google.com', fromPath: null, browser: 'Chrome', os: 'macOS', device: 'desktop' },
+      { id: ALPHA, at: NOW + 60_000, path: '/', referrer: '', fromPath: null, browser: 'Chrome', os: 'macOS', device: 'desktop' },
+    ]);
+  });
+
+  it('logs a quick reload or a double report once', async () => {
+    await view({ id: BETA }, '/map/earthquakes');
+    vi.setSystemTime(NOW + 5_000);
+    await view({ id: BETA }, '/map/earthquakes');
+    vi.setSystemTime(NOW + 60_000);
+    await view({ id: BETA }, '/map/earthquakes');
+    expect(logged().map(r => (r as { at: number }).at)).toEqual([NOW, NOW + 60_000]);
+  });
+});
+
+describe('logging a view', () => {
+  it('keeps the town the address is in, not the address', () => {
+    const db = openAppDb(':memory:');
+    migrateAppSchema(db);
+    const presence = createPresence(() => NOW);
+    const locate = (ip: string) => (ip === '203.0.113.5' ? { country: 'DE', region: 'Hesse', city: 'Frankfurt am Main', latitude: 50.1, longitude: 8.7 } : null);
+    const reads = createPageReads(db, { now: () => NOW, locate, presence });
+    const read = parsePageRead({ visitor: { id: ALPHA, referrer: 'duckduckgo.com' }, path: '/about', locale: 'de' }, CHROME)!;
+    reads.record(read, { ip: '203.0.113.5', country: null, userId: null });
+    reads.record({ ...read, visitorId: BETA }, { ip: '198.51.100.9', country: 'FR', userId: null });
+    expect(db.prepare('SELECT visitor_id AS id, country, region, city FROM page_view ORDER BY view_id').all()).toEqual([
+      { id: ALPHA, country: 'DE', region: 'Hesse', city: 'Frankfurt am Main' },
+      { id: BETA, country: 'FR', region: null, city: null },
+    ]);
+    expect(JSON.stringify(db.prepare('SELECT * FROM page_view').all())).not.toContain('203.0.113.5');
+    expect(presence.list().map(p => ({ key: p.key, kind: p.kind, path: p.path, referrer: p.referrer, city: p.place?.city ?? null }))).toEqual([
+      { key: ALPHA, kind: 'page', path: '/about', referrer: 'duckduckgo.com', city: 'Frankfurt am Main' },
+      { key: BETA, kind: 'page', path: '/about', referrer: 'duckduckgo.com', city: null },
+    ]);
+    db.close();
   });
 });
 

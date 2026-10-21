@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { restoreDeviceLocation, takeDeviceLocation } from '@/lib/platform/device-location';
 import { restoreActions, takeActions } from '@/lib/platform/usage-actions';
+import { reportView } from '@/components/site/page-view';
 import { arrival, visitorId } from '@/lib/platform/visitor';
 import { authClient } from '../auth-client';
 
@@ -55,6 +56,9 @@ export function useMapTime(features: readonly string[] = []): MapTime | null {
   useEffect(() => {
     latest.current = features;
   }, [features]);
+
+  // The map's opening goes in the view log, so a visit from a public page can be seen reaching it.
+  useEffect(() => reportView('/', document.documentElement.lang), []);
 
   useEffect(() => {
     let live = true;

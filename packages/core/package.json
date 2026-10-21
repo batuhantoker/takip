@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./aircraft": "./src/aircraft.ts",
+    "./crawlers": "./src/crawlers.ts",
     "./entitlements": "./src/entitlements.ts",
     "./tiles": "./src/tiles.ts",
     "./time": "./src/time.ts",
