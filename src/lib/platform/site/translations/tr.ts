@@ -873,17 +873,22 @@ const copy: SiteCopy = {
       description:
         'Dünyanın dört bir yanından canlı haber kanalları, haber merkezlerinin bulunduğu yerde haritada: bir yayını açın, olayları aynı haritada takip ederken izleyin.',
       heading: 'Canlı haber yayınları',
-      lede: 'Canlı yayın yapan yaklaşık on altı uluslararası haber kanalı, yayın yaptıkları yerde işaretli; böylece haberi, konusu olduğu haritanın yanında izleyebilirsiniz.',
+      lede: 'Dünyanın dört bir yanından canlı yayın yapan haber kanalları, yayın yaptıkları yerde ve son iki saatte bildirilen olayların yanında işaretli; böylece haberi, konusu olduğu haritanın yanında izleyebilirsiniz.',
       shows: [
-        'Her kanalın haber merkezinde bir işaret.',
-        'Yayını bir oynatıcıda açmak için birine tıklayın; gömülemiyorsa kanalın kendi sitesinde açılır.',
+        'Her kanalın haber merkezinde bir işaret. Yayında olmayan bir kanal işaretini soluk olarak korur.',
+        'Şu anda yayınladığını oynatmak için birine tıklayın; sahibi başka yerde oynatılmasına izin vermiyorsa YouTube’da açılır.',
+        'GDELT olayları: son iki saatte en az iki yayın organının bildirdiği şiddet, protesto ve gerginlik; her biri, onu bildiren yayın sayısına göre boyutlandırılır.',
       ],
-      sources: ['Kanalların kendi canlı yayınları.'],
-      freshness: 'Kanal listesi nadiren değişir; bir yayın, kanalı yayındayken canlıdır.',
+      sources: [
+        'Kanalların kendi canlı yayınları.',
+        'Dünya genelindeki haberlerden 15 dakikada bir kodlanan olaylar.',
+      ],
+      freshness: 'Hangi kanalların hangi yayınla yayında olduğu 30 dakikada bir denetlenir. GDELT haritayı açtığınızda yüklenir.',
       limits: [
-        'Her kanal her zaman canlı değildir.',
+        'Her kanal her zaman canlı değildir ve bazıları her ülkede oynamaz.',
         'İşaretler haberin geçtiği yeri değil, haber merkezini gösterir.',
         'Kanallar sahiplerinin görüşlerini yansıtır; aralarında devlet yayıncıları da var.',
+        'GDELT makine tarafından kodlanır ve bazen bir olayı bir bölgenin ortasına yerleştirir.',
       ],
     },
     traffic: {

@@ -850,17 +850,22 @@ const copy: SiteCopy = {
       title: 'Noticias en directo en un mapa: canales de TV del mundo',
       description: 'Canales de noticias en directo de todo el mundo, situados en sus redacciones en un mapa: abre una emisión y mírala mientras sigues la actualidad en el mapa.',
       heading: 'Noticias en directo',
-      lede: 'Unos dieciséis canales internacionales de noticias que emiten en directo, situados donde emiten, para que veas las noticias junto al mapa del que hablan.',
+      lede: 'Canales de noticias de todo el mundo que emiten en directo, situados donde emiten, junto a los eventos de los que se ha informado en las dos últimas horas, para que veas las noticias junto al mapa del que hablan.',
       shows: [
-        'Un marcador en la redacción de cada canal.',
-        'Haz clic en uno para abrir la emisión en un reproductor, o en la web del propio canal cuando no se puede insertar.',
+        'Un marcador en la redacción de cada canal. Un canal que no está emitiendo conserva su marcador, atenuado.',
+        'Haz clic en uno para ver lo que emite ahora, o para abrirlo en YouTube cuando su dueño no permite reproducirlo en otro sitio.',
+        'Eventos de GDELT: violencia, protestas y tensión de las que han informado al menos dos medios en las dos últimas horas, con un tamaño según cuántos medios informan de cada uno.',
       ],
-      sources: ['Las emisiones en directo de los propios canales.'],
-      freshness: 'La lista de canales cambia poco; una emisión está en directo siempre que su canal esté emitiendo.',
+      sources: [
+        'Las emisiones en directo de los propios canales.',
+        'Eventos codificados cada 15 minutos a partir de noticias de todo el mundo.',
+      ],
+      freshness: 'Qué canales están en antena, y con qué emisión, se comprueba cada 30 minutos. GDELT se carga al abrir el mapa.',
       limits: [
-        'No todos los canales están en directo todo el tiempo.',
+        'No todos los canales están en directo todo el tiempo, y algunos no se pueden ver en todos los países.',
         'Los marcadores señalan la redacción, no la noticia.',
         'Los canales reflejan el punto de vista de sus dueños, y entre ellos hay medios estatales.',
+        'GDELT se codifica automáticamente y a veces sitúa un evento en el centro de una región.',
       ],
     },
     traffic: {

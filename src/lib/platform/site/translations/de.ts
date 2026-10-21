@@ -852,17 +852,22 @@ const copy: SiteCopy = {
       title: 'Live-Nachrichten auf der Karte: TV-Sender aus aller Welt',
       description: 'Live-Nachrichtensender aus aller Welt, an ihren Redaktionen auf der Karte verortet: Öffne einen Stream und verfolge dabei das Geschehen auf derselben Karte.',
       heading: 'Live-Nachrichtenstreams',
-      lede: 'Rund sechzehn internationale Nachrichtensender, die live streamen, dort markiert, von wo sie senden, damit du die Nachrichten neben der Karte sehen kannst, um die es geht.',
+      lede: 'Nachrichtensender aus aller Welt, die live streamen, dort markiert, von wo sie senden, neben den Ereignissen der letzten zwei Stunden, damit du die Nachrichten neben der Karte sehen kannst, um die es geht.',
       shows: [
-        'Eine Markierung an der Redaktion jedes Senders.',
-        'Klick auf eine, um den Stream in einem Player zu öffnen, oder auf der eigenen Website des Senders, wo er sich nicht einbetten lässt.',
+        'Eine Markierung an der Redaktion jedes Senders. Ein Sender, der gerade nicht sendet, behält seine Markierung, blasser.',
+        'Klick auf eine, um zu sehen, was der Sender gerade ausstrahlt, oder um ihn auf YouTube zu öffnen, wo sein Eigentümer das Abspielen anderswo nicht erlaubt.',
+        'GDELT-Ereignisse: Gewalt, Proteste und Spannungen, von mindestens zwei Medien in den letzten zwei Stunden gemeldet, umso größer, je mehr Medien jeweils berichten.',
       ],
-      sources: ['Die eigenen Livestreams der Sender.'],
-      freshness: 'Die Senderliste ändert sich selten; ein Stream ist live, wann immer sein Sender sendet.',
+      sources: [
+        'Die eigenen Livestreams der Sender.',
+        'Alle 15 Minuten kodierte Ereignisse aus Nachrichten weltweit.',
+      ],
+      freshness: 'Welche Sender auf Sendung sind, und mit welcher Übertragung, wird alle 30 Minuten geprüft. GDELT lädt beim Öffnen der Karte.',
       limits: [
-        'Nicht jeder Sender ist ständig live.',
+        'Nicht jeder Sender ist ständig live, und manche laufen nicht in jedem Land.',
         'Markierungen zeigen die Redaktion, nicht den Ort der Meldung.',
         'Die Sender spiegeln die Sichtweise ihrer Eigentümer wider, und Staatssender sind darunter.',
+        'GDELT wird maschinell kodiert und setzt ein Ereignis manchmal in die Mitte einer Region.',
       ],
     },
     traffic: {

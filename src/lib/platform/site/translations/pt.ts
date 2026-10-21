@@ -870,17 +870,22 @@ const copy: SiteCopy = {
       title: 'Notícias ao vivo no mapa: canais de TV do mundo',
       description: 'Canais de notícias ao vivo do mundo todo, marcados nas suas redações: abra uma transmissão e assista enquanto acompanha os acontecimentos no mesmo mapa.',
       heading: 'Canais de notícias ao vivo',
-      lede: 'Cerca de dezesseis canais internacionais de notícias que transmitem ao vivo, marcados no lugar de onde transmitem, para você ver o noticiário ao lado do mapa de que ele fala.',
+      lede: 'Canais de notícias do mundo todo que transmitem ao vivo, marcados no lugar de onde transmitem, ao lado dos eventos relatados nas últimas duas horas, para você ver o noticiário ao lado do mapa de que ele fala.',
       shows: [
-        'Um marcador na redação de cada canal.',
-        'Clique num deles para abrir a transmissão num player, ou no próprio site do canal quando não é possível incorporá-la.',
+        'Um marcador na redação de cada canal. Um canal fora do ar mantém o seu marcador, esmaecido.',
+        'Clique num deles para assistir ao que ele transmite agora, ou para abri-lo no YouTube quando o dono não permite reproduzi-lo em outro lugar.',
+        'Eventos do GDELT: violência, protestos e tensão relatados por pelo menos dois veículos nas últimas duas horas, dimensionados pelo número de veículos que relatam cada um.',
       ],
-      sources: ['As transmissões ao vivo dos próprios canais.'],
-      freshness: 'A lista de canais muda raramente; uma transmissão está ao vivo sempre que o canal está no ar.',
+      sources: [
+        'As transmissões ao vivo dos próprios canais.',
+        'Eventos codificados a cada 15 minutos a partir de notícias do mundo todo.',
+      ],
+      freshness: 'Quais canais estão no ar, e com qual transmissão, é verificado a cada 30 minutos. O GDELT carrega quando você abre o mapa.',
       limits: [
-        'Nem todo canal está ao vivo o tempo todo.',
+        'Nem todo canal está ao vivo o tempo todo, e alguns não passam em todos os países.',
         'Os marcadores indicam a redação, não o lugar da notícia.',
         'Os canais refletem a visão dos seus donos, e há emissoras estatais entre eles.',
+        'O GDELT é codificado por máquina e às vezes coloca um evento no centro de uma região.',
       ],
     },
 

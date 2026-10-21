@@ -852,17 +852,22 @@ const copy: SiteCopy = {
       title: 'Chaînes d’info en direct sur une carte du monde',
       description: 'Des chaînes d’info en direct du monde entier, épinglées sur leurs rédactions : ouvrez un flux et regardez-le tout en suivant l’actualité sur la même carte.',
       heading: 'Chaînes d’info en direct',
-      lede: 'Environ seize chaînes d’information internationales qui diffusent en direct, épinglées là d’où elles émettent, pour regarder les infos à côté de la carte dont elles parlent.',
+      lede: 'Des chaînes d’information du monde entier qui diffusent en direct, épinglées là d’où elles émettent, à côté des événements signalés au cours des deux dernières heures, pour regarder les infos à côté de la carte dont elles parlent.',
       shows: [
-        'Un repère sur la rédaction de chaque chaîne.',
-        'Cliquez sur l’un d’eux pour ouvrir le flux dans un lecteur, ou sur le site de la chaîne quand il ne peut pas être intégré.',
+        'Un repère sur la rédaction de chaque chaîne. Une chaîne hors antenne garde son repère, estompé.',
+        'Cliquez sur l’un d’eux pour regarder ce que la chaîne diffuse maintenant, ou pour l’ouvrir sur YouTube quand son propriétaire n’autorise pas la lecture ailleurs.',
+        'Événements GDELT : violences, manifestations et tensions signalées par au moins deux médias au cours des deux dernières heures, dimensionnés selon le nombre de médias qui en parlent.',
       ],
-      sources: ['Les flux en direct des chaînes elles-mêmes.'],
-      freshness: 'La liste des chaînes change rarement ; un flux est en direct dès que sa chaîne diffuse.',
+      sources: [
+        'Les flux en direct des chaînes elles-mêmes.',
+        'Des événements codés toutes les 15 minutes à partir de l’actualité mondiale.',
+      ],
+      freshness: 'Les chaînes à l’antenne, et ce qu’elles diffusent, sont vérifiées toutes les 30 minutes. GDELT se charge à l’ouverture de la carte.',
       limits: [
-        'Toutes les chaînes ne sont pas en direct en permanence.',
+        'Toutes les chaînes ne sont pas en direct en permanence, et certaines ne passent pas dans tous les pays.',
         'Les repères marquent la rédaction, pas le lieu de l’information.',
         'Les chaînes reflètent le point de vue de leurs propriétaires, et des médias d’État en font partie.',
+        'GDELT est codé automatiquement et place parfois un événement au centre d’une région.',
       ],
     },
     traffic: {
