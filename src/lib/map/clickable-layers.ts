@@ -8,7 +8,7 @@ const CLICKABLE_LAYERS = new Set(['conflict-icons','cctv-dots','cctv-clusters','
   'gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots',
   'balloon-dots','launch-dots','rad-dots','war-alert-dots','fire-incident-dots','airport-delay-dots','chokepoint-flow-ring','outbreak-rings','ship-dots','ship-arrows','transit-dots','transit-icons','transit-city-dots','sweep-device-dots','scan-targets-dots',
   'sdk-sea','sdk-air','sdk-intel','malware-dots','cyber-heads','gdelt-events-dots',
-  'cf-outage-dots','cf-attack-dots','service-status-dots','gnss-fill','fl-commercial','fl-private','fl-jets','fl-military','fl-emergency-ring','alert-pin-dots','wx-wind','wx-temp-label','history-events','history-cells',
+  'cf-outage-dots','cf-attack-dots','service-status-dots','gnss-fill','fl-commercial','fl-private','fl-jets','fl-military','fl-emergency-ring','alert-pin-dots','wx-wind','wx-temp-label','history-events','history-labels','history-cells',
   'airport-wx-dots','sigmet-fill','fire-perimeter-fill','nhc-points','nhc-cone-fill',...ALPR_PICK_LAYERS,TRAFFIC_LAYER,TRAFFIC_FLOW_LAYER]);
 
 const isClickable = (f: maplibregl.MapGeoJSONFeature) => !!f.layer?.id && (CLICKABLE_LAYERS.has(f.layer.id) || isReferenceLayerId(f.layer.id));

@@ -127,7 +127,7 @@ export function useWarLayers({ mapRef, mapReady, history, popupRef }: {
     const onClick = (e: maplibregl.MapLayerMouseEvent) => {
       const f = e.features?.[0];
       // An event mark over the country opens its own popup.
-      const events = ['history-events', 'history-cells'].filter(l => map.getLayer(l));
+      const events = ['history-events', 'history-labels', 'history-cells'].filter(l => map.getLayer(l));
       if (!f || (events.length && map.queryRenderedFeatures(e.point, { layers: events }).length)) return;
       const code = [...shown.keys()].find(c => f.layer.id === ids(c).fill);
       const attribution = code ? shown.get(code)?.loaded?.attribution ?? null : null;

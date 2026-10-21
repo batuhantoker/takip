@@ -17,7 +17,8 @@ import { openHistoryPopup } from './history-popup';
 
 const SOURCE = 'history';
 const LAYERS = ['history-lines', 'history-cells', 'history-events', 'history-labels', 'history-cell-counts'];
-const CLICKABLE = ['history-cells', 'history-events'];
+const EVENT_MARKS = ['history-events', 'history-labels'];
+const CLICKABLE = ['history-cells', ...EVENT_MARKS];
 const FRAME_MS = 125;
 const DAY_S = 86_400;
 const YEAR_S = 365.2425 * DAY_S;
@@ -228,7 +229,7 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, kinds, p
     const pointer = () => { map.getCanvas().style.cursor = 'pointer'; };
     const unpointer = () => { map.getCanvas().style.cursor = ''; };
 
-    map.on('click', 'history-events', onEventClick);
+    map.on('click', EVENT_MARKS, onEventClick);
     map.on('click', 'history-cells', onCellClick);
     for (const id of CLICKABLE) {
       map.on('mouseenter', id, pointer);
@@ -246,7 +247,7 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, kinds, p
       reloadRef.current = () => {};
       try {
         map.off('moveend', schedule);
-        map.off('click', 'history-events', onEventClick);
+        map.off('click', EVENT_MARKS, onEventClick);
         map.off('click', 'history-cells', onCellClick);
         for (const id of CLICKABLE) {
           map.off('mouseenter', id, pointer);

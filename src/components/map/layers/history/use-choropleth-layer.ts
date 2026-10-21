@@ -26,7 +26,7 @@ const CHARTED = 'history-view-charted';
 const CHARTED_CASING = 'history-view-charted-casing';
 const LAYERS = [CHARTED, CHARTED_CASING, LINE, PROJECTED, FILL, NODATA];
 /** Events drawn over the countries; a click on one opens its popup instead of charting the country. */
-const EVENT_LAYERS = ['history-events', 'history-cells'];
+const EVENT_LAYERS = ['history-events', 'history-labels', 'history-cells'];
 const FRAME_MS = 125;
 /** Repaint once the clock has moved this many years: about a week, or a day for a weekly series. */
 const STEP_YEARS = 0.02;
