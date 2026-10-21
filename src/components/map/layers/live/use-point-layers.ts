@@ -6,7 +6,8 @@ import type { LayerHookArgs } from '@/components/map/types';
 export function useCctvLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
   useEffect(() => {
     if (!mapReady) return;
-    setGeo('cctv', activeLayers.cctv && data.cameras ? data.cameras.map((c: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: { id: c.id, name: c.name, city: c.city, country: c.country, source: c.source, feed_url: c.feed_url, stream_url: c.stream_url, stream_type: c.stream_type, external_url: c.external_url, road: c.road ? JSON.stringify(c.road) : undefined, offline: c.offline === true } })) : []);
+    // Pins only (lib/feeds/cameras/pins.ts): what a camera is comes from camera-details when it is needed.
+    setGeo('cctv', activeLayers.cctv && data.cameras ? data.cameras.map((c: any) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: { id: c.id, source: c.source, offline: c.offline === true } })) : []);
   }, [mapReady, data.cameras, activeLayers.cctv, setGeo]);
 }
 

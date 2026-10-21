@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import { Fragment, isValidElement, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  Activity, Bot, Camera, ChevronDown, ExternalLink, HardDrive, KeyRound, Map as MapIcon, Megaphone, Search, ShieldCheck, Sparkles, UserRound,
+  Activity, Bot, Camera, ChevronDown, HardDrive, KeyRound, Map as MapIcon, Megaphone, Search, ShieldCheck, Sparkles, UserRound,
 } from 'lucide-react';
+import { MailLink, PolicyNav } from '@/components/site/legal/legal-page';
 import { getT } from '@/lib/core/i18n/request';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 
@@ -300,7 +301,6 @@ export default async function PrivacyPage() {
             })}</li>
             <li>{t.rich('{keep} by leaving “Remember on this device” unticked; it is then forgotten when the tab closes.', { keep: lead(t('Keep your AI key to one session')) })}</li>
             <li>{t.rich('{only}: map layers, cameras and AI features reach out only when you switch them on or use them.', { only: lead(t('Use only what you need')) })}</li>
-            <li>{t.rich('{own}: TAKIP is open source, so you can host it yourself and decide who operates it.', { own: lead(t('Run your own copy')) })}</li>
           </ul>
         </Section>
 
@@ -308,18 +308,15 @@ export default async function PrivacyPage() {
           <p className="text-sm leading-relaxed text-ink-2">
             {t('If something here is unclear, or you think we have missed something, tell us and we will put it right.')}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2.5">
-            <a href="https://github.com/batuhantoker/takip/issues" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md border border-line-strong bg-surface-2 px-3.5 h-9 text-[13px] font-medium text-ink-1 hover:bg-surface-3">
-              <ExternalLink className="h-4 w-4" /> {t('Open an issue on GitHub')}
-            </a>
-          </div>
+          <p className="mt-3 text-sm leading-relaxed text-ink-2">
+            {t.rich('Write to {email}. For a copy of your data, a correction or a deletion, write from the email address on your account.', { email: <MailLink /> })}
+          </p>
         </Section>
 
-        <p className="mt-14 border-t border-line pt-5 text-[12px] text-ink-3">
-          {t('Last checked against the code on {date}. When a feature changes what it shares, this page changes with it.', { date: reviewed })}
-          {' '}<Link href="/terms" className="text-accent hover:underline">{t('Terms of use')}</Link>
-        </p>
+        <footer className="mt-14 border-t border-line pt-5 text-[12px] text-ink-3">
+          <p>{t('Last checked against the code on {date}. When a feature changes what it shares, this page changes with it.', { date: reviewed })}</p>
+          <PolicyNav t={t} here="/privacy" className="mt-3" />
+        </footer>
       </div>
     </main>
   );

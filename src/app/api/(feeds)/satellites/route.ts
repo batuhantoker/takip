@@ -1,6 +1,9 @@
 
 import { NextResponse } from 'next/server';
 import { propagateTLE } from '@/lib/feeds/satellites/orbit';
+import { classifySatellite } from '@/lib/feeds/satellites/classify';
+import { encodeElements } from '@/lib/feeds/satellites/elements';
+import { prebuild, servePrebuilt, type Prebuilt } from '@/lib/core/net/prebuilt';
 import { record } from '@takip/archive/recorder';
 import { downloadDue, dueGroups, emptySchedule, type Schedule, type Tle, UPDATE_MS, USER_AGENT } from './celestrak';
 
@@ -11,49 +14,6 @@ export const maxDuration = 60;
  * Fetches TLE data from multiple sources with fallbacks
  * Computes real-time positions using simplified SGP4
  */
-
-// Mission classification by NORAD name keywords
-const MISSION_CLASSIFY: Record<string, { mission: string; color: string }> = {
-  'USA': { mission: 'Military Recon', color: '#FF3D3D' },
-  'NROL': { mission: 'NRO Classified', color: '#FF3D3D' },
-  'LACROSSE': { mission: 'SAR Imaging', color: '#00E5FF' },
-  'MENTOR': { mission: 'SIGINT', color: '#FFFFFF' },
-  'ORION': { mission: 'SIGINT', color: '#FFFFFF' },
-  'TRUMPET': { mission: 'SIGINT', color: '#FFFFFF' },
-  'GPS': { mission: 'Navigation', color: '#448AFF' },
-  'NAVSTAR': { mission: 'Navigation', color: '#448AFF' },
-  'GLONASS': { mission: 'Navigation', color: '#448AFF' },
-  'GALILEO': { mission: 'Navigation', color: '#448AFF' },
-  'BEIDOU': { mission: 'Navigation', color: '#448AFF' },
-  'SBIRS': { mission: 'Early Warning', color: '#FF00FF' },
-  'DSP': { mission: 'Early Warning', color: '#FF00FF' },
-  'STARLINK': { mission: 'Commercial Comms', color: '#00E676' },
-  'ONEWEB': { mission: 'Commercial Comms', color: '#00E676' },
-  'PLANET': { mission: 'Earth Imaging', color: '#00E676' },
-  'WORLDVIEW': { mission: 'Commercial Imaging', color: '#00E676' },
-  'ISS': { mission: 'Space Station', color: '#FFD700' },
-  'TIANGONG': { mission: 'Space Station', color: '#FFD700' },
-  'COSMOS': { mission: 'Russian Military', color: '#FF6B6B' },
-  'YAOGAN': { mission: 'Chinese Recon', color: '#FF6B6B' },
-  'FENGYUN': { mission: 'Weather', color: '#87CEEB' },
-  'GOES': { mission: 'Weather', color: '#87CEEB' },
-  'NOAA': { mission: 'Weather', color: '#87CEEB' },
-  'METEOSAT': { mission: 'Weather', color: '#87CEEB' },
-  'LANDSAT': { mission: 'Earth Observation', color: '#90EE90' },
-  'SENTINEL': { mission: 'Earth Observation', color: '#90EE90' },
-  'TERRA': { mission: 'Earth Science', color: '#90EE90' },
-  'AQUA': { mission: 'Earth Science', color: '#90EE90' },
-  'HUBBLE': { mission: 'Space Telescope', color: '#FFD700' },
-  'JAMES WEBB': { mission: 'Space Telescope', color: '#FFD700' },
-};
-
-function classifySatellite(name: string): { mission: string; color: string } {
-  const upper = name.toUpperCase();
-  for (const [keyword, info] of Object.entries(MISSION_CLASSIFY)) {
-    if (upper.includes(keyword)) return info;
-  }
-  return { mission: 'Unknown', color: '#00E5FF' };
-}
 
 /**
  * Position for one TLE, in the shape this route returns.
@@ -126,6 +86,13 @@ const state = (holder.satelliteState ??= loadState());
 
 const noradOf = (sat: Tle) => sat.line1.substring(2, 7).trim();
 
+/** The element-set columns for the map (elements.ts), built once per set of TLEs. */
+let elements: { from: Tle[]; body: Prebuilt } | null = null;
+function elementsOf(sats: Tle[], meta: Record<string, unknown>): Prebuilt {
+  if (elements?.from !== sats) elements = { from: sats, body: prebuild({ ...meta, ...encodeElements(sats) }) };
+  return elements.body;
+}
+
 async function fetchSatnogs(): Promise<Tle[]> {
   const started = Date.now();
   try {
@@ -189,6 +156,8 @@ export async function GET(request: Request) {
   // Replay propagates in the browser from here on, so it asks for the element sets once.
   const withTle = params.get('tle') === '1';
   // A handful by catalogue number (?norad=40697,42063), for one window's passes instead of all 18k.
+  // ?format=elements: the sets alone, for the map to place and label itself; `at` and `tle` don't apply.
+  const asElements = params.get('format') === 'elements';
   const only = params.get('norad') ? new Set(params.get('norad')!.split(',').map(n => n.trim().padStart(5, '0'))) : null;
   const at = atParam === null || atParam === '' ? undefined : Number(atParam);
   if (at !== undefined && !Number.isFinite(at)) return NextResponse.json({ error: 'bad_time' }, { status: 400 });
@@ -208,6 +177,11 @@ export async function GET(request: Request) {
       source = 'emergency-fallback';
     }
 
+    if (asElements && !only) {
+      const meta = { source, total: allSats.length, timestamp: new Date(state.time || Date.now()).toISOString() };
+      // Unchanged until CelesTrak's sets are, so a returning map revalidates instead of downloading again.
+      return servePrebuilt(request, elementsOf(allSats, meta), 'public, max-age=300, stale-while-revalidate=3600');
+    }
     if (only) allSats = allSats.filter(sat => only.has(sat.line1.substring(2, 7).trim().padStart(5, '0')));
 
     // No artificial cap — propagate all satellites, MapLibre handles it fine
@@ -216,29 +190,14 @@ export async function GET(request: Request) {
       const pos = propagateSGP4Simple(sat.line1, sat.line2, when);
       if (!pos) continue;
 
-      const classification = classifySatellite(sat.name);
-      
-      // High-level category for sub-layer filtering
-      let category = 'other';
-      const m = classification.mission;
-      const upperName = sat.name.toUpperCase();
-      
-      // Debris detection
-      if (upperName.includes(' DEB') || upperName.includes('DEBRIS') || upperName.includes(' R/B')) {
-        category = 'other'; // debris goes to "other" category
-      } else if (m === 'Commercial Comms' || m === 'Commercial Imaging') category = 'comms';
-      else if (m === 'Navigation') category = 'navigation';
-      else if (m === 'Weather' || m === 'Earth Observation' || m === 'Earth Science') category = 'earth_obs';
-      else if (m === 'Military Recon' || m === 'NRO Classified' || m === 'SIGINT' || m === 'Early Warning' || m === 'Russian Military' || m === 'Chinese Recon' || m === 'SAR Imaging') category = 'military';
-      else if (m === 'Space Station' || m === 'Space Telescope') category = 'science';
-
+      const { mission, color, category } = classifySatellite(sat.name);
       satellites.push({
         name: sat.name,
         lat: pos.lat,
         lng: pos.lng,
         alt: pos.alt,
-        mission: classification.mission,
-        color: classification.color,
+        mission,
+        color,
         category,
         noradId: sat.line1.substring(2, 7).trim(),
         ...(withTle ? { line1: sat.line1, line2: sat.line2 } : {}),

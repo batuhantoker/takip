@@ -5,6 +5,8 @@ import { loadCameraCatalog, mergeCameraCatalog } from '@/lib/feeds/cameras/camer
 import { newsTransform } from '@/lib/intel/alerts/news-transform';
 import { noteFeed, noteFeedFailure } from '@/lib/core/feed-log';
 import { createShipBook, type ShipReply, type ShipRow } from '@/lib/feeds/maritime/ship-delta';
+import { SATELLITE_ELEMENTS_URL, satelliteData } from '@/lib/feeds/satellites/elements';
+import { FLIGHTS_URL, flightData } from '@/lib/feeds/aviation/flight-lists';
 import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import type { BackendStatus, LiveData } from './types';
 
@@ -35,8 +37,8 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
   ): Promise<boolean> => {
     if (skipWhenHidden && typeof document !== 'undefined' && document.hidden) return false;
     try {
-      // Force the browser to bypass its local disk cache for real-time data
-      const res = await fetch(url, { ...options, cache: 'no-store' });
+      // Live data skips the browser cache unless the caller asks otherwise.
+      const res = await fetch(url, { cache: 'no-store', ...options });
       if (res.ok) {
         const json = await res.json();
         const d = transform ? transform(json) : json;
@@ -143,7 +145,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     // Flights; GNSS interference is computed from the same aircraft
     if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private || activeLayers.gps_jamming) {
       if (!layerFetchedRef.current.has('flights')) {
-        fetchEndpoint('/api/flights');
+        fetchEndpoint(FLIGHTS_URL, flightData);
         layerFetchedRef.current.add('flights');
       }
     }
@@ -153,7 +155,8 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       // Fetched once, with the element sets: use-satellite-motion moves the
       // markers from there and keeps the epoch the orbit route needs current.
       // In replay useReplaySatellites loads them, and a live answer racing it would win.
-      if (!replayActive) fetchEndpoint('/api/satellites?tle=1', d => ({ ...d, satellites_at: d.timestamp }));
+      // Revalidated: the sets change a few times a day, and an unchanged answer is a 304.
+      if (!replayActive) fetchEndpoint(SATELLITE_ELEMENTS_URL, d => satelliteData(d), { cache: 'no-cache' });
       layerFetchedRef.current.add('satellites');
     }
     // Fires
@@ -201,8 +204,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     if (activeLayers.cables && !layerFetchedRef.current.has('cables')) {
       (async () => {
         try {
-          const ts = Date.now();
-      const res = await fetch(`/data/submarine-cables.json?v=${ts}`);
+          const res = await fetch('/data/submarine-cables.json');
           if (res.ok) {
              const cablesData = await res.json();
              dataRef.current = { ...dataRef.current, submarine_cables: cablesData.features };
@@ -285,7 +287,7 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     const intervals: ReturnType<typeof setInterval>[] = [];
     const stopFns: (() => void)[] = [];
     if (activeLayers.flights || activeLayers.military || activeLayers.jets || activeLayers.private || activeLayers.gps_jamming) {
-      intervals.push(setInterval(() => fetchEndpoint('/api/flights'), 300000)); // 5 min (was 2 min)
+      intervals.push(setInterval(() => fetchEndpoint(FLIGHTS_URL, flightData), 300000)); // 5 min (was 2 min)
     }
 
     if (activeLayers.balloons) {

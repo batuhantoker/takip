@@ -23,6 +23,7 @@ import { WindowLayer, windowStore } from '@/components/map/windows';
 import type { WatchedFlight } from '@/lib/feeds/aviation/flight-watch';
 import { CameraLeaders } from '@/components/map/cameras/camera-leaders';
 import CctvPreviews, { type PreviewCamera } from '@/components/map/cameras/cctv-previews';
+import { useCameraLabels } from '@/components/map/cameras/use-camera-labels';
 import MapControls from '@/components/map/controls/map-controls';
 import LiveNewsPreviews, { type PreviewFeed } from '@/components/map/cameras/live-news-previews';
 import type { AlertPinFeature } from '@/lib/intel/alerts/map-pins';
@@ -295,6 +296,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useIncidentLayers(layerArgs);
   useCyberLayers(layerArgs);
   useCctvLayer(layerArgs);
+  useCameraLabels(layerArgs);
   useNaturalEventLayers(layerArgs);
   useInfrastructureLayer(layerArgs);
   useMaritimeLayers(layerArgs);

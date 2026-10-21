@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, BookOpen, Ellipsis, Info, Keyboard, MessageSquareWarning, Settings, ShieldCheck } from 'lucide-react';
+import { BarChart3, BookOpen, Ellipsis, Info, Keyboard, Mail, MessageSquareWarning, Settings, ShieldCheck } from 'lucide-react';
 import { APP_VERSION } from '@/lib/platform/app-version';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { IconButton } from '@/components/ui/button';
@@ -47,6 +47,7 @@ export default function MoreMenu({ compact = false, rail = false, active = false
           <MenuItem icon={BookOpen} href="/docs" onSelect={close}>{t('Docs and API')}</MenuItem>
           {!compact && <MenuItem icon={Keyboard} kbd="?" onSelect={() => { close(); showShortcuts(); }}>{t('Keyboard shortcuts')}</MenuItem>}
           <MenuItem icon={ShieldCheck} href="/privacy" onSelect={close}>{t('Privacy')}</MenuItem>
+          <MenuItem icon={Mail} href="/contact" onSelect={close}>{t('Contact')}</MenuItem>
           <MenuItem icon={MessageSquareWarning} onSelect={() => { close(); showReportDialog(); }}>{t('Report an issue')}</MenuItem>
           <MenuDivider />
           <div className="flex items-center gap-0.5 pl-0.5">

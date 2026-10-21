@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { CameraOff, ExternalLink, LoaderCircle, LogIn, MapPin, Maximize2, Minimize2, PlayCircle, RefreshCw, X } from 'lucide-react';
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
 import { isHostedOffPlatform, liveFeedAtSource, localEmbed, needsResolution, offPlatformView, withdrawalCheck } from '@/lib/feeds/cameras/feed';
 import { clearLook, registerVideo } from '@/lib/intel/vision/store';
 import { Button, IconButton } from '@/components/ui/button';
@@ -122,27 +122,33 @@ export default function CameraViewer({ camera, onClose, onLocate, windowed = fal
     if (streamType === 'hls' && camera.stream_url) {
       const stream = camera.stream_url;
       const failed = () => (camera.feed_url ? setDeadStream(stream) : setError(true));
-      if (Hls.isSupported() && videoRef.current) {
-        const hls = new Hls({ enableWorker: false });
-        hlsRef.current = hls;
-        hls.loadSource(camera.stream_url);
-        hls.attachMedia(videoRef.current);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          setLoading(false);
-          videoRef.current?.play().catch(() => {});
-        });
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) failed();
-        });
-      } else if (videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
-        videoRef.current.src = camera.stream_url;
-        videoRef.current.addEventListener('error', failed, { once: true });
-        videoRef.current.addEventListener('loadedmetadata', () => {
-          setLoading(false);
-          videoRef.current?.play().catch(() => {});
-        });
-      }
-      return;
+      let live = true;
+      // Fetched when a stream plays, not with the map: hls.js is 150 KB gzipped.
+      void import('hls.js').then(({ default: Hls }) => {
+        const video = videoRef.current;
+        if (!live || !video) return;
+        if (Hls.isSupported()) {
+          const hls = new Hls({ enableWorker: false });
+          hlsRef.current = hls;
+          hls.loadSource(stream);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            setLoading(false);
+            videoRef.current?.play().catch(() => {});
+          });
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) failed();
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = stream;
+          video.addEventListener('error', failed, { once: true });
+          video.addEventListener('loadedmetadata', () => {
+            setLoading(false);
+            videoRef.current?.play().catch(() => {});
+          });
+        }
+      }, failed);
+      return () => { live = false; };
     }
 
     if (streamType === 'mjpeg' && camera.stream_url) {

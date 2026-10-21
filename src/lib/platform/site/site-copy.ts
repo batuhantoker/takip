@@ -1,4 +1,5 @@
 import { msg } from '@/lib/core/i18n/translator';
+import { CONTACT_EMAIL } from './legal';
 
 /** How TAKIP describes itself to search engines and link previews. Keep it true of what the map shows today. */
 export const SITE_NAME = 'TAKIP';
@@ -35,6 +36,8 @@ export function siteJsonLd(origin: string) {
         name: SITE_NAME,
         url: origin,
         logo: `${origin}/android-chrome-512x512.png`,
+        email: CONTACT_EMAIL,
+        contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: CONTACT_EMAIL, url: `${origin}/contact` },
       },
     ],
   };

@@ -5,6 +5,9 @@ import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/style/tokens';
 const CLUSTER_MAX_ZOOM = 12;
 
 export const CCTV_CLUSTER_LAYERS = ['cctv-clusters', 'cctv-cluster-count'];
+/** The cameras in view up close, with their names: the pins carry none (pins.ts). */
+export const CCTV_NAMED_SOURCE = 'cctv-named';
+export const CCTV_LABEL_MIN_ZOOM = 15;
 export const CCTV_LAYERS = [...CCTV_CLUSTER_LAYERS, 'cctv-dots', 'cctv-label'];
 
 export function addCctvSource(map: maplibregl.Map) {
@@ -13,6 +16,7 @@ export function addCctvSource(map: maplibregl.Map) {
     // Groups under six stay as dots: a field of "3" and "4" bubbles is louder than the dots it replaces.
     cluster: true, clusterMaxZoom: CLUSTER_MAX_ZOOM, clusterRadius: 52, clusterMinPoints: 6,
   });
+  map.addSource(CCTV_NAMED_SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
 }
 
 export function addCctvLayers(map: maplibregl.Map, color: string) {
@@ -40,7 +44,7 @@ export function addCctvLayers(map: maplibregl.Map, color: string) {
     'circle-stroke-color': MAP_INK.surface0,
     'circle-stroke-opacity': ['case', ['==', ['get', 'offline'], true], 0.4, 0.85],
   }});
-  map.addLayer({ id: 'cctv-label', type: 'symbol', source: 'cctv', minzoom: 15, filter: ['!', ['has', 'point_count']], layout: {
+  map.addLayer({ id: 'cctv-label', type: 'symbol', source: CCTV_NAMED_SOURCE, minzoom: CCTV_LABEL_MIN_ZOOM, layout: {
     'text-field': ['get', 'name'], 'text-size': LABEL_SIZE, 'text-font': ['Noto Sans Regular'],
     'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-max-width': 12, 'text-allow-overlap': false,
   }, paint: labelPaint() });

@@ -10,6 +10,9 @@ export const AVIATION_SPACE: ApiGroup = {
       path: '/api/flights',
       method: 'GET',
       summary: 'Live ADS-B aircraft, bucketed by class, with GPS interference cells.',
+      params: [
+        { name: 'format', desc: '`columns`: each list as `{ keys, cols, n }`, one array per field, with a `dict` for fields of few values and `at` for fields only some aircraft have. About two thirds of the download.', example: 'columns' },
+      ],
       returns: [
         'commercial_flights',
         'private_flights',
@@ -69,6 +72,12 @@ export const AVIATION_SPACE: ApiGroup = {
       path: '/api/satellites',
       method: 'GET',
       summary: 'Tracked orbital objects with TLE-derived positions.',
+      params: [
+        { name: 'tle', desc: '`1` adds each object\'s two TLE lines.', example: '1' },
+        { name: 'norad', desc: 'Only these catalogue numbers, comma-separated.', example: '25544' },
+        { name: 'at', desc: 'Positions at this time (Unix seconds) instead of now.', example: '1792560000' },
+        { name: 'format', desc: '`elements`: names and TLE lines only, each line cut at its fixed field boundaries into string columns (`line1`, `line2`; a repeated catalogue number is null), with an ETag. Unchanged until the sets update; place and classify them yourself.', example: 'elements' },
+      ],
       returns: ['satellites', 'total', 'category_counts', 'source', 'raw_count', 'timestamp'],
       notes: 'TLEs from celestrak.org, with SatNOGS as the fallback; `source` says which answered. `category_counts` breaks the set down by mission type.',
     },

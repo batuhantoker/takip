@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { LegalPage, type LegalSection } from '@/components/site/legal/legal-page';
 import { getT } from '@/lib/core/i18n/request';
 import { msg } from '@/lib/core/i18n/translator';
 
@@ -13,9 +13,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const UPDATED = Date.UTC(2026, 9, 19);
+const UPDATED = Date.UTC(2026, 9, 21);
 
-const SECTIONS: { id: string; title: string; items: string[] }[] = [
+const SECTIONS: LegalSection[] = [
   {
     id: 'what',
     title: msg('What TAKIP is'),
@@ -88,56 +88,16 @@ const SECTIONS: { id: string; title: string; items: string[] }[] = [
   },
 ];
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
-  return (
-    <section id={id} className="mt-12 scroll-mt-8">
-      <h2 className="text-[20px] font-semibold text-ink-1">{title}</h2>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
 export default async function TermsPage() {
   const t = await getT();
-  const updated = new Date(UPDATED).toLocaleDateString(t.intl, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
   return (
-    // docs-root releases the full-screen map's scroll lock (see globals.css), so the page scrolls.
-    <main className="docs-root min-h-screen bg-surface-0 px-5 py-14 text-ink-1 sm:px-6">
-      <div className="mx-auto max-w-[44rem]">
-        <Link href="/" className="text-[13px] text-ink-3 hover:text-ink-1">
-          {t('← Back to TAKIP')}
-        </Link>
-
-        <header className="mt-8">
-          <p className="text-[13px] font-medium text-ink-3">{t('Terms of use')}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.01em] sm:text-4xl">{t('Terms, in plain words')}</h1>
-          <p className="mt-4 text-[15px] leading-relaxed text-ink-2">
-            {t('These terms apply when you use TAKIP: the map, its public pages, accounts and the API. By using TAKIP you agree to them.')}
-            {' '}
-            <Link href="/privacy" className="text-accent hover:underline">{t('The privacy page')}</Link>
-            {' '}
-            {t('says what data we keep and why.')}
-          </p>
-        </header>
-
-        {SECTIONS.map(s => (
-          <Section key={s.id} id={s.id} title={t(s.title)}>
-            <ul className="flex list-disc flex-col gap-2.5 pl-5 text-sm leading-relaxed text-ink-2 marker:text-ink-4">
-              {s.items.map(item => <li key={item}>{t(item)}</li>)}
-            </ul>
-          </Section>
-        ))}
-
-        <Section id="contact" title={t('Questions?')}>
-          <p className="text-sm leading-relaxed text-ink-2">
-            {t('Use Report an issue in the map’s More menu; you do not need an account.')}
-          </p>
-        </Section>
-
-        <p className="mt-14 border-t border-line pt-5 text-[12px] text-ink-3">
-          {t('Last changed on {date}.', { date: updated })}
-        </p>
-      </div>
-    </main>
+    <LegalPage path="/terms" kicker={msg('Terms of use')} title={msg('Terms, in plain words')} updated={UPDATED} sections={SECTIONS}
+      lede={<p>
+        {t('These terms apply when you use TAKIP: the map, its public pages, accounts and the API. By using TAKIP you agree to them.')}
+        {' '}
+        <Link href="/privacy" className="text-accent hover:underline">{t('The privacy page')}</Link>
+        {' '}
+        {t('says what data we keep and why.')}
+      </p>} />
   );
 }

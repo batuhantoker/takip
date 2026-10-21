@@ -57,17 +57,20 @@ What this means for an adapter:
 ## 2. How it works today
 
 ```
-Browser ── GET /api/cctv?region=all ──▶ src/app/api/(feeds)/cctv/route.ts
+Browser ── GET /api/cctv?region=all&format=pins ──▶ src/app/api/(feeds)/cctv/route.ts
                                           RAW_REGION_FETCHERS { region → fetcher }
                                             + STATE_FEEDS from us-511.ts (merged in; a duplicate region throws)
                                           each wrapped in cachedSource('cctv:<region>')  (30-min TTL, stale on error)
                                           4 regions at a time, 12 s per region, 5-min backoff
-                                          prebuilt gzip payload + .cache/cctv-catalog.json snapshot
-        ◀── merged JSON (every camera, ~1.5 MB gzipped) ──
-src/lib/feeds/cameras/camera-catalog.ts   merges by id; retries pending regions only
-use-point-layers.ts         one 'cctv' GeoJSON source → cctv-dots / cctv-label layers
+                                          prebuilt gzip payloads (full and pins) + .cache/cctv-catalog.json snapshot
+        ◀── pins: id, position, source, off air (pins.ts; 106k cameras in ~0.75 MB gzipped, the full list is ~3.6 MB) ──
+src/lib/feeds/cameras/camera-catalog.ts   decodes and merges by id; retries pending regions only
+use-point-layers.ts         'cctv' GeoJSON source of pins → cctv-dots; 'cctv-named' → cctv-label from zoom 15
+camera-details.ts           GET /api/cctv/details?id=…&id=… (≤100) for the cameras a view needs, cached for the session:
+                              the click, the hover tip, CctvPreviews, use-camera-labels, an area's camera list
 CameraViewer.tsx            plays hls / mp4 / mjpeg / iframe, or a jpg refreshed every 5 s (?_t=)
-CctvPreviews.tsx            preview tiles from zoom 13 (jpg refreshed every 15 s)
+CctvPreviews.tsx            preview tiles from zoom 13 (jpg refreshed every 15 s) for the 60 pins nearest the middle
+TI (lib/ai/assist)          fetches the full /api/cctv?region=all itself, only when asked about cameras
 ```
 
 - All upstream fetching happens **server-side**. Images and streams load **in the browser, straight from the operator**, unless the host is behind `/api/cctv/proxy`.

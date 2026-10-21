@@ -9,6 +9,7 @@ import { MenuItem } from '@/components/ui/menu-item';
 import { PanelSection } from '@/components/ui/panel';
 import { Popover } from '@/components/ui/popover';
 import { useT } from '@/components/ui/use-t';
+import { useCameraRecords } from '@/components/map/cameras/use-camera-records';
 import { queryArea, type DrawnShape } from '@/lib/places/areas/draw';
 import { selectInArea, MAX_ITEMS_PER_GROUP } from '@/lib/places/areas/aoi';
 import { contentsToCSV, contentsToGeoJSON, downloadFile } from '@/lib/places/areas/aoi-export';
@@ -27,6 +28,8 @@ export default function AoiContents({ shape, data, onLocateEntity }: {
   const area = queryArea(shape);
   // A country against ~28k live objects is too slow to redo on every panel render.
   const report = useMemo(() => (area ? selectInArea(area, data || {}) : null), [area, data]);
+  // Cameras on the map are pins; an open list fetches their names.
+  const cameras = useCameraRecords(openGroup === 'cameras' ? report?.groups.find(g => g.key === 'cameras')?.items.map(it => it.id) ?? null : null);
 
   if (!report) {
     return (
@@ -78,11 +81,16 @@ export default function AoiContents({ shape, data, onLocateEntity }: {
                 />
                 {open && (
                   <ul className="mb-2 ml-[7px] flex flex-col border-l border-line pl-5">
-                    {g.items.map(it => (
-                      <li key={it.id}>
-                        <ListRow compact title={it.label} meta={it.detail} onClick={() => onLocateEntity?.(it.lat, it.lng)} aria-label={t('Show {place} on the map', { place: it.label })} />
-                      </li>
-                    ))}
+                    {g.items.map(it => {
+                      const camera = g.key === 'cameras' ? cameras.get(it.id) : undefined;
+                      const label = camera?.name ? String(camera.name) : it.label;
+                      const detail = camera ? [camera.city, camera.country].filter(Boolean).join(', ') || it.detail : it.detail;
+                      return (
+                        <li key={it.id}>
+                          <ListRow compact title={label} meta={detail} onClick={() => onLocateEntity?.(it.lat, it.lng)} aria-label={t('Show {place} on the map', { place: label })} />
+                        </li>
+                      );
+                    })}
                     {g.count > MAX_ITEMS_PER_GROUP && (
                       <li className="py-1.5 text-meta text-ink-3">
                         {t('{n} more not listed. Export to see them all.', { n: g.count - MAX_ITEMS_PER_GROUP })}

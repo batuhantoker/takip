@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET, clearCctvRefreshes } from './route';
 import { stealthFetch } from '@/lib/core/net/stealth-fetch';
+import { decodePins, isPinColumns } from '@/lib/feeds/cameras/pins';
 import { clearSourceCache } from '@/lib/core/net/source-cache';
 import { join } from 'node:path';
 
@@ -18,6 +19,17 @@ beforeEach(() => { process.env.TAKIP_CCTV_SNAPSHOT = 'off'; vi.useFakeTimers(); 
 afterEach(async () => { await flushIO(); await vi.advanceTimersByTimeAsync(12_000); vi.useRealTimers(); });
 
 describe('CCTV partial responses', () => {
+  it('answers the map with pins and no full records', async () => {
+    vi.mocked(stealthFetch).mockResolvedValue(Response.json([
+      { id: 'JamCams_1', lat: 51.5, lon: -0.1, commonName: 'London' },
+    ]));
+    const body = await (await GET(new Request('http://localhost/api/cctv?region=uk&format=pins'))).json();
+    expect(isPinColumns(body)).toBe(true);
+    expect(decodePins(body)).toEqual([expect.objectContaining({ lat: 51.5, lng: -0.1 })]);
+    expect(body.pendingRegions).toEqual([]);
+    expect(body).not.toHaveProperty('cameras');
+  });
+
   it('returns a completed region without scheduling unnecessary retries', async () => {
     vi.mocked(stealthFetch).mockResolvedValue(Response.json([
       { id: 'JamCams_1', lat: 51.5, lon: -0.1, commonName: 'London' },

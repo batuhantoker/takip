@@ -4,6 +4,7 @@ import { LOCALES } from '@/lib/core/i18n/locales';
 import { availableGuides, guidePath } from '@/lib/platform/site/guides/guides';
 import { worldPath, worldSlugs } from '@/lib/platform/site/compare/world';
 import { availablePages, pagePath } from '@/lib/platform/site/layer-pages';
+import { POLICY_LINKS } from '@/lib/platform/site/legal';
 import { liveImagePath } from '@/lib/platform/site/live-images';
 import { languageAlternates, localePath } from '@/lib/platform/site/locale-path';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
@@ -30,7 +31,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${origin}/guides`, changeFrequency: 'weekly' },
     ...availableGuides().map(g => ({ url: `${origin}${guidePath(g)}`, changeFrequency: 'monthly' as const })),
     { url: `${origin}/docs`, changeFrequency: 'weekly' },
-    { url: `${origin}/privacy`, changeFrequency: 'monthly' },
-    { url: `${origin}/terms`, changeFrequency: 'monthly' },
+    ...POLICY_LINKS.filter(l => l.href !== '/about').map(l => ({ url: `${origin}${l.href}`, changeFrequency: 'monthly' as const })),
   ];
 }

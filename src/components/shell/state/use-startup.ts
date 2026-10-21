@@ -11,6 +11,9 @@ import type { FlyToTarget } from './types';
 
 type Home = { lat: number; lng: number; zoom?: number };
 
+/** A newcomer lands on the globe over where they are, not on their streets: the satellites, aurora and night side in view. */
+const GLOBE_ZOOM = 2.3;
+
 /** The view a shared link names (share-panel.tsx writes lat, lon and zoom; a card's link adds track), if it is a real place. */
 function sharedView(p: URLSearchParams): Home | null {
   if (!p.has('lat') || !p.has('lon')) return null;
@@ -35,12 +38,12 @@ async function grantedDeviceFix(): Promise<Home | null> {
   ));
 }
 
-/** /api/geo's answer; zoomed out to the region when no two providers agreed on it. */
-function ipHome(geo: { status?: string; lat?: number; lon?: number; agreement?: number } | null): Home | null {
+/** /api/geo's answer. */
+function ipHome(geo: { status?: string; lat?: number; lon?: number } | null): Home | null {
   const { lat, lon } = geo ?? {};
   if (geo?.status !== 'success' || typeof lat !== 'number' || typeof lon !== 'number' ||
       !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
-  return { lat, lng: lon, zoom: (geo.agreement ?? 0) >= 2 ? 8 : 6 };
+  return { lat, lng: lon };
 }
 
 /** On mount: restore layers, probe optional feeds, and fly to a shared view or the viewer's city once the splash has gone. */
@@ -58,13 +61,13 @@ export function useStartup({ setActiveLayers, setFlyToLocation, splashGone }: {
   /** Set once the viewer (or a shared run) takes the camera, so a late answer does not fly it away. */
   const autoLocateCancelled = useRef(false);
 
-  /* Fly from the globe down to the viewer's city once the splash has gone.
+  /* Turn the globe to the viewer once the splash has gone; a shared link's own zoom wins.
      Starting as it began to fade meant a busy first load (the satellite
-     catalogue is ~19k objects) could hold the fade until the camera was
-     nearly at street level, and the globe was never seen. */
+     catalogue is ~19k objects) could hold the fade until the camera had
+     moved, and the opening globe was never seen. */
   useEffect(() => {
     if (!splashGone || !homeLocation || autoLocateCancelled.current) return;
-    setFlyToLocation({ ...homeLocation, zoom: homeLocation.zoom ?? 8, duration: 3500, quiet: true, ts: Date.now() });
+    setFlyToLocation({ ...homeLocation, zoom: homeLocation.zoom ?? GLOBE_ZOOM, duration: 3500, quiet: true, ts: Date.now() });
   }, [splashGone, homeLocation, setFlyToLocation]);
 
   useEffect(() => {
@@ -132,7 +135,7 @@ export function useStartup({ setActiveLayers, setFlyToLocation, splashGone }: {
     const landSomewhere = () => {
       if (located || geoController.signal.aborted) return;
       const zone = timeZoneCity(browserTimeZone());
-      if (zone) return land({ lng: zone[0], lat: zone[1], zoom: 5 });
+      if (zone) return land({ lng: zone[0], lat: zone[1] });
       const city = pickLandingCity();
       land({ lat: city.lat, lng: city.lng });
     };

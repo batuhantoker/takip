@@ -32,34 +32,41 @@ import { chokepointFlowPopupHtml } from '@/lib/feeds/maritime/chokepoint-flow';
 import { outbreakPopupHtml } from '@/lib/feeds/hazards/outbreaks';
 import { TRANSIT_CITY_LAYER, TRANSIT_PICK_LAYERS } from '@/lib/feeds/transit/map-layers';
 import { TRANSIT_MIN_ZOOM } from '@/lib/feeds/transit/view';
+import { cameraDetail } from '@/lib/feeds/cameras/camera-details';
 import type { CameraInfo, InspectSink, TransitTarget } from '@/components/map/inspect/types';
 import type { ShowPopup, WorldMapProps } from '@/components/map/types';
 
 export function bindCctvAndQuakeClicks(map: maplibregl.Map, popup: ShowPopup, onEntityClick: WorldMapProps['onEntityClick'], sink: InspectSink) {
   bindCctvClusterClicks(map);
   // A camera opens the inspect card and the floating player together.
-  map.on('click', 'cctv-dots', e => {
+  // The dot is a pin (lib/feeds/cameras/pins.ts); the camera's record is fetched as the map flies to it.
+  map.on('click', 'cctv-dots', async e => {
     if (!e.features?.length) return;
     const p = e.features[0].properties as any;
     const coords = (e.features[0].geometry as any).coordinates;
-    const camera: CameraInfo = {
-      id: String(p.id ?? `${coords[0]},${coords[1]}`),
-      name: p.name,
-      city: p.city,
-      country: p.country,
-      source: p.source,
-      feed_url: p.feed_url,
-      stream_url: p.stream_url,
-      stream_type: p.stream_type,
-      external_url: p.external_url,
-      road: p.road,
-      offline: p.offline === true,
-      lat: coords[1],
-      lng: coords[0],
-    };
-    if (!sink.open({ kind: 'camera', id: camera.id, camera })) return;
-    onEntityClick?.({ type: 'cctv', ...camera });
+    const id = String(p.id ?? `${coords[0]},${coords[1]}`);
+    const pin: CameraInfo = { id, name: '', source: p.source, offline: p.offline === true, lat: coords[1], lng: coords[0] };
+    // Claimed before the wait: the sink lets only the first layer under a click open.
+    if (!sink.open({ kind: 'camera', id, camera: pin })) return;
     map.flyTo({ center: coords, zoom: Math.max(map.getZoom(), 13), duration: 1000 });
+    const r = await cameraDetail(id);
+    // Gone from the catalogue, or unreachable: a player with no stream would open blank.
+    if (!r) return;
+    const field = (k: string) => (r[k] == null ? undefined : String(r[k]));
+    const camera: CameraInfo = {
+      ...pin,
+      name: field('name') ?? '',
+      city: field('city'),
+      country: field('country'),
+      source: field('source') ?? pin.source,
+      feed_url: field('feed_url'),
+      stream_url: field('stream_url'),
+      stream_type: field('stream_type'),
+      external_url: field('external_url'),
+      road: r.road ? JSON.stringify(r.road) : undefined,
+      offline: (r.offline ?? pin.offline) === true,
+    };
+    onEntityClick?.({ type: 'cctv', ...camera });
   });
 
   // ── Earthquakes (with USGS link) ──

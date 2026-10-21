@@ -112,7 +112,9 @@ describe('the camera tool', () => {
     const flown: number[][] = [];
     return {
       looked, flown,
-      data: () => ({ cameras: CAMS }),
+      // The page holds pins only; the camera tool fetches the full records itself.
+      data: () => ({ cameras: CAMS.map(({ id, lat, lng }) => ({ id, lat, lng, source: 'DGT' })) }),
+      get: async (path: string) => (path === '/api/cctv?region=all' ? { cameras: CAMS } : null),
       view: () => ({ lat: 0, lng: 0, zoom: 2, projection: 'globe', style: 'dark' }),
       layers: () => ({ cctv: true }),
       flyTo: (lat, lng, zoom) => { flown.push([lat, lng, zoom ?? 0]); },

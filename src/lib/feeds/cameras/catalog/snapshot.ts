@@ -1,7 +1,7 @@
-import { gzipSync } from 'node:zlib';
-import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { prebuild, type Prebuilt } from '@/lib/core/net/prebuilt';
+import { encodePins } from '@/lib/feeds/cameras/pins';
 
 /**
  * TAKIP — the camera catalogue, saved.
@@ -71,10 +71,10 @@ export async function writeSnapshot(regions: RegionCameras): Promise<void> {
   await rename(temporary, path);
 }
 
-export interface Payload {
-  json: Buffer;
-  gzip: Buffer;
-  etag: string;
+export interface Payload extends Prebuilt {
+  /** The same catalogue as the map's pins (pins.ts). */
+  pins: Prebuilt;
+  byId: Map<string, Camera>;
   total: number;
   complete: boolean;
   builtAt: number;
@@ -83,12 +83,14 @@ export interface Payload {
 let payload: Payload | undefined;
 
 /** Serialise and compress once, then hand the same buffers to every caller. */
-export function buildPayload(body: unknown, total: number, complete: boolean): Payload {
-  const json = Buffer.from(JSON.stringify(body));
+export function buildPayload(body: { cameras: Camera[] } & Record<string, unknown>, total: number, complete: boolean): Payload {
+  const { cameras, ...meta } = body;
+  // The pins' own `sources` (the names they index) stands in for the per-source counts.
+  delete meta.sources;
   payload = {
-    json,
-    gzip: gzipSync(json, { level: 6 }),
-    etag: `W/"${createHash('sha1').update(json).digest('base64url')}"`,
+    ...prebuild(body),
+    pins: prebuild({ ...meta, ...encodePins(cameras) }),
+    byId: new Map(cameras.map(c => [String(c.id), c])),
     total,
     complete,
     builtAt: Date.now(),

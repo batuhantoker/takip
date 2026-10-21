@@ -14,10 +14,19 @@ export const SURVEILLANCE: ApiGroup = {
         { name: 'region', desc: 'Comma-separated region ids, or `all`. Without any parameter, every region.', example: 'uk' },
         { name: 'lat', desc: 'With `lng`, loads the regions that cover this point.', example: '51.5072' },
         { name: 'lng', desc: 'With `lat`, loads the regions that cover this point.', example: '-0.1276' },
+        { name: 'format', desc: '`pins` for positions only, as columns: `ids`, `source` (an index into `sources`), `lat` and `lng` as deltas in steps of 1e-5°, and `offline` (indexes). About a quarter of the full download; the map uses it.', example: 'pins' },
       ],
       returns: ['cameras', 'total', 'sources', 'regions', 'pendingRegions', 'timestamp'],
       notes:
         'The whole catalogue is served gzipped with an ETag. Some camera URLs point at TAKIP relays under /api/cctv/ (FAA, TxDOT, Seoul TOPIS, Traffic Scotland, İBB), which take a camera id rather than a URL.',
+    },
+    {
+      path: '/api/cctv/details',
+      method: 'GET',
+      summary: 'Full records for cameras by id, as /api/cctv lists them.',
+      params: [{ name: 'id', required: true, desc: 'A camera id; repeat it for more, up to 100. Repeated rather than comma-separated because some ids contain commas.', example: 'tfl-JamCams_00001.02151' }],
+      returns: ['cameras'],
+      notes: 'Ids the catalogue no longer holds are left out.',
     },
     {
       path: '/api/cctv/stream-status',

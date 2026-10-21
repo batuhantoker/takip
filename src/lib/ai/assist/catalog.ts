@@ -209,7 +209,9 @@ export const SOURCES: Record<FindLayer, Source> = {
   },
   cameras: {
     about: 'Live public traffic and city cameras.',
-    layers: ['cctv'], keys: ['cameras'], partial: 'only the public cameras TAKIP knows of',
+    // The map holds only pins (lib/feeds/cameras/pins.ts); TI fetches the full records when asked.
+    layers: ['cctv'], keys: ['camera_records'], own: true, partial: 'only the public cameras TAKIP knows of',
+    feed: { url: '/api/cctv?region=all', pick: d => ({ camera_records: Array.isArray(d.cameras) ? d.cameras : [] }) },
     normalize: (r, i) => ({ id: str(r.id) || `cam-${i}`, layer: 'cameras', ...coords(r.lat, r.lng), raw: r, title: str(r.name) || 'Camera', detail: join(r.city, r.country, r.source, r.offline === true ? 'off air' : ''), time: null, value: null }),
   },
   satellites: {

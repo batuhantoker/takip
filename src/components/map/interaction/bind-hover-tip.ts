@@ -2,6 +2,7 @@ import type * as maplibregl from 'maplibre-gl';
 import { activeIntl, t } from '@/lib/core/i18n/active';
 import { alprTip } from '@/lib/feeds/cameras/alpr-describe';
 import { ALPR_PICK_LAYERS } from '@/lib/feeds/cameras/alpr-layers';
+import { cachedCamera, cameraDetail } from '@/lib/feeds/cameras/camera-details';
 import { FLIGHT_LAYER_LABEL } from '@/components/map/inspect/live';
 import type { FlightLayer } from '@/components/map/inspect/types';
 import { STILL_KNOTS } from '@/lib/map/course';
@@ -22,7 +23,8 @@ import type { ReplayEntity } from '@/lib/map/replay/track-sample';
 const DELAY_MS = 150;
 const OFFSET = 14;
 
-type Tip = { key: string; name: string; meta: string };
+/** `load` fetches what the tip lacks once the pointer rests; the tip is then drawn again. */
+type Tip = { key: string; name: string; meta: string; load?: () => Promise<unknown> };
 type Props = Record<string, unknown>;
 
 const n = (v: unknown) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
@@ -34,7 +36,14 @@ const DESCRIBE: Record<string, (p: Props, layer: string) => Tip | null> = {
   [EMERGENCY_PICK]: p => { const tip = flight(p, String(p.layer)); return { ...tip, meta: join([`<span class="tk-fg-red">${htmlEsc(String(p.declared))}</span>`, tip.meta]) }; },
   'fl-military': flight, 'fl-jets': flight, 'fl-private': flight, 'fl-commercial': flight,
   'cctv-clusters': p => ({ key: `cluster:${p.cluster_id}`, name: t('{n, plural, one {# camera} other {# cameras}}', { n: Number(p.point_count) }), meta: t('Click to zoom in') }),
-  'cctv-dots': p => ({ key: `camera:${p.id}`, name: String(p.name || t('Camera')), meta: htmlEsc(join([t('Camera'), [p.city, p.country].filter(Boolean).join(', '), p.offline === true && t('Off air')])) }),
+  // The dot is a pin; its name and place come from camera-details.
+  'cctv-dots': p => {
+    const id = String(p.id);
+    const r = cachedCamera(id);
+    const offAir = p.offline === true && t('Off air');
+    const meta = r ? join([t('Camera'), [r.city, r.country].filter(Boolean).join(', '), offAir]) : join([String(p.source ?? ''), offAir]);
+    return { key: `camera:${id}`, name: String(r?.name || t('Camera')), meta: htmlEsc(meta), load: r === undefined ? () => cameraDetail(id) : undefined };
+  },
   'alert-pin-dots': p => ({ key: `alert:${p.id}`, name: String(p.title || t('Report')), meta: htmlEsc(join([p.kind === 'rocket' ? t('Rocket alert') : p.kind === 'event' ? t('Event') : t('News'), String(p.place_name || '')])) }),
   'eq-circles': p => {
     const m = n(p.magnitude);
@@ -133,6 +142,7 @@ export function bindHoverTip(map: maplibregl.Map, inspected: (key: string) => bo
     return replayHit;
   };
 
+  let drawn = '';
   const update = () => {
     frame = 0;
     if (!point || map.isMoving() || paused()) { hide(); return; }
@@ -141,20 +151,26 @@ export function bindHoverTip(map: maplibregl.Map, inspected: (key: string) => bo
     const replayed = f?.layer || sat ? null : replayUnder(point);
     const tip = f?.layer ? DESCRIBE[f.layer.id]?.(f.properties ?? {}, f.layer.id) ?? null : sat ? satTip(sat) : replayed ? replayTip(replayed) : null;
     if (!tip || inspected(tip.key)) { hide(); return; }
-    if (tip.key === shown) { place(point); return; }
-    if (tip.key === pending) return;
+    const html = `<div class="tk-hover-tip-name">${htmlEsc(tip.name)}</div>${tip.meta ? `<div class="tk-hover-tip-meta">${tip.meta}</div>` : ''}`;
+    if (tip.key === shown || tip.key === pending) {
+      // The same thing, perhaps better described now that its details have arrived.
+      if (drawn !== html) el.innerHTML = drawn = html;
+      if (tip.key === shown) place(point);
+      return;
+    }
     // A new thing under the pointer: swap the text now, show it once the pointer rests.
     clearTimeout(timer);
     el.classList.remove('is-on');
     shown = null;
     pending = tip.key;
-    el.innerHTML = `<div class="tk-hover-tip-name">${htmlEsc(tip.name)}</div>${tip.meta ? `<div class="tk-hover-tip-meta">${tip.meta}</div>` : ''}`;
+    el.innerHTML = drawn = html;
     timer = setTimeout(() => {
       if (pending !== tip.key || !point) return;
       shown = tip.key;
       pending = null;
       place(point);
       el.classList.add('is-on');
+      tip.load?.().then(() => { if (point && shown === tip.key) frame ||= requestAnimationFrame(update); });
     }, DELAY_MS);
   };
 

@@ -143,6 +143,8 @@ export async function scanArea(a: Record<string, unknown>, lk: Lookup, signal?: 
     return fail('scan', 'Give near: a place or {lat, lng}');
   }
   if (!isSite(lk)) await Promise.all((wanted.length ? wanted : SERVER_SCAN).map(l => ensure(lk, l, signal)));
+  // The page holds only camera pins; their records are fetched when the scan would have read cameras.
+  else if (wanted.includes('cameras') || (!wanted.length && lk.layers().cctv)) await ensure(lk, 'cameras', signal);
   let rows = scan(dataOf(lk), bounds, wanted.length ? wanted : undefined);
   if (centre) {
     const c = centre;

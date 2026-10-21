@@ -2,7 +2,8 @@ import { REFERENCE_LAYER_DEFAULTS } from '@/lib/feeds/reference/catalog';
 
 // ── DEFAULT: Most layers OFF — fast initial load ──
 export const DEFAULT_LAYERS = {
-  flights: false,
+  // Airliners on from the start: the live traffic the title promises (lib/feeds/aviation/flight-lists.ts keeps it light).
+  flights: true,
   private: false,
   jets: false,
   military: false,
@@ -26,10 +27,11 @@ export const DEFAULT_LAYERS = {
   sat_earth: false,
   sat_science: false,
   balloons: false,
-  launches: false,
+  // On from the start with the satellites: the space a newcomer should see first, and a few KB each.
+  launches: true,
   /* The bright stars, Sun, Moon and planets behind the globe — see lib/space/globe/sky-layer. */
   sky_stars: true,
-  aurora: false,
+  aurora: true,
   cctv: true,
   /* The live preview tiles over the camera dots — see CctvPreviews. */
   cctv_previews: true,
@@ -54,9 +56,9 @@ export const DEFAULT_LAYERS = {
   sdk_sea: true,
   sdk_air: true,
   sdk_naval: true,
-  /* NOAA's infrared cloud mosaic — see lib/feeds/weather/clouds. Off until asked for:
-     it veils everything under it. */
-  live_clouds: false,
+  /* NOAA's infrared cloud mosaic — see lib/feeds/weather/clouds. On from the start: the live Earth
+     reads at a glance on the globe newcomers land on, though it veils what is under it. */
+  live_clouds: true,
   /* Global weather — GFS and Open-Meteo, RainViewer radar; see lib/feeds/weather. */
   wx_temperature: false,
   wx_wind: false,

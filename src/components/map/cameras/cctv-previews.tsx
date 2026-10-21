@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Maximize2 } from 'lucide-react';
 import { useT } from '@/components/ui/use-t';
+import { cameraDetails } from '@/lib/feeds/cameras/camera-details';
 import { freshen, previewMedia, refreshInterval, VIDEO_KINDS, type PreviewKind } from '@/lib/feeds/cameras/preview';
 import { layoutTile, tileHeight, tilesOverlap, type TileGeometry } from '@/lib/feeds/cameras/tile-layout';
 import type { Map as MlMap } from 'maplibre-gl';
@@ -30,6 +31,8 @@ const MIN_ZOOM = 13;
 const MAX_TILES = 8;
 /** Simultaneously decoding tiles. Snapshots fill whatever is left of MAX_TILES. */
 const MAX_VIDEO_TILES = 4;
+/** Cameras looked up per settle, nearest the middle first: enough to fill MAX_TILES past embeds and overlaps. */
+const LOOKUP = 60;
 
 /** 16:9 frame, so nothing is letterboxed inside its own container. */
 const GEOM: TileGeometry = { width: 176, imageHeight: 99, labelHeight: 20, gap: 26 };
@@ -269,7 +272,9 @@ function CctvPreviews({ mapRef, active, onOpen }: {
   const nodes = useRef(new Map<string, HTMLDivElement | null>());
 
   /** Pick which cameras get a tile. Runs only when the map settles. */
-  const recompute = useCallback(() => {
+  const generation = useRef(0);
+  const recompute = useCallback(async () => {
+    const mine = ++generation.current;
     const map = mapRef.current;
     if (!map || !active || map.getZoom() < MIN_ZOOM) {
       setCams(prev => (prev.length ? [] : prev));
@@ -287,32 +292,41 @@ function CctvPreviews({ mapRef, active, onOpen }: {
     const cx = canvas.clientWidth / 2;
     const cy = canvas.clientHeight / 2;
 
+    /* The dots are pins (lib/feeds/cameras/pins.ts): the nearest few to the middle are looked up, and only
+       those whose record has a picture to show become candidates. */
     const seen = new Set<string>();
-    const candidates: { cam: PreviewCamera; box: ReturnType<typeof layout>; d: number }[] = [];
-
+    const near: { id: string; coords: [number, number]; pt: { x: number; y: number }; d: number }[] = [];
     for (const f of feats) {
       const p = (f.properties ?? {}) as Record<string, unknown>;
       const id = String(p.id ?? '');
       if (!id || seen.has(id) || p.offline === true) continue;
+      const coords = (f.geometry as { coordinates?: [number, number] })?.coordinates;
+      if (!coords) continue;
+      seen.add(id);
+      const pt = map.project(coords);
+      near.push({ id, coords, pt, d: (pt.x - cx) ** 2 + (pt.y - cy) ** 2 });
+    }
+    near.sort((a, b) => a.d - b.d);
+    const looked = near.slice(0, LOOKUP);
+    const records = await cameraDetails(looked.map(n => n.id));
+    if (mine !== generation.current) return;
 
-      const str = (k: string) => (p[k] ? String(p[k]) : undefined);
+    const candidates: { cam: PreviewCamera; box: ReturnType<typeof layout>; d: number }[] = [];
+    for (const { id, coords, pt, d } of looked) {
+      const r = records.get(id);
+      if (!r || r.offline === true) continue;
+      const str = (k: string) => (r[k] ? String(r[k]) : undefined);
       /* What this camera can actually show in a tile. Null means it needs an
          embed, or has no usable URL — either way it stays a dot. */
       const media = previewMedia({ stream_type: str('stream_type'), feed_url: str('feed_url'), stream_url: str('stream_url') });
       if (!media) continue;
-
-      const coords = (f.geometry as { coordinates?: [number, number] })?.coordinates;
-      if (!coords) continue;
-      seen.add(id);
-
-      const pt = map.project(coords);
       candidates.push({
         cam: {
           id,
-          name: String(p.name ?? 'CAMERA'),
+          name: String(r.name ?? 'CAMERA'),
           lng: coords[0],
           lat: coords[1],
-          feed_url: String(p.feed_url ?? ''),
+          feed_url: String(r.feed_url ?? ''),
           city: str('city'),
           country: str('country'),
           source: str('source'),
@@ -322,7 +336,7 @@ function CctvPreviews({ mapRef, active, onOpen }: {
           media,
         },
         box: layout(pt, canvas.clientWidth, canvas.clientHeight),
-        d: (pt.x - cx) ** 2 + (pt.y - cy) ** 2,
+        d,
       });
     }
 
@@ -361,10 +375,10 @@ function CctvPreviews({ mapRef, active, onOpen }: {
        rendering settles, and `sourcedata` catches the camera list refreshing
        under a stationary map. */
     const onSourceData = (e: { sourceId?: string; isSourceLoaded?: boolean }) => {
-      if (e.sourceId === 'cctv' && e.isSourceLoaded) recompute();
+      if (e.sourceId === 'cctv' && e.isSourceLoaded) void recompute();
     };
 
-    recompute();
+    void recompute();
     map.on('moveend', recompute);
     map.on('zoomend', recompute);
     map.on('idle', recompute);

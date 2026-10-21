@@ -4,6 +4,7 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { PageView } from '@/components/site/page-view';
 import { LOCALES, LOCALE_NAMES } from '@/lib/core/i18n/locales';
 import type { Translate } from '@/lib/core/i18n/translator';
+import { POLICY_LINKS } from '@/lib/platform/site/legal';
 import { isReadingPath, localePath } from '@/lib/platform/site/locale-path';
 
 /** The kit's primary and secondary buttons, for links. */
@@ -28,10 +29,8 @@ export function SiteFrame({ t, path, trail = [], children }: {
   const footer = [
     { href: '/', label: t('Open the map') },
     { href: here('/map'), label: t('Everything on the map') },
-    { href: here('/about'), label: t('About TAKIP') },
     { href: '/docs', label: t('Docs and API') },
-    { href: '/privacy', label: t('Privacy') },
-    { href: '/terms', label: t('Terms') },
+    ...POLICY_LINKS.map(l => ({ href: here(l.href), label: t(l.label) })),
   ];
   return (
     // docs-root releases the full-screen map's scroll lock (see globals.css), so the page scrolls.

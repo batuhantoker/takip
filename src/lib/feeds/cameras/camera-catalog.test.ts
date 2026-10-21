@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadCameraCatalog, mergeCameraCatalog } from './camera-catalog';
+import { encodePins } from './pins';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
-const json = (cameras: { id: string }[], pendingRegions: string[] = []) => Response.json({ cameras, pendingRegions });
+const at = (id: string) => ({ id, lat: 51.5, lng: -0.1, source: 'TfL' });
+const json = (cameras: { id: string }[], pendingRegions: string[] = []) => Response.json({ ...encodePins(cameras.map(c => at(c.id))), pendingRegions });
 
 describe('progressive camera catalogue', () => {
   it('retries only missing regions, preserving cameras already loaded', async () => {
@@ -13,10 +15,11 @@ describe('progressive camera catalogue', () => {
     let cameras: { id: string | number }[] = [];
     const stop = loadCameraCatalog(batch => { cameras = mergeCameraCatalog(cameras, batch); }, vi.fn());
     await vi.advanceTimersByTimeAsync(0);
-    expect(cameras).toEqual([{ id: 'london' }]);
+    expect(fetcher.mock.calls[0][0]).toBe('/api/cctv?region=all&format=pins');
+    expect(cameras).toEqual([at('london')]);
     await vi.advanceTimersByTimeAsync(15_000);
-    expect(fetcher.mock.calls[1][0]).toBe('/api/cctv?region=canada');
-    expect(cameras).toEqual([{ id: 'london' }, { id: 'ottawa' }]);
+    expect(fetcher.mock.calls[1][0]).toBe('/api/cctv?region=canada&format=pins');
+    expect(cameras).toEqual([at('london'), at('ottawa')]);
     await vi.advanceTimersByTimeAsync(120_000);
     expect(fetcher).toHaveBeenCalledTimes(2);
     stop();

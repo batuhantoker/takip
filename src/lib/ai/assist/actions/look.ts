@@ -3,11 +3,11 @@ import { haversine } from '@/lib/core/geodesic';
 import { countWords, describeFrame, describeWatch, forModel, type FrameAnalysis, type WatchSummary } from '../../../intel/vision/analysis';
 import { sourceOf } from '../../../intel/vision/source';
 import type { CameraRecord, Outcome, Site } from '../tools';
-import { ensure, fail, given, numIn, ok, placeOf, str } from './shared';
+import { dataOf, ensure, fail, given, numIn, ok, placeOf, str } from './shared';
 
-/** The cameras the page holds, as records the camera tool can open. */
+/** The full camera records TI fetched (catalog.ts), as records the camera tool can open. */
 export function camerasIn(data: Record<string, unknown>): CameraRecord[] {
-  const raw = Array.isArray(data.cameras) ? data.cameras : [];
+  const raw = Array.isArray(data.camera_records) ? data.camera_records : [];
   const out: CameraRecord[] = [];
   for (const r of raw) {
     if (!r || typeof r !== 'object') continue;
@@ -23,7 +23,7 @@ export function camerasIn(data: Record<string, unknown>): CameraRecord[] {
 export async function camera(a: Record<string, unknown>, site: Site, signal?: AbortSignal): Promise<Outcome> {
   if (!site.camera) return fail('camera', 'Cameras cannot be looked through here');
   if (!(await ensure(site, 'cameras', signal))) return fail('camera', 'The cameras have not loaded yet; try again in a moment');
-  const all = camerasIn(site.data());
+  const all = camerasIn(dataOf(site));
   const id = str(a.id, 200);
   let cam: CameraRecord | undefined;
   let km: number | undefined;

@@ -1,5 +1,7 @@
 
 import { NextResponse } from 'next/server';
+import { toColumns } from '@/lib/core/columns';
+import { prebuild, servePrebuilt, type Prebuilt } from '@/lib/core/net/prebuilt';
 import { record } from '@takip/archive/recorder';
 import { TAKIP_USER_AGENT } from '@/lib/core/net/user-agent';
 import { classifyFlight } from './classify';
@@ -188,250 +190,258 @@ function ingestAc(raw: any[], into: any[], seen: Set<string>) {
   }
 }
 
-export async function GET() {
-  const now = Date.now();
+const FLIGHT_LISTS = ['commercial_flights', 'private_flights', 'private_jets', 'military_flights'] as const;
+type FlightsAnswer = { total: number; source: string; [key: string]: unknown };
+const FRESH = 'public, s-maxage=30, stale-while-revalidate=60';
+/** Served while a refresh runs; past this age its source says it is stale. */
+const STALE_MARK_MS = 5 * 60_000;
 
-  if (cachedData && now - lastFetchTime < CACHE_TTL) {
-    return NextResponse.json(cachedData, {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
-    });
+/** The same answer with each list as columns (lib/core/columns.ts), for the map: built once per fetch. */
+let columns: { from: unknown; body: Prebuilt } | null = null;
+function columnsOf(data: FlightsAnswer): Prebuilt {
+  const held = columns;
+  if (held && held.from === data) return held.body;
+  const out: Record<string, unknown> = { ...data, format: 'flights' };
+  for (const list of FLIGHT_LISTS) out[list] = toColumns((data[list] as Record<string, unknown>[] | undefined) ?? []);
+  const body = prebuild(out);
+  columns = { from: data, body };
+  return body;
+}
+
+export async function GET(request: Request) {
+  const asColumns = new URL(request.url).searchParams.get('format') === 'columns';
+  const answer = (data: FlightsAnswer, cacheControl: string) => (asColumns
+    ? servePrebuilt(request, columnsOf(data), cacheControl)
+    : NextResponse.json(data, { headers: { 'Cache-Control': cacheControl } }));
+
+  if (cachedData && Date.now() - lastFetchTime < CACHE_TTL) return answer(cachedData, FRESH);
+  // Past its TTL the last answer goes out at once and the refresh runs behind it: nobody waits on the upstreams.
+  if (cachedData) {
+    if (!fetchPromise) refresh().catch(error => console.error('[TAKIP] Flight fetch error:', error));
+    const stale = Date.now() - lastFetchTime > STALE_MARK_MS;
+    return answer(stale ? { ...cachedData, source: (cachedData.source || 'unknown') + '+stale' } : cachedData, 'no-store, max-age=0');
   }
-
-  if (fetchPromise) {
-    try {
-      const data = await fetchPromise;
-      return NextResponse.json(data, {
-        headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
-      });
-    } catch {
-      return NextResponse.json({ error: 'Failed to fetch flight data' }, { status: 500 });
-    }
-  }
-
-  fetchPromise = (async () => {
-    const allRaw: any[] = [];
-    const seenHex = new Set<string>();
-    let source: string;
-
-    // ── Phase 1 + 2 in parallel: global military feed AND OpenSky simultaneously ──
-    // Running them together keeps total wall-clock time to max(mil_feed, opensky)
-    // instead of sum. The military feed runs every cycle regardless of OpenSky
-    // status and is always current, so military traffic stays live even while an
-    // anonymous OpenSky snapshot is waiting out its interval.
-    const skipOpenSky =
-      Date.now() < openSkyCooldownUntil ||
-      Date.now() - osSnapshotTime < openSkyInterval();
-    const token = skipOpenSky ? null : await getOpenSkyToken();
-    const osInit: RequestInit = {
-      signal: AbortSignal.timeout(30000),
-      headers: { 'User-Agent': TAKIP_USER_AGENT, ...(token && { Authorization: `Bearer ${token}` }) },
-    };
-
-    // adsb.lol (ODbL) first; adsb.fi's /mil (non-commercial) only when it gives us nothing.
-    const [lolMilRes, osRes] = await Promise.allSettled([
-      fetchAdsbLolMil(),
-      skipOpenSky
-        ? Promise.reject(new Error('OpenSky in cooldown'))
-        // extended=1 appends the ADS-B emitter category as an 18th field. Without
-        // it the state vector is 17 long and s[17] below is silently undefined,
-        // which is what made every category_os test in classifyFlight() dead.
-        // It does not change the credit cost — that is set by the area queried.
-        : fetch(OPENSKY_STATES, osInit),
-    ]);
-
-    const lolMil = lolMilRes.status === 'fulfilled' ? lolMilRes.value : null;
-    if (lolMil) ingestAc(lolMil, allRaw, seenHex);
-    const milRes = lolMil
-      ? null
-      : (await Promise.allSettled([fetch(ADSBFI_MIL, { signal: AbortSignal.timeout(15000), headers: { 'User-Agent': TAKIP_USER_AGENT } })]))[0];
-
-    // Drain the adsb.fi fallback — parse on ok, discard the body otherwise to free the connection.
-    if (milRes?.status === 'fulfilled') {
-      if (milRes.value.ok) {
-        try {
-          const text = await milRes.value.text();
-          record('adsbfi', { url: ADSBFI_MIL, status: milRes.value.status }, text);
-          ingestAc(JSON.parse(text).ac || [], allRaw, seenHex);
-        } catch (e) {
-          console.warn('[TAKIP] adsb.fi mil parse error:', e);
-        }
-      } else {
-        console.warn('[TAKIP] adsb.fi mil feed returned', milRes.value.status);
-        record('adsbfi', { url: ADSBFI_MIL, status: milRes.value.status }, null);
-        await milRes.value.body?.cancel();
-      }
-    } else if (milRes) {
-      record('adsbfi', { url: ADSBFI_MIL, status: 0, err: String(milRes.reason) }, null);
-    }
-    const milCount = allRaw.length;
-
-    // Refresh the OpenSky snapshot when one was due; otherwise the existing one
-    // carries over untouched.
-    if (osRes.status === 'fulfilled') {
-      paceOpenSky(osRes.value);
-      if (osRes.value.status === 429) {
-        // OpenSky says how long until credits return; waiting less only spends 429s.
-        const retryAfter = Number(osRes.value.headers.get('x-rate-limit-retry-after-seconds'));
-        const cooldown = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 86_400_000) : OPENSKY_COOLDOWN;
-        openSkyCooldownUntil = Date.now() + cooldown;
-        console.warn(`[TAKIP] OpenSky 429 — cooling down ${Math.round(cooldown / 60000)} min`);
-        record('opensky', { url: OPENSKY_STATES, status: 429 }, null);
-        await osRes.value.body?.cancel();
-      } else if (osRes.value.ok) {
-        try {
-          // The archive keeps the full state vectors, time_position and last_contact included.
-          const text = await osRes.value.text();
-          record('opensky', { url: OPENSKY_STATES, status: osRes.value.status }, text);
-          const data = JSON.parse(text);
-          const states = data.states || [];
-          if (states.length > 100) {
-            osSnapshot = states.map((s: any[]) => ({
-              hex: s[0],
-              flight: s[1]?.trim(),
-              lon: s[5],
-              lat: s[6],
-              alt_baro: typeof s[7] === 'number' ? s[7] * 3.28084 : null,
-              gs: typeof s[9] === 'number' ? s[9] * 1.94384 : null,
-              track: s[10],
-              squawk: s[14],
-              category_os: s[17],
-            }));
-            osSnapshotTime = Date.now();
-          }
-        } catch (e) {
-          console.warn('[TAKIP] OpenSky parse error:', e);
-        }
-      } else {
-        // A rejected token surfaces here as a 401 — previously discarded silently.
-        console.warn('[TAKIP] OpenSky returned', osRes.value.status);
-        record('opensky', { url: OPENSKY_STATES, status: osRes.value.status }, null);
-        await osRes.value.body?.cancel();
-      }
-    } else if (!skipOpenSky) {
-      record('opensky', { url: OPENSKY_STATES, status: 0, err: String(osRes.reason) }, null);
-    }
-
-    // OpenSky's positions are fresher than the adsb.lol snapshot (up to 10 min old); adsb.lol adds the
-    // aircraft type OpenSky never carries, plus the aircraft OpenSky does not have.
-    let typed: TypeSnapshot | null = adsbLolTypeSnapshot();
-    if (!typed && osSnapshot.length === 0) typed = await awaitAdsbLolTypeSnapshot();
-    type TypedRow = { hex?: unknown; t?: unknown; r?: unknown; dbFlags?: unknown };
-    const typedByHex = new Map<string, TypedRow>();
-    for (const ac of (typed?.ac ?? []) as TypedRow[]) {
-      const hex = String(ac?.hex ?? '').toLowerCase().trim();
-      if (hex) typedByHex.set(hex, ac);
-    }
-    let typedMatched = 0;
-    ingestAc(osSnapshot.map(row => {
-      const t = typedByHex.get(String(row.hex ?? '').toLowerCase().trim());
-      if (t) typedMatched++;
-      return withAircraftType(row, t);
-    }), allRaw, seenHex);
-    const typedBefore = allRaw.length;
-    if (typed) ingestAc(typed.ac, allRaw, seenHex);
-    const typedAdded = allRaw.length - typedBefore;
-
-    const openSkyWorked = osSnapshot.length > 0;
-    const typedWorked = (typed?.ac.length ?? 0) > 1000;
-
-    // ── Phase 3: Regional sweep — last resort only ────────────────────────────
-    // Runs only when there is no OpenSky snapshot at all, never as the steady
-    // state. adsb.fi's geographic endpoint is metered far more tightly than its
-    // /mil feed and answers 200 with an empty ac[] once that budget is spent
-    // rather than 429, so sweeping it every cycle would quietly exhaust it and
-    // look like empty airspace. Paced at ~1 req/s; 30 regions ≈ 33s, inside the
-    // 60s maxDuration above.
-    if (!openSkyWorked && !typedWorked) {
-      source = 'regional';
-      console.warn('[TAKIP] no OpenSky snapshot — falling back to adsb.fi regional sweep');
-
-      for (const r of REGIONS) {
-        ingestAc(await fetchAdsbFiRegion(r.lat, r.lon), allRaw, seenHex);
-        await new Promise(resolve => setTimeout(resolve, ADSBFI_GAP_MS));
-      }
-
-      if (allRaw.length === 0) {
-        console.error(
-          '[TAKIP] every flight provider returned zero aircraft — ' +
-          'set OPENSKY_CLIENT_ID/OPENSKY_CLIENT_SECRET (free at opensky-network.org); ' +
-          'the anonymous 400 credits/day pool cannot sustain a live map'
-        );
-      }
-    } else if (openSkyWorked) {
-      source = hasOpenSkyCreds() ? 'opensky-auth' : 'opensky-anon';
-    } else {
-      source = 'adsblol';
-    }
-
-    // ── Classify ──────────────────────────────────────────────────────────────
-    const commercial: any[] = [];
-    const privateFl: any[] = [];
-    const jets: any[] = [];
-    const military: any[] = [];
-
-    for (const raw of allRaw) {
-      const flight = classifyFlight(raw);
-      if (!flight) continue;
-
-      switch (flight.category) {
-        case 'military': military.push(flight); break;
-        case 'jet':      jets.push(flight);     break;
-        case 'private':  privateFl.push(flight); break;
-        default:         commercial.push(flight);
-      }
-    }
-
-    return {
-      commercial_flights: commercial,
-      private_flights:    privateFl,
-      private_jets:       jets,
-      military_flights:   military,
-      // adsb.* rows only: their position and accuracy are from the same moment, unlike a typed OpenSky row.
-      gps_jamming:        interferenceCells(navSamplesFrom([...allRaw, ...(typed?.ac ?? [])])),
-      total:              allRaw.length,
-      source,
-      // Per-feed counts so a provider that starts answering 200 with no aircraft
-      // is visible in the payload rather than silently emptying the map.
-      providers: {
-        adsblol_mil:     lolMil ? milCount : 0,
-        adsbfi_mil:      lolMil ? 0 : milCount,
-        adsblol_typed:   typed?.ac.length ?? 0,
-        adsblol_typed_matched: typedMatched,
-        adsblol_typed_added:   typedAdded,
-        adsblol_age_s:   typed ? Math.round((Date.now() - typed.at) / 1000) : null,
-        // Batches never asked because an earlier one was refused are reported apart from the refusals.
-        adsblol_batches: typed ? { answered: typed.answered, failed: typed.failed, refused: typed.refused, skipped: typed.skipped } : null,
-        adsblol_last_attempt: adsbLolLastAttempt(),
-        adsbfi_regional: openSkyWorked || typedWorked ? 0 : allRaw.length - milCount - typedAdded,
-        opensky:         osSnapshot.length,
-        opensky_auth:    hasOpenSkyCreds(),
-        opensky_age_s:   osSnapshotTime ? Math.round((Date.now() - osSnapshotTime) / 1000) : null,
-      },
-      timestamp:          new Date().toISOString(),
-    };
-  })();
-
   try {
-    const data = await fetchPromise;
-    cachedData = data;
-    lastFetchTime = Date.now();
-    publishFlights(data);
-    fetchPromise = null;
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': data.total < 100 ? 'no-store, max-age=0' : 'public, s-maxage=30, stale-while-revalidate=60',
-      },
-    });
+    const data = await (fetchPromise ?? refresh());
+    return answer(data, data.total < 100 ? 'no-store, max-age=0' : FRESH);
   } catch (error) {
     console.error('[TAKIP] Flight fetch error:', error);
-    fetchPromise = null;
-    // Stale-cache fallback: return last known good data instead of blank map
-    if (cachedData) {
-      console.warn('[TAKIP] Returning stale flight cache as fallback');
-      return NextResponse.json({ ...cachedData, source: (cachedData.source || 'unknown') + '+stale' }, {
-        headers: { 'Cache-Control': 'no-store, max-age=0' },
-      });
-    }
     return NextResponse.json({ error: 'Failed to fetch flight data' }, { status: 500 });
   }
+}
+
+/** One fetch of every upstream at a time; the answer is cached and published as it lands. */
+function refresh(): Promise<FlightsAnswer> {
+  fetchPromise = fetchFlights()
+    .then(data => {
+      cachedData = data;
+      lastFetchTime = Date.now();
+      publishFlights(data);
+      return data;
+    })
+    .finally(() => { fetchPromise = null; });
+  return fetchPromise;
+}
+
+async function fetchFlights(): Promise<FlightsAnswer> {
+  const allRaw: any[] = [];
+  const seenHex = new Set<string>();
+  let source: string;
+
+  // ── Phase 1 + 2 in parallel: global military feed AND OpenSky simultaneously ──
+  // Running them together keeps total wall-clock time to max(mil_feed, opensky)
+  // instead of sum. The military feed runs every cycle regardless of OpenSky
+  // status and is always current, so military traffic stays live even while an
+  // anonymous OpenSky snapshot is waiting out its interval.
+  const skipOpenSky =
+    Date.now() < openSkyCooldownUntil ||
+    Date.now() - osSnapshotTime < openSkyInterval();
+  const token = skipOpenSky ? null : await getOpenSkyToken();
+  const osInit: RequestInit = {
+    signal: AbortSignal.timeout(30000),
+    headers: { 'User-Agent': TAKIP_USER_AGENT, ...(token && { Authorization: `Bearer ${token}` }) },
+  };
+
+  // adsb.lol (ODbL) first; adsb.fi's /mil (non-commercial) only when it gives us nothing.
+  const [lolMilRes, osRes] = await Promise.allSettled([
+    fetchAdsbLolMil(),
+    skipOpenSky
+      ? Promise.reject(new Error('OpenSky in cooldown'))
+      // extended=1 appends the ADS-B emitter category as an 18th field. Without
+      // it the state vector is 17 long and s[17] below is silently undefined,
+      // which is what made every category_os test in classifyFlight() dead.
+      // It does not change the credit cost — that is set by the area queried.
+      : fetch(OPENSKY_STATES, osInit),
+  ]);
+
+  const lolMil = lolMilRes.status === 'fulfilled' ? lolMilRes.value : null;
+  if (lolMil) ingestAc(lolMil, allRaw, seenHex);
+  const milRes = lolMil
+    ? null
+    : (await Promise.allSettled([fetch(ADSBFI_MIL, { signal: AbortSignal.timeout(15000), headers: { 'User-Agent': TAKIP_USER_AGENT } })]))[0];
+
+  // Drain the adsb.fi fallback — parse on ok, discard the body otherwise to free the connection.
+  if (milRes?.status === 'fulfilled') {
+    if (milRes.value.ok) {
+      try {
+        const text = await milRes.value.text();
+        record('adsbfi', { url: ADSBFI_MIL, status: milRes.value.status }, text);
+        ingestAc(JSON.parse(text).ac || [], allRaw, seenHex);
+      } catch (e) {
+        console.warn('[TAKIP] adsb.fi mil parse error:', e);
+      }
+    } else {
+      console.warn('[TAKIP] adsb.fi mil feed returned', milRes.value.status);
+      record('adsbfi', { url: ADSBFI_MIL, status: milRes.value.status }, null);
+      await milRes.value.body?.cancel();
+    }
+  } else if (milRes) {
+    record('adsbfi', { url: ADSBFI_MIL, status: 0, err: String(milRes.reason) }, null);
+  }
+  const milCount = allRaw.length;
+
+  // Refresh the OpenSky snapshot when one was due; otherwise the existing one
+  // carries over untouched.
+  if (osRes.status === 'fulfilled') {
+    paceOpenSky(osRes.value);
+    if (osRes.value.status === 429) {
+      // OpenSky says how long until credits return; waiting less only spends 429s.
+      const retryAfter = Number(osRes.value.headers.get('x-rate-limit-retry-after-seconds'));
+      const cooldown = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 86_400_000) : OPENSKY_COOLDOWN;
+      openSkyCooldownUntil = Date.now() + cooldown;
+      console.warn(`[TAKIP] OpenSky 429 — cooling down ${Math.round(cooldown / 60000)} min`);
+      record('opensky', { url: OPENSKY_STATES, status: 429 }, null);
+      await osRes.value.body?.cancel();
+    } else if (osRes.value.ok) {
+      try {
+        // The archive keeps the full state vectors, time_position and last_contact included.
+        const text = await osRes.value.text();
+        record('opensky', { url: OPENSKY_STATES, status: osRes.value.status }, text);
+        const data = JSON.parse(text);
+        const states = data.states || [];
+        if (states.length > 100) {
+          osSnapshot = states.map((s: any[]) => ({
+            hex: s[0],
+            flight: s[1]?.trim(),
+            lon: s[5],
+            lat: s[6],
+            alt_baro: typeof s[7] === 'number' ? s[7] * 3.28084 : null,
+            gs: typeof s[9] === 'number' ? s[9] * 1.94384 : null,
+            track: s[10],
+            squawk: s[14],
+            category_os: s[17],
+          }));
+          osSnapshotTime = Date.now();
+        }
+      } catch (e) {
+        console.warn('[TAKIP] OpenSky parse error:', e);
+      }
+    } else {
+      // A rejected token surfaces here as a 401 — previously discarded silently.
+      console.warn('[TAKIP] OpenSky returned', osRes.value.status);
+      record('opensky', { url: OPENSKY_STATES, status: osRes.value.status }, null);
+      await osRes.value.body?.cancel();
+    }
+  } else if (!skipOpenSky) {
+    record('opensky', { url: OPENSKY_STATES, status: 0, err: String(osRes.reason) }, null);
+  }
+
+  // OpenSky's positions are fresher than the adsb.lol snapshot (up to 10 min old); adsb.lol adds the
+  // aircraft type OpenSky never carries, plus the aircraft OpenSky does not have.
+  let typed: TypeSnapshot | null = adsbLolTypeSnapshot();
+  if (!typed && osSnapshot.length === 0) typed = await awaitAdsbLolTypeSnapshot();
+  type TypedRow = { hex?: unknown; t?: unknown; r?: unknown; dbFlags?: unknown };
+  const typedByHex = new Map<string, TypedRow>();
+  for (const ac of (typed?.ac ?? []) as TypedRow[]) {
+    const hex = String(ac?.hex ?? '').toLowerCase().trim();
+    if (hex) typedByHex.set(hex, ac);
+  }
+  let typedMatched = 0;
+  ingestAc(osSnapshot.map(row => {
+    const t = typedByHex.get(String(row.hex ?? '').toLowerCase().trim());
+    if (t) typedMatched++;
+    return withAircraftType(row, t);
+  }), allRaw, seenHex);
+  const typedBefore = allRaw.length;
+  if (typed) ingestAc(typed.ac, allRaw, seenHex);
+  const typedAdded = allRaw.length - typedBefore;
+
+  const openSkyWorked = osSnapshot.length > 0;
+  const typedWorked = (typed?.ac.length ?? 0) > 1000;
+
+  // ── Phase 3: Regional sweep — last resort only ────────────────────────────
+  // Runs only when there is no OpenSky snapshot at all, never as the steady
+  // state. adsb.fi's geographic endpoint is metered far more tightly than its
+  // /mil feed and answers 200 with an empty ac[] once that budget is spent
+  // rather than 429, so sweeping it every cycle would quietly exhaust it and
+  // look like empty airspace. Paced at ~1 req/s; 30 regions ≈ 33s, inside the
+  // 60s maxDuration above.
+  if (!openSkyWorked && !typedWorked) {
+    source = 'regional';
+    console.warn('[TAKIP] no OpenSky snapshot — falling back to adsb.fi regional sweep');
+
+    for (const r of REGIONS) {
+      ingestAc(await fetchAdsbFiRegion(r.lat, r.lon), allRaw, seenHex);
+      await new Promise(resolve => setTimeout(resolve, ADSBFI_GAP_MS));
+    }
+
+    if (allRaw.length === 0) {
+      console.error(
+        '[TAKIP] every flight provider returned zero aircraft — ' +
+        'set OPENSKY_CLIENT_ID/OPENSKY_CLIENT_SECRET (free at opensky-network.org); ' +
+        'the anonymous 400 credits/day pool cannot sustain a live map'
+      );
+    }
+  } else if (openSkyWorked) {
+    source = hasOpenSkyCreds() ? 'opensky-auth' : 'opensky-anon';
+  } else {
+    source = 'adsblol';
+  }
+
+  // ── Classify ──────────────────────────────────────────────────────────────
+  const commercial: any[] = [];
+  const privateFl: any[] = [];
+  const jets: any[] = [];
+  const military: any[] = [];
+
+  for (const raw of allRaw) {
+    const flight = classifyFlight(raw);
+    if (!flight) continue;
+
+    switch (flight.category) {
+      case 'military': military.push(flight); break;
+      case 'jet':      jets.push(flight);     break;
+      case 'private':  privateFl.push(flight); break;
+      default:         commercial.push(flight);
+    }
+  }
+
+  return {
+    commercial_flights: commercial,
+    private_flights:    privateFl,
+    private_jets:       jets,
+    military_flights:   military,
+    // adsb.* rows only: their position and accuracy are from the same moment, unlike a typed OpenSky row.
+    gps_jamming:        interferenceCells(navSamplesFrom([...allRaw, ...(typed?.ac ?? [])])),
+    total:              allRaw.length,
+    source,
+    // Per-feed counts so a provider that starts answering 200 with no aircraft
+    // is visible in the payload rather than silently emptying the map.
+    providers: {
+      adsblol_mil:     lolMil ? milCount : 0,
+      adsbfi_mil:      lolMil ? 0 : milCount,
+      adsblol_typed:   typed?.ac.length ?? 0,
+      adsblol_typed_matched: typedMatched,
+      adsblol_typed_added:   typedAdded,
+      adsblol_age_s:   typed ? Math.round((Date.now() - typed.at) / 1000) : null,
+      // Batches never asked because an earlier one was refused are reported apart from the refusals.
+      adsblol_batches: typed ? { answered: typed.answered, failed: typed.failed, refused: typed.refused, skipped: typed.skipped } : null,
+      adsblol_last_attempt: adsbLolLastAttempt(),
+      adsbfi_regional: openSkyWorked || typedWorked ? 0 : allRaw.length - milCount - typedAdded,
+      opensky:         osSnapshot.length,
+      opensky_auth:    hasOpenSkyCreds(),
+      opensky_age_s:   osSnapshotTime ? Math.round((Date.now() - osSnapshotTime) / 1000) : null,
+    },
+    timestamp:          new Date().toISOString(),
+  };
 }

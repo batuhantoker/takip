@@ -14,6 +14,7 @@ import {
   rebuildPayload,
 } from '@/lib/feeds/cameras/catalog/refresh';
 import { servePayload } from '@/lib/feeds/cameras/catalog/response';
+import { encodePins } from '@/lib/feeds/cameras/pins';
 
 export { warmCctvCatalog, clearCctvRefreshes } from '@/lib/feeds/cameras/catalog/refresh';
 
@@ -32,6 +33,8 @@ export async function GET(request: Request) {
     const lat = parseFloat(searchParams.get('lat') || '0');
     const lng = parseFloat(searchParams.get('lng') || '0');
     const radius = parseFloat(searchParams.get('radius') || '10');
+    // The map asks for pins only; names and URLs come per camera from ./details.
+    const format = searchParams.get('format') === 'pins' ? 'pins' : 'full';
 
     let regionsToFetch: string[];
 
@@ -54,7 +57,7 @@ export async function GET(request: Request) {
         /* An incomplete catalogue is chased straight away; a complete one is
            left alone until its regions actually go stale. */
         if (!ready.complete || Date.now() - ready.builtAt > PAYLOAD_REFRESH_MS) void rebuildInBackground();
-        return servePayload(request, ready);
+        return servePayload(request, ready, format);
       }
     }
 
@@ -78,7 +81,7 @@ export async function GET(request: Request) {
       const built = rebuildPayload();
       if (built) {
         void persistCatalogue();
-        return servePayload(request, built);
+        return servePayload(request, built, format);
       }
     }
 
@@ -86,14 +89,8 @@ export async function GET(request: Request) {
       ? 'no-store, max-age=0' 
       : 'public, s-maxage=300, stale-while-revalidate=600';
 
-    return NextResponse.json({
-      cameras: allCameras,
-      total: allCameras.length,
-      sources,
-      regions: regionsToFetch,
-      pendingRegions,
-      timestamp: new Date().toISOString(),
-    }, {
+    const meta = { total: allCameras.length, regions: regionsToFetch, pendingRegions, timestamp: new Date().toISOString() };
+    return NextResponse.json(format === 'pins' ? { ...meta, ...encodePins(allCameras) } : { cameras: allCameras, sources, ...meta }, {
       headers: { 'Cache-Control': cacheControl },
     });
   } catch (error) {
