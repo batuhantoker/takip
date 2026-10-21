@@ -24,3 +24,14 @@ export function limitsFor(kind: WindowKind, a: MapArea): Limits {
     ? { minW: 320, minH: 0, maxW: roomW, maxH: roomH }
     : { minW: 280, minH: 160, maxW: Math.min(720, roomW), maxH: roomH };
 }
+
+/** A picture window's header and caption line, around its 16:9 picture. */
+const VIDEO_CHROME = 84;
+/** Map kept in view beside a window opening in a small map, such as an embed's frame. */
+const MAP_BESIDE = 240;
+
+/** The width a window opens at: its own, or narrower where the map is small, so a picture fits the column's height. */
+export function openWidth(kind: WindowKind, a: MapArea, own: number = KINDS[kind].width): number {
+  const fit = KINDS[kind].video ? ((a.colBottom - a.colTop - VIDEO_CHROME) * 16) / 9 : Infinity;
+  return Math.round(Math.max(limitsFor(kind, a).minW, Math.min(own, fit, a.right - a.left - MAP_BESIDE)));
+}

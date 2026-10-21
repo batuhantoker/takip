@@ -254,7 +254,10 @@ frontmost. Each open card has a selection ring on the map, the frontmost's
 the strongest, and Follow belongs to one card at a time. At most four
 pictures play at once; the rest wait with a Play button. Windows open with a
 120 ms fade and a 4 px rise, and drags have no inertia. On a phone none of
-this applies: one bottom sheet at a time, no dragging.
+this applies: one bottom sheet at a time, no dragging. An embed is not a phone,
+however small its frame: it has no bottom bar to hold a sheet, so it keeps
+windows, and in a small map a window opens narrower, so its picture fits the
+column's height and some map stays in view beside it.
 
 ### Plan limits
 

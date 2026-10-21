@@ -1,8 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+
+/** Set by an embed: its frame is small, but there is no phone shell for a sheet to sit on, so it keeps windows. */
+export const InEmbed = createContext(false);
 
 export function useIsMobile() {
+  const embedded = useContext(InEmbed);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => {
@@ -19,5 +23,5 @@ export function useIsMobile() {
       window.removeEventListener('orientationchange', check);
     };
   }, []);
-  return isMobile;
+  return isMobile && !embedded;
 }

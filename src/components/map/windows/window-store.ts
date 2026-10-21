@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react';
 import { clampRect, fits, GAP, stackColumn, type StackSlot } from '@/components/map/windows/lib/geometry';
-import { KINDS, MAX_PLAYING, type WindowKind } from './kinds';
+import { KINDS, MAX_PLAYING, openWidth, type WindowKind } from './kinds';
 import { getArea, type MapArea } from './map-area';
 import { clearPlaces, loadPlaces, savePlace } from '@/components/map/windows/lib/persist';
 
@@ -78,7 +78,7 @@ export const windowStore = {
     if (wins[id]) { update(id, { closable }); return; }
     const mem = loadPlaces()[kind];
     const a = getArea();
-    const w = mem?.w ?? KINDS[kind].width;
+    const w = openWidth(kind, a, mem?.w);
     let docked = true, x = 0, y = 0, offerReset = snap.offerReset;
     if (mem && mem.docked === false && mem.x != null && mem.y != null) {
       let px = mem.x, py = mem.y;
@@ -201,7 +201,8 @@ export const windowStore = {
   /** Forgets every remembered place and puts the windows back in the column. */
   resetPlaces() {
     clearPlaces();
-    for (const w of Object.values(wins)) update(w.id, { docked: true, anchor: null, h: null, big: null, w: KINDS[w.kind].width });
+    const a = getArea();
+    for (const w of Object.values(wins)) update(w.id, { docked: true, anchor: null, h: null, big: null, w: openWidth(w.kind, a) });
     emit({ offerReset: false });
   },
 };

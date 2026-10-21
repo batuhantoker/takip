@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type 
 import dynamic from 'next/dynamic';
 import type { MapOptions } from 'maplibre-gl';
 import ErrorBoundary from '@/components/ui/error-boundary';
+import { InEmbed } from '@/components/ui/use-is-mobile';
 import { useT } from '@/components/ui/use-t';
 import MapCredits from '@/components/map/controls/map-credits';
 import { useLiveFeed } from '@/components/map/cameras/use-live-feed';
@@ -105,7 +106,7 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
   const onViewStateChange = useCallback((vs: { zoom: number }) => setZoom(vs.zoom), []);
 
   return (
-    <>
+    <InEmbed.Provider value>
       <ErrorBoundary name="Map">
         <WorldMap data={data} activeLayers={layers} mapOptions={mapOptions} contextMenu={false} flyToLocation={flyTo}
           onEntityClick={onEntityClick} onViewStateChange={onViewStateChange} onMapCenter={setMapCenter} pin={pin} />
@@ -121,6 +122,6 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
       {feed.liveFeedUrl && (
         <LiveFeedModal liveFeedUrl={feed.liveFeedUrl} liveFeedName={feed.liveFeedName} liveFeedEmbedAllowed={feed.liveFeedEmbedAllowed} setLiveFeedUrl={feed.setLiveFeedUrl} />
       )}
-    </>
+    </InEmbed.Provider>
   );
 }
