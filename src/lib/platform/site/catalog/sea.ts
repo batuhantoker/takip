@@ -25,6 +25,7 @@ export const SEA: LayerPage[] = [
       'Port volumes and rankings are reference figures, not live; the counts of ships near each port are live.',
     ],
     view: { lat: 35, lon: 20, zoom: 3.5 },
+    near: 6,
     spots: [
       { label: 'Singapore Strait', view: { lat: 1.25, lon: 103.9, zoom: 9 }, note: 'One of the busiest stretches of water in the world.' },
       { label: 'The Bosphorus', view: { lat: 41.1, lon: 29.05, zoom: 11 }, note: 'Ships threading through the middle of Istanbul.' },

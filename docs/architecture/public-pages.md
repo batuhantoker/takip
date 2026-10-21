@@ -42,6 +42,7 @@ Canonical links, the sitemap and preview images need the site's public origin. `
 - Titles stay within 60 characters and descriptions between 110 and 160 (`layer-pages.test.ts`).
 - A layer added to the Layers panel needs a page or a line in `NO_PAGE` with the reason (`components/panels/layers/lib/layer-pages-coverage.test.ts`).
 - A page whose layer needs a key (`requiresEnv`) exists only when the server has it, so no page promises a hidden layer. Today that is ships (`AIS_API_KEY`), the Cloudflare layers and road traffic (`TOMTOM_API_KEY`; without it traffic covers only the Netherlands, Rennes and Nantes).
+- `near` opens the live map and "Open on the map" around the visitor at that zoom (2026-10-21): local layers zoom in (rain radar 6, flights 6, cameras 6, transit 7), worldwide ones take their own zoom and only turn the globe. Leave it out where the view is the subject (a hurricane basin, chokepoints, GPS jamming, air-raid alerts, US-only feeds, History). The picture and a spot's link keep the fixed view.
 - `layers` replaces the map's whole set when the link opens (`use-startup.ts`), so `mapHref` adds the quiet display layers (day and night, the sky, the SDK lines) to any it names. A page that names none (History, Space, the tools) leaves the visitor's own layers alone.
 
 ## Pictures

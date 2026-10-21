@@ -311,7 +311,7 @@ export const LAYERS: Record<string, string> = {
   terrain_3d: '3D terrain',
   cyber_attacks: 'cyber attack indicators',
   gdelt_events: 'GDELT news events',
-  cf_outages: 'internet outages (Cloudflare Radar)',
+  cf_outages: 'internet outages by country and network (Cloudflare Radar, IODA)',
   malware: 'malware command-and-control servers',
   balloons: 'high-altitude balloons',
   launches: 'upcoming rocket launches at their pads',

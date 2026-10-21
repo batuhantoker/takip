@@ -26,6 +26,7 @@ export const HAZARDS: LayerPage[] = [
       'Small quakes are recorded best where seismic networks are dense, as in the US, Japan and Europe.',
     ],
     view: { lat: 15, lon: 30, zoom: 1.6 },
+    near: 1.6,
     spots: [
       { label: 'Japan', view: { lat: 37, lon: 140, zoom: 5 } },
       { label: 'California', view: { lat: 36.5, lon: -119.5, zoom: 5.5 } },
@@ -60,6 +61,7 @@ export const HAZARDS: LayerPage[] = [
       'Active volcanoes from NASA EONET are drawn as hotspots too; their brightness and power figures are placeholders, not satellite readings.',
     ],
     view: { lat: 10, lon: 20, zoom: 1.8 },
+    near: 4,
     spots: [
       { label: 'California', view: { lat: 37.5, lon: -120, zoom: 5.5 } },
       { label: 'Western Canada', view: { lat: 55, lon: -118, zoom: 4.5 } },
@@ -94,6 +96,7 @@ export const HAZARDS: LayerPage[] = [
       'Each alert is one point, not the full warning area. US alerts without a mapped area are left out.',
     ],
     view: { lat: 38, lon: -95, zoom: 3.5 },
+    near: 4,
     related: ['hurricanes', 'rain-radar', 'lightning-map', 'disaster-alerts'],
   },
   {
@@ -144,6 +147,7 @@ export const HAZARDS: LayerPage[] = [
       'Safecast readings are shown without a verdict.',
     ],
     view: { lat: 38, lon: -97, zoom: 3.5 },
+    near: 4,
     spots: [{ label: 'Fukushima', view: { lat: 37.42, lon: 141.03, zoom: 8 }, note: 'Safecast began after the 2011 accident here.' }],
     related: ['earthquakes', 'disaster-alerts'],
   },
@@ -170,6 +174,7 @@ export const HAZARDS: LayerPage[] = [
       'Notices come after official confirmation, often days or weeks into an outbreak.',
     ],
     view: { lat: 10, lon: 20, zoom: 1.8 },
+    near: 1.8,
     related: ['disaster-alerts', 'severe-weather'],
   },
 ];

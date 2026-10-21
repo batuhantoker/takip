@@ -3,23 +3,25 @@
 import { useEffect } from 'react';
 import { t } from '@/lib/core/i18n/active';
 import { arrivalBeacons } from '@/lib/intel/cyber/malware/intel';
+import { mergeOutages } from '@/lib/intel/outages/outage';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useCyberLayers({ mapRef, mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
-  /* ── Cloudflare Radar: outages ── */
+  /* ── Internet outages: Cloudflare Radar and IODA ── */
   useEffect(() => {
     if (!mapReady) return;
-    const al = activeLayers as any;
-    setGeo('cf-outages', al.cf_outages && data.cf_outages ? data.cf_outages.map((o: any) => ({
+    const on = (activeLayers as any).cf_outages;
+    const outages = on ? mergeOutages(data.cf_outages ?? [], data.ioda_outages ?? [], Date.now()) : [];
+    setGeo('cf-outages', outages.map(o => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [o.lng, o.lat] },
       properties: {
-        country: o.country, country_name: o.country_name, scope: o.scope, cause: o.cause,
-        event_type: o.event_type, description: o.description, start: o.start, end: o.end,
-        ongoing: !!o.ongoing, url: o.url,
+        source: o.source, kind: o.kind, country: o.country, country_name: o.country_name, network: o.network,
+        scope: o.scope, cause: o.cause, description: o.description, start: o.start, end: o.end,
+        ongoing: !!o.ongoing, url: o.url, seen_in: o.seen_in.join(','),
       },
-    })) : []);
-  }, [mapReady, data.cf_outages, (activeLayers as any).cf_outages, setGeo]);
+    })));
+  }, [mapReady, data.cf_outages, data.ioda_outages, (activeLayers as any).cf_outages, setGeo]);
 
   /* ── Cloudflare Radar: attack origins ── */
   useEffect(() => {

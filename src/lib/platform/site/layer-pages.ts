@@ -48,10 +48,13 @@ export function layerPage(slug: string, env: Record<string, string | undefined> 
 
 export const pagePath = (page: LayerPage) => `/map/${page.slug}`;
 
-/** "Open on the map": the page's layers at `view` (its own view by default); a History page draws only its kinds. */
-export const openPath = (page: LayerPage, view: MapView | undefined = page.view) => {
+/**
+ * "Open on the map": the page's layers at `spot`, else around the visitor where the page says so, else at its own
+ * view; a History page draws only its kinds.
+ */
+export const openPath = (page: LayerPage, spot?: MapView) => {
   const mode = page.mode?.view === 'history' && page.eventKinds?.length ? { ...page.mode, kinds: page.eventKinds } : page.mode;
-  return mapHref({ layers: page.layers, view, track: page.track, mode, panel: page.panel });
+  return mapHref({ layers: page.layers, view: spot ?? page.view, near: spot ? undefined : page.near, track: page.track, mode, panel: page.panel });
 };
 
 export const sectionOf = (id: SectionId) => SECTIONS.find(s => s.id === id)!;

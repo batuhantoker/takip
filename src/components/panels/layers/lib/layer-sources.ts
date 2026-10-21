@@ -18,7 +18,7 @@ const SOURCES: Record<string, string> = {
   gdelt_events: msg('GDELT 2.0 · sized by how many outlets report it'),
   malware: 'URLhaus · abuse.ch',
   cyber_attacks: 'Feodo Tracker · abuse.ch',
-  cf_outages: 'Cloudflare Radar',
+  cf_outages: 'Cloudflare Radar · IODA',
   cf_attacks: 'Cloudflare Radar',
   alert_pins: msg('Placed from the Alerts feed'),
 };

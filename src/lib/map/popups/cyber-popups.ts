@@ -1,5 +1,6 @@
 import { htmlEsc, levelWord, pop, popCoords, sentence, type PopTone } from './kit';
 import { t } from '@/lib/core/i18n/active';
+import { msg } from '@/lib/core/i18n/translator';
 
 type FeatureProps = NonNullable<GeoJSON.GeoJsonProperties>;
 
@@ -30,20 +31,51 @@ export function malwarePopupHtml(p: FeatureProps): string {
   });
 }
 
+const SIGNALS: Record<string, string> = {
+  bgp: msg('BGP routes'), 'ping-slash24': msg('Active probing'), 'merit-nt': msg('Network telescope'), gtr: msg('Google traffic'),
+};
+
+const SCOPES: Record<string, string> = {
+  NATIONWIDE: msg('Nationwide'), NETWORK: msg('Some networks'), REGIONAL: msg('Regional'), PLATFORM: msg('One platform'),
+};
+
 export function outagePopupHtml(p: FeatureProps): string {
   // MapLibre serialises feature properties, so booleans can arrive as strings.
   const ongoing = p.ongoing === true || p.ongoing === 'true';
+  const status = { tone: (ongoing ? 'amber' : 'neutral') as PopTone, meta: ongoing ? t('Ongoing') : t('Resolved') };
+  const seen = String(p.seen_in || '').split(',').filter(Boolean).map(s => (Object.hasOwn(SIGNALS, s) ? t(SIGNALS[s]) : s)).join(', ');
+  const when = [
+    { label: t('Started'), value: utc(p.start), mono: true },
+    { label: t('Ended'), value: utc(p.end), mono: true },
+  ];
+  if (p.kind === 'signal') {
+    return pop({
+      kicker: t('Internet outage signal'), ...status,
+      title: p.country_name,
+      rows: [{ label: t('Seen in'), value: seen || null }, ...when],
+      note: t('IODA (Georgia Tech) measured a drop in how much of the country’s internet could be reached. Not yet confirmed.'),
+      links: [{ href: p.url, label: t('IODA dashboard') }],
+    });
+  }
+  if (p.kind === 'anomaly') {
+    return pop({
+      kicker: t('Traffic drop'), ...status,
+      title: p.country_name,
+      subtitle: p.network || undefined,
+      rows: [{ label: t('Seen in'), value: seen || null }, ...when],
+      note: t('Cloudflare Radar’s detector saw traffic fall well below normal. Not yet described.'),
+      links: [{ href: p.url, label: t('Radar detail') }],
+    });
+  }
   return pop({
-    kicker: t('Internet outage'),
-    tone: ongoing ? 'amber' : 'neutral',
-    meta: ongoing ? t('Ongoing') : t('Resolved'),
+    kicker: t('Internet outage'), ...status,
     title: p.country_name,
+    subtitle: p.network || undefined,
     body: p.description ? htmlEsc(p.description) : undefined,
     rows: [
       { label: t('Cause'), value: p.cause ? sentence(p.cause) : t('Unspecified') },
-      { label: t('Scope'), value: p.scope || t('Nationwide') },
-      { label: t('Started'), value: utc(p.start), mono: true },
-      { label: t('Ended'), value: utc(p.end), mono: true },
+      { label: t('Scope'), value: Object.hasOwn(SCOPES, p.scope) ? t(SCOPES[p.scope]) : p.scope || t('Unspecified') },
+      ...when,
     ],
     note: 'Cloudflare Radar',
     links: [{ href: p.url, label: t('Radar detail') }],

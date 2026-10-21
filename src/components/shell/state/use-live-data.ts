@@ -14,6 +14,8 @@ import type { BackendStatus, LiveData } from './types';
 const EQ_URL = '/api/earthquakes';
 const eqTransform = (data: { earthquakes?: unknown[] }) => ({ earthquakes: data.earthquakes ?? [] });
 const weatherTransform = (d: { events?: unknown[] }) => ({ weather_events: d.events });
+const radarData = (d: { outages?: unknown[]; attack_origins?: unknown[] }) => ({ cf_outages: d.outages ?? [], cf_attack_origins: d.attack_origins ?? [] });
+const iodaData = (d: { outages?: unknown[] }) => ({ ioda_outages: d.outages ?? [] });
 
 export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpaceWeather, activeLayers, replayActive = false, panels = true }: {
   dataRef: RefObject<LiveData>;
@@ -242,10 +244,10 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
 
     // Cloudflare Radar — one request backs both layers
     if ((activeLayers as any).cf_outages || (activeLayers as any).cf_attacks) {
-      loadLayerOnce('cloudflare_radar', '/api/cloudflare-radar', d => ({
-        cf_outages: d.outages ?? [],
-        cf_attack_origins: d.attack_origins ?? [],
-      }));
+      loadLayerOnce('cloudflare_radar', '/api/cloudflare-radar', radarData);
+    }
+    if ((activeLayers as any).cf_outages) {
+      loadLayerOnce('ioda', '/api/radar', iodaData);
     }
 
     // Open-Meteo grid — one request backs temperature and wind
@@ -305,6 +307,13 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     if (activeLayers.war_alerts) {
       // A siren lasts a minute or two; the route re-reads its upstreams every 20-30 s.
       intervals.push(setInterval(() => fetchEndpoint('/api/war-alerts', d => ({ war_alerts: d.alerts ?? [] }), undefined, { skipWhenHidden: true }), 60_000));
+    }
+    if ((activeLayers as any).cf_outages || (activeLayers as any).cf_attacks) {
+      // Both routes re-read their upstreams every 5 minutes.
+      intervals.push(setInterval(() => {
+        fetchEndpoint('/api/cloudflare-radar', radarData, undefined, { skipWhenHidden: true });
+        if ((activeLayers as any).cf_outages) fetchEndpoint('/api/radar', iodaData, undefined, { skipWhenHidden: true });
+      }, 300_000));
     }
     if (activeLayers.service_status) {
       intervals.push(setInterval(() => fetchEndpoint('/api/service-status', d => ({ service_status: d.cities ?? [] }), undefined, { skipWhenHidden: true }), 300_000));

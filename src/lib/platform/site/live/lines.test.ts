@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createTranslator } from '@/lib/core/i18n/translator';
 import { spokenUtc } from '../clock';
-import { auroraLine, issLine, launchLine, quakeLine, type LiveLine } from './lines';
+import type { Outage } from '@/lib/intel/outages/outage';
+import { auroraLine, issLine, launchLine, outageLine, quakeLine, type LiveLine } from './lines';
 
 const NOW = Date.parse('2026-10-19T12:00:00Z');
 const en = createTranslator('en', {});
@@ -64,5 +65,40 @@ describe('issLine', () => {
 
   it('says nothing from the years-old fallback element set', () => {
     expect(issLine({ satellites: [{ name: 'ISS (FALLBACK)', lat: 1, lng: 1, alt: 400 }], source: 'emergency-fallback' }, NOW, en)).toBeNull();
+  });
+});
+
+describe('outageLine', () => {
+  const outage = (o: Partial<Outage>): Outage => ({
+    id: 'x', source: 'cloudflare', kind: 'annotation', lat: 0, lng: 0, country: 'FR', country_name: 'France', network: null,
+    scope: '', cause: '', description: '', start: '2026-10-19T09:30:00Z', end: null, ongoing: true, url: '', seen_in: [], ...o,
+  });
+
+  it('names the countries and networks still out, in the reader’s language', () => {
+    const cloudflare = { outages: [
+      outage({ network: 'AS3215 Orange S.A.' }),
+      outage({ country: 'SY', ongoing: false, end: '2026-10-19T10:00:00Z' }),
+    ] };
+    const ioda = { outages: [outage({ id: 'i', source: 'ioda', kind: 'signal', country: 'KW', start: '2026-10-19T08:00:00Z' })] };
+    expect(text(outageLine(cloudflare, ioda, NOW, en)))
+      .toBe('Internet outages still going on in 2 countries, per Cloudflare Radar and IODA: France (Orange S.A.) and Kuwait.');
+    const de = createTranslator('de', {});
+    expect(text(outageLine(cloudflare, ioda, NOW, de))).toContain('Frankreich (Orange S.A.) und Kuwait');
+  });
+
+  it('gives a country once, its networks together, and no networks beside a country-wide outage', () => {
+    const cloudflare = { outages: [
+      outage({ country: 'RU', network: 'AS47541 VKONTAKTE-SPB-AS' }),
+      outage({ country: 'RU', network: 'AS13238 YANDEX, AS200350 YandexCloud' }),
+      outage({ country: 'GU', network: 'AS3605 ERX-KUENTOS-AS' }),
+      outage({ country: 'GU' }),
+    ] };
+    expect(text(outageLine(cloudflare, null, NOW, en)))
+      .toBe('Internet outages still going on in 2 countries, per Cloudflare Radar and IODA: Russia (VKONTAKTE-SPB-AS, YANDEX, YandexCloud) and Guam.');
+  });
+
+  it('says when none is open, and nothing without data', () => {
+    expect(text(outageLine({ outages: [] }, null, NOW, en))).toBe('Cloudflare Radar and IODA list no internet outage as still going on.');
+    expect(outageLine(null, null, NOW, en)).toBeNull();
   });
 });

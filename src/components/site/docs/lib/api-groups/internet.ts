@@ -9,13 +9,13 @@ export const INTERNET: ApiGroup = {
     {
       path: '/api/radar',
       method: 'GET',
-      summary: 'Internet outages by country from IODA (Georgia Tech).',
-      returns: ['outages', 'total', 'source', 'timestamp'],
+      summary: 'Internet outage signals by country from IODA (Georgia Tech): drops that began in the last 48 hours, one per country.',
+      returns: ['outages', 'total', 'window_hours', 'source', 'timestamp'],
     },
     {
       path: '/api/cloudflare-radar',
       method: 'GET',
-      summary: 'Internet outages and the top layer-3 attack origins from Cloudflare Radar.',
+      summary: 'Internet outages from Cloudflare Radar, confirmed ones and its detector’s traffic drops, by country and network, with the top layer-3 attack origins.',
       params: [{ name: 'probe', desc: '`1` only reports whether a token is configured, without calling Cloudflare.', example: '1' }],
       returns: ['configured', 'outages', 'attack_origins', 'total_outages', 'total_attack_origins', 'source', 'timestamp'],
       env: ['CLOUDFLARE_API_TOKEN'],

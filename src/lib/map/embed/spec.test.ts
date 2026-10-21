@@ -48,6 +48,7 @@ describe('embedQuery', () => {
     const specs: EmbedSpec[] = [
       { layers: ['earthquakes'], bbox: [26, 35.8, 45, 42.1], window: { last: { n: 100, unit: 'y' } }, minMag: 4 },
       { layers: ['sat_science'], view: { lat: 0, lon: 0, zoom: 2 }, track: 'satellite:25544' },
+      { layers: ['wx_radar'], view: { lat: 50, lon: 5, zoom: 4.5 }, near: 6 },
       { layers: ['sat_science'], view: { lat: 45.6833, lon: 9.6, zoom: 1.8 }, track: 'satellite:25544', pin: { lat: 45.6833, lon: 9.6, name: 'Далмине' } },
       { layers: ['earthquakes'], window: { from: Date.UTC(1999, 7, 17), to: Date.UTC(1999, 7, 18) } },
     ];

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { centroidFor } from '@/lib/places/country-centroids';
+import { cachedSource } from '@/lib/core/net/source-cache';
+import { mapAnnotations, mapAnomalies, type RawAnnotation, type RawAnomaly } from '@/lib/intel/outages/cloudflare';
+import type { Outage } from '@/lib/intel/outages/outage';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,22 +19,6 @@ export const dynamic = 'force-dynamic';
 
 const RADAR_BASE = 'https://api.cloudflare.com/client/v4/radar';
 
-interface RadarOutage {
-  id: string;
-  lat: number;
-  lng: number;
-  country: string;
-  country_name: string;
-  scope: string;
-  event_type: string;
-  cause: string;
-  description: string;
-  start: string;
-  end: string | null;
-  ongoing: boolean;
-  url: string;
-}
-
 interface RadarAttackOrigin {
   country: string;
   country_name: string;
@@ -41,21 +28,7 @@ interface RadarAttackOrigin {
   share: number;
 }
 
-/* Minimal shapes for the slices of the Radar payload we consume. Everything is
-   optional because Cloudflare adds and reorders fields between API versions. */
-interface RawAnnotation {
-  id?: string;
-  locations?: string[];
-  locationsDetails?: Array<{ code?: string; name?: string }>;
-  scope?: string;
-  eventType?: string;
-  outage?: { outageCause?: string; outageType?: string };
-  description?: string;
-  startDate?: string;
-  endDate?: string | null;
-  linkedUrl?: string;
-}
-
+/* Fields are optional because Cloudflare adds and reorders them between API versions. */
 interface RawTopLocation {
   originCountryAlpha2?: string;
   clientCountryAlpha2?: string;
@@ -67,6 +40,7 @@ interface RawTopLocation {
 
 interface RadarResult {
   annotations?: RawAnnotation[];
+  trafficAnomalies?: RawAnomaly[];
   top_0?: RawTopLocation[];
   top0?: RawTopLocation[];
 }
@@ -94,41 +68,6 @@ async function radarFetch(path: string, signal: AbortSignal): Promise<RadarResul
   return json?.result ?? {};
 }
 
-function mapOutages(result: RadarResult): RadarOutage[] {
-  const annotations = result?.annotations ?? [];
-  const out: RadarOutage[] = [];
-
-  for (const a of annotations) {
-    // An annotation can name several locations; emit one marker per located country.
-    const codes: string[] = Array.isArray(a?.locations) ? a.locations : [];
-    const names: Record<string, string> = {};
-    for (const d of a?.locationsDetails ?? []) {
-      if (d?.code) names[d.code] = d.name ?? d.code;
-    }
-
-    for (const code of codes) {
-      const c = centroidFor(code);
-      if (!c) continue;
-      out.push({
-        id: `${a?.id ?? 'outage'}-${code}`,
-        lng: c[0],
-        lat: c[1],
-        country: code,
-        country_name: names[code] || code,
-        scope: a?.scope || '',
-        event_type: a?.eventType || 'OUTAGE',
-        cause: a?.outage?.outageCause || a?.outage?.outageType || '',
-        description: a?.description || '',
-        start: a?.startDate || '',
-        end: a?.endDate || null,
-        ongoing: !a?.endDate,
-        url: a?.linkedUrl || '',
-      });
-    }
-  }
-  return out;
-}
-
 function mapAttackOrigins(result: RadarResult): RadarAttackOrigin[] {
   // Top-N endpoints return the series under `top_0`.
   const rows = result?.top_0 ?? result?.top0 ?? [];
@@ -148,6 +87,35 @@ function mapAttackOrigins(result: RadarResult): RadarAttackOrigin[] {
   }
   return out;
 }
+
+interface RadarPayload { outages: Outage[]; attack_origins: RadarAttackOrigin[]; errors: string[] }
+
+// Every open map polls this route; one round of upstream calls per 5 minutes serves them all.
+const load = cachedSource<RadarPayload>('cloudflare-radar', async () => {
+  const signal = AbortSignal.timeout(20000);
+
+  // Degrade per-section rather than all-or-nothing: one endpoint failing should
+  // not blank the whole layer.
+  const [outagesRes, anomaliesRes, attacksRes] = await Promise.allSettled([
+    radarFetch('/annotations/outages?limit=50&format=json', signal),
+    radarFetch('/traffic_anomalies?limit=60&dateRange=7d&format=json', signal),
+    // Radar rejects this endpoint with a 400 unless it is given a window.
+    radarFetch('/attacks/layer3/top/locations/origin?limit=25&dateRange=1d&format=json', signal),
+  ]);
+
+  const annotated = outagesRes.status === 'fulfilled' ? mapAnnotations(outagesRes.value.annotations ?? []) : [];
+  const anomalies = anomaliesRes.status === 'fulfilled' ? mapAnomalies(anomaliesRes.value.trafficAnomalies ?? [], annotated) : [];
+  const outages = [...annotated, ...anomalies];
+  const attack_origins = attacksRes.status === 'fulfilled' ? mapAttackOrigins(attacksRes.value) : [];
+
+  const errors: string[] = [];
+  if (outagesRes.status === 'rejected') errors.push(`outages: ${outagesRes.reason?.message ?? 'failed'}`);
+  if (anomaliesRes.status === 'rejected') errors.push(`anomalies: ${anomaliesRes.reason?.message ?? 'failed'}`);
+  if (attacksRes.status === 'rejected') errors.push(`attack_origins: ${attacksRes.reason?.message ?? 'failed'}`);
+
+  if (outages.length === 0 && attack_origins.length === 0 && errors.length > 0) throw new Error(errors.join('; '));
+  return [{ outages, attack_origins, errors }];
+}, 5 * 60_000);
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -171,30 +139,14 @@ export async function GET(req: Request) {
     );
   }
 
-  const signal = AbortSignal.timeout(20000);
-
-  // Degrade per-section rather than all-or-nothing: one endpoint failing should
-  // not blank the whole layer.
-  const [outagesRes, attacksRes] = await Promise.allSettled([
-    radarFetch('/annotations/outages?limit=50&format=json', signal),
-    // Radar rejects this endpoint with a 400 unless it is given a window.
-    radarFetch('/attacks/layer3/top/locations/origin?limit=25&dateRange=1d&format=json', signal),
-  ]);
-
-  const outages = outagesRes.status === 'fulfilled' ? mapOutages(outagesRes.value) : [];
-  const attack_origins = attacksRes.status === 'fulfilled' ? mapAttackOrigins(attacksRes.value) : [];
-
-  const errors: string[] = [];
-  if (outagesRes.status === 'rejected') errors.push(`outages: ${outagesRes.reason?.message ?? 'failed'}`);
-  if (attacksRes.status === 'rejected') errors.push(`attack_origins: ${attacksRes.reason?.message ?? 'failed'}`);
-
-  if (outages.length === 0 && attack_origins.length === 0 && errors.length > 0) {
-    console.error('[TAKIP] Cloudflare Radar fetch failed:', errors.join('; '));
+  const [payload] = await load();
+  if (!payload) {
     return NextResponse.json(
-      { configured: true, outages: [], attack_origins: [], error: 'Cloudflare Radar unavailable', errors },
+      { configured: true, outages: [], attack_origins: [], error: 'Cloudflare Radar unavailable' },
       { status: 502 }
     );
   }
+  const { outages, attack_origins, errors } = payload;
 
   return NextResponse.json(
     {

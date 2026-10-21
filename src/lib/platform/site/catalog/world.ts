@@ -25,6 +25,7 @@ export const WORLD: LayerPage[] = [
       'GDELT is coded by machine and sometimes places an event at the centre of a region.',
     ],
     view: { lat: 33, lon: 35, zoom: 3 },
+    near: 3,
     related: ['air-raid-alerts', 'disaster-alerts', 'live-news'],
   },
   {
@@ -71,6 +72,7 @@ export const WORLD: LayerPage[] = [
     freshness: 'Read when you open the map, at most 5 minutes old; reload for the latest.',
     limits: ['GDACS alerts are automatic first estimates of impact, refined as reports come in.'],
     view: { lat: 10, lon: 20, zoom: 1.8 },
+    near: 1.8,
     related: ['earthquakes', 'hurricanes', 'severe-weather', 'world-news-map'],
   },
 ];

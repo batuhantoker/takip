@@ -26,6 +26,7 @@ export const GROUND: LayerPage[] = [
       'Shown from zoom 10, about a city at a time.',
     ],
     view: { lat: 52.37, lon: 4.9, zoom: 11 },
+    near: 8,
     related: ['live-transit', 'live-cameras', 'plate-readers'],
   },
   {
@@ -53,6 +54,7 @@ export const GROUND: LayerPage[] = [
       'Most feeds are in the US, Canada and France.',
     ],
     view: { lat: 40.75, lon: -73.98, zoom: 11.5 },
+    near: 7,
     spots: [
       { label: 'New York', view: { lat: 40.75, lon: -73.98, zoom: 11.5 }, note: 'Buses live; the subway placed from its arrival times.' },
       { label: 'London', view: { lat: 51.51, lon: -0.12, zoom: 11.5 } },
@@ -78,6 +80,7 @@ export const GROUND: LayerPage[] = [
     freshness: 'Kept up to date with OpenStreetMap by Waymarked Trails.',
     limits: ['Only routes someone has mapped as a route on OpenStreetMap; coverage is richest in Europe.'],
     view: { lat: 46.5, lon: 9, zoom: 6 },
+    near: 8,
     related: ['live-cameras', 'temperature-map'],
   },
 ];

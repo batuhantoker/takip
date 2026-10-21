@@ -1008,17 +1008,21 @@ const copy: SiteCopy = {
       limits: ['GDACS uyarıları, etkinin otomatik ilk tahminleridir; raporlar geldikçe iyileştirilir.'],
     },
     'internet-outages': {
-      title: 'İnternet kesintisi haritası: Cloudflare verisiyle ülke ülke',
-      description:
-        'Cloudflare Radar verisiyle dünya genelinde internet kesintileri canlı haritada: hangi ülkeler ve ağlar bağlantısını kaybetti, neden ve ne kadar süreyle.',
+      title: 'İnternet kesintisi haritası: ülke ve operatöre göre canlı',
+      description: 'Cloudflare Radar ve IODA verisiyle şu anki internet kesintileri canlı haritada: hangi ülke ve operatörlerin bağlantısı koptu, neden ve ne kadar süreyle.',
       heading: 'İnternet kesintileri',
-      lede: 'Cloudflare Radar’ın trafiğinde gördüğü kesintiler; hükümetlerin internet kapatmalarından kablo kopmalarına ve elektrik kesintilerine kadar, etkiledikleri ülkede işaretli.',
-      shows: ['En fazla 50 yeni kesinti; her ülke ya da ağ için bir işaret.', 'Nedeni, kapsamı, başlangıç ve bitiş zamanı için birine tıklayın.'],
-      sources: [CLOUDFLARE],
-      freshness: 'Haritayı açtığınızda yüklenir. Cloudflare kesintileri doğruladıkça ekler.',
+      lede: 'Cloudflare Radar’ın ve Georgia Tech’in IODA’sının ölçümlerinde gördüğü kesintiler; hükümetlerin internet kapatmalarından kablo kopmalarına, elektrik kesintilerine ve tek bir operatörün çökmesine kadar, etkiledikleri ülkede işaretli.',
+      shows: [
+        'Cloudflare’in doğrulayıp açıkladığı kesintiler dolu noktalarla: son 50 tanesi, bütün ülkeler ve mobil operatör gibi tek ağlar.',
+        'Cloudflare’in algılayıcısının son bir haftada, IODA’nın son iki günde gördüğü ve henüz kimsenin açıklamadığı düşüşler halkalarla.',
+        'Etkilenen ağ, nedeni, kapsamı, başlangıç ve bitiş zamanı için birine tıklayın.',
+      ],
+      sources: [CLOUDFLARE, 'Bir ülkenin ağlarına hâlâ ulaşılıp ulaşılamadığı; internet yönlendirmesi (BGP), aktif yoklama ve başka sinyallerle.'],
+      freshness: 'Harita açıkken ikisi de 5 dakikada bir yeniden okunur. Cloudflare kesintileri sonradan doğrular; bu yüzden yeni bir kesinti çoğu zaman önce halka olarak görünür.',
       limits: [
         'Etkilenen bölgeye değil, ülkenin ortasına işaretlenir.',
-        'Cloudflare kesintileri doğruladıktan sonra listeler; bu yüzden yeni bir kesintinin görünmesi saatler sürebilir.',
+        'Yalnızca bütün bir ülkede ya da ağda görülecek kadar büyük düşüşler: tek bir sokaktaki ya da ilçedeki arıza görünmez.',
+        'Halkalar henüz kimsenin kontrol etmediği otomatik algılamalardır; kesinti değil ölçüm sorunu da olabilir.',
       ],
     },
     'ddos-attacks': {

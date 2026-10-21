@@ -8,7 +8,7 @@ export type SectionId = 'air' | 'sea' | 'space' | 'weather' | 'hazards' | 'camer
 export interface Spot { label: string; view: MapView; note?: string }
 
 /** A live line the page fetches when it renders; see ../live. */
-export type LiveId = 'earthquakes' | 'launches' | 'aurora' | 'iss';
+export type LiveId = 'earthquakes' | 'launches' | 'aurora' | 'iss' | 'outages';
 
 /**
  * One public page about a layer (or a few layers people look for together), at /map/<slug>.
@@ -20,6 +20,11 @@ export interface LayerPage {
   section: SectionId;
   /** Layer keys switched on by "Open on the map" (the base display layers are added). */
   layers: string[];
+  /**
+   * The zoom to open at around the visitor (IP location, never a prompt), with `view` as the fallback and what
+   * the page's picture shows. Unset where the view is the subject: a hurricane basin, a war, an era.
+   */
+  near?: number;
   /** What the map follows on opening, as `satellite:25544`. */
   track?: string;
   /** The place topic that is this layer close up (`weather`): the page links the biggest places' pages of it. */

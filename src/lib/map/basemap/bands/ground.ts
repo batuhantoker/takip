@@ -142,16 +142,20 @@ export function addGroundLayers(map: maplibregl.Map, isGhost: boolean, cameraCol
     },
   });
 
-  /* ── Cloudflare Radar — internet outages (country-scoped) ── */
+  /* ── Internet outages, Cloudflare Radar and IODA (country-scoped) ── */
+  const outageInk: LayerColor = ['case',['get','ongoing'],MAP_INK.amber,MAP_INK.ink3];
+  const confirmed: maplibregl.ExpressionSpecification = ['==',['get','kind'],'annotation'];
   map.addLayer({ id: 'cf-outage-dots', type: 'circle', source: 'cf-outages', paint: {
     'circle-radius': markerRadius(3.5, 5, 7),
-    // Resolved outages read cooler than ongoing ones.
-    'circle-color': ['case',['get','ongoing'],MAP_INK.amber,MAP_INK.ink3],
-    'circle-opacity': 0.9,
+    // Resolved outages read cooler than ongoing ones; drops a detector saw but nobody described are rings.
+    'circle-color': outageInk,
+    'circle-opacity': ['case',confirmed,0.9,0.2],
     ...MARKER_STROKE,
+    'circle-stroke-width': ['case',confirmed,1,1.5],
+    'circle-stroke-color': ['case',confirmed,MAP_INK.surface0,outageInk as maplibregl.ExpressionSpecification],
   }});
   map.addLayer({ id: 'cf-outage-label', type: 'symbol', source: 'cf-outages', minzoom: 3, layout: {
-    'text-field': ['get','country_name'], 'text-size': LABEL_SIZE, 'text-font': ['Noto Sans Regular'],
+    'text-field': ['coalesce',['get','network'],['get','country_name']], 'text-size': LABEL_SIZE, 'text-font': ['Noto Sans Regular'],
     'text-offset': [0, 1.1], 'text-anchor': 'top', 'text-max-width': 12, 'text-allow-overlap': false,
   }, paint: labelPaint() });
 

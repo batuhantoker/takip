@@ -1,4 +1,4 @@
-import { countryPoint } from './centroids';
+import { centroidFor } from '@/lib/places/country-centroids';
 import type { Outbreak, OutbreakNotice } from './types';
 
 /**
@@ -47,7 +47,7 @@ export function aggregateOutbreaks(notices: OutbreakNotice[], now: number): { ou
     }
     n.unmatched.forEach(u => unmatched.add(u));
     for (const c of n.countries) {
-      const point = countryPoint(c.iso2);
+      const point = centroidFor(c.iso2);
       if (!point) {
         unmatched.add(`${c.name} (${c.iso2}: no centroid)`);
         continue;

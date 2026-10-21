@@ -67,6 +67,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `alerts/` | News shaping, the channel and wire roster (`news-sources.ts`), Telegram parsing, alert digest and places, GDELT events and their Alerts rows (`gdelt-alerts.ts`), the live TV channels (`live-tv.ts`), what each is broadcasting now (`live-tv-status.ts`, read from its YouTube /live page every 30 minutes) and their pins' popups, country risk | panels/alerts; api/news, api/live-news, api/gdelt-events, api/country-risk, api/ai; map layers |
 | `recon/` | RECON: account gate, lookups, sanctions; `chain/`, `fingerprint/`, `network/`, `people/`, `username/` | api/osint, api/chain; panels/recon |
 | `cyber/` | Feodo C2 indicators; `malware/` (URLhaus store, geolocation, live feed) | api/malware, api/cyber-attacks; map/layers |
+| `outages/` | Internet outages from Cloudflare Radar (confirmed annotations and detected traffic drops, by country and network) and IODA (country signals), in one shape, and merged without doubles | api/cloudflare-radar, api/radar; map/layers; site/live |
 | `markets/` | Markets panel helpers, terminal, DonBot embed | panels/markets |
 | `vision/` | Camera detector (worker, client, shared look store); `server/` (frames, analysis, forecast) | map/cameras, lib/ai; api/cctv |
 | `ai/` | Gemini client and the hosted-AI gate | api/ai; panels/alerts, panels/recon |

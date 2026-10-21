@@ -1009,19 +1009,21 @@ const copy: SiteCopy = {
 
     // The internet
     'internet-outages': {
-      title: 'Mapa de quedas de internet por país, da Cloudflare',
-      description: 'Quedas de internet pelo mundo, do Cloudflare Radar, num mapa ao vivo: quais países e redes perderam a conexão, por quê e por quanto tempo.',
+      title: 'Queda de internet hoje: mapa ao vivo por país e operadora',
+      description: 'Quedas de internet agora num mapa ao vivo, do Cloudflare Radar e do IODA: quais países e operadoras perderam a conexão, por quê e por quanto tempo.',
       heading: 'Quedas de internet',
-      lede: 'Quedas que o Cloudflare Radar viu no seu tráfego, de bloqueios impostos por governos a cabos rompidos e falta de energia, marcadas no país atingido.',
+      lede: 'Quedas que o Cloudflare Radar e o IODA, da Georgia Tech, veem nas suas medições, de bloqueios impostos por governos, cabos rompidos e falta de energia à queda de uma única operadora, marcadas no país atingido.',
       shows: [
-        'Até 50 quedas recentes, um marcador por país ou rede.',
-        'Clique num deles para ver a causa, o alcance e quando começou e terminou.',
+        'Quedas que a Cloudflare confirmou e descreveu, como pontos cheios: as 50 mais recentes, de países inteiros e de redes isoladas, como uma operadora móvel.',
+        'Quedas de tráfego que o detector da Cloudflare viu na última semana, e o IODA nos últimos dois dias, ainda não descritas por ninguém, como anéis.',
+        'Clique num deles para ver a rede atingida, a causa, o alcance e quando começou e terminou.',
       ],
-      sources: [CLOUDFLARE],
-      freshness: 'Carregado quando você abre o mapa. A Cloudflare acrescenta quedas conforme as confirma.',
+      sources: [CLOUDFLARE, 'Se as redes de um país continuam acessíveis, pelo roteamento da internet (BGP), sondagens ativas e outros sinais.'],
+      freshness: 'Os dois são lidos de novo a cada 5 minutos enquanto o mapa está aberto. A Cloudflare confirma as quedas depois, então uma nova costuma aparecer primeiro como anel.',
       limits: [
         'Marcado no meio do país, não na área afetada.',
-        'A Cloudflare lista as quedas depois de confirmá-las, então uma nova pode levar horas para aparecer.',
+        'Só quedas visíveis num país ou numa rede inteira: uma falha numa rua ou numa cidade não aparece.',
+        'Os anéis são detecções automáticas que ninguém verificou ainda e podem ser um problema de medição, não uma queda.',
       ],
     },
     'ddos-attacks': {

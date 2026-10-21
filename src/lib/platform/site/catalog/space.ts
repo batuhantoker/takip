@@ -29,6 +29,7 @@ export const SPACE: LayerPage[] = [
       'The groups are picked out by satellite name, so they are approximate.',
     ],
     view: { lat: 20, lon: 0, zoom: 1.6 },
+    near: 1.6,
     related: ['iss-tracker', 'starlink', 'rocket-launches', 'gps-satellites'],
   },
   {
@@ -76,6 +77,7 @@ export const SPACE: LayerPage[] = [
       'A freshly launched batch flies in a line for a few days, the “Starlink train”. It appears once CelesTrak publishes elements for it.',
     ],
     view: { lat: 30, lon: 0, zoom: 1.8 },
+    near: 1.8,
     related: ['satellite-tracker', 'rocket-launches', 'iss-tracker'],
   },
   {
@@ -97,6 +99,7 @@ export const SPACE: LayerPage[] = [
       'Anything named USA or Cosmos lands here, which includes some that are not military.',
     ],
     view: { lat: 30, lon: 30, zoom: 1.8 },
+    near: 1.8,
     related: ['satellite-tracker', 'military-aircraft', 'gps-satellites'],
   },
   {
@@ -115,6 +118,7 @@ export const SPACE: LayerPage[] = [
     freshness: ORBIT_FRESHNESS,
     limits: [NAMED_BY_NAME, 'Regional systems such as Japan’s QZSS and India’s NavIC are not on this layer.'],
     view: { lat: 0, lon: 0, zoom: 1.5 },
+    near: 1.5,
     related: ['gps-jamming', 'satellite-tracker'],
   },
   {
@@ -137,6 +141,7 @@ export const SPACE: LayerPage[] = [
       'The pin marks the pad, not the flight path.',
     ],
     view: { lat: 20, lon: -40, zoom: 2 },
+    near: 2,
     spots: [
       { label: 'Cape Canaveral', view: { lat: 28.5, lon: -80.6, zoom: 8 }, note: 'Florida’s Space Coast, the busiest launch site in the world.' },
       { label: 'Starbase', view: { lat: 25.99, lon: -97.15, zoom: 9 }, note: 'SpaceX’s Starship site in south Texas.' },
@@ -167,6 +172,7 @@ export const SPACE: LayerPage[] = [
       'Aurora overhead can often be seen low on the horizon from a few hundred kilometres further from the pole.',
     ],
     view: { lat: 65, lon: -20, zoom: 2.5 },
+    near: 2.5,
     spots: [
       { label: 'Tromsø', view: { lat: 69.65, lon: 18.96, zoom: 5 }, note: 'Northern Norway, under the auroral oval most clear nights.' },
       { label: 'Iceland', view: { lat: 64.9, lon: -18.6, zoom: 5 } },
@@ -195,6 +201,7 @@ export const SPACE: LayerPage[] = [
     freshness: 'Positions are read every 3 hours, and the marks move every minute.',
     limits: ['A backdrop around the globe, not a planetarium: there is no view of the sky from where you stand.'],
     view: { lat: 20, lon: 0, zoom: 1.5 },
+    near: 1.5,
     related: ['aurora-forecast', 'iss-tracker', 'day-night-map'],
   },
   {
@@ -213,6 +220,7 @@ export const SPACE: LayerPage[] = [
     freshness: 'Redrawn every 5 minutes.',
     limits: [],
     view: { lat: 20, lon: 0, zoom: 1.6 },
+    near: 1.6,
     related: ['aurora-forecast', 'night-sky', 'live-satellite-earth'],
   },
 ];

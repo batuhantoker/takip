@@ -12,13 +12,17 @@ export const BASE_LAYERS = ['day_night', 'sky_stars'] as const;
 
 const KNOWN = new Set(Object.keys(DEFAULT_LAYERS));
 
-/** A path that opens the map at `view` with `layers` on (plus the base set), following `track`, in another view (`mode`) or with a panel open. */
-export function mapHref({ layers, view, track, mode, panel }: {
-  layers: readonly string[]; view?: MapView; track?: string; mode?: ViewModeLink; panel?: PanelLink;
+/**
+ * A path that opens the map at `view` with `layers` on (plus the base set), following `track`, in another view
+ * (`mode`) or with a panel open; with `near`, around the visitor at that zoom, `view` being the fallback.
+ */
+export function mapHref({ layers, view, near, track, mode, panel }: {
+  layers: readonly string[]; view?: MapView; near?: number; track?: string; mode?: ViewModeLink; panel?: PanelLink;
 }): string {
   const on = [...new Set([...BASE_LAYERS, ...layers])].filter(k => KNOWN.has(k));
   const params: string[] = [];
   if (view) params.push(`lat=${view.lat.toFixed(4)}`, `lon=${view.lon.toFixed(4)}`, `zoom=${view.zoom.toFixed(2)}`);
+  if (near !== undefined) params.push(`near=${near}`);
   // No layers named keeps the visitor's own, rather than switching everything off.
   if (layers.length) params.push(`layers=${on.join(',')}`);
   if (track) params.push(`track=${encodeURIComponent(track).replace(/%3A/g, ':')}`);

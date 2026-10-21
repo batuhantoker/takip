@@ -33,6 +33,7 @@ export const AIR: LayerPage[] = [
       'Whether a flight counts as an airliner, a private flight or a business jet is worked out from its type, callsign, altitude and speed, so a few land in the wrong layer.',
     ],
     view: { lat: 48, lon: 5, zoom: 4.5 },
+    near: 6,
     spots: [
       { label: 'London', view: { lat: 51.47, lon: -0.45, zoom: 8 }, note: 'Heathrow, Gatwick and the holding stacks around them.' },
       { label: 'New York', view: { lat: 40.7, lon: -73.9, zoom: 8 }, note: 'JFK, LaGuardia and Newark in one view.' },
@@ -67,6 +68,7 @@ export const AIR: LayerPage[] = [
       'Volunteer receivers are densest over Europe and North America, and thin over oceans and conflict zones.',
     ],
     view: { lat: 50, lon: 20, zoom: 4 },
+    near: 4,
     spots: [
       { label: 'Eastern Europe', view: { lat: 48, lon: 26, zoom: 5 }, note: 'Surveillance and tanker flights often orbit along NATO’s eastern flank.' },
       { label: 'Eastern Mediterranean', view: { lat: 34.5, lon: 32, zoom: 5.5 }, note: 'Transports and patrol aircraft between Cyprus, the Levant and Crete.' },
@@ -96,6 +98,7 @@ export const AIR: LayerPage[] = [
       'Jet or not is decided by aircraft type where it is known, and by speed and altitude where it isn’t, so the split is approximate.',
     ],
     view: { lat: 40, lon: -95, zoom: 3.8 },
+    near: 5,
     spots: [
       { label: 'Teterboro', view: { lat: 40.85, lon: -74.06, zoom: 9 }, note: 'New York’s business-jet airport, one of the busiest in the US.' },
       { label: 'Van Nuys', view: { lat: 34.21, lon: -118.49, zoom: 9 }, note: 'Los Angeles’ general-aviation hub.' },
@@ -144,6 +147,7 @@ export const AIR: LayerPage[] = [
       'For a picture of conditions, not for flight planning.',
     ],
     view: { lat: 50, lon: 10, zoom: 4 },
+    near: 5.5,
     related: ['turbulence-sigmets', 'airport-delays', 'rain-radar', 'flight-tracker'],
   },
   {
@@ -165,6 +169,7 @@ export const AIR: LayerPage[] = [
       'For a picture of conditions, not for flight planning.',
     ],
     view: { lat: 20, lon: 0, zoom: 2.2 },
+    near: 2.2,
     related: ['airport-weather', 'lightning-map', 'flight-tracker'],
   },
   {

@@ -26,6 +26,7 @@ export const WEATHER: LayerPage[] = [
       'Detail stops at about zoom 7.',
     ],
     view: { lat: 50, lon: 5, zoom: 4.5 },
+    near: 6,
     related: ['lightning-map', 'severe-weather', 'cloud-map', 'wind-map'],
   },
   {
@@ -48,6 +49,7 @@ export const WEATHER: LayerPage[] = [
       'Local winds in valleys and between buildings are smoothed out at this scale.',
     ],
     view: { lat: 40, lon: -30, zoom: 2.8 },
+    near: 4,
     related: ['temperature-map', 'hurricanes', 'rain-radar', 'severe-weather'],
   },
   {
@@ -71,6 +73,7 @@ export const WEATHER: LayerPage[] = [
       'Until GFS loads, a coarse Open-Meteo grid is interpolated, which smooths over mountains and coasts.',
     ],
     view: { lat: 30, lon: 10, zoom: 2.2 },
+    near: 5,
     related: ['wind-map', 'rain-radar', 'airport-weather'],
   },
   {
@@ -93,6 +96,7 @@ export const WEATHER: LayerPage[] = [
       'Detail stops at zoom 8.',
     ],
     view: { lat: 25, lon: -90, zoom: 3.2 },
+    near: 5,
     related: ['rain-radar', 'severe-weather', 'hurricanes', 'turbulence-sigmets'],
   },
   {
@@ -120,6 +124,7 @@ export const WEATHER: LayerPage[] = [
       'Not shown while History is open.',
     ],
     view: { lat: 10, lon: 0, zoom: 1.8 },
+    near: 1.8,
     related: ['cloud-map', 'daily-satellite-images', 'rain-radar'],
   },
   {
@@ -141,6 +146,7 @@ export const WEATHER: LayerPage[] = [
       'The 3D look is a rendering, not measured cloud height.',
     ],
     view: { lat: 30, lon: 0, zoom: 1.8 },
+    near: 4,
     related: ['live-satellite-earth', 'aurora-forecast', 'rain-radar'],
   },
   {
@@ -162,6 +168,7 @@ export const WEATHER: LayerPage[] = [
       'Detail stops at about zoom 9.',
     ],
     view: { lat: 30, lon: 10, zoom: 2.2 },
+    near: 5,
     related: ['live-satellite-earth', 'wildfires', 'cloud-map'],
   },
 ];

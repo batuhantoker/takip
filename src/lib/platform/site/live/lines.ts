@@ -1,5 +1,7 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
+import { mergeOutages, type Outage } from '@/lib/intel/outages/outage';
 import { instant, type Spoken } from '../clock';
+import { countryName, listOf } from '../places/copy/format';
 
 /** Turns a feed route's answer into the one sentence a page shows. Null when there is nothing true to say. */
 
@@ -63,4 +65,29 @@ export function issLine(json: { satellites?: SatRow[]; source?: string; timestam
   const at = json.timestamp ? Date.parse(json.timestamp) : now;
   const vars = { time: instant(at), lat: deg(t, iss.lat, 'N', 'S'), lon: deg(t, iss.lng, 'E', 'W'), alt: iss.alt };
   return { text: t.parts(ISS_AT, vars) as Spoken, at };
+}
+
+const NAMED_OUTAGES = 5;
+
+/** The countries where Cloudflare Radar or IODA still lists an outage as open, with the networks when only networks are out. */
+export function outageLine(cloudflare: { outages?: Outage[] } | null, ioda: { outages?: Outage[] } | null, now: number, t: Translate): LiveLine | null {
+  if (!cloudflare?.outages && !ioda?.outages) return null;
+  const open = mergeOutages(cloudflare?.outages ?? [], ioda?.outages ?? [], now).filter(o => o.ongoing);
+  if (!open.length) return { text: [t('Cloudflare Radar and IODA list no internet outage as still going on.')], at: now };
+  const byCountry = new Map<string, Set<string> | null>();
+  for (const o of open) {
+    const seen = byCountry.get(o.country);
+    if (!o.network || seen === null) { byCountry.set(o.country, null); continue; }
+    const networks = seen ?? new Set<string>();
+    for (const n of o.network.split(', ')) networks.add(n.replace(/^AS\d+ /, ''));
+    byCountry.set(o.country, networks);
+  }
+  const names = [...byCountry].map(([cc, networks]) => (networks ? `${countryName(cc, t)} (${[...networks].join(', ')})` : countryName(cc, t)));
+  const shown = names.length > NAMED_OUTAGES
+    ? [...names.slice(0, NAMED_OUTAGES), t('{n, plural, one {one more} other {# more}}', { n: names.length - NAMED_OUTAGES })]
+    : names;
+  return {
+    text: [t('Internet outages still going on in {n, plural, one {one country} other {# countries}}, per Cloudflare Radar and IODA: {list}.', { n: names.length, list: listOf(shown, t) })],
+    at: now,
+  };
 }

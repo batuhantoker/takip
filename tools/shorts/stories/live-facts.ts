@@ -20,11 +20,13 @@ export interface LiveFacts {
 
 export async function liveFacts(base: string, page: LayerPage, spots: Spot[]): Promise<LiveFacts> {
   const out: LiveFacts = { line: null, spots: {} };
-  if (!page.live) return out;
-  const json = await fetch(base + ROUTES[page.live], { signal: AbortSignal.timeout(90_000) }).then(r => (r.ok ? r.json() : null), () => null);
+  // Outages read two routes; tours don't tell them.
+  if (!page.live || !Object.hasOwn(ROUTES, page.live)) return out;
+  const live = page.live as keyof typeof ROUTES;
+  const json = await fetch(base + ROUTES[live], { signal: AbortSignal.timeout(90_000) }).then(r => (r.ok ? r.json() : null), () => null);
   if (!json) return out;
   const now = Date.now();
-  const line = { earthquakes: quakeLine, launches: launchLine, aurora: auroraLine, iss: issLine }[page.live](json, now, en);
+  const line = { earthquakes: quakeLine, launches: launchLine, aurora: auroraLine, iss: issLine }[live](json, now, en);
   out.line = line ? words(line.text) : null;
   if (page.live === 'earthquakes') {
     const day = ((json as { earthquakes?: Quake[] }).earthquakes ?? []).filter(q => q.time >= now - 86_400_000);

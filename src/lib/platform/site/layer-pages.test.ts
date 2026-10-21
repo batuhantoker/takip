@@ -43,6 +43,15 @@ describe('LAYER_PAGES', () => {
     expect(url.searchParams.get('layers')).toContain('sat_science');
   });
 
+  it('opens around the visitor where the page says so, keeping its view as the fallback, but never at a spot', () => {
+    const radar = layerPage('rain-radar', {})!;
+    const url = new URL(openPath(radar), 'http://x');
+    expect(url.searchParams.get('near')).toBe('6');
+    expect(url.searchParams.get('lat')).toBe(radar.view!.lat.toFixed(4));
+    expect(new URL(openPath(radar, { lat: 52.5, lon: 13.4, zoom: 8 }), 'http://x').searchParams.has('near')).toBe(false);
+    expect(new URL(openPath(layerPage('hurricanes', {})!), 'http://x').searchParams.has('near')).toBe(false);
+  });
+
   it('opens History on only the kinds a page is about', () => {
     const url = new URL(openPath(layerPage('plane-crashes', {})!), 'http://x');
     expect(url.searchParams.get('view')).toBe('history');

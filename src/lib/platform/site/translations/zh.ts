@@ -981,19 +981,21 @@ const copy: SiteCopy = {
 
     // The internet
     'internet-outages': {
-      title: '断网地图：Cloudflare 各国网络中断',
-      description: '来自 Cloudflare Radar 的全球互联网中断实时地图：哪些国家和网络断了网、原因是什么、持续了多久。',
+      title: '断网地图：各国和运营商网络中断实时查看',
+      description: '来自 Cloudflare Radar 和 IODA 的全球互联网中断实时地图：哪些国家和运营商断了网、原因是什么、持续了多久。',
       heading: '互联网中断',
-      lede: 'Cloudflare Radar 在其流量中观察到的中断，从政府断网到光缆被切断、停电，标在受影响的国家。',
+      lede: 'Cloudflare Radar 和佐治亚理工学院的 IODA 在其测量中观察到的中断，从政府断网、光缆被切断、停电到单个运营商故障，标在受影响的国家。',
       shows: [
-        '最多 50 次近期中断，每个国家或网络一个标记。',
-        '点击可查看原因、范围，以及开始和结束时间。',
+        'Cloudflare 已确认并说明的中断，以实心点表示：最近 50 次，包括整个国家和单个网络（如移动运营商）。',
+        'Cloudflare 的检测器在过去一周、IODA 在过去两天看到但尚无人说明的流量骤降，以圆环表示。',
+        '点击可查看受影响的网络、原因、范围，以及开始和结束时间。',
       ],
-      sources: [CLOUDFLARE],
-      freshness: '在你打开地图时加载。Cloudflare 确认中断后会将其加入。',
+      sources: [CLOUDFLARE, '根据互联网路由（BGP）、主动探测等信号，判断一个国家的网络是否仍可访问。'],
+      freshness: '地图打开期间，两者每 5 分钟重新读取一次。Cloudflare 事后才确认中断，所以新的中断通常先以圆环出现。',
       limits: [
         '标在国家中部，而不是受影响的区域。',
-        'Cloudflare 在确认中断后才会列出，所以新的中断可能要几个小时才会出现。',
+        '只显示整个国家或整个网络都能看出的骤降：某条街道或某个城镇的故障不会出现。',
+        '圆环是尚无人核实的自动检测，可能是测量问题而非中断。',
       ],
     },
     'ddos-attacks': {

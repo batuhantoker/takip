@@ -21,6 +21,7 @@ Both render `EmbedView` (`components/site/embed/`): the map, full-bleed, and "Op
 | `lat`, `lon`, `zoom` | Where the camera opens. |
 | `bbox=w,s,e,n` | An area: the camera fits it, and windowed layers ask for what happened inside it. West above east crosses the antimeridian (`bbox=172,51,-129,72` is Alaska). |
 | `track=satellite:25544` | What the map finds and follows. A satellite is watched: followed from straight above at the frame's zoom, drawn larger with its name and orbit, and no card. An aircraft or ship opens its card folded to the header. |
+| `near=6` | Turn to the visitor at this zoom once their place is known (the device if already permitted, else by IP; never a prompt); `lat`, `lon` and `zoom` hold until then, or if it isn't. The full map's links take it too. |
 | `pin=45.6833,9.6000&pinname=Dalmine` | The place the frame is about, marked (`use-place-pin.ts`). A place page sets it when its map follows something away from the place: the ISS page. |
 | `last=10y`, `last=30d` | A window ending at the close of today (UTC), so everyone who opens it on the same day asks the same question. |
 | `from=1999-08-17&to=1999-08-18` | A fixed window, `to` exclusive; `YYYY` works too. |

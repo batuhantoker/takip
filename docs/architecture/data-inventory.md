@@ -139,7 +139,7 @@ Limits are as written in our code comments or `docs/data-sources.md`; they haven
 | liveuamap, BBC, DeepStateMap, GDELT | Conflict, front lines | `/api/conflicts`, `/api/frontlines`, `/api/gdelt-events` | — | n.d. | CDN 5–30 min | no |
 | RSS wires, Telegram, Nominatim | News, geocoding | `/api/news` | — | Nominatim 1 req/s | 3–5 min | cache |
 | Tzeva Adom, ukrainealarm | Air-raid alerts | `/api/war-alerts` | — | n.d. | 20 s | cache |
-| Cloudflare Radar, IODA | Internet outages | `/api/cloudflare-radar`, `/api/radar` | `CLOUDFLARE_API_TOKEN` | n.d. | CDN 5 min | no |
+| Cloudflare Radar, IODA | Internet outages (Cloudflare: annotations and traffic anomalies; IODA: country events, last 48 h) | `/api/cloudflare-radar`, `/api/radar` | `CLOUDFLARE_API_TOKEN` (Cloudflare only) | n.d. | 5 min, held in the route | no |
 | Statuspage vendors | Service status | `/api/service-status` | — | n.d. | short | cache |
 | abuse.ch, ip-api, Shadowserver, CISA KEV, NVD, DefiLlama | Cyber threats, malware, chain stats | `/api/cyber-*`, `/api/malware`, `/api/chain/daily` | — | ip-api 15 batches/min × 100 | 5–30 min | cache |
 | Yahoo Finance, Frankfurter, CoinGecko | Markets, FX, crypto | `/api/markets`, `/api/crypto` | — | n.d. | 60 s | cache |

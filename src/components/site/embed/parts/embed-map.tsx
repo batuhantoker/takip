@@ -16,6 +16,7 @@ import { useNearbyFlights } from '@/components/shell/state/use-nearby-flights';
 import { useSdkEntities } from '@/components/shell/state/use-sdk-entities';
 import type { BackendStatus, FlyToTarget, LiveData, MapCenter } from '@/components/shell/state/types';
 import { embedLayers, type EmbedSpec } from '@/lib/map/embed/spec';
+import { locateVisitor } from '@/lib/places/ip-location/browser';
 import { useWindowData } from '../hooks/use-window-data';
 import { WatchLabel } from './watch-label';
 import { WindowCaption } from './window-caption';
@@ -65,6 +66,26 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
   useSdkEntities({ dataRef, data, dataVersion, activeLayers: live });
   const shown = useWindowData({ spec, dataRef, setDataVersion });
   const pin = useMemo(() => (spec.pin ? { lat: spec.pin.lat, lng: spec.pin.lon, name: spec.pin.name } : null), [spec.pin]);
+
+  useEffect(() => {
+    if (spec.near === undefined) return;
+    const zoom = spec.near;
+    const asked = new AbortController();
+    // Once the visitor moves the map, a late answer must not take the camera back.
+    const stop = () => asked.abort();
+    window.addEventListener('pointerdown', stop, { once: true });
+    window.addEventListener('wheel', stop, { once: true });
+    window.addEventListener('keydown', stop, { once: true });
+    locateVisitor(asked.signal).then(at => {
+      if (at && !asked.signal.aborted) setFlyTo({ ...at, zoom, duration: 1500, quiet: true, ts: Date.now() });
+    });
+    return () => {
+      asked.abort();
+      window.removeEventListener('pointerdown', stop);
+      window.removeEventListener('wheel', stop);
+      window.removeEventListener('keydown', stop);
+    };
+  }, [spec.near]);
 
   useEffect(() => {
     const target = parseTrack(spec.track);

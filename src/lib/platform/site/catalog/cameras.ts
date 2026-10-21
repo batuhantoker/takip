@@ -27,6 +27,7 @@ export const CAMERAS: LayerPage[] = [
       'Cameras go dark for maintenance or policy reasons; those are marked off air rather than removed.',
     ],
     view: { lat: 48, lon: 10, zoom: 4 },
+    near: 6,
     spots: [
       { label: 'Istanbul', view: { lat: 41.04, lon: 28.99, zoom: 11 }, note: 'City traffic on both sides of the Bosphorus.' },
       { label: 'Tokyo', view: { lat: 35.68, lon: 139.76, zoom: 10 } },
@@ -83,6 +84,7 @@ export const CAMERAS: LayerPage[] = [
       'GDELT is coded by machine and sometimes places an event at the centre of a region.',
     ],
     view: { lat: 35, lon: 20, zoom: 2 },
+    near: 2,
     related: ['world-news-map', 'live-cameras'],
   },
 ];

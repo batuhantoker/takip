@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { knownCountryCodes } from '@/app/api/(intel)/advisories/country-codes';
 import { aggregateOutbreaks } from './aggregate';
-import { countryPoint } from './centroids';
+import { centroidFor } from '@/lib/places/country-centroids';
 import type { OutbreakNotice } from './types';
 
 const NOW = Date.parse('2026-10-12T20:00:00Z');
@@ -81,8 +81,8 @@ describe('aggregateOutbreaks', () => {
   });
 });
 
-describe('countryPoint', () => {
+describe('centroidFor', () => {
   it('has a point for every country a name can resolve to, except the scattered U.S. Outlying Islands', () => {
-    expect([...knownCountryCodes()].filter(c => !countryPoint(c))).toEqual(['UM']);
+    expect([...knownCountryCodes()].filter(c => !centroidFor(c))).toEqual(['UM']);
   });
 });

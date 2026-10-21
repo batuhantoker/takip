@@ -9,6 +9,10 @@ describe('mapHref', () => {
     expect(url.searchParams.get('zoom')).toBe('5.00');
   });
 
+  it('asks for the visitor’s place with near, after the fallback view', () => {
+    expect(mapHref({ layers: [], view: { lat: 50, lon: 5, zoom: 4.5 }, near: 6 })).toBe('/?lat=50.0000&lon=5.0000&zoom=4.50&near=6');
+  });
+
   it('drops unknown layer keys and keeps the track readable', () => {
     const href = mapHref({ layers: ['satellites', 'nonsense'], track: 'satellite:25544' });
     expect(href).not.toContain('nonsense');
