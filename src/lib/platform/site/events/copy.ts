@@ -1,6 +1,8 @@
 import { Prec } from '@takip/core/time';
 import type { Translate } from '@/lib/core/i18n/translator';
-import { attackRows, facts, formatAt, HISTORY_FAMILIES, KINDS, placementNote, when, type HistoryDetail, type HistoryFeature } from '@/lib/history/popup';
+import {
+  attackRows, facts, formatAt, HISTORY_FAMILIES, KINDS, longDescription, placementNote, when, withoutDescription, type HistoryDetail, type HistoryFeature,
+} from '@/lib/history/popup';
 import { popCoords } from '@/lib/map/popups/kit';
 import { HISTORY_FAMILY_LINKS, type HistoryFamilyLink } from '@/lib/map/view-mode-link';
 import { mapHref } from '../map-link';
@@ -63,16 +65,19 @@ export const coordinates = (e: EventPage) => (e.lat !== null && e.lon !== null ?
 /** How the event was put on the map, in the popup's words; null for an exact place. */
 export const placement = (t: Translate, e: EventPage) => placementNote(t, e.geoPrec, e.family, e.magnitude, e.attrs) || null;
 
-/** The facts the record carries, as label and value; GTD's coded columns in words. */
+/** The facts the record carries, as label and value, uncut; GTD's coded columns in words. */
 export function factRows(t: Translate, e: EventPage): { label: string; value: string }[] {
   const rows = e.kind === 'attack.terror'
     ? attackRows(e.attrs, t, t.intl).map(r => ({ label: r.label, value: r.value === null || r.value === undefined ? '' : String(r.value) }))
-    : facts(e.attrs, t).map(([label, value]) => ({ label, value }));
+    : facts(longDescription(e.title, e.attrs) ? withoutDescription(e.attrs) : e.attrs, t, Infinity).map(([label, value]) => ({ label, value }));
   return rows.filter(r => r.value);
 }
 
 /** GTD's own summary of an attack, without the date it opens with. */
 export const recordSummary = (e: EventPage) => (e.kind === 'attack.terror' ? text(e.attrs.summary)?.replace(/^[\d/]+:\s*/, '') ?? null : null);
+
+/** What the page shows as the summary: GTD's, or a year page's whole line where the title is the start of it. */
+export const summaryText = (e: EventPage) => recordSummary(e) ?? longDescription(e.title, e.attrs);
 
 const ZOOM: Record<number, number> = { 0: 6, 1: 6, 2: 5.5, 3: 5, 4: 4.5, 5: 3.5 };
 

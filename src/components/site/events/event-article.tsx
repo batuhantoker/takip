@@ -8,7 +8,7 @@ import { languageName } from '@/lib/core/wikipedia/language';
 import { articleUrl } from '@/lib/core/wikipedia/refs';
 import { AD_SLOTS } from '@/lib/platform/ads';
 import type { EventArticle as Article } from '@/lib/platform/site/events/article';
-import { coordinates, eventOpenPath, eventWhen, kindLabel, placeName, recordSummary } from '@/lib/platform/site/events/copy';
+import { coordinates, eventOpenPath, eventWhen, kindLabel, placeName, summaryText } from '@/lib/platform/site/events/copy';
 import type { EventPage } from '@/lib/platform/site/events/event-page';
 import type { SiteText } from '@/lib/platform/site/text';
 import { EventFacts } from './parts/event-facts';
@@ -34,7 +34,7 @@ export function EventArticle({ text, event: e, name, article, kicker }: {
   const where = placeName(e) ?? coordinates(e);
   const wikiHref = article?.url ?? (e.wiki ? articleUrl(e.wiki) : null);
   const wikipedia = !article || article.lang === 'en' ? 'Wikipedia' : t('{language} Wikipedia', { language: languageName(article.lang, t.intl) });
-  const summary = recordSummary(e);
+  const summary = summaryText(e);
   const gtd = e.kind === 'attack.terror' && e.sources[0]?.code === 'gtd';
   return (
     <article>

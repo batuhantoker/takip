@@ -1,6 +1,6 @@
 import { Prec } from '@takip/core/time';
 import { describe, expect, it } from 'vitest';
-import { formatAt, gtdIdDay, gtdRelatedLine, type HistoryDetail, historyPopupHtml, RELATED_SHOWN, shownIds } from './popup';
+import { formatAt, gtdIdDay, gtdRelatedLine, type HistoryDetail, historyPopupHtml, longDescription, RELATED_SHOWN, shownIds } from './popup';
 
 const s = (iso: string) => Date.parse(iso) / 1000;
 
@@ -100,6 +100,18 @@ describe('history popup', () => {
     const windowed = historyPopupHtml(p, undefined, {}, { windowed: true });
     expect(windowed).not.toContain('tk-pop-kicker');
     expect(windowed).toContain('Kuomintang Islamic insurgency');
+  });
+
+  it('gives a year page’s whole line behind Read more, not a cut Description row', () => {
+    const line = 'Throughout the decade, North Korea expanded its nuclear capabilities, performing alleged nuclear tests in 2013 and 2016, which governments responded by placing international sanctions on the country. In response North Korea has threatened the United States.';
+    const title = `${line.slice(0, 160).replace(/\s+\S*$/, '')}…`;
+    expect(longDescription(title, { description: line })).toBe(line);
+    expect(longDescription('Battle of Adwa', { description: 'battle between the Ethiopian Empire and the Kingdom of Italy' })).toBeNull();
+    expect(longDescription('Capture of Fez', { description: 'Capture of Fez by Ottoman forces in 1576' })).toBeNull();
+    const p = { id: 7, kind: 'event.general', family: 'events', title, t0: s('2010-01-01'), t1: s('2010-01-01'), prec: Prec.decade, ongoing: 0, geoPrec: 5 };
+    const html = historyPopupHtml(p, { ...p, tStart: p.t0, tEnd: null, endPrec: null, attrs: { description: line } }, { expanded: true });
+    expect(html).toContain('international sanctions on the country. In response');
+    expect(html).not.toContain('Description');
   });
 
   it('reads the day out of a GTD eventid', () => {

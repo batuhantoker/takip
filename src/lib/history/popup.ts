@@ -231,8 +231,10 @@ export function when(p: HistoryFeature, d?: HistoryDetail | null, t: Say = EN, i
 
 const SKIP = new Set(['url', 'wiki', 'place', 'placed_at', 'geo_method', 'geo_confidence', 'also', 'net', 'ids', 'status', 'sig', 't_raw', 'crit', 'dyads', 'eventid', 'alt_names', 'phase', 'specificity', 'vicinity', 'doubtterr', 'multiple', 'added_by_compiler']);
 
+const ROW_MAX = 160;
+
 /** The attrs a reader can use: scalars and lists of strings, plus belligerents as "a vs b". */
-export function facts(attrs: Record<string, unknown>, t: Say = EN): [string, string][] {
+export function facts(attrs: Record<string, unknown>, t: Say = EN, max = ROW_MAX): [string, string][] {
   const out: [string, string][] = [];
   for (const [k, v] of Object.entries(attrs)) {
     if (SKIP.has(k) || v === null || v === '' || v === false) continue;
@@ -245,11 +247,20 @@ export function facts(attrs: Record<string, unknown>, t: Say = EN): [string, str
     }
     if (!text) continue;
     const label = k.replace(/_/g, ' ');
-    out.push([label.charAt(0).toUpperCase() + label.slice(1), text.length > 160 ? `${text.slice(0, 157)}…` : text]);
+    out.push([label.charAt(0).toUpperCase() + label.slice(1), text.length > max ? `${text.slice(0, max - 3)}…` : text]);
     if (out.length === 6) break;
   }
   return out;
 }
+
+/** A year page's line in full where the title was cut from it or a row would cut it: it reads as the event's summary. */
+export function longDescription(title: string | null | undefined, attrs: Record<string, unknown>): string | null {
+  const d = text(attrs.description);
+  if (!d || !title || d === title || !d.startsWith(title.replace(/…$/, ''))) return null;
+  return title.endsWith('…') || d.length > ROW_MAX ? d : null;
+}
+
+export const withoutDescription = (attrs: Record<string, unknown>) => Object.fromEntries(Object.entries(attrs).filter(([k]) => k !== 'description'));
 
 const text = (v: unknown) => (typeof v === 'string' && v.trim() && v !== 'Unknown' ? v.trim() : null);
 const count = (n: number) => Math.round(n).toLocaleString(activeIntl());
@@ -351,8 +362,9 @@ export function historyPopupHtml(p: HistoryFeature, d?: HistoryDetail | null, x:
     const span = Array.isArray(range) && range.length === 2 && range.every(n => typeof n === 'number') ? ` (${count(range[0])}–${count(range[1])})` : '';
     rows.push({ label: t(family.magnitude), value: (p.family === 'hazard' ? magnitude.toFixed(1) : count(magnitude)) + span, mono: true });
   }
-  if (d) rows.push(...(attack ? attackRows(d.attrs) : facts(d.attrs, t).map(([label, value]) => ({ label, value }))));
-  const summary = (attack ? text(d?.attrs.summary) : null) ?? (x.wiki?.extract.trim() || null);
+  const long = d ? longDescription(d.title, d.attrs) : null;
+  if (d) rows.push(...(attack ? attackRows(d.attrs) : facts(long ? withoutDescription(d.attrs) : d.attrs, t).map(([label, value]) => ({ label, value }))));
+  const summary = (attack ? text(d?.attrs.summary) : null) ?? long ?? (x.wiki?.extract.trim() || null);
   // Facts first: the picture and summary would push the death toll below the popup's fold.
   const story = [x.wiki ? wikiHtml(x.wiki) : '', summary ? summaryHtml(summary, !!x.expanded) : ''].join('');
   const url = typeof d?.attrs.url === 'string' && /^https?:\/\//.test(d.attrs.url) ? d.attrs.url : null;
