@@ -1,5 +1,5 @@
 import type { Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeName, TITLE_MAX } from './copy/format';
+import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from './copy/format';
 import type { PlacePageRef } from './pages';
 import type { Place } from './place';
 import type { PlaceCopy } from './topic';
@@ -12,10 +12,10 @@ export function overviewCopy(place: Place, pages: PlacePageRef[], t: Translate, 
   const labels = (t: Translate, k: number) => listOf([...new Set(pages.map(p => t(p.topic.inline)))].slice(0, k), t);
   const all = pages.length;
   return {
-    title: fit([
-      ...[all, 3, 2].map(k => (t: Translate) => t('{city} live map: {things}', { city: name(t), things: labels(t, k) })),
-      t => t('{city} live map', { city: name(t) }),
-    ], t, TITLE_MAX),
+    title: fit(placeFirst(place, [
+      ...[all, 3, 2].map(k => (t: Translate, city: string) => t('{city} live map: {things}', { city, things: labels(t, k) })),
+      (t, city) => t('{city} live map', { city }),
+    ]), t, TITLE_MAX),
     description: fit([
       ...[all, 3, 2].map(k => (t: Translate) => t('{place} on one free live map: {things}, each with where its data comes from and what is true right now.', { place: placeName(place, t), things: labels(t, k) })),
       ...[all, 3, 2].map(k => (t: Translate) => t('{city} on one free live map: {things}, with where the data comes from.', { city: name(t), things: labels(t, k) })),

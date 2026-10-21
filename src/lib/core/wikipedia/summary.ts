@@ -16,3 +16,23 @@ export function trimExtract(text: string, max = 420): string {
   const end = cut.lastIndexOf('. ');
   return end > max * 0.5 ? cut.slice(0, end + 1) : `${cut.trimEnd()}…`;
 }
+
+// A full stop after one or two letters or digits is an initial, an abbreviation or a German date ("J. Smith", "19. April").
+const SENTENCE_END = /(?<=[.!?])(?<!(?:^|[\s(.])[\p{L}\p{N}]{1,2}\.)\s+(?=[\p{Lu}\p{N}"“‘(])|(?<=[。！？])/u;
+// Wikipedia leaves a space where it dropped a reading ("サラミスの海戦 は").
+const CJK_GAP = /(?<=[\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}])\s+(?=[\p{sc=Han}\p{sc=Hiragana}\p{sc=Katakana}])/gu;
+
+/** The opening sentences that fit in `max` characters; the first alone is cut at a word when it doesn't. */
+export function leadSentences(source: string, max: number): string {
+  const text = source.trim().replace(CJK_GAP, '');
+  let out = '';
+  for (const s of text.split(SENTENCE_END)) {
+    const next = !out ? s : /[。！？]$/.test(out) ? out + s : `${out} ${s}`;
+    if ([...next].length > max) break;
+    out = next;
+  }
+  if (out) return out;
+  const cut = [...text].slice(0, max - 1).join('');
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:–-]+$/, '')}…`;
+}

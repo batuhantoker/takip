@@ -20,8 +20,12 @@ export function placePages(place: Place): PlacePageRef[] {
 
 export const findPlacePage = (place: Place, slug: string) => placePages(place).find(p => p.page.slug === slug);
 
+// Sunrise and prayer times are worked out from the coordinates alone, so together they are one topic's worth.
+const FROM_COORDINATES = new Set(['sun', 'prayer']);
+
 /** An overview with only one topic worth indexing would say what that topic says; it needs two. */
-export const overviewIndexed = (pages: PlacePageRef[]) => new Set(pages.filter(p => p.page.index).map(p => p.topic.id)).size >= 2;
+export const overviewIndexed = (pages: PlacePageRef[]) =>
+  new Set(pages.filter(p => p.page.index).map(p => (FROM_COORDINATES.has(p.topic.id) ? 'sky' : p.topic.id))).size >= 2;
 
 /** Nearby places of the same kind with an indexed page of this topic (or any, for an overview). */
 export function nearbyWith(place: Place, topicId: string | undefined, limit = 8): Place[] {

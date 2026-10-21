@@ -72,7 +72,10 @@ export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: s
   if (!found) return null;
   const { place, pages, places, current, text, copy } = found;
   const { t } = text;
-  const lives = await livesFor(current ? [current] : pages.filter(p => OVERVIEW_LIVE.includes(p.topic.id)), place, t, !current);
+  const [lives, detail] = await Promise.all([
+    livesFor(current ? [current] : pages.filter(p => OVERVIEW_LIVE.includes(p.topic.id)), place, t, !current),
+    current?.topic.detail ? current.topic.detail(place, current.page, t).catch(() => null) : null,
+  ]);
   const origin = configuredOrigin() ?? publicOrigin(await headers());
   const index = localePath(text.locale, KIND_INDEX[place.kind]);
   const overview = localePath(text.locale, placePath(place));
@@ -89,7 +92,7 @@ export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: s
         ...trail.map(c => ({ name: c.label, path: c.href })),
         { name: copy.heading, path: localePath(text.locale, placePath(place, current?.page.slug)) },
       ])) }} />
-      <PlaceArticle text={text} place={place} copy={copy} pages={pages} places={places} current={current} lives={lives}
+      <PlaceArticle text={text} place={place} copy={copy} pages={pages} places={places} current={current} lives={lives} detail={detail}
         image={shotUrl(placeShotSlug(place.kind, place.slug, current?.page.slug))}
         nearby={nearbyWith(place, current?.topic.id)}
         kicker={current ? { href: overview, label: name } : { href: index, label: kindLabel }} />

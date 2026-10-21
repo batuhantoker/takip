@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { count, DESCRIPTION_RANGE, fit, listOf, nameOf, placeName, TITLE_MAX } from '../copy/format';
+import { count, DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
 import { reachKm, type Place } from '../gazetteer';
 import type { PlaceTopic, TopicPage } from '../topic';
 import { camerasNear } from './camera-catalogue';
@@ -70,10 +70,10 @@ export const CAMERAS: PlaceTopic<CamerasData> = {
     const top = data.sources.slice(0, 2).map(([s]) => s);
     if (!data.onAir) {
       return {
-        title: fit([
-          t => t('{city} cameras: {n, plural, one {# listed, off air} other {# listed, all off air}}', { city: name(t), n: data.offAir }),
-          t => t('{city} cameras', { city: name(t) }),
-        ], t, TITLE_MAX),
+        title: fit(placeFirst(place, [
+          (t, city) => t('{city} cameras: {n, plural, one {# listed, off air} other {# listed, all off air}}', { city, n: data.offAir }),
+          (t, city) => t('{city} cameras', { city }),
+        ]), t, TITLE_MAX),
         description: fit([
           t => t('{n, plural, one {One public camera is} other {# public cameras are}} listed in and around {place}, but none is streaming now. Here is which they are, and other cameras nearby.', { n: data.offAir, place: placeName(place, t) }),
           t => t('Public cameras listed in and around {city}, none streaming now: which they are, who published them, and live cameras elsewhere nearby.', { city: name(t) }),
@@ -83,11 +83,12 @@ export const CAMERAS: PlaceTopic<CamerasData> = {
       };
     }
     return {
-      title: fit([
-        t => t('{city} live cameras: {n, plural, one {# public camera} other {# public cameras}} on a map', { city: name(t), n: data.onAir }),
-        t => t('{city} live cameras: {n} on a map', { city: name(t), n: n(t) }),
-        t => t('{city} live cameras', { city: name(t) }),
-      ], t, TITLE_MAX),
+      title: fit(placeFirst(place, [
+        (t, city) => t('{city} webcams and live cameras: {n} on a map', { city, n: n(t) }),
+        (t, city) => t('{city} live cameras: {n, plural, one {# public camera} other {# public cameras}} on a map', { city, n: data.onAir }),
+        (t, city) => t('{city} live cameras: {n} on a map', { city, n: n(t) }),
+        (t, city) => t('{city} live cameras', { city }),
+      ]), t, TITLE_MAX),
       description: fit([
         ...(top.length ? [(t: Translate) => t('{n, plural, one {One public camera} other {# public cameras}} in and around {place}, from {sources}, on one live map. Click one for its latest picture or live stream.', { n: data.onAir, place: placeName(place, t), sources: listOf(top, t) })] : []),
         ...(top.length ? [(t: Translate) => t('{n, plural, one {One public camera} other {# public cameras}} in and around {city}, from {sources}, on one live map. Click one to watch.', { n: data.onAir, city: name(t), sources: top[0] })] : []),

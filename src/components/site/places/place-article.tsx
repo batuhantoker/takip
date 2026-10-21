@@ -22,7 +22,7 @@ export interface PageLive { ref: PlacePageRef; live: unknown; at: number }
  * A place's page: its overview (no `current`), or one topic page. The header and the "right now" box are shared;
  * below them, the overview lists the place's pages and a topic page renders its own body.
  */
-export function PlaceArticle({ text, place, copy, pages, places = [], current, lives, image, nearby, kicker }: {
+export function PlaceArticle({ text, place, copy, pages, places = [], current, lives, detail, image, nearby, kicker }: {
   text: SiteText;
   place: Place;
   copy: PlaceCopy;
@@ -31,6 +31,8 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
   places?: Place[];
   current?: PlacePageRef;
   lives: PageLive[];
+  /** The current page's topic detail(). */
+  detail?: unknown;
   image: string | null;
   nearby: Place[];
   kicker: { href: string; label: string };
@@ -65,7 +67,7 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
         facts={Lead && current ? <Lead text={text} place={place} page={current.page} /> : undefined} />
       {listed.length > 1 && <TopicNav text={text} place={place} pages={pages} current={current?.page.slug} />}
 
-      {Wide && current && <div className="mt-16"><Wide text={text} place={place} page={current.page} /></div>}
+      {Wide && current && <div className="mt-16"><Wide text={text} place={place} page={current.page} detail={detail} /></div>}
       <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
         <div>
           {!current && listed.length > 0 && (
@@ -84,7 +86,7 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
             const Overview = TOPIC_VIEWS[p.topic.id]?.Overview;
             return Overview ? <Overview key={p.page.slug} text={text} place={place} page={p.page} /> : null;
           })}
-          {Body && current && <Body text={text} place={place} page={current.page} />}
+          {Body && current && <Body text={text} place={place} page={current.page} detail={detail} />}
           {places.length > 0 && (
             <Section title={t('Places in {country}', { country: nameOf(place, t) })}>
               <PlaceList text={text} places={places} />

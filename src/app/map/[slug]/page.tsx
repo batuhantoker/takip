@@ -11,6 +11,7 @@ import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { worldSlugs } from '@/lib/platform/site/compare/world';
 import { topicEvents } from '@/lib/platform/site/events/topic-events';
 import { availablePages, layerPage, pagePath } from '@/lib/platform/site/layer-pages';
+import { LIVE_IMAGES, liveImagePath, liveImageTaken } from '@/lib/platform/site/live-images';
 import { liveLine } from '@/lib/platform/site/live/live-line';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { readingImage, readingMetadata } from '@/lib/platform/site/meta';
@@ -55,18 +56,30 @@ export default async function LayerPageRoute({ params }: Props) {
   const { text, page } = found;
   const origin = configuredOrigin() ?? publicOrigin(await headers());
   const live = page.live ? await liveLine(page.live, text.t) : null;
+  const shot = page.liveImage ? { id: page.liveImage, taken: await liveImageTaken(page.liveImage) } : null;
   const related = page.related.map(slug => layerPage(slug)).filter(p => !!p)
     .map(p => ({ page: pageIn(text, p), image: shotUrl(p.slug) }));
   const index = localePath(text.locale, '/map');
   const events = page.eventKinds && topicEvents(page.eventKinds);
   return (
     <SiteFrame t={text.t} path={pagePath(page)} trail={[{ href: index, label: text.t('On the map') }]}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbs(origin, [
-        { name: 'TAKIP', path: '/' },
-        { name: sectionIn(text, page.section).label, path: index },
-        { name: page.heading, path: localePath(text.locale, pagePath(page)) },
-      ])) }} />
-      <LayerArticle text={text} page={page} image={shotUrl(page.slug)} live={live} related={related}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd([
+        breadcrumbs(origin, [
+          { name: 'TAKIP', path: '/' },
+          { name: sectionIn(text, page.section).label, path: index },
+          { name: page.heading, path: localePath(text.locale, pagePath(page)) },
+        ]),
+        ...(shot ? [{
+          '@context': 'https://schema.org',
+          '@type': 'ImageObject',
+          contentUrl: `${origin}${liveImagePath(shot.id)}`,
+          name: page.heading,
+          description: text.t(LIVE_IMAGES[shot.id].alt),
+          creditText: LIVE_IMAGES[shot.id].credit,
+          ...(shot.taken !== null ? { dateCreated: new Date(shot.taken).toISOString() } : {}),
+        }] : []),
+      ]) }} />
+      <LayerArticle text={text} page={page} image={shotUrl(page.slug)} live={live} shot={shot} related={related}
         events={events ? <TopicEvents t={text.t} events={events} /> : undefined} />
     </SiteFrame>
   );

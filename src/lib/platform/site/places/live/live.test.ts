@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AirportWx } from '@/lib/feeds/aviation-weather/metar';
 import type { TransitResponse } from '@/lib/feeds/transit/view';
 import { EN } from '../copy/format';
-import { describeReport, stationsNow } from './metar-now';
+import { describeEveryday, describeReport, stationsNow } from './metar-now';
 import { summarise } from './transit-now';
 
 const wx = (over: Partial<AirportWx>): AirportWx => ({ id: 'KLUK', lat: 39.1, lng: -84.4, cat: 'VFR', at: '2026-10-19T12:53:00Z', raw: '', ...over });
@@ -14,6 +14,13 @@ describe('metar-now', () => {
     expect(describeReport(wx({ tempC: -3, windKt: 0, ceilingFt: 1200 }), 'PL', EN)).toBe('-3 °C, wind calm, cloud base 1,200 ft');
     expect(describeReport(wx({ windKt: 4 }), 'US', EN)).toBe('wind variable at 4 kt');
     expect(describeReport(wx({ windDir: 0, windKt: 3 }), 'US', EN)).toBe('wind variable at 3 kt');
+  });
+
+  it('says it in everyday words and the place\'s units on the weather page', () => {
+    expect(describeEveryday(wx({ tempC: 14, dewC: 9, windDir: 230, windKt: 9, gustKt: 18, visSm: '6+', wx: '-RA' }), 'FR', EN))
+      .toBe('14 °C, humidity 72%, wind SW 17 km/h, gusts 33 km/h, visibility 10+ km, light rain');
+    expect(describeEveryday(wx({ tempC: -1, windKt: 0, visSm: '0.25', wx: 'FZFG' }), 'DE', EN)).toBe('-1 °C, calm, visibility 0.4 km, freezing fog');
+    expect(describeEveryday(wx({ tempC: 14, windDir: 360, windKt: 10, visSm: '10+' }), 'US', EN)).toBe('57 °F, wind N 12 mph, visibility 10+ miles');
   });
 
   it('keeps the stations that reported in the last three hours, in the order given', () => {

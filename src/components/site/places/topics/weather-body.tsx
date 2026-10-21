@@ -9,8 +9,9 @@ import { listOf, nameOf } from '@/lib/platform/site/places/copy/format';
 import type { StationNow } from '@/lib/platform/site/places/live/metar-now';
 import type { Place } from '@/lib/platform/site/places/place';
 import type { WeatherData } from '@/lib/platform/site/places/topics/weather';
+import type { CityForecast } from '@/lib/platform/site/places/topics/weather-forecast';
 import { pageIn, type SiteText } from '@/lib/platform/site/text';
-import { StationsNow } from './flights-body';
+import { WeatherForecast } from './parts/weather-forecast';
 import type { TopicView } from './view';
 
 type Kind = 'measured' | 'model' | 'warnings';
@@ -78,10 +79,27 @@ function LayerRows({ text, place, data }: { text: SiteText; place: Place; data: 
   );
 }
 
-export const WEATHER_VIEW: TopicView<WeatherData, StationNow[]> = {
+/** The airport reports in everyday words, without the flight category the flights page gives. */
+function WeatherNow({ t, stations }: { t: Translate; stations: StationNow[] }) {
+  return (
+    <ul className="flex flex-col gap-2">
+      {stations.map(s => (
+        <li key={s.icao}>
+          <span className="text-ink-2">{t('{name}, {km} km', { name: s.name, km: s.km })}:</span>{' '}
+          {s.text}
+          <span className="text-[13px] text-ink-3"> · {t('{n, plural, one {# minute ago} other {# minutes ago}}', { n: s.minutesAgo })}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export const WEATHER_VIEW: TopicView<WeatherData, StationNow[], CityForecast> = {
   icon: CloudRain,
 
-  Live: ({ text, live }) => (live.length ? <StationsNow t={text.t} stations={live} /> : null),
+  Live: ({ text, live }) => (live.length ? <WeatherNow t={text.t} stations={live} /> : null),
+
+  Wide: ({ text, place, detail }) => (detail ? <WeatherForecast t={text.t} city={nameOf(place, text.t)} cc={place.cc} forecast={detail} /> : null),
 
   Body({ text, place, page: { data } }) {
     const { t } = text;

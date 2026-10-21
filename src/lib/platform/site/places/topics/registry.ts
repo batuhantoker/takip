@@ -8,9 +8,11 @@ import { HIKING } from './hiking';
 import { INDICATOR_TOPIC } from './indicators';
 import { ISS } from './iss';
 import { PORTS } from './ports';
+import { PRAYER } from './prayer';
+import { SUN } from './sun';
 import { TRANSIT } from './transit';
 import { WEATHER } from './weather';
 
 /** Every place topic, in the order a place's overview lists them. Each one's body is in components/site/places/topics. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each topic has its own data and live types
-export const TOPICS: readonly PlaceTopic<any, any>[] = [TRANSIT, CAMERAS, ALPR, FLIGHTS, WEATHER, PORTS, ISS, AURORA, HAZARDS, HIKING, INDICATOR_TOPIC];
+export const TOPICS: readonly PlaceTopic<any, any>[] = [TRANSIT, CAMERAS, ALPR, FLIGHTS, WEATHER, PORTS, ISS, SUN, PRAYER, AURORA, HAZARDS, HIKING, INDICATOR_TOPIC];

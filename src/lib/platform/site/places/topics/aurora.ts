@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, nameOf, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
 import { auroraGridNow, auroraReport, type AuroraReport } from './aurora-now';
@@ -54,12 +54,12 @@ export const AURORA: PlaceTopic<AuroraData, AuroraLive> = {
       storms: msg('{city} is at {mlat}° magnetic latitude, far from the auroral oval: only strong geomagnetic storms bring the aurora into view, usually low in the {h, select, north {northern} other {southern}} sky.'),
     }[ovalBand(data.mlat)];
     return {
-      title: fit([
-        t => t('{city} {h, select, north {northern lights} other {southern lights}} forecast: aurora chance now', vars(t)),
-        t => t('{h, select, north {Northern lights} other {Southern lights}} in {city}: aurora chance now', vars(t)),
-        t => t('{city} {h, select, north {northern lights} other {southern lights}} forecast', vars(t)),
-        t => t('{city} aurora forecast', vars(t)),
-      ], t, TITLE_MAX),
+      title: fit(placeFirst(place, [
+        (t, city) => t('{city} {h, select, north {northern lights} other {southern lights}} forecast: aurora chance now', { ...vars(t), city }),
+        (t, city) => t('{h, select, north {Northern lights} other {Southern lights}} in {city}: aurora chance now', { ...vars(t), city }),
+        (t, city) => t('{city} {h, select, north {northern lights} other {southern lights}} forecast', { ...vars(t), city }),
+        (t, city) => t('{city} aurora forecast', { ...vars(t), city }),
+      ]), t, TITLE_MAX),
       description: fit([
         t => t('The chance of the {h, select, north {northern lights} other {southern lights}} over {place} right now, from NOAA’s aurora model, and when it is next dark enough there to see them.', { ...vars(t), place: placeName(place, t) }),
         t => t('The chance of the {h, select, north {northern lights} other {southern lights}} over {city} right now, from NOAA’s aurora model, and when it is next dark enough there to see them.', vars(t)),

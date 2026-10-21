@@ -12,7 +12,7 @@ import type { Place, PlaceKind } from './place';
  * Everything a page says has to be true of TAKIP's data, and specific to the place: a page that reads the same
  * for every city is the copy-paste that search engines mark the whole site down for.
  */
-export interface PlaceTopic<D = unknown, L = unknown> {
+export interface PlaceTopic<D = unknown, L = unknown, X = unknown> {
   id: string;
   /** What the topic is called in the overview's links, as msg(). */
   label: string;
@@ -31,6 +31,8 @@ export interface PlaceTopic<D = unknown, L = unknown> {
   open(place: Place, page: TopicPage<D>): MapLink;
   /** What is true right now, fetched when the page renders, over loopback (live/own-api.ts); null leaves it out. */
   live?(place: Place, page: TopicPage<D>, t: Translate): Promise<L | null>;
+  /** What the topic's own page shows below its header from the network (a forecast), over loopback; never for the overview. */
+  detail?(place: Place, page: TopicPage<D>, t: Translate): Promise<X | null>;
   /** The live box's heading on this topic's page, as msg() with {time}, where "Right now · as of {time}" isn't true. */
   liveLabel?: string;
   /** The header's map button, as msg(), where "Open the live map" isn't what it does. */

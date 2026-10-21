@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
 import { metarNow, type StationNow } from '../live/metar-now';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -33,11 +33,11 @@ export const FLIGHTS: PlaceTopic<FlightsData, StationNow[]> = {
     const name = (t: Translate) => nameOf(place, t);
     const codes = (k: number) => data.airports.slice(0, k).map(a => a.iata);
     return {
-      title: fit([
-        ...[2, 1].map(k => (t: Translate) => t('Flights over {city}: live planes around {airports}', { city: name(t), airports: listOf(codes(k), t) })),
-        t => t('Flights over {city}: live flight tracker', { city: name(t) }),
-        t => t('Flights over {city}', { city: name(t) }),
-      ], t, TITLE_MAX),
+      title: fit(placeFirst(place, [
+        ...[2, 1].map(k => (t: Translate, city: string) => t('Flights over {city}: live planes around {airports}', { city, airports: listOf(codes(k), t) })),
+        (t, city) => t('Flights over {city}: live flight tracker', { city }),
+        (t, city) => t('Flights over {city}', { city }),
+      ]), t, TITLE_MAX),
       description: fit([
         ...[2, 1].map(k => (t: Translate) => t('Aircraft over {place} on a live map, from ADS-B receivers: flights in and out of {airports}, with each plane’s altitude, speed and route where known.', { place: placeName(place, t), airports: listOf(codes(k), t) })),
         t => t('Aircraft over {city} on a live map, from ADS-B receivers: flights in and out of {airport}, with each plane’s altitude and speed.', { city: name(t), airport: codes(1)[0] }),

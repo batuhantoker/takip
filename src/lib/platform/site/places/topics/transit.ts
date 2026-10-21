@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { count, dayOf, DESCRIPTION_RANGE, fit, listOf, modesPlural, nameOf, placeName, sentenceStart, TITLE_MAX } from '../copy/format';
+import { count, dayOf, DESCRIPTION_RANGE, fit, listOf, modesPlural, nameOf, placeFirst, placeName, sentenceStart, TITLE_MAX } from '../copy/format';
 import { reachKm, type Place } from '../gazetteer';
 import { transitNow, type TransitNow } from '../live/transit-now';
 import { topicTable } from '../tables';
@@ -36,11 +36,11 @@ export const TRANSIT: PlaceTopic<TransitData, TransitNow> = {
     const modes = (t: Translate) => modesPlural(data.modes, t);
     const ops = live(data);
     return {
-      title: fit([
-        t => t('{city} live transit tracker: {modes} on a map', { city: name(t), modes: modes(t) }),
-        t => t('{city} live transit tracker: {modes}', { city: name(t), modes: modes(t) }),
-        t => t('{city} live transit tracker', { city: name(t) }),
-      ], t, TITLE_MAX),
+      title: fit(placeFirst(place, [
+        (t, city) => t('{city} live transit tracker: {modes} on a map', { city, modes: modes(t) }),
+        (t, city) => t('{city} live transit tracker: {modes}', { city, modes: modes(t) }),
+        (t, city) => t('{city} live transit tracker', { city }),
+      ]), t, TITLE_MAX),
       description: fit([
         t => t('Where {operators} vehicles are right now in {place}: {modes} on a free live map, refreshed every 20 seconds.', { operators: listOf(ops, t), place: placeName(place, t), modes: modes(t) }),
         t => t('Where the {modes} of {place} are right now, on a free live map refreshed every 20 seconds, with each vehicle’s route, status and operator.', { place: placeName(place, t), modes: modes(t) }),

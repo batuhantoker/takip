@@ -4,6 +4,7 @@ import { LOCALES } from '@/lib/core/i18n/locales';
 import { availableGuides, guidePath } from '@/lib/platform/site/guides/guides';
 import { worldPath, worldSlugs } from '@/lib/platform/site/compare/world';
 import { availablePages, pagePath } from '@/lib/platform/site/layer-pages';
+import { liveImagePath } from '@/lib/platform/site/live-images';
 import { languageAlternates, localePath } from '@/lib/platform/site/locale-path';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 
@@ -11,15 +12,16 @@ import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = configuredOrigin() ?? publicOrigin(await headers());
   /** A reading page in every language, each naming the others. */
-  const reading = (path: string, live = false): MetadataRoute.Sitemap => LOCALES.map(locale => ({
+  const reading = (path: string, live = false, images?: string[]): MetadataRoute.Sitemap => LOCALES.map(locale => ({
     url: `${origin}${localePath(locale, path)}`,
     changeFrequency: live ? 'hourly' : 'weekly',
     alternates: { languages: languageAlternates(path, origin) },
+    ...(images ? { images } : {}),
   }));
   return [
     { url: `${origin}/`, changeFrequency: 'hourly' },
     ...reading('/map'),
-    ...availablePages().flatMap(p => reading(pagePath(p), !!p.live)),
+    ...availablePages().flatMap(p => reading(pagePath(p), !!(p.live || p.liveImage), p.liveImage && [`${origin}${liveImagePath(p.liveImage)}`])),
     // Each History measure around the world; the comparisons are chunked with the place pages.
     ...worldSlugs().flatMap(slug => reading(worldPath(slug))),
     ...reading('/compare'),

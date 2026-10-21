@@ -1,6 +1,6 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import type { Bbox } from '@/lib/map/embed/spec';
-import { DESCRIPTION_RANGE, fit, nameOf, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, TITLE_MAX } from '../copy/format';
 import { placeBox } from '../paths';
 import type { Place } from '../place';
 import { tableRow, topicTable } from '../tables';
@@ -66,18 +66,18 @@ export const HAZARDS: PlaceTopic<HazardData, HazardsNow> = {
     const sentences = hazardSentences(f, nameOf(place, t), t);
     const span = f.range === '10y' ? 10 : 100;
     const title = f.range === 'all'
-      ? fit([
-        ...(waves ? [(t: Translate) => t('{name} earthquake and tsunami history', { name })] : []),
-        t => t('{name} earthquake history, {from} to today', { name, from: fromWord(f, t) }),
-        t => t('{name} earthquake history', { name }),
-      ], t, TITLE_MAX)
-      : fit([
-        ...(waves ? [(t: Translate) => t('{name} earthquakes and tsunamis in the last {span} years', { name, span })] : []),
-        ...(f.usgs > 0 ? [(t: Translate) => t('{name} earthquakes in the last {span} years: {n} of M{floor}+', { ...vars, span })] : []),
-        t => t('{name} earthquakes in the last {span} years', { name, span }),
-        t => t('{name} earthquakes, last {span} years', { name, span }),
-        t => t('{name} quakes since {from}', { name, from: String(f.from) }),
-      ], t, TITLE_MAX);
+      ? fit(placeFirst(place, [
+        ...(waves ? [(t: Translate, name: string) => t('{name} earthquake and tsunami history', { name })] : []),
+        (t, name) => t('{name} earthquake history, {from} to today', { name, from: fromWord(f, t) }),
+        (t, name) => t('{name} earthquake history', { name }),
+      ]), t, TITLE_MAX)
+      : fit(placeFirst(place, [
+        ...(waves ? [(t: Translate, name: string) => t('{name} earthquakes and tsunamis in the last {span} years', { name, span })] : []),
+        ...(f.usgs > 0 ? [(t: Translate, name: string) => t('{name} earthquakes in the last {span} years: {n} of M{floor}+', { ...vars, name, span })] : []),
+        (t, name) => t('{name} earthquakes in the last {span} years', { name, span }),
+        (t, name) => t('{name} earthquakes, last {span} years', { name, span }),
+        (t, name) => t('{name} quakes since {from}', { name, from: String(f.from) }),
+      ]), t, TITLE_MAX);
     const description = fit([
       ...(f.range === 'all' ? [
         (t: Translate) => t('{place}’s earthquake record from {from}: the strongest and deadliest quakes, tsunamis and eruptions NOAA lists, and USGS’s since 1900, on a free map.', { place: name, from: fromWord(f, t) }),

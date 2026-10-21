@@ -1,4 +1,5 @@
 import type { PanelLink, ViewModeLink } from '@/lib/map/view-mode-link';
+import type { LiveImageId } from '../live-images';
 import type { MapView } from '../map-link';
 
 export type SectionId = 'air' | 'sea' | 'space' | 'weather' | 'hazards' | 'cameras' | 'ground' | 'world' | 'network' | 'past' | 'tools';
@@ -48,6 +49,8 @@ export interface LayerPage {
   spots?: Spot[];
   related: string[];
   live?: LiveId;
+  /** The latest picture of the Sun or the Earth, shown on the page (../live-images.ts). */
+  liveImage?: LiveImageId;
   /** The page exists only when this server has this environment variable (the layer is hidden without it). */
   requiresEnv?: string;
   /** History event kinds the page is about: their event pages link back to it, and it lists some of them. */

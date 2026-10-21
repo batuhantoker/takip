@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { count, DESCRIPTION_RANGE, fit, nameOf, placeName, TITLE_MAX } from '../copy/format';
+import { count, DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
 import type { Place } from '../gazetteer';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -63,11 +63,11 @@ export const PORTS: PlaceTopic<PortsData, ShipsNow> = {
       km: PORT_KM, hours: data.ais?.hours ?? 0, span: data.ais ? span(data.ais.from, data.ais.to, t) : '',
     });
     return {
-      title: fit([
-        t => TITLES[story.kind](t, v(t)),
-        t => t('{city} port and ships, live on a map', v(t)),
-        t => t('{city} port live', v(t)),
-      ], t, TITLE_MAX),
+      title: fit(placeFirst(place, [
+        (t, city) => TITLES[story.kind](t, { ...v(t), city }),
+        (t, city) => t('{city} port and ships, live on a map', { ...v(t), city }),
+        (t, city) => t('{city} port live', { ...v(t), city }),
+      ]), t, TITLE_MAX),
       description: fit([
         ...(heard ? [
           (t: Translate) => t('Ships in and around the port of {place} on a free live map, from AIS: {n} different ships were heard within {km} km in {hours} sampled hours, {span}.', counted(t)),

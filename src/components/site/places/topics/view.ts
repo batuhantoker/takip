@@ -10,16 +10,17 @@ export interface TopicViewProps<D> { text: SiteText; place: Place; page: TopicPa
  * How a topic's page renders: its body below the header, and the "right now" box when its lib module's live()
  * returned something. Server components; they get their text already in the reader's language through text.t.
  */
-export interface TopicView<D, L = never> {
+export interface TopicView<D, L = never, X = never> {
   icon: LucideIcon;
-  Body(props: TopicViewProps<D>): ReactNode;
+  /** `detail` is what the topic's detail() returned, null when it failed. */
+  Body(props: TopicViewProps<D> & { detail?: X | null }): ReactNode;
   Live?(props: TopicViewProps<D> & { live: L }): ReactNode;
   /** Shown in the header instead of the live map, which can't show this topic. */
   Hero?(props: TopicViewProps<D>): ReactNode;
   /** In the header under the lede: the page's figures. */
   Lead?(props: TopicViewProps<D>): ReactNode;
   /** Across the page's whole width, between the header and the body's column. */
-  Wide?(props: TopicViewProps<D>): ReactNode;
+  Wide?(props: TopicViewProps<D> & { detail?: X | null }): ReactNode;
   /** Beside the body, above the ad. */
   Aside?(props: TopicViewProps<D>): ReactNode;
   /** Across the page's whole width, after the body. */

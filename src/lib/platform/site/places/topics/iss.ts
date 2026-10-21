@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, nameOf, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
 import type { Place } from '../place';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -61,15 +61,15 @@ export const ISS: PlaceTopic<IssData, IssLive> = {
     const reach = data.best >= SKY_RULES.issMinElevation;
     const where = { lat: latitudeOf(data.lat, t), best: data.best, side: side(data.lat) };
     return {
-      title: fit(reach ? [
-        t => t('ISS passes over {city}: when to see the space station', { city: name(t) }),
-        t => t('ISS over {city}: when to see the space station', { city: name(t) }),
-        t => t('ISS passes over {city}: next visible passes', { city: name(t) }),
-        t => t('ISS passes over {city}', { city: name(t) }),
+      title: fit(placeFirst(place, reach ? [
+        (t, city) => t('ISS passes over {city}: when to see the space station', { city }),
+        (t, city) => t('ISS over {city}: when to see the space station', { city }),
+        (t, city) => t('ISS passes over {city}: next visible passes', { city }),
+        (t, city) => t('ISS passes over {city}', { city }),
       ] : [
-        t => t('Can you see the ISS from {city}?', { city: name(t) }),
-        t => t('The ISS from {city}', { city: name(t) }),
-      ], t, TITLE_MAX),
+        (t, city) => t('Can you see the ISS from {city}?', { city }),
+        (t, city) => t('The ISS from {city}', { city }),
+      ]), t, TITLE_MAX),
       description: fit(reach ? [
         ...(data.best < 89 ? [
           (t: Translate) => t('When the International Space Station next passes over {place}, in local time, and how high it gets: never more than {best}° here.', { place: placeName(place, t), best: data.best }),

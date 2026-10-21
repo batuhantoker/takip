@@ -201,6 +201,7 @@ export const SPACE: LayerPage[] = [
     slug: 'day-night-map',
     section: 'space',
     layers: [],
+    places: 'sun',
     title: 'Day and night map: where the Sun is up right now',
     description: 'A live world map of day and night: the line between them moving with the Sun, so you can see where it is daytime, dusk or night anywhere on Earth.',
     heading: 'Day and night, live',

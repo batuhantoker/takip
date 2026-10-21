@@ -521,8 +521,8 @@ const copy: SiteCopy = {
       limits: [NO_TIME],
     },
     'sun-live': {
-      title: 'Die Sonne heute: neuestes Bild des NASA-Observatoriums SDO',
-      description: 'Das neueste Bild der Sonne vom Solar Dynamics Observatory der NASA, im extremen Ultraviolett, auf einem 3D-Globus in TAKIPs Live-Ansicht des Sonnensystems.',
+      title: 'Die Sonne live heute: das neueste Bild von NASAs SDO',
+      description: 'Die Sonne heute im neuesten Bild des Solar Dynamics Observatory der NASA, im extremen Ultraviolett, hier und auf einem 3D-Globus in TAKIPs Live-Sonnensystem.',
       heading: 'Die Sonne live',
       lede: 'Die Sonne im neuesten Bild des Solar Dynamics Observatory der NASA, im extremen Ultraviolett bei 171 Å, das ihre Bögen und aktiven Regionen zeigt.',
       shows: ['Die Sonne als Globus, überzogen mit dem neuesten Bild von SDO.'],
@@ -620,8 +620,8 @@ const copy: SiteCopy = {
       ],
     },
     'live-satellite-earth': {
-      title: 'Satellitenbild live: die Erde aus Sicht der Wettersatelliten',
-      description: 'Die ganze Erde aus den Wettersatelliten GOES, Meteosat und Himawari auf einer Live-Karte, alle 10 Minuten ein neues Bild, etwa 40 Minuten hinter Echtzeit.',
+      title: 'Die Erde live aus dem All: Satellitenbild alle 10 Minuten',
+      description: 'Die ganze Erde aus dem All, von den Wettersatelliten GOES, Meteosat und Himawari auf einer Live-Karte: alle 10 Minuten ein neues Bild, etwa 40 Minuten verzögert.',
       heading: 'Die Erde aus Wettersatelliten, live',
       lede: 'Geostationäre Wettersatelliten fotografieren alle 10 Minuten die ganze ihnen zugewandte Seite der Erde. TAKIP setzt GOES, Meteosat und Himawari zu einer Live-Ansicht des Planeten zusammen.',
       shows: [

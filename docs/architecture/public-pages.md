@@ -14,10 +14,21 @@ How TAKIP shows up in search results and link previews. Built 2026-10-19. The ma
 | `/event/<slug>` | One page per historical event in `history.db` (below). | `app/event/`, `lib/platform/site/events/`, `components/site/events/` |
 | `/tr/…`, `/ja/…` | Every reading page in nine more languages (below). | `src/proxy.ts` |
 | `/shots/<slug>.jpg` | The pictures of the map the pages lead with. | `app/shots/[file]/route.ts` |
+| `/live/<file>.jpg` | The latest picture of the Sun (SDO, AIA 171 Å, through `/api/space/sun`) and of the Earth (Meteosat-12's GeoColour from EUMETSAT's WMS, redrawn as the satellite sees it from 0°, `lib/feeds/imagery/full-disk.ts`), on the sun-live and live-satellite-earth pages (`liveImage` in the catalog), with an `ImageObject` and a sitemap image entry. TAKIP's own address, so image search credits the page. Each is asked for upstream at most every 10 minutes and held in memory; the last good one is served meanwhile and when the upstream fails. `/live/<file>.json` gives when it was taken, for the caption. | `app/live/[file]/`, `lib/platform/site/live-images.ts` |
 | `/embed/<slug>`, `/embed?…` | A minimal live map of a page's layers, framed in its picture; noindex. | `app/embed/`, docs/architecture/embeds.md |
 | `/robots.txt`, `/sitemap.xml` | Generated. Crawlers stay out of `/api/`, `/admin`, `/design` and `/w/`. | `app/robots.ts`, `app/sitemap.ts` |
 
 Every page carries schema.org JSON-LD for the site (`site-copy.ts`), and layer pages add a breadcrumb trail.
+
+## Search metadata
+
+What every public page gives a search engine, decided 2026-10-21. A page that can't meet it stays `noindex, follow`.
+
+- **Title**, 60 characters at most (32 in Chinese and Japanese), the words people type first and the brand last (the layout's ` · TAKIP`): the place with its country or state, then the topic in its searched words ("Fleurus, Belgium webcams and live cameras: 6 on a map", "Paris, France weather: forecast, radar and live map"). The home page too, since nobody searches for the name yet.
+- **Description**, 110 to 160 characters (40 to 95 in Chinese and Japanese), saying what this page holds that others don't: counts, sources, the forecast's source, the place. An event leads with its Wikipedia article's opening sentences in the page's language, the definition readers want, cut at a sentence (`leadSentences`); without one, its kind, date and place, never its name twice. No sentence that reads the same on every page of a kind.
+- **One URL per language**, with every language's alternate, and the copy in that language's own search words ("hava durumu", "caméras en direct"), not a literal translation.
+- **Structured data** only where it is true: breadcrumbs everywhere, `Event` on events (no offers, organizer or performer for history; Search Console's warnings for those stay), `ImageObject` for the live images. Search Console's optional-field warnings are not errors; "Validate fix" on one that can't be filled always fails.
+- **Weight**: the HTML carries the page, not the app. The UI catalog loads as its own cached file (`locale-provider.tsx`), so a page in another language weighs what the English one does.
 
 ## The address
 

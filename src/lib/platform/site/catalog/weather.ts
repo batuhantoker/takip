@@ -99,8 +99,9 @@ export const WEATHER: LayerPage[] = [
     slug: 'live-satellite-earth',
     section: 'weather',
     layers: ['sat_live'],
-    title: 'Live satellite view of Earth from weather satellites',
-    description: 'The whole Earth from GOES, Meteosat and Himawari weather satellites on a live map, a new frame every 10 minutes, about 40 minutes behind real time.',
+    liveImage: 'earth',
+    title: 'Live Earth from space: satellite view every 10 minutes',
+    description: 'The whole Earth from space, seen by the GOES, Meteosat and Himawari weather satellites on a live map: a new frame every 10 minutes, about 40 minutes behind.',
     heading: 'Earth from weather satellites, live',
     lede: 'Geostationary weather satellites photograph the whole face of the Earth every 10 minutes. TAKIP stitches GOES, Meteosat and Himawari into one live view of the planet.',
     shows: [

@@ -533,8 +533,8 @@ const copy: SiteCopy = {
       limits: [NO_TIME],
     },
     'sun-live': {
-      title: 'O Sol hoje: a imagem mais recente do SDO da NASA',
-      description: 'A imagem mais recente do Sol feita pelo Solar Dynamics Observatory da NASA, no ultravioleta extremo, num globo 3D na visão ao vivo do Sistema Solar do TAKIP.',
+      title: 'O Sol ao vivo hoje: a imagem mais recente do SDO da NASA',
+      description: 'O Sol hoje na imagem mais recente do Solar Dynamics Observatory da NASA, em ultravioleta extremo, aqui e em um globo 3D no sistema solar ao vivo do TAKIP.',
       heading: 'O Sol ao vivo',
       lede: 'O Sol na imagem mais recente do Solar Dynamics Observatory da NASA, na luz ultravioleta extrema de 171 Å, que revela seus arcos e regiões ativas.',
       shows: ['O Sol como um globo, envolto no quadro mais recente do SDO.'],
@@ -634,8 +634,8 @@ const copy: SiteCopy = {
       ],
     },
     'live-satellite-earth': {
-      title: 'Imagens de satélite ao vivo da Terra inteira',
-      description: 'A Terra inteira vista pelos satélites meteorológicos GOES, Meteosat e Himawari num mapa ao vivo: um quadro a cada 10 minutos, uns 40 minutos atrás do real.',
+      title: 'A Terra ao vivo do espaço: imagem de satélite a cada 10 min',
+      description: 'A Terra inteira vista do espaço pelos satélites GOES, Meteosat e Himawari em um mapa ao vivo: uma nova imagem a cada 10 minutos, com cerca de 40 min de atraso.',
       heading: 'A Terra vista por satélites meteorológicos, ao vivo',
       lede: 'Satélites meteorológicos geoestacionários fotografam a face inteira da Terra a cada 10 minutos. O TAKIP junta GOES, Meteosat e Himawari numa só visão ao vivo do planeta.',
       shows: [

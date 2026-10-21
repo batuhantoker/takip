@@ -30,7 +30,7 @@ describe('port pages', () => {
   it('lead with what each port is', () => {
     const rotterdam = page('rotterdam');
     expect(rotterdam.page.index).toBe(true);
-    expect(PORTS.header(rotterdam.place, rotterdam.page, EN).title).toBe('Rotterdam port live: container ships on a map');
+    expect(PORTS.header(rotterdam.place, rotterdam.page, EN).title).toBe('Rotterdam, Netherlands port live: container ships on a map');
     const istanbul = page('istanbul');
     expect(PORTS.header(istanbul.place, istanbul.page, EN).lede).toMatch(/^Istanbul lies on the Turkish Straits/);
     const sciacca = page('sciacca');

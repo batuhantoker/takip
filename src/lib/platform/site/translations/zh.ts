@@ -521,8 +521,8 @@ const copy: SiteCopy = {
       limits: [NO_TIME],
     },
     'sun-live': {
-      title: '今日太阳：NASA SDO 最新图像',
-      description: 'NASA 太阳动力学天文台（SDO）拍摄的最新太阳极紫外图像，贴在 TAKIP 实时太阳系视图中的 3D 球体上。',
+      title: '今日太阳实况：NASA SDO 最新图像',
+      description: 'NASA 太阳动力学天文台（SDO）拍摄的今日太阳最新极紫外图像，可在此查看，也可在 TAKIP 实时太阳系的 3D 球体上查看。',
       heading: '实时太阳',
       lede: 'NASA 太阳动力学天文台最新拍摄的太阳，使用 171 Å 极紫外波段，能显示日冕环和活动区。',
       shows: ['太阳球体，覆盖着 SDO 最新的一帧图像。'],
@@ -617,8 +617,8 @@ const copy: SiteCopy = {
       ],
     },
     'live-satellite-earth': {
-      title: '实时卫星云图：气象卫星看地球',
-      description: '实时地图上来自 GOES、Meteosat 和 Himawari（向日葵）气象卫星的整个地球，每 10 分钟一帧，比实时晚约 40 分钟。',
+      title: '太空中的地球实况：每 10 分钟更新的卫星图像',
+      description: '从太空看整个地球：GOES、Meteosat 和 Himawari 气象卫星的图像呈现在实时地图上，每 10 分钟一帧新图像，约有 40 分钟延迟。',
       heading: '气象卫星实时看地球',
       lede: '地球静止气象卫星每 10 分钟拍摄一次整个地球的正面。TAKIP 把 GOES、Meteosat 和 Himawari 拼接成一个实时的全球视图。',
       shows: [

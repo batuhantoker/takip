@@ -8,6 +8,7 @@ import { AD_SLOTS } from '@/lib/platform/ads';
 import { embedPath, hasEmbed } from '@/lib/platform/site/embed';
 import { openPath, pagePath, type LayerPage } from '@/lib/platform/site/layer-pages';
 import type { LiveLine } from '@/lib/platform/site/live/lines';
+import { LIVE_IMAGES, liveImagePath, type LiveImageId } from '@/lib/platform/site/live-images';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { sectionIn, type SiteText } from '@/lib/platform/site/text';
 import { TopicPlaces } from '@/components/site/places/topic-places';
@@ -24,16 +25,38 @@ const AS_OF = msg('Right now · as of {time}');
 
 type Related = { page: LayerPage; image: string | null };
 
+/** The page's latest picture of the Sun or the Earth, and when it was taken. */
+export type LiveShot = { id: LiveImageId; taken: number | null };
+
+function LiveImage({ t, shot }: { t: Translate; shot: LiveShot }) {
+  const spec = LIVE_IMAGES[shot.id];
+  return (
+    <Section title={t('The latest image')}>
+      <figure>
+        {/* eslint-disable-next-line @next/next/no-img-element -- served from TAKIP's own address for image search */}
+        <img src={liveImagePath(shot.id)} alt={t(spec.alt)} width={spec.size} height={spec.size} loading="lazy" decoding="async"
+          className="aspect-square h-auto w-full max-w-[36rem] rounded-card border border-line bg-black" />
+        <figcaption className="mt-3 max-w-[36rem] text-[13px] leading-relaxed text-ink-3">
+          {shot.taken !== null
+            ? t.parts(spec.taken, { time: <LocalClock key="t" at={shot.taken} intl={t.intl} className="font-mono tabular-nums" /> }) as ReactNode[]
+            : t(spec.latest)}
+        </figcaption>
+      </figure>
+    </Section>
+  );
+}
+
 /**
  * A layer's public page: the picture of it on the map (a way into the full map), what it shows, where the data
  * comes from, what it can't tell you, places to start, and pages that go with it. Copy arrives already in the
  * reader's language.
  */
-export function LayerArticle({ text, page, image, live, related, events }: {
+export function LayerArticle({ text, page, image, live, shot, related, events }: {
   text: SiteText;
   page: LayerPage;
   image: string | null;
   live: LiveLine | null;
+  shot?: LiveShot | null;
   related: Related[];
   /** A History topic's own events (events/topic-events.tsx). */
   events?: ReactNode;
@@ -77,6 +100,8 @@ export function LayerArticle({ text, page, image, live, related, events }: {
 
       <div className="mt-20 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
         <div>
+          {shot && <LiveImage t={t} shot={shot} />}
+
           <Section title={t('What you see')}>
             <ul className="grid gap-3 sm:grid-cols-2">
               {page.shows.map(item => (

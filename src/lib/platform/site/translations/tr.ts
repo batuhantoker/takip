@@ -530,9 +530,9 @@ const copy: SiteCopy = {
       limits: [NO_TIME],
     },
     'sun-live': {
-      title: 'Bugün Güneş: NASA SDO’dan en son görüntü',
+      title: 'Güneş canlı: NASA SDO’dan bugünün en son görüntüsü',
       description:
-        'Güneş’in NASA Solar Dynamics Observatory uydusundan gelen en son aşırı morötesi görüntüsü, TAKIP’in canlı Güneş Sistemi görünümünde 3D bir küre üzerinde.',
+        'Güneş bugün, NASA’nın Solar Dynamics Observatory’sinin en son görüntüsünde, aşırı morötesinde; burada ve TAKIP’in canlı Güneş Sistemi’nde 3D bir küre üzerinde.',
       heading: 'Güneş, canlı',
       lede: 'NASA Solar Dynamics Observatory uydusunun en son görüntüsünde Güneş; ilmeklerini ve aktif bölgelerini gösteren 171 Å aşırı morötesi ışıkta.',
       shows: ['SDO’nun en son karesiyle kaplanmış bir küre olarak Güneş.'],
@@ -629,9 +629,9 @@ const copy: SiteCopy = {
       ],
     },
     'live-satellite-earth': {
-      title: 'Hava durumu uydularından canlı Dünya görüntüsü',
+      title: 'Uzaydan canlı Dünya: her 10 dakikada bir uydu görüntüsü',
       description:
-        'GOES, Meteosat ve Himawari hava durumu uydularından tüm Dünya canlı haritada; her 10 dakikada yeni bir kare, gerçek zamanın yaklaşık 40 dakika gerisinden.',
+        'Uzaydan tüm Dünya, GOES, Meteosat ve Himawari hava durumu uydularının gözünden canlı haritada: her 10 dakikada yeni bir kare, yaklaşık 40 dakika gecikmeli.',
       heading: 'Hava durumu uydularından Dünya, canlı',
       lede: 'Yer durağan hava durumu uyduları Dünya’nın bütün yüzünü 10 dakikada bir fotoğraflar. TAKIP; GOES, Meteosat ve Himawari’yi gezegenin tek bir canlı görünümünde birleştirir.',
       shows: [

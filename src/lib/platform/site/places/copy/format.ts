@@ -51,6 +51,15 @@ export function placeName(place: Place, t: Translate): string {
   return `${nameOf(place, t)}, ${WITH_REGION.has(place.cc) && place.region ? regionLabel(place, t.locale) : countryName(place.cc, t)}`;
 }
 
+/**
+ * Title wordings with the place's country or state ("Fleurus, Belgium"), which people search too, then with its name
+ * alone; for fit(), which takes the first that fits.
+ */
+export const placeFirst = (place: Place, wordings: ((t: Translate, city: string) => string)[]) => [
+  ...wordings.map(w => (t: Translate) => w(t, placeName(place, t))),
+  ...wordings.map(w => (t: Translate) => w(t, nameOf(place, t))),
+];
+
 /** "a, b and c": English without the serial comma, like the rest of the site. */
 export const listOf = (items: string[], t: Translate) => {
   const tag = t.locale === 'en' ? 'en-GB' : t.intl;

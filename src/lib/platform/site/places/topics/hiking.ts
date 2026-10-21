@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { count, DESCRIPTION_RANGE, fit, nameOf, placeName, TITLE_MAX } from '../copy/format';
+import { count, DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
 import type { HikingMeta, HikingRow } from './hiking-data';
@@ -33,11 +33,11 @@ export const HIKING: PlaceTopic<HikingData> = {
     const v = (t: Translate) => ({ city: nameOf(place, t), place: placeName(place, t), n: n(t), r: f.r });
     const lead = f.routes.find(r => r.name);
     return {
-      title: fit([
-        t => t('{city} hiking routes: {n} waymarked trails nearby', v(t)),
-        t => t('{city} hiking routes: {n} waymarked trails', v(t)),
-        t => t('{city} hiking routes', v(t)),
-      ], t, TITLE_MAX),
+      title: fit(placeFirst(place, [
+        (t, city) => t('{city} hiking routes: {n} waymarked trails nearby', { ...v(t), city }),
+        (t, city) => t('{city} hiking routes: {n} waymarked trails', { ...v(t), city }),
+        (t, city) => t('{city} hiking routes', { ...v(t), city }),
+      ]), t, TITLE_MAX),
       description: fit([
         ...(lead ? [
           (t: Translate) => t('Hiking routes around {place}: {n} waymarked trails within {r} km, among them {route}, on a free map with each route’s length and network.', { ...v(t), route: routeName(lead, lead.id) }),

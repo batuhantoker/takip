@@ -517,8 +517,8 @@ const copy: SiteCopy = {
       limits: [NO_TIME],
     },
     'sun-live': {
-      title: '今日の太陽：NASA の SDO による最新画像',
-      description: 'NASA の太陽観測衛星 SDO による最新の太陽画像（極端紫外線）を、TAKIP の太陽系ライブ表示の 3D 球体で見られます。',
+      title: '今日の太陽ライブ：NASA SDOの最新画像',
+      description: 'NASAの太陽観測衛星SDOが撮影した今日の太陽の最新画像（極端紫外線）。ここで見られるほか、TAKIPのライブ太陽系の3D球体にも表示されます。',
       heading: 'リアルタイムの太陽',
       lede: 'NASA の Solar Dynamics Observatory による最新の太陽画像。ループ構造や活動領域が見える 171 Å の極端紫外線で撮影したものです。',
       shows: ['SDO の最新フレームで包んだ球体としての太陽。'],
@@ -603,8 +603,8 @@ const copy: SiteCopy = {
       ],
     },
     'live-satellite-earth': {
-      title: '気象衛星から見た地球：リアルタイム衛星画像',
-      description: 'GOES、Meteosat、Himawari（ひまわり）の気象衛星による地球全体をライブマップで。10分ごとに新しい画像が届き、実時間より40分ほど遅れます。',
+      title: '宇宙から見た地球ライブ：10分ごとの衛星画像',
+      description: 'GOES、Meteosat、ひまわりの気象衛星が宇宙から捉えた地球全体をライブマップで。10分ごとに新しい画像、約40分遅れ。',
       heading: '気象衛星から見た地球（リアルタイム）',
       lede: '静止気象衛星は10分ごとに地球の全面を撮影しています。TAKIP は GOES、Meteosat、Himawari（ひまわり）をつなぎ合わせ、地球のひとつのライブ画像にしています。',
       shows: [

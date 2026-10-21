@@ -14,8 +14,8 @@ import { SECTORS, composeGeoColor, sectorColumns, wmsLatestTime, type SatId, typ
 
 const PROTOCOL = 'geosat';
 const TILE = 256;
-const MTG_WMS = 'https://view.eumetsat.int/geoserver/mtg_fd/wms';
-const MTG_CAPABILITIES = 'https://view.eumetsat.int/geoserver/mtg_fd/rgb_geocolour/ows?service=WMS&version=1.3.0&request=GetCapabilities';
+export const MTG_WMS = 'https://view.eumetsat.int/geoserver/mtg_fd/wms';
+export const MTG_CAPABILITIES = 'https://view.eumetsat.int/geoserver/mtg_fd/rgb_geocolour/ows?service=WMS&version=1.3.0&request=GetCapabilities';
 /** MTG's newest frame trails real time by about 30 minutes; this is the guess when it can't be asked. */
 const MTG_LAG_MS = 40 * 60_000;
 
