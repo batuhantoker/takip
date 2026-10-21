@@ -1,96 +1,45 @@
 'use client';
 
 import { Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
-import { Switch } from '@/components/ui/field';
+import { Disclosure } from '@/components/ui/disclosure';
+import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { useT } from '@/components/ui/use-t';
+import { useRemembered } from '@/components/map/replay/use-remembered';
 import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES } from '@/lib/history/popup';
 import { formatYear } from '@/lib/history/series';
 import type { HistorySession } from '@/lib/history/session';
-import { WAR_LAYERS, type WarLayer } from '@/lib/history/war-layers';
-import { clockYear, WORLD_BORDERS } from '@/lib/history/world-borders';
+import { WAR_LAYERS } from '@/lib/history/war-layers';
+import { WORLD_BORDERS } from '@/lib/history/world-borders';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { yearLabel } from '@/lib/map/replay/timeline-ticks';
-import { FAMILY_TEXT, type Moment, MOMENTS, type Place } from '@/components/panels/history/lib/history-content';
-import { HistoryCard } from './history-card';
+import { FAMILY_TEXT, type Moment, MOMENTS, WAR_NOTE } from '@/components/panels/history/lib/history-content';
+import { type FlyTo, playStory, playWar, playWorldBorders, worldBordersYears } from '@/components/panels/history/lib/history-plays';
+import { CountriesSection } from './history-countries-section';
 import { KindFilter } from './kind-filter';
 import { ToggleRow } from './toggle-row';
 import { countAction } from '@/lib/platform/usage-actions';
 
-/** `onArrive` runs once the camera gets there. */
-export type FlyTo = (place: Place, onArrive?: () => void) => void;
-
-/** Which event families the map draws. */
-export function EventsSection({ session }: { session: HistorySession }) {
+/** A switch per event family. */
+export function FamilyRows({ session }: { session: HistorySession }) {
   const t = useT();
   const families = session.families();
-  const all = Object.entries(HISTORY_FAMILIES);
-  return (
-    <PanelSection title={t('On the map')} hint={t('{n} of {total}', { n: families.length, total: all.length })}>
-      <KindFilter session={session} />
-      {all.map(([family, f]) => {
-        const text = FAMILY_TEXT[family];
-        return (
-          <ToggleRow key={family} color={f.color ?? HISTORY_FALLBACK_COLOR} title={t(text?.name ?? f.label)}
-            span={text && `${formatYear(text.years[0], t)}–${formatYear(text.years[1], t)}`} note={text ? t(text.note) : ''}
-            checked={families.includes(family)} onChange={on => session.setFamily(family, on)} />
-        );
-      })}
-      <p className="mt-2 text-meta text-ink-3">{t("Click a point to see what happened and its source. A hollow point's place is approximate.")}</p>
-    </PanelSection>
-  );
+  return Object.entries(HISTORY_FAMILIES).map(([family, f]) => {
+    const text = FAMILY_TEXT[family];
+    return (
+      <ToggleRow key={family} color={f.color ?? HISTORY_FALLBACK_COLOR} title={t(text?.name ?? f.label)}
+        span={text && `${formatYear(text.years[0], t)}–${formatYear(text.years[1], t)}`} note={text ? t(text.note) : ''}
+        checked={families.includes(family)} onChange={on => session.setFamily(family, on)} />
+    );
+  });
 }
 
-/** World borders through the ages, wartime borders month by month, and a way to watch either unfold. */
-export function BordersSection({ session, onFlyTo }: { session: HistorySession; onFlyTo?: FlyTo }) {
+/** While countries are coloured and no borders show, that showing borders stops the colouring. */
+function ColouringNote({ session }: { session: HistorySession }) {
   const t = useT();
-  const layers = session.layers();
-  const colouring = session.countries.state().status !== 'off';
-  // The war from its first month to its last, a month a second, with its battles on; the borders already show the annexations.
-  const play = (war: WarLayer) => {
-    countAction('history.jump');
-    session.setLayer(war.code, true);
-    session.setFamily('conflict', true);
-    session.clock.pause();
-    session.clock.seek(war.start);
-    session.clock.setSpeed(30 * 86_400);
-    const start = () => session.clock.play(war.end);
-    // The clock waits for the camera, so the first months don't pass mid-flight.
-    if (onFlyTo) onFlyTo(war.view, start);
-    else start();
-  };
-  const playWorld = () => {
-    countAction('history.jump');
-    const w = WORLD_BORDERS;
-    session.setLayer(w.code, true);
-    session.clock.pause();
-    session.clock.seek(w.start);
-    session.clock.setSpeed(w.speed);
-    const start = () => session.clock.play(w.end);
-    if (onFlyTo) onFlyTo(w.view, start);
-    else start();
-  };
-  return (
-    <PanelSection title={t('Borders')}>
-      <div className="flex flex-col gap-2">
-        <HistoryCard title={t(WORLD_BORDERS.label)} body={t('Countries and empires year by year, from 3400 BCE to 2024. Zoomed in, OpenHistoricalMap adds dated borders down to duchies and free cities.')}
-          control={<Switch label={t('Show world borders on the map')} hideLabel checked={layers.includes(WORLD_BORDERS.code)} onChange={on => session.setLayer(WORLD_BORDERS.code, on)} />}>
-          <Button size="sm" icon={Play} onClick={playWorld}>
-            {t('Play {years}', { years: `${formatYear(clockYear(WORLD_BORDERS.start), t)}–${formatYear(clockYear(WORLD_BORDERS.end) - 1, t)}` })}
-          </Button>
-        </HistoryCard>
-        {WAR_LAYERS.map(war => (
-          <HistoryCard key={war.code} title={t(war.label)} body={t('Borders and occupation, month by month.')}
-            control={<Switch label={t('Show these borders on the map')} hideLabel checked={layers.includes(war.code)} onChange={on => session.setLayer(war.code, on)} />}>
-            <Button size="sm" icon={Play} onClick={() => play(war)}>{t('Play {years}', { years: war.years })}</Button>
-          </HistoryCard>
-        ))}
-      </div>
-      {colouring && !layers.length && <p className="mt-2 text-meta text-ink-3">{t('Showing borders stops the country colouring.')}</p>}
-    </PanelSection>
-  );
+  if (session.countries.state().status === 'off' || session.layers().length) return null;
+  return <p className="mt-2 text-meta text-ink-3">{t('Showing borders stops the country colouring.')}</p>;
 }
 
 /** "490 BCE", "1914". */
@@ -132,5 +81,61 @@ export function MomentsSection({ session, onFlyTo }: { session: HistorySession; 
         {MOMENTS.map(m => <MomentRow key={m.label} moment={m} onGo={() => go(m)} />)}
       </ul>
     </PanelSection>
+  );
+}
+
+const PLAY = <Play aria-hidden className="size-4" strokeWidth={1.75} />;
+const years = (span: string) => <span className="font-mono text-meta text-ink-3 tabular-nums">{span}</span>;
+const FOLDS = ['events', 'borders', 'none'] as const;
+
+/**
+ * History in calendar time: what plays first, the map's switches folded away (the open one remembered), then the
+ * colours and moments. `closeSheet` makes it a phone's: the sheet hides the map, so whatever sets it moving closes it.
+ */
+export function CalendarSections({ session, onFlyTo, closeSheet }: { session: HistorySession; onFlyTo?: FlyTo; closeSheet?: () => void }) {
+  const t = useT();
+  const [open, setOpen] = useRemembered('takip.history.fold', 'none', FOLDS);
+  const families = session.families();
+  const layers = session.layers();
+  const fold = (id: 'events' | 'borders') => ({ open: open === id, onOpenChange: (o: boolean) => setOpen(o ? id : 'none') });
+  const onCount = (n: number) => (n ? t('{n} on', { n }) : undefined);
+  const borders = [
+    { code: WORLD_BORDERS.code, title: t(WORLD_BORDERS.label), span: worldBordersYears(t), note: t('Countries and empires year by year'), play: () => playWorldBorders(session, onFlyTo) },
+    ...WAR_LAYERS.map(war => ({ code: war.code, title: t(war.label), span: war.years, note: t(WAR_NOTE), play: () => playWar(session, war, onFlyTo) })),
+  ];
+
+  return (
+    <>
+      <PanelSection title={t('Watch it unfold')}>
+        <ul className="flex flex-col">
+          <li>
+            <ListRow leading={PLAY} title={t('How the continents moved')} subtitle={t('1.8 billion years of drifting plates')}
+              onClick={() => { playStory(session); closeSheet?.(); }} />
+          </li>
+          {borders.map(b => (
+            <li key={b.code}><ListRow leading={PLAY} title={b.title} subtitle={b.note} trailing={years(b.span)} onClick={b.play} /></li>
+          ))}
+        </ul>
+      </PanelSection>
+      <PanelSection title={t('On the map')}>
+        <KindFilter session={session} />
+        <Disclosure title={t('Events')} hint={onCount(families.length)} {...fold('events')}>
+          <FamilyRows session={session} />
+          <p className="mt-2 text-meta text-ink-3">
+            {closeSheet
+              ? t("Tap a point to see what happened and its source. A hollow point's place is approximate.")
+              : t("Click a point to see what happened and its source. A hollow point's place is approximate.")}
+          </p>
+        </Disclosure>
+        <Disclosure title={t('Borders')} hint={onCount(layers.length)} {...fold('borders')}>
+          {borders.map(b => (
+            <ToggleRow key={b.code} title={b.title} span={b.span} note={b.note} checked={layers.includes(b.code)} onChange={on => session.setLayer(b.code, on)} />
+          ))}
+          <ColouringNote session={session} />
+        </Disclosure>
+      </PanelSection>
+      <CountriesSection session={session} onPicked={closeSheet} />
+      <MomentsSection session={session} onFlyTo={onFlyTo} />
+    </>
   );
 }

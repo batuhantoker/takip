@@ -21,7 +21,9 @@ export default function SpaceSwitcherBar({ revealed, inSpace, focus, onMap, onSp
   return (
     <div data-hud
       className={cx(
-        'pointer-events-none absolute bottom-[calc(var(--shell-bottom,56px)+12px+env(safe-area-inset-bottom))] left-3 z-[240] flex max-w-[calc(100vw-80px)] items-center gap-2 overflow-x-auto [scrollbar-width:none]',
+        'pointer-events-none absolute bottom-[calc(var(--shell-bottom,56px)+12px+env(safe-area-inset-bottom))] left-3 z-[240] flex items-center gap-2 overflow-x-auto [scrollbar-width:none]',
+        // Out in space the map's controls are gone, so the stops can take the width.
+        inSpace ? 'max-w-[calc(100vw-24px)]' : 'max-w-[calc(100vw-80px)]',
         'transition-opacity duration-150 ease-out motion-reduce:transition-none',
         revealed ? 'opacity-100' : 'opacity-0',
       )}>

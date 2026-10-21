@@ -23,9 +23,11 @@ const TITLES: Record<MobilePanel, string> = {
 const DISMISS_AT = 72;
 
 /** The phone's one sheet, above the bottom bar: a title, a close button, and whatever was opened. Pull the top down to close it. */
-export function MobileDrawer({ mobilePanel, setMobilePanel, subtitle, actions, children }: {
+export function MobileDrawer({ mobilePanel, setMobilePanel, title: titled, subtitle, actions, children }: {
   mobilePanel: MobilePanel | null;
   setMobilePanel: Dispatch<SetStateAction<MobilePanel | null>>;
+  /** In place of the panel's own name, when it shows something else. */
+  title?: string;
   /** One quiet line under the title. */
   subtitle?: ReactNode;
   /** Buttons before Close. */
@@ -36,7 +38,7 @@ export function MobileDrawer({ mobilePanel, setMobilePanel, subtitle, actions, c
   const [pull, setPull] = useState(0);
   const from = useRef<number | null>(null);
   if (!mobilePanel) return null;
-  const title = t(TITLES[mobilePanel]);
+  const title = titled ?? t(TITLES[mobilePanel]);
   const close = () => setMobilePanel(null);
 
   const grab = {

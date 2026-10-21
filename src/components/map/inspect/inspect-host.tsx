@@ -14,7 +14,7 @@ import { useAircraftFocus } from './aircraft-focus';
 import { findFlight, findShip } from './live';
 import { useRing } from './rings';
 import { SatelliteInspect, type SatelliteDetail } from '@/components/map/inspect/cards/satellite-inspect';
-import { InspectSheet } from '@/components/map/inspect/parts/inspect-sheet';
+import { InspectSheet } from '@/components/map/inspect/inspect-sheet';
 import { ContactsSection } from '@/components/map/inspect/parts/contacts-section';
 import { ShipInspect } from '@/components/map/inspect/cards/ship-inspect';
 import { TransitInspect } from '@/components/map/inspect/cards/transit-inspect';

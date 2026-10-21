@@ -40,7 +40,8 @@ function Glyph({ o, dim }: { o: FocusOption; dim?: boolean }) {
   return <Icon aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />;
 }
 
-const SEGMENT = cx('flex h-full items-center gap-1.5 rounded-card px-2.5 text-small font-medium whitespace-nowrap', FOCUS_RING, TRANSITION);
+// Tighter on a phone, so Map and all eight stops fit across it.
+const SEGMENT = cx('flex h-full items-center gap-1.5 rounded-card px-2 text-small font-medium whitespace-nowrap md:px-2.5', FOCUS_RING, TRANSITION);
 const tone = (on: boolean) => (on ? 'bg-surface-3 text-ink-1' : 'text-ink-2 hover:bg-surface-2 hover:text-ink-1');
 const PILL = 'pointer-events-auto flex h-[38px] items-center gap-0.5 rounded-float border border-line bg-surface-1 p-[3px] shadow-float outline-none';
 

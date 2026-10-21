@@ -5,7 +5,9 @@ import { articleTitle, HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryDet
 import type { ArticleSummary } from '@/lib/history/wiki';
 import { t } from '@/lib/core/i18n/active';
 import { getWikiLanguage } from '@/lib/core/wikipedia/language';
+import { keepPopupInView } from '@/lib/map/popups/keep-in-view';
 import { pinStore } from '@/components/map/pinned/pin-store';
+import { isPhoneViewport } from '@/components/ui/use-is-mobile';
 
 /*
  * A history event's popup: drawn at once from the map feature, then filled in as its detail, related events and article land.
@@ -47,7 +49,12 @@ export function openHistoryPopup(map: maplibregl.Map, popupRef: PopupRef, p: His
   // The Pin button would otherwise take focus as it opens.
   const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '340px', offset: 12, focusAfterOpen: false }).setLngLat(at).setDOMContent(node).addTo(map);
   popupRef.current = popup;
-  popup.on('close', () => { if (!pinned) live = false; });
+  // On a phone it grows past the screen's room as its detail and picture land.
+  const unfit = isPhoneViewport() ? keepPopupInView(map, popup) : undefined;
+  popup.on('close', () => {
+    unfit?.();
+    if (!pinned) live = false;
+  });
   const render = () => { if (live) node.innerHTML = html(); };
 
   const pin = () => {

@@ -11,12 +11,12 @@ const axis = ALIGNMENTS.find(a => a.key === 'axis')!.color;
 export const occupiedFill = (color: string) => `repeating-linear-gradient(135deg, ${axis} 0 1px, transparent 1px 4px), ${color}`;
 
 /** Over the History timeline while wartime borders are on: what the colours mean and where the borders come from. */
-export default function WarLegend({ session }: { session: HistorySession }) {
+export default function WarLegend({ session, compact }: { session: HistorySession; compact?: boolean }) {
   const t = useT();
   const layers = WAR_LAYERS.filter(l => session.layers().includes(l.code));
   if (!layers.length) return null;
   return (
-    <LegendCard title={layers.map(l => t(l.label)).join(', ')} meta={layers.map(l => l.years).join(', ')}
+    <LegendCard compact={compact} title={layers.map(l => t(l.label)).join(', ')} meta={layers.map(l => l.years).join(', ')}
       closeLabel={t('Hide the borders')} onClose={() => layers.forEach(l => session.setLayer(l.code, false))}
       source={<>{layers.map(l => t(l.note)).join(' ')} {t('From the Stanford Spatial History Lab.')}</>}>
       <ul className="grid grid-cols-2 gap-x-4 gap-y-2">

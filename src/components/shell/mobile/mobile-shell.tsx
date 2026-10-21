@@ -15,6 +15,7 @@ import type { HistorySession } from '@/lib/history/session';
 import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import { onWorldRequest } from '@/lib/space/world-events';
 import type { TerrainStatus } from '@/lib/map/terrain/terrain';
+import type { SpaceLayers } from '@/lib/space/scene/types';
 import { useShown } from '@/components/shell/layout/use-page-layout';
 import { useT } from '@/components/ui/use-t';
 import AppHeader from './app-header';
@@ -30,10 +31,11 @@ const OsintPanel = dynamic(() => import('@/components/panels/recon/recon-panel')
 const AiPanel = dynamic(() => import('@/components/panels/ti-agent/ti-panel'));
 const HistoryPanel = dynamic(() => import('@/components/panels/history/history-panel'));
 const SpacePanel = dynamic(() => import('@/components/panels/space/space-panel'), { ssr: false });
+const SpaceLayerList = dynamic(() => import('@/components/panels/space/view/space-layer-list'), { ssr: false });
 
 /** The phone's view: the mark, More and the account up top, the bottom bar, and the one sheet it opens. */
 export default function MobileShell({ revealed, mobilePanel, setMobilePanel, directions, data, activeLayers, setActiveLayers, capabilities,
-  terrain, theme, setTheme, ti, spaceWeather, mapCenter, mapView, openDirectionsTo, trackFlight, setFlyToLocation, onSweep, history }: {
+  terrain, theme, setTheme, ti, spaceWeather, mapCenter, mapView, openDirectionsTo, trackFlight, setFlyToLocation, onSweep, history, space }: {
   revealed: boolean;
   mobilePanel: MobilePanel | null;
   setMobilePanel: Dispatch<SetStateAction<MobilePanel | null>>;
@@ -54,6 +56,7 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
   setFlyToLocation: Dispatch<SetStateAction<FlyToTarget | null>>;
   onSweep: (data: any) => void;
   history: { session: HistorySession | null; open: () => void; exit: () => void };
+  space: { inSpace: boolean; layers: SpaceLayers; setLayers: (l: SpaceLayers) => void };
 }) {
   const t = useT();
   const flyAndClose = (lat: number, lng: number, zoom?: number) => {
@@ -69,7 +72,9 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
   };
   // A spacecraft picked in the Space sheet flies the space view to it; the sheet would hide it.
   useEffect(() => onWorldRequest(() => setMobilePanel(p => (p === 'space' ? null : p))), [setMobilePanel]);
-  const subtitle = mobilePanel === 'layers' && tracked > 0 ? t('{n} tracked on the map', { n: tracked })
+  // Out in space, Layers is what the space view draws.
+  const layersSheet = mobilePanel !== 'layers' ? null : space.inSpace ? 'space' : 'map';
+  const subtitle = layersSheet === 'map' && tracked > 0 ? t('{n} tracked on the map', { n: tracked })
     : mobilePanel === 'history' && history.session ? <WhereInTime session={history.session} />
       : undefined;
 
@@ -83,8 +88,10 @@ export default function MobileShell({ revealed, mobilePanel, setMobilePanel, dir
         setShowDirections={directions.setShowDirections} navSession={directions.navSession} setActiveRoute={directions.setActiveRoute} />
 
       <MobileDrawer mobilePanel={mobilePanel} setMobilePanel={setMobilePanel} subtitle={subtitle}
+        title={layersSheet === 'space' ? t('Space layers') : undefined}
         actions={mobilePanel === 'history' && history.session && <HistoryBackToLive onExit={history.exit} />}>
-        {mobilePanel === 'layers' && (
+        {layersSheet === 'space' && <SpaceLayerList layers={space.layers} setLayers={space.setLayers} />}
+        {layersSheet === 'map' && (
           <>
             <LayerPanel {...terrain} data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} theme={theme} setTheme={setTheme} capabilities={capabilities} />
             <div className="mt-6">

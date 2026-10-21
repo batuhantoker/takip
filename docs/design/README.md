@@ -295,6 +295,10 @@ a second line in 12 `ink-2` or 11 `ink-3`, trailing value in mono. Hover
 Empty states (`EmptyState`): a 16 px icon in a 32 px `surface-2` circle, one
 line saying what goes here, one line saying how, and at most one button.
 
+A panel leads with what it is for, not its settings. History opens on what plays
+(the deep-time story, world and wartime borders), then its switches folded into
+Events and Borders (the open one remembered), then colours and moments.
+
 ## Components
 
 `src/components/ui/` holds the kit. Use it before writing a one-off.
@@ -382,3 +386,11 @@ phone may depend on hover. Map / Space and Showing sit above the bottom bar, and
 their popovers open over the map, never beside a sheet. While History or Replay
 runs, its timeline sits between them and the bottom bar in two rows, without the
 range menu (Go to and seeking earlier widen the range); an open sheet covers it.
+The sheet hides the map, so what sets the map moving closes it, picking a colour
+in History too. History's cards over the timeline fold to their header and
+controls, and deep time's folds its climate, so the map stays in view.
+Popups scroll between the header and Map / Space (`--header-clear`,
+`--switcher-clear`), and an event's popup pans the map to stay there as it fills
+in. Fields use 16 px text, under which iOS zooms in. Out in space, a picked body
+or craft opens the inspect sheet, a flight replay sits over Map / Space, which
+spreads across the width there, and Layers switches what space draws.

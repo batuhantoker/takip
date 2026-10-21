@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ExternalLink, History, Navigation } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { FloatingWindow, WindowFoldButton } from '@/components/map/windows';
+import { InspectSheet } from '@/components/map/inspect/inspect-sheet';
 import { Panel } from '@/components/ui/panel';
 import { Property, PropertyList } from '@/components/ui/property-list';
 import { Tag } from '@/components/ui/tag';
@@ -41,13 +43,15 @@ function WikiImage({ wiki, image }: { wiki: WikiSummary; image: NonNullable<Wiki
   );
 }
 
-export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene, onClose, onFly, onReplay }: {
+export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene, sheet, onClose, onFly, onReplay }: {
   selection: SpaceSelection;
   now: number;
   sky: SkyPayload | null;
   fleet: FleetPayload | null;
   surfaces: Record<'moon' | 'mars', SurfacePayload | null>;
   scene: SpaceScene | null;
+  /** A phone's: the inspect sheet over the bottom bar, its key numbers above the picture so they show while it peeks. */
+  sheet?: boolean;
   onClose: () => void;
   onFly: () => void;
   /** Plays back the craft's whole flight. */
@@ -70,39 +74,45 @@ export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene,
     </>
   ) : undefined;
 
+  const image = wiki?.image && <WikiImage key={wiki.image.src} wiki={wiki} image={wiki.image} />;
+  const panel = (
+    <Panel docked={false} closeOnEscape={false} className="pointer-events-auto" title={card.title} onClose={onClose}
+      subtitle={(
+        <span className="inline-flex max-w-full items-center gap-1.5">
+          <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: card.color }} />
+          <span className="truncate">{card.subtitle}</span>
+        </span>
+      )}
+      actions={<><IconButton label={t('Fly here')} icon={Navigation} onClick={onFly} /><WindowFoldButton /></>}
+      footer={footer}>
+      {!sheet && image}
+      {card.illustration && <div className="mb-3"><Tag>{t('Illustration')}</Tag></div>}
+      {card.fields.length > 0 && (
+        <PropertyList>
+          {card.fields.map(([label, value]) => <Property key={label} label={fieldLabel(label)} value={value} />)}
+        </PropertyList>
+      )}
+      {sheet && image && <div className="mt-4">{image}</div>}
+      {card.note && <p className="mt-3 text-small text-ink-2">{card.note}</p>}
+      {card.source && <p className="mt-2 text-meta text-ink-3">{card.source}</p>}
+      {wiki?.extract && (
+        <div className="mt-4 border-t border-line pt-3">
+          {wiki.lang !== wikiLang && (
+            <p className="mb-1.5 text-meta text-ink-3">{t('No article in {language}, so this is the English one.', { language: languageName(wikiLang, t.intl) })}</p>
+          )}
+          <p lang={wiki.lang} dir="auto" className="line-clamp-4 text-small text-ink-2" title={wiki.extract}>{wiki.extract}</p>
+          <a href={wiki.url} target="_blank" rel="noopener noreferrer" className={cx('mt-1.5 inline-flex items-center gap-1 rounded-[4px] text-meta text-ink-3 hover:text-ink-1', FOCUS_RING)}>
+            {t('More on Wikipedia')} <ExternalLink aria-hidden className="size-3" strokeWidth={1.75} />
+          </a>
+        </div>
+      )}
+    </Panel>
+  );
+
+  // Out of the space view's stacking context, so it sits over Map / Space as the map's sheets do.
+  if (sheet) return createPortal(<InspectSheet onClose={onClose}>{panel}</InspectSheet>, document.body);
   return (
     // A window like the map's inspect cards, so it docks in the person's layout and can be moved; the window answers Escape.
-    <FloatingWindow id="space-card" kind="inspect" label={card.title} onClose={onClose}>
-      <Panel docked={false} closeOnEscape={false} className="pointer-events-auto" title={card.title} onClose={onClose}
-        subtitle={(
-          <span className="inline-flex max-w-full items-center gap-1.5">
-            <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: card.color }} />
-            <span className="truncate">{card.subtitle}</span>
-          </span>
-        )}
-        actions={<><IconButton label={t('Fly here')} icon={Navigation} onClick={onFly} /><WindowFoldButton /></>}
-        footer={footer}>
-        {wiki?.image && <WikiImage key={wiki.image.src} wiki={wiki} image={wiki.image} />}
-        {card.illustration && <div className="mb-3"><Tag>{t('Illustration')}</Tag></div>}
-        {card.fields.length > 0 && (
-          <PropertyList>
-            {card.fields.map(([label, value]) => <Property key={label} label={fieldLabel(label)} value={value} />)}
-          </PropertyList>
-        )}
-        {card.note && <p className="mt-3 text-small text-ink-2">{card.note}</p>}
-        {card.source && <p className="mt-2 text-meta text-ink-3">{card.source}</p>}
-        {wiki?.extract && (
-          <div className="mt-4 border-t border-line pt-3">
-            {wiki.lang !== wikiLang && (
-              <p className="mb-1.5 text-meta text-ink-3">{t('No article in {language}, so this is the English one.', { language: languageName(wikiLang, t.intl) })}</p>
-            )}
-            <p lang={wiki.lang} dir="auto" className="line-clamp-4 text-small text-ink-2" title={wiki.extract}>{wiki.extract}</p>
-            <a href={wiki.url} target="_blank" rel="noopener noreferrer" className={cx('mt-1.5 inline-flex items-center gap-1 rounded-[4px] text-meta text-ink-3 hover:text-ink-1', FOCUS_RING)}>
-              {t('More on Wikipedia')} <ExternalLink aria-hidden className="size-3" strokeWidth={1.75} />
-            </a>
-          </div>
-        )}
-      </Panel>
-    </FloatingWindow>
+    <FloatingWindow id="space-card" kind="inspect" label={card.title} onClose={onClose}>{panel}</FloatingWindow>
   );
 }

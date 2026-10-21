@@ -6,9 +6,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
 import { useT } from '@/components/ui/use-t';
 import type { HistorySession } from '@/lib/history/session';
-import { CountriesSection } from '@/components/panels/history/parts/history-countries-section';
 import { DeepTimeSection } from '@/components/panels/history/parts/history-deep-section';
-import { BordersSection, EventsSection, type FlyTo, MomentsSection } from '@/components/panels/history/parts/history-sections';
+import { CalendarSections } from '@/components/panels/history/parts/history-sections';
+import type { FlyTo } from '@/components/panels/history/lib/history-plays';
 import { HistoryBackToLive, WhereInTime } from '@/components/panels/history/parts/where-in-time';
 import { useHistoryTick } from './use-history';
 
@@ -16,29 +16,22 @@ type Props = {
   onClose: () => void;
   onExit?: () => void;
   onFlyTo?: FlyTo;
-  /** Body only, for the phone's sheet, which has its own title and close. */
+  /** The phone's arrangement, body only: its sheet has its own title and close. */
   embedded?: boolean;
 };
 
-function Sections({ session, onFlyTo }: { session: HistorySession; onFlyTo?: FlyTo }) {
+/** `closeSheet` makes it the phone's: the sheet hides the map, so whatever sets the map moving closes it. */
+function Sections({ session, onFlyTo, closeSheet }: { session: HistorySession; onFlyTo?: FlyTo; closeSheet?: () => void }) {
   useHistoryTick(session, { clocks: false });
-  if (session.deep()) return <DeepTimeSection session={session} />;
-  return (
-    <>
-      <EventsSection session={session} />
-      <BordersSection session={session} onFlyTo={onFlyTo} />
-      <CountriesSection session={session} />
-      <MomentsSection session={session} onFlyTo={onFlyTo} />
-      <DeepTimeSection session={session} />
-    </>
-  );
+  if (session.deep()) return <DeepTimeSection session={session} onStart={closeSheet} />;
+  return <CalendarSections session={session} onFlyTo={onFlyTo} closeSheet={closeSheet} />;
 }
 
 /** The History tab: what the historical map shows. The mode starts when the tab opens and ends with "Back to live". */
 export default function HistoryPanel({ session, onOpen, onClose, onExit, onFlyTo, embedded }: Props & { session: HistorySession | null; onOpen: () => void }) {
   const t = useT();
   if (session) {
-    if (embedded) return <Sections session={session} onFlyTo={onFlyTo} />;
+    if (embedded) return <Sections session={session} onFlyTo={onFlyTo} closeSheet={onClose} />;
     return (
       <Panel title={t('History')} subtitle={<WhereInTime session={session} />} onClose={onClose} actions={onExit && <HistoryBackToLive onExit={onExit} />}>
         <Sections session={session} onFlyTo={onFlyTo} />

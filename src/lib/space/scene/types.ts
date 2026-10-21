@@ -21,6 +21,9 @@ export interface SpaceLayers {
   exoplanets: boolean;
 }
 
+/** Everything drawn: how the space view opens. */
+export const DEFAULT_SPACE_LAYERS: SpaceLayers = { satellites: true, fleet: true, orbits: true, surface: true, labels: true, illustrations: true, constellations: true, exoplanets: true };
+
 export interface CameraInfo { anchorName: string; distanceKm: number; sunKm: number }
 
 export interface SpaceSceneEvents {

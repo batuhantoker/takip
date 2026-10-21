@@ -25,6 +25,9 @@ export const FAMILY_TEXT: Record<string, { name: string; years: [number, number]
   events: { name: msg('Events'), years: [-2999, THIS_YEAR], note: msg('Dated events from Wikipedia’s year pages in ten languages, placed by what they link') },
 };
 
+/** What a war's borders show, beside its name. */
+export const WAR_NOTE = msg('Borders and occupation, month by month.');
+
 export type Moment = {
   label: string;
   at: number;

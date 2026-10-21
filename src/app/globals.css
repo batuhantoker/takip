@@ -390,6 +390,10 @@ html:has(.admin-root) body {
 .maplibregl-map .maplibregl-ctrl button:focus { box-shadow: none; }
 .maplibregl-map .maplibregl-ctrl button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* What a phone's fixed chrome covers over the map: the header, and Map / Space (a 12 px gap, the 38 px pill,
+   8 px) over --shell-bottom. Sheets, cards and popups keep clear of both (lib/map/popups/keep-in-view.ts). */
+:root { --header-clear: 64px; --switcher-clear: 58px; }
+
 /* Cards parked beside the map controls (the ad-block note, Style studio) keep clear of
    them only while the person keeps the controls in the bottom-right corner. */
 :root { --beside-controls: 12px; }
@@ -514,6 +518,12 @@ path.ai-graph-in { animation: ai-edge-in 0.9s ease-out both; }
 @media (max-width: 768px) {
   :root { --edge-pad: 8px; --panel-gap: 6px; }
   .maplibregl-map .maplibregl-popup { max-width: min(320px, calc(100vw - 24px)) !important; }
+  /* A popup's body scrolls in the room between the header and Map / Space, past its 12 px offset; :where keeps
+     the kit's own caps (.tk-pop-wide) ahead of it. */
+  :where(.maplibregl-map .maplibregl-popup-content > :first-child:not(button)) {
+    max-height: calc(100dvh - var(--header-clear) - var(--shell-bottom, 56px) - var(--switcher-clear) - 18px);
+    overflow: hidden auto;
+  }
 }
 
 @media (max-width: 390px) {

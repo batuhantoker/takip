@@ -37,7 +37,6 @@ export const WORLD_BORDERS = {
   code: 'world-borders',
   label: msg('World borders'),
   /** Play runs from classical Greece to the last year. */
-  playYears: `500 BCE–${LAST_YEAR}`,
   start: yearStart(bce(500)),
   end: yearStart(LAST_YEAR + 1),
   speed: 25 * YEAR_S,

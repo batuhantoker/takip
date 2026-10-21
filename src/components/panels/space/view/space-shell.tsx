@@ -62,23 +62,26 @@ const BACK_DOWN_MS = 1800;
  */
 type Leaving = 'home' | 'fade' | 'cut';
 
-const DEFAULT_LAYERS: SpaceLayers = { satellites: true, fleet: true, orbits: true, surface: true, labels: true, illustrations: true, constellations: true, exoplanets: true };
-
-export default function SpaceShell({ request, satellites, map, onFocus, onExit }: {
+export default function SpaceShell({ request, layers, setLayers, satellites, map, onFocus, onExit, mobileSheetOpen, onInspectOpen }: {
   request: SpaceRequest;
+  layers: SpaceLayers;
+  setLayers: (l: SpaceLayers) => void;
   satellites?: SatellitePoint[];
   /** The live Earth map underneath, met exactly on the way back. */
   map?: GlobeLink | null;
   onFocus: (f: SpaceFocus) => void;
   /** `to` is the map view to land on, when the operator zoomed back down into Earth and there is no `map` to move. */
   onExit: (to?: MapTarget) => void;
+  /** As WorldMap's: a phone's panel sheet is open, so the inspect sheet steps aside until it closes. */
+  mobileSheetOpen?: boolean;
+  /** Something was picked in the scene: a phone's panel sheet makes way for its inspect sheet. */
+  onInspectOpen?: () => void;
 }) {
   const t = useT();
   const isMobile = useIsMobile();
   const [isPresent, safeToRemove] = usePresence();
   const [leaving, setLeaving] = useState<Leaving | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const [layers, setLayers] = useState<SpaceLayers>(DEFAULT_LAYERS);
   const [selection, setSelection] = useState<SpaceSelection | null>(request.select ?? null);
   // A new request with something to select replaces the selection as it arrives.
   const [seenRequest, setSeenRequest] = useState(request.ts);
@@ -92,7 +95,11 @@ export default function SpaceShell({ request, satellites, map, onFocus, onExit }
     outer: request.select?.kind === 'outer',
     stars: request.select?.kind === 'star' || request.select?.kind === 'exohost' || request.focus === 'stars' || request.focus === 'galaxy',
   }), [request]);
-  const pick = useCallback((sel: SpaceSelection | null) => { if (!leaving) setSelection(sel); }, [leaving]);
+  const pick = useCallback((sel: SpaceSelection | null) => {
+    if (leaving) return;
+    setSelection(sel);
+    if (sel) onInspectOpen?.();
+  }, [leaving, onInspectOpen]);
   // Zoomed back down into Earth: the map takes the same view at once, and the space view fades out over it held there.
   const sceneRef = useRef<SpaceScene | null>(null);
   const land = useCallback((to: MapTarget) => {
@@ -301,13 +308,15 @@ export default function SpaceShell({ request, satellites, map, onFocus, onExit }
       <div data-hud inert={!!leaving} className={`pointer-events-none absolute top-16 bottom-[96px] z-[205] hidden flex-col transition-opacity duration-150 ease-out md:flex ${leaving ? 'opacity-0' : ''}`} style={{ left: 'calc(var(--shell-left, 72px) + 12px)' }}>
         <SpacePanelLeft camera={camera} layers={layers} setLayers={setLayers} fleet={fleet} satelliteCount={satellites?.length ?? 0} deep={{ outer, exoplanets, catalog }} />
       </div>
-      {selection && !leaving && !isMobile && (
-        <SpaceCard selection={selection} now={now} sky={sky} fleet={fleet} surfaces={surfaces} scene={scene}
+      {selection && !leaving && !mobileSheetOpen && (
+        <SpaceCard selection={selection} now={now} sky={sky} fleet={fleet} surfaces={surfaces} scene={scene} sheet={isMobile}
           onClose={() => setSelection(null)} onFly={() => fly(selection)}
           onReplay={selection.kind === 'craft' && fleet?.craft.find(c => c.id === selection.id)?.region !== 'earth-orbit' ? () => setReplayId(selection.id) : undefined} />
       )}
       {replayId !== null && !leaving && (
-        <div className="pointer-events-none absolute bottom-[88px] z-[206] flex justify-center" style={{ left: 'var(--shell-left, 72px)', right: 0 }}>
+        // A phone's sits over Map / Space.
+        <div className={`pointer-events-none absolute z-[206] flex justify-center ${isMobile ? 'bottom-[calc(var(--shell-bottom,56px)+var(--switcher-clear)+env(safe-area-inset-bottom))]' : 'bottom-[88px]'}`}
+          style={{ left: 'var(--shell-left, 72px)', right: 0 }}>
           <FlightReplayBar name={fleet?.craft.find(c => c.id === replayId)?.name ?? t('Spacecraft')}
             model={scene?.replay?.state.craftId === replayId ? scene.replay.model : null} state={replay} error={flight.error} controls={controls} />
         </div>

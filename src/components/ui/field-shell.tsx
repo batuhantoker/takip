@@ -14,7 +14,8 @@ export const fieldBox = (size: FieldSize = 'md', invalid?: boolean, padded = tru
   TRANSITION,
 );
 
-export const fieldInput = 'h-full min-w-0 flex-1 bg-transparent text-inherit placeholder:text-ink-3 outline-none';
+// 16 px on a phone, under which iOS zooms into a focused field.
+export const fieldInput = 'h-full min-w-0 flex-1 bg-transparent text-inherit placeholder:text-ink-3 outline-none max-md:text-base';
 
 /** Label above, hint or error below, tied to the control by id. */
 export function FieldShell({ id, label, hint, error, className, children }: {

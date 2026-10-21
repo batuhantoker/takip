@@ -7,12 +7,22 @@ import { formatAt, rampFor, readingText, unitInline, yearAt } from '@/lib/histor
 import type { HistorySession } from '@/lib/history/session';
 import { ChoiceMenu } from '@/components/map/replay/timeline-controls';
 import { useT } from '@/components/ui/use-t';
+import { msg } from '@/lib/core/i18n/translator';
 import { CountryRamp } from './country-ramp';
 import { LegendCard } from './legend-card';
 import { PickReadings } from './pick-readings';
 
-/** Over the History timeline while countries are coloured: the scale, the country under the pointer, the other picks, the source. */
-export default function CountryLegend({ session }: { session: HistorySession }) {
+/** How to read the countries, by pointer or touch: with one pick, and with several. */
+const READ = {
+  pointer: [msg('Point at a country to read its value; click it to chart it over time.'), msg('Point at a country to read every pick; click it to chart it over time.')],
+  touch: [msg('Tap a country to read its value and chart it over time.'), msg('Tap a country to read every pick and chart it over time.')],
+};
+
+/**
+ * Over the History timeline while countries are coloured: the scale, the country under the pointer, the other picks, the source.
+ * `compact` is a phone's, read by touch.
+ */
+export default function CountryLegend({ session, compact }: { session: HistorySession; compact?: boolean }) {
   const t = useT();
   const view = session.countries;
   const state = view.state();
@@ -22,7 +32,7 @@ export default function CountryLegend({ session }: { session: HistorySession }) 
 
   if (state.status !== 'ready') {
     return (
-      <LegendCard title={curated ?? state.code} {...close}>
+      <LegendCard compact={compact} title={curated ?? state.code} {...close}>
         {state.status === 'loading'
           ? <p className="text-small text-ink-3">{t('Loading the values…')}</p>
           : <p className="text-small text-red">{state.message}</p>}
@@ -40,9 +50,7 @@ export default function CountryLegend({ session }: { session: HistorySession }) 
   const [first, last] = data.years ?? [now, now];
   const hovered = view.hovered();
   const others = view.picks().filter(p => p.code !== state.code);
-  const point = others.length
-    ? t('Point at a country to read every pick; click it to chart it over time.')
-    : t('Point at a country to read its value; click it to chart it over time.');
+  const point = t(READ[compact ? 'touch' : 'pointer'][others.length ? 1 : 0]);
   const at = (x: number) => formatAt(x, step, t);
 
   let line: ReactNode;
@@ -70,7 +78,7 @@ export default function CountryLegend({ session }: { session: HistorySession }) 
   const many = data.sources.length > 1;
   const scenarios = projection && projection.scenarios.length > 1 ? projection.scenarios : null;
   return (
-    <LegendCard title={curated ?? data.metric.name} subtitle={unit && !unitInline(unit) ? unit : undefined} {...close}
+    <LegendCard compact={compact} title={curated ?? data.metric.name} subtitle={unit && !unitInline(unit) ? unit : undefined} {...close}
       source={many ? t.rich('Values for {years}', { years }) : <>{data.source.attribution ?? data.source.name} · {years}</>}
       footer={(many || scenarios) && (
         <>

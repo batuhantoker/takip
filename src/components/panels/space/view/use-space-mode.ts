@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GlobeView } from '@/lib/space/globe-match';
 import { onWorldRequest } from '@/lib/space/world-events';
+import { DEFAULT_SPACE_LAYERS, type SpaceLayers } from '@/lib/space/scene/types';
 import type { SpaceFocus } from '@/lib/space/worlds';
 import { countAction } from '@/lib/platform/usage-actions';
 import type { SpaceRequest } from './space-shell';
 
 /**
- * Whether the shell shows the map or space, and what space is centred on.
+ * Whether the shell shows the map or space, what space is centred on, and what it draws.
  * Entering from the map starts the camera over the map's own centre, so
  * leaving Earth begins where the operator was looking.
  */
@@ -16,6 +17,8 @@ export function useSpaceMode(mapEntry: () => SpaceRequest['entry'] | undefined) 
   const [inSpace, setInSpace] = useState(false);
   const [focus, setFocus] = useState<SpaceFocus>('earth');
   const [request, setRequest] = useState<SpaceRequest>({ focus: 'earth', ts: 0 });
+  // Here rather than in the view, so a phone's Layers sheet can switch them too.
+  const [layers, setLayers] = useState<SpaceLayers>(DEFAULT_SPACE_LAYERS);
   const inSpaceRef = useRef(inSpace);
   const entryRef = useRef(mapEntry);
   useEffect(() => { inSpaceRef.current = inSpace; entryRef.current = mapEntry; });
@@ -35,5 +38,5 @@ export function useSpaceMode(mapEntry: () => SpaceRequest['entry'] | undefined) 
 
   useEffect(() => onWorldRequest(req => go(req)), [go]);
 
-  return { inSpace, focus, request, enter, zoomOut, exit, setFocus };
+  return { inSpace, focus, request, enter, zoomOut, exit, setFocus, layers, setLayers };
 }

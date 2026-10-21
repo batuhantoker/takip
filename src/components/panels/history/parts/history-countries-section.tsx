@@ -17,8 +17,9 @@ import IndicatorSearch from './indicator-search';
 /**
  * The metrics picked from every indicator in groups: one fills the countries, the rest are read beside it in the
  * legend. Below, where the colouring one's values come from. The scale is the legend over the timeline.
+ * `onPicked` runs once a pick is made, from the starters or on Done.
  */
-export function CountriesSection({ session }: { session: HistorySession }) {
+export function CountriesSection({ session, onPicked }: { session: HistorySession; onPicked?: () => void }) {
   const t = useT();
   const [browsing, setBrowsing] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -42,6 +43,7 @@ export function CountriesSection({ session }: { session: HistorySession }) {
   const done = () => {
     setBrowsing(false);
     trigger.current?.focus();
+    if (picks.length) onPicked?.();
   };
 
   let detail = null;
@@ -100,7 +102,7 @@ export function CountriesSection({ session }: { session: HistorySession }) {
       action={picks.length > 1 ? <Button variant="ghost" size="sm" onClick={() => view.select(null)}>{t('Clear all')}</Button> : undefined}>
       {picks.length > 0 && <div className="mb-2"><IndicatorPicks view={view} picks={picks} coloured={code} /></div>}
       <Button ref={trigger} size="sm" icon={browsing ? undefined : Plus} aria-expanded={browsing} aria-controls={browsing ? listId : undefined}
-        onClick={() => setBrowsing(b => !b)}>
+        onClick={() => (browsing ? done() : setBrowsing(true))}>
         {browsing ? t('Done') : picks.length ? t('Add another') : t('Pick an indicator')}
       </Button>
       {!picks.length && !browsing && (
@@ -109,7 +111,7 @@ export function CountriesSection({ session }: { session: HistorySession }) {
           {STARTERS.map(c => {
             const m = starters.get(c);
             return (
-              <ListRow key={c} compact title={curatedLabel(c, true, t, !m?.years) ?? c} onClick={() => view.select(c)}
+              <ListRow key={c} compact title={curatedLabel(c, true, t, !m?.years) ?? c} onClick={() => { view.select(c); onPicked?.(); }}
                 subtitle={m?.years && <span className="font-mono text-meta text-ink-3 tabular-nums">{yearSpan(m.years, m.projectedTo, t)}</span>} />
             );
           })}

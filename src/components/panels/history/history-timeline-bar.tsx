@@ -123,10 +123,10 @@ export default function HistoryTimelineBar({ session, onExit, compact }: { sessi
     groups.map(g => ({ label: g.label && t(g.label), options: g.options.map(o => ({ ...o, label: t(o.label) })) }));
 
   let above = null;
-  if (deep) above = <DeepTimeCard session={session} />;
-  else if (session.layers().includes(WORLD_BORDERS.code)) above = <WorldBordersLegend session={session} />;
-  else if (session.layers().length > 0) above = <WarLegend session={session} />;
-  else if (session.countries.state().status !== 'off') above = <CountryLegend session={session} />;
+  if (deep) above = <DeepTimeCard session={session} compact={compact} />;
+  else if (session.layers().includes(WORLD_BORDERS.code)) above = <WorldBordersLegend session={session} compact={compact} />;
+  else if (session.layers().length > 0) above = <WarLegend session={session} compact={compact} />;
+  else if (session.countries.state().status !== 'off') above = <CountryLegend session={session} compact={compact} />;
 
   const play = <PlayButton playing={playing} onToggle={toggle} />;
   const readout = (

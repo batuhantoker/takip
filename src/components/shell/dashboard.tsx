@@ -194,6 +194,7 @@ export default function Dashboard() {
 
   // One sheet at a time on a phone: inspecting something closes the panel, and a panel hides the camera player.
   const closeMobileSheet = useCallback(() => setMobilePanel(null), []);
+  const mobileSheetOpen = isMobile && !!mobilePanel;
 
   const handleEntityClick = useCallback((entity: any) => {
     if (entity?.type === 'cctv') setActiveCamera(entity);
@@ -350,7 +351,7 @@ export default function Dashboard() {
           onAiHover={session.setAiHover}
           onAiFollow={session.setAiFollowing}
           aiHighlight={aiHighlight}
-          mobileSheetOpen={isMobile && !!mobilePanel}
+          mobileSheetOpen={mobileSheetOpen}
           onInspectOpen={closeMobileSheet}
         />
       </ErrorBoundary>
@@ -359,7 +360,8 @@ export default function Dashboard() {
       <AnimatePresence>
         {space.inSpace && (
           <ErrorBoundary key="space" name="Space">
-            <SpaceShell request={space.request} satellites={spaceSatellites} map={mapProjection === 'mercator' ? null : globeLink} onFocus={space.setFocus} onExit={leaveSpace} />
+            <SpaceShell request={space.request} layers={space.layers} setLayers={space.setLayers} satellites={spaceSatellites} map={mapProjection === 'mercator' ? null : globeLink} onFocus={space.setFocus} onExit={leaveSpace}
+              mobileSheetOpen={mobileSheetOpen} onInspectOpen={closeMobileSheet} />
           </ErrorBoundary>
         )}
       </AnimatePresence>
@@ -399,7 +401,8 @@ export default function Dashboard() {
           data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} capabilities={capabilities} terrain={terrain}
           theme={theme} setTheme={setTheme} ti={ti} spaceWeather={spaceWeather} mapCenter={mapCenter} mapView={mapView}
           openDirectionsTo={openDirectionsTo} trackFlight={timeTravel ? undefined : trackFlight} setFlyToLocation={setFlyToLocation} onSweep={recon.setSweepData}
-          history={{ session: history.session, open: startHistory, exit: exitHistory }} />
+          history={{ session: history.session, open: startHistory, exit: exitHistory }}
+          space={space} />
       ) : (
         <>
           <NavSidebar groups={railGroups(navItems({ layersOn, arcgisCount: arcgis.arcgisLayers.length, historyOn: !!history.session }), layout.desktop)}

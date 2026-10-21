@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
+import { Disclosure } from '@/components/ui/disclosure';
 import { Property, PropertyList } from '@/components/ui/property-list';
 import { Stat } from '@/components/ui/stat';
 import { useT } from '@/components/ui/use-t';
@@ -14,6 +15,7 @@ import { loadPlateModel, type PlateModel } from '@/lib/history/paleo/reconstruct
 import { CHAPTERS } from '@/lib/history/paleo/story';
 import ClimateChart from './climate-chart';
 import { LegendCard } from './legend-card';
+import { playStory } from '@/components/panels/history/lib/history-plays';
 import { Swatch } from '@/components/panels/history/parts/swatch';
 
 type Plates = { status: 'loading' } | { status: 'ready'; meta: PlateModel['meta'] } | { status: 'error' };
@@ -58,10 +60,14 @@ function ChapterControls({ session }: { session: HistorySession }) {
   );
 }
 
-/** Over the History timeline in deep time: the age and its world in numbers, or the documentary's open chapter. */
-export default function DeepTimeCard({ session }: { session: HistorySession }) {
+/**
+ * Over the History timeline in deep time: the age and its world in numbers, or the documentary's open chapter.
+ * `compact` is a phone's: shorter, its climate folded, so the plates stay in view.
+ */
+export default function DeepTimeCard({ session, compact }: { session: HistorySession; compact?: boolean }) {
   const t = useT();
   const { plates, climate } = useDeepData();
+  const [climateOpen, setClimateOpen] = useState(false);
   const { story, deepClock } = session;
   const ma = maAt(deepClock.time());
   const period = periodAt(ma);
@@ -75,8 +81,30 @@ export default function DeepTimeCard({ session }: { session: HistorySession }) {
   const where = <><Swatch color={period.color} />{t(period.name)} · {t(period.era)}</>;
   const none = <span className="text-ink-4" aria-label={t('no record')}>—</span>;
 
+  // The same three numbers in the same places at every age, so they can be watched changing.
+  const stats = (
+    <div className="grid grid-cols-3 gap-3">
+      <Stat size="sm" label={t('Temperature')} value={reading ? reading.gmst.mid.toFixed(0) : none} unit={reading && '°C'}
+        delta={reading && `(${reading.gmst.lo.toFixed(0)}–${reading.gmst.hi.toFixed(0)})`} />
+      <Stat size="sm" label="CO₂" value={reading ? Math.round(reading.co2.mid).toLocaleString(t.intl) : none} unit={reading && 'ppm'} />
+      <Stat size="sm" label={t('Sunlight')} value={String(Math.round(sunBrightness(ma) * 100))} unit={t('% of today')} />
+    </div>
+  );
+  const facts = chapter?.facts && (
+    <PropertyList className="mt-2">
+      {chapter.facts.map(([label, value]) => <Property key={label} label={t(label)} value={t(value)} />)}
+    </PropertyList>
+  );
+  const chart = climate && (
+    <div className="mt-4">
+      {ma <= climate.rows[climate.rows.length - 1][0]
+        ? <ClimateChart rows={climate.rows} ma={ma} onSeek={seek} />
+        : <p className="text-meta text-ink-3">{t('Temperature and CO₂ records start 485 million years ago.')}</p>}
+    </div>
+  );
+
   return (
-    <LegendCard wide
+    <LegendCard wide compact={compact}
       title={chapter ? t(chapter.title) : longMa(ma, t)}
       meta={chapter ? t('{n} of {total}', { n: index! + 1, total: CHAPTERS.length }) : undefined}
       subtitle={chapter ? <>{story.arrived() ? longMa(chapter.ma, t) : t('{age}, on the way', { age: longMa(ma, t) })} · {where}</> : where}
@@ -88,7 +116,7 @@ export default function DeepTimeCard({ session }: { session: HistorySession }) {
       </>}
       footer={chapter ? <ChapterControls session={session} /> : (
         <>
-          <Button size="sm" icon={Play} onClick={() => { story.setAuto(true); story.go(0); }}>{t('Play the story')}</Button>
+          <Button size="sm" icon={Play} onClick={() => playStory(session)}>{t('Play the story')}</Button>
           <span className="ml-2 text-meta text-ink-3">{t('{n, plural, one {# chapter} other {# chapters}}, 1.8 billion years', { n: CHAPTERS.length })}</span>
         </>
       )}>
@@ -96,26 +124,12 @@ export default function DeepTimeCard({ session }: { session: HistorySession }) {
         ? <p className="mb-4 text-body text-ink-2">{t(chapter.body)}</p>
         : <p className="mb-4 text-small text-ink-3">{t("Today's coastlines, carried back on their plates. The seas of the time aren't drawn.")}</p>}
 
-      {/* The same three numbers in the same places at every age, so they can be watched changing. */}
-      <div className="grid grid-cols-3 gap-3">
-        <Stat size="sm" label={t('Temperature')} value={reading ? reading.gmst.mid.toFixed(0) : none} unit={reading && '°C'}
-          delta={reading && `(${reading.gmst.lo.toFixed(0)}–${reading.gmst.hi.toFixed(0)})`} />
-        <Stat size="sm" label="CO₂" value={reading ? Math.round(reading.co2.mid).toLocaleString(t.intl) : none} unit={reading && 'ppm'} />
-        <Stat size="sm" label={t('Sunlight')} value={String(Math.round(sunBrightness(ma) * 100))} unit={t('% of today')} />
-      </div>
-      {chapter?.facts && (
-        <PropertyList className="mt-2">
-          {chapter.facts.map(([label, value]) => <Property key={label} label={t(label)} value={t(value)} />)}
-        </PropertyList>
-      )}
-
-      {climate && (
-        <div className="mt-4">
-          {ma <= climate.rows[climate.rows.length - 1][0]
-            ? <ClimateChart rows={climate.rows} ma={ma} onSeek={seek} />
-            : <p className="text-meta text-ink-3">{t('Temperature and CO₂ records start 485 million years ago.')}</p>}
-        </div>
-      )}
+      {compact ? (
+        <>
+          {facts}
+          <Disclosure title={t('Climate')} open={climateOpen} onOpenChange={setClimateOpen}>{stats}{chart}</Disclosure>
+        </>
+      ) : <>{stats}{facts}{chart}</>}
     </LegendCard>
   );
 }

@@ -11,7 +11,7 @@ import { bearing, compass } from '@/components/map/inspect/format';
 import { FLIGHT_LAYER_LABEL } from '@/components/map/inspect/live';
 import { MoveActions } from '@/components/map/inspect/parts/inspect-actions';
 import { InspectCard, Note, SourceLinks, StatRow } from '@/components/map/inspect/parts/inspect-card';
-import { InspectSheet } from '@/components/map/inspect/parts/inspect-sheet';
+import { InspectSheet } from '@/components/map/inspect/inspect-sheet';
 import { isFollowed, useFollow } from '@/components/map/inspect/use-follow';
 import type { MapRef } from '@/components/map/types';
 import { toFeet } from '@/lib/feeds/aviation/flight-watch';

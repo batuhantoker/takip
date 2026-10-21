@@ -41,7 +41,7 @@ import { ramp, tierFades, type TierFades } from './tiers';
 import { globePose, type MapLink } from './camera/focus';
 import { createZoomAnchoring } from './camera/zoom-anchor';
 import { fitToDistance, placeBodies } from './frame-passes';
-import type { Anchor, SpaceLayers, SpaceSceneEvents } from './types';
+import { type Anchor, DEFAULT_SPACE_LAYERS, type SpaceLayers, type SpaceSceneEvents } from './types';
 
 /**
  * TAKIP — the space view: the Sun, planets, Moon and every craft Horizons
@@ -85,7 +85,7 @@ export class SpaceScene {
   fleet: FleetCraft[] = [];
   anchor: Anchor = { kind: 'body', key: 'earth' };
   selection: SpaceSelection | null = null;
-  layers: SpaceLayers = { satellites: true, fleet: true, orbits: true, surface: true, labels: true, illustrations: true, constellations: true, exoplanets: true };
+  layers: SpaceLayers = DEFAULT_SPACE_LAYERS;
   /** Camera distance from the Sun, km, and what that makes visible. */
   sunKm = 0;
   fades: TierFades = tierFades(0, false);
