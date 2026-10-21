@@ -12,6 +12,7 @@ import { useT } from '@/components/ui/use-t';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import type { FlightHit } from '@/lib/feeds/aviation/flight-search';
 import type { ReplayEntity } from '@/lib/map/replay/track-sample';
+import { ipLocationUrl } from '@/lib/places/ip-location/browser';
 import { forgetRecent, loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
 import { noteDeviceLocation } from '@/lib/platform/device-location';
 import { countAction } from '@/lib/platform/usage-actions';
@@ -152,7 +153,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
       return;
     }
     try {
-      const d = await (await fetch('/api/geo')).json();
+      const d = await (await fetch(ipLocationUrl())).json();
       if (d?.lat && d?.lon) {
         onLocate(d.lat, d.lon, 11);
         setLocating(false);

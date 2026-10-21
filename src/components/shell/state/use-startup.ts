@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ActiveLayers } from '@/lib/map/layers/defaults';
 import { pickLandingCity } from '@/lib/places/landing-cities';
+import { timeZoneCity } from '@/lib/places/timezone-cities';
+import { browserTimeZone, ipLocationUrl } from '@/lib/places/ip-location/browser';
 import { loadLayers } from '@/lib/map/layers/saved';
 import { parseTrack, requestTrack } from '@/components/map/inspect/track-request';
 import type { FlyToTarget } from './types';
@@ -17,6 +19,28 @@ function sharedView(p: URLSearchParams): Home | null {
   const zoom = Number(p.get('zoom'));
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
   return { lat, lng, zoom: p.has('zoom') && Number.isFinite(zoom) ? Math.min(18, Math.max(1.5, zoom)) : undefined };
+}
+
+/** The device's own position, only when this site already holds the permission: loading never prompts. */
+async function grantedDeviceFix(): Promise<Home | null> {
+  try {
+    if ((await navigator.permissions.query({ name: 'geolocation' })).state !== 'granted') return null;
+  } catch {
+    return null;
+  }
+  return new Promise(resolve => navigator.geolocation.getCurrentPosition(
+    fix => resolve({ lat: fix.coords.latitude, lng: fix.coords.longitude }),
+    () => resolve(null),
+    { timeout: 4000, maximumAge: 10 * 60_000 },
+  ));
+}
+
+/** /api/geo's answer; zoomed out to the region when no two providers agreed on it. */
+function ipHome(geo: { status?: string; lat?: number; lon?: number; agreement?: number } | null): Home | null {
+  const { lat, lon } = geo ?? {};
+  if (geo?.status !== 'success' || typeof lat !== 'number' || typeof lon !== 'number' ||
+      !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+  return { lat, lng: lon, zoom: (geo.agreement ?? 0) >= 2 ? 8 : 6 };
 }
 
 /** On mount: restore layers, probe optional feeds, and fly to a shared view or the viewer's city once the splash has gone. */
@@ -86,8 +110,8 @@ export function useStartup({ setActiveLayers, setFlyToLocation, splashGone }: {
     /* Asked for at once rather than after a fixed 3 s wait, so the answer is
        in hand when the splash lifts; the effect above does the flying. When
        the visitor's city can't be found (no public address, every provider
-       failed, or no answer within 6 s) the fly-in still happens, to a random
-       well-covered city, rather than stopping on the globe. */
+       failed, or no answer within 6 s) the fly-in still happens, to the
+       browser time zone's city, else a random well-covered one. */
     const shared = sharedView(p);
     let located = !!shared;
 
@@ -100,26 +124,29 @@ export function useStartup({ setActiveLayers, setFlyToLocation, splashGone }: {
       // With no view in the link, the camera goes to the target, not the viewer's city.
       if (!shared) autoLocateCancelled.current = true;
     }
-    const landSomewhere = () => {
+    const land = (home: Home) => {
       if (located || geoController.signal.aborted) return;
       located = true;
+      setHomeLocation(home);
+    };
+    const landSomewhere = () => {
+      if (located || geoController.signal.aborted) return;
+      const zone = timeZoneCity(browserTimeZone());
+      if (zone) return land({ lng: zone[0], lat: zone[1], zoom: 5 });
       const city = pickLandingCity();
-      setHomeLocation({ lat: city.lat, lng: city.lng });
+      land({ lat: city.lat, lng: city.lng });
     };
     const geoGiveUp = setTimeout(landSomewhere, 6000);
-    if (!shared) fetch('/api/geo', { signal: geoController.signal })
-      .then(r => r.json())
-      .then(geo => {
-        if (located || geoController.signal.aborted) return;
-        if (geo.status === 'success' &&
-            Number.isFinite(geo.lat) && Number.isFinite(geo.lon) && Math.abs(geo.lat) <= 90 && Math.abs(geo.lon) <= 180) {
-          located = true;
-          setHomeLocation({ lat: geo.lat, lng: geo.lon });
-        } else {
-          landSomewhere();
-        }
-      })
-      .catch(landSomewhere);
+    if (!shared) {
+      const ipGuess = fetch(ipLocationUrl(), { signal: geoController.signal })
+        .then(r => r.json())
+        .then(ipHome)
+        .catch(() => null);
+      void grantedDeviceFix()
+        .then(fix => fix ?? ipGuess)
+        .then(home => (home ? land(home) : landSomewhere()))
+        .catch(landSomewhere);
+    }
 
     return () => {
       clearTimeout(geoGiveUp);

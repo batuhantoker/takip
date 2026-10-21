@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useT } from '@/components/ui/use-t';
 import { loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
+import { ipLocationUrl } from '@/lib/places/ip-location/browser';
 import type { LiveLocation, Place, RouteResult } from '@/lib/places/route/plan';
 import { noteDeviceLocation } from '@/lib/platform/device-location';
 import { countAction } from '@/lib/platform/usage-actions';
@@ -184,7 +185,7 @@ export function useRoutePlanner(
     }
 
     try {
-      const res = await fetch('/api/geo');
+      const res = await fetch(ipLocationUrl());
       const d = await res.json();
       if (d?.lat && d?.lon) {
         apply(d.lat, d.lon, d.city ? t('Near {city}', { city: d.city }) : t('Approximate location'));

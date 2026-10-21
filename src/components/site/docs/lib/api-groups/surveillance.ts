@@ -90,8 +90,11 @@ export const SURVEILLANCE: ApiGroup = {
     {
       path: '/api/geo',
       method: 'GET',
-      summary: 'Geolocates the calling client by IP.',
-      returns: ['status', 'query', 'city', 'regionName', 'country', 'lat', 'lon', 'isp', 'org'],
+      summary: 'Geolocates the calling client by IP, taking the place most of several providers agree on.',
+      params: [
+        { name: 'tz', desc: 'The caller’s IANA time zone (`America/New_York`). Answers in a zone with another UTC offset are dropped, unless that drops all.' },
+      ],
+      returns: ['status', 'query', 'city', 'regionName', 'country', 'lat', 'lon', 'isp', 'org', 'agreement', 'answered'],
     },
   ],
 };
