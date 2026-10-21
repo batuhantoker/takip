@@ -72,7 +72,7 @@ export function scheduledVehicles(tt: Timetable, at: Date): RtVehicle[] {
         out.push({
           id: `${pi}:${d === day ? '' : 'y'}${starts[i]}`,
           lng: a[0] + (b[0] - a[0]) * share, lat: a[1] + (b[1] - a[1]) * share, bearing: bearingOf(a, b),
-          route: route.name, mode: route.mode, t: nowS,
+          route: route.name, mode: route.mode, trip: String(pi), t: nowS,
           stop: b[2], from: a[2], status: 2,
           estimated: true, scheduled: true,
         });
@@ -80,4 +80,10 @@ export function scheduledVehicles(tt: Timetable, at: Date): RtVehicle[] {
     }
   }
   return out;
+}
+
+/** A scheduled trip's stations in running order; its `trip` is the pattern's index. */
+export function patternStops(tt: Timetable | undefined, trip: string): [number, number, string][] | null {
+  const p = /^\d+$/.test(trip) ? tt?.patterns[Number(trip)] : undefined;
+  return tt && p ? p.stops.map(i => tt.stops[i]) : null;
 }

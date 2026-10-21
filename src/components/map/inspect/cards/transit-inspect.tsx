@@ -1,6 +1,8 @@
 'use client';
 
-import { Bus, CableCar, Ship, TrainFront, TramFront } from 'lucide-react';
+import { useEffect, useSyncExternalStore } from 'react';
+import { Bus, CableCar, Route, RouteOff, Ship, TrainFront, TramFront } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { PanelSection } from '@/components/ui/panel';
 import { Property, PropertyList } from '@/components/ui/property-list';
 import { Stat } from '@/components/ui/stat';
@@ -8,6 +10,7 @@ import { Tag } from '@/components/ui/tag';
 import { useT } from '@/components/ui/use-t';
 import type { MapRef } from '@/components/map/types';
 import { readableRoute, TRANSIT_STATUS, transitKmh, transitTitle, transitWhere } from '@/lib/feeds/transit/describe';
+import { focusFromVehicle, sameLine, setLineFocus, subscribeTransitLines, transitLinesState } from '@/lib/feeds/transit/lines';
 import type { TransitMode } from '@/lib/feeds/transit/modes';
 import { TRANSIT_TRACK_MS } from '@/lib/feeds/transit/view';
 import { ago, bearing, compass } from '@/components/map/inspect/format';
@@ -22,6 +25,8 @@ import { describePlace, usePlaceName } from '@/components/map/inspect/use-place-
 const STALE_MS = 5 * 60_000;
 
 const MODE_ICON: Partial<Record<TransitMode, typeof Bus>> = { metro: TrainFront, rail: TrainFront, tram: TramFront, ferry: Ship, cable: CableCar };
+
+const focusOf = () => transitLinesState().focus;
 
 export function TransitInspect({ target, live, shown, mapRef, onClose }: {
   target: TransitTarget;
@@ -44,6 +49,14 @@ export function TransitInspect({ target, live, shown, mapRef, onClose }: {
   const status = transitWhere(v) ?? (v.status != null && TRANSIT_STATUS[v.status] ? t(TRANSIT_STATUS[v.status]) : undefined);
   const stale = age > STALE_MS;
 
+  const feed = target.id.slice(0, target.id.indexOf(':'));
+  const line = v.route ? { feed, route: v.route } : null;
+  const focus = useSyncExternalStore(subscribeTransitLines, focusOf, () => null);
+  const focused = sameLine(focus, line);
+  // A line picked here goes when this window does; one picked in the Layers panel stays.
+  useEffect(() => () => { if (focusOf()?.from === target.id) setLineFocus(null); }, [target.id]);
+  const toggleLine = () => setLineFocus(focused || !line ? null : focusFromVehicle({ ...line, mode: v.mode, trip: v.trip, from: target.id }));
+
   return (
     <InspectCard
       icon={(v.mode && MODE_ICON[v.mode]) || Bus}
@@ -56,11 +69,14 @@ export function TransitInspect({ target, live, shown, mapRef, onClose }: {
       </>}
       onClose={onClose}
       headerActions={<MoveActions mapRef={mapRef} lat={pos.lat} lng={pos.lng} zoom={15} following={following} onFollow={setFollowing} />}
-      footer={<span>{v.scheduled
+      footer={<>
+        {line && <Button size="sm" icon={focused ? RouteOff : Route} aria-pressed={focused} onClick={toggleLine}>{focused ? t('Show all lines') : t('Highlight line')}</Button>}
+        <span className={line ? 'ml-auto' : undefined}>{v.scheduled
         ? t('Where its timetable has it now · this system publishes nothing live')
         : v.estimated
           ? t('Stop reported {ago} · placed from its timetable, not GPS', { ago: ago(age, t) })
-          : t('Position {ago} · checked every {n} s', { ago: ago(age, t), n: TRANSIT_TRACK_MS / 1000 })}</span>}
+          : t('Position {ago} · checked every {n} s', { ago: ago(age, t), n: TRANSIT_TRACK_MS / 1000 })}</span>
+      </>}
     >
       <StatRow>
         <Stat size="sm" label={t('Speed')} value={kmh != null ? String(kmh) : '—'} unit="km/h" />

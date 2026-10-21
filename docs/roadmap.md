@@ -10,8 +10,6 @@ Edited by Batuhan. 2026-10-16. Clear the title number and delete this time next 
 
 In order. "(you)" marks the user's own steps.
 
-## Easy win for transit, if we have the route show the user the route. showing the route with the stops
-
 ### 1.0 Ads on takip.dev
 `/ads.txt` and the verification meta tag are live with the publisher ID since 2026-10-19 (`NEXT_PUBLIC_ADSENSE_CLIENT` in the NUC's `.env.production.local`), and the site review was requested the same day.
 1. (you) Before approval: turn Auto ads off (the script loads on every page that may show ads, the map included) and publish the European regulations message (Privacy & messaging); `/privacy` promises both.

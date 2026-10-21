@@ -56,7 +56,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `reference/` | Reference datasets: catalogue, file store, clipping, map layers | api/reference; panels/layers, map/layers |
 | `satellites/` | Propagation (worker and client), filters, motion, chase, sky passes over a place; `gl/` (WebGL points) | map/layers; api/satellites |
 | `traffic/` | Road traffic upstreams, TomTom flow tiles, layers; `sources/` | api/traffic; map/interaction, map/layers; tools/traffic |
-| `transit/` | Live transit catalogue, selection, upstream; `gtfs/`, `placement/`, `sources/`, `generated/` | api/transit; map/inspect, map/layers; tools/transit |
+| `transit/` | Live transit catalogue, selection, upstream, the lines in view and the focused one; `gtfs/`, `placement/`, `sources/`, `generated/` | api/transit; map/inspect, map/layers, panels/layers; tools/transit |
 | `weather/` | Temperature field, labels and unit; radar frames and loop state; lightning frames; the GFS wind field and its streak layer; `clouds/` (the live cloud layer and its worker) | map/layers; api/weather-field; lib/feeds/imagery |
 | root modules | `contacts.ts`: the nearest aircraft and ships around one of them | map/inspect |
 

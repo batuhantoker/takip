@@ -2,9 +2,11 @@
 
 import { useEffect } from 'react';
 import { setTransitData, setTransitVisible, TRANSIT_CITY_SOURCE, transitCityFeatures, transitFeatures } from '@/lib/feeds/transit/map-layers';
+import { linesInView, setLineFocus, setTransitLines } from '@/lib/feeds/transit/lines';
 import type { TransitCities } from '@/lib/feeds/transit/modes';
 import { clampView, TRANSIT_MIN_ZOOM, TRANSIT_REFRESH_MS, type TransitResponse } from '@/lib/feeds/transit/view';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
+import { useTransitLineFocus } from './use-transit-line-focus';
 
 interface TransitLayerArgs {
   mapRef: MapRef;
@@ -30,6 +32,7 @@ const loadCities = () => (cities ??= fetch('/data/transit/cities.json').then(r =
  */
 export function useTransitLayer({ mapRef, mapReady, activeLayers, replayActive }: TransitLayerArgs) {
   const on = !!activeLayers.transit && !replayActive;
+  useTransitLineFocus({ mapRef, mapReady });
 
   useEffect(() => {
     const map = mapRef.current;
@@ -37,6 +40,8 @@ export function useTransitLayer({ mapRef, mapReady, activeLayers, replayActive }
     setTransitVisible(map, on);
     if (!on) {
       setTransitData(map, []);
+      setTransitLines(null);
+      setLineFocus(null);
       return;
     }
     void loadCities().then(c => { if (c) setTransitData(map, transitCityFeatures(c), TRANSIT_CITY_SOURCE); });
@@ -51,6 +56,7 @@ export function useTransitLayer({ mapRef, mapReady, activeLayers, replayActive }
       request?.abort();
       if (!zoomedIn()) {
         setTransitData(map, []);
+        setTransitLines(null);
         return;
       }
       if (document.hidden) return;
@@ -59,7 +65,11 @@ export function useTransitLayer({ mapRef, mapReady, activeLayers, replayActive }
       const ctl = (request = new AbortController());
       try {
         const res = await fetch(`/api/transit?bbox=${view.join(',')}`, { signal: ctl.signal });
-        if (res.ok && zoomedIn()) setTransitData(map, transitFeatures(await res.json() as TransitResponse));
+        const data = res.ok ? await res.json() as TransitResponse : null;
+        if (data && zoomedIn()) {
+          setTransitData(map, transitFeatures(data));
+          setTransitLines(linesInView(data));
+        }
       } catch {
         if (ctl.signal.aborted) return;
         // A failed poll keeps the last vehicles; the next one tries again.

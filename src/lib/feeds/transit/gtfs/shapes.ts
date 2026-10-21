@@ -27,9 +27,14 @@ function splitCsv(line: string): string[] {
 
 /**
  * Each row of a zipped CSV, inflated as it streams so a large file never sits in memory whole.
- * `row` returns true to stop there.
+ * `row` returns true to stop there. With `has`, rows whose line lacks that text are skipped unparsed,
+ * and `missed` returning true on one of them stops there too.
  */
-export async function scanCsv(file: Zipped, row: (cell: (column: string) => string) => boolean | void): Promise<void> {
+export async function scanCsv(
+  file: Zipped,
+  row: (cell: (column: string) => string) => boolean | void,
+  only?: { has: string; missed?: () => boolean },
+): Promise<void> {
   const decoder = new TextDecoder();
   let head: Map<string, number> | null = null;
   let rest = '';
@@ -40,6 +45,10 @@ export async function scanCsv(file: Zipped, row: (cell: (column: string) => stri
     for (const raw of parts) {
       const line = raw.replace(/\r$/, '');
       if (!line) continue;
+      if (head && only && !line.includes(only.has)) {
+        if (only.missed?.()) { stopped = true; return; }
+        continue;
+      }
       const cols = splitCsv(line);
       if (!head) {
         head = new Map(cols.map((c, i) => [c.replace(/^﻿/, '').trim(), i]));

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localClock, scheduledVehicles, type Timetable } from './scheduled';
+import { localClock, patternStops, scheduledVehicles, type Timetable } from './scheduled';
 
 const WEEKDAYS = 0b0011111, DAILY = 0b1111111;
 
@@ -27,7 +27,7 @@ describe('scheduledVehicles', () => {
   it('puts each running trip between its stops, once though two services list it', () => {
     const [v, ...rest] = scheduledVehicles(tt, at(8, 1));
     expect(rest).toEqual([]);
-    expect(v).toMatchObject({ route: 'M2', mode: 'metro', from: 'Şişhane', stop: 'Taksim', status: 2, scheduled: true, estimated: true });
+    expect(v).toMatchObject({ route: 'M2', mode: 'metro', trip: '0', from: 'Şişhane', stop: 'Taksim', status: 2, scheduled: true, estimated: true });
     expect(v.lng).toBeCloseTo(29.005, 6);
   });
 
@@ -40,5 +40,14 @@ describe('scheduledVehicles', () => {
     // Saturday: the weekday 08:10 doesn't run.
     expect(scheduledVehicles(tt, at(8, 11, 17))).toEqual([]);
     expect(scheduledVehicles(tt, at(8, 11, 16))).toHaveLength(1);
+  });
+});
+
+describe('patternStops', () => {
+  it("gives a trip's stations by its pattern", () => {
+    expect(patternStops(tt, '0')).toEqual(tt.stops);
+    expect(patternStops(tt, '1')).toBeNull();
+    expect(patternStops(tt, 'x0')).toBeNull();
+    expect(patternStops(undefined, '0')).toBeNull();
   });
 });

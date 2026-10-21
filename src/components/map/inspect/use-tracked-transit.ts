@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import type { MapRef } from '@/components/map/types';
-import { setTransitTrails, setTransitTracked } from '@/lib/feeds/transit/map-layers';
+import { setTransitRoutes, setTransitTrails, setTransitTracked } from '@/lib/feeds/transit/map-layers';
 import { alongShape, MAX_OFF_M, metres, pointAlong, project, type LngLat, type OnShape } from '@/lib/feeds/transit/placement/snap';
-import { TRANSIT_TRACK_MS, type TransitResponse } from '@/lib/feeds/transit/view';
+import { TRANSIT_TRACK_MS, type TransitResponse, type TransitStop } from '@/lib/feeds/transit/view';
 import type { TransitTarget } from './types';
 import { isFollowed } from './use-follow';
 
@@ -58,9 +58,12 @@ export function useTrackedTransit(mapRef: MapRef, target: TransitTarget | null):
     let bearing: number | null = startBearing ?? null;
     let look = { mode: startMode, estimated: startEstimated };
     let shape: LngLat[] | null = null;
+    let stops: TransitStop[] | null = null;
     let onShape: OnShape | null = null;
     let road = false;
     let shapeTrip: string | null | undefined;
+    // The trip `shape` was loaded for: a new trip's stops wait for its shape.
+    let drawnTrip: string | null | undefined;
     let frame = 0;
     let next: ReturnType<typeof setTimeout> | undefined;
 
@@ -74,15 +77,33 @@ export function useTrackedTransit(mapRef: MapRef, target: TransitTarget | null):
     trails.set(key, []);
     place(fix, bearing);
 
+    // Apart from place(), which runs every animation frame: a route only changes with its trip.
+    const showRoute = (on = true) => {
+      if (mapRef.current) setTransitRoutes(mapRef.current, `tracked:${key}`, on ? [{ shape, stops: drawnTrip === shapeTrip ? stops : null, mode: look.mode }] : null);
+    };
+
+    const loadStops = async (trip: string) => {
+      const res = await fetch(`/api/transit/stops?feed=${encodeURIComponent(feed)}&trip=${encodeURIComponent(trip)}`, { signal: abort.signal });
+      const body = res.ok ? (await res.json()) as { stops: TransitStop[] | null } : null;
+      if (!body || trip !== shapeTrip) return;
+      stops = body.stops;
+      showRoute();
+    };
+
     const loadShape = async (trip: string | undefined) => {
       if (trip === shapeTrip) return;
       shapeTrip = trip ?? null;
+      stops = null;
+      // Stops take a scan of the feed's timetable, so the line doesn't wait for them.
+      if (trip) void loadStops(trip).catch(() => {});
       const res = await fetch(`/api/transit/shape?feed=${encodeURIComponent(feed)}${trip ? `&trip=${encodeURIComponent(trip)}` : ''}`, { signal: abort.signal });
-      if (!res.ok) return;
+      if (!res.ok || trip !== (shapeTrip ?? undefined)) return;
       const body = await res.json() as { shape: LngLat[] | null; road: boolean };
       shape = body.shape;
       road = body.road;
       onShape = null;
+      drawnTrip = shapeTrip;
+      showRoute();
       const p = shape && project(shape, fix);
       if (p && p.off <= MAX_OFF_M) {
         onShape = p;
@@ -171,6 +192,7 @@ export function useTrackedTransit(mapRef: MapRef, target: TransitTarget | null):
       trails.delete(key);
       markers.delete(key);
       draw(mapRef);
+      showRoute(false);
     };
   }, [key, startLng, startLat, startTrip, startBearing, startMode, startEstimated, mapRef]);
 

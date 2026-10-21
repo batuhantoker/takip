@@ -6,6 +6,7 @@ import { primary, type LayerDef } from '@/components/panels/layers/layer-groups'
 import { LayerRow, layerName, SubFilters } from './layer-row';
 import { TemperatureUnitToggle } from './temperature-unit-toggle';
 import { RadarLoopControl } from './radar-loop-control';
+import { TransitLines } from './transit-lines';
 import { WindTimeNote } from './wind-time-note';
 import { groupTitle, type LayerSection as Section } from '@/components/panels/layers/lib/layer-sections';
 import { sourceFor } from '@/components/panels/layers/lib/layer-sources';
@@ -81,6 +82,7 @@ export default function LayerSection({ section, open, onOpenChange, activeLayers
                 {layer.key === 'wx_temperature' && (layerOn || searching) && <TemperatureUnitToggle />}
                 {layer.key === 'wx_radar' && layerOn && <RadarLoopControl />}
                 {layer.key === 'wx_wind' && layerOn && <WindTimeNote />}
+                {layer.key === 'transit' && layerOn && <TransitLines />}
               </div>
             );
           })}

@@ -16,6 +16,9 @@ export const TRANSIT_TRACK_MS = 10_000;
 /** [west, south, east, north] */
 export type Bbox = [number, number, number, number];
 
+/** [lng, lat, name] */
+export type TransitStop = [number, number, string];
+
 export interface TransitVehicle {
   /** `${feed id}:${vehicle id}`: vehicle ids are only unique within a feed. */
   key: string;
