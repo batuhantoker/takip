@@ -2,7 +2,7 @@ import { Prec } from '@takip/core/time';
 import { describe, expect, it } from 'vitest';
 import { createTranslator } from '@/lib/core/i18n/translator';
 import { parseViewModeLink } from '@/lib/map/view-mode-link';
-import { eventOpenPath, eventYears, isoDate, magnitudeRow } from './copy';
+import { eventHeading, eventOpenPath, eventYears, isoDate, magnitudeRow, summaryText } from './copy';
 import type { EventPage } from './event-page';
 
 const s = (year: number, month = 0, day = 1) => {
@@ -35,6 +35,18 @@ describe('event page copy', () => {
   it('gives the death toll with its range, as the popup does', () => {
     expect(magnitudeRow(en, event({ magnitude: 1200 }), [900, 1500])).toEqual({ label: 'Deaths', value: '1,200 (900–1,500)' });
     expect(magnitudeRow(en, event({ family: 'territorial', magnitude: 3 }))).toBeNull();
+  });
+
+  it('heads a sentence-long title with its first clauses and keeps every word on the page', () => {
+    const line = 'Throughout the decade, North Korea expanded its nuclear capabilities, performing alleged nuclear tests in 2013 and 2016, which governments responded by placing international sanctions on the country. In 2018 North Korea suggested it may disarm.';
+    const cut = event({ title: 'Throughout the decade, North Korea expanded its nuclear capabilities, performing alleged nuclear tests in 2013 and 2016', attrs: { description: line } });
+    expect(eventHeading(en, cut)).toBe('Throughout the decade, North Korea expanded its nuclear capabilities');
+    expect(summaryText(cut, eventHeading(en, cut))).toBe(line);
+    const whole = event({ title: 'North Korea conducts a second nuclear test, in North Hamgyong Province, near the border town of Kilju' });
+    expect(eventHeading(en, whole)).toBe('North Korea conducts a second nuclear test, in North Hamgyong Province');
+    expect(summaryText(whole, eventHeading(en, whole))).toBe(whole.title);
+    expect(eventHeading(en, event({ title: 'Battle of Gallipoli' }))).toBe('Battle of Gallipoli');
+    expect(summaryText(event({ title: 'Battle of Gallipoli' }), 'Gelibolu Muharebesi')).toBeNull();
   });
 
   it('opens History at the event’s year and place, with its family, clamped to the years History takes', () => {

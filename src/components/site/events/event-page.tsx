@@ -7,7 +7,7 @@ import { createTranslator } from '@/lib/core/i18n/translator';
 import { articleUrl } from '@/lib/core/wikipedia/refs';
 import { leadSentences } from '@/lib/core/wikipedia/summary';
 import { eventArticle, type EventArticle as Article } from '@/lib/platform/site/events/article';
-import { eventName, eventYears, isoDate, kindLabel, placeName, recordSummary } from '@/lib/platform/site/events/copy';
+import { eventHeading, eventName, eventYears, isoDate, kindLabel, placeName, recordSummary } from '@/lib/platform/site/events/copy';
 import { findEvent, type EventPage } from '@/lib/platform/site/events/event-page';
 import { eventPath } from '@/lib/platform/site/events/sitemap';
 import { topicForKind } from '@/lib/platform/site/events/topics';
@@ -34,7 +34,7 @@ export const loadEvent = cache(async (slug: string) => {
   // An indexed event goes by its article's title ("Salamis Deniz Muharebesi"), the name readers search for: in another
   // language always, in English where the source's own title is a sentence (a year page's line).
   const local = article && found.page.indexed && article.lang === text.locale && (text.locale !== 'en' || own.length > LONG_NAME);
-  return { event: found.page, text, article, name: local ? article.title : own };
+  return { event: found.page, text, article, name: local ? article.title : eventHeading(text.t, found.page) };
 });
 
 function description(text: SiteText, e: EventPage, name: string, article: Article | null): string {

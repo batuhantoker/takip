@@ -16,4 +16,12 @@ describe('titleOf', () => {
     expect(t.length).toBeLessThanOrEqual(161);
     expect(t.endsWith('word…')).toBe(true);
   });
+
+  it('cuts a long sentence at its last clause that fits, Chinese and Japanese sooner', () => {
+    expect(titleOf('Throughout the decade, North Korea expanded its nuclear capabilities, performing alleged nuclear tests in 2013 and 2016, which governments responded by placing international sanctions on the country. In response North Korea has threatened the United States.'))
+      .toBe('Throughout the decade, North Korea expanded its nuclear capabilities, performing alleged nuclear tests in 2013 and 2016');
+    const zh = '周恩來、賀龍、葉挺、朱德、劉伯承率領北伐軍2萬餘人在南昌舉行武裝起義，參加起義部隊有朱德第九軍軍官教導團和南昌公安局2個警察隊，賀龍之第二十軍，葉挺之第二十四師和蔡廷鍇之第十師等。';
+    expect(titleOf(zh, 'zh')).toBe('周恩來、賀龍、葉挺、朱德、劉伯承率領北伐軍2萬餘人在南昌舉行武裝起義，參加起義部隊有朱德第九軍軍官教導團和南昌公安局2個警察隊，賀龍之第二十軍');
+    expect(titleOf(zh)).toBe(zh);
+  });
 });

@@ -1,3 +1,4 @@
+import { opensWithBreak } from '@takip/core/headline';
 import { Prec } from '@takip/core/time';
 import { activeIntl, activeLocale, t } from '@/lib/core/i18n/active';
 import { DEFAULT_LOCALE } from '@/lib/core/i18n/locales';
@@ -256,8 +257,9 @@ export function facts(attrs: Record<string, unknown>, t: Say = EN, max = ROW_MAX
 /** A year page's line in full where the title was cut from it or a row would cut it: it reads as the event's summary. */
 export function longDescription(title: string | null | undefined, attrs: Record<string, unknown>): string | null {
   const d = text(attrs.description);
-  if (!d || !title || d === title || !d.startsWith(title.replace(/…$/, ''))) return null;
-  return title.endsWith('…') || d.length > ROW_MAX ? d : null;
+  const stem = title?.replace(/…$/, '');
+  if (!d || !title || !stem || d === title || !d.startsWith(stem)) return null;
+  return title.endsWith('…') || d.length > ROW_MAX || opensWithBreak(d.slice(stem.length)) ? d : null;
 }
 
 export const withoutDescription = (attrs: Record<string, unknown>) => Object.fromEntries(Object.entries(attrs).filter(([k]) => k !== 'description'));

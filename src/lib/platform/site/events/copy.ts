@@ -1,3 +1,4 @@
+import { clauseCut } from '@takip/core/headline';
 import { Prec } from '@takip/core/time';
 import type { Translate } from '@/lib/core/i18n/translator';
 import {
@@ -40,6 +41,17 @@ export const refWhen = (t: Translate, r: EventRef) => formatAt(r.t0, r.prec, t, 
 
 export const eventName = (t: Translate, e: EventPage | EventRef) => e.title ?? kindLabel(t, e.kind);
 
+const HEADING = 70;
+const HEADING_CJK = 32;
+const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
+/** The name as a page heading: a sentence-long title goes by its first clauses, and summaryText shows it whole. */
+export function eventHeading(t: Translate, e: EventPage): string {
+  const name = eventName(t, e);
+  const max = CJK.test(name) ? HEADING_CJK : HEADING;
+  return name.length > max ? clauseCut(name.replace(/…$/, ''), max) ?? name : name;
+}
+
 const num = (t: Translate, n: number) => Math.round(n).toLocaleString(t.intl);
 
 /** The family's measure ("Deaths 1,200 (900–1,500)"), as the popup shows it; null where the source gave none. */
@@ -76,8 +88,9 @@ export function factRows(t: Translate, e: EventPage): { label: string; value: st
 /** GTD's own summary of an attack, without the date it opens with. */
 export const recordSummary = (e: EventPage) => (e.kind === 'attack.terror' ? text(e.attrs.summary)?.replace(/^[\d/]+:\s*/, '') ?? null : null);
 
-/** What the page shows as the summary: GTD's, or a year page's whole line where the title is the start of it. */
-export const summaryText = (e: EventPage) => recordSummary(e) ?? longDescription(e.title, e.attrs);
+/** What the page shows as the summary: GTD's, a year page's whole line where the title is the start of it, or the title a shorter heading was cut from. */
+export const summaryText = (e: EventPage, heading: string) =>
+  recordSummary(e) ?? longDescription(e.title, e.attrs) ?? (e.title && e.title !== heading && e.title.startsWith(heading) ? e.title : null);
 
 const ZOOM: Record<number, number> = { 0: 6, 1: 6, 2: 5.5, 3: 5, 4: 4.5, 5: 3.5 };
 

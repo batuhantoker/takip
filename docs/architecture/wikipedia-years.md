@@ -153,7 +153,9 @@ nice npx tsx tools/import/cli.ts seed wikipedia-years-en wikipedia-years-tr wiki
 
 One source per wiki (`wikipedia-years-<lang>`, Wikipedia contributors, CC BY-SA 4.0), last in `DATASETS`. Each bullet
 is an event: the kind of its main event's Wikidata class when that maps to a TAKIP kind (`years/kinds.ts`), else
-`event.general` in the `events` family; the title is its first sentence, the full text `attrs.description`,
+`event.general` in the `events` family; the title is its first sentence, one longer than 160 characters (80 in Chinese
+and Japanese) cut at its last clause break that fits (`clauseCut`, `@takip/core/headline`), else at a word with "…";
+the full text `attrs.description`,
 `attrs.wiki` its main event (or first non-country link) in that wiki ("fr:Titre"), `attrs.url` the year page,
 `attrs.source` the page and section, `attrs.placed_at` and `attrs.geo` how it was placed, `ids.wikidata` its main event.
 Needs the geo index (skipped without it).

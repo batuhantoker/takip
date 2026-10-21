@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { clauseCut } from '@takip/core/headline';
 import { GeoPrec } from '@takip/db';
 import { type Ctx, importDataset, type Reporter } from '../context';
 import { EventBatch, resolveCanonical } from '../events';
@@ -30,11 +31,17 @@ const CONFIDENCE: Partial<Record<Method, number>> = {
 export const GENERAL_KIND = 'event.general';
 
 const MAX_TITLE = 160;
+// A Han or kana character says about what two Latin ones do, as the page titles' limits have it (60 and 32).
+const MAX_TITLE_CJK = 80;
+const CJK = new Set(['zh', 'ja']);
 
-/** The bullet's first sentence, cut at a word near MAX_TITLE. */
-export function titleOf(text: string): string {
+/** The bullet's first sentence; a longer one cut at its last clause that fits, else at a word near the limit. */
+export function titleOf(text: string, lang = 'en'): string {
   const s = text.slice(0, sentenceEnd(text)).trim();
-  return s.length <= MAX_TITLE ? s : `${s.slice(0, MAX_TITLE).replace(/\s+\S*$/, '')}…`;
+  const cjk = CJK.has(lang);
+  const max = cjk ? MAX_TITLE_CJK : MAX_TITLE;
+  if (s.length <= max) return s;
+  return clauseCut(s, max) ?? `${cjk ? s.slice(0, max) : s.slice(0, max).replace(/\s+\S*$/, '')}…`;
 }
 
 const pageUrl = (lang: string, title: string) => `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_')).replace(/%2F/g, '/').replace(/%3A/g, ':')}`;
@@ -54,7 +61,7 @@ export function importWikipediaYears(lang: string) {
     if (!geo) return ctx.log(`${source}: the geo index isn't built (tools/import/geo/build-index.ts); skipped`);
     try {
       const data = readYears(lang);
-      await importDataset(ctx, { source, version: data.fetched, asOf: data.fetched, files: [path, ...[CLASSES_FILE, EVENT_DATES_FILE].filter(f => existsSync(f))], importerVersion: '2' }, async ds => {
+      await importDataset(ctx, { source, version: data.fetched, asOf: data.fetched, files: [path, ...[CLASSES_FILE, EVENT_DATES_FILE].filter(f => existsSync(f))], importerVersion: '3' }, async ds => {
         const lookups = indexLookups(geo.db);
         const classRoots = existsSync(CLASSES_FILE) ? (JSON.parse(readFileSync(CLASSES_FILE, 'utf8')) as Record<string, string[]>) : {};
         // Year pages of this language and those after it are left out: a rerun of English must not link to Turkish.
@@ -108,7 +115,7 @@ function addBullets(data: YearsFile, linker: Linker, geo: NonNullable<ReturnType
       tStartPrec: t.tStartPrec,
       tEnd: t.tEnd,
       tEndPrec: t.tEndPrec,
-      title: titleOf(b.t),
+      title: titleOf(b.t, lang),
     };
     // A summary line's first link is one event it names, not its subject: given its article, it would take that event's page.
     const wiki = main ? main.title : summarises(b.d) ? undefined : (p.links.find(l => l.role !== 'country') ?? p.links[0])?.title;

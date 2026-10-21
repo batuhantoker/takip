@@ -34,7 +34,7 @@ export function EventArticle({ text, event: e, name, article, kicker }: {
   const where = placeName(e) ?? coordinates(e);
   const wikiHref = article?.url ?? (e.wiki ? articleUrl(e.wiki) : null);
   const wikipedia = !article || article.lang === 'en' ? 'Wikipedia' : t('{language} Wikipedia', { language: languageName(article.lang, t.intl) });
-  const summary = summaryText(e);
+  const summary = summaryText(e, name);
   const gtd = e.kind === 'attack.terror' && e.sources[0]?.code === 'gtd';
   return (
     <article>
