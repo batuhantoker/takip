@@ -10,7 +10,7 @@ import { CLASSES_FILE, readYears, type YearsBullet, type YearsFile, type YearsPa
 import { KnownEvents } from '../years/known';
 import { type Method, placeAccepted } from '../years/place';
 import { type BulletDate, sentenceEnd } from '../years/parse';
-import { bulletTime, datesMeet, indexLookups, isLong, Linker, sameTime } from '../years/prepare';
+import { bulletTime, datesMeet, indexLookups, isLong, Linker, sameTime, summarises } from '../years/prepare';
 
 /*
  * Dated events from Wikipedia's year pages, one source per language. A bullet that links an event TAKIP already has
@@ -110,7 +110,8 @@ function addBullets(data: YearsFile, linker: Linker, geo: NonNullable<ReturnType
       tEndPrec: t.tEndPrec,
       title: titleOf(b.t),
     };
-    const wiki = main ? main.title : (p.links.find(l => l.role !== 'country') ?? p.links[0])?.title;
+    // A summary line's first link is one event it names, not its subject: given its article, it would take that event's page.
+    const wiki = main ? main.title : summarises(b.d) ? undefined : (p.links.find(l => l.role !== 'country') ?? p.links[0])?.title;
     const attrs = {
       ...(b.t !== base.title ? { description: b.t } : {}),
       ...(wiki ? { wiki: wikiRef(lang, wiki) } : {}),

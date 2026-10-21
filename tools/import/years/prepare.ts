@@ -34,6 +34,9 @@ const YEAR_MS = 366 * 86_400_000;
 /** Wars and other long spans aren't what a dated bullet is about; a battle in them is. */
 const LONG_KINDS = new Set(['war', 'conflict.rebellion']);
 
+/** A decade's or century's line ("Throughout the decade, North Korea…") sums up its events; it is none of them. */
+export const summarises = (d: BulletDate) => d.prec === 'decade' || d.prec === 'century';
+
 export const isLong = (k: Known) => k.tHi - k.tLo > YEAR_MS || LONG_KINDS.has(k.kind) || k.kind.startsWith('war.');
 
 /** Whether a known event and a bullet's date can be the same occurrence. */
@@ -111,7 +114,7 @@ export class Linker {
       // day ("a trial over the 2004 murder of …") is a mention: neither is what the bullet is about.
       // Only an event whose date can be checked and agrees is what the bullet is about: undated "events" were a
       // peacekeeping mission's office and "Rules of engagement" (named like a battle) put at a London restaurant.
-      const aside = x.long || t === 'long' || !(x.known.length ? x.known.some(k => !isLong(k) && sameTime(b.d, k)) : t === 'agrees');
+      const aside = summarises(b.d) || x.long || t === 'long' || !(x.known.length ? x.known.some(k => !isLong(k) && sameTime(b.d, k)) : t === 'agrees');
       return { ...x, aside, linked: { ...x.linked, ...(at.has(i) ? { loc: true } : {}) } };
     });
     const ctx = (b.c ?? []).map(i => this.link(i).linked);

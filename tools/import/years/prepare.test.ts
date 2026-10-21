@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { utc } from '../dates';
 import { classKind } from './kinds';
 import { splitRef, type Known } from './known';
-import { bulletTime, datesMeet, isLong, sameTime, timing } from './prepare';
+import { bulletTime, datesMeet, isLong, sameTime, summarises, timing } from './prepare';
 
 const known = (from: number[], to: number[], kind = 'battle') => ({ tLo: utc(from[0], from[1], from[2]), tHi: utc(to[0], to[1], to[2]), kind }) as Known;
 
@@ -37,6 +37,15 @@ describe('kinds and references', () => {
     expect(splitRef('fr:Bataille de Vienne')).toEqual(['fr', 'Bataille de Vienne']);
     expect(splitRef('Battle of Vienna')).toEqual(['en', 'Battle of Vienna']);
     expect(splitRef('Star Wars: Episode IV')).toEqual(['en', 'Star Wars: Episode IV']);
+  });
+});
+
+describe('summary lines', () => {
+  it('takes a decade or century line for a summary, not one of the events it names', () => {
+    expect(summarises({ y: 2010, prec: 'decade' })).toBe(true);
+    expect(summarises({ y: 1900, prec: 'century' })).toBe(true);
+    expect(summarises({ y: 2013, prec: 'year' })).toBe(false);
+    expect(summarises({ y: 2013, m: 2, d: 12, prec: 'day' })).toBe(false);
   });
 });
 

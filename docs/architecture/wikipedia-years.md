@@ -189,6 +189,10 @@ Worth knowing:
   the popup's `facts()` doesn't list it; the method's measured share is the `confidence` column.
 - `attrs.wiki` of a bullet with no main event is its subject's article ("Isaac Newton", "Pegasus Airlines");
   `ids.wikidata` is set only for a dated main event, so match on that, not on the title.
+- A decade's or century's line ("Throughout the decade, North Korea expanded its nuclear capabilities…") sums up its
+  events, so it takes no main event and no article (`summarises` in `years/prepare.ts`). Until 2026-10-21 it took the
+  first event it named whose date fell inside the decade, became that event's canonical row and lent it a decade date:
+  24 indexed pages (Oklahoma City, Madrid 2004, Beslan, North Korea's 2013 test …) were led by such a line.
 - `event-dates.json` and `classes.json` are inputs of every wiki's dataset, so refetching one wiki re-imports all ten.
   `titles.json` in each wiki's cache is kept between runs: delete it after changing `COUNTRY_ALIASES`. `years/kinds.ts`
   takes its riot, protest, accident and crime class lists from `fetch-events.ts`.
