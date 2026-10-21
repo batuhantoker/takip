@@ -3,7 +3,6 @@ import AdsProvider from '@/components/shell/ads/ads-provider';
 import ErrorBoundary from '@/components/ui/error-boundary';
 import LocaleProvider from '@/components/ui/locale-provider';
 import { headers } from 'next/headers';
-import { loadCatalog } from '@/lib/core/i18n/catalog';
 import { AD_CLIENT } from '@/lib/platform/ads';
 import { ogLocale } from '@/lib/core/i18n/locales';
 import { getT, requestLocale } from '@/lib/core/i18n/request';
@@ -103,7 +102,7 @@ export default async function RootLayout({
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(siteJsonLd(await origin())) }} />
       </head>
       <body className="antialiased">
-        <LocaleProvider locale={locale} chosen={chosen} automatic={automatic} catalog={await loadCatalog(locale)}>
+        <LocaleProvider locale={locale} chosen={chosen} automatic={automatic}>
           <ErrorBoundary name="TAKIP Core">
             <AdsProvider>{children}</AdsProvider>
           </ErrorBoundary>
