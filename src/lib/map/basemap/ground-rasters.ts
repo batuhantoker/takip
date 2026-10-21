@@ -7,7 +7,7 @@ export function stackGroundRasters(map: maplibregl.Map) {
   const topo = map.getLayer('topo-layer') && map.getLayoutProperty('topo-layer', 'visibility') !== 'none';
   const firstLabel = map.getStyle().layers.find(layer => layer.type === 'symbol')?.id;
   const anchor = topo || !firstLabel ? 'day-night-fill' : firstLabel;
-  for (const id of [HIKING_LAYER, 'wx-field', CLOUDS_LAYER, 'wx-radar-a', 'wx-radar-b', 'wx-lightning-a', 'wx-lightning-b', 'wx-wind-particles']) {
+  for (const id of [HIKING_LAYER, 'wx-field', CLOUDS_LAYER, 'wx-radar-a', 'wx-radar-b', 'wx-lightning-nowcoast-a', 'wx-lightning-nowcoast-b', 'wx-lightning-mtg-a', 'wx-lightning-mtg-b', 'wx-lightning-mtg-1-a', 'wx-lightning-mtg-1-b', 'wx-wind-particles']) {
     if (map.getLayer(id)) map.moveLayer(id, anchor);
   }
 }

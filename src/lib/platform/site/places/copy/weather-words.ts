@@ -1,5 +1,5 @@
 import type { Translate } from '@/lib/core/i18n/translator';
-import { listOf } from './format';
+import { listOf } from './intl';
 
 /** The units a place's readers expect: the US is imperial throughout, the UK keeps miles an hour. */
 export interface WeatherUnits { temp: 'c' | 'f'; wind: 'kmh' | 'mph'; rain: 'mm' | 'in'; distance: 'km' | 'mi' }

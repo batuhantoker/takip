@@ -561,14 +561,41 @@ const copy: SiteCopy = {
       freshness: 'Kataloglar; onlar güncellendikçe güncellenir.',
       limits: ['Bu görünümde yıldızlar hareket etmez.', 'Samanyolu’nu dışarıdan kimse görmedi; o görünüm bir çizimdir.'],
     },
-    'rain-radar': {
-      title: 'Canlı yağış radarı haritası: dünya genelinde yağmur ve kar',
+    'weather-near-me': {
+      title: 'Konuma göre hava durumu: radar, yıldırım ve tahmin',
       description:
-        'RainViewer ile canlı hava radarı: son iki saatte dünya genelindeki yer radarlarının gördüğü yağmur ve kar, nereye ilerlediğini göstermek için döngü hâlinde.',
+        'Bulunduğunuz yerin hava durumu: en yakın havalimanı raporu, yağış radarı, son 15 dakikadaki yıldırımlar ve MET Norway’den 7 günlük tahmin, canlı haritada.',
+      heading: 'Bulunduğum yerin hava durumu',
+      lede: 'Bulunduğunuz yerin hava durumu, bağlantınızdan ya da cihazınızdan bulunur: en yakın havalimanının ölçtükleri, radarın ve yıldırım ağlarının şu an çevrenizde gördükleri ve MET Norway’in önümüzdeki günler için tahmini.',
+      shows: [
+        'Size en yakın havalimanı hava istasyonunun son raporu, gündelik dille.',
+        'Size 50 km mesafede radardaki yağmur ya da kar ve son 15 dakikadaki yıldırımlar: ne kadar uzakta ve hangi yönde.',
+        'Bulunduğunuz nokta için MET Norway tahmini: önümüzdeki gün üç saatte bir, ardından bir hafta boyunca günde bir satır.',
+        'Çevrenizdeki canlı harita: radar, yıldırım, sıcaklık, rüzgâr ve uyarılar; ayrıca kentinizin hava durumu sayfasına bağlantı.',
+      ],
+      sources: [
+        'Locationforecast’tan bulunduğunuz nokta için tahmin: yaklaşık iki buçuk gün saatlik, sonra altı saatte bir.',
+        'Size en yakın kentin havalimanı hava istasyonlarından son METAR.',
+        'Ulusal hava radarı ağlarının dünya çapındaki mozaiği.',
+        'NLDN ve GLD360 ağlarından ve Meteosat-12’deki Yıldırım Görüntüleyicisinden yıldırım verisi.',
+      ],
+      freshness: 'Havalimanı raporları genellikle saatte bir, radar 10 dakikada bir, yıldırım 5 ila 15 dakikada bir gelir; tahmin ise MET Norway yenisini yayımladıkça.',
+      limits: [
+        '“Yakınınızda”, bağlantınızın sizi gösterdiği konuma dayanır ve onlarca kilometre sapabilir; cihazınızın konumunu paylaşana kadar böyledir.',
+        'Tahmin ile haritadaki sıcaklık ve rüzgâr model değerleridir; havalimanı raporu, radar ve yıldırım ise ölçümdür.',
+        'Havalimanı raporu en yakın kentindir; o kentin 30 km yakınında rapor veren istasyon yoksa rapor da yoktur.',
+        'Radar ve yıldırım her yere ulaşmaz; boşluklar kendi sayfalarında listelenir.',
+      ],
+    },
+    'rain-radar': {
+      title: 'Yağmur radarı canlı: yakınınızdaki yağmur ve kar',
+      description:
+        'Yakınınızda yağmur yağıyor mu? RainViewer’dan canlı yağış haritası: dünyadaki yer radarlarının son iki saatte gördüğü yağmur ve kar, döngü halinde.',
       heading: 'Yağış radarı',
       lede: 'Yer tabanlı hava radarlarının şu an gördükleri, tek bir haritada birleştirilir: son iki saatteki yağmur, sağanak ve kar; hangi yöne ilerlediğini görebilmeniz için döngü hâlinde.',
       shows: [
         'Son 2 saat için 10 dakikada bir radar karesi, döngü olarak oynatılır.',
+        'Radarın size 50 km mesafede yağmur ya da kar gösterip göstermediği; ne kadar uzakta ve hangi yönde.',
         'Tekrar oynatma ile geri gidin; radar izlediğiniz zamanı takip eder.',
       ],
       sources: ['Ulusal hava radarı ağlarının dünya çapındaki mozaiği.'],
@@ -576,7 +603,8 @@ const copy: SiteCopy = {
       limits: [
         'Yalnızca yer radarı olan yerlerde: açık okyanusta ve Afrika, Orta Asya ve Güney Amerika’nın büyük bölümünde radar yok.',
         'Yalnızca geçmiş kareler; RainViewer’ın tahmin kareleri dâhil edilmez.',
-        DETAIL_Z7,
+        '“Yakınınızda”, bağlantınızın sizi gösterdiği konuma dayanır ve onlarca kilometre sapabilir; cihazınızın konumunu paylaşana kadar böyledir.',
+        'Ayrıntı yaklaşık 7. yakınlaştırma düzeyinde biter.',
       ],
     },
     'wind-map': {
@@ -612,19 +640,26 @@ const copy: SiteCopy = {
       ],
     },
     'lightning-map': {
-      title: 'Canlı yıldırım haritası: Amerika ve Pasifik’te yıldırımlar',
+      title: 'Canlı yıldırım haritası: yakınımda şimşek ve fırtına',
       description:
-        'NOAA nowCOAST ile canlı haritada yıldırım yoğunluğu: Amerika kıtası ve Pasifik’teki gök gürültülü fırtınalar, Tekrar oynatmayı izleyen 15 dakikalık karelerle.',
-      heading: 'Yıldırım',
-      lede: 'Yıldırımların nereye düştüğü, NOAA’nın kullandığı ağlardan 15 dakikadaki düşüş sayısı olarak; böylece etkin gök gürültülü fırtınalar bir bakışta göze çarpar.',
+        'Şu an yakınınızda yıldırım var mı? NOAA ve EUMETSAT verileriyle canlı yıldırım haritası: Amerika, Avrupa, Türkiye ve Afrika’da son 15 dakikadaki düşüşler.',
+      heading: 'Canlı yıldırım haritası',
+      lede: 'Yıldırımın şu an nereye düştüğü: Amerika ve Pasifik üzerinde NOAA’nın yer ağları, Avrupa, Afrika ve Orta Doğu üzerinde Meteosat’ın Yıldırım Görüntüleyicisi; böylece etkin gök gürültülü fırtınalar bir bakışta göze çarpar ve duyduğunuz gök gürültüsünün yakında olup olmadığını anlarsınız.',
       shows: [
-        'Her 15 dakika için 8 km’lik hücrelerde yıldırım yoğunluğu.',
+        'Amerika, Pasifik ve Doğu Asya üzerinde her 15 dakika için 8 km’lik hücrelerde yıldırım yoğunluğu, NOAA’dan.',
+        'Avrupa, Afrika ve Orta Doğu üzerinde yörüngeden görülen şimşekler, her 5 dakika için 2 km’lik hücrelerde, EUMETSAT’tan.',
+        'Son 15 dakikada size 50 km mesafede yıldırım düşüp düşmediği; ne kadar uzakta ve hangi yönde.',
         'Tekrar oynatma ile geri gidin; katman da yaklaşık son 6 saat için onu izler.',
       ],
-      sources: ['NLDN ve GLD360 yıldırım tespit ağlarından yıldırım yoğunluğu.'],
-      freshness: '15 dakikada bir yeni kareler gelir; harita 5 dakikada bir kontrol eder.',
+      sources: [
+        'NLDN ve GLD360 yıldırım tespit ağlarından yıldırım yoğunluğu.',
+        'Meteosat-12’deki Yıldırım Görüntüleyicisinden birikmiş şimşek alanı, EUMETView harita hizmeti üzerinden.',
+      ],
+      freshness: 'NOAA’nın kareleri 15 dakikada, EUMETSAT’ınkiler 5 dakikada bir gelir ve her biri yaklaşık 10 ila 20 dakika geriden izler; harita 5 dakikada bir kontrol eder.',
       limits: [
-        'Yalnızca Amerika kıtası ve Pasifik: 25° G ile 80° K arası, 110° D ile başlangıç meridyeni arasında. Avrupa, Afrika ve Asya’nın büyük bölümü kapsanmaz.',
+        'Kapsanmayan yerler: 70° D ile 110° D arası (Hindistan, Orta Asya, Batı Çin ve Güneydoğu Asya anakarası), 25° G’nin güneyinde Avustralya ile Yeni Zelanda ve uzak kuzey.',
+        'İki ağ farklı ölçer: NOAA yıldırım düşüşlerini yerden sayar, Meteosat bulutlar arası olanlar dahil şimşekleri yörüngeden görür; bu yüzden renkleri karşılaştırılamaz.',
+        '“Yakınınızda”, bağlantınızın sizi gösterdiği konuma dayanır ve onlarca kilometre sapabilir; cihazınızın konumunu paylaşana kadar böyledir.',
         'Ayrıntı 8. yakınlaştırma düzeyinde biter.',
       ],
     },

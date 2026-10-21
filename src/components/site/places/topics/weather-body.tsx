@@ -6,9 +6,8 @@ import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { layerPage, openPath, pagePath } from '@/lib/platform/site/layer-pages';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { listOf, nameOf } from '@/lib/platform/site/places/copy/format';
-import type { StationNow } from '@/lib/platform/site/places/live/metar-now';
 import type { Place } from '@/lib/platform/site/places/place';
-import type { WeatherData } from '@/lib/platform/site/places/topics/weather';
+import type { WeatherData, WeatherLive } from '@/lib/platform/site/places/topics/weather';
 import type { CityForecast } from '@/lib/platform/site/places/topics/weather-forecast';
 import { pageIn, type SiteText } from '@/lib/platform/site/text';
 import { WeatherForecast } from './parts/weather-forecast';
@@ -29,9 +28,10 @@ function rows(t: Translate, place: Place, d: WeatherData): Row[] {
           : t('Frames every 10 minutes for the last 2 hours, where ground radars reach.'),
     },
     {
-      slug: 'lightning-map', kind: 'measured', covered: d.lightning,
-      note: d.lightning ? t('{city} is inside the area NOAA’s lightning layer covers, the Americas and the Pacific. Strike density every 15 minutes.', { city })
-        : t('Not covered: NOAA’s lightning layer reaches only the Americas and the Pacific.'),
+      slug: 'lightning-map', kind: 'measured', covered: !!d.lightning,
+      note: d.lightning === 'nowcoast' ? t('{city} is inside the area NOAA’s lightning networks cover. Strike density every 15 minutes.', { city })
+        : d.lightning === 'mtg' ? t('{city} is inside the area Meteosat’s Lightning Imager sees from orbit. Flashes every 5 minutes.', { city })
+          : t('Not covered: no lightning network on the map reaches {city}.', { city }),
     },
     { slug: 'temperature-map', kind: 'model', covered: true, note: t('NOAA’s GFS model on a 0.25° grid, points about 25 km apart: the forecast for now, not a thermometer reading.') },
     { slug: 'wind-map', kind: 'model', covered: true, note: t('Wind 10 metres up from the same model, so it smooths over streets and hills.') },
@@ -79,25 +79,27 @@ function LayerRows({ text, place, data }: { text: SiteText; place: Place; data: 
   );
 }
 
-/** The airport reports in everyday words, without the flight category the flights page gives. */
-function WeatherNow({ t, stations }: { t: Translate; stations: StationNow[] }) {
+/** Lightning and rain around the city, and the airport reports in everyday words, without the flight category the flights page gives. */
+function WeatherNow({ t, items }: { t: Translate; items: WeatherLive[] }) {
   return (
     <ul className="flex flex-col gap-2">
-      {stations.map(s => (
-        <li key={s.icao}>
-          <span className="text-ink-2">{t('{name}, {km} km', { name: s.name, km: s.km })}:</span>{' '}
-          {s.text}
-          <span className="text-[13px] text-ink-3"> · {t('{n, plural, one {# minute ago} other {# minutes ago}}', { n: s.minutesAgo })}</span>
-        </li>
-      ))}
+      {items.map(s => ('lines' in s
+        ? <li key="now">{s.lines.join(' ')}</li>
+        : (
+          <li key={s.icao}>
+            <span className="text-ink-2">{t('{name}, {km} km', { name: s.name, km: s.km })}:</span>{' '}
+            {s.text}
+            <span className="text-[13px] text-ink-3"> · {t('{n, plural, one {# minute ago} other {# minutes ago}}', { n: s.minutesAgo })}</span>
+          </li>
+        )))}
     </ul>
   );
 }
 
-export const WEATHER_VIEW: TopicView<WeatherData, StationNow[], CityForecast> = {
+export const WEATHER_VIEW: TopicView<WeatherData, WeatherLive[], CityForecast> = {
   icon: CloudRain,
 
-  Live: ({ text, live }) => (live.length ? <WeatherNow t={text.t} stations={live} /> : null),
+  Live: ({ text, live }) => (live.length ? <WeatherNow t={text.t} items={live} /> : null),
 
   Wide: ({ text, place, detail }) => (detail ? <WeatherForecast t={text.t} city={nameOf(place, text.t)} cc={place.cc} forecast={detail} /> : null),
 

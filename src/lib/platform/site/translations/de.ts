@@ -553,13 +553,41 @@ const copy: SiteCopy = {
         'Niemand hat die Milchstraße je von außen gesehen; diese Ansicht ist eine Illustration.',
       ],
     },
+    'weather-near-me': {
+      title: 'Wetter in meiner Nähe: Radar, Blitze und Vorhersage live',
+      description:
+        'Das Wetter an deinem Standort: der nächste Flughafenbericht, Regenradar, Blitze der letzten 15 Minuten und die 7-Tage-Vorhersage von MET Norway, live.',
+      heading: 'Wetter hier am Standort',
+      lede: 'Das Wetter dort, wo du bist, ermittelt über deine Verbindung oder dein Gerät: was der nächste Flughafen misst, was Radar und Blitznetze gerade um dich herum sehen, und die Vorhersage von MET Norway für die kommenden Tage.',
+      shows: [
+        'Der neueste Bericht der Flughafen-Wetterstation in deiner Nähe, in Alltagssprache.',
+        'Regen oder Schnee auf dem Radar und Blitze der letzten 15 Minuten im Umkreis von 50 km: wie weit entfernt und in welcher Richtung.',
+        'Die Vorhersage von MET Norway für deinen Standort: der nächste Tag in Drei-Stunden-Schritten, dann eine Zeile pro Tag für eine Woche.',
+        'Die Live-Karte um dich herum mit Radar, Blitzen, Temperatur, Wind und Warnungen, und ein Link zur Wetterseite deiner Stadt.',
+      ],
+      sources: [
+        'Die Vorhersage für deinen Standort aus Locationforecast: stündlich für etwa zweieinhalb Tage, danach alle sechs Stunden.',
+        'Der neueste METAR der Flughafen-Wetterstationen der Stadt, die dir am nächsten ist.',
+        'Ein weltweites Mosaik nationaler Wetterradarnetze.',
+        'Blitze aus den Netzen NLDN und GLD360 und vom Lightning Imager auf Meteosat-12.',
+      ],
+      freshness: 'Flughafenberichte meist stündlich, Radar alle 10 Minuten, Blitze alle 5 bis 15 Minuten und die Vorhersage, sobald MET Norway eine neue veröffentlicht.',
+      limits: [
+        '„In deiner Nähe“ richtet sich danach, wo deine Verbindung dich verortet, was Dutzende Kilometer abweichen kann, bis du den Standort deines Geräts freigibst.',
+        'Die Vorhersage sowie Temperatur und Wind auf der Karte sind Modellwerte; Flughafenbericht, Radar und Blitze sind Messungen.',
+        'Der Flughafenbericht ist der der nächsten Stadt, und es gibt keinen, wo im Umkreis von 30 km um diese Stadt keine Station meldet.',
+        'Radar und Blitze reichen nicht überallhin; ihre eigenen Seiten nennen die Lücken.',
+      ],
+    },
     'rain-radar': {
-      title: 'Regenradar live: Regen und Schnee weltweit auf der Karte',
-      description: 'Wetterradar live von RainViewer: Regen und Schnee, von Bodenradaren weltweit in den letzten zwei Stunden erfasst, als Schleife, die zeigt, wohin es zieht.',
+      title: 'Regenradar live: Regen und Schnee in deiner Nähe, weltweit',
+      description:
+        'Regnet es gerade in deiner Nähe? Live-Regenradar von RainViewer: Regen und Schnee der Bodenradare weltweit aus den letzten zwei Stunden, als Schleife.',
       heading: 'Regenradar',
       lede: 'Was Wetterradare am Boden gerade sehen, zu einer Karte zusammengesetzt: Regen, Schauer und Schnee der letzten zwei Stunden, als Schleife, damit du siehst, in welche Richtung es zieht.',
       shows: [
         'Radarbilder alle 10 Minuten aus den letzten 2 Stunden, als Schleife abgespielt.',
+        'Ob das Radar im Umkreis von 50 km um dich Regen oder Schnee zeigt, wie weit entfernt und in welcher Richtung.',
         'Geh mit Replay zurück, und das Radar folgt der Zeit, die du dir ansiehst.',
       ],
       sources: ['Ein weltweites Mosaik nationaler Wetterradarnetze.'],
@@ -567,6 +595,7 @@ const copy: SiteCopy = {
       limits: [
         'Nur wo es Bodenradare gibt: Der offene Ozean und große Teile Afrikas, Zentralasiens und Südamerikas haben keine.',
         'Nur vergangene Bilder; die Vorhersagebilder von RainViewer bleiben außen vor.',
+        '„In deiner Nähe“ richtet sich danach, wo deine Verbindung dich verortet, was Dutzende Kilometer abweichen kann, bis du den Standort deines Geräts freigibst.',
         'Die Detailtiefe endet bei etwa Zoomstufe 7.',
       ],
     },
@@ -604,18 +633,26 @@ const copy: SiteCopy = {
       ],
     },
     'lightning-map': {
-      title: 'Blitzkarte live: Blitze in Amerika und im Pazifik',
-      description: 'Blitzdichte von NOAA nowCOAST auf einer Live-Karte: Gewitter über Amerika und dem Pazifik, in Bildern zu je 15 Minuten, die auch Replay folgen.',
-      heading: 'Blitze',
-      lede: 'Wo Blitze einschlagen, als Einschläge pro 15 Minuten aus den Netzen, die die NOAA nutzt, sodass aktive Gewitter auf einen Blick hervortreten.',
+      title: 'Blitzkarte live: Blitze und Gewitter aktuell in der Nähe',
+      description:
+        'Gibt es gerade Blitze in deiner Nähe? Live-Blitzkarte mit Daten von NOAA und EUMETSAT: Einschläge der letzten 15 Minuten in Europa, Afrika und Amerika.',
+      heading: 'Blitzkarte live',
+      lede: 'Wo es gerade blitzt: die Bodennetze der NOAA über Amerika und dem Pazifik und der Blitz-Imager von Meteosat über Europa, Afrika und dem Nahen Osten, sodass aktive Gewitter sofort auffallen und du erkennst, ob der Donner, den du hörst, nah ist.',
       shows: [
-        'Blitzdichte in 8-km-Zellen für jeweils 15 Minuten.',
+        'Blitzdichte in 8-km-Zellen für jeweils 15 Minuten über Amerika, dem Pazifik und Ostasien, von der NOAA.',
+        'Aus dem Orbit gesehene Blitze in 2-km-Zellen für jeweils 5 Minuten über Europa, Afrika und dem Nahen Osten, von EUMETSAT.',
+        'Ob es in den letzten 15 Minuten im Umkreis von 50 km um dich geblitzt hat, wie weit entfernt und in welcher Richtung.',
         'Geh mit Replay zurück, und die Ebene folgt, für etwa die letzten 6 Stunden.',
       ],
-      sources: ['Blitzdichte aus den Blitzortungsnetzen NLDN und GLD360.'],
-      freshness: 'Neue Bilder alle 15 Minuten, und die Karte prüft alle 5.',
+      sources: [
+        'Blitzdichte aus den Blitzortungsnetzen NLDN und GLD360.',
+        'Akkumulierte Blitzfläche vom Lightning Imager auf Meteosat-12, über den Kartendienst EUMETView.',
+      ],
+      freshness: 'Bilder der NOAA alle 15 Minuten und von EUMETSAT alle 5, jeweils etwa 10 bis 20 Minuten verzögert; die Karte prüft alle 5 Minuten.',
       limits: [
-        'Nur Amerika und der Pazifik: von 25° Süd bis 80° Nord, zwischen 110° Ost und dem Nullmeridian. Europa, Afrika und der größte Teil Asiens sind nicht abgedeckt.',
+        'Nicht abgedeckt: 70° O bis 110° O (Indien, Zentralasien, Westchina und das südostasiatische Festland), Australien und Neuseeland südlich von 25° S sowie der hohe Norden.',
+        'Die beiden Netze messen unterschiedlich: Die NOAA zählt Einschläge vom Boden aus, Meteosat sieht Blitze aus dem Orbit, auch zwischen Wolken, daher sind ihre Farben nicht vergleichbar.',
+        '„In deiner Nähe“ richtet sich danach, wo deine Verbindung dich verortet, was Dutzende Kilometer abweichen kann, bis du den Standort deines Geräts freigibst.',
         'Die Detailtiefe endet bei Zoomstufe 8.',
       ],
     },

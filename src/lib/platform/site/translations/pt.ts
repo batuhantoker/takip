@@ -567,13 +567,41 @@ const copy: SiteCopy = {
     },
 
     // Weather
+    'weather-near-me': {
+      title: 'Clima perto de mim: radar, raios e previsão do tempo agora',
+      description:
+        'O tempo onde você está agora: o boletim do aeroporto mais próximo, radar de chuva, raios dos últimos 15 minutos e previsão de 7 dias do MET Norway, ao vivo.',
+      heading: 'Clima perto de mim',
+      lede: 'O tempo onde você está, encontrado pela sua conexão ou pelo seu aparelho: o que o aeroporto mais próximo mede, o que o radar e as redes de raios veem agora ao seu redor e a previsão do MET Norway para os próximos dias.',
+      shows: [
+        'O último boletim da estação meteorológica do aeroporto mais próximo de você, em palavras simples.',
+        'Chuva ou neve no radar e raios dos últimos 15 minutos a menos de 50 km de você: a que distância e em que direção.',
+        'A previsão do MET Norway para o seu ponto: o próximo dia a cada três horas e depois uma linha por dia durante uma semana.',
+        'O mapa ao vivo ao seu redor com radar, raios, temperatura, vento e avisos, e um link para a página do tempo da sua cidade.',
+      ],
+      sources: [
+        'A previsão para o seu ponto do Locationforecast: de hora em hora por cerca de dois dias e meio, depois a cada seis horas.',
+        'O último METAR das estações meteorológicas de aeroporto da cidade mais próxima de você.',
+        'Um mosaico mundial das redes nacionais de radares meteorológicos.',
+        'Raios das redes NLDN e GLD360 e do Lightning Imager do Meteosat-12.',
+      ],
+      freshness: 'Boletins de aeroporto em geral a cada hora, radar a cada 10 minutos, raios a cada 5 a 15 minutos e a previsão sempre que o MET Norway publica uma nova.',
+      limits: [
+        '“Perto de você” segue onde sua conexão situa você, o que pode errar por dezenas de quilômetros, até você compartilhar a localização do seu aparelho.',
+        'A previsão, e a temperatura e o vento no mapa, são valores de modelo; o boletim do aeroporto, o radar e os raios são medições.',
+        'O boletim do aeroporto é o da cidade mais próxima, e não há nenhum onde nenhuma estação informa a menos de 30 km dessa cidade.',
+        'Radar e raios não chegam a todo lugar; as páginas deles listam as lacunas.',
+      ],
+    },
     'rain-radar': {
-      title: 'Radar de chuva ao vivo: chuva e neve no mundo todo',
-      description: 'Radar meteorológico ao vivo do RainViewer: chuva e neve vistas por radares em terra no mundo todo nas últimas duas horas, em loop para mostrar para onde vão.',
+      title: 'Radar de chuva em tempo real: chuva e neve perto de mim',
+      description:
+        'Está chovendo perto de você? Radar meteorológico em tempo real do RainViewer: chuva e neve vistas por radares em solo no mundo todo nas últimas duas horas.',
       heading: 'Radar de chuva',
       lede: 'O que os radares meteorológicos em terra veem agora, costurado num só mapa: chuva, pancadas e neve das últimas duas horas, em loop para você ver para que lado estão indo.',
       shows: [
         'Quadros de radar a cada 10 minutos das últimas 2 horas, exibidos em loop.',
+        'Se o radar mostra chuva ou neve a menos de 50 km de você, a que distância e em que direção.',
         'Volte no tempo com o Replay e o radar acompanha o horário que você está vendo.',
       ],
       sources: ['Um mosaico mundial das redes nacionais de radares meteorológicos.'],
@@ -581,6 +609,7 @@ const copy: SiteCopy = {
       limits: [
         'Só onde há radares em terra: o oceano aberto e boa parte da África, da Ásia Central e da América do Sul não têm nenhum.',
         'Só quadros passados; os quadros de previsão do RainViewer ficam de fora.',
+        '“Perto de você” segue onde sua conexão situa você, o que pode errar por dezenas de quilômetros, até você compartilhar a localização do seu aparelho.',
         'O detalhe para por volta do zoom 7.',
       ],
     },
@@ -618,18 +647,26 @@ const copy: SiteCopy = {
       ],
     },
     'lightning-map': {
-      title: 'Mapa de raios ao vivo: descargas nas Américas e no Pacífico',
-      description: 'Densidade de raios do NOAA nowCOAST num mapa ao vivo: tempestades nas Américas e no Pacífico, em quadros de 15 minutos que acompanham o Replay.',
-      heading: 'Raios',
-      lede: 'Onde estão caindo raios, em descargas a cada 15 minutos das redes usadas pela NOAA, para que as tempestades ativas se destaquem num relance.',
+      title: 'Mapa de raios em tempo real: tempestades perto de mim',
+      description:
+        'Tem raio perto de você agora? Mapa de raios em tempo real com dados da NOAA e da EUMETSAT: descargas dos últimos 15 minutos nas Américas, Europa e África.',
+      heading: 'Mapa de raios em tempo real',
+      lede: 'Onde os raios estão caindo agora: as redes terrestres da NOAA sobre as Américas e o Pacífico, e o imageador de raios do Meteosat sobre a Europa, a África e o Oriente Médio, para que as tempestades ativas se destaquem num relance e você saiba se os trovões que ouve estão perto.',
       shows: [
-        'Densidade de descargas em células de 8 km a cada 15 minutos.',
+        'Densidade de descargas em células de 8 km a cada 15 minutos sobre as Américas, o Pacífico e a Ásia Oriental, da NOAA.',
+        'Relâmpagos vistos da órbita em células de 2 km a cada 5 minutos sobre a Europa, a África e o Oriente Médio, da EUMETSAT.',
+        'Se caiu raio a menos de 50 km de você nos últimos 15 minutos, a que distância e em que direção.',
         'Volte no tempo com o Replay e a camada acompanha, por cerca das últimas 6 horas.',
       ],
-      sources: ['Densidade de descargas das redes de detecção de raios NLDN e GLD360.'],
-      freshness: 'Quadros novos a cada 15 minutos, e o mapa verifica a cada 5.',
+      sources: [
+        'Densidade de descargas das redes de detecção de raios NLDN e GLD360.',
+        'Área acumulada de relâmpagos do Lightning Imager do Meteosat-12, pelo serviço de mapas EUMETView.',
+      ],
+      freshness: 'Quadros da NOAA a cada 15 minutos e da EUMETSAT a cada 5, cada um com cerca de 10 a 20 minutos de atraso; o mapa verifica a cada 5 minutos.',
       limits: [
-        'Só as Américas e o Pacífico: de 25° S a 80° N, entre 110° L e o meridiano de Greenwich. A Europa, a África e a maior parte da Ásia não estão cobertas.',
+        'Sem cobertura: de 70° L a 110° L (Índia, Ásia Central, oeste da China e o Sudeste Asiático continental), Austrália e Nova Zelândia ao sul de 25° S, e o extremo norte.',
+        'As duas redes medem de formas diferentes: a NOAA conta descargas a partir do solo e o Meteosat vê relâmpagos da órbita, inclusive entre nuvens, então suas cores não se comparam.',
+        '“Perto de você” segue onde sua conexão situa você, o que pode errar por dezenas de quilômetros, até você compartilhar a localização do seu aparelho.',
         'O detalhe para no zoom 8.',
       ],
     },

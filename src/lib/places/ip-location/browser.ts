@@ -14,14 +14,14 @@ export function ipLocationUrl(): string {
   return tz ? `/api/geo?tz=${encodeURIComponent(tz)}` : '/api/geo';
 }
 
-export interface VisitorPoint { lat: number; lng: number }
+export interface VisitorPoint { lat: number; lng: number; via?: 'device' | 'ip' }
 
 /** /api/geo's answer, when it is a real place. */
 export function ipPoint(geo: { status?: string; lat?: number; lon?: number } | null): VisitorPoint | null {
   const { lat, lon } = geo ?? {};
   if (geo?.status !== 'success' || typeof lat !== 'number' || typeof lon !== 'number' ||
       !Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
-  return { lat, lng: lon };
+  return { lat, lng: lon, via: 'ip' };
 }
 
 /** The device's own position, only when this site already holds the permission: loading never prompts. */
@@ -32,7 +32,7 @@ async function grantedDeviceFix(): Promise<VisitorPoint | null> {
     return null;
   }
   return new Promise(resolve => navigator.geolocation.getCurrentPosition(
-    fix => resolve({ lat: fix.coords.latitude, lng: fix.coords.longitude }),
+    fix => resolve({ lat: fix.coords.latitude, lng: fix.coords.longitude, via: 'device' }),
     () => resolve(null),
     { timeout: 4000, maximumAge: 10 * 60_000 },
   ));

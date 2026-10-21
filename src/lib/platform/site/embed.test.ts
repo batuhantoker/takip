@@ -9,7 +9,7 @@ describe('hasEmbed', () => {
       'ship-tracker', 'chokepoints',
       'satellite-tracker', 'iss-tracker', 'starlink', 'military-satellites', 'gps-satellites', 'rocket-launches', 'aurora-forecast',
       'night-sky', 'day-night-map',
-      'rain-radar', 'wind-map', 'temperature-map', 'lightning-map', 'live-satellite-earth', 'cloud-map', 'daily-satellite-images',
+      'weather-near-me', 'rain-radar', 'wind-map', 'temperature-map', 'lightning-map', 'live-satellite-earth', 'cloud-map', 'daily-satellite-images',
       'earthquakes', 'wildfires', 'severe-weather', 'hurricanes', 'radiation', 'disease-outbreaks',
       'live-cameras', 'plate-readers', 'live-news',
       'traffic', 'live-transit', 'hiking-trails',

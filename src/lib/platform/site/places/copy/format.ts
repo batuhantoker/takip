@@ -2,19 +2,15 @@ import { createTranslator, msg, type Translate } from '@/lib/core/i18n/translato
 import { sortModes, type TransitMode } from '@/lib/feeds/transit/modes';
 import { placeLabel, regionLabel } from '../gazetteer';
 import { placeSlugBase, type Place } from '../place';
+import { formatter, listOf } from './intl';
+
+export { listOf };
 
 export const EN = createTranslator('en', {});
 
 /** Countries whose towns people name with their state or province. */
 const WITH_REGION = new Set(['US', 'CA', 'AU']);
 
-// Slow to build, and a sitemap or index page names thousands of places: one per language and kind.
-const formatters = new Map<string, unknown>();
-function formatter<T>(key: string, make: () => T): T {
-  let f = formatters.get(key) as T | undefined;
-  if (f === undefined) formatters.set(key, (f = make()));
-  return f;
-}
 
 export const countryName = (cc: string, t: Translate) => {
   try {
@@ -59,12 +55,6 @@ export const placeFirst = (place: Place, wordings: ((t: Translate, city: string)
   ...wordings.map(w => (t: Translate) => w(t, placeName(place, t))),
   ...wordings.map(w => (t: Translate) => w(t, nameOf(place, t))),
 ];
-
-/** "a, b and c": English without the serial comma, like the rest of the site. */
-export const listOf = (items: string[], t: Translate) => {
-  const tag = t.locale === 'en' ? 'en-GB' : t.intl;
-  return formatter(`list:${tag}`, () => new Intl.ListFormat(tag, { type: 'conjunction' })).format(items);
-};
 
 export const count = (n: number, t: Translate) => formatter(`number:${t.intl}`, () => new Intl.NumberFormat(t.intl)).format(n);
 

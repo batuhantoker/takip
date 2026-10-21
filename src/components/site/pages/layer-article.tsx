@@ -16,6 +16,7 @@ import { FlightFinder } from './flight-finder';
 import { LiveWindow } from './live-window';
 import { LocalClock, SpokenText } from './local-clock';
 import { MapWindow } from './map-window';
+import { NearForecast, NearNow, NearProvider } from './near-now';
 import { PageCard } from './page-card';
 import { SECTION_ICON } from './section-icon';
 import { LINK_BUTTON, Section } from './site-frame';
@@ -65,7 +66,7 @@ export function LayerArticle({ text, page, image, live, shot, related, events }:
   const section = sectionIn(text, page.section);
   const Icon = SECTION_ICON[page.section];
   const open = openPath(page);
-  return (
+  const article = (
     <article>
       <header className="mt-8 grid items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
         <div>
@@ -80,6 +81,7 @@ export function LayerArticle({ text, page, image, live, shot, related, events }:
             <Link href={localePath(text.locale, '/map')} className={LINK_BUTTON.secondary}>{t('Everything on the map')}</Link>
           </div>
           {page.findFlights && <FlightFinder className="mt-8" />}
+          {page.nearNow && <NearNow className="mt-8" />}
           {live && (
             <div className="mt-8 rounded-card border border-line bg-surface-1 p-4">
               <p className="flex items-center gap-2 text-[12px] font-medium text-ink-3">
@@ -101,6 +103,7 @@ export function LayerArticle({ text, page, image, live, shot, related, events }:
       <div className="mt-20 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
         <div>
           {shot && <LiveImage t={t} shot={shot} />}
+          {page.nearNow === 'weather' && <NearForecast />}
 
           <Section title={t('What you see')}>
             <ul className="grid gap-3 sm:grid-cols-2">
@@ -178,4 +181,5 @@ export function LayerArticle({ text, page, image, live, shot, related, events }:
       )}
     </article>
   );
+  return page.nearNow ? <NearProvider kind={page.nearNow}>{article}</NearProvider> : article;
 }

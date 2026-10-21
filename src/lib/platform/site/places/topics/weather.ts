@@ -1,5 +1,9 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
+import { LIGHTNING_SOURCES, type LightningSourceId } from '@/lib/feeds/weather/lightning';
 import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
+import { lightningForCity, rainForCity, type WeatherNowAnswer } from '../../live/weather-now';
+import { ownApi } from '../../live/own-api';
+import { allPlaces, km, reachKm } from '../gazetteer';
 import { metarNow, type StationNow } from '../live/metar-now';
 import type { Place } from '../place';
 import { topicTable } from '../tables';
@@ -10,31 +14,44 @@ import { cityForecast, type CityForecast } from './weather-forecast';
 
 /**
  * The weather at /city/<place>/weather: MET Norway's forecast, which of TAKIP's weather layers reach the place and
- * which are measured or modelled, with the latest reports from its METAR stations. Every city has a page (the model and the warnings cover
- * everywhere); indexed where something measures the place itself: a METAR station, and radar or lightning.
+ * which are measured or modelled, with the latest reports from its METAR stations and the lightning and rain around
+ * it now. Every city has a page (the model and the warnings cover everywhere); indexed where something measures the
+ * place itself: a METAR station, and radar or lightning.
  */
 
 export interface WeatherData {
   stations: { icao: string; name: string; km: number }[];
   radar: boolean | null;
-  lightning: boolean;
+  /** The lightning network that reaches the place. */
+  lightning: LightningSourceId | null;
   alerts: 'nws' | 'canada' | 'wmo';
 }
 
+/** What is true now: the lightning and rain around the city in a few sentences, or one station's report. */
+export type WeatherLive = StationNow | { lines: string[]; near: boolean };
+
 const MIN_INDEXED_POP = 50_000;
 
-/**
- * NOAA nowCOAST's lightning density covers 25° S to 80° N from 110° E east across the Pacific and the Americas
- * to 0° (lib/feeds/weather/lightning.ts).
- */
-export function lightningCovers([lng, lat]: [number, number]): boolean {
-  return lat >= -25 && lat <= 80 && (lng >= 110 || lng <= 0);
+const NEAR_KM = 40;
+
+/** The city whose weather page stands for a point: the biggest whose reach takes it in, else the nearest within 40 km. */
+export function weatherCityNear(at: [number, number]): Place | null {
+  const rows = topicTable<WeatherRow>('weather').rows;
+  let reached: Place | null = null;
+  let nearest: { place: Place; d: number } | null = null;
+  for (const p of allPlaces()) {
+    if (p.kind !== 'city' || Math.abs(p.at[1] - at[1]) > 0.5 || !rows[p.id]) continue;
+    const d = km(at, p.at);
+    if (d <= reachKm(p) && (!reached || p.pop > reached.pop)) reached = p;
+    if (d <= NEAR_KM && (!nearest || d < nearest.d)) nearest = { place: p, d };
+  }
+  return reached ?? nearest?.place ?? null;
 }
 
 /** Whose severe-weather warnings reach the map there (the severe-weather page's sources). */
 export const alertSource = (place: Place): WeatherData['alerts'] => (place.cc === 'US' ? 'nws' : place.cc === 'CA' ? 'canada' : 'wmo');
 
-export const WEATHER: PlaceTopic<WeatherData, StationNow[], CityForecast> = {
+export const WEATHER: PlaceTopic<WeatherData, WeatherLive[], CityForecast> = {
   id: 'weather',
   label: msg('Weather'),
   inline: msg('weather'),
@@ -47,10 +64,10 @@ export const WEATHER: PlaceTopic<WeatherData, StationNow[], CityForecast> = {
     const data: WeatherData = {
       stations: row.metar.map(([icao, km]) => ({ icao, km, name: table.meta?.stations[icao] ?? icao })),
       radar: row.radar,
-      lightning: lightningCovers(place.at),
+      lightning: LIGHTNING_SOURCES.find(s => s.covers(place.at))?.id ?? null,
       alerts: alertSource(place),
     };
-    const measured = data.stations.length > 0 && (data.radar === true || data.lightning);
+    const measured = data.stations.length > 0 && (data.radar === true || !!data.lightning);
     return [{ slug: 'weather', data, index: measured && place.pop >= MIN_INDEXED_POP }];
   },
 
@@ -68,14 +85,19 @@ export const WEATHER: PlaceTopic<WeatherData, StationNow[], CityForecast> = {
     ], t);
     return {
       title: fit(placeFirst(place, data.radar ? [
+        ...(data.lightning ? [(t: Translate, city: string) => t('{city} weather: forecast, radar and lightning', { city })] : []),
         (t, city) => t('{city} weather: forecast, radar and live map', { city }),
         (t, city) => t('{city} weather forecast and radar', { city }),
         (t, city) => t('{city} weather forecast', { city }),
       ] : [
+        ...(data.lightning ? [(t: Translate, city: string) => t('{city} weather: forecast and lightning map', { city })] : []),
         (t, city) => t('{city} weather: forecast and live map', { city }),
         (t, city) => t('{city} weather forecast', { city }),
       ]), t, TITLE_MAX),
       description: fit([
+        ...(data.lightning ? [data.radar
+          ? (t: Translate) => t('{place} weather: a 7-day forecast from MET Norway, with rain radar, lightning, temperature, wind and warnings on one live map.', { place: placeName(place, t) })
+          : (t: Translate) => t('{place} weather: a 7-day forecast from MET Norway, with lightning, temperature, wind and severe-weather warnings on one live map.', { place: placeName(place, t) })] : []),
         data.radar
           ? t => t('{place} weather: a 7-day forecast from MET Norway, with rain radar, temperature, wind and warnings on one live map.', { place: placeName(place, t) })
           : t => t('{place} weather: a 7-day forecast from MET Norway, with temperature, wind and severe-weather warnings on one live map.', { place: placeName(place, t) }),
@@ -115,7 +137,19 @@ export const WEATHER: PlaceTopic<WeatherData, StationNow[], CityForecast> = {
 
   open: (place, { data }) => ({ layers: ['wx_radar', ...(data.lightning ? ['wx_lightning'] : []), 'weather', 'airport_weather', 'wx_temperature', 'wx_wind'], zoom: 8 }),
 
-  live: (place, { data }, t) => metarNow(data.stations.slice(0, 3), place.cc, t, 'everyday'),
+  async live(place, { data }, t) {
+    const [stations, now] = await Promise.all([
+      metarNow(data.stations.slice(0, 3), place.cc, t, 'everyday'),
+      ownApi<WeatherNowAnswer>(`/api/weather-now?lat=${place.at[1]}&lon=${place.at[0]}`, 120),
+    ]);
+    const city = nameOf(place, t);
+    const lines = [lightningForCity(now?.lightning ?? null, city, place.cc, t), rainForCity(now?.rain ?? null, city, place.cc, t)]
+      .filter(l => l !== null);
+    if (!lines.length) return stations;
+    const near = !!(now?.lightning?.covered && now.lightning.nearest) || !!(now?.rain?.covered && now.rain.nearest);
+    // The overview shows only the first: lightning or rain nearby before the airport report, the report before "none".
+    return near ? [{ lines, near }, ...stations] : [...stations, { lines, near }];
+  },
 
   async detail(place) {
     const tz = topicTable<IssRow>('iss').rows[place.id]?.tz;

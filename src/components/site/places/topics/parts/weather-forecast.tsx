@@ -22,13 +22,13 @@ const rain = (mm: number | null, u: WeatherUnits, t: Translate) =>
   mm == null ? '' : mm < 0.05 ? '–' : precipitationIn(mm, u, t);
 
 /** MET Norway's forecast for the place: the next day every three hours, then a line a day. */
-export function WeatherForecast({ t, city, cc, forecast }: { t: Translate; city: string; cc: string; forecast: CityForecast }) {
+export function WeatherForecast({ t, city, cc, forecast, title }: { t: Translate; city: string; cc: string; forecast: CityForecast; title?: string }) {
   const u = unitsFor(cc);
   const day = new Intl.DateTimeFormat(t.intl, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
   const updated = forecast.updated && new Intl.DateTimeFormat(t.intl, { hour: '2-digit', minute: '2-digit', timeZone: forecast.tz, timeZoneName: 'short' }).format(Date.parse(forecast.updated));
   const hour = new Intl.DateTimeFormat(t.intl, { hour: 'numeric', minute: '2-digit', timeZone: forecast.tz });
   return (
-    <Section title={t('{city} weather forecast', { city })}>
+    <Section title={title ?? t('{city} weather forecast', { city })}>
       {forecast.hours.length > 0 && (
         <div className="-mx-1 overflow-x-auto px-1">
           <ol className="grid min-w-[36rem] grid-cols-8 gap-2">
@@ -46,7 +46,7 @@ export function WeatherForecast({ t, city, cc, forecast }: { t: Translate; city:
       )}
       {forecast.days.length > 0 && (
         <table className="mt-6 w-full border-collapse text-[14px]">
-          <caption className="sr-only">{t('{city} weather forecast', { city })}</caption>
+          <caption className="sr-only">{title ?? t('{city} weather forecast', { city })}</caption>
           <thead>
             <tr className="border-b border-line text-left text-[12px] text-ink-3">
               <th scope="col" className="py-2 pr-3 font-normal">{t('Day')}</th>

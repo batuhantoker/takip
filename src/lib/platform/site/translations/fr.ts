@@ -553,13 +553,41 @@ const copy: SiteCopy = {
         'Personne n’a vu la Voie lactée de l’extérieur ; cette vue est une illustration.',
       ],
     },
+    'weather-near-me': {
+      title: 'Météo autour de moi : radar, foudre et prévisions en direct',
+      description:
+        'La météo là où vous êtes : le bulletin de l’aéroport le plus proche, le radar de pluie, la foudre des 15 dernières minutes et 7 jours de prévisions MET Norway.',
+      heading: 'Météo autour de moi',
+      lede: 'La météo là où vous êtes, trouvée grâce à votre connexion ou à votre appareil : ce que mesure l’aéroport le plus proche, ce que le radar et les réseaux de détection de la foudre voient autour de vous en ce moment, et les prévisions de MET Norway pour les jours à venir.',
+      shows: [
+        'Le dernier bulletin de la station météo de l’aéroport le plus proche de vous, en mots de tous les jours.',
+        'La pluie ou la neige au radar, et la foudre des 15 dernières minutes, à moins de 50 km de vous : à quelle distance et dans quelle direction.',
+        'Les prévisions de MET Norway pour votre position : la prochaine journée toutes les trois heures, puis une ligne par jour sur une semaine.',
+        'La carte en direct autour de vous avec radar, foudre, température, vent et alertes, et un lien vers la page météo de votre ville.',
+      ],
+      sources: [
+        'Les prévisions pour votre position issues de Locationforecast : heure par heure sur environ deux jours et demi, puis toutes les six heures.',
+        'Le dernier METAR des stations météo d’aéroport de la ville la plus proche de vous.',
+        'Une mosaïque mondiale des réseaux radar météo nationaux.',
+        'La foudre des réseaux NLDN et GLD360 et de l’imageur d’éclairs de Meteosat-12.',
+      ],
+      freshness: 'Bulletins d’aéroport en général toutes les heures, radar toutes les 10 minutes, foudre toutes les 5 à 15 minutes, et prévisions dès que MET Norway en publie de nouvelles.',
+      limits: [
+        '« Près de vous » dépend de l’endroit où votre connexion vous situe, parfois à des dizaines de kilomètres près, tant que vous ne partagez pas la position de votre appareil.',
+        'Les prévisions, ainsi que la température et le vent sur la carte, sont des valeurs de modèle ; le bulletin d’aéroport, le radar et la foudre sont des mesures.',
+        'Le bulletin d’aéroport est celui de la ville la plus proche, et il n’y en a pas là où aucune station ne transmet à moins de 30 km de cette ville.',
+        'Le radar et la foudre n’atteignent pas tous les lieux ; leurs propres pages indiquent les lacunes.',
+      ],
+    },
     'rain-radar': {
-      title: 'Radar de pluie en direct : pluie et neige dans le monde',
-      description: 'Le radar météo en direct, via RainViewer : pluie et neige vues par les radars au sol du monde entier sur deux heures, en boucle pour voir où elles vont.',
+      title: 'Radar pluie en direct : pluie et neige près de chez vous',
+      description:
+        'Pleut-il près de chez vous ? Radar météo en direct de RainViewer : pluie et neige vues par les radars au sol du monde entier ces deux dernières heures.',
       heading: 'Radar de pluie',
       lede: 'Ce que voient en ce moment les radars météo au sol, assemblé en une seule carte : pluie, averses et neige des deux dernières heures, en boucle pour voir dans quelle direction elles se déplacent.',
       shows: [
         'Des images radar toutes les 10 minutes sur les 2 dernières heures, jouées en boucle.',
+        'Si le radar montre de la pluie ou de la neige à moins de 50 km de vous, à quelle distance et dans quelle direction.',
         'Remontez le temps avec Relecture et le radar suit l’heure que vous regardez.',
       ],
       sources: ['Une mosaïque mondiale des réseaux radar météo nationaux.'],
@@ -567,6 +595,7 @@ const copy: SiteCopy = {
       limits: [
         'Seulement là où il y a des radars au sol : la haute mer et une grande partie de l’Afrique, de l’Asie centrale et de l’Amérique du Sud n’en ont pas.',
         'Images passées uniquement ; les images de prévision de RainViewer sont laissées de côté.',
+        '« Près de vous » dépend de l’endroit où votre connexion vous situe, parfois à des dizaines de kilomètres près, tant que vous ne partagez pas la position de votre appareil.',
         'Le détail s’arrête vers le zoom 7.',
       ],
     },
@@ -604,18 +633,26 @@ const copy: SiteCopy = {
       ],
     },
     'lightning-map': {
-      title: 'Carte de la foudre en direct : Amériques et Pacifique',
-      description: 'La densité d’impacts de foudre d’après NOAA nowCOAST, en direct : les orages des Amériques et du Pacifique, par tranches de 15 minutes qui suivent Relecture.',
-      heading: 'Foudre',
-      lede: 'Là où la foudre tombe, en impacts par tranche de 15 minutes d’après les réseaux qu’utilise la NOAA, pour repérer d’un coup d’œil les orages actifs.',
+      title: 'Carte des orages en direct : impacts de foudre près de moi',
+      description:
+        'Y a-t-il de la foudre près de chez vous ? Carte des orages en direct, NOAA et EUMETSAT : impacts des 15 dernières minutes en Europe, Afrique et Amériques.',
+      heading: 'Carte des orages en direct',
+      lede: 'Là où la foudre frappe en ce moment : les réseaux au sol de la NOAA sur les Amériques et le Pacifique, et l’imageur d’éclairs de Meteosat sur l’Europe, l’Afrique et le Moyen-Orient, pour repérer d’un coup d’œil les orages actifs et savoir si le tonnerre que vous entendez est proche.',
       shows: [
-        'La densité d’impacts dans des cellules de 8 km pour chaque tranche de 15 minutes.',
+        'Densité d’impacts en cellules de 8 km pour chaque quart d’heure sur les Amériques, le Pacifique et l’Asie de l’Est, par la NOAA.',
+        'Éclairs vus depuis l’orbite en cellules de 2 km pour chaque tranche de 5 minutes sur l’Europe, l’Afrique et le Moyen-Orient, par EUMETSAT.',
+        'Si la foudre est tombée à moins de 50 km de vous dans les 15 dernières minutes, à quelle distance et dans quelle direction.',
         'Remontez le temps avec Relecture et le calque suit, sur les 6 dernières heures environ.',
       ],
-      sources: ['La densité d’impacts issue des réseaux de détection de la foudre NLDN et GLD360.'],
-      freshness: 'De nouvelles images toutes les 15 minutes, et la carte vérifie toutes les 5.',
+      sources: [
+        'La densité d’impacts issue des réseaux de détection de la foudre NLDN et GLD360.',
+        'Surface d’éclairs cumulée de l’imageur d’éclairs de Meteosat-12, via le service cartographique EUMETView.',
+      ],
+      freshness: 'Images de la NOAA toutes les 15 minutes et d’EUMETSAT toutes les 5, chacune avec 10 à 20 minutes de retard environ ; la carte vérifie toutes les 5 minutes.',
       limits: [
-        'Les Amériques et le Pacifique uniquement : de 25° S à 80° N, entre 110° E et le méridien de Greenwich. L’Europe, l’Afrique et la majeure partie de l’Asie ne sont pas couvertes.',
+        'Non couvert : de 70° E à 110° E (Inde, Asie centrale, ouest de la Chine et Asie du Sud-Est continentale), l’Australie et la Nouvelle-Zélande au sud de 25° S, et le Grand Nord.',
+        'Les deux réseaux mesurent différemment : la NOAA compte les impacts depuis le sol, Meteosat voit les éclairs depuis l’orbite, y compris entre nuages ; leurs couleurs ne se comparent donc pas.',
+        '« Près de vous » dépend de l’endroit où votre connexion vous situe, parfois à des dizaines de kilomètres près, tant que vous ne partagez pas la position de votre appareil.',
         'Le détail s’arrête au zoom 8.',
       ],
     },

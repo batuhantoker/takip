@@ -31,6 +31,8 @@ export interface LayerPage {
   places?: string;
   /** A box under the heading that finds an aircraft in the air and opens the map following it. */
   findFlights?: boolean;
+  /** A box under the heading that answers whether there is lightning, or rain, near the visitor right now, or (weather) what it is like there, with the forecast below. */
+  nearNow?: 'lightning' | 'rain' | 'weather';
   /** Another view to open: History at a year, deep time, Space or Replay. */
   mode?: ViewModeLink;
   /** A sidebar panel to open. */
