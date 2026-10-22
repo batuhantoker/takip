@@ -2,7 +2,7 @@ import { Cloud, CloudFog, CloudHail, CloudLightning, CloudMoon, CloudRain, Cloud
 import { Section } from '@/components/site/pages/site-frame';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { MET_CREDIT } from '@/lib/feeds/weather/forecast';
-import { wordingFor } from '@/lib/platform/site/places/copy/format';
+import { wordingFor } from '@/lib/platform/site/places/copy/wording';
 import { compass, precipitationIn, skyOf, skyWords, temperatureIn, unitsFor, windSpeedIn, type Sky, type WeatherUnits } from '@/lib/platform/site/places/copy/weather-words';
 import type { CityForecast } from '@/lib/platform/site/places/topics/weather-forecast';
 

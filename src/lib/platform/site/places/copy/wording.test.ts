@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { wordingFor } from './format';
+import { wordingFor } from './wording';
 
 describe('a page’s wording', () => {
   it('stays the same for a page, and spreads across pages', () => {

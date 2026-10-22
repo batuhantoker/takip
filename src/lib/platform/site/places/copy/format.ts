@@ -3,6 +3,7 @@ import { sortModes, type TransitMode } from '@/lib/feeds/transit/modes';
 import { placeLabel, regionLabel } from '../gazetteer';
 import { placeSlugBase, type Place } from '../place';
 import { formatter, listOf } from './intl';
+import { wordingFor } from './wording';
 
 export { listOf };
 
@@ -50,12 +51,6 @@ export function placeName(place: Place, t: Translate): string {
 /** A heading that names the place with its country or state, by its plain name where the place is already in view. */
 export const shortHeading = (heading: string, place: Place, t: Translate) => heading.split(placeName(place, t)).join(nameOf(place, t));
 
-/** One of `n` wordings for `key`, fixed for a page and different from its neighbours', so 30,000 pages don't read alike. */
-export function wordingFor(key: string, n: number): number {
-  let h = 2166136261;
-  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
-  return (h >>> 0) % n;
-}
 
 /** The place's own pick among `wordings`; `of` keeps one page's sentences from all taking the same slot. */
 export const wordingOf = <T>(place: Place, of: string, wordings: readonly T[]): T => wordings[wordingFor(`${place.id}:${of}`, wordings.length)];
