@@ -2,10 +2,11 @@ import type { AppDb } from './app-db';
 
 /*
  * Our own app.db tables (Better Auth migrates its auth_* tables itself). Each entry runs once,
- * tracked by PRAGMA user_version; append new entries, never edit applied ones.
+ * tracked by PRAGMA user_version; append new entries, never edit applied ones. An entry must also
+ * survive running again (tests rerun from an older version): a function where SQL alone can't.
  * Conventions follow docs/architecture/backend-schema.sqlite.sql.
  */
-const MIGRATIONS: string[] = [
+const MIGRATIONS: (string | ((db: AppDb) => void))[] = [
   `
   CREATE TABLE bill_plan (
     plan_id      TEXT PRIMARY KEY,
@@ -455,13 +456,27 @@ const MIGRATIONS: string[] = [
   ) STRICT, WITHOUT ROWID;
   CREATE INDEX IF NOT EXISTS page_map_minute_day ON page_map_minute (day);
   `,
+  // map_time splits in two (access/map-time.ts): minutes counts each minute begun on the map, the map's opening included,
+  // for analytics; charged counts the minutes against the plan's limit, as minutes did until now.
+  // ADD COLUMN has no IF NOT EXISTS.
+  db => {
+    const columns = db.prepare('SELECT name FROM pragma_table_info(?)').pluck().all('map_time');
+    if (columns.includes('charged')) return;
+    db.exec(`
+      ALTER TABLE map_time ADD COLUMN charged INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE map_time ADD COLUMN charged_at INTEGER NOT NULL DEFAULT 0;
+      UPDATE map_time SET charged = minutes, charged_at = last_tick_at;
+    `);
+  },
 ];
 
 export function migrateAppSchema(db: AppDb) {
   const applied = db.pragma('user_version', { simple: true }) as number;
   for (let version = applied; version < MIGRATIONS.length; version++) {
     db.transaction(() => {
-      db.exec(MIGRATIONS[version]);
+      const step = MIGRATIONS[version];
+      if (typeof step === 'function') step(db);
+      else db.exec(step);
       db.pragma(`user_version = ${version + 1}`);
     })();
   }

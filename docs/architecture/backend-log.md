@@ -235,6 +235,7 @@ tools/    dev.mjs (web + api)  screenshot.mjs (headless Chrome with a session co
 
 - **better-sqlite3 runs each statement synchronously**, so a long read holds every other request. On the NUC, counting history.db (1 GB) froze the api for 2–4 s. Read big things in slices with `await breathe()` between them (`apps/api/src/db/breathe.ts`, used by `analytics/data.ts` and `replay/series.ts`), and hold the result with `cachedAsync`, which serves the old value while one run refreshes it.
 - **Event window queries put `+` on `e.source_id`** (`IN_WINDOW` in `packages/db/src/sqlite/event-store.ts`) so SQLite starts from the R*Tree. Starting from the source index, it walked every event the tier may see.
+- **App migrations must survive running again**: `access`, `key-policy` and `workspaces` tests reset `user_version` and rerun `migrateAppSchema`. `ALTER TABLE … ADD COLUMN` has no `IF NOT EXISTS`, so such a step is a function that checks `pragma_table_info` first (`map_time.charged`, 2026-10-22).
 
 ## 4. Workstreams
 

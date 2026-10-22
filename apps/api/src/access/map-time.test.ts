@@ -20,8 +20,8 @@ afterEach(() => {
 });
 
 type State = { limit: number; used: number; remaining: number; blocked: boolean; resetsAt: string };
-const call = async (method: 'GET' | 'POST', { jar, peer = '203.0.113.5', headers = {}, features }: { jar?: Jar; peer?: string; headers?: Record<string, string>; features?: unknown } = {}) => {
-  const body = features === undefined ? undefined : JSON.stringify({ features });
+const call = async (method: 'GET' | 'POST', { jar, peer = '203.0.113.5', headers = {}, features, opening }: { jar?: Jar; peer?: string; headers?: Record<string, string>; features?: unknown; opening?: boolean } = {}) => {
+  const body = features === undefined && opening === undefined ? undefined : JSON.stringify({ features, opening });
   const res = await t.app.request('/api/v1/me/time', { method, body, headers: { ...headers, ...(jar && { cookie: jar.get() }), ...(body && { 'content-type': 'application/json' }) } }, from(peer));
   expect(res.status).toBe(200);
   return (await res.json()) as State;
@@ -129,6 +129,39 @@ describe('where the minutes go', () => {
     expect(t.db.prepare('SELECT hour, minutes FROM user_hour').all()).toEqual([{ hour: 10, minutes: 2 }]);
   });
 
+  it('counts the minute a map opens in, but charges only the ticks after', async () => {
+    const minutes = () => t.db.prepare('SELECT minutes, charged FROM map_time').get();
+    expect(await call('POST', { opening: true, features: ['view:map'] })).toMatchObject({ used: 0 });
+    expect(minutes()).toEqual({ minutes: 1, charged: 0 });
+    later(55_000);
+    expect(await call('POST', { features: ['view:map'] })).toMatchObject({ used: 1 });
+    later(60_000);
+    expect(await call('POST', { features: ['view:map'] })).toMatchObject({ used: 2 });
+    expect(minutes()).toEqual({ minutes: 3, charged: 2 });
+    expect(t.db.prepare('SELECT sum(minutes) FROM activity_hour').pluck().get()).toBe(3);
+    expect(features()).toEqual([{ feature: 'view:map', minutes: 3 }]);
+  });
+
+  it('books one minute when a second tab opens the map within it', async () => {
+    const jar = await t.signUpVerified();
+    await call('POST', { jar, features: ['view:map'] });
+    later(20_000);
+    expect(await call('POST', { jar, opening: true, features: ['view:map'] })).toMatchObject({ used: 1 });
+    later(40_000);
+    expect(await call('POST', { jar, features: ['view:map'] })).toMatchObject({ used: 2 });
+    expect(t.db.prepare('SELECT minutes, charged FROM map_time').get()).toEqual({ minutes: 2, charged: 2 });
+    expect(t.db.prepare('SELECT sum(minutes) FROM user_hour').pluck().get()).toBe(2);
+  });
+
+  it('books the opening behind the wall as view:wall', async () => {
+    setLimit('anon', 1);
+    await call('POST', { features: ['view:map'] });
+    later(MINUTE);
+    expect(await call('POST', { opening: true, features: ['view:map'] })).toMatchObject({ used: 1, blocked: true });
+    expect(features()).toEqual([{ feature: 'view:map', minutes: 1 }, { feature: 'view:wall', minutes: 1 }]);
+    expect(t.db.prepare('SELECT minutes, charged FROM map_time').get()).toEqual({ minutes: 1, charged: 1 });
+  });
+
   it('books minutes behind the wall as view:wall, not as map time', async () => {
     setLimit('anon', 1);
     await call('POST', { features: ['view:map'] });
@@ -176,6 +209,17 @@ describe('visitors across days', () => {
       { id: ID, minutes: 1 },
     ]);
     expect(t.db.prepare("SELECT visitor_id FROM visitor_feature WHERE feature = 'view:wall'").pluck().all()).toEqual(['another-visitor-0000000']);
+  });
+
+  it('books the opening to the visitor too', async () => {
+    const res = await t.app.request('/api/v1/me/time', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ opening: true, visitor: visitor() }),
+    }, from('203.0.113.5'));
+    expect(await res.json()).toMatchObject({ used: 0 });
+    expect(days()).toEqual([{ day: 20742, minutes: 1 }]);
+    expect(t.db.prepare('SELECT hour, minutes FROM visitor_hour').all()).toEqual([{ hour: 10, minutes: 1 }]);
   });
 
   it('links the browser to the account that signs in on it, without booking minutes there', async () => {
