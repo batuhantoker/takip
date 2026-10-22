@@ -33,6 +33,9 @@ export function minutes(n: number | null | undefined) {
   return h % 24 ? `${d} d ${h % 24} h` : `${d} d`;
 }
 
+/** "50 min", "1.7 h": short enough for a chart's axis, where minutes() would wrap. */
+export const minutesAxis = (n: number) => (n < 60 ? `${Math.round(n)} min` : `${Number((n / 60).toFixed(n < 600 ? 1 : 0))} h`);
+
 export function duration(ms: number) {
   const s = Math.max(0, Math.round(ms / 1000));
   if (s < 60) return `${s} s`;

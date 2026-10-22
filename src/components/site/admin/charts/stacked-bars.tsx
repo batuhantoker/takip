@@ -11,8 +11,8 @@ export type BarSeries = { key: string; label: string; color: string; values: num
  * Columns stacked by series from one baseline: ≤24 px wide, 2 px surface gaps, a 4 px rounded top.
  * Each column is its own hit target; arrow keys walk them.
  */
-export function StackedBars({ columns: allColumns, series: allSeries, format = compact, height = 140, label, days = true }: {
-  columns: BarColumn[]; series: BarSeries[]; format?: (n: number) => string; height?: number; label: string;
+export function StackedBars({ columns: allColumns, series: allSeries, format = compact, axis = format, height = 140, label, days = true }: {
+  columns: BarColumn[]; series: BarSeries[]; format?: (n: number) => string; axis?: (n: number) => string; height?: number; label: string;
   /** Columns are days, so leading empty ones (before collecting began) are left out; false for categories. */
   days?: boolean;
 }) {
@@ -36,7 +36,7 @@ export function StackedBars({ columns: allColumns, series: allSeries, format = c
   return (
     <div className="flex flex-col gap-2">
       {series.length > 1 && <Legend items={series} />}
-      <PlotFrame max={max} format={format} height={height}>
+      <PlotFrame max={max} format={axis} height={height}>
         <div
           role="img"
           tabIndex={0}

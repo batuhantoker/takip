@@ -7,7 +7,7 @@ import { StatTile } from '@/components/site/admin/charts/stat-tile';
 import { Muted } from '@/components/site/admin/parts/admin-parts';
 import type { AnalyticsEngagement, FeatureUse } from './analytics-types';
 import { featureLabel, featureLongLabel, onByDefault, splitFeature, VIEW_ORDER } from './lib/features';
-import { count, minutes, pct, shortDay, sum } from './lib/format';
+import { count, minutes, minutesAxis, pct, shortDay, sum } from './lib/format';
 import { ink } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
 import { ActionCards } from './parts/action-cards';
@@ -58,6 +58,7 @@ function Engagement({ e }: { e: AnalyticsEngagement }) {
             <StackedBars
               label="Map minutes per day by view"
               format={n => minutes(n)}
+              axis={minutesAxis}
               columns={columns}
               series={shownViews.map(id => ({ key: id, label: featureLabel(`view:${id}`), color: ink(VIEW_ORDER.indexOf(id)), values: e.featureDays.map(d => d.minutes[`view:${id}`] ?? 0) }))}
             />

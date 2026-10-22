@@ -13,8 +13,8 @@ const H = 100;
  * Lines over days on one axis; a single series also gets a 10% wash. Crosshair readout on hover and arrow keys.
  * `days` can be any points in time when `tick` and `title` name them (hours); `trim` drops the empty stretch before the data.
  */
-export function TimeSeries({ days: allDays, series: allSeries, format = compact, height = 160, label, tick = shortDay, title = longDay, trim = true }: {
-  days: string[]; series: Series[]; format?: (n: number) => string; height?: number; label: string;
+export function TimeSeries({ days: allDays, series: allSeries, format = compact, axis = format, height = 160, label, tick = shortDay, title = longDay, trim = true }: {
+  days: string[]; series: Series[]; format?: (n: number) => string; axis?: (n: number) => string; height?: number; label: string;
   tick?: (point: string) => string; title?: (point: string) => string; trim?: boolean;
 }) {
   const start = trim ? firstWithData(allSeries.map(s => s.values)) : 0;
@@ -42,7 +42,7 @@ export function TimeSeries({ days: allDays, series: allSeries, format = compact,
   return (
     <div className="flex flex-col gap-2">
       {series.length > 1 && <Legend items={series} shape="line" />}
-      <PlotFrame max={max} format={format} height={height}>
+      <PlotFrame max={max} format={axis} height={height}>
         <div
           role="img"
           tabIndex={0}

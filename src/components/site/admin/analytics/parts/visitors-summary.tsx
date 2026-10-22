@@ -3,7 +3,7 @@ import { StatTile } from '@/components/site/admin/charts/stat-tile';
 import { TimeSeries } from '@/components/site/admin/charts/time-series';
 import { Muted } from '@/components/site/admin/parts/admin-parts';
 import type { PageJourneys } from '../analytics-types';
-import { count, duration, longDay, minutes, pct, plural, shortDay, sinceIndex, sum, weekDelta } from '../lib/format';
+import { count, duration, longDay, minutes, minutesAxis, pct, plural, shortDay, sinceIndex, sum, weekDelta } from '../lib/format';
 import { MAP_PATH } from '../lib/journeys';
 import { ink, NEUTRAL } from '../lib/series';
 import { Pair } from './section-frame';
@@ -29,6 +29,8 @@ export function VisitorsSummary({ j, hours, hitWall }: { j: PageJourneys; hours:
   const days = points.map(p => p.slice(0, 10));
   const line = (key: 'visitors' | 'readers' | 'mapUsers' | 'minutes' | 'pageMapMinutes') => j.series.map(b => b[key]);
   const per = hours ? 'per hour' : 'per day';
+  // Hours need the clock in their names; a day is named by its date alone, as shortDay expects.
+  const x = hours ? points : days;
   const when = (i: number) => (hours ? `${days[i]} ${clock(points[i])}` : days[i]);
   // Week-on-week only means something on a daily series long enough to hold two weeks.
   const delta = (values: number[]) => (hours ? null : weekDelta(values, sinceIndex(days.map(day => ({ day })), j.since)));
@@ -61,7 +63,7 @@ export function VisitorsSummary({ j, hours, hitWall }: { j: PageJourneys; hours:
         <ChartCard title={`Visitors ${per}`} note="Every visitor, and those who read a page or opened the map; one can do both"
           table={{ columns: [hours ? 'Hour (UTC)' : 'Day', 'Visitors', 'Read a page', 'Opened the map', 'Visits'], rows: j.series.map((b, i) => [when(i), b.visitors, b.readers, b.mapUsers, b.visits]).reverse() }}>
           {sum(line('visitors')) ? (
-            <TimeSeries label={`Visitors ${per}`} days={points} tick={tick} title={title} trim={!hours} format={count} series={[
+            <TimeSeries label={`Visitors ${per}`} days={x} tick={tick} title={title} trim={!hours} format={count} series={[
               { key: 'visitors', label: 'Visitors', color: NEUTRAL, values: line('visitors') },
               { key: 'readers', label: 'Read a page', color: ink(1), values: line('readers') },
               { key: 'map', label: 'Opened the map', color: ink(0), values: line('mapUsers') },
@@ -72,7 +74,7 @@ export function VisitorsSummary({ j, hours, hitWall }: { j: PageJourneys; hours:
           note={`Everyone's minutes on the full map, and the minutes readers moved, zoomed or clicked a page's small map${hitWall ? `; ${plural(hitWall, 'browser')} hit the daily limit` : ''}`}
           table={{ columns: [hours ? 'Hour (UTC)' : 'Day', 'Full map', 'Page maps'], rows: j.series.map((b, i) => [when(i), b.minutes, b.pageMapMinutes]).reverse() }}>
           {sum(line('minutes')) + sum(line('pageMapMinutes')) ? (
-            <TimeSeries label={`Minutes on the map ${per}`} days={points} tick={tick} title={title} trim={!hours} format={minutes} series={[
+            <TimeSeries label={`Minutes on the map ${per}`} days={x} tick={tick} title={title} trim={!hours} format={minutes} axis={minutesAxis} series={[
               { key: 'full', label: 'Full map', color: ink(0), values: line('minutes') },
               { key: 'pages', label: "Pages' small maps", color: ink(2), values: line('pageMapMinutes') },
             ]} />
