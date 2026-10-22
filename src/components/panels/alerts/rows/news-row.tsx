@@ -31,6 +31,7 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
   const MediaIcon = item.media?.kind === 'video' ? Video : ImageIcon;
   const copies = similar.filter((s): s is NewsAlert => s.kind === 'news');
   const elsewhere = new Set([...item.carriers.map(c => c.source), ...copies.map(c => c.source)].filter(s => s !== item.source)).size;
+  const press = similar.reduce((n, s) => n + (s.kind === 'story' ? s.outlets : 0), 0);
 
   return (
     <AlertRow
@@ -47,6 +48,7 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
           item.source_name,
           where,
           elsewhere > 0 && t('{n, plural, one {also on # channel} other {also on # channels}}', { n: elsewhere }),
+          press > 0 && t('{n, plural, one {in # more outlet} other {in # more outlets}}', { n: press }),
         ]} />
         {item.media && <MediaIcon aria-label={item.media.kind === 'video' ? t('Has video') : t('Has a photo')} className="size-3.5 shrink-0 text-ink-3" strokeWidth={1.75} />}
       </>}
@@ -137,6 +139,9 @@ function NewsDetail({ item, similar, now, onLocate }: {
 
       <Carriers title={t('Also carried by')} now={now} rows={item.carriers.map(c => ({ key: c.source, name: c.source_name, note: c.lean, ts: c.published, link: c.link }))} />
       <Carriers title={t('Same headline from')} now={now} rows={copies.map(c => ({ key: c.id, name: c.source_name, note: c.lean, ts: c.ts, link: c.link }))} />
+      <Carriers title={t('Also in the press, from GDELT')} now={now} rows={similar.flatMap(s => (s.kind === 'story'
+        ? s.links.slice(0, 6).map(l => ({ key: l.url, name: l.outlet, note: l.title, ts: s.ts, link: l.url }))
+        : []))} />
     </div>
   );
 }

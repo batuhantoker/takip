@@ -108,6 +108,8 @@ export interface GdeltEvent {
   url: string;
   links: GdeltLink[];
   others: (GdeltLink & { reports: number })[];
+  /** The lead article came through GDELT's translated feed: it is in another language than English. */
+  translated: boolean;
   first_seen: string;
   last_seen: string;
   date: string;
@@ -195,15 +197,18 @@ export async function fetchGdeltEvents(opts: FetchOptions = {}): Promise<GdeltEv
   if (english.status === 'rejected') throw english.reason;
   if (!english.value.length) throw new Error(`No GDELT export published in the last ${hours} h`);
   const feeds = translated.status === 'fulfilled' ? [english.value, translated.value] : [english.value];
-  const files = feeds.flat();
+  const parsed = feeds.map(feed => feed.map(f => ({ events: parseEvents(f.events!), mentions: f.mentions ? parseMentions(f.mentions) : [] })));
+  // Articles the translated feed carried, so a story can say its lead is in another language.
+  const foreign = new Set((parsed[1] ?? []).flatMap(f => [...f.events.map(e => e.url), ...f.mentions.map(m => m.url)]));
 
   const { markers, stats } = reduceEvents({
-    events: files.flatMap(f => parseEvents(f.events!)),
-    mentions: files.flatMap(f => (f.mentions ? parseMentions(f.mentions) : [])),
+    events: parsed.flat().flatMap(f => f.events),
+    mentions: parsed.flat().flatMap(f => f.mentions),
   }, opts);
 
   const events = markers.map((m): GdeltEvent => {
     const h = m.headline;
+    const url = m.links[0]?.url ?? h.url;
     return {
       id: m.id,
       lat: m.lat,
@@ -224,9 +229,10 @@ export async function fetchGdeltEvents(opts: FetchOptions = {}): Promise<GdeltEv
       reports: m.reports,
       outlets: m.outlets,
       articles: m.articles,
-      url: m.links[0]?.url ?? h.url,
+      url,
       links: m.links,
       others: m.others,
+      translated: foreign.has(url),
       first_seen: iso(m.firstSeen),
       last_seen: iso(m.lastSeen),
       date: iso(m.firstSeen),

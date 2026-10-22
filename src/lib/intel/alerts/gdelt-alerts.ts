@@ -14,6 +14,10 @@ export interface StoryAlert {
   last: number;
   /** The lead article's own headline once the server has read it, else one from its URL. */
   title: string;
+  /** The page's headline in its own language and script, for a translator; null until the server has read it. */
+  headline: string | null;
+  /** The lead article came through GDELT's translated feed, so it isn't in English. */
+  foreign: boolean;
   family: GdeltFamily;
   place: string;
   precision: 'city' | 'region';
@@ -90,8 +94,9 @@ export function toStory(raw: unknown, now = Date.now()): StoryAlert | null {
   const place = str(e.name) ?? 'Unknown location';
   const action = str(e.action) ?? '';
   const actors = [str(e.actor1), str(e.actor2)].filter((a): a is string => a !== null);
-  const slug = links.find(l => l.title)?.title;
-  const title = str(e.headline) ?? (slug ? sentence(slug) : [actors.join(' → '), action].filter(Boolean).join(' · ') || place);
+  const slug = links.find(l => l.title)?.title ?? null;
+  const headline = str(e.headline);
+  const title = pickHeadline(slug, headline) ?? (slug ? sentence(slug) : [actors.join(' → '), action].filter(Boolean).join(' · ') || place);
   const first = Math.min(Date.parse(str(e.first_seen) ?? '') || last, now);
 
   return {
@@ -101,6 +106,8 @@ export function toStory(raw: unknown, now = Date.now()): StoryAlert | null {
     first,
     last: Math.min(last, now),
     title,
+    headline,
+    foreign: e.translated === true,
     family,
     place,
     precision: e.precision === 'region' ? 'region' : 'city',

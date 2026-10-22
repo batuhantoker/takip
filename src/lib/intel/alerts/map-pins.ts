@@ -1,4 +1,5 @@
 import type { AlertKind } from './digest';
+import { toStory } from './gdelt-alerts';
 
 /** A Live Alerts report as /api/news sends it — only the fields a pin reads. */
 export interface PinnedReport {
@@ -12,6 +13,18 @@ export interface PinnedReport {
   coords?: [number, number] | null;
   place?: { name: string; label: string; precision: string } | null;
   media?: { kind?: string; video?: string | null; thumb?: string | null; duration?: string | null } | null;
+}
+
+/** GDELT's stories (/api/gdelt-events) as pins beside the reports: events, placed where GDELT put them. */
+export function storyPins(events: unknown[]): PinnedReport[] {
+  const now = Date.now();
+  return events.flatMap(e => {
+    const s = toStory(e, now);
+    return s ? [{
+      id: s.id, alert_kind: 'event', title: s.title, source_name: `GDELT · ${s.outlets}`, published: new Date(s.ts).toISOString(),
+      link: s.link, coords: [s.lat, s.lng] as [number, number], place: { name: s.place, label: s.place, precision: s.precision },
+    }] : [];
+  });
 }
 
 /** A report posted this recently gets the pulsing ring. */

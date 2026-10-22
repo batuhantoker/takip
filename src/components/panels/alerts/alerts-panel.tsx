@@ -60,10 +60,10 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
     return () => clearInterval(id);
   }, []);
 
-  const { news, quakes, warnings, threads, overviewPayload } = useAlertItems(data);
   const [storyPrefs, setStoryPrefs] = usePersisted('takip.alerts.gdelt', STORY_PREFS, isStoryPrefs);
   const { stories: allStories, reload: reloadStories } = useGdeltStories(storyPrefs.on);
   const stories = useMemo(() => narrowStories(allStories ?? [], storyPrefs), [allStories, storyPrefs]);
+  const { news, quakes, warnings, threads, overviewPayload } = useAlertItems(data, stories);
   const activeThread = threads.find(th => th.id === threadId) ?? null;
   const q = query.trim().toLowerCase();
   const { newsFiltersActive, list, pinned, groups } = useAlertList({

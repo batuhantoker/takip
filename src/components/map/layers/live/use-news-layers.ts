@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, type RefObject } from 'react';
-import { alertPinFeatures, type AlertPinFeature, type PinnedReport } from '@/lib/intel/alerts/map-pins';
+import { alertPinFeatures, storyPins, type AlertPinFeature, type PinnedReport } from '@/lib/intel/alerts/map-pins';
 import type { LayerHookArgs } from '@/components/map/types';
 
 export function useLiveNewsLayer({ mapReady, data, activeLayers, setGeo }: LayerHookArgs) {
@@ -21,10 +21,13 @@ export function useAlertPins({ mapRef, mapReady, data, activeLayers, setGeo, ale
   // feed's locate button can still open a report's pin.
   useEffect(() => {
     if (!mapReady) return;
-    const reports: PinnedReport[] = Array.isArray(data.alert_pins) ? data.alert_pins : [];
+    const reports: PinnedReport[] = [
+      ...(Array.isArray(data.alert_pins) ? data.alert_pins : []),
+      ...(Array.isArray(data.alert_stories) ? storyPins(data.alert_stories) : []),
+    ];
     alertPinsRef.current = alertPinFeatures(reports, alertPinIds);
     setGeo('alert-pins', activeLayers.alert_pins ? alertPinsRef.current : []);
-  }, [mapReady, data.alert_pins, activeLayers.alert_pins, alertPinIds, setGeo, alertPinsRef]);
+  }, [mapReady, data.alert_pins, data.alert_stories, activeLayers.alert_pins, alertPinIds, setGeo, alertPinsRef]);
 
   /* The newest reports pulse, so something that just landed catches the eye
      without the other pins moving. Same 200ms tick the malware ring uses. */

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { fetchGdeltEvents, type FetchOptions, type GdeltEventsResult } from '@/lib/intel/alerts/gdelt-events';
 import { GDELT_FAMILIES, type GdeltFamily } from '@takip/connectors/gdelt/cameo';
 import { peekLinkPreview, warmLinkPreviews } from '@/lib/core/link-preview/fetch';
-import { pickHeadline } from '@/lib/intel/alerts/gdelt-alerts';
 
 export const maxDuration = 60;
 
@@ -56,10 +55,10 @@ export async function GET(req: Request) {
 
   try {
     const { events: found, windows, stats } = await sharedEvents({ families, minReports, limit, hours });
-    // Lead articles' own headlines, as far as they have been read; the rest are read for the next answer.
+    // Lead articles' own headlines, in their own language, as far as they have been read; the rest are read for the next answer.
     warmLinkPreviews(found.map(e => e.url));
     const events = found.map(e => {
-      const headline = pickHeadline(e.links[0]?.title ?? null, peekLinkPreview(e.url)?.title ?? null);
+      const headline = peekLinkPreview(e.url)?.title;
       return headline ? { ...e, headline } : e;
     });
 

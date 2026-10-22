@@ -14,6 +14,9 @@ import type { BackendStatus, LiveData } from './types';
 const EQ_URL = '/api/earthquakes';
 const eqTransform = (data: { earthquakes?: unknown[] }) => ({ earthquakes: data.earthquakes ?? [] });
 const weatherTransform = (d: { events?: unknown[] }) => ({ weather_events: d.events });
+// GDELT's stories, pinned with the news: the Alerts panel's own request, so the pinned ids line up.
+const STORIES_URL = '/api/gdelt-events?limit=600';
+const storiesData = (d: { events?: unknown[] }) => ({ alert_stories: d.events ?? [] });
 const radarData = (d: { outages?: unknown[]; attack_origins?: unknown[] }) => ({ cf_outages: d.outages ?? [], cf_attack_origins: d.attack_origins ?? [] });
 const iodaData = (d: { outages?: unknown[] }) => ({ ioda_outages: d.outages ?? [] });
 
@@ -237,6 +240,8 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
       });
     };
 
+    if (activeLayers.alert_pins) loadLayerOnce('alert_stories', STORIES_URL, storiesData);
+
     // GDELT 2.0 geocoded events
     if ((activeLayers as any).gdelt_events) {
       loadLayerOnce('gdelt_events', '/api/gdelt-events?limit=600', d => ({ gdelt_events: d.events }));
@@ -300,6 +305,10 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
     }
     if (activeLayers.outbreaks) {
       intervals.push(setInterval(() => fetchEndpoint('/api/outbreaks', d => ({ outbreaks: d.outbreaks ?? [] }), undefined, { skipWhenHidden: true }), 3_600_000));
+    }
+    if (activeLayers.alert_pins) {
+      // GDELT publishes every 15 minutes.
+      intervals.push(setInterval(() => fetchEndpoint(STORIES_URL, storiesData, undefined, { skipWhenHidden: true }), 900_000));
     }
     if (activeLayers.airport_delays) {
       intervals.push(setInterval(() => fetchEndpoint('/api/airport-status', d => ({ airport_delays: d.airports ?? [] }), undefined, { skipWhenHidden: true }), 300_000));

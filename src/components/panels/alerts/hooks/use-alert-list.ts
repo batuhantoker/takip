@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { groupStatements, type AlertThread, type Bloc } from '@/lib/intel/alerts/digest';
 import { urgency, type AlertItem, type NewsAlert, type QuakeAlert, type WarningAlert } from '@/lib/intel/alerts/live-alerts';
 import type { StoryAlert } from '@/lib/intel/alerts/gdelt-alerts';
+import { eventWords, sameEvent, type EventSketch } from '@/lib/intel/alerts/story-match';
 import { bucketOf, SEVERITY_GROUP } from '@/components/panels/alerts/format';
 
 export type AlertTab = 'all' | 'news' | 'warnings' | 'quakes';
@@ -23,6 +24,26 @@ function similarKey(item: AlertItem): string | null {
   if (item.kind === 'warning') return `w|${item.severity}|${norm(item.type)}|${norm(item.title)}|${norm(item.provider)}`;
   if (item.kind === 'news') return `n|${norm(item.title).slice(0, 120)}`;
   return null;
+}
+
+const sketchOf = (item: NewsAlert | StoryAlert): EventSketch => ({
+  words: eventWords(item.title),
+  ts: item.ts,
+  at: item.kind === 'story' ? [item.lat, item.lng] : item.coords,
+});
+
+/** A GDELT story that tells of the same event as a report goes under that report, as one more telling of it. */
+function foldStories(entries: AlertEntry[]): AlertEntry[] {
+  const reports = entries.flatMap(e => (e.kind === 'item' && e.item.kind === 'news' ? [{ entry: e, sketch: sketchOf(e.item) }] : []));
+  if (!reports.length) return entries;
+  return entries.filter(e => {
+    if (e.kind !== 'item' || e.item.kind !== 'story') return true;
+    const story = sketchOf(e.item);
+    const lead = reports.find(r => sameEvent(story, r.sketch));
+    if (!lead) return true;
+    lead.entry.similar.push(e.item, ...e.similar);
+    return false;
+  });
 }
 
 export function useAlertList({ tab, bloc, newsKind, q, activeThread, news, stories, quakes, warnings, now, onPinnedChange }: {
@@ -48,11 +69,12 @@ export function useAlertList({ tab, bloc, newsKind, q, activeThread, news, stori
     && (newsKind === null || (newsKind === 'rocket' ? n.alertKind === 'rocket' : Boolean(n.flag)))
     && (!q || n.haystack.includes(q)),
   ), [news, threadIds, bloc, newsKind, q]);
-  // Stories have no side, thread or rocket kind, so those filters set them aside.
-  const visibleStories = useMemo(
-    () => (newsFiltersActive ? [] : stories.filter(s => !q || s.haystack.includes(q))),
-    [stories, newsFiltersActive, q],
-  );
+  // A story's side is GDELT's, an independent aggregator's; it has no rocket or breaking kind.
+  const visibleStories = useMemo(() => (newsKind !== null ? [] : stories.filter(s =>
+    (!threadIds || threadIds.has(s.id))
+    && (bloc === 'all' || bloc === 'independent')
+    && (!q || s.haystack.includes(q)),
+  )), [stories, threadIds, bloc, newsKind, q]);
   const visibleQuakes = useMemo(() => quakes.filter(k => !q || k.place.toLowerCase().includes(q)), [quakes, q]);
   const visibleWarnings = useMemo(() => warnings.filter(w => !q || w.haystack.includes(q)), [warnings, q]);
 
@@ -63,15 +85,15 @@ export function useAlertList({ tab, bloc, newsKind, q, activeThread, news, stori
     /* Thread and side filters are about reports, so warnings and quakes step
        aside while they apply. Only severe warnings join the mixed list: a few
        hundred lesser ones would bury the news. */
-    if (newsFiltersActive) return visibleNews;
+    if (newsFiltersActive) return [...visibleNews, ...visibleStories].sort((a, b) => b.ts - a.ts);
     return [...visibleNews, ...visibleStories, ...visibleQuakes, ...visibleWarnings.filter(w => w.severity === 'high')]
       .sort((a, b) => b.ts - a.ts || urgency(b) - urgency(a));
   }, [tab, visibleNews, visibleStories, visibleQuakes, visibleWarnings, newsFiltersActive]);
 
-  /* The reports the filters leave showing that have a place: what the map pins. */
+  /* The reports the filters leave showing that have a place: what the map pins. Every story has one. */
   const pinned = useMemo(
-    () => (tab === 'quakes' ? [] : visibleNews.filter(n => n.place && n.coords)),
-    [tab, visibleNews],
+    () => (tab === 'quakes' ? [] : [...visibleNews.filter(n => n.place && n.coords), ...visibleStories]),
+    [tab, visibleNews, visibleStories],
   );
   const pinnedKey = pinned.map(n => n.id).join(',');
   useEffect(() => {
@@ -101,7 +123,7 @@ export function useAlertList({ tab, bloc, newsKind, q, activeThread, news, stori
       if (key) byKey.set(key, entry);
       out.push(entry);
     }
-    return out;
+    return foldStories(out);
   }, [list]);
 
   /* Warnings are listed gravest first, so they are headed by grade; heading a
