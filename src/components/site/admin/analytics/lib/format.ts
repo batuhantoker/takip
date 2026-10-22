@@ -55,6 +55,21 @@ export const shortDay = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDa
 export const longDay = (day: string) =>
   new Date(`${day}T00:00:00Z`).toLocaleDateString('en', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
+const clock = (iso: string) => iso.slice(11, 16);
+
+/**
+ * How a chart names its points: a range of days by date ('2026-10-19'); a window of hours by ISO time, the hour alone
+ * up to a day and with its date past that. `row` is the point in a table.
+ */
+export function pointNames(hours: number | null) {
+  if (!hours) return { tick: shortDay, title: longDay, row: (day: string) => day };
+  return {
+    tick: (iso: string) => (hours <= 24 ? clock(iso) : `${shortDay(iso.slice(0, 10))} ${clock(iso)}`),
+    title: (iso: string) => `${longDay(iso.slice(0, 10))}, ${clock(iso)} UTC`,
+    row: (iso: string) => `${iso.slice(0, 10)} ${clock(iso)}`,
+  };
+}
+
 export const sum = (values: number[]) => values.reduce((a, b) => a + b, 0);
 
 /** Index of the first day with minutes recorded; the series' length when none has. */

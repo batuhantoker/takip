@@ -29,7 +29,7 @@ function Pending<T>({ label, query, children }: { label: string; query: Analytic
  * The first look: what needs attention, six numbers for today, and the top of three lists. Every other number is
  * in its tab, which the attention rows and the lists link to.
  */
-export function OverviewSection({ attention, ...q }: Queries & { attention: Attention[] }) {
+export function OverviewSection({ attention, hours, ...q }: Queries & { attention: Attention[]; hours: number | null }) {
   const loading = !q.system.data || !q.storage.data;
   const problems = attention.filter(a => a.tone !== 'news').length;
   return (
@@ -37,36 +37,7 @@ export function OverviewSection({ attention, ...q }: Queries & { attention: Atte
       <AttentionList items={attention} loading={loading} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        <Pending label="People today" query={q.audience}>
-          {a => {
-            const perDay = a.days.map(d => d.activeVisitors + d.activeUsers);
-            return <StatTile label="People today" value={count(a.totals.visitorsToday + a.totals.dau)}
-              sub={`${plural(a.totals.visitorsToday, 'visitor')} · ${plural(a.totals.dau, 'account')}`}
-              trend={perDay} delta={weekDelta(perDay, sinceIndex(a.days, a.since))} />;
-          }}
-        </Pending>
-        <Pending label="Map time today" query={q.audience}>
-          {a => {
-            const perDay = a.days.map(d => d.userMinutes + d.visitorMinutes);
-            return <StatTile label="Map time today" value={minutes(perDay[perDay.length - 1] ?? 0)} sub={`${minutes(sum(perDay))} in the range`}
-              trend={perDay} delta={weekDelta(perDay, sinceIndex(a.days, a.since))} />;
-          }}
-        </Pending>
-        <Pending label="Page reads today" query={q.pages}>
-          {p => {
-            const perDay = p.daily.map(d => d.views);
-            return <StatTile label="Page reads today" value={count(perDay[perDay.length - 1] ?? 0)}
-              sub={p.totals.readers ? `${pct(p.totals.toMap, p.totals.readers)} of readers opened the map` : 'Public pages, from search and shares'}
-              trend={perDay} delta={weekDelta(perDay)} />;
-          }}
-        </Pending>
-        <Pending label="New accounts" query={q.audience}>
-          {a => {
-            const signups = a.days.map(d => d.signups);
-            return <StatTile label="New accounts" value={count(sum(signups))} sub={`${count(a.totals.users)} in all · in ${a.days.length} days`}
-              trend={signups} delta={weekDelta(signups)} />;
-          }}
-        </Pending>
+        {hours ? <WindowTiles hours={hours} q={q} /> : <TodayTiles q={q} />}
         <Pending label="API requests today" query={q.api}>
           {p => {
             const today = p.days[p.days.length - 1];
@@ -80,7 +51,71 @@ export function OverviewSection({ attention, ...q }: Queries & { attention: Atte
         </Pending>
       </div>
 
-      <TopLists pages={q.pages} engagement={q.engagement} />
+      <TopLists pages={q.pages} engagement={q.engagement} hours={hours} />
+    </>
+  );
+}
+
+/** A window of hours, from the visit log and the hourly tables, the same numbers the Visitors tab shows. */
+function WindowTiles({ hours, q }: { hours: number; q: Pick<Queries, 'audience' | 'pages'> }) {
+  const span = hours === 72 ? 'last 3 days' : `last ${hours} h`;
+  return (
+    <>
+      <Pending label={`People, ${span}`} query={q.pages}>
+        {p => <StatTile label={`People, ${span}`} value={count(p.journeys.totals.visitors)} trend={p.journeys.series.map(b => b.visitors)}
+          sub={`${count(p.journeys.totals.readers)} read a page · ${count(p.journeys.totals.mapUsers)} opened the map`} />}
+      </Pending>
+      <Pending label={`Map time, ${span}`} query={q.pages}>
+        {p => <StatTile label={`Map time, ${span}`} value={minutes(p.journeys.totals.minutes)} trend={p.journeys.series.map(b => b.minutes)}
+          sub={`${minutes(p.journeys.totals.pageMapMinutes)} more on the pages' small maps`} />}
+      </Pending>
+      <Pending label={`Visits, ${span}`} query={q.pages}>
+        {p => <StatTile label={`Visits, ${span}`} value={count(p.journeys.totals.visits)} trend={p.journeys.series.map(b => b.visits)}
+          sub={`${pct(p.journeys.totals.returning, p.journeys.totals.visits)} returning`} />}
+      </Pending>
+      <Pending label="New accounts" query={q.audience}>
+        {a => {
+          const signups = (a.hours ?? []).map(h => h.signups);
+          return <StatTile label="New accounts" value={count(sum(signups))} sub={`${count(a.totals.users)} in all · in the ${span}`} trend={signups} />;
+        }}
+      </Pending>
+    </>
+  );
+}
+
+function TodayTiles({ q }: { q: Pick<Queries, 'audience' | 'pages'> }) {
+  return (
+    <>
+      <Pending label="People today" query={q.audience}>
+        {a => {
+          const perDay = a.days.map(d => d.activeVisitors + d.activeUsers);
+          return <StatTile label="People today" value={count(a.totals.visitorsToday + a.totals.dau)}
+            sub={`${plural(a.totals.visitorsToday, 'visitor')} · ${plural(a.totals.dau, 'account')}`}
+            trend={perDay} delta={weekDelta(perDay, sinceIndex(a.days, a.since))} />;
+        }}
+      </Pending>
+      <Pending label="Map time today" query={q.audience}>
+        {a => {
+          const perDay = a.days.map(d => d.userMinutes + d.visitorMinutes);
+          return <StatTile label="Map time today" value={minutes(perDay[perDay.length - 1] ?? 0)} sub={`${minutes(sum(perDay))} in the range`}
+            trend={perDay} delta={weekDelta(perDay, sinceIndex(a.days, a.since))} />;
+        }}
+      </Pending>
+      <Pending label="Page reads today" query={q.pages}>
+        {p => {
+          const perDay = p.daily.map(d => d.views);
+          return <StatTile label="Page reads today" value={count(perDay[perDay.length - 1] ?? 0)}
+            sub={p.totals.readers ? `${pct(p.totals.toMap, p.totals.readers)} of readers opened the map` : 'Public pages, from search and shares'}
+            trend={perDay} delta={weekDelta(perDay)} />;
+        }}
+      </Pending>
+      <Pending label="New accounts" query={q.audience}>
+        {a => {
+          const signups = a.days.map(d => d.signups);
+          return <StatTile label="New accounts" value={count(sum(signups))} sub={`${count(a.totals.users)} in all · in ${a.days.length} days`}
+            trend={signups} delta={weekDelta(signups)} />;
+        }}
+      </Pending>
     </>
   );
 }

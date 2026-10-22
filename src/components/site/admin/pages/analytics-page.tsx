@@ -19,7 +19,7 @@ import { StorageSection } from '@/components/site/admin/analytics/storage-sectio
 import { IngestSection } from '@/components/site/admin/analytics/ingest-section';
 import { SystemSection } from '@/components/site/admin/analytics/system-section';
 
-/** Hours windows are exact on the Visitors tab (the visit log); tabs kept by day show the UTC days they touch. */
+/** Hours windows are exact on Overview, Audience and Visitors; the tabs kept by day (BY_DAY) show the last 7 days. */
 const RANGES = [
   { id: '6h', label: 'Last 6 hours', unit: 'hours', n: 6 },
   { id: '24h', label: 'Last 24 hours', unit: 'hours', n: 24 },
@@ -44,6 +44,8 @@ const SECTIONS = [
   { id: 'system', label: 'System' },
 ] as const;
 type SectionId = (typeof SECTIONS)[number]['id'];
+/** Tabs whose numbers are only kept by day: a window of hours shows them the last 7 days instead, and says so. */
+const BY_DAY = new Set<SectionId>(['engagement', 'api', 'search', 'crawlers', 'data', 'system']);
 
 const onHash = (notify: () => void) => {
   window.addEventListener('hashchange', notify);
@@ -62,14 +64,17 @@ export default function AnalyticsPage() {
   const section = useSection();
   const picked = RANGES.find(r => r.id === span)!;
   const range = `?${picked.unit}=${picked.n}&${ADMINS}`;
+  const hours = picked.unit === 'hours' ? picked.n : null;
+  const dayRange = hours ? `?days=7&${ADMINS}` : range;
+  const byDay = BY_DAY.has(section);
 
   const audience = useAnalyticsData<AnalyticsAudience>(`/analytics/audience${range}`);
   const visitors = useAnalyticsData<AnalyticsVisitors>(`/analytics/visitors${range}`);
   const pages = useAnalyticsData<AnalyticsPages>(`/analytics/pages${range}`);
-  const engagement = useAnalyticsData<AnalyticsEngagement>(`/analytics/engagement${range}`);
-  const api = useAnalyticsData<AnalyticsApi>(`/analytics/api${range}`);
-  const data = useAnalyticsData<AnalyticsData>(`/analytics/data${range}`);
-  const system = useAnalyticsData<AnalyticsSystem>(`/analytics/system${range}`);
+  const engagement = useAnalyticsData<AnalyticsEngagement>(`/analytics/engagement${dayRange}`);
+  const api = useAnalyticsData<AnalyticsApi>(`/analytics/api${dayRange}`);
+  const data = useAnalyticsData<AnalyticsData>(`/analytics/data${dayRange}`);
+  const system = useAnalyticsData<AnalyticsSystem>(`/analytics/system${dayRange}`);
   // The api caches its disk scan; a rescan asks for a fresh one, and the counter makes each click a new request.
   const storage = useAnalyticsData<AnalyticsStorage>(`/analytics/storage${rescans ? `?refresh=1&n=${rescans}` : ''}`);
   const rescan = () => setRescans(n => n + 1);
@@ -81,8 +86,8 @@ export default function AnalyticsPage() {
   return (
     <>
       <PageTitle title="Analytics">
-        <Select value={span} onChange={e => setSpan(e.target.value as RangeId)} aria-label="Range">
-          {RANGES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+        <Select value={byDay && hours ? '7d' : span} onChange={e => setSpan(e.target.value as RangeId)} aria-label="Range">
+          {RANGES.map(r => <option key={r.id} value={r.id} disabled={byDay && r.unit === 'hours'}>{r.label}</option>)}
         </Select>
       </PageTitle>
 
@@ -103,15 +108,17 @@ export default function AnalyticsPage() {
       </div>
 
       <div role="tabpanel" aria-label={SECTIONS.find(s => s.id === section)?.label} className="flex flex-col gap-4 pb-10">
-        {picked.unit === 'hours' && section !== 'visitors' && section !== 'live' && (
-          <p className="text-[12px] text-ink-3">This tab is kept by UTC day, so it shows the whole days the {picked.label.toLowerCase()} fall on.</p>
+        {byDay && hours && (
+          <p className="text-[12px] text-ink-3">
+            This tab is only kept by day, so it shows the last 7 days. Overview, Audience and Visitors go down to the hour.
+          </p>
         )}
-        {section === 'overview' && <OverviewSection attention={notes} audience={audience} visitors={visitors} pages={pages} engagement={engagement} api={api} storage={storage} system={system} />}
+        {section === 'overview' && <OverviewSection attention={notes} hours={hours} audience={audience} visitors={visitors} pages={pages} engagement={engagement} api={api} storage={storage} system={system} />}
         {section === 'live' && <LiveSection hideAdmins={false} />}
-        {section === 'audience' && <AudienceSection query={audience} />}
-        {section === 'visitors' && <VisitorsSection pages={pages} visitors={visitors} range={range} hours={picked.unit === 'hours' ? picked.n : null} />}
-        {section === 'search' && <SearchSection range={range} />}
-        {section === 'crawlers' && <CrawlersSection range={range} />}
+        {section === 'audience' && <AudienceSection query={audience} hours={hours} />}
+        {section === 'visitors' && <VisitorsSection pages={pages} visitors={visitors} range={range} hours={hours} />}
+        {section === 'search' && <SearchSection range={dayRange} />}
+        {section === 'crawlers' && <CrawlersSection range={dayRange} />}
         {section === 'engagement' && <EngagementSection query={engagement} />}
         {section === 'api' && <ApiSection query={api} />}
         {section === 'data' && (

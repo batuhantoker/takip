@@ -63,6 +63,11 @@ export type AudienceDay = {
 
 export type AnalyticsAudience = AnalyticsRange & {
   days: AudienceDay[];
+  /**
+   * For a window of hours (?hours=), hour by hour, `day` replaced by `at` (the hour's start, ms). Visitors here are
+   * browsers with a visitor id; the daily rows also count those that block storage, by their address.
+   */
+  hours?: (Omit<AudienceDay, 'day'> & { at: number })[];
   totals: {
     users: number;
     verified: number;

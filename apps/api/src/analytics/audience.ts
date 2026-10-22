@@ -1,7 +1,8 @@
 import type { AccessResolver } from '../access/resolver';
 import { isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
-import { eachDay, isoToDay, minutesSince, notAdmin, round1, subjectNotAdmin, weekStart, type Range } from './range';
+import { HOUR_MS } from './map-minutes';
+import { eachDay, isoToDay, minutesSince, notAdmin, round1, subjectNotAdmin, visitorNotAdmin, weekStart, type Range } from './range';
 import { accountCountries } from './places';
 import { parseUserAgent } from './user-agent';
 
@@ -61,7 +62,47 @@ export function audience(db: AppDb, access: AccessResolver, r: Range) {
     GROUP BY providerId ORDER BY users DESC, provider`);
 
   // The contract's range `days` (a count) gives way to the per-day rows here.
-  return { today: isoDay(r.today), since, days, totals, providers, plans: plans(), devices: devices(), cohorts: cohorts(), countries: accountCountries(db, r) };
+  return {
+    today: isoDay(r.today), since, days, ...(r.hours ? { hours: hourly(r.hours) } : {}),
+    totals, providers, plans: plans(), devices: devices(), cohorts: cohorts(), countries: accountCountries(db, r),
+  };
+
+  /**
+   * A window of hours, hour by hour from the hourly tables: visitors here are browsers with a visitor id, where the
+   * daily rows also count those that block storage by their address.
+   */
+  function hourly(hours: number) {
+    const start = Math.floor(r.from / HOUR_MS);
+    const rows = Array.from({ length: hours + 1 }, (_, i) => ({
+      at: (start + i) * HOUR_MS, signups: 0, sessions: 0, activeUsers: 0, activeVisitors: 0, userMinutes: 0, visitorMinutes: 0,
+    }));
+    const slot = (h: number) => rows[h - start];
+    const isoHour = `(CAST((julianday(createdAt) - 2440587.5) * 24 AS INTEGER))`;
+    const fromIso = new Date(start * HOUR_MS).toISOString();
+    for (const row of all<{ h: number; n: number }>(`
+      SELECT ${isoHour} AS h, count(*) AS n FROM auth_user WHERE createdAt >= ? ${notAdmin(r, 'id')} GROUP BY 1`, fromIso)) {
+      const s = slot(row.h);
+      if (s) s.signups = row.n;
+    }
+    for (const row of all<{ h: number; n: number }>(`
+      SELECT ${isoHour} AS h, count(*) AS n FROM auth_session WHERE createdAt >= ? AND impersonatedBy IS NULL ${notAdmin(r, 'userId')} GROUP BY 1`, fromIso)) {
+      const s = slot(row.h);
+      if (s) s.sessions = row.n;
+    }
+    for (const row of all<{ h: number; n: number; minutes: number }>(`
+      SELECT day * 24 + hour AS h, count(*) AS n, sum(minutes) AS minutes FROM user_hour
+      WHERE day >= ? AND day * 24 + hour >= ? AND minutes > 0 ${notAdmin(r, 'user_id')} GROUP BY 1`, r.first, start)) {
+      const s = slot(row.h);
+      if (s) [s.activeUsers, s.userMinutes] = [row.n, row.minutes];
+    }
+    for (const row of all<{ h: number; n: number; minutes: number }>(`
+      SELECT d.day * 24 + d.hour AS h, count(*) AS n, sum(d.minutes) AS minutes FROM visitor_hour d LEFT JOIN visitor v ON v.visitor_id = d.visitor_id
+      WHERE d.day >= ? AND d.day * 24 + d.hour >= ? AND d.minutes > 0 ${visitorNotAdmin(r)} GROUP BY 1`, r.first, start)) {
+      const s = slot(row.h);
+      if (s) [s.activeVisitors, s.visitorMinutes] = [row.n, row.minutes];
+    }
+    return rows;
+  }
 
   /** Only accounts with a live subscription or grant can be on anything but free; resolving them all would be slow. */
   function plans() {

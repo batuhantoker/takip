@@ -105,6 +105,22 @@ describe('analytics in the console', () => {
     expect(people.plans).toEqual([{ plan: 'pro', users: 1 }, { plan: 'free', users: 0 }]);
   });
 
+  it('counts a window of hours hour by hour: sign-ups, sign-ins, and who was on the map', async () => {
+    const hours = t.db.prepare('INSERT INTO user_hour (user_id, day, hour, minutes) VALUES (?, ?, ?, ?)');
+    hours.run(adaId, TODAY, 11, 4);
+    hours.run(adaId, TODAY, 2, 9);
+    t.db.prepare('INSERT INTO visitor_hour (visitor_id, day, hour, minutes) VALUES (?, ?, ?, ?)').run('v-hourly-000000001', TODAY, 11, 3);
+    type Hour = { at: number; signups: number; sessions: number; activeUsers: number; activeVisitors: number; userMinutes: number; visitorMinutes: number };
+    const { hours: rows } = await get<{ hours: Hour[] }>('/audience?hours=6');
+    expect(rows).toHaveLength(7);
+    expect(rows[0].at).toBe(NOW - 6 * 3_600_000);
+    expect(rows[5]).toMatchObject({ at: NOW - 3_600_000, activeUsers: 1, userMinutes: 4, activeVisitors: 1, visitorMinutes: 3 });
+    // Ada and root signed up and in just now, at 12:00.
+    expect(rows[6]).toMatchObject({ signups: 2, sessions: 2 });
+    expect(rows.reduce((n, h) => n + h.userMinutes, 0)).toBe(4);
+    expect((await get<{ hours?: Hour[] }>('/audience?days=7')).hours).toBeUndefined();
+  });
+
   it('shows where the minutes went: features, hours, session lengths, top users and the wall', async () => {
     seedMinutes();
     type Engagement = {
