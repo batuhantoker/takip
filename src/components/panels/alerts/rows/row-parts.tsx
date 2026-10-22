@@ -1,14 +1,41 @@
 'use client';
 
 import { useState } from 'react';
-import { ExternalLink, LoaderCircle } from 'lucide-react';
+import { ExternalLink, Languages, LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { Figure } from '@/components/ui/figure';
 import { useT } from '@/components/ui/use-t';
 import { fullDate, stamp } from '@/components/panels/alerts/format';
+import { translatedPageUrl } from '@/lib/core/translate/on-device';
 
 export const openLink = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
+
+/** "German", "Almanca": a language by its code, in the reader's language. */
+export const languageName = (code: string, intl: string) => new Intl.DisplayNames([intl], { type: 'language' }).of(code) ?? code;
+
+/** Under a translated headline: the original, and the article itself through Google Translate where it's in another language. */
+export function TranslatedRead({ original, elsewhere, link, from, fetch }: {
+  original: string | null; elsewhere: boolean; link: string | null; from: string | null; fetch: (() => void) | null;
+}) {
+  const t = useT();
+  if (!original && !fetch && !(elsewhere && link)) return null;
+  return (
+    <div className="flex flex-col items-start gap-2">
+      {original && <p className="text-meta text-ink-3">{t('Original: {title}', { title: original })}</p>}
+      {fetch && from && (
+        <Button size="sm" variant="ghost" icon={Languages} className="-ml-2" onClick={fetch}>
+          {t('Translate from {language}, on this device', { language: languageName(from, t.intl) })}
+        </Button>
+      )}
+      {elsewhere && link && (
+        <Button size="sm" variant="ghost" icon={Languages} className="-ml-2" onClick={() => openLink(translatedPageUrl(link, t.locale))}>
+          {t('Read it in {language}', { language: languageName(t.locale, t.intl) })}
+        </Button>
+      )}
+    </div>
+  );
+}
 
 /** A turning loader that fits an IconButton's icon slot. */
 export function Spinner({ className }: { className?: string }) {

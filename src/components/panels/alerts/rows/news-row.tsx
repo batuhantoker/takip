@@ -12,7 +12,8 @@ import type { AlertItem, LocateOptions, NewsAlert } from '@/lib/intel/alerts/liv
 import { htmlToText } from '@/lib/intel/alerts/telegram';
 import { AlertRow, Meta } from './alert-row';
 import { compact, placeName, toneLabel, toneOf } from '@/components/panels/alerts/format';
-import { Carriers, openLink } from './row-parts';
+import { useHeadline } from '@/components/panels/alerts/hooks/use-headline-translation';
+import { Carriers, languageName, openLink, TranslatedRead } from './row-parts';
 
 export const newsTarget = (n: NewsAlert): [number, number, LocateOptions] | null =>
   n.coords && n.place ? [n.coords[0], n.coords[1], { zoom: n.place.precision === 'settlement' ? 10 : 7, alertId: n.id }] : null;
@@ -26,6 +27,7 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
   onLocate: (lat: number, lng: number, options?: LocateOptions) => void;
 }) {
   const t = useT();
+  const head = useHeadline(item.id, item.title, 'en');
   const target = newsTarget(item);
   const where = item.place?.name ?? (item.anchor ? placeName(item.anchor) : null);
   const MediaIcon = item.media?.kind === 'video' ? Video : ImageIcon;
@@ -37,7 +39,7 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
     <AlertRow
       tone={toneOf(item)}
       toneLabel={toneLabel(item)}
-      title={item.title}
+      title={head.title}
       ts={item.ts}
       now={now}
       selected={selected}
@@ -49,6 +51,7 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
           where,
           elsewhere > 0 && t('{n, plural, one {also on # channel} other {also on # channels}}', { n: elsewhere }),
           press > 0 && t('{n, plural, one {in # more outlet} other {in # more outlets}}', { n: press }),
+          head.original && head.from && t('translated from {language}', { language: languageName(head.from, t.intl) }),
         ]} />
         {item.media && <MediaIcon aria-label={item.media.kind === 'video' ? t('Has video') : t('Has a photo')} className="size-3.5 shrink-0 text-ink-3" strokeWidth={1.75} />}
       </>}
@@ -58,6 +61,7 @@ export default function NewsRow({ item, similar, now, selected, onSelect, onLoca
       </>}
     >
       <NewsDetail item={item} similar={similar} now={now} onLocate={onLocate} />
+      <div className="mt-3"><TranslatedRead original={head.original} elsewhere={head.elsewhere} link={item.link} from={head.from} fetch={head.fetch} /></div>
     </AlertRow>
   );
 }

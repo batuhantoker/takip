@@ -9,7 +9,8 @@ import { AlertRow, Meta } from './alert-row';
 import { toneLabel, toneOf } from '@/components/panels/alerts/format';
 import { LinkPreviewCard } from '@/components/panels/alerts/parts/link-preview-card';
 import { useLinkPreview } from '@/components/panels/alerts/hooks/use-link-preview';
-import { Carriers, openLink } from './row-parts';
+import { useHeadline } from '@/components/panels/alerts/hooks/use-headline-translation';
+import { Carriers, languageName, openLink, TranslatedRead } from './row-parts';
 
 type Locate = (lat: number, lng: number, options?: LocateOptions) => void;
 
@@ -32,6 +33,7 @@ export default function StoryRow({ item, now, selected, onSelect, onLocate }: {
   onLocate: Locate;
 }) {
   const t = useT();
+  const head = useHeadline(item.id, item.title, item.foreign ? null : 'en');
   const { preview, loading } = useLinkPreview(item.link, selected);
   const place = shortPlace(item.place);
   const target = storyTarget(item);
@@ -40,7 +42,7 @@ export default function StoryRow({ item, now, selected, onSelect, onLocate }: {
     <AlertRow
       tone={toneOf(item)}
       toneLabel={toneLabel(item)}
-      title={item.title}
+      title={head.title}
       ts={item.ts}
       now={now}
       selected={selected}
@@ -49,6 +51,7 @@ export default function StoryRow({ item, now, selected, onSelect, onLocate }: {
         t('GDELT'),
         place,
         t('{n, plural, one {# outlet} other {# outlets}}', { n: item.outlets }),
+        head.original && head.from && t('translated from {language}', { language: languageName(head.from, t.intl) }),
       ]} />}
       actions={<>
         <IconButton size="sm" label={t('Show {place} on the map', { place })} icon={MapPin} onClick={() => onLocate(...target)} />
@@ -56,7 +59,8 @@ export default function StoryRow({ item, now, selected, onSelect, onLocate }: {
       </>}
     >
       <div className="flex flex-col gap-3">
-        {item.link && <LinkPreviewCard href={item.link} preview={preview} loading={loading} showTitle={preview?.title !== item.title} />}
+        {item.link && <LinkPreviewCard href={item.link} preview={preview} loading={loading} showTitle={preview?.title !== item.title && preview?.title !== head.original} />}
+        <TranslatedRead original={head.original} elsewhere={head.elsewhere} link={item.link} from={head.from} fetch={head.fetch} />
 
         <p className="text-small text-ink-2">
           {[item.actors.join(' → '), item.action].filter(Boolean).join(' · ')}

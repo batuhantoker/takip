@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { MapPin, RefreshCw } from 'lucide-react';
+import { Languages, MapPin, RefreshCw } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
 import { Panel, PanelSection } from '@/components/ui/panel';
 import { useT } from '@/components/ui/use-t';
@@ -21,6 +21,8 @@ import { useAlertList, type AlertTab, type NewsKind } from '@/components/panels/
 import { useOverview } from '@/components/panels/alerts/hooks/use-overview';
 import { usePersisted } from '@/components/panels/alerts/hooks/use-persisted';
 import { useGdeltStories } from '@/components/panels/alerts/hooks/use-gdelt-stories';
+import { HeadlineContext, useHeadlineTranslation } from '@/components/panels/alerts/hooks/use-headline-translation';
+import { languageName } from '@/components/panels/alerts/rows/row-parts';
 import StoryFilters, { isStoryPrefs, narrowStories, STORY_PREFS } from '@/components/panels/alerts/parts/story-filters';
 
 interface LiveAlertsProps {
@@ -69,6 +71,7 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
   const { newsFiltersActive, list, pinned, groups } = useAlertList({
     tab, bloc, newsKind, q, activeThread, news, stories, quakes, warnings, now, onPinnedChange,
   });
+  const headlines = useHeadlineTranslation(list, t.locale);
   const overview = useOverview('alerts', overviewPayload, `${news[0]?.id ?? ''}|${news.length}|${quakes[0]?.id ?? ''}`);
 
   // A new tab or filter starts at the top, not wherever the last list was scrolled to.
@@ -144,6 +147,13 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
               ? t('{n, plural, one {Pin # news report on the map} other {Pin # news reports on the map}}', { n: pinned.length })
               : t('Pin news reports on the map')} />
         )}
+        {headlines.state !== 'unsupported' && (
+          <IconButton icon={headlines.state === 'working' ? Spinner : Languages} active={headlines.state === 'ready' || headlines.state === 'working'}
+            onClick={headlines.state === 'download' ? () => headlines.fetchModels() : () => headlines.setOn(headlines.state === 'off')}
+            label={headlines.state === 'off' || headlines.state === 'download'
+              ? t('Translate headlines into {language}, on this device', { language: languageName(t.locale, t.intl) })
+              : t('Show the original headlines')} />
+        )}
         {onRefresh && (
           <IconButton icon={refreshing ? Spinner : RefreshCw} disabled={refreshing} onClick={refresh} label={t('Refresh now')} />
         )}
@@ -189,9 +199,11 @@ export default function LiveAlerts({ data, onLocate, onClose, onWatchFeed, onRef
       )}
 
       <div className="mt-3">
-        <AlertList tab={tab} groups={groups} loading={loading} filtersActive={filtersActive} now={now}
-          openKey={openKey} setOpenKey={setOpenKey} onLocate={onLocate}
-          onRetry={onRefresh ? refresh : undefined} onClearFilters={clearFilters} />
+        <HeadlineContext.Provider value={headlines.context}>
+          <AlertList tab={tab} groups={groups} loading={loading} filtersActive={filtersActive} now={now}
+            openKey={openKey} setOpenKey={setOpenKey} onLocate={onLocate}
+            onRetry={onRefresh ? refresh : undefined} onClearFilters={clearFilters} />
+        </HeadlineContext.Provider>
       </div>
     </Panel>
   );

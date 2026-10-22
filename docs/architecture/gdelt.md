@@ -37,6 +37,13 @@ Result on the live data: about 40 stories in two hours, from about 14,800 rows, 
 - Some weak pairs still join, such as two unrelated Ohio shootings or two different hurricanes in Florida.
 - The live layer forgets everything outside its window. Corroboration that arrives later is lost.
 
+## In the news, and translated (2026-10-22)
+
+- Stories are news like the wires in the Alerts panel (`use-alert-list.ts`): they follow the side filter as an independent aggregator, the thread and search filters, feed the threads and the overview (its 40 best-reported), and pin on the map (`map-pins.ts` `storyPins`, fetched by `use-live-data.ts` when the pins are on).
+- A story folds under a wire or channel report of the same event (`story-match.ts`): at least three shared words covering half the shorter title, six hours, and 150 km when both are placed. Run against production, 4 of 81 stories folded, all correctly.
+- Each story keeps its page headline in its own language (`headline`) and says whether its lead came through the translated feed (`translated`). The title shown without a translator is unchanged: the slug where the page is in another script.
+- Headlines are translated in the reader's browser by Chrome's on-device Translator and LanguageDetector (`lib/core/translate/on-device.ts`); nothing leaves the device. A language model downloads only from a click: the panel's button fetches the three commonest languages, a row its own. Other browsers keep the original and get "Read it in …" through Google Translate. Search matches the original, not the translation.
+
 ## Next steps
 
 1. **Ingest connector** (`apps/ingest/src/connectors/gdelt.ts`, in the `usgs.ts` shape). It records the export and mentions files and writes reduced stories into history.db as `gdelt.event`. That kind is already seeded, and `dataset-import-map.md` plans it with GLOBALEVENTID keys; a story would key on its headline event's id. Message the backend lead before touching shared schema. This is the prerequisite for both points below.
