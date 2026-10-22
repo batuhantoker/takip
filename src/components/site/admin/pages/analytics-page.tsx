@@ -7,6 +7,7 @@ import type {
 } from '@/components/site/admin/analytics/analytics-types';
 import { attention, flaggedTabs } from '@/components/site/admin/analytics/lib/attention';
 import { useAnalyticsData } from '@/components/site/admin/analytics/lib/use-analytics-data';
+import { viewerZone, zoneName } from '@/components/site/admin/analytics/lib/zone';
 import { OverviewSection } from '@/components/site/admin/analytics/overview-section';
 import { LiveSection } from '@/components/site/admin/analytics/live-section';
 import { CrawlersSection } from '@/components/site/admin/analytics/crawlers-section';
@@ -63,9 +64,11 @@ export default function AnalyticsPage() {
   const [rescans, setRescans] = useState(0);
   const section = useSection();
   const picked = RANGES.find(r => r.id === span)!;
-  const range = `?${picked.unit}=${picked.n}&${ADMINS}`;
+  // The viewer's zone: Visitors counts its days from their midnight; the tables kept by UTC day ignore it.
+  const tz = `tz=${encodeURIComponent(viewerZone())}`;
+  const range = `?${picked.unit}=${picked.n}&${ADMINS}&${tz}`;
   const hours = picked.unit === 'hours' ? picked.n : null;
-  const dayRange = hours ? `?days=7&${ADMINS}` : range;
+  const dayRange = hours ? `?days=7&${ADMINS}&${tz}` : range;
   const byDay = BY_DAY.has(section);
 
   const audience = useAnalyticsData<AnalyticsAudience>(`/analytics/audience${range}`);
@@ -108,6 +111,13 @@ export default function AnalyticsPage() {
       </div>
 
       <div role="tabpanel" aria-label={SECTIONS.find(s => s.id === section)?.label} className="flex flex-col gap-4 pb-10">
+        {section !== 'live' && (
+          <p className="text-[12px] text-ink-3">
+            {section === 'visitors'
+              ? `Times and days are in your time zone, ${zoneName()}, except where a card says it's kept by UTC day.`
+              : `Times are in your time zone, ${zoneName()}. Days are UTC days, the way they're kept.`}
+          </p>
+        )}
         {byDay && hours && (
           <p className="text-[12px] text-ink-3">
             This tab is only kept by day, so it shows the last 7 days. Overview, Audience and Visitors go down to the hour.

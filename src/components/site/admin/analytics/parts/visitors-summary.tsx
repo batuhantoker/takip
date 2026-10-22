@@ -5,6 +5,7 @@ import { Muted } from '@/components/site/admin/parts/admin-parts';
 import type { PageJourneys } from '../analytics-types';
 import { count, duration, longDay, minutes, minutesAxis, pct, plural, pointNames, sinceIndex, sum, weekDelta } from '../lib/format';
 import { MAP_PATH } from '../lib/journeys';
+import { localIsoDay, zoneName } from '../lib/zone';
 import { ink, NEUTRAL } from '../lib/series';
 import { Pair } from './section-frame';
 
@@ -15,9 +16,11 @@ import { Pair } from './section-frame';
 export function VisitorsSummary({ j, hours, hitWall }: { j: PageJourneys; hours: number | null; hitWall: number }) {
   const { totals } = j;
   const points = j.series.map(b => new Date(b.at).toISOString());
-  const days = points.map(p => p.slice(0, 10));
+  // The api counts days from the viewer's midnight (analytics-page passes their zone), so each is named on their calendar.
+  const days = j.series.map(b => localIsoDay(b.at));
   const line = (key: 'visitors' | 'readers' | 'mapUsers' | 'minutes' | 'pageMapMinutes') => j.series.map(b => b[key]);
   const per = hours ? 'per hour' : 'per day';
+  const pointColumn = hours ? `Hour (${zoneName()})` : `Day (${zoneName()})`;
   // Hours need the clock in their names; a day is named by its date alone, as shortDay expects.
   const x = hours ? points : days;
   const { tick, title, row } = pointNames(hours);
@@ -50,7 +53,7 @@ export function VisitorsSummary({ j, hours, hitWall }: { j: PageJourneys; hours:
 
       <Pair>
         <ChartCard title={`Visitors ${per}`} note="Every visitor, and those who read a page or opened the map; one can do both"
-          table={{ columns: [hours ? 'Hour (UTC)' : 'Day', 'Visitors', 'Read a page', 'Opened the map', 'Visits'], rows: j.series.map((b, i) => [when(i), b.visitors, b.readers, b.mapUsers, b.visits]).reverse() }}>
+          table={{ columns: [pointColumn, 'Visitors', 'Read a page', 'Opened the map', 'Visits'], rows: j.series.map((b, i) => [when(i), b.visitors, b.readers, b.mapUsers, b.visits]).reverse() }}>
           {sum(line('visitors')) ? (
             <TimeSeries label={`Visitors ${per}`} days={x} tick={tick} title={title} trim={!hours} format={count} series={[
               { key: 'visitors', label: 'Visitors', color: NEUTRAL, values: line('visitors') },
@@ -61,7 +64,7 @@ export function VisitorsSummary({ j, hours, hitWall }: { j: PageJourneys; hours:
         </ChartCard>
         <ChartCard title={`Time on the map ${per}`}
           note={`Each minute begun on the full map, the minute it opened in included, and each minute readers used a page's small map or watched a camera in it${hitWall ? `; ${plural(hitWall, 'browser')} hit the daily limit` : ''}`}
-          table={{ columns: [hours ? 'Hour (UTC)' : 'Day', 'Full map', 'Page maps'], rows: j.series.map((b, i) => [when(i), b.minutes, b.pageMapMinutes]).reverse() }}>
+          table={{ columns: [pointColumn, 'Full map', 'Page maps'], rows: j.series.map((b, i) => [when(i), b.minutes, b.pageMapMinutes]).reverse() }}>
           {sum(line('minutes')) + sum(line('pageMapMinutes')) ? (
             <TimeSeries label={`Minutes on the map ${per}`} days={x} tick={tick} title={title} trim={!hours} format={minutes} axis={minutesAxis} series={[
               { key: 'full', label: 'Full map', color: ink(0), values: line('minutes') },

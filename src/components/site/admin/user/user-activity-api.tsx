@@ -20,7 +20,7 @@ export default function UserActivityApi({ u }: { u: UserAnalytics }) {
       <Pair>
         <ChartCard
           title="API requests per day"
-          note="Served and refused, from their session and their keys"
+          note="By UTC day, served and refused, from their session and their keys"
           table={any ? { columns: ['Day', 'Served', 'Refused'], rows: [...u.daily].reverse().map(d => [d.day, d.apiRequests, d.apiDenied]) } : null}
         >
           {any ? (

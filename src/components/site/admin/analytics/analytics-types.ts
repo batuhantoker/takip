@@ -380,7 +380,7 @@ export interface PageJourneys {
     visits: number; views: number; left: number; readOn: number; toMap: number; landedOnMap: number; returning: number; avgSteps: number;
     medianMs: number | null;
   };
-  /** Per hour for an hours range, else per UTC day, oldest first; `at` is the bucket's start (ms). A visit counts where it began. */
+  /** Per hour for an hours range, else per local day in the request's `tz` (UTC by default), oldest first; `at` is the bucket's start (ms). A visit counts where it began. */
   series: { at: number; visitors: number; readers: number; mapUsers: number; visits: number; minutes: number; pageMapMinutes: number }[];
   flow: { origin: string | null; landing: string; next: NextStep; visits: number }[];
   channels: { channel: Channel; visits: number }[];

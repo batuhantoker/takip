@@ -1,3 +1,5 @@
+import { localClock, localIsoDay, zoneName } from './zone';
+
 const UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
 
 export function bytes(n: number | null | undefined) {
@@ -55,18 +57,18 @@ export const shortDay = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDa
 export const longDay = (day: string) =>
   new Date(`${day}T00:00:00Z`).toLocaleDateString('en', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
-const clock = (iso: string) => iso.slice(11, 16);
-
 /**
- * How a chart names its points: a range of days by date ('2026-10-19'); a window of hours by ISO time, the hour alone
- * up to a day and with its date past that. `row` is the point in a table.
+ * How a chart names its points: a range of days by date ('2026-10-19'); a window of hours by ISO time, named on the
+ * viewer's clock, the hour alone up to a day and with its date past that. `row` is the point in a table.
  */
 export function pointNames(hours: number | null) {
   if (!hours) return { tick: shortDay, title: longDay, row: (day: string) => day };
+  const day = (iso: string) => localIsoDay(Date.parse(iso));
+  const clock = (iso: string) => localClock(Date.parse(iso));
   return {
-    tick: (iso: string) => (hours <= 24 ? clock(iso) : `${shortDay(iso.slice(0, 10))} ${clock(iso)}`),
-    title: (iso: string) => `${longDay(iso.slice(0, 10))}, ${clock(iso)} UTC`,
-    row: (iso: string) => `${iso.slice(0, 10)} ${clock(iso)}`,
+    tick: (iso: string) => (hours <= 24 ? clock(iso) : `${shortDay(day(iso))} ${clock(iso)}`),
+    title: (iso: string) => `${longDay(day(iso))}, ${clock(iso)} ${zoneName(Date.parse(iso))}`,
+    row: (iso: string) => `${day(iso)} ${clock(iso)}`,
   };
 }
 

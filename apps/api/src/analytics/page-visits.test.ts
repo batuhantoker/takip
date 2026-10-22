@@ -124,6 +124,20 @@ describe('visits in admin', () => {
     expect((await get<{ total: number }>('/pages/visits?hours=6')).total).toBe(3);
   });
 
+  it('counts days in the viewer’s time zone', async () => {
+    const view = t.db.prepare(`INSERT INTO page_view (visitor_id, at, day, path, locale, referrer, browser, os, device) VALUES (?, ?, ?, '/about', 'en', '', 'Chrome', 'macOS', 'desktop')`);
+    // 22:00 on the 13th in New York; 05:00 on the 8th in Tokyo, a day before the UTC range begins.
+    for (const [id, at] of [['v-delta-0000000004', Date.UTC(2026, 9, 14, 2)], ['v-epsilon-00000005', Date.UTC(2026, 9, 7, 20)]] as const) view.run(id, at, Math.floor(at / DAY_MS));
+    type Journeys = { journeys: { series: { at: number; visits: number }[] } };
+    const series = async (tz: string) => (await get<Journeys>(`/pages?days=7&tz=${encodeURIComponent(tz)}`)).journeys.series;
+    expect((await series('UTC')).map(b => b.visits)).toEqual([0, 0, 0, 0, 0, 0, 4]);
+    expect((await series('America/New_York')).map(b => b.visits)).toEqual([0, 0, 0, 0, 0, 1, 3]);
+    const tokyo = await series('Asia/Tokyo');
+    expect(tokyo.map(b => b.visits)).toEqual([1, 0, 0, 0, 0, 0, 4]);
+    expect(tokyo[0].at).toBe(Date.UTC(2026, 9, 7, 15));
+    expect((await kit.call(root.jar, 'GET', '/api/admin/analytics/pages?tz=Mars%2FOlympus')).status).toBe(400);
+  });
+
   it('counts time on the full map and on the pages’ small maps by the hour', async () => {
     const hour = (ago: number) => {
       const at = NOW - ago * 60 * MIN;

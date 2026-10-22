@@ -10,13 +10,12 @@ import { featureLabel, featureLongLabel, onByDefault, splitFeature, VIEW_ORDER }
 import { count, minutes, minutesAxis, pct, shortDay, sum } from './lib/format';
 import { ink } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
+import { weekHourTable } from './lib/zone';
 import { ActionCards } from './parts/action-cards';
 import { FeatureCards, reach } from './parts/feature-cards';
 import { More } from './parts/more';
 import { CollectingNote, Pair, SectionFrame, Tiles } from './parts/section-frame';
 import { TopUsersTable } from './parts/top-users-table';
-
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export function EngagementSection({ query }: { query: AnalyticsQuery<AnalyticsEngagement> }) {
   return <SectionFrame query={query}>{e => <Engagement e={e} />}</SectionFrame>;
@@ -34,6 +33,7 @@ function Engagement({ e }: { e: AnalyticsEngagement }) {
   const topPanel = top(panels, ['panel:none']);
   const topLayer = layers.find(f => !onByDefault(f.feature)) ?? null;
   const phone = devices.find(d => d.feature === 'device:mobile')?.minutes ?? 0;
+  const week = weekHourTable(e.hours);
   const columns = e.featureDays.map(d => ({ key: d.day, label: shortDay(d.day) }));
   const shownViews = VIEW_ORDER.filter(id => e.featureDays.some(d => (d.minutes[`view:${id}`] ?? 0) > 0));
   const walled = e.wall.some(d => d.users + d.visitors > 0);
@@ -99,8 +99,8 @@ function Engagement({ e }: { e: AnalyticsEngagement }) {
       <More id="engagement-patterns" title="Patterns" holds="When in the week people use the map, and how long a visit lasts">
         <ChartCard
           title="When people use the map"
-          note="Map minutes by weekday and hour (UTC), everyone together"
-          table={{ columns: ['Weekday and hour (UTC)', 'Minutes'], rows: [...e.hours].sort((x, y) => y.minutes - x.minutes).map(h => [`${DAY_NAMES[h.dow]} ${String(h.hour).padStart(2, '0')}:00`, h.minutes]) }}
+          note={`Map minutes by weekday and hour (${week.zone}), everyone together`}
+          table={week}
         >
           {e.hours.length ? <Heatmap cells={e.hours} /> : <Muted>No map time in this range yet.</Muted>}
         </ChartCard>

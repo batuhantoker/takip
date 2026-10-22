@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { minutes as fmtMinutes } from '@/components/site/admin/analytics/lib/format';
+import { localWeekHours } from '@/components/site/admin/analytics/lib/zone';
 
 const DAYS = [1, 2, 3, 4, 5, 6, 0];
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -11,9 +12,10 @@ export const heatStep = (share: number) => `color-mix(in srgb, var(--accent) ${S
 
 const hourLabel = (h: number) => `${String(h).padStart(2, '0')}:00`;
 
-/** Weekday × UTC hour, Monday first. The readout line above names the cell under the pointer. */
-export function Heatmap({ cells, format = fmtMinutes }: { cells: { dow: number; hour: number; minutes: number }[]; format?: (n: number) => string }) {
+/** Weekday × hour on the viewer's clock, Monday first, from cells kept in UTC. The readout line above names the cell under the pointer. */
+export function Heatmap({ cells: utc, format = fmtMinutes }: { cells: { dow: number; hour: number; minutes: number }[]; format?: (n: number) => string }) {
   const [hover, setHover] = useState<{ dow: number; hour: number } | null>(null);
+  const { cells, zone } = localWeekHours(utc);
   const grid = new Map(cells.map(c => [`${c.dow}:${c.hour}`, c.minutes]));
   const max = Math.max(0, ...cells.map(c => c.minutes));
   const busiest = cells.reduce<(typeof cells)[number] | null>((best, c) => (!best || c.minutes > best.minutes ? c : best), null);
@@ -25,14 +27,14 @@ export function Heatmap({ cells, format = fmtMinutes }: { cells: { dow: number; 
       <p className="h-4 text-[12px] text-ink-2" aria-live="polite">
         {focus && (
           <>
-            <span className="text-ink-3">{hover ? '' : 'Busiest: '}{DAY_NAMES[focus.dow]} {hourLabel(focus.hour)}–{hourLabel((focus.hour + 1) % 24)} UTC · </span>
+            <span className="text-ink-3">{hover ? '' : 'Busiest: '}{DAY_NAMES[focus.dow]} {hourLabel(focus.hour)}–{hourLabel((focus.hour + 1) % 24)} {zone} · </span>
             <span className="font-mono tabular-nums text-ink-1">{format(value)}</span>
           </>
         )}
       </p>
       <div
         role="img"
-        aria-label={busiest ? `Map minutes by weekday and hour; busiest ${DAY_NAMES[busiest.dow]} ${hourLabel(busiest.hour)} UTC.` : 'Map minutes by weekday and hour.'}
+        aria-label={busiest ? `Map minutes by weekday and hour; busiest ${DAY_NAMES[busiest.dow]} ${hourLabel(busiest.hour)} ${zone}.` : 'Map minutes by weekday and hour.'}
         className="overflow-x-auto"
         onPointerLeave={() => setHover(null)}
       >

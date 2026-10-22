@@ -9,6 +9,7 @@ import type { PageJourneys, VisitFilter } from '../analytics-types';
 import { count, sum } from '../lib/format';
 import { deviceLabel } from '../lib/journeys';
 import { countryName, flag, placeShort } from '../lib/place';
+import { localWeekHours } from '../lib/zone';
 import { DbIpCredit } from './place-label';
 import { Pair } from './section-frame';
 import { TabbedCard } from './tabbed-card';
@@ -57,7 +58,7 @@ export function JourneyAudience({ j, onPick }: { j: PageJourneys; onPick: (filte
               ].filter(r => r.value)} />
           ) },
         ]} />
-        <ChartCard title="When they come" note="Visits by weekday and the hour they began, UTC">
+        <ChartCard title="When they come" note={`Visits by weekday and the hour they began, ${localWeekHours([]).zone}`}>
           {j.hours.length ? <Heatmap cells={j.hours.map(h => ({ dow: h.dow, hour: h.hour, minutes: h.visits }))} format={visitsText} /> : <Muted>{EMPTY}</Muted>}
         </ChartCard>
       </Pair>

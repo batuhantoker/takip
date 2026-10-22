@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { utcDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
 import { MAP_PATH } from './page-reads';
 import { rangeQuery, visitorNotAdmin, type Range } from './range';
@@ -90,7 +91,7 @@ export function loadVisits(db: AppDb, r: Range) {
       v.visitor_id IS NOT NULL AS known, v.first_seen_at AS mapSince, prior.at AS priorAt, u.id AS userId, u.email
     FROM page_view p LEFT JOIN visitor v ON v.visitor_id = p.visitor_id LEFT JOIN auth_user u ON u.id = v.user_id
       LEFT JOIN prior ON prior.visitor_id = p.visitor_id
-    WHERE p.day >= @first AND p.at >= @from ${visitorNotAdmin(r)} ORDER BY p.visitor_id, p.at`).all({ first: r.first, from: r.from }) as ViewRow[];
+    WHERE p.day >= @first AND p.at >= @from ${visitorNotAdmin(r)} ORDER BY p.visitor_id, p.at`).all({ first: utcDay(r.from), from: r.from }) as ViewRow[];
   return groupVisits(rows).sort((a, b) => a.start - b.start);
 }
 

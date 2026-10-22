@@ -3,7 +3,7 @@ import type { AppDb } from '../db/app-db';
 import { HOUR_MS, mapMinutes, pageMapUse, type MapMinutes } from './map-minutes';
 import { MAP_PATH } from './page-reads';
 import type { Next, Visit } from './page-visits';
-import type { Range } from './range';
+import { localDayStarts, type Range } from './range';
 
 const TOP = 40;
 
@@ -65,23 +65,28 @@ function people(visits: Visit[]) {
 }
 
 /**
- * People, visits and map minutes per hour for a range of hours, else per UTC day; a visit counts where it began,
- * minutes in the hour they were booked.
+ * People, visits and map minutes per hour for a range of hours, else per local day in the range's zone; a visit counts
+ * where it began, minutes in the hour they were booked. `at` is each bucket's start.
  */
 function series(visits: Visit[], used: MapMinutes, r: Range) {
-  const step = r.hours ? HOUR_MS : DAY_MS;
-  const start = r.hours ? Math.floor(r.from / HOUR_MS) * HOUR_MS : r.first * DAY_MS;
-  const n = r.hours ? r.hours + 1 : r.days;
-  const slot = (at: number) => Math.min(n - 1, Math.floor((at - start) / step));
+  const hourStart = Math.floor(r.from / HOUR_MS) * HOUR_MS;
+  const starts = r.hours ? Array.from({ length: r.hours + 1 }, (_, i) => hourStart + i * HOUR_MS) : localDayStarts(r).slice(0, -1);
+  const n = starts.length;
+  const slot = (at: number) => {
+    let i = n - 1;
+    while (i > 0 && at < starts[i]) i--;
+    return at < starts[0] ? -1 : i;
+  };
   const buckets: Visit[][] = Array.from({ length: n }, () => []);
   for (const v of visits) buckets[slot(v.start)]?.push(v);
   const minutes = new Array<number>(n).fill(0);
   const pageMapMinutes = new Array<number>(n).fill(0);
-  for (const row of used.full) minutes[slot(row.h * HOUR_MS)] += row.minutes;
-  for (const row of used.pages) pageMapMinutes[slot(row.h * HOUR_MS)] += row.minutes;
+  // An hour books to the day it began in; in a zone a half hour off UTC, the range's first hour began just before it.
+  for (const row of used.full) minutes[Math.max(0, slot(row.h * HOUR_MS))] += row.minutes;
+  for (const row of used.pages) pageMapMinutes[Math.max(0, slot(row.h * HOUR_MS))] += row.minutes;
   return buckets.map((group, i) => {
     const { visitors, readers, mapUsers } = people(group);
-    return { at: start + i * step, visitors, readers, mapUsers, visits: group.length, minutes: minutes[i], pageMapMinutes: pageMapMinutes[i] };
+    return { at: starts[i], visitors, readers, mapUsers, visits: group.length, minutes: minutes[i], pageMapMinutes: pageMapMinutes[i] };
   });
 }
 

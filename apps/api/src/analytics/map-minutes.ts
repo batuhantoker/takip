@@ -1,3 +1,4 @@
+import { utcDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
 import { notAdmin, visitorNotAdmin, type Range } from './range';
 
@@ -11,7 +12,7 @@ type HourRow = { h: number; minutes: number };
  * pages' small maps, by hour, so a window of hours keeps to the hour it began in.
  */
 export function mapMinutes(db: AppDb, r: Range) {
-  const params = { first: r.first, fromHour: Math.floor(r.from / HOUR_MS) };
+  const params = { first: utcDay(r.from), fromHour: Math.floor(r.from / HOUR_MS) };
   const since = (alias = '') => `${alias}day >= @first AND ${alias}day * 24 + ${alias}hour >= @fromHour`;
   const full = [
     ...db.prepare(`SELECT day * 24 + hour AS h, minutes FROM activity_hour WHERE subject_type = 'anon' AND ${since()}`).all(params),

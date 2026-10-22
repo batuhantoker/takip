@@ -10,6 +10,7 @@ import type { AnalyticsAudience } from './analytics-types';
 import { count, minutes, pct, plural, pointNames, sinceIndex, sum, weekDelta } from './lib/format';
 import { ink, NEUTRAL } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
+import { zoneName } from './lib/zone';
 import { DbIpCredit, PlaceLabel } from './parts/place-label';
 import { More } from './parts/more';
 import { CollectingNote, Pair, SectionFrame, Tiles } from './parts/section-frame';
@@ -26,6 +27,8 @@ function Audience({ a, hours }: { a: AnalyticsAudience; hours: number | null }) 
   const rows = a.hours && hours ? a.hours.map(h => ({ ...h, point: new Date(h.at).toISOString() })) : a.days.map(d => ({ ...d, point: d.day }));
   const { tick, title, row } = pointNames(hours);
   const per = hours ? 'per hour' : 'per day';
+  // Days here are kept by UTC day; a window of hours is named on the viewer's clock.
+  const pointColumn = hours ? `Hour (${zoneName()})` : 'Day (UTC)';
   const days = rows.map(d => d.point);
   const columns = rows.map(d => ({ key: d.point, label: tick(d.point), title: title(d.point) }));
   const line = (key: 'signups' | 'sessions' | 'activeUsers' | 'activeVisitors') => rows.map(d => d[key]);
@@ -57,7 +60,7 @@ function Audience({ a, hours }: { a: AnalyticsAudience; hours: number | null }) 
       <ChartCard
         title={`Active ${per}`}
         note={hours ? 'Accounts, and browsers with a visitor id, with map time in each hour' : <CollectingNote since={a.since} first={days[0]} />}
-        table={{ columns: [hours ? 'Hour (UTC)' : 'Day', 'Accounts', 'Visitors'], rows: [...rows].reverse().map(d => [row(d.point), d.activeUsers, d.activeVisitors]) }}
+        table={{ columns: [pointColumn, 'Accounts', 'Visitors'], rows: [...rows].reverse().map(d => [row(d.point), d.activeUsers, d.activeVisitors]) }}
       >
         <TimeSeries
           label={`Active accounts and visitors ${per}`}
@@ -70,10 +73,10 @@ function Audience({ a, hours }: { a: AnalyticsAudience; hours: number | null }) 
       </ChartCard>
 
       <Pair>
-        <ChartCard title={`Sign-ups ${per}`} table={{ columns: [hours ? 'Hour (UTC)' : 'Day', 'Sign-ups'], rows: [...rows].reverse().map(d => [row(d.point), d.signups]) }}>
+        <ChartCard title={`Sign-ups ${per}`} table={{ columns: [pointColumn, 'Sign-ups'], rows: [...rows].reverse().map(d => [row(d.point), d.signups]) }}>
           {sum(signups) ? <StackedBars label={`Sign-ups ${per}`} days={!hours} columns={columns} series={[{ key: 'signups', label: 'Sign-ups', color: NEUTRAL, values: signups }]} /> : <Muted>No sign-ups in this range.</Muted>}
         </ChartCard>
-        <ChartCard title={`Sign-ins ${per}`} note="New sessions, including each new device" table={{ columns: [hours ? 'Hour (UTC)' : 'Day', 'Sign-ins'], rows: [...rows].reverse().map(d => [row(d.point), d.sessions]) }}>
+        <ChartCard title={`Sign-ins ${per}`} note="New sessions, including each new device" table={{ columns: [pointColumn, 'Sign-ins'], rows: [...rows].reverse().map(d => [row(d.point), d.sessions]) }}>
           {sum(sessions) ? <StackedBars label={`Sign-ins ${per}`} days={!hours} columns={columns} series={[{ key: 'sessions', label: 'Sign-ins', color: NEUTRAL, values: sessions }]} /> : <Muted>No sign-ins in this range.</Muted>}
         </ChartCard>
       </Pair>

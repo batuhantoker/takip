@@ -7,10 +7,11 @@ import type { AnalyticsStorage } from './analytics-types';
 import { bytes, count, duration, shortDay } from './lib/format';
 import { ink, OTHER, topKeys } from './lib/series';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
+import { localClock, localIsoDay, zoneName } from './lib/zone';
 import { Pair, SectionFrame, SectionHeading } from './parts/section-frame';
 import { StorageGroups } from './parts/storage-groups';
 
-const hour = (iso: string | null) => (iso ? iso.replace('T', ' ').slice(0, 16) : '—');
+const hour = (iso: string | null) => (iso ? `${localIsoDay(Date.parse(iso))} ${localClock(Date.parse(iso))}` : '—');
 
 export function StorageSection({ query, onRescan }: { query: AnalyticsQuery<AnalyticsStorage>; onRescan: () => void }) {
   return (
@@ -77,7 +78,7 @@ function Storage({ s, onRescan, rescanning }: { s: AnalyticsStorage; onRescan: (
                     <th className={TH}>Source</th>
                     <th className={`${TH} text-right`}>Size</th>
                     <th className={`${TH} text-right`}>Hours</th>
-                    <th className={TH}>From – to (UTC)</th>
+                    <th className={TH}>From – to ({zoneName()})</th>
                   </tr>
                 </thead>
                 <tbody>

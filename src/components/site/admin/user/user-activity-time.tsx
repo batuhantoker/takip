@@ -8,10 +8,10 @@ import type { UserAnalytics } from '@/components/site/admin/analytics/analytics-
 import { featureLabel, splitFeature, VIEW_ORDER } from '@/components/site/admin/analytics/lib/features';
 import { count, minutes, shortDay, sum } from '@/components/site/admin/analytics/lib/format';
 import { ink } from '@/components/site/admin/analytics/lib/series';
+import { weekHourTable } from '@/components/site/admin/analytics/lib/zone';
 import { SECTIONS_NOTE } from '@/components/site/admin/analytics/parts/feature-cards';
 import { Pair } from '@/components/site/admin/analytics/parts/section-frame';
 
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const NONE = 'No map time in this range.';
 
 type Feature = UserAnalytics['features'][number];
@@ -27,6 +27,7 @@ export default function UserActivityTime({ u, who = 'This account' }: { u: Activ
   const of = (kind: string) => u.features.filter(f => splitFeature(f.feature).kind === kind).sort((a, b) => b.minutes - a.minutes);
   const views = of('view');
   const devices = of('device');
+  const week = weekHourTable(u.hours);
   const shownViews = VIEW_ORDER.filter(id => u.daily.some(d => (d.views[`view:${id}`] ?? 0) > 0));
 
   return (
@@ -34,7 +35,7 @@ export default function UserActivityTime({ u, who = 'This account' }: { u: Activ
       <Pair>
         <ChartCard
           title="Map time per day"
-          note="Stacked by view: map, space view, History, Replay and the time-limit wall"
+          note="By UTC day, stacked by view: map, space view, History, Replay and the time-limit wall"
           table={{ columns: ['Day', ...shownViews.map(id => featureLabel(`view:${id}`))], rows: [...u.daily].reverse().map(d => [d.day, ...shownViews.map(id => d.views[`view:${id}`] ?? 0)]) }}
         >
           {shownViews.length ? (
@@ -82,8 +83,8 @@ export default function UserActivityTime({ u, who = 'This account' }: { u: Activ
 
       <ChartCard
         title="When they use the map"
-        note="Their map minutes by weekday and hour (UTC)"
-        table={{ columns: ['Weekday and hour (UTC)', 'Minutes'], rows: [...u.hours].sort((x, y) => y.minutes - x.minutes).map(h => [`${DAY_NAMES[h.dow]} ${String(h.hour).padStart(2, '0')}:00`, h.minutes]) }}
+        note={`Their map minutes by weekday and hour (${week.zone})`}
+        table={week}
       >
         {u.hours.length ? <Heatmap cells={u.hours} /> : <Muted>{NONE}</Muted>}
       </ChartCard>
