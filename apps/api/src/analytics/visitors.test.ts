@@ -104,31 +104,30 @@ const list = (query = '') => get<{ total: number; days: number; sort: string; vi
 const ids = async (query: string) => (await list(query)).visitors.map(v => v.visitorId);
 
 describe('the visitors table', () => {
-  it('lists every kept browser with its time in the range', async () => {
+  it('lists the browsers seen in the range with their time there', async () => {
     const { total, days, sort, visitors } = await list();
-    expect({ total, days, sort }).toEqual({ total: 4, days: 30, sort: 'lastSeen' });
-    expect(visitors.map(v => v.visitorId)).toEqual([GAMMA, BETA, ALPHA, OLD]);
+    expect({ total, days, sort }).toEqual({ total: 3, days: 30, sort: 'lastSeen' });
+    expect(visitors.map(v => v.visitorId)).toEqual([GAMMA, BETA, ALPHA]);
     expect(visitors[2]).toEqual({
       visitorId: ALPHA, firstSeenAt: NOW - 10 * DAY_MS, lastSeenAt: NOW - 60_000, userAgent: MAC, referrer: 'news.example.com', landing: '/?utm_source=hn',
       linkedAt: NOW - 60_000, user: { id: beaId, email: BEA.email, name: 'Bea' }, place: null, device: null,
       minutes: 8, activeDays: 2, topPanel: 'panel:layers', topLayer: 'layer:flights', hitWall: false,
     });
     expect(visitors[1]).toMatchObject({ minutes: 2, activeDays: 1, topPanel: null, topLayer: 'layer:wx_radar', hitWall: true, user: null });
-    expect(visitors[3]).toMatchObject({ minutes: 0, activeDays: 0, topLayer: null });
   });
 
   it('sorts, searches and pages', async () => {
-    expect(await ids('?sort=minutes')).toEqual([ALPHA, BETA, GAMMA, OLD]);
-    expect(await ids('?sort=firstSeen')).toEqual([GAMMA, ALPHA, BETA, OLD]);
-    expect(await ids('?sort=activeDays')).toEqual([ALPHA, BETA, GAMMA, OLD]);
+    expect(await ids('?sort=minutes')).toEqual([ALPHA, BETA, GAMMA]);
+    expect(await ids('?sort=firstSeen')).toEqual([GAMMA, ALPHA, BETA]);
+    expect(await ids('?sort=activeDays')).toEqual([ALPHA, BETA, GAMMA]);
     expect(await ids('?q=v-alpha')).toEqual([ALPHA]);
     expect(await ids('?q=example.invalid')).toEqual([ALPHA]);
     expect(await ids(`?q=${encodeURIComponent(ADMIN.email)}`)).toEqual([GAMMA]);
     // '_' is a LIKE wildcard; here it only matches itself.
     expect(await ids('?q=v_')).toEqual([]);
     expect(await ids('?limit=1&offset=1')).toEqual([BETA]);
-    expect(await ids('?admins=exclude')).toEqual([BETA, ALPHA, OLD]);
-    expect((await list('?days=90')).visitors.find(v => v.visitorId === OLD)).toMatchObject({ minutes: 0 });
+    expect(await ids('?admins=exclude')).toEqual([BETA, ALPHA]);
+    expect(await ids('?days=90')).not.toContain(OLD);
   });
 
   it('refuses unknown sorts and ranges', async () => {

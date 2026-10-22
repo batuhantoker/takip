@@ -64,7 +64,7 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   get('/data', async (r, refresh) => dataAccumulation(dirs.dataDir, r, await history(refresh)));
   get('/system', r => system(db, r, { metrics, startedAt, backupDir: dirs.backupDir, now: now() }));
   get('/visitors', r => visitors(db, r));
-  get('/pages', r => ({ ...pages(db, r), journeys: journeys(db, loadVisits(db, r)) }));
+  get('/pages', r => ({ ...pages(db, r), journeys: journeys(db, loadVisits(db, r), r) }));
   get('/live', r => live(db, presence, r));
   const searches = new Map<string, (fresh?: boolean) => Promise<object>>();
   get('/search', (r, refresh) => {

@@ -80,7 +80,7 @@ export function OverviewSection({ attention, ...q }: Queries & { attention: Atte
         </Pending>
       </div>
 
-      <TopLists pages={q.pages} engagement={q.engagement} visitors={q.visitors} />
+      <TopLists pages={q.pages} engagement={q.engagement} />
     </>
   );
 }

@@ -33,15 +33,20 @@ describe('attention', () => {
         pages: [{ path: '/tr/city/nevsehir/cameras', views: 3, readers: 2, toMap: 1 }], sections: [], locales: [],
         referrers: [{ referrer: 'www.google.com', views: 2, readers: 2 }],
         journeys: {
-          since: null, totals: { visits: 0, views: 0, left: 0, readOn: 0, toMap: 0, landedOnMap: 0, returning: 0, avgSteps: 0, medianMs: null },
-          flow: [], channels: [], sources: [], links: [], steps: [], pages: [], hours: [], countries: [], cities: [], points: [], devices: [], browsers: [], oses: [], campaigns: [],
+          since: null,
+          totals: {
+            visitors: 0, new: 0, readers: 0, mapUsers: 0, both: 0, signedIn: 0,
+            visits: 0, views: 0, left: 0, readOn: 0, toMap: 0, landedOnMap: 0, returning: 0, avgSteps: 0, medianMs: null,
+          },
+          series: [], flow: [], channels: [], sources: [{ source: 'Google', channel: 'search', hosts: ['www.google.com'], visits: 2 }], links: [], steps: [], pages: [], hours: [], countries: [], cities: [], points: [], devices: [], browsers: [], oses: [], campaigns: [],
         } } as AnalyticsPages,
     }, NOW);
     expect(items.map(i => [i.tone, i.tab, i.text])).toEqual([
       ['problem', 'system', '2 background jobs failed (email.send): SMTP refused'],
       ['watch', 'system', '1 issue report waiting'],
-      ['news', 'pages', '2 page views from search engines in the range'],
-      ['news', 'pages', 'Most read: /tr/city/nevsehir/cameras (3 views)'],
+      ['news', 'visitors', '2 page views from search engines in the range'],
+      ['news', 'visitors', 'Most read: /tr/city/nevsehir/cameras (3 views)'],
+      ['news', 'visitors', 'Most visits from another site came from Google (2 visits)'],
     ]);
     expect([...flaggedTabs(items)]).toEqual(['system']);
   });

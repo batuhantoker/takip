@@ -12,12 +12,12 @@ export function ChartCard({ title, note, actions, table, children, className = '
   const [asTable, setAsTable] = useState(false);
   return (
     <section className={`rounded-card border border-line bg-surface-1 min-w-0 ${className}`}>
-      <header className="flex items-start justify-between gap-3 px-4 pt-3 pb-2">
-        <div className="min-w-0">
+      <header className="flex flex-wrap items-start justify-between gap-3 px-4 pt-3 pb-2">
+        <div className="min-w-0 flex-1 basis-48">
           <h2 className="text-[12px] font-medium text-ink-2">{title}</h2>
           {note && <div className="mt-0.5 text-[11px] text-ink-3">{note}</div>}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex max-w-full shrink-0 items-center gap-2 overflow-x-auto">
           {actions}
           {table && table.rows.length > 0 && (
             <button

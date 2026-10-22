@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useAdminData } from '@/components/site/admin/admin-api';
 import { Button, ErrorText, Muted, when } from '@/components/site/admin/parts/admin-parts';
@@ -26,8 +26,8 @@ function describe(filter: VisitFilter) {
   ].filter((x): x is [keyof VisitFilter, string] => !!x);
 }
 
-/** The latest visits, each as its trail of pages, narrowed by whatever was picked in the charts above. */
-export function RecentVisits({ range, filter, onFilter }: { range: string; filter: VisitFilter; onFilter: (f: VisitFilter) => void }) {
+/** The latest visits, each as its trail of pages, narrowed by whatever was picked in the charts above; `tabs` heads the card. */
+export function RecentVisits({ range, filter, onFilter, tabs }: { range: string; filter: VisitFilter; onFilter: (f: VisitFilter) => void; tabs: ReactNode }) {
   const [offset, setOffset] = useState(0);
   const [shown, setShown] = useState({ range, filter });
   if (shown.range !== range || shown.filter !== filter) {
@@ -43,9 +43,9 @@ export function RecentVisits({ range, filter, onFilter }: { range: string; filte
   return (
     <section className="flex flex-col gap-3 rounded-card border border-line bg-surface-1 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[12px] font-medium text-ink-2">Recent visits</h2>
-          <p className="mt-0.5 text-[11px] text-ink-3">Latest activity first: where each came from, the pages it read in order, and whether it opened the map.</p>
+        <div className="flex flex-col gap-1.5">
+          {tabs}
+          <p className="text-[11px] text-ink-3">Latest first: where each came from, the pages it read in order, and whether it opened the map.</p>
         </div>
         <Button onClick={reload}>Refresh</Button>
       </div>

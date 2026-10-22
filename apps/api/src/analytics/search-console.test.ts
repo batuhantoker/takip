@@ -6,10 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminKit } from '../admin/testing';
 import { startApp, type TestApp } from '../testing/helpers';
 import { alpha2, createSearchConsole, type SearchConsole, type SearchQuery, type SearchRow } from './search-console';
+import { rangeOf } from './range';
 import { pageType, searchReport } from './search-report';
 
 const NOW = Date.UTC(2026, 9, 21, 12);
-const RANGE = { today: Math.floor(NOW / 86_400_000), first: Math.floor(NOW / 86_400_000) - 6, days: 7, excludeAdmins: false };
+const RANGE = rangeOf({ days: 7, admins: 'include' }, NOW);
 
 describe('page types', () => {
   it('adds pages up by what TAKIP generates, in any language', () => {

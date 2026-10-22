@@ -4,16 +4,30 @@ import { DAY_MS, isoDay, utcDay } from '../access/usage';
 
 export const rangeQuery = z.object({
   days: z.coerce.number().pipe(z.union([z.literal(7), z.literal(30), z.literal(90)])).default(30),
+  /** A window of hours instead of days: the visit log keeps to it exactly, tables kept by day cover the UTC days it touches. */
+  hours: z.coerce.number().pipe(z.union([z.literal(6), z.literal(24), z.literal(72)])).optional(),
   admins: z.enum(['include', 'exclude']).default('include'),
   refresh: z.literal('1').optional(),
 });
 
-/** UTC days `first`…`today`; `excludeAdmins` drops accounts with the admin role wherever accounts are counted. */
-export type Range = { today: number; first: number; days: number; excludeAdmins: boolean };
+/**
+ * UTC days `first`…`today`, and `from`, the exact start in ms (midnight of `first` unless `hours` set it);
+ * `excludeAdmins` drops accounts with the admin role wherever accounts are counted.
+ */
+export type Range = { today: number; first: number; days: number; from: number; hours: number | null; excludeAdmins: boolean };
 
-export function rangeOf(query: z.infer<typeof rangeQuery>, now: number): Range {
+const HOUR_MS = 3_600_000;
+
+export function rangeOf(query: Pick<z.infer<typeof rangeQuery>, 'days' | 'hours' | 'admins'>, now: number): Range {
   const today = utcDay(now);
-  return { today, first: today - query.days + 1, days: query.days, excludeAdmins: query.admins === 'exclude' };
+  const excludeAdmins = query.admins === 'exclude';
+  if (query.hours) {
+    const from = now - query.hours * HOUR_MS;
+    const first = utcDay(from);
+    return { today, first, days: today - first + 1, from, hours: query.hours, excludeAdmins };
+  }
+  const first = today - query.days + 1;
+  return { today, first, days: query.days, from: first * DAY_MS, hours: null, excludeAdmins };
 }
 
 /** One entry per day of the range, oldest first. */

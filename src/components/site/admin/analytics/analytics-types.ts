@@ -1,7 +1,8 @@
 /*
  * Response shapes of GET /api/admin/analytics/* (apps/api/src/analytics/routes.ts).
  * Days are UTC 'YYYY-MM-DD', oldest first, every day in the range present; times are epoch ms.
- * Range endpoints take ?days=7|30|90 (default 30) and ?admins=exclude to leave admin accounts out.
+ * Range endpoints take ?days=7|30|90 (default 30) or ?hours=6|24|72, and ?admins=exclude to leave admin accounts out.
+ * The visit log keeps to an hours window exactly; tables kept by day cover the UTC days it touches.
  */
 
 /** `since`: the first day the section has data for (map minutes, API counters or ingest runs); minutes start the day the tick shipped. */
@@ -367,9 +368,13 @@ export interface PageJourneys {
   /** First day the view log has. */
   since: string | null;
   totals: {
+    /** Browsers: all, new to the site, that read a page, opened the map, did both, and linked to an account. */
+    visitors: number; new: number; readers: number; mapUsers: number; both: number; signedIn: number;
     visits: number; views: number; left: number; readOn: number; toMap: number; landedOnMap: number; returning: number; avgSteps: number;
     medianMs: number | null;
   };
+  /** Per hour for an hours range, else per UTC day, oldest first; `at` is the bucket's start (ms). A visit counts where it began. */
+  series: { at: number; visitors: number; readers: number; mapUsers: number; visits: number }[];
   flow: { origin: string | null; landing: string; next: NextStep; visits: number }[];
   channels: { channel: Channel; visits: number }[];
   sources: { source: string; channel: Channel; hosts: string[]; visits: number }[];

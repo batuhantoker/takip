@@ -2,7 +2,6 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { PageTitle, Select } from '@/components/site/admin/parts/admin-parts';
-import { Switch } from '@/components/site/admin/parts/admin-switch';
 import type {
   AnalyticsApi, AnalyticsAudience, AnalyticsData, AnalyticsEngagement, AnalyticsPages, AnalyticsStorage, AnalyticsSystem, AnalyticsVisitors,
 } from '@/components/site/admin/analytics/analytics-types';
@@ -14,20 +13,29 @@ import { CrawlersSection } from '@/components/site/admin/analytics/crawlers-sect
 import { SearchSection } from '@/components/site/admin/analytics/search-section';
 import { AudienceSection } from '@/components/site/admin/analytics/audience-section';
 import { VisitorsSection } from '@/components/site/admin/analytics/visitors-section';
-import { PagesSection } from '@/components/site/admin/analytics/pages-section';
 import { EngagementSection } from '@/components/site/admin/analytics/engagement-section';
 import { ApiSection } from '@/components/site/admin/analytics/api-section';
 import { StorageSection } from '@/components/site/admin/analytics/storage-section';
 import { IngestSection } from '@/components/site/admin/analytics/ingest-section';
 import { SystemSection } from '@/components/site/admin/analytics/system-section';
 
-const RANGES = [7, 30, 90] as const;
+/** Hours windows are exact on the Visitors tab (the visit log); tabs kept by day show the UTC days they touch. */
+const RANGES = [
+  { id: '6h', label: 'Last 6 hours', unit: 'hours', n: 6 },
+  { id: '24h', label: 'Last 24 hours', unit: 'hours', n: 24 },
+  { id: '3d', label: 'Last 3 days', unit: 'hours', n: 72 },
+  { id: '7d', label: 'Last 7 days', unit: 'days', n: 7 },
+  { id: '30d', label: 'Last 30 days', unit: 'days', n: 30 },
+  { id: '90d', label: 'Last 90 days', unit: 'days', n: 90 },
+] as const;
+type RangeId = (typeof RANGES)[number]['id'];
+// Admins' own visits and accounts are left out everywhere but Live, where they show marked.
+const ADMINS = 'admins=exclude';
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
   { id: 'live', label: 'Live' },
   { id: 'audience', label: 'Audience' },
   { id: 'visitors', label: 'Visitors' },
-  { id: 'pages', label: 'Pages' },
   { id: 'search', label: 'Search' },
   { id: 'crawlers', label: 'Crawlers' },
   { id: 'engagement', label: 'Engagement' },
@@ -42,18 +50,18 @@ const onHash = (notify: () => void) => {
   return () => window.removeEventListener('hashchange', notify);
 };
 
-/** The open section lives in the URL hash, so a link can point at it. */
+/** The open section lives in the URL hash, so a link can point at it; #pages was its own tab before it joined Visitors. */
 function useSection(): SectionId {
   const hash = useSyncExternalStore(onHash, () => window.location.hash.slice(1), () => '');
-  return SECTIONS.find(s => s.id === hash)?.id ?? 'overview';
+  return SECTIONS.find(s => s.id === (hash === 'pages' ? 'visitors' : hash))?.id ?? 'overview';
 }
 
 export default function AnalyticsPage() {
-  const [days, setDays] = useState<number>(30);
-  const [hideAdmins, setHideAdmins] = useState(false);
+  const [span, setSpan] = useState<RangeId>('30d');
   const [rescans, setRescans] = useState(0);
   const section = useSection();
-  const range = `?days=${days}${hideAdmins ? '&admins=exclude' : ''}`;
+  const picked = RANGES.find(r => r.id === span)!;
+  const range = `?${picked.unit}=${picked.n}&${ADMINS}`;
 
   const audience = useAnalyticsData<AnalyticsAudience>(`/analytics/audience${range}`);
   const visitors = useAnalyticsData<AnalyticsVisitors>(`/analytics/visitors${range}`);
@@ -73,12 +81,9 @@ export default function AnalyticsPage() {
   return (
     <>
       <PageTitle title="Analytics">
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <Switch on={hideAdmins} states={['Admins hidden', 'Admins included']} label="Hide admin accounts" disabled={false} warnOff={false} onClick={() => setHideAdmins(v => !v)} />
-          <Select value={days} onChange={e => setDays(Number(e.target.value))} aria-label="Range">
-            {RANGES.map(n => <option key={n} value={n}>Last {n} days</option>)}
-          </Select>
-        </div>
+        <Select value={span} onChange={e => setSpan(e.target.value as RangeId)} aria-label="Range">
+          {RANGES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+        </Select>
       </PageTitle>
 
       <div role="tablist" aria-label="Analytics sections" className="-mt-2 mb-5 flex gap-1 overflow-x-auto border-b border-line">
@@ -98,11 +103,13 @@ export default function AnalyticsPage() {
       </div>
 
       <div role="tabpanel" aria-label={SECTIONS.find(s => s.id === section)?.label} className="flex flex-col gap-4 pb-10">
+        {picked.unit === 'hours' && section !== 'visitors' && section !== 'live' && (
+          <p className="text-[12px] text-ink-3">This tab is kept by UTC day, so it shows the whole days the {picked.label.toLowerCase()} fall on.</p>
+        )}
         {section === 'overview' && <OverviewSection attention={notes} audience={audience} visitors={visitors} pages={pages} engagement={engagement} api={api} storage={storage} system={system} />}
-        {section === 'live' && <LiveSection hideAdmins={hideAdmins} />}
+        {section === 'live' && <LiveSection hideAdmins={false} />}
         {section === 'audience' && <AudienceSection query={audience} />}
-        {section === 'visitors' && <VisitorsSection query={visitors} days={days} />}
-        {section === 'pages' && <PagesSection query={pages} range={range} />}
+        {section === 'visitors' && <VisitorsSection pages={pages} visitors={visitors} range={range} hours={picked.unit === 'hours' ? picked.n : null} />}
         {section === 'search' && <SearchSection range={range} />}
         {section === 'crawlers' && <CrawlersSection range={range} />}
         {section === 'engagement' && <EngagementSection query={engagement} />}

@@ -81,16 +81,16 @@ export function groupVisits(rows: ViewRow[]): Visit[] {
   return visits;
 }
 
-/** Every visit begun in the range, oldest first; a reader whose browser is linked to an admin's account is left out when admins are. */
+/** Every visit in the range (from `r.from` exactly), oldest first; a reader whose browser is linked to an admin's account is left out when admins are. */
 export function loadVisits(db: AppDb, r: Range) {
   const rows = db.prepare(`
-    WITH prior AS (SELECT visitor_id, min(at) AS at FROM page_view WHERE day < @first GROUP BY visitor_id)
+    WITH prior AS (SELECT visitor_id, min(at) AS at FROM page_view WHERE at < @from GROUP BY visitor_id)
     SELECT p.visitor_id AS visitorId, p.at, p.path, p.locale, p.referrer, p.referrer_path AS referrerPath, p.from_path AS fromPath, p.campaign,
       p.country, p.region, p.city, p.latitude, p.longitude, p.browser, p.os, p.device,
       v.visitor_id IS NOT NULL AS known, v.first_seen_at AS mapSince, prior.at AS priorAt, u.id AS userId, u.email
     FROM page_view p LEFT JOIN visitor v ON v.visitor_id = p.visitor_id LEFT JOIN auth_user u ON u.id = v.user_id
       LEFT JOIN prior ON prior.visitor_id = p.visitor_id
-    WHERE p.day >= @first ${visitorNotAdmin(r)} ORDER BY p.visitor_id, p.at`).all({ first: r.first }) as ViewRow[];
+    WHERE p.day >= @first AND p.at >= @from ${visitorNotAdmin(r)} ORDER BY p.visitor_id, p.at`).all({ first: r.first, from: r.from }) as ViewRow[];
   return groupVisits(rows).sort((a, b) => a.start - b.start);
 }
 

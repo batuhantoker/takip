@@ -32,6 +32,7 @@ export const visitorsQuery = z.object({
   offset: z.coerce.number().int().min(0).default(0),
   limit: z.coerce.number().int().min(1).max(100).default(50),
   days: rangeQuery.shape.days,
+  hours: rangeQuery.shape.hours,
   admins: rangeQuery.shape.admins,
   sort: z.enum(VISITOR_SORTS).default('lastSeen'),
 });
@@ -44,12 +45,12 @@ const ORDER: Record<VisitorSort, string> = {
   activeDays: 'activeDays DESC, minutes DESC, v.last_seen_at DESC, v.visitor_id',
 };
 
-/** Every kept visitor with its signed-out time over the range (GET /api/admin/analytics/visitors/list), sorted and paged in SQL. */
+/** Every visitor seen in the range with its signed-out time there (GET /api/admin/analytics/visitors/list), sorted and paged in SQL. */
 export function visitorList(db: AppDb, query: z.infer<typeof visitorsQuery>, r: Range) {
   const like = `%${query.q.replace(/[\\%_]/g, '\\$&')}%`;
-  const params = { first: r.first, q: query.q, like, limit: query.limit, offset: query.offset };
+  const params = { first: r.first, from: r.from, q: query.q, like, limit: query.limit, offset: query.offset };
   // Ids and emails hold '_', a LIKE wildcard: the id is matched by prefix, the email with wildcards escaped.
-  const where = `WHERE (@q = '' OR substr(v.visitor_id, 1, length(@q)) = @q OR u.email LIKE @like ESCAPE '\\') ${visitorNotAdmin(r)}`;
+  const where = `WHERE v.last_seen_at >= @from AND (@q = '' OR substr(v.visitor_id, 1, length(@q)) = @q OR u.email LIKE @like ESCAPE '\\') ${visitorNotAdmin(r)}`;
   const from = 'FROM visitor v LEFT JOIN auth_user u ON u.id = v.user_id';
   const total = db.prepare(`SELECT count(*) ${from} ${where}`).pluck().get(params) as number;
   const rows = db.prepare(`

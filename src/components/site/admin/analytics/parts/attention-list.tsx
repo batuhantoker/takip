@@ -3,7 +3,7 @@ import type { Attention, AttentionTone } from '../lib/attention';
 
 const DOT: Record<AttentionTone, string> = { problem: 'bg-red', watch: 'bg-amber', news: 'bg-ink-4' };
 const TAB: Record<Attention['tab'], string> = {
-  audience: 'Audience', visitors: 'Visitors', pages: 'Pages', engagement: 'Engagement', api: 'API', data: 'Data & storage', system: 'System',
+  audience: 'Audience', visitors: 'Visitors', engagement: 'Engagement', api: 'API', data: 'Data & storage', system: 'System',
 };
 
 /** The Overview's first card: what needs a look, then what's worth knowing, each linking to its tab. */

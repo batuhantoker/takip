@@ -8,6 +8,7 @@ import { count } from '../lib/format';
 import { CHANNEL_LABEL, NEXT_LABEL, NEXT_ORDER, originLabel, outcomesBy, pathLabel, STEP_INK } from '../lib/journeys';
 import { OutcomeList } from './outcome-list';
 import { Pair } from './section-frame';
+import { TabbedCard } from './tabbed-card';
 
 const TOP_ORIGINS = 7;
 const TOP_LANDINGS = 8;
@@ -18,7 +19,7 @@ export const pathText = (s: string) => <span className="font-mono text-[12px]">{
 /** The top `n` keys, unless only one more would be folded away. */
 const keep = (keys: string[], n: number) => new Set(keys.length > n + 1 ? keys.slice(0, n) : keys);
 
-/** How visits arrived and where they went: the flow chart, channels, sources, landing pages and the linking pages. */
+/** How visits arrived and where they went: the flow chart, then sources and landing pages with what each led to. */
 export function JourneyFlow({ j, onPick }: { j: PageJourneys; onPick: (filter: VisitFilter) => void }) {
   const origins = outcomesBy(j.flow, 'origin');
   const landings = outcomesBy(j.flow, 'landing');
@@ -49,10 +50,19 @@ export function JourneyFlow({ j, onPick }: { j: PageJourneys; onPick: (filter: V
     onPick(column === 0 ? { origin: key || 'direct' } : column === 1 ? { page: key } : { next: key as VisitFilter['next'] });
   };
 
+  const channelTab = (
+    <BarList format={count} empty="No visits in this range."
+      rows={j.channels.map(c => ({
+        key: c.channel, value: c.visits,
+        label: <button type="button" onClick={() => onPick({ channel: c.channel })} className="hover:underline">{CHANNEL_LABEL[c.channel]}</button>,
+        detail: j.sources.filter(s => s.channel === c.channel).slice(0, 4).map(s => `${s.source} ${count(s.visits)}`).join(' · ') || undefined,
+      }))} />
+  );
+
   return (
     <>
       <ChartCard title="Where visits came from and where they went"
-        note={`Each visit's source, the page it landed on, and what it did next. The top ${TOP_ORIGINS} sources and ${TOP_LANDINGS} landing pages are drawn; the rest fold into Other. A visit ends after half an hour without a view.`}
+        note={`Source, then the page or map it landed on, then what it did next; the top ${TOP_ORIGINS} sources and ${TOP_LANDINGS} landings are drawn.`}
         table={j.flow.length ? { columns: ['Came from', 'Landed on', 'Then', 'Visits'], rows: j.flow.map(f => [originLabel(f.origin), pathLabel(f.landing), NEXT_LABEL[f.next], f.visits]) } : null}>
         {j.flow.length
           ? <FlowChart columns={columns} links={[...sums.values()]} label="Visits from each source to their landing page and next step" format={count} onPick={pick} />
@@ -60,29 +70,24 @@ export function JourneyFlow({ j, onPick }: { j: PageJourneys; onPick: (filter: V
       </ChartCard>
 
       <Pair>
-        <ChartCard title="How they arrived" note="Search engines, AI assistants and social sites by name; click one to list its visits">
-          <BarList format={count} empty="No visits in this range."
-            rows={j.channels.map(c => ({
-              key: c.channel, value: c.visits,
-              label: <button type="button" onClick={() => onPick({ channel: c.channel })} className="hover:underline">{CHANNEL_LABEL[c.channel]}</button>,
-              detail: j.sources.filter(s => s.channel === c.channel).slice(0, 4).map(s => `${s.source} ${count(s.visits)}`).join(' · ') || undefined,
-            }))} />
-        </ChartCard>
-        <ChartCard title="Linking pages" note="The page on the other site, when that site shares it; most send only their address">
-          <BarList format={count} limit={10} empty="No other site has shared its page yet."
-            rows={j.links.map(l => ({
-              key: l.url, value: l.visits,
-              label: <a href={`https://${l.url}`} target="_blank" rel="noopener noreferrer" className="font-mono text-[12px] hover:underline">{l.url}</a>,
-            }))} />
-        </ChartCard>
-      </Pair>
-
-      <Pair>
-        <ChartCard title="Where each source leads" note="Click one to list its visits">
-          <OutcomeList rows={origins} onPick={k => onPick({ origin: k || 'direct' })}
-            label={k => <span title={hosts.get(k)?.join(', ')}>{originLabel(k || null)}</span>} />
-        </ChartCard>
-        <ChartCard title="What each landing page leads to" note="The first page of each visit; the map when it began there. Click one for the page">
+        <TabbedCard title="Sources" tabs={[
+          { id: 'sources', label: 'Sources', note: 'What each one\'s visits did next; click to list them', body: (
+            <OutcomeList rows={origins} onPick={k => onPick({ origin: k || 'direct' })}
+              label={k => <span title={hosts.get(k)?.join(', ')}>{originLabel(k || null)}</span>} />
+          ) },
+          { id: 'channels', label: 'Channels', note: 'Search, AI assistants, social and other sites', body: channelTab },
+          { id: 'campaigns', label: 'Campaigns', note: 'utm_source, ref or source on the link', body: (
+            <BarList format={count} rows={j.campaigns.map(c => ({ key: c.campaign, label: c.campaign, value: c.visits }))} empty="No tagged links in this range." />
+          ) },
+          { id: 'links', label: 'Links', note: 'The page on the other site, when it shares it', body: (
+            <BarList format={count} limit={10} empty="No other site has shared its page yet."
+              rows={j.links.map(l => ({
+                key: l.url, value: l.visits,
+                label: <a href={`https://${l.url}`} target="_blank" rel="noopener noreferrer" className="font-mono text-[12px] hover:underline">{l.url}</a>,
+              }))} />
+          ) },
+        ]} />
+        <ChartCard title="Landing pages" note="Where each visit began, and what it did next; click one for the page">
           <OutcomeList rows={landings} label={pathText} onPick={k => onPick({ page: k })} />
         </ChartCard>
       </Pair>

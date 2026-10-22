@@ -91,7 +91,10 @@ describe('visits in admin', () => {
 
   it('shows where each origin led', async () => {
     const { journeys } = await get<{ journeys: Record<string, unknown> }>('/pages');
-    expect(journeys.totals).toEqual({ visits: 3, views: 4, left: 2, readOn: 0, toMap: 1, landedOnMap: 1, returning: 0, avgSteps: 4 / 3, medianMs: 2 * MIN });
+    expect(journeys.totals).toEqual({
+      visitors: 3, new: 3, readers: 2, mapUsers: 2, both: 1, signedIn: 1,
+      visits: 3, views: 4, left: 2, readOn: 0, toMap: 1, landedOnMap: 1, returning: 0, avgSteps: 4 / 3, medianMs: 2 * MIN,
+    });
     expect(journeys.flow).toEqual([
       { origin: 'Google', landing: '/city/berlin', next: 'map', visits: 1 },
       { origin: 'Google', landing: '/city/berlin', next: 'left', visits: 1 },
@@ -106,6 +109,25 @@ describe('visits in admin', () => {
     expect(journeys.steps).toEqual([{ from: '/city/berlin', to: '/', visits: 1 }]);
     expect(journeys.campaigns).toEqual([{ campaign: 'newsletter', visits: 1 }]);
     expect(journeys.devices).toEqual([{ device: 'desktop', visits: 2 }, { device: 'mobile', visits: 1 }]);
+  });
+
+  it('keeps to a window of hours, counted per hour', async () => {
+    const early = NOW - 7 * 60 * MIN;
+    t.db.prepare(`INSERT INTO page_view (visitor_id, at, day, path, locale, referrer, browser, os, device) VALUES (?, ?, ?, '/about', 'en', '', 'Chrome', 'macOS', 'desktop')`)
+      .run('v-delta-0000000004', early, Math.floor(early / DAY_MS));
+    type Journeys = { journeys: { totals: { visitors: number }; series: { at: number; visitors: number; readers: number; mapUsers: number; visits: number }[] } };
+    expect((await get<Journeys>('/pages?days=7')).journeys.totals.visitors).toBe(4);
+    const { journeys } = await get<Journeys>('/pages?hours=6');
+    expect(journeys.totals.visitors).toBe(3);
+    expect(journeys.series.map(b => b.at)).toEqual(Array.from({ length: 7 }, (_, i) => NOW - (6 - i) * 60 * MIN));
+    expect(journeys.series[5]).toEqual({ at: NOW - 60 * MIN, visitors: 3, readers: 2, mapUsers: 2, visits: 3 });
+    expect((await get<{ total: number }>('/pages/visits?hours=6')).total).toBe(3);
+  });
+
+  it('lists only the browsers seen in the range', async () => {
+    t.db.prepare('INSERT INTO visitor (visitor_id, first_seen_at, last_seen_at) VALUES (?, ?, ?)').run('v-old-000000000005', NOW - 10 * DAY_MS, NOW - 10 * DAY_MS);
+    expect((await get<{ total: number }>('/visitors/list?days=30')).total).toBe(2);
+    expect((await get<{ total: number }>('/visitors/list?days=7')).total).toBe(1);
   });
 
   it('shows one page: where its readers came from, where they went and how long they stayed', async () => {

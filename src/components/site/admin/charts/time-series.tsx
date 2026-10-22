@@ -9,11 +9,15 @@ export type Series = { key: string; label: string; color: string; values: number
 const W = 1000;
 const H = 100;
 
-/** Lines over days on one axis; a single series also gets a 10% wash. Crosshair readout on hover and arrow keys. */
-export function TimeSeries({ days: allDays, series: allSeries, format = compact, height = 160, label }: {
+/**
+ * Lines over days on one axis; a single series also gets a 10% wash. Crosshair readout on hover and arrow keys.
+ * `days` can be any points in time when `tick` and `title` name them (hours); `trim` drops the empty stretch before the data.
+ */
+export function TimeSeries({ days: allDays, series: allSeries, format = compact, height = 160, label, tick = shortDay, title = longDay, trim = true }: {
   days: string[]; series: Series[]; format?: (n: number) => string; height?: number; label: string;
+  tick?: (point: string) => string; title?: (point: string) => string; trim?: boolean;
 }) {
-  const start = firstWithData(allSeries.map(s => s.values));
+  const start = trim ? firstWithData(allSeries.map(s => s.values)) : 0;
   const days = allDays.slice(start);
   const series = start ? allSeries.map(s => ({ ...s, values: s.values.slice(start) })) : allSeries;
   const [at, setAt] = useState<number | null>(null);
@@ -42,7 +46,7 @@ export function TimeSeries({ days: allDays, series: allSeries, format = compact,
         <div
           role="img"
           tabIndex={0}
-          aria-label={`${label}. Use the arrow keys to read each day.`}
+          aria-label={`${label}. Use the arrow keys to read each point.`}
           className="absolute inset-0 outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-[2px] touch-none"
           onPointerMove={pick}
           onPointerDown={pick}
@@ -73,7 +77,7 @@ export function TimeSeries({ days: allDays, series: allSeries, format = compact,
           })}
           {at !== null && (
             <Tip
-              title={longDay(days[at])}
+              title={title(days[at])}
               left={x(at)}
               flip={x(at) > 60}
               rows={series.map(s => ({ label: s.label, value: format(s.values[at] ?? 0), color: series.length > 1 ? s.color : undefined }))}
@@ -81,7 +85,7 @@ export function TimeSeries({ days: allDays, series: allSeries, format = compact,
           )}
         </div>
       </PlotFrame>
-      <XLabels labels={days.map(shortDay)} />
+      <XLabels labels={days.map(tick)} />
     </div>
   );
 }

@@ -2,8 +2,10 @@ import { DAY_MS, isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
 import { MAP_PATH } from './page-reads';
 import type { Next, Visit } from './page-visits';
+import type { Range } from './range';
 
 const TOP = 40;
+const HOUR_MS = 3_600_000;
 
 const median = (values: number[]) => {
   if (!values.length) return null;
@@ -45,11 +47,40 @@ function pageStats(visits: Visit[]) {
     .slice(0, TOP);
 }
 
+/** The browsers behind `visits` (oldest first): all of them, those new to the site, those that read a page, opened the map, did both, or have an account. */
+function people(visits: Visit[]) {
+  const all = new Set<string>();
+  const fresh = new Set<string>();
+  const readers = new Set<string>();
+  const map = new Set<string>();
+  const signedIn = new Set<string>();
+  for (const v of visits) {
+    if (!all.has(v.visitorId) && !v.returning) fresh.add(v.visitorId);
+    all.add(v.visitorId);
+    if (v.steps.some(s => s.path !== MAP_PATH)) readers.add(v.visitorId);
+    if (v.steps.some(s => s.path === MAP_PATH)) map.add(v.visitorId);
+    if (v.user) signedIn.add(v.visitorId);
+  }
+  return { visitors: all.size, new: fresh.size, readers: readers.size, mapUsers: map.size, both: [...readers].filter(id => map.has(id)).length, signedIn: signedIn.size };
+}
+
+/** People and visits per hour for a range of hours, else per UTC day; a visit counts where it began. */
+function series(visits: Visit[], r: Range) {
+  const step = r.hours ? HOUR_MS : DAY_MS;
+  const start = r.hours ? Math.floor(r.from / HOUR_MS) * HOUR_MS : r.first * DAY_MS;
+  const buckets: Visit[][] = Array.from({ length: r.hours ? r.hours + 1 : r.days }, () => []);
+  for (const v of visits) buckets[Math.min(buckets.length - 1, Math.floor((v.start - start) / step))]?.push(v);
+  return buckets.map((group, i) => {
+    const { visitors, readers, mapUsers } = people(group);
+    return { at: start + i * step, visitors, readers, mapUsers, visits: group.length };
+  });
+}
+
 /**
  * Where visits came from and where they went: each origin → the page it landed on → what it did next, the steps
  * from page to page, each page's time and exits, and when and from where people read.
  */
-export function journeys(db: AppDb, visits: Visit[]) {
+export function journeys(db: AppDb, visits: Visit[], r: Range) {
   const since = db.prepare('SELECT min(day) FROM page_view').pluck().get() as number | null;
   const flow = new Map<string, { origin: string | null; landing: string; next: Next; visits: number }>();
   for (const v of visits) {
@@ -72,6 +103,7 @@ export function journeys(db: AppDb, visits: Visit[]) {
   return {
     since: since == null ? null : isoDay(since),
     totals: {
+      ...people(visits),
       visits: visits.length,
       views: visits.reduce((n, v) => n + v.views, 0),
       left: visits.filter(v => v.next === 'left').length,
@@ -83,6 +115,7 @@ export function journeys(db: AppDb, visits: Visit[]) {
       /** Of visits with more than one step; a single view has no length to measure. */
       medianMs: median(walks.map(v => v.end - v.start)),
     },
+    series: series(visits, r),
     flow: [...flow.values()].sort((a, b) => b.visits - a.visits),
     channels: tally(visits.map(v => v.channel)).map(([channel, n]) => ({ channel, visits: n })),
     sources: tally(visits.flatMap(v => (v.source ? [v.source] : []))).map(([source, n]) => ({

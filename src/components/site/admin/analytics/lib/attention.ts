@@ -8,7 +8,7 @@ import { bytes, pct, plural, sum } from './format';
  * Only what fires is listed, so a quiet day is one line and nothing is missed on a busy one.
  */
 
-export type AttentionTab = 'audience' | 'visitors' | 'pages' | 'engagement' | 'api' | 'data' | 'system';
+export type AttentionTab = 'audience' | 'visitors' | 'engagement' | 'api' | 'data' | 'system';
 export type AttentionTone = 'problem' | 'watch' | 'news';
 export interface Attention { id: string; tone: AttentionTone; tab: AttentionTab; text: string }
 
@@ -81,13 +81,13 @@ export function attention({ audience, visitors, pages, api, data, system, storag
   if (signups) add('signups', 'news', 'audience', `${plural(signups, 'new account')} today`);
 
   const search = sum((pages?.referrers ?? []).filter(r => r.referrer && SEARCH.test(r.referrer)).map(r => r.views));
-  if (search) add('search', 'news', 'pages', `${plural(search, 'page view')} from search engines in the range`);
+  if (search) add('search', 'news', 'visitors', `${plural(search, 'page view')} from search engines in the range`);
 
   const topPage = pages?.pages[0];
-  if (topPage) add('top-page', 'news', 'pages', `Most read: ${topPage.path} (${plural(topPage.views, 'view')})`);
+  if (topPage) add('top-page', 'news', 'visitors', `Most read: ${topPage.path} (${plural(topPage.views, 'view')})`);
 
-  const referrer = visitors?.referrers.find(r => r.referrer);
-  if (referrer) add('referrer', 'news', 'visitors', `Most visitors arrived from ${referrer.referrer} (${plural(referrer.visitors, 'visitor')})`);
+  const source = pages?.journeys.sources[0];
+  if (source) add('referrer', 'news', 'visitors', `Most visits from another site came from ${source.source} (${plural(source.visits, 'visit')})`);
 
   return out.sort((a, b) => ORDER[a.tone] - ORDER[b.tone]);
 }
