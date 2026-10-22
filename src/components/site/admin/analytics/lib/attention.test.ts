@@ -35,7 +35,7 @@ describe('attention', () => {
         journeys: {
           since: null,
           totals: {
-            visitors: 0, new: 0, readers: 0, mapUsers: 0, both: 0, signedIn: 0,
+            visitors: 0, new: 0, readers: 0, mapUsers: 0, both: 0, signedIn: 0, minutes: 0, pageMapMinutes: 0, pageMapUsers: 0,
             visits: 0, views: 0, left: 0, readOn: 0, toMap: 0, landedOnMap: 0, returning: 0, avgSteps: 0, medianMs: null,
           },
           series: [], flow: [], channels: [], sources: [{ source: 'Google', channel: 'search', hosts: ['www.google.com'], visits: 2 }], links: [], steps: [], pages: [], hours: [], countries: [], cities: [], points: [], devices: [], browsers: [], oses: [], campaigns: [],

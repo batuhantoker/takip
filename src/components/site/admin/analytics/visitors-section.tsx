@@ -37,7 +37,7 @@ export function VisitorsSection({ pages, visitors, range, hours }: {
       <SectionFrame query={pages}>
         {p => (
           <>
-            <VisitorsSummary j={p.journeys} hours={hours} />
+            <VisitorsSummary j={p.journeys} hours={hours} hitWall={visitors.data?.totals.hitWall ?? 0} />
             <SectionHeading>How they arrived</SectionHeading>
             <JourneyFlow j={p.journeys} onPick={pick} />
             <SectionHeading>What they read</SectionHeading>

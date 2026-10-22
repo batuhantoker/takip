@@ -370,19 +370,21 @@ export interface PageJourneys {
   totals: {
     /** Browsers: all, new to the site, that read a page, opened the map, did both, and linked to an account. */
     visitors: number; new: number; readers: number; mapUsers: number; both: number; signedIn: number;
+    /** Minutes on the full map (everyone, signed in or not), and on the pages' small maps with the browsers that used one. */
+    minutes: number; pageMapMinutes: number; pageMapUsers: number;
     visits: number; views: number; left: number; readOn: number; toMap: number; landedOnMap: number; returning: number; avgSteps: number;
     medianMs: number | null;
   };
   /** Per hour for an hours range, else per UTC day, oldest first; `at` is the bucket's start (ms). A visit counts where it began. */
-  series: { at: number; visitors: number; readers: number; mapUsers: number; visits: number }[];
+  series: { at: number; visitors: number; readers: number; mapUsers: number; visits: number; minutes: number; pageMapMinutes: number }[];
   flow: { origin: string | null; landing: string; next: NextStep; visits: number }[];
   channels: { channel: Channel; visits: number }[];
   sources: { source: string; channel: Channel; hosts: string[]; visits: number }[];
   /** Linking pages, host + path, where the other site shared them. */
   links: { url: string; visits: number }[];
   steps: { from: string; to: string; visits: number }[];
-  /** Per page: visits through it, visits that began and ended there, median time before the next step. */
-  pages: { path: string; visits: number; landings: number; exits: number; medianMs: number | null }[];
+  /** Per page: visits through it, visits that began and ended there, median time before the next step, and its small map's minutes and browsers. */
+  pages: { path: string; visits: number; landings: number; exits: number; medianMs: number | null; mapMinutes: number; mapUsers: number }[];
   hours: { dow: number; hour: number; visits: number }[];
   countries: { country: string | null; visits: number }[];
   cities: { country: string | null; region: string | null; city: string; visits: number }[];

@@ -37,7 +37,7 @@ export default function VisitorsList({ range, tabs }: { range: string; tabs: Rea
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           {tabs}
-          <p className="text-[11px] text-ink-3">Browsers that used the map in this range, with their signed-out time there. Open one for everything it did.</p>
+          <p className="text-[11px] text-ink-3">Browsers with a minute or more on the map in this range, and their signed-out time there. Open one for everything it did.</p>
         </div>
         <form onSubmit={search} className="flex gap-2">
           <Input name="q" placeholder="Visitor id or account email" defaultValue={q} className="w-64" aria-label="Search visitors" />

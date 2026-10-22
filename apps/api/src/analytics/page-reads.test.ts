@@ -119,6 +119,27 @@ describe('reading the public pages', () => {
     await view({ id: BETA }, '/map/earthquakes');
     expect(logged().map(r => (r as { at: number }).at)).toEqual([NOW, NOW + 60_000]);
   });
+
+  const mapMinute = (visitor: object, path: string) => t.app.request('/api/v1/page-view', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'user-agent': CHROME },
+    body: JSON.stringify({ visitor, path, use: 'map' }),
+  }, from('203.0.113.5'));
+  const minutes = () => t.db.prepare('SELECT visitor_id AS id, path, minutes FROM page_map_minute ORDER BY path').all();
+
+  it('books a minute on a page’s small map at most once a minute, and only for a public page', async () => {
+    expect((await mapMinute({ id: ALPHA }, '/map/earthquakes')).status).toBe(204);
+    vi.setSystemTime(NOW + 20_000);
+    await mapMinute({ id: ALPHA }, '/map/earthquakes');
+    vi.setSystemTime(NOW + 60_000);
+    await mapMinute({ id: ALPHA }, '/map/earthquakes');
+    await mapMinute({ id: ALPHA }, '/');
+    await mapMinute({ id: ALPHA }, '/admin');
+    expect(minutes()).toEqual([{ id: ALPHA, path: '/map/earthquakes', minutes: 2 }]);
+    expect(rows()).toEqual([]);
+    expect(logged()).toEqual([]);
+    expect(t.db.prepare('SELECT count(*) FROM map_time').pluck().get()).toBe(0);
+  });
 });
 
 describe('logging a view', () => {

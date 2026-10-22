@@ -76,3 +76,12 @@ export function notePage(path: string): string | null {
     return null;
   }
 }
+
+/** The page this tab shows, as notePage last noted it; a same-origin frame in it reads the same. */
+export function shownPage(): string | null {
+  try {
+    return sessionStorage.getItem(PAGE_KEY);
+  } catch {
+    return null;
+  }
+}

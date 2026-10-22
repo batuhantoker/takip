@@ -92,7 +92,7 @@ describe('visits in admin', () => {
   it('shows where each origin led', async () => {
     const { journeys } = await get<{ journeys: Record<string, unknown> }>('/pages');
     expect(journeys.totals).toEqual({
-      visitors: 3, new: 3, readers: 2, mapUsers: 2, both: 1, signedIn: 1,
+      visitors: 3, new: 3, readers: 2, mapUsers: 2, both: 1, signedIn: 1, minutes: 0, pageMapMinutes: 0, pageMapUsers: 0,
       visits: 3, views: 4, left: 2, readOn: 0, toMap: 1, landedOnMap: 1, returning: 0, avgSteps: 4 / 3, medianMs: 2 * MIN,
     });
     expect(journeys.flow).toEqual([
@@ -103,8 +103,8 @@ describe('visits in admin', () => {
     expect(journeys.channels).toEqual([{ channel: 'search', visits: 2 }, { channel: 'direct', visits: 1 }]);
     expect(journeys.sources).toEqual([{ source: 'Google', channel: 'search', hosts: ['www.google.com'], visits: 2 }]);
     expect(journeys.pages).toEqual([
-      { path: '/', visits: 2, landings: 1, exits: 2, medianMs: null },
-      { path: '/city/berlin', visits: 2, landings: 2, exits: 1, medianMs: 2 * MIN },
+      { path: '/', visits: 2, landings: 1, exits: 2, medianMs: null, mapMinutes: 0, mapUsers: 0 },
+      { path: '/city/berlin', visits: 2, landings: 2, exits: 1, medianMs: 2 * MIN, mapMinutes: 0, mapUsers: 0 },
     ]);
     expect(journeys.steps).toEqual([{ from: '/city/berlin', to: '/', visits: 1 }]);
     expect(journeys.campaigns).toEqual([{ campaign: 'newsletter', visits: 1 }]);
@@ -115,13 +115,33 @@ describe('visits in admin', () => {
     const early = NOW - 7 * 60 * MIN;
     t.db.prepare(`INSERT INTO page_view (visitor_id, at, day, path, locale, referrer, browser, os, device) VALUES (?, ?, ?, '/about', 'en', '', 'Chrome', 'macOS', 'desktop')`)
       .run('v-delta-0000000004', early, Math.floor(early / DAY_MS));
-    type Journeys = { journeys: { totals: { visitors: number }; series: { at: number; visitors: number; readers: number; mapUsers: number; visits: number }[] } };
+    type Journeys = { journeys: { totals: { visitors: number }; series: Record<string, number>[] } };
     expect((await get<Journeys>('/pages?days=7')).journeys.totals.visitors).toBe(4);
     const { journeys } = await get<Journeys>('/pages?hours=6');
     expect(journeys.totals.visitors).toBe(3);
     expect(journeys.series.map(b => b.at)).toEqual(Array.from({ length: 7 }, (_, i) => NOW - (6 - i) * 60 * MIN));
-    expect(journeys.series[5]).toEqual({ at: NOW - 60 * MIN, visitors: 3, readers: 2, mapUsers: 2, visits: 3 });
+    expect(journeys.series[5]).toEqual({ at: NOW - 60 * MIN, visitors: 3, readers: 2, mapUsers: 2, visits: 3, minutes: 0, pageMapMinutes: 0 });
     expect((await get<{ total: number }>('/pages/visits?hours=6')).total).toBe(3);
+  });
+
+  it('counts time on the full map and on the pages’ small maps by the hour', async () => {
+    const hour = (ago: number) => {
+      const at = NOW - ago * 60 * MIN;
+      return [Math.floor(at / DAY_MS), new Date(at).getUTCHours()] as const;
+    };
+    // An hour ago: 12 signed-out minutes, 5 of an account's; eight hours ago, outside six: 30 more signed out.
+    t.db.prepare("INSERT INTO activity_hour (day, hour, subject_type, minutes) VALUES (?, ?, 'anon', ?)").run(...hour(1), 12);
+    t.db.prepare("INSERT INTO activity_hour (day, hour, subject_type, minutes) VALUES (?, ?, 'anon', ?)").run(...hour(8), 30);
+    t.db.prepare('INSERT INTO user_hour (user_id, day, hour, minutes) VALUES (?, ?, ?, ?)').run('u-reader', ...hour(1), 5);
+    const page = t.db.prepare('INSERT INTO page_map_minute (visitor_id, day, hour, path, minutes, last_at) VALUES (?, ?, ?, ?, ?, ?)');
+    page.run(ALPHA, ...hour(1), '/city/berlin', 3, NOW);
+    page.run(BETA, ...hour(1), '/city/berlin', 1, NOW);
+    type Journeys = { journeys: { totals: Record<string, number>; series: Record<string, number>[]; pages: Record<string, unknown>[] } };
+    const { journeys } = await get<Journeys>('/pages?hours=6');
+    expect(journeys.totals).toMatchObject({ minutes: 17, pageMapMinutes: 4, pageMapUsers: 2 });
+    expect(journeys.series[5]).toMatchObject({ minutes: 17, pageMapMinutes: 4 });
+    expect(journeys.pages.find(p => p.path === '/city/berlin')).toMatchObject({ mapMinutes: 4, mapUsers: 2 });
+    expect((await get<Journeys>('/pages?days=7')).journeys.totals.minutes).toBe(47);
   });
 
   it('lists only the browsers seen in the range', async () => {

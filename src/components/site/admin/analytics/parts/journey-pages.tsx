@@ -5,16 +5,16 @@ import { BarList } from '@/components/site/admin/charts/bar-list';
 import { ChartCard } from '@/components/site/admin/charts/chart-card';
 import { TABLE, TD, TH } from '@/components/site/admin/parts/admin-parts';
 import type { PageJourneys, VisitFilter } from '../analytics-types';
-import { count, duration, pct } from '../lib/format';
-import { pathLabel } from '../lib/journeys';
+import { count, duration, minutes, pct, plural } from '../lib/format';
+import { MAP_PATH, pathLabel } from '../lib/journeys';
 import { pathText } from './journey-flow';
 import { Pair } from './section-frame';
 
 const SHOWN = 12;
 
-type Sort = 'visits' | 'exits' | 'time';
+type Sort = 'visits' | 'exits' | 'time' | 'map';
 
-/** Each page's visits, how many began and ended there, and how long readers stayed before the next step; then page to page. */
+/** Each page's visits, how many left from it, how long readers stayed and how long they handled its small map; then page to page. */
 export function JourneyPages({ j, onPick }: { j: PageJourneys; onPick: (filter: VisitFilter) => void }) {
   const [sort, setSort] = useState<Sort>('visits');
   const [all, setAll] = useState(false);
@@ -22,7 +22,8 @@ export function JourneyPages({ j, onPick }: { j: PageJourneys; onPick: (filter: 
   const rows = [...j.pages].sort((a, b) =>
     sort === 'exits' ? exitRate(b) - exitRate(a) || b.visits - a.visits
       : sort === 'time' ? (b.medianMs ?? -1) - (a.medianMs ?? -1)
-        : b.visits - a.visits);
+        : sort === 'map' ? b.mapMinutes - a.mapMinutes || b.mapUsers - a.mapUsers
+          : b.visits - a.visits);
   const head = (key: Sort, label: string) => (
     <th className={`${TH} text-right`} aria-sort={sort === key ? 'descending' : 'none'}>
       <button type="button" onClick={() => setSort(key)} className={sort === key ? 'text-ink-1' : 'hover:text-ink-1'}>{label}{sort === key ? ' ↓' : ''}</button>
@@ -31,9 +32,12 @@ export function JourneyPages({ j, onPick }: { j: PageJourneys; onPick: (filter: 
 
   return (
     <Pair>
-      <ChartCard title="Pages: time and exits"
-        note="Time is until the next step of the same visit, so a visit's last page has none. Click a page for where its readers came from and went."
-        table={j.pages.length ? { columns: ['Page', 'Visits', 'Landed here', 'Left from here', 'Median time'], rows: j.pages.map(p => [pathLabel(p.path), p.visits, p.landings, p.exits, p.medianMs == null ? '—' : duration(p.medianMs)]) } : null}>
+      <ChartCard title="Pages: time, exits and their maps"
+        note="Time is until the next step of the same visit, so a visit's last page has none. Its map: minutes readers moved, zoomed or clicked the page's small map. Click a page for where its readers came from and went."
+        table={j.pages.length ? {
+          columns: ['Page', 'Visits', 'Landed here', 'Left from here', 'Median time', 'Its map (min)', 'Its map (browsers)'],
+          rows: j.pages.map(p => [pathLabel(p.path), p.visits, p.landings, p.exits, p.medianMs == null ? '—' : duration(p.medianMs), p.mapMinutes, p.mapUsers]),
+        } : null}>
         {j.pages.length ? (
           <div className="overflow-x-auto">
             <table className={TABLE}>
@@ -43,6 +47,7 @@ export function JourneyPages({ j, onPick }: { j: PageJourneys; onPick: (filter: 
                   {head('visits', 'Visits')}
                   {head('exits', 'Left from here')}
                   {head('time', 'Median time')}
+                  {head('map', 'Its map')}
                 </tr>
               </thead>
               <tbody>
@@ -54,6 +59,8 @@ export function JourneyPages({ j, onPick }: { j: PageJourneys; onPick: (filter: 
                     <td className={`${TD} text-right font-mono tabular-nums`} title={`${count(p.landings)} began here`}>{count(p.visits)}</td>
                     <td className={`${TD} text-right font-mono tabular-nums`}>{pct(p.exits, p.visits)}</td>
                     <td className={`${TD} whitespace-nowrap text-right font-mono tabular-nums`}>{p.medianMs == null ? '—' : duration(p.medianMs)}</td>
+                    <td className={`${TD} whitespace-nowrap text-right font-mono tabular-nums ${p.mapMinutes ? '' : 'text-ink-3'}`}
+                      title={p.mapUsers ? plural(p.mapUsers, 'browser') : undefined}>{p.path === MAP_PATH ? '' : p.mapMinutes ? minutes(p.mapMinutes) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

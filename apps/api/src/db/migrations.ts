@@ -441,6 +441,20 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (day, bot, path)
   ) STRICT, WITHOUT ROWID;
   `,
+  // Minutes a reader moved, zoomed or clicked a public page's small live map (the embed on our own pages), per browser,
+  // page and UTC hour (analytics/page-reads.ts). None of it is map time against a plan's limit.
+  `
+  CREATE TABLE IF NOT EXISTS page_map_minute (
+    visitor_id  TEXT NOT NULL,
+    day         INTEGER NOT NULL,
+    hour        INTEGER NOT NULL CHECK (hour BETWEEN 0 AND 23),
+    path        TEXT NOT NULL,
+    minutes     INTEGER NOT NULL,
+    last_at     INTEGER NOT NULL,
+    PRIMARY KEY (visitor_id, day, hour, path)
+  ) STRICT, WITHOUT ROWID;
+  CREATE INDEX IF NOT EXISTS page_map_minute_day ON page_map_minute (day);
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {

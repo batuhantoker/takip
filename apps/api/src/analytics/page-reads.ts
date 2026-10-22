@@ -26,6 +26,8 @@ const MAX_LOGGED = 300;
 // The same page again this soon is a reload or a double report, not another step.
 const REPEAT_MS = 10_000;
 const CAMPAIGN = /^[a-z0-9._-]{1,60}$/;
+// A page's small map reports at most a minute a minute; a little less lets a late timer through.
+const MAP_MINUTE_GAP_MS = 50_000;
 
 export type PageRead = {
   visitorId: string; path: string; locale: string; referrer: string;
@@ -69,6 +71,15 @@ export function parsePageRead(body: unknown, userAgent: string | null | undefine
   };
 }
 
+/** A minute on a public page's small map ({ visitor: { id }, path, use: 'map' }), or null when it isn't one. */
+export function parseMapMinute(body: unknown, userAgent: string | null | undefined): { visitorId: string; path: string } | null {
+  if (userAgent && BOT.test(userAgent)) return null;
+  const b = body as { visitor?: unknown; path?: unknown; use?: unknown } | null;
+  const visitor = parseVisitor(b?.visitor, userAgent);
+  if (b?.use !== 'map' || !visitor || !isPage(b.path) || b.path === MAP_PATH) return null;
+  return { visitorId: visitor.id, path: b.path };
+}
+
 export function createPageReads(db: AppDb, { now = () => Date.now(), locate = noLocator as IpLocator, presence = null as Presence | null } = {}) {
   const add = db.prepare(`
     INSERT INTO page_read (visitor_id, day, path, locale, referrer, views) VALUES (@visitorId, @day, @path, @locale, @referrer, 1)
@@ -79,6 +90,10 @@ export function createPageReads(db: AppDb, { now = () => Date.now(), locate = no
   const log = db.prepare(`
     INSERT INTO page_view (visitor_id, at, day, path, locale, referrer, referrer_path, from_path, campaign, country, region, city, latitude, longitude, browser, os, device)
     VALUES (@visitorId, @at, @day, @path, @locale, @referrer, @referrerPath, @from, @campaign, @country, @region, @city, @latitude, @longitude, @browser, @os, @device)`);
+  const minute = db.prepare(`
+    INSERT INTO page_map_minute (visitor_id, day, hour, path, minutes, last_at) VALUES (@visitorId, @day, @hour, @path, 1, @at)
+    ON CONFLICT (visitor_id, day, hour, path) DO UPDATE SET minutes = minutes + 1, last_at = excluded.last_at
+    WHERE excluded.last_at - last_at >= ${MAP_MINUTE_GAP_MS} AND minutes < 60`);
 
   function record(read: PageRead, { ip, country, userId }: ReadContext) {
     const at = now();
@@ -100,20 +115,31 @@ export function createPageReads(db: AppDb, { now = () => Date.now(), locate = no
     });
   }
 
-  return { record };
+  function recordMapMinute(use: { visitorId: string; path: string }) {
+    const at = now();
+    minute.run({ ...use, day: utcDay(at), hour: new Date(at).getUTCHours(), at });
+  }
+
+  return { record, recordMapMinute };
 }
 
 export type PageReads = ReturnType<typeof createPageReads>;
 
 /**
- * Mounted at /api/v1: POST /page-view is what a public page sends once as it opens, and the map as it loads. It counts
- * toward nobody's map time. Anything that isn't one of those is accepted and dropped, so a page never learns why.
+ * Mounted at /api/v1: POST /page-view is what a public page sends once as it opens, the map as it loads, and a page's
+ * small map for each minute the reader moves it (`use: 'map'`). It counts toward nobody's map time. Anything that isn't one of those is accepted and dropped, so a page never learns why.
  * `cloudflare`: Cloudflare is the trusted edge, so its CF-IPCountry header can place an address the database can't.
  */
 export function pageReadRoutes(reads: PageReads, { cloudflare = false } = {}) {
   const app = new Hono<AccessEnv>();
   app.post('/page-view', async c => {
-    const read = parsePageRead(await c.req.json().catch(() => null), c.req.header('user-agent'));
+    const body: unknown = await c.req.json().catch(() => null);
+    const use = parseMapMinute(body, c.req.header('user-agent'));
+    if (use) {
+      reads.recordMapMinute(use);
+      return c.body(null, 204);
+    }
+    const read = parsePageRead(body, c.req.header('user-agent'));
     if (read) {
       const principal = c.var.principal;
       reads.record(read, {

@@ -21,7 +21,7 @@ export function schedulePruneUsage(queue: JobQueue, runAt: number) {
   return queue.enqueue(PRUNE_USAGE_JOB, {}, { runAt, dedupeKey: `${PRUNE_USAGE_JOB}@${utcDay(runAt)}` });
 }
 
-const ACTIVITY_TABLES = ['map_time', 'feature_time', 'activity_hour', 'user_hour', 'visitor_day', 'visitor_feature', 'visitor_hour', 'action_count', 'page_read', 'page_view', 'crawl_hit'] as const;
+const ACTIVITY_TABLES = ['map_time', 'feature_time', 'activity_hour', 'user_hour', 'visitor_day', 'visitor_feature', 'visitor_hour', 'action_count', 'page_read', 'page_view', 'page_map_minute', 'crawl_hit'] as const;
 
 /** Deletes the days older than the retention; returns how many rows went. */
 export function pruneUsage(db: AppDb, { days, anonDays, activityDays }: UsageRetention, now: number) {

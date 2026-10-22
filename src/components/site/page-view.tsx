@@ -12,7 +12,17 @@ export function reportView(path: string, locale: string) {
   const id = visitorId();
   if (!id) return;
   const from = notePage(path);
-  const body = JSON.stringify({ visitor: { id, referrer: outsideReferrer(), landing: location.pathname + location.search }, path, locale, from, referrerPath: outsideReferrerPath() });
+  send({ visitor: { id, referrer: outsideReferrer(), landing: location.pathname + location.search }, path, locale, from, referrerPath: outsideReferrerPath() });
+}
+
+/** Books a minute of the reader moving, zooming or clicking `path`'s small map. Like a view, it spends none of their map time. */
+export function reportMapMinute(path: string) {
+  const id = visitorId();
+  if (id) send({ visitor: { id }, path, use: 'map' });
+}
+
+function send(report: object) {
+  const body = JSON.stringify(report);
   if (!navigator.sendBeacon?.('/api/v1/page-view', new Blob([body], { type: 'application/json' }))) {
     fetch('/api/v1/page-view', { method: 'POST', body, headers: { 'content-type': 'application/json' }, keepalive: true }).catch(() => {});
   }

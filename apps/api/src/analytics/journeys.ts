@@ -1,11 +1,11 @@
 import { DAY_MS, isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
+import { HOUR_MS, mapMinutes, pageMapUse, type MapMinutes } from './map-minutes';
 import { MAP_PATH } from './page-reads';
 import type { Next, Visit } from './page-visits';
 import type { Range } from './range';
 
 const TOP = 40;
-const HOUR_MS = 3_600_000;
 
 const median = (values: number[]) => {
   if (!values.length) return null;
@@ -64,15 +64,24 @@ function people(visits: Visit[]) {
   return { visitors: all.size, new: fresh.size, readers: readers.size, mapUsers: map.size, both: [...readers].filter(id => map.has(id)).length, signedIn: signedIn.size };
 }
 
-/** People and visits per hour for a range of hours, else per UTC day; a visit counts where it began. */
-function series(visits: Visit[], r: Range) {
+/**
+ * People, visits and map minutes per hour for a range of hours, else per UTC day; a visit counts where it began,
+ * minutes in the hour they were booked.
+ */
+function series(visits: Visit[], used: MapMinutes, r: Range) {
   const step = r.hours ? HOUR_MS : DAY_MS;
   const start = r.hours ? Math.floor(r.from / HOUR_MS) * HOUR_MS : r.first * DAY_MS;
-  const buckets: Visit[][] = Array.from({ length: r.hours ? r.hours + 1 : r.days }, () => []);
-  for (const v of visits) buckets[Math.min(buckets.length - 1, Math.floor((v.start - start) / step))]?.push(v);
+  const n = r.hours ? r.hours + 1 : r.days;
+  const slot = (at: number) => Math.min(n - 1, Math.floor((at - start) / step));
+  const buckets: Visit[][] = Array.from({ length: n }, () => []);
+  for (const v of visits) buckets[slot(v.start)]?.push(v);
+  const minutes = new Array<number>(n).fill(0);
+  const pageMapMinutes = new Array<number>(n).fill(0);
+  for (const row of used.full) minutes[slot(row.h * HOUR_MS)] += row.minutes;
+  for (const row of used.pages) pageMapMinutes[slot(row.h * HOUR_MS)] += row.minutes;
   return buckets.map((group, i) => {
     const { visitors, readers, mapUsers } = people(group);
-    return { at: start + i * step, visitors, readers, mapUsers, visits: group.length };
+    return { at: start + i * step, visitors, readers, mapUsers, visits: group.length, minutes: minutes[i], pageMapMinutes: pageMapMinutes[i] };
   });
 }
 
@@ -81,6 +90,8 @@ function series(visits: Visit[], r: Range) {
  * from page to page, each page's time and exits, and when and from where people read.
  */
 export function journeys(db: AppDb, visits: Visit[], r: Range) {
+  const used = mapMinutes(db, r);
+  const pageMaps = pageMapUse(used.pages);
   const since = db.prepare('SELECT min(day) FROM page_view').pluck().get() as number | null;
   const flow = new Map<string, { origin: string | null; landing: string; next: Next; visits: number }>();
   for (const v of visits) {
@@ -104,6 +115,10 @@ export function journeys(db: AppDb, visits: Visit[], r: Range) {
     since: since == null ? null : isoDay(since),
     totals: {
       ...people(visits),
+      /** Minutes on the full map, everyone's, and on the pages' small maps, with how many browsers used one. */
+      minutes: used.full.reduce((n, row) => n + row.minutes, 0),
+      pageMapMinutes: used.pages.reduce((n, row) => n + row.minutes, 0),
+      pageMapUsers: new Set(used.pages.map(row => row.visitorId)).size,
       visits: visits.length,
       views: visits.reduce((n, v) => n + v.views, 0),
       left: visits.filter(v => v.next === 'left').length,
@@ -115,7 +130,7 @@ export function journeys(db: AppDb, visits: Visit[], r: Range) {
       /** Of visits with more than one step; a single view has no length to measure. */
       medianMs: median(walks.map(v => v.end - v.start)),
     },
-    series: series(visits, r),
+    series: series(visits, used, r),
     flow: [...flow.values()].sort((a, b) => b.visits - a.visits),
     channels: tally(visits.map(v => v.channel)).map(([channel, n]) => ({ channel, visits: n })),
     sources: tally(visits.flatMap(v => (v.source ? [v.source] : []))).map(([source, n]) => ({
@@ -127,7 +142,7 @@ export function journeys(db: AppDb, visits: Visit[], r: Range) {
       const [from, to] = pair.split(' ');
       return { from, to, visits: n };
     }),
-    pages: pageStats(visits),
+    pages: pageStats(visits).map(p => ({ ...p, mapMinutes: pageMaps.get(p.path)?.minutes ?? 0, mapUsers: pageMaps.get(p.path)?.visitors.size ?? 0 })),
     hours: [...hours].map(([key, n]) => {
       const [dow, hour] = key.split(':').map(Number);
       return { dow, hour, visits: n };

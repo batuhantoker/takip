@@ -32,10 +32,11 @@ export async function generateMetadata(): Promise<Metadata> {
  * src/components/shell/ads/* and src/lib/platform/ads.ts, and every localStorage and
  * sessionStorage key in src/. Usage data (2026-10-19): apps/api/src/access/map-time.ts,
  * src/lib/platform/visitor.ts, apps/api/src/auth/sign-ins.ts, apps/api/src/analytics/page-reads.ts (with
- * src/components/site/page-view.tsx) and their retention in usage-prune.ts and audit-prune.ts.
+ * src/components/site/page-view.tsx and src/components/site/embed/hooks/use-page-map-time.ts) and their retention
+ * in usage-prune.ts and audit-prune.ts.
  */
 
-const REVIEWED = Date.UTC(2026, 9, 21);
+const REVIEWED = Date.UTC(2026, 9, 22);
 
 type RichTranslate = Translate & { rich(source: string, vars: Record<string, ReactNode>): ReactNode };
 
@@ -197,7 +198,7 @@ export default async function PrivacyPage() {
           intro={t('We use this to see which tools people rely on and which go unused, so we can improve TAKIP and build better tools. It stays on our own server: it is not shared with the ad network or with any analytics company.')}>
           <ul className="flex flex-col gap-2.5 text-sm leading-relaxed text-ink-2">
             <li>{lead(t('Map time.'))} {t('While the map is open and on screen, it tells our server once a minute. That minute counts toward the day’s map time, and is noted against the view (map, space, history or replay), the open panel, the data layers switched on and their sections (air, sea and so on), any open window such as a camera, and whether it is a phone. Not where you look on the map, what you search or what you type.')}</li>
-            <li>{lead(t('Reading the pages.'))} {t('Opening one of the public pages, such as a city, a layer or a guide, counts one view: which page and when, in which language, the site that sent you (and its page, when that site shares it and isn’t a search engine or an AI chat), the page you were on just before, your browser and type of device, the town and country your address points to (not the address itself), and the random visitor id this browser keeps. Opening the map is noted the same way. It spends none of your map time. If you then open the map, the first page you read is noted as where you landed.')}</li>
+            <li>{lead(t('Reading the pages.'))} {t('Opening one of the public pages, such as a city, a layer or a guide, counts one view: which page and when, in which language, the site that sent you (and its page, when that site shares it and isn’t a search engine or an AI chat), the page you were on just before, your browser and type of device, the town and country your address points to (not the address itself), and the random visitor id this browser keeps. Opening the map is noted the same way. It spends none of your map time. If you then open the map, the first page you read is noted as where you landed.')} {t('Moving, zooming or clicking the small map on one of those pages counts the minutes you do it, by page and hour, with the same visitor id; it spends none of your map time either.')}</li>
             <li>{lead(t('Actions.'))} {t('We count what people do by name: a search run, a route planned, a camera opened, a recon lookup by kind (email, domain…). Never the words, places, addresses or names themselves.')}</li>
             <li>{t.rich('{signedOut} those minutes are tied to the random visitor id this browser keeps, along with the browser’s name, the site that first sent you here, the page you landed on, and the address you connect from with the town and country it points to. Clearing this site’s data starts a new id.', { signedOut: lead(t('Signed out,')) })}</li>
             <li>{t.rich('{signedIn} they are tied to your account, with the addresses you use the map from and where they point to, and the browser’s visitor id is linked to it. Each sign-in is recorded with its time, address and browser.', { signedIn: lead(t('Signed in,')) })}</li>

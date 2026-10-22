@@ -2305,6 +2305,7 @@
   "Moving": "移動中",
   "Moving continents": "移動する大陸",
   "Moving the camera": "カメラを移動中",
+  "Moving, zooming or clicking the small map on one of those pages counts the minutes you do it, by page and hour, with the same visitor id; it spends none of your map time either.": "これらのページの小さな地図を動かしたり、ズームしたり、クリックしたりすると、その操作をした分数がページと時間ごとに同じ訪問者IDで数えられます。これも地図の利用時間には含まれません。",
   "Murder": "殺人事件",
   "Murders and shootings with a Wikipedia article": "ウィキペディアの記事がある殺人事件と銃撃事件",
   "Music": "音楽",
