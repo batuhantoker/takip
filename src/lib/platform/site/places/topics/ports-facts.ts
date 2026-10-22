@@ -221,7 +221,7 @@ export function renderSentence(sentence: PortSentence, place: string, t: Transla
         ? t('{port} is one of the oil and gas ports the map marks, shipping about {volume} by its reference figures.', { port: s.port, volume: s.volume })
         : t('{port} is one of the industrial energy ports the map marks.', { port: s.port });
     case 'energy-terminals':
-      return t('{port}, {km} km from the centre, has {terminals}, by the World Port Index.', { port: s.port, km: s.km, terminals: facilities(s.terminals, t) });
+      return t('{port}, {km, distance} from the centre, has {terminals}, by the World Port Index.', { port: s.port, km: s.km, terminals: facilities(s.terminals, t) });
     case 'naval':
       return s.fleet
         ? t('{port} is a naval base, home to the {fleet}.', { port: s.port, fleet: s.fleet })
@@ -236,8 +236,8 @@ export function renderSentence(sentence: PortSentence, place: string, t: Transla
         : t('By the World Port Index, {port} is a cargo port.', { port: s.port });
     case 'nearest':
       return s.port === place
-        ? t('{place}’s own harbour is {km} km from the centre.', { place, km: s.km })
-        : t('The nearest harbour to {place} is {port}, {km} km from the centre.', { place, port: s.port, km: s.km });
+        ? t('{place}’s own harbour is {km, distance} from the centre.', { place, km: s.km })
+        : t('The nearest harbour to {place} is {port}, {km, distance} from the centre.', { place, port: s.port, km: s.km });
     case 'rating':
       return s.size
         ? t('The Index rates {port} a {size, select, large {large} medium {medium-sized} small {small} other {very small}} {type, select, coastal {natural harbour on the coast} breakwater {coastal harbour behind breakwaters} tide-gates {coastal harbour behind tide gates} river {river harbour} river-basins {river harbour built around basins} river-tide-gates {river harbour behind tide gates} canal-lake {harbour on a canal or lake} roadstead {open roadstead, where ships anchor off the coast} typhoon {typhoon shelter} other {harbour}}.', { port: s.port, size: s.size, type: s.type ?? 'other' })
@@ -255,26 +255,26 @@ export function renderSentence(sentence: PortSentence, place: string, t: Transla
     case 'vts':
       return t('A vessel traffic service watches the approaches.');
     case 'others':
-      return t('Also within {km} km: {ports}.', { km: PORT_KM, ports: listOf(s.ports.map(p => t('{port} ({km} km)', { port: same(p.name), km: p.km })), t) });
+      return t('Also within {km, radius}: {ports}.', { km: PORT_KM, ports: listOf(s.ports.map(p => t('{port} ({km, distance})', { port: same(p.name), km: p.km })), t) });
     case 'major-nearby':
-      return t('{port}, {km} km away, is one of the major ports the map marks.', { port: s.port, km: s.km });
+      return t('{port}, {km, distance} away, is one of the major ports the map marks.', { port: s.port, km: s.km });
     case 'chokepoint-near':
-      return t('It is about {km} km from the point where the map counts the ships going through the {strait}.', { km: s.km, strait: straitName(s.strait, t) });
+      return t('It is about {km, radius} from the point where the map counts the ships going through the {strait}.', { km: s.km, strait: straitName(s.strait, t) });
     case 'ais-dark':
       return t('Warships often sail with AIS switched off, so most of a navy is missing from the live map.');
     case 'coverage': {
       const vars = { hours: s.hours, span: span(s.from, s.to, t), port: s.port, km: PORT_KM, n: s.n };
       if (s.level === 'silent') {
         return s.small
-          ? t('In {hours} hours of AIS recorded {span}, the map heard no ship within {km} km of {port}. Small boats need not carry AIS, and the receivers TAKIP draws on may not reach here.', vars)
-          : t('In {hours} hours of AIS recorded {span}, the map heard no ship within {km} km of {port}: the receivers TAKIP draws on don’t reach here, so its ships won’t show.', vars);
+          ? t('In {hours} hours of AIS recorded {span}, the map heard no ship within {km, radius} of {port}. Small boats need not carry AIS, and the receivers TAKIP draws on may not reach here.', vars)
+          : t('In {hours} hours of AIS recorded {span}, the map heard no ship within {km, radius} of {port}: the receivers TAKIP draws on don’t reach here, so its ships won’t show.', vars);
       }
       if (s.level === 'thin') {
-        return t('In {hours} hours of AIS recorded {span}, the map heard only {n, plural, one {one ship} other {# ships}} within {km} km of {port}: reception here is patchy, so most ships won’t show.', vars);
+        return t('In {hours} hours of AIS recorded {span}, the map heard only {n, plural, one {one ship} other {# ships}} within {km, radius} of {port}: reception here is patchy, so most ships won’t show.', vars);
       }
       return s.level === 'busy'
-        ? t('In {hours} hours of AIS recorded {span}, the map heard {n} different ships within {km} km of {port}, one of the best-covered harbours on the map.', { ...vars, n: num(s.n, t) })
-        : t('In {hours} hours of AIS recorded {span}, the map heard {n} different ships within {km} km of {port}.', { ...vars, n: num(s.n, t) });
+        ? t('In {hours} hours of AIS recorded {span}, the map heard {n} different ships within {km, radius} of {port}, one of the best-covered harbours on the map.', { ...vars, n: num(s.n, t) })
+        : t('In {hours} hours of AIS recorded {span}, the map heard {n} different ships within {km, radius} of {port}.', { ...vars, n: num(s.n, t) });
     }
   }
 }

@@ -47,6 +47,9 @@ export function placeName(place: Place, t: Translate): string {
   return `${nameOf(place, t)}, ${WITH_REGION.has(place.cc) && place.region ? regionLabel(place, t.locale) : countryName(place.cc, t)}`;
 }
 
+/** A heading that names the place with its country or state, by its plain name where the place is already in view. */
+export const shortHeading = (heading: string, place: Place, t: Translate) => heading.split(placeName(place, t)).join(nameOf(place, t));
+
 /** One of `n` wordings for `key`, fixed for a page and different from its neighbours', so 30,000 pages don't read alike. */
 export function wordingFor(key: string, n: number): number {
   let h = 2166136261;

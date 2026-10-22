@@ -3,6 +3,8 @@ import type { HazardEvent, HazardMeta, HazardRange, HazardRangeId, HazardRow, Ha
 
 /** A hazards page is indexed when its range holds at least this many distinct recorded events. */
 export const MIN_EVENTS = 5;
+/** How far from the strongest quake its aftershocks are counted (tools/site/topics/hazards.ts PEAK_KM). */
+const AFTERSHOCK_KM = 150;
 
 /**
  * Distinct events a range records, counting each once across the two sources: USGS quakes at the range's floor,
@@ -247,9 +249,9 @@ export function hazardSentences(f: HazardFacts, place: string, t: Translate): st
   const span = { from: String(f.usgsFrom), to: until(f, t) };
 
   if (f.usgs > 0) {
-    out.push(t('From {from} to {to}, USGS recorded {n, plural, one {one earthquake} other {# earthquakes}} of magnitude {floor} or more {scope, select, city {within {km} km of {place}, or {bigKm} km for magnitude {bigMag} and above} inland {in {place}} other {in or off {place}}}.', { ...scope, ...span, n: f.usgs, floor: f.floor, bigKm: f.bigKm, bigMag: f.bigMag }));
+    out.push(t('From {from} to {to}, USGS recorded {n, plural, one {one earthquake} other {# earthquakes}} of magnitude {floor} or more {scope, select, city {within {km, radius} of {place}, or {bigKm, radius} for magnitude {bigMag} and above} inland {in {place}} other {in or off {place}}}.', { ...scope, ...span, n: f.usgs, floor: f.floor, bigKm: f.bigKm, bigMag: f.bigMag }));
   } else {
-    out.push(t('USGS recorded no earthquake of magnitude {floor} or more {scope, select, city {within {km} km of {place}} inland {in {place}} other {in or off {place}}} from {from} to {to}.', { ...scope, ...span, floor: f.floor }));
+    out.push(t('USGS recorded no earthquake of magnitude {floor} or more {scope, select, city {within {km, radius} of {place}} inland {in {place}} other {in or off {place}}} from {from} to {to}.', { ...scope, ...span, floor: f.floor }));
   }
 
   const noaaCount = () => {
@@ -257,8 +259,8 @@ export function hazardSentences(f: HazardFacts, place: string, t: Translate): st
     const first = when(String(f.from), t);
     out.push(f.usgs === 0
       ? f.range === 'all'
-        ? t('NOAA’s list of significant earthquakes has {n, plural, one {one} other {#}} {scope, select, city {within {km} km of {place}} inland {in {place}} other {in or off {place}}}, back to {from}.', { ...scope, n: f.quakes, from: first.date })
-        : t('NOAA’s list of significant earthquakes has {n, plural, one {one} other {#}} {scope, select, city {within {km} km of {place}} inland {in {place}} other {in or off {place}}} in these years.', { ...scope, n: f.quakes })
+        ? t('NOAA’s list of significant earthquakes has {n, plural, one {one} other {#}} {scope, select, city {within {km, radius} of {place}} inland {in {place}} other {in or off {place}}}, back to {from}.', { ...scope, n: f.quakes, from: first.date })
+        : t('NOAA’s list of significant earthquakes has {n, plural, one {one} other {#}} {scope, select, city {within {km, radius} of {place}} inland {in {place}} other {in or off {place}}} in these years.', { ...scope, n: f.quakes })
       : f.range === 'all'
         ? t('NOAA’s list of significant earthquakes has {n} here, back to {from}.', { n: f.quakes, from: first.date })
         : t('{n, plural, one {One earthquake here in these years is} other {# earthquakes here in these years are}} on NOAA’s list of significant earthquakes.', { n: f.quakes }));
@@ -312,8 +314,8 @@ export function hazardSentences(f: HazardFacts, place: string, t: Translate): st
       : t('The ten years with the most magnitude {floor}+ earthquakes were {years}, with {n} of the {total}.', { years: f.peak.label, n: f.peak.n, total: f.usgs, floor: f.floor }));
     if (f.peak.main && f.peak.after >= 5 && f.peak.after >= f.peak.n / 4) {
       out.push(f.peak.main.id === s?.id
-        ? t('{n} came in the 30 days after the strongest, within 150 km of it.', { n: f.peak.after })
-        : t('{n} came in the 30 days after {quake}, within 150 km of it.', { n: f.peak.after, quake: quakePhrase(f.peak.main, t) }));
+        ? t('{n} came in the 30 days after the strongest, within {reach, radius} of it.', { n: f.peak.after, reach: AFTERSHOCK_KM })
+        : t('{n} came in the 30 days after {quake}, within {reach, radius} of it.', { n: f.peak.after, quake: quakePhrase(f.peak.main, t), reach: AFTERSHOCK_KM }));
     }
   } else if (f.halves) {
     out.push(t('{late} came from {split} on, against {early} in the five years before.', { late: f.halves.late, early: f.halves.early, split: String(f.halves.split) }));
@@ -337,10 +339,10 @@ export function hazardSentences(f: HazardFacts, place: string, t: Translate): st
   if (f.tsunamis > 0) {
     const vars = { ...scope, n: f.tsunamis - f.tsunamisFrom, away: f.tsunamisFrom };
     out.push(vars.n && vars.away
-      ? t('NOAA lists {n, plural, one {one tsunami} other {# tsunamis}} that began {scope, select, city {within {km} km of {place}} inland {in {place}} other {in or off {place}}}, and {away, plural, one {one} other {#}} from elsewhere that reached it with deaths or a metre of water or more.', vars)
+      ? t('NOAA lists {n, plural, one {one tsunami} other {# tsunamis}} that began {scope, select, city {within {km, radius} of {place}} inland {in {place}} other {in or off {place}}}, and {away, plural, one {one} other {#}} from elsewhere that reached it with deaths or a metre of water or more.', vars)
       : vars.n
-        ? t('NOAA lists {n, plural, one {one tsunami} other {# tsunamis}} that began {scope, select, city {within {km} km of {place}} inland {in {place}} other {in or off {place}}}.', vars)
-        : t('NOAA lists {away, plural, one {one tsunami} other {# tsunamis}} from elsewhere that reached {scope, select, city {the coast within {km} km of {place}} other {{place}}} with deaths or a metre of water or more.', vars));
+        ? t('NOAA lists {n, plural, one {one tsunami} other {# tsunamis}} that began {scope, select, city {within {km, radius} of {place}} inland {in {place}} other {in or off {place}}}.', vars)
+        : t('NOAA lists {away, plural, one {one tsunami} other {# tsunamis}} from elsewhere that reached {scope, select, city {the coast within {km, radius} of {place}} other {{place}}} with deaths or a metre of water or more.', vars));
     const tall = f.tallest;
     if (tall) out.push(tall.here
       ? t('The highest water NOAA records here was {h} m, {prec, select, day {on {date}} other {in {date}}}.', { h: tall.h, ...when(tall.e.d, t) })
@@ -351,18 +353,18 @@ export function hazardSentences(f: HazardFacts, place: string, t: Translate): st
       out.push(!wd.away
         ? t('The deadliest, {prec, select, day {on {date}} other {in {date}}}, killed {n, plural, one {one person} other {# people}} here by NOAA’s runup records.', v)
         : wd.e.m !== undefined && wd.e.where
-          ? t('The deadliest here came {prec, select, day {on {date}} other {in {date}}} from a magnitude {m} earthquake ({where}): NOAA’s runup records count {n, plural, one {one death} other {# deaths}} {scope, select, city {within {km} km of {place}} other {in {place}}}.', v)
+          ? t('The deadliest here came {prec, select, day {on {date}} other {in {date}}} from a magnitude {m} earthquake ({where}): NOAA’s runup records count {n, plural, one {one death} other {# deaths}} {scope, select, city {within {km, radius} of {place}} other {in {place}}}.', v)
           : wd.e.m !== undefined
-            ? t('The deadliest here came {prec, select, day {on {date}} other {in {date}}} from a magnitude {m} earthquake: NOAA’s runup records count {n, plural, one {one death} other {# deaths}} {scope, select, city {within {km} km of {place}} other {in {place}}}.', v)
+            ? t('The deadliest here came {prec, select, day {on {date}} other {in {date}}} from a magnitude {m} earthquake: NOAA’s runup records count {n, plural, one {one death} other {# deaths}} {scope, select, city {within {km, radius} of {place}} other {in {place}}}.', v)
           : wd.e.where
-            ? t('The deadliest here came {prec, select, day {on {date}} other {in {date}}} from {where}: NOAA’s runup records count {n, plural, one {one death} other {# deaths}} {scope, select, city {within {km} km of {place}} other {in {place}}}.', v)
-            : t('The deadliest here came {prec, select, day {on {date}} other {in {date}}}: NOAA’s runup records count {n, plural, one {one death} other {# deaths}} {scope, select, city {within {km} km of {place}} other {in {place}}}.', v));
+            ? t('The deadliest here came {prec, select, day {on {date}} other {in {date}}} from {where}: NOAA’s runup records count {n, plural, one {one death} other {# deaths}} {scope, select, city {within {km, radius} of {place}} other {in {place}}}.', v)
+            : t('The deadliest here came {prec, select, day {on {date}} other {in {date}}}: NOAA’s runup records count {n, plural, one {one death} other {# deaths}} {scope, select, city {within {km, radius} of {place}} other {in {place}}}.', v));
     }
   }
 
   if (f.eruptions > 0) {
     const big = f.largestEruption;
-    out.push(t('NOAA lists {n, plural, one {one significant eruption} other {# significant eruptions}} {v, plural, one {of one volcano} other {of # volcanoes}} {scope, select, city {within {km} km of {place}} inland {in {place}} other {in or off {place}}}.', { ...scope, n: f.eruptions, v: f.volcanoes }));
+    out.push(t('NOAA lists {n, plural, one {one significant eruption} other {# significant eruptions}} {v, plural, one {of one volcano} other {of # volcanoes}} {scope, select, city {within {km, radius} of {place}} inland {in {place}} other {in or off {place}}}.', { ...scope, n: f.eruptions, v: f.volcanoes }));
     if (big?.where) out.push(t('The largest was {volcano} {prec, select, day {on {date}} other {in {date}}}, at {vei} on the volcanic explosivity index.', { volcano: big.where, ...when(big.d, t), vei: big.m! }));
     const de = f.eruptionDeadliest;
     if (de?.where) out.push(de.id === big?.id
@@ -371,6 +373,6 @@ export function hazardSentences(f: HazardFacts, place: string, t: Translate): st
   }
 
   if (f.quakeEvents === 0) tolls();
-  if (!out.length) out.push(t('Neither USGS nor NOAA records an earthquake, tsunami or eruption {scope, select, city {within {km} km of {place}} inland {in {place}} other {in or off {place}}} from {from} to {to}.', { ...scope, from: String(f.from), to: until(f, t) }));
+  if (!out.length) out.push(t('Neither USGS nor NOAA records an earthquake, tsunami or eruption {scope, select, city {within {km, radius} of {place}} inland {in {place}} other {in or off {place}}} from {from} to {to}.', { ...scope, from: String(f.from), to: until(f, t) }));
   return out.map(sentence);
 }

@@ -40,24 +40,24 @@ export const HIKING: PlaceTopic<HikingData> = {
       ]), t, TITLE_MAX),
       description: fit([
         ...(lead ? [
-          (t: Translate) => t('Hiking routes around {place}: {n} waymarked trails within {r} km, among them {route}, on a free map with each route’s length and network.', { ...v(t), route: routeName(lead, lead.id) }),
-          (t: Translate) => t('Hiking routes around {city}: {n} waymarked trails within {r} km, among them {route}, with each route’s length and network.', { ...v(t), route: routeName(lead, lead.id) }),
+          (t: Translate) => t('Hiking routes around {place}: {n} waymarked trails within {r, radius}, among them {route}, on a free map with each route’s length and network.', { ...v(t), route: routeName(lead, lead.id) }),
+          (t: Translate) => t('Hiking routes around {city}: {n} waymarked trails within {r, radius}, among them {route}, with each route’s length and network.', { ...v(t), route: routeName(lead, lead.id) }),
         ] : []),
-        t => t('Hiking routes around {place}: {n} waymarked trails within {r} km on a free map from OpenStreetMap, with each route’s length, network and operator.', v(t)),
-        t => t('Hiking routes around {city}: {n} waymarked trails within {r} km on a free map from OpenStreetMap, with each route’s length and network.', v(t)),
-        t => t('Hiking routes around {city}: {n} waymarked trails within {r} km on a free map, with each route’s length and network.', v(t)),
+        t => t('Hiking routes around {place}: {n} waymarked trails within {r, radius} on a free map from OpenStreetMap, with each route’s length, network and operator.', v(t)),
+        t => t('Hiking routes around {city}: {n} waymarked trails within {r, radius} on a free map from OpenStreetMap, with each route’s length and network.', v(t)),
+        t => t('Hiking routes around {city}: {n} waymarked trails within {r, radius} on a free map, with each route’s length and network.', v(t)),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('Hiking routes around {city}', v(t)),
+      heading: t('Hiking routes around {city}', { ...v(t), city: placeName(place, t) }),
       lede: renderHikingSentence(story.sentences[0], nameOf(place, t), t),
     };
   },
 
   summary(_place, { data: { story: { facts: f } } }, t) {
     const lead = f.routes.find(r => r.name);
-    if (f.capped) return t('At least {n} waymarked routes within {r} km.', { n: count(f.total, t), r: f.r });
+    if (f.capped) return t('At least {n} waymarked routes within {r, radius}.', { n: count(f.total, t), r: f.r });
     return lead
-      ? t('{n, plural, one {One waymarked route} other {# waymarked routes}} within {r} km, among them {route}.', { n: f.total, r: f.r, route: routeName(lead, lead.id) })
-      : t('{n, plural, one {One waymarked route} other {# waymarked routes}} within {r} km.', { n: f.total, r: f.r });
+      ? t('{n, plural, one {One waymarked route} other {# waymarked routes}} within {r, radius}, among them {route}.', { n: f.total, r: f.r, route: routeName(lead, lead.id) })
+      : t('{n, plural, one {One waymarked route} other {# waymarked routes}} within {r, radius}.', { n: f.total, r: f.r });
   },
 
   // Local routes draw from zoom 10.

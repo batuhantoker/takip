@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { count, DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from '../copy/format';
 import type { Place } from '../gazetteer';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -42,7 +42,7 @@ export function prayerToday(place: Place, tz: string, now = Date.now()): PrayerR
 }
 
 /** "2,380 km": to the kilometre near Mecca, to ten beyond. */
-export const kaabaKm = (km: number, t: Translate) => count(km < 100 ? Math.round(km) : Math.round(km / 10) * 10, t);
+export const kaabaKm = (km: number) => (km < 100 ? Math.round(km) : Math.round(km / 10) * 10);
 
 export const PRAYER: PlaceTopic<PrayerData, PrayerNow> = {
   id: 'prayer',
@@ -77,11 +77,11 @@ export const PRAYER: PlaceTopic<PrayerData, PrayerNow> = {
         t => t('Prayer times for {place} today and for 30 days: Fajr, Dhuhr, Asr, Maghrib and Isha in local time, with the Qibla direction.', { place: placeName(place, t) }),
         t => t('Prayer times for {place} today and for 30 days: Fajr, Dhuhr, Asr, Maghrib and Isha in local time, with the Qibla direction.', { place: name(t) }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('Prayer times in {city}', { city: name(t) }),
+      heading: t('Prayer times in {city}', { city: placeName(place, t) }),
       lede: qibla.km < AT_THE_KAABA_KM
-        ? t('Fajr, Dhuhr, Asr, Maghrib and Isha in {city} today and for the next 30 days, in local time, by the {method} method. The Kaaba, which Muslims everywhere face in prayer, stands here.', lede)
-        : t('Fajr, Dhuhr, Asr, Maghrib and Isha in {city} today and for the next 30 days, in local time, by the {method} method. The Qibla is {bearing} from true north, {compass}, and the Kaaba {km} km away.', {
-          ...lede, bearing: degreesOf(qibla.bearing, t), compass: compassOf(qibla.bearing, t), km: kaabaKm(qibla.km, t),
+        ? t(wordingOf(place, 'lede', [msg('Fajr, Dhuhr, Asr, Maghrib and Isha in {city} today and for the next 30 days, in local time, by the {method} method. The Kaaba, which Muslims everywhere face in prayer, stands here.'), msg('Today’s Fajr, Dhuhr, Asr, Maghrib and Isha in {city}, and the next 30 days, in local time by the {method} method. The Kaaba, which Muslims everywhere face in prayer, stands here.')]), lede)
+        : t(wordingOf(place, 'lede', [msg('Fajr, Dhuhr, Asr, Maghrib and Isha in {city} today and for the next 30 days, in local time, by the {method} method. The Qibla is {bearing} from true north, {compass}, and the Kaaba {km, distance} away.'), msg('Today’s Fajr, Dhuhr, Asr, Maghrib and Isha in {city}, and the next 30 days, in local time by the {method} method. For the Qibla, face {bearing} from true north, {compass}; the Kaaba is {km, distance} away.')]), {
+          ...lede, bearing: degreesOf(qibla.bearing, t), compass: compassOf(qibla.bearing, t), km: kaabaKm(qibla.km),
         }),
     };
   },

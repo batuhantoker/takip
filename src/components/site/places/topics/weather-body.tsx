@@ -5,7 +5,7 @@ import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { layerPage, openPath, pagePath } from '@/lib/platform/site/layer-pages';
 import { localePath } from '@/lib/platform/site/locale-path';
-import { listOf, nameOf, placeName } from '@/lib/platform/site/places/copy/format';
+import { listOf, nameOf, placeName, wordingOf } from '@/lib/platform/site/places/copy/format';
 import type { Place } from '@/lib/platform/site/places/place';
 import type { WeatherData, WeatherLive } from '@/lib/platform/site/places/topics/weather';
 import type { CityForecast } from '@/lib/platform/site/places/topics/weather-forecast';
@@ -14,6 +14,8 @@ import { WeatherForecast } from './parts/weather-forecast';
 import type { TopicView } from './view';
 
 type Kind = 'measured' | 'model' | 'warnings';
+/** How far the weather table looks for an airport station (tools/site/topics/air-weather.ts). */
+const STATION_KM = 30;
 const KIND: Record<Kind, string> = { measured: msg('Measured'), model: msg('Forecast model'), warnings: msg('Official warnings') };
 
 interface Row { slug: string; kind: Kind; covered: boolean; note: string }
@@ -33,7 +35,7 @@ function rows(t: Translate, place: Place, d: WeatherData): Row[] {
         : d.lightning === 'mtg' ? t('{city} is inside the area Meteosat’s Lightning Imager sees from orbit. Flashes every 5 minutes.', { city })
           : t('Not covered: no lightning network on the map reaches {city}.', { city }),
     },
-    { slug: 'temperature-map', kind: 'model', covered: true, note: t('NOAA’s GFS model on a 0.25° grid, points about 25 km apart: the forecast for now, not a thermometer reading.') },
+    { slug: 'temperature-map', kind: 'model', covered: true, note: t('NOAA’s GFS model on a 0.25° grid, points about {spacing, radius} apart: the forecast for now, not a thermometer reading.', { spacing: 25 }) },
     { slug: 'wind-map', kind: 'model', covered: true, note: t('Wind 10 metres up from the same model, so it smooths over streets and hills.') },
     {
       slug: 'severe-weather', kind: 'warnings', covered: true,
@@ -44,8 +46,8 @@ function rows(t: Translate, place: Place, d: WeatherData): Row[] {
     {
       slug: 'airport-weather', kind: 'measured', covered: d.stations.length > 0,
       note: d.stations.length
-        ? t('The latest reports from {stations}, usually every hour.', { stations: listOf(d.stations.map(s => t('{name} ({icao}), {km} km away', { name: s.name, icao: s.icao, km: s.km })), t) })
-        : t('No airport weather station reports within 30 km of {city}.', { city }),
+        ? t('The latest reports from {stations}, usually every hour.', { stations: listOf(d.stations.map(s => t('{name} ({icao}), {km, distance} away', { name: s.name, icao: s.icao, km: s.km })), t) })
+        : t('No airport weather station reports within {reach, radius} of {city}.', { city, reach: STATION_KM }),
     },
   ];
 }
@@ -87,7 +89,7 @@ function WeatherNow({ t, items }: { t: Translate; items: WeatherLive[] }) {
         ? <li key="now">{s.lines.join(' ')}</li>
         : (
           <li key={s.icao}>
-            <span className="text-ink-2">{t('{name}, {km} km', { name: s.name, km: s.km })}:</span>{' '}
+            <span className="text-ink-2">{t('{name}, {km, distance}', { name: s.name, km: s.km })}:</span>{' '}
             {s.text}
             <span className="text-[13px] text-ink-3"> · {t('{n, plural, one {# minute ago} other {# minutes ago}}', { n: s.minutesAgo })}</span>
           </li>
@@ -115,9 +117,9 @@ export const WEATHER_VIEW: TopicView<WeatherData, WeatherLive[], CityForecast> =
         </Section>
         <Section title={t('Good to know')}>
           <ul className="flex flex-col gap-3 border-l-2 border-amber/50 pl-4 text-[14px] leading-relaxed">
-            <li>{t('Radar, lightning and airport reports are measurements. Temperature and wind are a forecast model’s values for the nearest hour, which can differ from what a thermometer in {city} reads.', { city })}</li>
-            <li>{t('Radar detail stops at about zoom 7 and lightning at zoom 8, so the weather of a single street isn’t resolved.')}</li>
-            <li>{t('For a picture of conditions, not for safety decisions: follow the warnings of your local weather service.')}</li>
+            <li>{t(wordingOf(place, 'note-measured', [msg('Radar, lightning and airport reports are measurements. Temperature and wind are a forecast model’s values for the nearest hour, which can differ from what a thermometer in {city} reads.'), msg('Radar, lightning and the airport reports are measured; temperature and wind come from a forecast model for the nearest hour, so a thermometer in {city} can read differently.')]), { city })}</li>
+            <li>{t(wordingOf(place, 'note-zoom', [msg('Radar detail stops at about zoom 7 and lightning at zoom 8, so the weather of a single street isn’t resolved.'), msg('Past about zoom 7 for radar and zoom 8 for lightning the map shows no finer detail: it can’t resolve the weather of one street.')]))}</li>
+            <li>{t(wordingOf(place, 'note-safety', [msg('For a picture of conditions, not for safety decisions: follow the warnings of your local weather service.'), msg('Use it to see conditions, not to make safety decisions; for those, follow your local weather service’s warnings.')]))}</li>
           </ul>
         </Section>
       </>

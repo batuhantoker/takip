@@ -65,7 +65,7 @@ export const AURORA: PlaceTopic<AuroraData, AuroraLive> = {
         t => t('The chance of the {h, select, north {northern lights} other {southern lights}} over {city} right now, from NOAA’s aurora model, and when it is next dark enough there to see them.', vars(t)),
         t => t('The chance of the aurora over {city} right now, from NOAA’s model, and when it is next dark enough there to see it.', vars(t)),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('{h, select, north {Northern lights} other {Southern lights}} in {city}', vars(t)),
+      heading: t('{h, select, north {Northern lights} other {Southern lights}} in {city}', { ...vars(t), city: placeName(place, t) }),
       lede: t(lede, vars(t)),
     };
   },

@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from '../copy/format';
 import { metarNow, type StationNow } from '../live/metar-now';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -42,8 +42,8 @@ export const FLIGHTS: PlaceTopic<FlightsData, StationNow[]> = {
         ...[2, 1].map(k => (t: Translate) => t('Aircraft over {place} on a live map, from ADS-B receivers: flights in and out of {airports}, with each plane’s altitude, speed and route where known.', { place: placeName(place, t), airports: listOf(codes(k), t) })),
         t => t('Aircraft over {city} on a live map, from ADS-B receivers: flights in and out of {airport}, with each plane’s altitude and speed.', { city: name(t), airport: codes(1)[0] }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('Flights over {city}, live', { city: name(t) }),
-      lede: t('Every aircraft around {city} that broadcasts its position and is heard by a receiver, moving on the map: arrivals and departures at {airports}, and the traffic passing overhead.', {
+      heading: t('Flights over {city}, live', { city: placeName(place, t) }),
+      lede: t(wordingOf(place, 'lede', [msg('Every aircraft around {city} that broadcasts its position and is heard by a receiver, moving on the map: arrivals and departures at {airports}, and the traffic passing overhead.'), msg('Aircraft around {city} move on the map as receivers hear their positions: arrivals and departures at {airports}, and the traffic passing overhead.'), msg('Each aircraft near {city} that broadcasts where it is and is heard by a receiver, live on the map: flights in and out of {airports}, and those passing overhead.')]), {
         city: name(t), airports: listOf(data.airports.map(a => a.name), t),
       }),
     };

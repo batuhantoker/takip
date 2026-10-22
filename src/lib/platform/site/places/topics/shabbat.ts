@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from '../copy/format';
 import { allPlaces, type Place } from '../gazetteer';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -77,8 +77,8 @@ export const SHABBAT: PlaceTopic<ShabbatData, ShabbatNow> = {
         t => t('Shabbat times for {place}: candle lighting {n} minutes before sunset and havdalah at nightfall, this week and for the next 12, with yom tov, in local time.', { place: name(t), n }),
         t => t('Shabbat candle lighting and havdalah in {place}, this week and for the next 12, with yom tov, in local time.', { place: name(t) }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('Shabbat times in {city}', { city: name(t) }),
-      lede: t('Candle lighting and havdalah in {city} for this Shabbat and the next 12 weeks, with the holidays among them, in local time. Candles are lit {n} minutes before sunset; havdalah is at nightfall, when the Sun is 8.5° below the horizon.', { city: name(t), n }),
+      heading: t('Shabbat times in {city}', { city: placeName(place, t) }),
+      lede: t(wordingOf(place, 'lede', [msg('Candle lighting and havdalah in {city} for this Shabbat and the next 12 weeks, with the holidays among them, in local time. Candles are lit {n} minutes before sunset; havdalah is at nightfall, when the Sun is 8.5° below the horizon.'), msg('Candle lighting and havdalah in {city}, in local time, for this Shabbat and the 12 weeks after, holidays included. Candles are lit {n} minutes before sunset, and havdalah falls at nightfall, with the Sun 8.5° below the horizon.')]), { city: name(t), n }),
     };
   },
 

@@ -1,7 +1,7 @@
 import { Footprints } from 'lucide-react';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { count, dayOf, nameOf } from '@/lib/platform/site/places/copy/format';
+import { dayOf, nameOf } from '@/lib/platform/site/places/copy/format';
 import type { HikingData } from '@/lib/platform/site/places/topics/hiking';
 import { HIKING_SOURCE, routeLink } from '@/lib/platform/site/places/topics/hiking-data';
 import { kmText, renderHikingSentence, routeName, type ListedRoute } from '@/lib/platform/site/places/topics/hiking-facts';
@@ -27,7 +27,7 @@ function RouteRow({ t, route, r }: { t: Translate; route: ListedRoute; r: number
         </span>
       </span>
       <span className="text-[14px] leading-relaxed text-ink-2">
-        {t('{km} km within {r} km', { km: count(route.kmIn, t), r })}
+        {t('{km, distance} within {r, radius}', { km: route.kmIn, r })}
         {whole && <> · {t('{km} in all', { km: kmText(route, t) })}</>}
         {route.from && route.to && <> · {t('{from} to {to}', { from: route.from, to: route.to })}</>}
         {route.operator && <span className="block text-[12px] text-ink-3">{route.operator}</span>}
@@ -51,13 +51,13 @@ export const HIKING_VIEW: TopicView<HikingData> = {
       }),
       t('Only routes someone has mapped as a route on OpenStreetMap are counted. Signposted paths no one has mapped, and walks without waymarks, are not.'),
       ...(f.capped ? [t('Waymarked Trails lists at most 100 routes for an area at once, and parts of this one hold more, so local routes late in the alphabet are missing from the counts and the list.')] : []),
-      t('Lengths within {r} km are measured on Waymarked Trails’ simplified lines and take in a route’s branches and variants; a path two routes share counts for each. A route’s length in all follows its main line along the mapped ways, and those marked “about” come from the simplified lines.', { r: f.r }),
+      t('Lengths within {r, radius} are measured on Waymarked Trails’ simplified lines and take in a route’s branches and variants; a path two routes share counts for each. A route’s length in all follows its main line along the mapped ways, and those marked “about” come from the simplified lines.', { r: f.r }),
     ];
     return (
       <>
         {more.length > 0 && <Section title={t('Around {city}', { city })}><p>{more.join(' ')}</p></Section>}
         {f.routes.length > 0 && (
-          <Section title={t('The routes with most of their length within {r} km', { r: f.r })}>
+          <Section title={t('The routes with most of their length within {r, radius}', { r: f.r })}>
             <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
               {f.routes.map(route => <RouteRow key={route.id} t={t} route={route} r={f.r} />)}
             </ul>

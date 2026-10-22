@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { fit, listOf, nameOf, placeFirst, placeName, sentenceStart, TITLE_MAX } from '../copy/format';
+import { fit, listOf, nameOf, placeFirst, placeName, sentenceStart, TITLE_MAX, wordingOf } from '../copy/format';
 import type { Place } from '../gazetteer';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -38,8 +38,8 @@ export const PRAYERS: PlaceTopic<PrayersData> = {
         (t, city) => t('Prayers in {city}', { city }),
       ]), t, TITLE_MAX),
       description: t('{things} for {place}, worked out for the city’s own clock, with the dates of the year’s holy days.', { things: sentenceStart(things(data.faiths, t)), place: placeName(place, t) }),
-      heading: t('Prayers in {city}', { city: name(t) }),
-      lede: t('Where to find {things} for {city}, worked out for the city’s own clock, and the dates of the holy days in every year.', { things: things(data.faiths, t), city: name(t) }),
+      heading: t('Prayers in {city}', { city: placeName(place, t) }),
+      lede: t(wordingOf(place, 'lede', [msg('Where to find {things} for {city}, worked out for the city’s own clock, and the dates of the holy days in every year.'), msg('For {city}: {things}, worked out for the city’s own clock, and the dates of the holy days in every year.')]), { things: things(data.faiths, t), city: name(t) }),
     };
   },
 

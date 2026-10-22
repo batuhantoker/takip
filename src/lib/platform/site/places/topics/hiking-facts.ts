@@ -140,7 +140,7 @@ const num = (n: number, t: Translate) => new Intl.NumberFormat(t.intl).format(n)
 
 /** The route's length as written: "537 km", "about 23 km" where it was measured on simplified lines. */
 export function kmText(r: Pick<HikingRoute, 'km' | 'approx'>, t: Translate): string {
-  return r.approx ? t('about {km} km', { km: num(r.km!, t) }) : t('{km} km', { km: num(r.km!, t) });
+  return r.approx ? t('about {km, radius}', { km: r.km! }) : t('{km, distance}', { km: r.km! });
 }
 
 /** "2 international, 9 regional and 117 local". */
@@ -158,46 +158,46 @@ export function renderHikingSentence(s: HikingSentence, place: string, t: Transl
     case 'count': {
       const only = LEVELS.filter(l => s.n[l]);
       const v = { total: s.total, count: num(s.total, t), r: s.r, place, breakdown: breakdown(s.n, t), level: only[0] };
-      if (s.capped) return t('At least {count} waymarked hiking routes run within {r} km of {place}: {breakdown}. Parts of the area hold more than Waymarked Trails lists at once.', v);
+      if (s.capped) return t('At least {count} waymarked hiking routes run within {r, radius} of {place}: {breakdown}. Parts of the area hold more than Waymarked Trails lists at once.', v);
       return only.length === 1
-        ? t('{total, plural, one {One waymarked hiking route runs within {r} km of {place}, a {level, select, int {international} nat {national} reg {regional} other {local}} one.} other {{count} waymarked hiking routes run within {r} km of {place}, all of them {level, select, int {international} nat {national} reg {regional} other {local}}.}}', v)
-        : t('{total, plural, one {One waymarked hiking route runs} other {{count} waymarked hiking routes run}} within {r} km of {place}: {breakdown}.', v);
+        ? t('{total, plural, one {One waymarked hiking route runs within {r, radius} of {place}, a {level, select, int {international} nat {national} reg {regional} other {local}} one.} other {{count} waymarked hiking routes run within {r, radius} of {place}, all of them {level, select, int {international} nat {national} reg {regional} other {local}}.}}', v)
+        : t('{total, plural, one {One waymarked hiking route runs} other {{count} waymarked hiking routes run}} within {r, radius} of {place}: {breakdown}.', v);
     }
     case 'long-distance': {
       const routes = list(s.routes.map(r => (r.km ? t('{route} ({km})', { route: routeName(r, r.id), km: kmText(r, t) }) : routeName(r, r.id))), t);
       return s.n === s.routes.length
         ? t('{n, plural, one {One long-distance trail passes through: {routes}.} other {# long-distance trails pass through: {routes}.}}', { n: s.n, routes })
-        : t('{n} national and international routes pass within {r} km, among them {routes}.', { n: s.n, r: s.r, routes });
+        : t('{n} national and international routes pass within {r, radius}, among them {routes}.', { n: s.n, r: s.r, routes });
     }
     case 'no-long-distance':
-      return t('No national or international trail comes within {r} km; the longest-distance routes here are regional.', { r: s.r });
+      return t('No national or international trail comes within {r, radius}; the longest-distance routes here are regional.', { r: s.r });
     case 'network': {
-      const v = { place, route: routeName(s.route, s.route.id), stages: s.route.stages!, km: kmText(s.route, t), kmIn: num(s.route.kmIn, t), r: s.r };
+      const v = { place, route: routeName(s.route, s.route.id), stages: s.route.stages!, km: kmText(s.route, t), kmIn: s.route.kmIn, r: s.r };
       // The mapped length follows the main line; the lines inside the circle also hold its branches and variants.
       return s.route.kmIn >= 0.9 * s.route.km!
-        ? t('{route} passes through {place}: {stages} sections with {km} mapped in all, nearly all of it within {r} km.', v)
-        : t('{route} passes through {place}: {stages} sections with {km} mapped in all, {kmIn} km of them within {r} km.', v);
+        ? t('{route} passes through {place}: {stages} sections with {km} mapped in all, nearly all of it within {r, radius}.', v)
+        : t('{route} passes through {place}: {stages} sections with {km} mapped in all, {kmIn, distance} of them within {r, radius}.', v);
     }
     case 'most-inside': {
-      const v = { route: routeName(s.route, s.route.id), kmIn: num(s.route.kmIn, t), r: s.r };
-      if (!s.route.km || s.route.km <= s.route.kmIn * 1.1) return t('{route} has more of its length here than any other route: {kmIn} km within {r} km.', v);
+      const v = { route: routeName(s.route, s.route.id), kmIn: s.route.kmIn, r: s.r };
+      if (!s.route.km || s.route.km <= s.route.kmIn * 1.1) return t('{route} has more of its length here than any other route: {kmIn, distance} within {r, radius}.', v);
       return s.route.from && s.route.to
-        ? t('{route} has more of its length here than any other route: {kmIn} km within {r} km, of {km} from {from} to {to}.', { ...v, km: kmText(s.route, t), from: s.route.from, to: s.route.to })
-        : t('{route} has more of its length here than any other route: {kmIn} km within {r} km, of {km} in all.', { ...v, km: kmText(s.route, t) });
+        ? t('{route} has more of its length here than any other route: {kmIn, distance} within {r, radius}, of {km} from {from} to {to}.', { ...v, km: kmText(s.route, t), from: s.route.from, to: s.route.to })
+        : t('{route} has more of its length here than any other route: {kmIn, distance} within {r, radius}, of {km} in all.', { ...v, km: kmText(s.route, t) });
     }
     case 'longest':
       return s.route.from && s.route.to
         ? t('Of the routes listed here, the longest is {route}, {km} from {from} to {to}.', { route: routeName(s.route, s.route.id), km: kmText(s.route, t), from: s.route.from, to: s.route.to })
         : t('Of the routes listed here, the longest is {route}, {km} long.', { route: routeName(s.route, s.route.id), km: kmText(s.route, t) });
     case 'leading':
-      return t('{level, select, int {International} nat {National} other {Regional}} routes account for the largest share: {km} of the {total} km of waymarked route within {r} km.', {
-        level: s.level, km: num(s.km, t), total: num(s.total, t), r: s.r,
+      return t('{level, select, int {International} nat {National} other {Regional}} routes account for the largest share: {km, distance} of the {total, distance} of waymarked route within {r, radius}.', {
+        level: s.level, km: s.km, total: s.total, r: s.r,
       });
     case 'local':
-      if (s.capped) return t('At least {short} local routes here are under 10 km.', { short: num(s.short, t) });
+      if (s.capped) return t('At least {short} local routes here are under {walk, radius}.', { short: num(s.short, t), walk: SHORT_KM });
       return s.short * 2 >= s.local
-        ? t('Most of the {local} local routes are short walks: {short} of them are under 10 km.', { local: num(s.local, t), short: num(s.short, t) })
-        : t('{short, plural, one {# of the {local} local routes is under 10 km} other {# of the {local} local routes are under 10 km}}; the rest run longer or leave the area.', { local: num(s.local, t), short: s.short });
+        ? t('Most of the {local} local routes are short walks: {short} of them are under {walk, radius}.', { local: num(s.local, t), short: num(s.short, t), walk: SHORT_KM })
+        : t('{short, plural, one {# of the {local} local routes is under {walk, radius}} other {# of the {local} local routes are under {walk, radius}}}; the rest run longer or leave the area.', { local: num(s.local, t), short: s.short, walk: SHORT_KM });
     case 'operator':
       return t('{name} looks after {routes} of the {listed} routes listed here.', { name: s.name, routes: s.routes, listed: s.listed });
     case 'operators':

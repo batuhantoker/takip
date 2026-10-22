@@ -55,7 +55,7 @@ export function auroraLines(r: AuroraReport, city: string, t: Translate): string
     case 'horizon': {
       const pole = compassWord(r.nearby!.toward, t);
       return [
-        t('NOAA’s model gives {here} overhead in {city} right now, but {near} about {km} km to the {dir}.', { here: pct(here, t), city, near: pct(r.nearby!.pct, t), km: r.nearby!.km, dir: pole }),
+        t('NOAA’s model gives {here} overhead in {city} right now, but {near} about {km, radius} to the {dir}.', { here: pct(here, t), city, near: pct(r.nearby!.pct, t), km: r.nearby!.km, dir: pole }),
         t('With a clear sky and an open view to the {dir}, it may show there, low down.', { dir: pole }),
         darkUntil(r, t),
       ];
@@ -64,8 +64,8 @@ export function auroraLines(r: AuroraReport, city: string, t: Translate): string
       const near = r.nearby?.pct ?? 0;
       return [
         near > here
-          ? t('NOAA’s model gives {here} overhead in {city} right now, and no more than {near} within {km} km: little chance of seeing it.', { here: pct(here, t), near: pct(near, t), city, km: AURORA_NEAR_KM })
-          : t('NOAA’s model gives {here} overhead in {city} right now, and nothing more within {km} km: little chance of seeing it.', { here: pct(here, t), city, km: AURORA_NEAR_KM }),
+          ? t('NOAA’s model gives {here} overhead in {city} right now, and no more than {near} within {km, radius}: little chance of seeing it.', { here: pct(here, t), near: pct(near, t), city, km: AURORA_NEAR_KM })
+          : t('NOAA’s model gives {here} overhead in {city} right now, and nothing more within {km, radius}: little chance of seeing it.', { here: pct(here, t), city, km: AURORA_NEAR_KM }),
         ...(r.worldMax != null && r.worldMax < 20 ? [t('It is quiet everywhere: the highest chance anywhere on Earth is {n}%.', { n: r.worldMax })] : []),
         darkUntil(r, t),
       ];

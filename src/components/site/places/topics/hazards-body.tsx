@@ -61,8 +61,8 @@ function notes(f: HazardFacts, place: Place, t: Translate): string[] {
   const name = nameOf(place, t);
   return [
     f.scope === 'city'
-      ? t('An event counts for {place} when it began within {km} km of its centre, or {bigKm} km for an earthquake of magnitude {bigMag} or more. Damage can reach further.', { place: name, km: f.km, bigKm: f.bigKm, bigMag: f.bigMag })
-      : f.scope === 'inland' ? t('An event counts for {place} when it began inside its borders. Damage can reach across them.', { place: name }) : t('An event counts for {place} when it began inside its borders, or at sea within 100 km of its coast (so one can count for two neighbours), or further out, up to 300 km, where {place} is the nearest country.', { place: name }),
+      ? t('An event counts for {place} when it began within {km, radius} of its centre, or {bigKm, radius} for an earthquake of magnitude {bigMag} or more. Damage can reach further.', { place: name, km: f.km, bigKm: f.bigKm, bigMag: f.bigMag })
+      : f.scope === 'inland' ? t('An event counts for {place} when it began inside its borders. Damage can reach across them.', { place: name }) : t('An event counts for {place} when it began inside its borders, or at sea within {coast, radius} of its coast (so one can count for two neighbours), or further out, up to {far, radius}, where {place} is the nearest country.', { place: name, coast: 100, far: 300 }),
     f.floor >= 6
       ? t('USGS counts here start at magnitude {floor}: the catalogue’s smaller quakes thin out going back, where few instruments listened.', { floor: f.floor })
       : t('USGS counts are its ComCat catalogue’s earthquakes of magnitude {floor} or more, aftershocks included.', { floor: f.floor }),
@@ -79,7 +79,7 @@ export const HAZARDS_VIEW: TopicView<HazardData, HazardsNow> = {
 
   Live({ text: { t }, place, live: now }) {
     const where = now.km !== undefined
-      ? t('within {km} km of {place}', { km: now.km, place: nameOf(place, t) })
+      ? t('within {km, radius} of {place}', { km: now.km, place: nameOf(place, t) })
       : t('in the area the map frames');
     const quake = (q: NonNullable<HazardsNow['latest']>) => t('magnitude {m} on {date} ({where})', {
       m: q.m, where: q.place, date: new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(q.time),

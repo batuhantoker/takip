@@ -362,6 +362,10 @@ user on 2026-10-19).
 - Not translated: TAKIP, TI, names of sources and products, ids, keyboard keys,
   codes and unit symbols, data from feeds, logs, API errors, and Admin.
 - Numbers and dates format with `t.intl`, never a fixed `'en'`.
+- Distances are written `{km, distance}` (a measured one) or `{km, radius}` (a
+  search radius or round figure), with the value in kilometres. A page about a
+  place passes `t.inUnit()` its unit, so the US and the UK read miles, and a
+  radius rounds there to a number people say: 100 km reads 60 mi.
 - Arabic runs right to left inside its text, but the layout stays left to right
   until the shell is mirrored.
 - New copy is written in English with `t()`; English shows until a translation

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatMessage, formatParts, messageVariables } from './message';
+import { createTranslator, roundMiles } from './translator';
 
 const PLURAL = '{n, plural, =0 {No layers} one {# layer} other {# layers}}';
 
@@ -63,5 +64,31 @@ describe('context keys', () => {
     expect(t('rail|More')).toBe('Diğer');
     expect(createTranslator('en', {})('rail|Layers')).toBe('Layers');
     expect(createTranslator('en', {})('Map | Space')).toBe('Map | Space');
+  });
+});
+
+describe('distances', () => {
+  const en = createTranslator('en', {});
+  const tr = createTranslator('tr', { '{n} km': '{n} km', '{n} mi': '{n} mil' });
+
+  it('writes kilometres, or miles where the place reads them, with a decimal under ten', () => {
+    expect(en('{km, distance} away', { km: 14 })).toBe('14 km away');
+    expect(en.inUnit('mi')('{km, distance} away', { km: 14 })).toBe('8.7 mi away');
+    expect(en.inUnit('mi')('{km, distance} away', { km: 2410 })).toBe('1,498 mi away');
+    expect(tr.inUnit('mi')('{km, distance}', { km: 13 })).toBe('8,1 mil');
+  });
+
+  it('rounds a radius in miles as people would say it, and leaves kilometres as they are', () => {
+    expect(en.inUnit('mi')('within {km, radius}', { km: 100 })).toBe('within 60 mi');
+    expect(en.inUnit('mi')('within {km, radius}', { km: 31 })).toBe('within 20 mi');
+    expect(en.inUnit('mi')('under {km, radius}', { km: 10 })).toBe('under 6 mi');
+    expect(en('within {km, radius}', { km: 30 })).toBe('within 30 km');
+    expect([7.5, 19.3, 62, 93, 186, 620].map(roundMiles)).toEqual([8, 20, 60, 90, 190, 600]);
+  });
+
+  it('counts a distance as one of the message’s variables, and keeps the unit it was made with', () => {
+    expect(messageVariables('{n} cameras within {km, radius} of {city}')).toEqual(['city', 'km', 'n']);
+    const mi = en.inUnit('mi');
+    expect([mi.distance, mi.inUnit('mi') === mi, en.inUnit('km') === en]).toEqual(['mi', true, true]);
   });
 });

@@ -151,8 +151,8 @@ export const PRAYER_VIEW: TopicView<PrayerData, PrayerNow> = {
             <p className="text-[15px] leading-relaxed text-ink-1">{t('The Kaaba stands in the Masjid al-Haram in {city}; around it, the rows of worshippers face it from every side.', { city })}</p>
           ) : (
             <>
-              <p className="text-[15px] leading-relaxed text-ink-1">{t('{bearing} from true north, {compass}, along the shortest path over the globe to the Kaaba in Mecca, {km} km away.', {
-                bearing: degreesOf(qibla.bearing, t), compass: compassOf(qibla.bearing, t), km: kaabaKm(qibla.km, t),
+              <p className="text-[15px] leading-relaxed text-ink-1">{t('{bearing} from true north, {compass}, along the shortest path over the globe to the Kaaba in Mecca, {km, distance} away.', {
+                bearing: degreesOf(qibla.bearing, t), compass: compassOf(qibla.bearing, t), km: kaabaKm(qibla.km),
               })}</p>
               <p className="mt-2 text-[13px] text-ink-3">{t('A magnetic compass points to magnetic north, a few degrees off true north in most places; set a phone’s compass to true north to read the bearing directly.')}</p>
             </>

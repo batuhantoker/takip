@@ -117,7 +117,7 @@ describe('hikingStory', () => {
       'No national or international trail comes within 15 km; the longest-distance routes here are regional.',
       'Sheffield Country Walk has more of its length here than any other route: 30 km within 15 km, of 89 km in all.',
       'Of the routes listed here, the longest is Münchner Jakobskirchenweg, 108 km long.',
-      'Regional routes account for the largest share: 40 of the 52 km of waymarked route within 15 km.',
+      'Regional routes account for the largest share: 40 km of the 52 km of waymarked route within 15 km.',
       '1 of the 3 local routes is under 10 km; the rest run longer or leave the area.',
     ]);
     expect(story(THIN)).toEqual([

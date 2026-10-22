@@ -70,20 +70,20 @@ export const PORTS: PlaceTopic<PortsData, ShipsNow> = {
       ]), t, TITLE_MAX),
       description: fit([
         ...(heard ? [
-          (t: Translate) => t('Ships in and around the port of {place} on a free live map, from AIS: {n} different ships were heard within {km} km in {hours} sampled hours, {span}.', counted(t)),
-          (t: Translate) => t('Ships at {city} on a free live map, from AIS: {n} heard within {km} km in {hours} sampled hours, {span}, each with its speed and destination.', counted(t)),
+          (t: Translate) => t('Ships in and around the port of {place} on a free live map, from AIS: {n} different ships were heard within {km, radius} in {hours} sampled hours, {span}.', counted(t)),
+          (t: Translate) => t('Ships at {city} on a free live map, from AIS: {n} heard within {km, radius} in {hours} sampled hours, {span}, each with its speed and destination.', counted(t)),
         ] : []),
         t => t('Ships around {place} on a free live map from AIS, with speed, heading and destination, and what NGA’s World Port Index records about {port}.', { ...v(t), place: placeName(place, t) }),
         t => t('Ships around {city} on a free live map from AIS, with speed, heading and destination, and what NGA’s World Port Index records about its harbour.', v(t)),
         t => t('Ships around {city} on a free live map from AIS, and what NGA’s World Port Index records about its harbour.', v(t)),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('{city} port and ships, live', v(t)),
+      heading: t('{city} port and ships, live', { ...v(t), city: placeName(place, t) }),
       lede: renderSentence(story.sentences[0], nameOf(place, t), t),
     };
   },
 
   summary(place, { data: { story } }, t) {
-    return t('{port}, {km} km from the centre.', { port: portLabel(story.lead.name, place, t), km: Math.max(1, Math.round(story.lead.km)) });
+    return t('{port}, {km, distance} from the centre.', { port: portLabel(story.lead.name, place, t), km: Math.max(1, Math.round(story.lead.km)) });
   },
 
   open: (_place, { data: { story } }) => ({

@@ -177,7 +177,7 @@ export const SUN_VIEW: TopicView<SunData, SunReport> = {
 
 function notes(place: Place, t: Translate): string[] {
   return [
-    t('Sunrise and sunset are when the top of the Sun meets a level horizon, allowing for the usual bending of light by the air. Hills, buildings and height shift what you see by a few minutes.'),
+    t(wordingOf(place, 'note-horizon', [msg('Sunrise and sunset are when the top of the Sun meets a level horizon, allowing for the usual bending of light by the air. Hills, buildings and height shift what you see by a few minutes.'), msg('Sunrise and sunset mark the moment the Sun’s upper edge touches a level horizon, with the air’s usual bending of light allowed for. Hills, buildings and altitude move what you see by a few minutes.')])),
     t('Civil, nautical and astronomical twilight end when the Sun is 6°, 12° and 18° below the horizon. Golden hour here is the photographers’ usual definition: the Sun less than 6° above it.'),
     t('Worked out when the page loads from NOAA’s solar equations, for {lat}, {lon}, and accurate to about a minute.', { lat: latitudeOf(place.at[1], t), lon: longitudeOf(place.at[0], t) }),
   ];

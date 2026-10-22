@@ -57,7 +57,7 @@ export const ALPR: PlaceTopic<AlprData> = {
         t => t('{n, plural, one {One licence-plate reader} other {# licence-plate readers}} mapped in {city}, {flock, plural, =0 {none by Flock} one {one by Flock Safety} other {# by Flock Safety}}, with who runs them and {facing}.', { ...v(t), facing: facing(t) }),
         t => t('Licence-plate readers (ALPR) mapped in {city}, Flock cameras among them: who runs them, who makes them and {facing}, on a free map.', { ...v(t), facing: facing(t) }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: flock ? t('Flock cameras in {city}', v(t)) : t('Licence-plate readers in {city}', v(t)),
+      heading: flock ? t('Flock cameras in {city}', { ...v(t), city: placeName(place, t) }) : t('Licence-plate readers in {city}', { ...v(t), city: placeName(place, t) }),
       lede: lede(place, row, t),
     };
   },
@@ -73,7 +73,7 @@ export const ALPR: PlaceTopic<AlprData> = {
 function lede(place: Place, row: AlprRow, t: Translate): string {
   const v = { city: nameOf(place, t), n: row.n, flock: row.flock, dir: row.dir, km: row.r ?? 0 };
   const counted = row.r
-    ? t('{n, plural, one {One licence-plate reader is} other {# licence-plate readers are}} mapped within {km} km of the centre of {city}, {flock, plural, =0 {none of them by Flock Safety} one {one of them by Flock Safety} other {# of them by Flock Safety}}.', v)
+    ? t('{n, plural, one {One licence-plate reader is} other {# licence-plate readers are}} mapped within {km, radius} of the centre of {city}, {flock, plural, =0 {none of them by Flock Safety} one {one of them by Flock Safety} other {# of them by Flock Safety}}.', v)
     : row.bound === 'limits'
       ? t('{n, plural, one {One licence-plate reader is} other {# licence-plate readers are}} mapped inside the limits of {city}, {flock, plural, =0 {none of them by Flock Safety} one {one of them by Flock Safety} other {# of them by Flock Safety}}.', v)
       : t('{n, plural, one {One licence-plate reader is} other {# licence-plate readers are}} mapped in {city}, {flock, plural, =0 {none of them by Flock Safety} one {one of them by Flock Safety} other {# of them by Flock Safety}}.', v);

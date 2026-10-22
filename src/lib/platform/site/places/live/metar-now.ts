@@ -64,7 +64,8 @@ export function describeEveryday(w: AirportWx, cc: string, t: Translate): string
   const miles = w.visSm ? Number.parseFloat(w.visSm) : NaN;
   if (Number.isFinite(miles)) {
     const more = w.visSm!.endsWith('+') ? '+' : '';
-    parts.push(u.distance === 'mi'
+    // Visibility stays metric in the UK, as its forecasts give it, though its roads are in miles.
+    parts.push(cc === 'US'
       ? t('visibility {vis} miles', { vis: w.visSm! })
       // "6+" is how NOAA writes a metric report's 9999, ten kilometres or more.
       : t('visibility {km} km', { km: w.visSm === '6+' ? '10+' : `${new Intl.NumberFormat(t.intl, { maximumFractionDigits: miles < 0.6 ? 1 : 0 }).format(miles * 1.609)}${more}` }));

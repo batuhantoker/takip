@@ -29,7 +29,7 @@ function HarbourRow({ t, place, port }: { t: Translate; place: Place; port: Near
     <li className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
       <span className="text-[14px] font-medium text-ink-1 sm:w-64 sm:flex-shrink-0">
         {portLabel(port.name, place, t)}
-        <span className="block text-[12px] font-normal text-ink-3">{t('{km} km from the centre', { km: Math.max(1, Math.round(port.km)) })}</span>
+        <span className="block text-[12px] font-normal text-ink-3">{t('{km, distance} from the centre', { km: Math.max(1, Math.round(port.km)) })}</span>
       </span>
       <span className="text-[14px] leading-relaxed text-ink-2">
         {port.size ? t(SIZE[port.size]) : t('Not rated by the Index')}
@@ -48,7 +48,7 @@ export const PORTS_VIEW: TopicView<PortsData, ShipsNow> = {
     return (
       <>
         <p>
-          {t('{n, plural, one {One ship} other {# ships}} on the map within {km} km of {port}, {underway, plural, =0 {none of them under way} one {one under way} other {# under way}}.', {
+          {t('{n, plural, one {One ship} other {# ships}} on the map within {km, radius} of {port}, {underway, plural, =0 {none of them under way} one {one under way} other {# under way}}.', {
             n: now.total, km: now.km, port: portLabel(now.port, place, t), underway: now.underway,
           })}
         </p>
@@ -73,7 +73,7 @@ export const PORTS_VIEW: TopicView<PortsData, ShipsNow> = {
       <>
         {about.length > 0 && <Section title={t('The harbour')}><p>{about.join(' ')}</p></Section>}
         {harbours.length > 0 && (
-          <Section title={t('Harbours within {km} km', { km: PORT_KM })}>
+          <Section title={t('Harbours within {km, radius}', { km: PORT_KM })}>
             <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
               {harbours.map(p => <HarbourRow key={p.wpi} t={t} place={place} port={p} />)}
             </ul>

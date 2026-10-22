@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from '../copy/format';
 import type { Place } from '../place';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -84,11 +84,11 @@ export const ISS: PlaceTopic<IssData, IssLive> = {
         t => t('From {city} the International Space Station never climbs more than about {best}° above the horizon: why, and where it can be seen from.', { city: name(t), best: data.best }),
         t => t('From {city} the ISS never climbs more than about {best}° above the horizon, too low to see well: why, and where it can be seen from.', { city: name(t), best: data.best }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: reach ? t('When to see the ISS from {city}', { city: name(t) }) : t('The ISS from {city}', { city: name(t) }),
+      heading: reach ? t('When to see the ISS from {city}', { city: placeName(place, t) }) : t('The ISS from {city}', { city: placeName(place, t) }),
       lede: data.best >= 89
-        ? t('The International Space Station’s next passes over {city}, worked out from its latest orbital elements when this page loads, in local time. At {lat}, it can pass straight overhead.', { city: name(t), ...where })
+        ? t(wordingOf(place, 'lede', [msg('The International Space Station’s next passes over {city}, worked out from its latest orbital elements when this page loads, in local time. At {lat}, it can pass straight overhead.'), msg('When the International Space Station next crosses the sky over {city}, in local time, from its latest orbital elements. At {lat}, it can pass straight overhead.')]), { city: name(t), ...where })
         : reach
-          ? t('The International Space Station’s next passes over {city}, worked out from its latest orbital elements when this page loads, in local time. At {lat} it never passes overhead: at most it climbs about {best}° above the {side, select, south {southern} other {northern}} horizon.', { city: name(t), ...where })
+          ? t(wordingOf(place, 'lede', [msg('The International Space Station’s next passes over {city}, worked out from its latest orbital elements when this page loads, in local time. At {lat} it never passes overhead: at most it climbs about {best}° above the {side, select, south {southern} other {northern}} horizon.'), msg('When the International Space Station next crosses the sky over {city}, in local time, from its latest orbital elements. At {lat} it never goes overhead: at most it climbs about {best}° above the {side, select, south {southern} other {northern}} horizon.')]), { city: name(t), ...where })
           : t('From {city}, at {lat}, the space station never climbs more than about {best}° above the {side, select, south {southern} other {northern}} horizon: its orbit doesn’t reach far enough {side, select, south {north} other {south}}. It is seen well up to about 64° from the equator.', { city: name(t), ...where }),
     };
   },

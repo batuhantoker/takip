@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from '../copy/format';
 import type { Place } from '../gazetteer';
 import { topicTable } from '../tables';
 import type { PlaceTopic, TopicPage } from '../topic';
@@ -88,8 +88,8 @@ export const RAMADAN_TOPIC: PlaceTopic<RamadanData, RamadanNow> = {
         t => t('Ramadan {year} timetable for {place}: sehri and iftar times for all {days} days, from {start} to Eid al-Fitr on {eid}, in local time.', { ...vars(t), place: name(t) }),
         t => t('Ramadan {year} in {place}: sehri and iftar times for each day from {start} to Eid al-Fitr on {eid}.', { ...vars(t), place: name(t) }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('Ramadan {year} in {city}', { city: name(t), year: ramadanLabel(data, t) }),
-      lede: t('Sehri and iftar times in {city} for each day of Ramadan {year}, from {start} to {end}, in local time, by the {method} method. Eid al-Fitr is on {eid} in the Umm al-Qura calendar.', {
+      heading: t('Ramadan {year} in {city}', { city: placeName(place, t), year: ramadanLabel(data, t) }),
+      lede: t(wordingOf(place, 'lede', [msg('Sehri and iftar times in {city} for each day of Ramadan {year}, from {start} to {end}, in local time, by the {method} method. Eid al-Fitr is on {eid} in the Umm al-Qura calendar.'), msg('Ramadan {year} in {city} runs from {start} to {end}: sehri and iftar for each day, in local time, by the {method} method. Eid al-Fitr falls on {eid} in the Umm al-Qura calendar.')]), {
         ...vars(t), city: name(t), method: t(short),
       }),
     };

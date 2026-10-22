@@ -1,6 +1,6 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { LIGHTNING_SOURCES, type LightningSourceId } from '@/lib/feeds/weather/lightning';
-import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
+import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from '../copy/format';
 import { lightningForCity, rainForCity, type WeatherNowAnswer } from '../../live/weather-now';
 import { ownApi } from '../../live/own-api';
 import { allPlaces, km, reachKm } from '../gazetteer';
@@ -50,6 +50,9 @@ export function weatherCityNear(at: [number, number]): Place | null {
 
 /** Whose severe-weather warnings reach the map there (the severe-weather page's sources). */
 export const alertSource = (place: Place): WeatherData['alerts'] => (place.cc === 'US' ? 'nws' : place.cc === 'CA' ? 'canada' : 'wmo');
+
+/** How far the weather table looks for an airport station (tools/site/topics/air-weather.ts). */
+const STATION_KM = 30;
 
 export const WEATHER: PlaceTopic<WeatherData, WeatherLive[], CityForecast> = {
   id: 'weather',
@@ -108,18 +111,18 @@ export const WEATHER: PlaceTopic<WeatherData, WeatherLive[], CityForecast> = {
         t => t('{place} weather on one live map: temperature and wind from NOAA’s forecast model, and severe-weather warnings where they are issued.', { place: placeName(place, t) }),
         t => t('{city} weather on one live map: radar, temperature, wind and warnings, with the latest airport report nearby.', { city: name(t) }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('Weather in {city}: forecast and live map', { city: name(t) }),
+      heading: t('Weather in {city}: forecast and live map', { city: placeName(place, t) }),
       lede: data.stations.length
         ? data.radar
-          ? t('The weather over {city} as it is measured right now, from radar and the airport reports at {stations}, beside the forecast model’s temperature and wind. Each layer says which it is.', { city: name(t), stations: listOf(data.stations.slice(0, 2).map(s => s.name), t) })
+          ? t(wordingOf(place, 'lede', [msg('The weather over {city} as it is measured right now, from radar and the airport reports at {stations}, beside the forecast model’s temperature and wind. Each layer says which it is.'), msg('Radar and the airport reports at {stations} show the weather over {city} as it is now; the forecast model adds temperature and wind. Each layer says whether it is measured or modelled.')]), { city: name(t), stations: listOf(data.stations.slice(0, 2).map(s => s.name), t) })
           : data.radar === false
-            ? t('The weather at {city} as the airport reports at {stations} measure it, beside the forecast model’s temperature and wind. No ground radar in RainViewer’s mosaic reaches it.', { city: name(t), stations: listOf(data.stations.slice(0, 2).map(s => s.name), t) })
-            : t('The weather at {city} as the airport reports at {stations} measure it, beside the forecast model’s temperature and wind. Each layer says which it is.', { city: name(t), stations: listOf(data.stations.slice(0, 2).map(s => s.name), t) })
+            ? t(wordingOf(place, 'lede', [msg('The weather at {city} as the airport reports at {stations} measure it, beside the forecast model’s temperature and wind. No ground radar in RainViewer’s mosaic reaches it.'), msg('The airport reports at {stations} measure the weather at {city}, and the forecast model adds temperature and wind. No ground radar in RainViewer’s mosaic covers it.')]), { city: name(t), stations: listOf(data.stations.slice(0, 2).map(s => s.name), t) })
+            : t(wordingOf(place, 'lede', [msg('The weather at {city} as the airport reports at {stations} measure it, beside the forecast model’s temperature and wind. Each layer says which it is.'), msg('The airport reports at {stations} measure the weather at {city}, and the forecast model adds temperature and wind. Each layer says whether it is measured or modelled.')]), { city: name(t), stations: listOf(data.stations.slice(0, 2).map(s => s.name), t) })
         : data.radar
-          ? t('What the rain radar sees over {city} right now, beside the forecast model’s temperature and wind. No airport weather station reports within 30 km of it.', { city: name(t) })
+          ? t(wordingOf(place, 'lede', [msg('What the rain radar sees over {city} right now, beside the forecast model’s temperature and wind. No airport weather station reports within {reach, radius} of it.'), msg('The rain radar over {city} as it sees it now, with the forecast model’s temperature and wind. No airport weather station reports within {reach, radius}.')]), { city: name(t), reach: STATION_KM })
           : data.radar === false
-            ? t('The forecast model’s temperature and wind over {city}, and the warnings issued for it. No radar or airport weather station reaches it, so nothing on the map measures it directly.', { city: name(t) })
-            : t('The forecast model’s temperature and wind over {city}, and the warnings issued for it. No airport weather station reports within 30 km of it.', { city: name(t) }),
+            ? t(wordingOf(place, 'lede', [msg('The forecast model’s temperature and wind over {city}, and the warnings issued for it. No radar or airport weather station reaches it, so nothing on the map measures it directly.'), msg('Nothing on the map measures the weather at {city} directly, since no radar or airport station reaches it: here are the forecast model’s temperature and wind, and the warnings issued for it.')]), { city: name(t) })
+            : t(wordingOf(place, 'lede', [msg('The forecast model’s temperature and wind over {city}, and the warnings issued for it. No airport weather station reports within {reach, radius} of it.'), msg('Temperature and wind over {city} from the forecast model, with the warnings issued for it. No airport weather station reports within {reach, radius}.')]), { city: name(t), reach: STATION_KM }),
     };
   },
 

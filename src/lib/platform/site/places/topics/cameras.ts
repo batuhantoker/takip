@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { count, DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from '../copy/format';
+import { count, DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from '../copy/format';
 import { reachKm, type Place } from '../gazetteer';
 import type { PlaceTopic, TopicPage } from '../topic';
 import { camerasNear } from './camera-catalogue';
@@ -78,8 +78,8 @@ export const CAMERAS: PlaceTopic<CamerasData> = {
           t => t('{n, plural, one {One public camera is} other {# public cameras are}} listed in and around {place}, but none is streaming now. Here is which they are, and other cameras nearby.', { n: data.offAir, place: placeName(place, t) }),
           t => t('Public cameras listed in and around {city}, none streaming now: which they are, who published them, and live cameras elsewhere nearby.', { city: name(t) }),
         ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-        heading: t('Cameras in {city}', { city: name(t) }),
-        lede: t('{n, plural, one {One camera is} other {# cameras are}} listed within {km} km of {city}, but none is streaming right now. Cameras that go dark, for maintenance or policy reasons, stay on the map faded and marked off air, in case they come back.', { n: data.offAir, km: data.km, city: name(t) }),
+        heading: t('Cameras in {city}', { city: placeName(place, t) }),
+        lede: t(wordingOf(place, 'lede', [msg('{n, plural, one {One camera is} other {# cameras are}} listed within {km, radius} of {city}, but none is streaming right now. Cameras that go dark, for maintenance or policy reasons, stay on the map faded and marked off air, in case they come back.'), msg('{n, plural, one {One camera is} other {# cameras are}} listed within {km, radius} of {city}, all dark right now. Cameras switched off for maintenance or policy stay on the map, faded and marked off air, in case they return.')]), { n: data.offAir, km: data.km, city: name(t) }),
       };
     }
     return {
@@ -95,10 +95,10 @@ export const CAMERAS: PlaceTopic<CamerasData> = {
         t => t('{n, plural, one {One public camera} other {# public cameras}} in and around {place}, from road authorities, cities and webcam networks, on one live map. Click one to watch.', { n: data.onAir, place: placeName(place, t) }),
         t => t('{n, plural, one {One public camera} other {# public cameras}} in and around {city} on one live map, from road authorities, cities and webcam networks. Click one to watch.', { n: data.onAir, city: name(t) }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('Live cameras in {city}', { city: name(t) }),
+      heading: t('Live cameras in {city}', { city: placeName(place, t) }),
       lede: top.length
-        ? t('{n, plural, one {One camera} other {# cameras}} within {km} km of the centre of {city}, most of them from {sources}. TAKIP pins them on one map, so you can look at a street or a road as it is now.', { n: data.onAir, km: data.km, city: name(t), sources: listOf(top, t) })
-        : t('{n, plural, one {One camera} other {# cameras}} within {km} km of the centre of {city}. TAKIP pins them on one map, so you can look at a street or a road as it is now.', { n: data.onAir, km: data.km, city: name(t) }),
+        ? t(wordingOf(place, 'lede', [msg('{n, plural, one {One camera} other {# cameras}} within {km, radius} of the centre of {city}, most of them from {sources}. TAKIP pins them on one map, so you can look at a street or a road as it is now.'), msg('{n, plural, one {One public camera} other {# public cameras}} within {km, radius} of the centre of {city}, mostly from {sources}, each pinned where it stands. Open one to see the street or road as it is now.'), msg('Within {km, radius} of the centre of {city}, {n, plural, one {one camera is} other {# cameras are}} on the map, most of them from {sources}. Pick one to look at its street or road right now.')]), { n: data.onAir, km: data.km, city: name(t), sources: listOf(top, t) })
+        : t(wordingOf(place, 'lede', [msg('{n, plural, one {One camera} other {# cameras}} within {km, radius} of the centre of {city}. TAKIP pins them on one map, so you can look at a street or a road as it is now.'), msg('{n, plural, one {One public camera} other {# public cameras}} within {km, radius} of the centre of {city}, each pinned where it stands. Open one to see the street or road as it is now.'), msg('Within {km, radius} of the centre of {city}, {n, plural, one {one camera is} other {# cameras are}} on the map. Pick one to look at its street or road right now.')]), { n: data.onAir, km: data.km, city: name(t) }),
     };
   },
 

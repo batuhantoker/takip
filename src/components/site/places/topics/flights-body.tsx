@@ -9,8 +9,8 @@ import { Notes } from '../parts/notes';
 import type { TopicView } from './view';
 
 const MAJOR = [
-  msg('From {city}, the nearest major airport is {name} ({iata}), {km} km away.'),
-  msg('{name} ({iata}) is the nearest major airport to {city}, {km} km from the centre.'),
+  msg('From {city}, the nearest major airport is {name} ({iata}), {km, distance} away.'),
+  msg('{name} ({iata}) is the nearest major airport to {city}, {km, distance} from the centre.'),
 ];
 
 /** "Antwerp International Airport (Deurne)" before its own "(ANR)" reads as two brackets. */
@@ -23,7 +23,7 @@ export function StationsNow({ t, stations }: { t: Translate; stations: StationNo
       {stations.map(s => (
         <li key={s.icao}>
           <span className="font-mono text-[13px] text-ink-3">{s.icao}</span>{' '}
-          <span className="text-ink-2">{t('{name}, {km} km', { name: s.name, km: s.km })}:</span>{' '}
+          <span className="text-ink-2">{t('{name}, {km, distance}', { name: s.name, km: s.km })}:</span>{' '}
           {s.text}{s.cat ? ` · ${s.cat}` : ''}
           <span className="text-[13px] text-ink-3"> · {t('{n, plural, one {# minute ago} other {# minutes ago}}', { n: s.minutesAgo })}</span>
         </li>
@@ -41,10 +41,10 @@ export const FLIGHTS_VIEW: TopicView<FlightsData, StationNow[]> = {
     const first = near.find(a => a.large) ?? near[0];
     if (!first) return null;
     const vars = { city: placeName(place, t), name: bare(first.name), iata: first.iata, km: first.km };
-    const others = near.filter(a => a !== first).map(a => t('{name} ({iata}, {km} km)', { name: bare(a.name), iata: a.iata, km: a.km }));
+    const others = near.filter(a => a !== first).map(a => t('{name} ({iata}, {km, distance})', { name: bare(a.name), iata: a.iata, km: a.km }));
     return (
       <p className="text-[15px] leading-relaxed text-ink-1">
-        {first.large ? t(wordingOf(place, 'airport', MAJOR), vars) : t('From {city}, the nearest airport with scheduled flights is {name} ({iata}), {km} km away.', vars)}
+        {first.large ? t(wordingOf(place, 'airport', MAJOR), vars) : t('From {city}, the nearest airport with scheduled flights is {name} ({iata}), {km, distance} away.', vars)}
         {others.length > 0 && ` ${t('Also within reach: {airports}.', { airports: listOf(others, t) })}`}
       </p>
     );
@@ -57,8 +57,8 @@ export const FLIGHTS_VIEW: TopicView<FlightsData, StationNow[]> = {
     const codes = data.airports.map(a => a.iata).join(', ');
     const notes = [
       ...(place.cc === 'US' ? [t('FAA ground stops and delay programmes at {airports} show on the map while they are in force.', { airports: codes })] : []),
-      t('Only aircraft that broadcast ADS-B appear, and only where a receiver hears them.'),
-      t('Zoomed in, aircraft within about 250 nautical miles refresh every 15 seconds.'),
+      t(wordingOf(place, 'note-adsb', [msg('Only aircraft that broadcast ADS-B appear, and only where a receiver hears them.'), msg('An aircraft shows only if it broadcasts ADS-B and a receiver nearby picks it up.')])),
+      t(wordingOf(place, 'note-refresh', [msg('Zoomed in, aircraft within about 250 nautical miles refresh every 15 seconds.'), msg('When you zoom in, aircraft within about 250 nautical miles update every 15 seconds.')])),
     ];
     return (
       <>
@@ -72,7 +72,7 @@ export const FLIGHTS_VIEW: TopicView<FlightsData, StationNow[]> = {
                 <span className="text-[14px] font-medium text-ink-1 sm:w-72 sm:flex-shrink-0">{a.name}</span>
                 <span className="text-[14px] text-ink-2">
                   <span className="font-mono">{a.iata} · {a.icao}</span>
-                  {' · '}{t('{km} km from the centre', { km: a.km })}
+                  {' · '}{t('{km, distance} from the centre', { km: a.km })}
                 </span>
               </li>
             ))}

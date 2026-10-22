@@ -1,5 +1,5 @@
-import type { Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX } from './copy/format';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
+import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from './copy/format';
 import { inNavOrder, type PlacePageRef } from './pages';
 import type { Place } from './place';
 import type { PlaceCopy } from './topic';
@@ -24,7 +24,7 @@ export function overviewCopy(place: Place, all: PlacePageRef[], t: Translate, pl
       t => t('{place} on one free live map, with where each layer’s data comes from and what is true there right now.', { place: placeName(place, t) }),
     ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
     heading: t('{city}, live', { city: name(t) }),
-    lede: t('What TAKIP’s live map has for {place}: {things}. Each page says where its data comes from and what is true there right now.', {
+    lede: t(wordingOf(place, 'lede', [msg('What TAKIP’s live map has for {place}: {things}. Each page says where its data comes from and what is true there right now.'), msg('TAKIP’s live map for {place}: {things}. Every page names its sources and shows what is true there now.')]), {
       place: placeName(place, t), things: labels(t, n),
     }),
   };
@@ -43,6 +43,6 @@ function countryOverview(place: Place, t: Translate, places: number): PlaceCopy 
       t => t('Places in {country} on TAKIP’s free live map, each with its buses and trains, public cameras, flights and weather where they exist.', { country: name(t) }),
     ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
     heading: t('{country}, live', { country: name(t) }),
-    lede: t('{n, plural, one {One place} other {# places}} in {country} have pages of their own, each with what the live map has there and where the data comes from.', { n: places, country: name(t) }),
+    lede: t(wordingOf(place, 'lede', [msg('{n, plural, one {One place} other {# places}} in {country} have pages of their own, each with what the live map has there and where the data comes from.'), msg('In {country}, {n, plural, one {one place has its own page} other {# places have their own pages}}, each showing what the live map has there and where its data comes from.')]), { n: places, country: name(t) }),
   };
 }

@@ -80,7 +80,7 @@ export const ALPR_VIEW: TopicView<AlprData> = {
     });
     const notes = [
       t('Counted from OpenStreetMap as DeFlock published it on {day}. Volunteers map readers as they find them, so some are missing and a few may already be gone.', { day: dayOf(asOf, t) }),
-      ...(row.r ? [t('{city} has no Census boundary here, so each reader nearby is counted once, for the town it is nearest, allowing for each town’s size: within {km} km of the centre for {city}.', { km: row.r, city: nameOf(place, t) })] : []),
+      ...(row.r ? [t('{city} has no Census boundary here, so each reader nearby is counted once, for the town it is nearest, allowing for each town’s size: within {km, radius} of the centre for {city}.', { km: row.r, city: nameOf(place, t) })] : []),
       ...(row.bound === 'cdp' ? [t('{place} is unincorporated: counted inside the area the Census Bureau draws for it.', { place: nameOf(place, t) })] : []),
       ...(row.bound === 'limits' || place.kind === 'county' || place.kind === 'state' ? [t('Counted inside the Census Bureau’s 2024 boundary for {place}.', { place: nameOf(place, t) })] : []),
       t('{n, plural, one {One reader has} other {# readers have}} an operator mapped; the rest are run by someone OpenStreetMap doesn’t name.', { n: row.opN }),

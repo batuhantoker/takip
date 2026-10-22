@@ -40,6 +40,6 @@ describe('place topics', () => {
     const city = placeBySlug('city', 'cincinnati')!;
     const transit = placePages(city).find(p => p.topic.id === 'transit')!;
     expect(transit.page.index).toBe(true);
-    expect(transit.topic.header(city, transit.page, EN).lede).toMatch(/^Cincinnati Metro and Transit Authority of Northern Kentucky \(TANK\) publish where their vehicles are/);
+    expect(transit.topic.header(city, transit.page, EN).lede).toMatch(/^Cincinnati Metro and Transit Authority of Northern Kentucky \(TANK\) publish (where their vehicles are|live positions)/);
   });
 });

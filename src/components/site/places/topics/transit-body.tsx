@@ -39,10 +39,10 @@ export const TRANSIT_VIEW: TopicView<TransitData, TransitNow> = {
       <>
         <p>
           {now.total
-            ? t('{n, plural, one {One vehicle} other {# vehicles}} on the map within about {km} km of the centre of {city}: {feeds}.', {
+            ? t('{n, plural, one {One vehicle} other {# vehicles}} on the map within about {km, radius} of the centre of {city}: {feeds}.', {
               n: now.total, km: now.km, city: nameOf(place, t), feeds: listOf(now.feeds.map(f => `${f.name} ${count(f.count, t)}`), t),
             })
-            : t('No vehicles on the map within about {km} km of the centre of {city} right now; services may have stopped for the night.', { km: now.km, city: nameOf(place, t) })}
+            : t('No vehicles on the map within about {km, radius} of the centre of {city} right now; services may have stopped for the night.', { km: now.km, city: nameOf(place, t) })}
         </p>
         {(now.estimated > 0 || now.scheduled > 0) && (
           <p className="text-[14px] text-ink-2">

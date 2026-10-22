@@ -1,5 +1,5 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { count, dayOf, DESCRIPTION_RANGE, fit, listOf, modesPlural, nameOf, placeFirst, placeName, sentenceStart, TITLE_MAX } from '../copy/format';
+import { count, dayOf, DESCRIPTION_RANGE, fit, listOf, modesPlural, nameOf, placeFirst, placeName, sentenceStart, TITLE_MAX, wordingOf } from '../copy/format';
 import { reachKm, type Place } from '../gazetteer';
 import { transitNow, type TransitNow } from '../live/transit-now';
 import { topicTable } from '../tables';
@@ -47,14 +47,14 @@ export const TRANSIT: PlaceTopic<TransitData, TransitNow> = {
         t => t('Where the {modes} of {city} are right now, on a free live map refreshed every 20 seconds, with each vehicle’s route and status.', { city: name(t), modes: modes(t) }),
         t => t('Where public transport in {place} is right now: every vehicle on a free live map, refreshed every 20 seconds, with its route and status.', { place: placeName(place, t) }),
       ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
-      heading: t('{modes} in {city}, live', { modes: sentenceStart(modes(t)), city: name(t) }),
+      heading: t('{modes} in {city}, live', { modes: sentenceStart(modes(t)), city: placeName(place, t) }),
       lede: !ops.length
-        ? t('No operator in {city} publishes live positions, so its vehicles run from the timetable and are marked scheduled.', { city: name(t) })
+        ? t(wordingOf(place, 'lede', [msg('No operator in {city} publishes live positions, so its vehicles run from the timetable and are marked scheduled.'), msg('No live positions are published in {city}, so its vehicles move by the timetable and are marked scheduled.')]), { city: name(t) })
         : data.vehicles >= 10
-          ? t('{n, plural, one {{operators} publishes where its vehicles are} other {{operators} publish where their vehicles are}}. On {day}, when TAKIP last checked, about {vehicles} were running at once; the map shows them as they move.', {
+          ? t(wordingOf(place, 'lede', [msg('{n, plural, one {{operators} publishes where its vehicles are} other {{operators} publish where their vehicles are}}. On {day}, when TAKIP last checked, about {vehicles} were running at once; the map shows them as they move.'), msg('{n, plural, one {{operators} publishes live positions} other {{operators} publish live positions}}. On {day}, TAKIP last counted about {vehicles} vehicles running at once; the map moves them as they go.')]), {
             n: ops.length, operators: listOf(ops, t), day: dayOf(data.seen, t), vehicles: count(Math.round(data.vehicles / 10) * 10, t),
           })
-          : t('{n, plural, one {{operators} publishes where its vehicles are} other {{operators} publish where their vehicles are}}. TAKIP draws them on one live map as they move, refreshed every 20 seconds while you are zoomed in.', {
+          : t(wordingOf(place, 'lede', [msg('{n, plural, one {{operators} publishes where its vehicles are} other {{operators} publish where their vehicles are}}. TAKIP draws them on one live map as they move, refreshed every 20 seconds while you are zoomed in.'), msg('{n, plural, one {{operators} publishes live positions} other {{operators} publish live positions}}, and TAKIP moves each vehicle on one map, refreshed every 20 seconds while you are zoomed in.')]), {
             n: ops.length, operators: listOf(ops, t),
           }),
     };

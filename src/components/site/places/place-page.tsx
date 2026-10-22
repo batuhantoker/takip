@@ -16,6 +16,7 @@ import type { Place } from '@/lib/platform/site/places/place';
 import { placeCardKey } from '@/lib/platform/site/places/card';
 import { KIND_INDEX, KIND_LABEL, placePath } from '@/lib/platform/site/places/paths';
 import { shotUrl } from '@/lib/platform/site/shots';
+import { unitsFor } from '@/lib/platform/site/places/copy/weather-words';
 import { siteText } from '@/lib/platform/site/text';
 import { PlaceArticle, type PageLive } from './place-article';
 
@@ -32,7 +33,9 @@ const load = cache(async (kind: PlaceKind, slug: string, pageSlug?: string) => {
   if (!pages.length && !places.length) return null;
   const current = pageSlug === undefined ? undefined : findPlacePage(place, pageSlug);
   if (pageSlug !== undefined && !current) return null;
-  const text = await siteText((await requestLocale()).locale);
+  const base = await siteText((await requestLocale()).locale);
+  // Distances in the place's own unit: miles in the US and the UK.
+  const text = { ...base, t: base.t.inUnit(unitsFor(place.cc).distance) };
   const copy = current ? current.topic.header(place, current.page, text.t) : overviewCopy(place, pages, text.t, places.length);
   const index = current ? current.page.index : overviewIndexed(pages) || places.length > 0;
   return { place, pages, places, current, text, copy, index };

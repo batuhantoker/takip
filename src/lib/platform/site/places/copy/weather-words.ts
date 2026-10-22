@@ -1,12 +1,12 @@
 import type { Translate } from '@/lib/core/i18n/translator';
 import { listOf } from './intl';
 
-/** The units a place's readers expect: the US is imperial throughout, the UK keeps miles an hour. */
+/** The units a place's readers expect: the US is imperial throughout, the UK keeps miles and miles an hour. */
 export interface WeatherUnits { temp: 'c' | 'f'; wind: 'kmh' | 'mph'; rain: 'mm' | 'in'; distance: 'km' | 'mi' }
 
 export function unitsFor(cc: string): WeatherUnits {
   if (cc === 'US') return { temp: 'f', wind: 'mph', rain: 'in', distance: 'mi' };
-  return { temp: 'c', wind: cc === 'GB' ? 'mph' : 'kmh', rain: 'mm', distance: 'km' };
+  return { temp: 'c', wind: cc === 'GB' ? 'mph' : 'kmh', rain: 'mm', distance: cc === 'GB' ? 'mi' : 'km' };
 }
 
 const KT_MS = 0.514444;
