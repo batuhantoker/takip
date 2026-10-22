@@ -4,7 +4,7 @@ import { adminKit } from '../admin/testing';
 import { Jar, startApp, type TestApp } from '../testing/helpers';
 import { openAppDb } from '../db/app-db';
 import { migrateAppSchema } from '../db/migrations';
-import { createPageReads, parsePageRead } from './page-reads';
+import { createPageReads, parseMapMinute, parsePageRead, SMALL_MAP_FEATURE } from './page-reads';
 import { createPresence } from './presence';
 
 const NOW = Date.UTC(2026, 9, 14, 12);
@@ -160,6 +160,26 @@ describe('logging a view', () => {
     expect(presence.list().map(p => ({ key: p.key, kind: p.kind, path: p.path, referrer: p.referrer, city: p.place?.city ?? null }))).toEqual([
       { key: ALPHA, kind: 'page', path: '/about', referrer: 'duckduckgo.com', city: 'Frankfurt am Main' },
       { key: BETA, kind: 'page', path: '/about', referrer: 'duckduckgo.com', city: null },
+    ]);
+    db.close();
+  });
+
+  it('keeps a reader using the page’s small map on Live past the view’s five minutes', () => {
+    const db = openAppDb(':memory:');
+    migrateAppSchema(db);
+    let at = NOW;
+    const presence = createPresence(() => at);
+    const reads = createPageReads(db, { now: () => at, presence });
+    const read = parsePageRead({ visitor: { id: ALPHA, referrer: 'duckduckgo.com' }, path: '/city/berlin', locale: 'de' }, CHROME)!;
+    const context = { ip: '203.0.113.5', country: 'DE', userId: null };
+    reads.record(read, context);
+    for (const minute of [4, 8]) {
+      at = NOW + minute * 60_000;
+      reads.recordMapMinute(parseMapMinute({ visitor: { id: ALPHA }, path: '/city/berlin', use: 'map' }, CHROME)!, context);
+    }
+    at = NOW + 12 * 60_000;
+    expect(presence.list().map(p => ({ path: p.path, features: p.features, referrer: p.referrer, since: p.since, browser: p.agent?.browser }))).toEqual([
+      { path: '/city/berlin', features: [SMALL_MAP_FEATURE], referrer: 'duckduckgo.com', since: NOW, browser: 'Chrome' },
     ]);
     db.close();
   });

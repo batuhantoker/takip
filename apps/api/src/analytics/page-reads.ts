@@ -71,14 +71,19 @@ export function parsePageRead(body: unknown, userAgent: string | null | undefine
   };
 }
 
+export type MapMinute = { visitorId: string; path: string; userAgent: string | null };
+
 /** A minute on a public page's small map ({ visitor: { id }, path, use: 'map' }), or null when it isn't one. */
-export function parseMapMinute(body: unknown, userAgent: string | null | undefined): { visitorId: string; path: string } | null {
+export function parseMapMinute(body: unknown, userAgent: string | null | undefined): MapMinute | null {
   if (userAgent && BOT.test(userAgent)) return null;
   const b = body as { visitor?: unknown; path?: unknown; use?: unknown } | null;
   const visitor = parseVisitor(b?.visitor, userAgent);
   if (b?.use !== 'map' || !visitor || !isPage(b.path) || b.path === MAP_PATH) return null;
-  return { visitorId: visitor.id, path: b.path };
+  return { visitorId: visitor.id, path: b.path, userAgent: visitor.userAgent };
 }
+
+/** On a page, the presence feature that says its small map is in use. */
+export const SMALL_MAP_FEATURE = 'view:embed';
 
 export function createPageReads(db: AppDb, { now = () => Date.now(), locate = noLocator as IpLocator, presence = null as Presence | null } = {}) {
   const add = db.prepare(`
@@ -95,11 +100,13 @@ export function createPageReads(db: AppDb, { now = () => Date.now(), locate = no
     ON CONFLICT (visitor_id, day, hour, path) DO UPDATE SET minutes = minutes + 1, last_at = excluded.last_at
     WHERE excluded.last_at - last_at >= ${MAP_MINUTE_GAP_MS} AND minutes < 60`);
 
+  const placeOf = (ip: string, country: string | null) => locate(ip) ?? (country ? { country, region: null, city: null, latitude: null, longitude: null } : null);
+
   function record(read: PageRead, { ip, country, userId }: ReadContext) {
     const at = now();
     const day = utcDay(at);
     if (read.path !== MAP_PATH) add.run({ visitorId: read.visitorId, day, path: read.path, locale: read.locale, referrer: read.referrer });
-    const place = locate(ip) ?? (country ? { country, region: null, city: null, latitude: null, longitude: null } : null);
+    const place = placeOf(ip, country);
     const agent = parseUserAgent(read.userAgent);
     presence?.note({
       key: read.visitorId, kind: read.path === MAP_PATH ? 'map' : 'page', visitorId: read.visitorId, userId, path: read.path,
@@ -115,9 +122,14 @@ export function createPageReads(db: AppDb, { now = () => Date.now(), locate = no
     });
   }
 
-  function recordMapMinute(use: { visitorId: string; path: string }) {
+  function recordMapMinute({ visitorId, path, userAgent }: MapMinute, { ip, country, userId }: ReadContext) {
     const at = now();
-    minute.run({ ...use, day: utcDay(at), hour: new Date(at).getUTCHours(), at });
+    minute.run({ visitorId, path, day: utcDay(at), hour: new Date(at).getUTCHours(), at });
+    // Keeps the reader on Live while they use the map, past the page view's five minutes.
+    presence?.note({
+      key: visitorId, kind: 'page', visitorId, userId, path, features: [SMALL_MAP_FEATURE], referrer: null,
+      place: placeOf(ip, country), agent: parseUserAgent(userAgent), at,
+    });
   }
 
   return { record, recordMapMinute };
@@ -134,20 +146,19 @@ export function pageReadRoutes(reads: PageReads, { cloudflare = false } = {}) {
   const app = new Hono<AccessEnv>();
   app.post('/page-view', async c => {
     const body: unknown = await c.req.json().catch(() => null);
+    const principal = c.var.principal;
+    const context = (): ReadContext => ({
+      ip: clientIpOf(c),
+      country: edgeCountry(c.req.header('cf-ipcountry'), cloudflare),
+      userId: principal?.kind === 'user' ? principal.userId : null,
+    });
     const use = parseMapMinute(body, c.req.header('user-agent'));
     if (use) {
-      reads.recordMapMinute(use);
+      reads.recordMapMinute(use, context());
       return c.body(null, 204);
     }
     const read = parsePageRead(body, c.req.header('user-agent'));
-    if (read) {
-      const principal = c.var.principal;
-      reads.record(read, {
-        ip: clientIpOf(c),
-        country: edgeCountry(c.req.header('cf-ipcountry'), cloudflare),
-        userId: principal?.kind === 'user' ? principal.userId : null,
-      });
-    }
+    if (read) reads.record(read, context());
     return c.body(null, 204);
   });
   return app;

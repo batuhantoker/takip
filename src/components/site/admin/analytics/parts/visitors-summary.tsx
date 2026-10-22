@@ -60,7 +60,7 @@ export function VisitorsSummary({ j, hours, hitWall }: { j: PageJourneys; hours:
           ) : <Muted>No visitors in this range.</Muted>}
         </ChartCard>
         <ChartCard title={`Time on the map ${per}`}
-          note={`Everyone's minutes on the full map, and the minutes readers moved, zoomed or clicked a page's small map${hitWall ? `; ${plural(hitWall, 'browser')} hit the daily limit` : ''}`}
+          note={`Each minute begun on the full map, the minute it opened in included, and each minute readers used a page's small map or watched a camera in it${hitWall ? `; ${plural(hitWall, 'browser')} hit the daily limit` : ''}`}
           table={{ columns: [hours ? 'Hour (UTC)' : 'Day', 'Full map', 'Page maps'], rows: j.series.map((b, i) => [when(i), b.minutes, b.pageMapMinutes]).reverse() }}>
           {sum(line('minutes')) + sum(line('pageMapMinutes')) ? (
             <TimeSeries label={`Minutes on the map ${per}`} days={x} tick={tick} title={title} trim={!hours} format={minutes} axis={minutesAxis} series={[

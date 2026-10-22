@@ -34,5 +34,14 @@ export function PageView({ path, locale }: { path: string; locale: string }) {
     noteArrival();
     reportView(path, locale);
   }, [path, locale]);
+  // Back from another page, the browser may show this one as it left it, without its effects: the tab still names
+  // the other page, and this page's small map would book its minutes there.
+  useEffect(() => {
+    const restored = (e: PageTransitionEvent) => {
+      if (e.persisted) notePage(path);
+    };
+    window.addEventListener('pageshow', restored);
+    return () => window.removeEventListener('pageshow', restored);
+  }, [path]);
   return null;
 }

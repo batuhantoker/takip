@@ -17,7 +17,7 @@ export type PresenceNote = {
   userId: string | null;
   /** The page's English path; '/' on the map. */
   path: string;
-  /** The map's features at its last tick (map-time-input.ts); empty on a page. */
+  /** The map's features at its last tick (map-time-input.ts); on a page, view:embed while its small map is in use, else empty. */
   features: readonly string[];
   /** Actions taken since the tick before (packages/core usage.ts), by name. */
   actions?: readonly string[];
