@@ -1,11 +1,13 @@
 import type { AppDb } from '../db/app-db';
+import type { CrawlLog } from './crawls';
 import type { Presence } from './presence';
 
 /**
  * GET /api/admin/analytics/live: who is on the map or a public page now (presence.ts), with the account and visitor
- * record behind each when there is one. Admins are marked, and left out when `excludeAdmins`.
+ * record behind each when there is one, and the crawlers here now (crawls.ts). Admins are marked, and left out when
+ * `excludeAdmins`.
  */
-export function live(db: AppDb, presence: Presence, { excludeAdmins }: { excludeAdmins: boolean }) {
+export function live(db: AppDb, presence: Presence, crawls: CrawlLog, { excludeAdmins }: { excludeAdmins: boolean }) {
   const entries = presence.list();
   const visitorIds = entries.flatMap(e => (e.visitorId ? [e.visitorId] : []));
   const linked = new Map(
@@ -35,5 +37,5 @@ export function live(db: AppDb, presence: Presence, { excludeAdmins }: { exclude
       admin,
     }];
   });
-  return { people };
+  return { people, crawlers: crawls.here() };
 }

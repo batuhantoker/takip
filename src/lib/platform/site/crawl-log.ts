@@ -1,6 +1,7 @@
 import { crawlerOf } from '@takip/core/crawlers';
 
-const FLUSH_MS = 30_000;
+// Admin → Live refreshes every 10 s.
+const FLUSH_MS = 10_000;
 const MAX_BUFFER = 5000;
 // Same default as next.config.ts's rewrites; /internal is only served to callers on the api's own machine.
 const ENDPOINT = `${process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4100'}/internal/crawl`;
@@ -23,7 +24,7 @@ async function flush() {
 
 /**
  * Notes a request from a crawler or script (by its user agent; packages/core crawlers.ts) for Admin → Analytics →
- * Crawlers. Browsers are ignored. Held here and handed to the api every 30 seconds, so a page never waits on it.
+ * Crawlers. Browsers are ignored. Held here and handed to the api every 10 seconds, so a page never waits on it.
  */
 export function noteCrawler(userAgent: string | null, path: string) {
   const bot = crawlerOf(userAgent);

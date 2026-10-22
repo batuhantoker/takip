@@ -8,6 +8,8 @@ import { eachDay, rangeQuery, type Range } from './range';
 
 const MAX_HITS = 5000;
 const RECENT = 300;
+// As with a page reader on Live: a crawler is here while its requests come less than five minutes apart.
+const HERE_MS = 5 * 60_000;
 const TOP = 50;
 /** crawl_path's window; usage-prune.ts keeps the same. */
 export const CRAWL_PATH_DAYS = 14;
@@ -25,7 +27,13 @@ const hitSchema = z.object({
 
 export type CrawlHit = z.infer<typeof hitSchema>;
 
-/** Crawler requests, counted per day by section and by page; the latest few are also held in memory for the admin. */
+/** A crawler on the site now: when this stay began, its latest request and page, and its requests since. */
+export type CrawlerHere = { bot: string; since: number; at: number; hits: number; path: string };
+
+/**
+ * Crawler requests, counted per day by section and by page; the latest few are also held in memory for the admin, and
+ * the crawlers here now (`here`, for Live).
+ */
 export function createCrawlLog(db: AppDb, now = () => Date.now()) {
   const bySection = db.prepare(`
     INSERT INTO crawl_hit (day, bot, section, hits) VALUES (@day, @bot, @section, 1)
@@ -34,6 +42,12 @@ export function createCrawlLog(db: AppDb, now = () => Date.now()) {
     INSERT INTO crawl_path (day, bot, path, hits, last_at) VALUES (@day, @bot, @path, 1, @at)
     ON CONFLICT (day, bot, path) DO UPDATE SET hits = hits + 1, last_at = max(last_at, excluded.last_at)`);
   const latest: CrawlHit[] = [];
+  const stays = new Map<string, CrawlerHere>();
+  const note = (hit: CrawlHit) => {
+    const kept = stays.get(hit.bot);
+    const still = kept && hit.at - kept.at <= HERE_MS ? kept : null;
+    stays.set(hit.bot, { bot: hit.bot, since: still?.since ?? hit.at, at: hit.at, hits: (still?.hits ?? 0) + 1, path: hit.path });
+  };
   const record = db.transaction((hits: CrawlHit[]) => {
     for (const hit of hits) {
       const day = utcDay(hit.at);
@@ -49,8 +63,15 @@ export function createCrawlLog(db: AppDb, now = () => Date.now()) {
       record(fixed);
       latest.unshift(...fixed.sort((a, b) => b.at - a.at));
       latest.length = Math.min(latest.length, RECENT);
+      for (let i = fixed.length - 1; i >= 0; i--) note(fixed[i]);
     },
     recent: () => latest,
+    /** The crawlers here now, latest first. */
+    here(): (CrawlerHere & { kind: CrawlerKind })[] {
+      const at = now();
+      for (const [bot, stay] of stays) if (at - stay.at > HERE_MS) stays.delete(bot);
+      return [...stays.values()].sort((a, b) => b.at - a.at).map(s => ({ ...s, kind: crawlerKind(s.bot) }));
+    },
   };
 }
 

@@ -65,7 +65,8 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   get('/system', r => system(db, r, { metrics, startedAt, backupDir: dirs.backupDir, now: now() }));
   get('/visitors', r => visitors(db, r));
   get('/pages', r => ({ ...pages(db, r), journeys: journeys(db, loadVisits(db, r), r) }));
-  get('/live', r => live(db, presence, r));
+  const log = crawlLog ?? createCrawlLog(db, now);
+  get('/live', r => live(db, presence, log, r));
   const searches = new Map<string, (fresh?: boolean) => Promise<object>>();
   get('/search', (r, refresh) => {
     const key = `${r.days}:${r.today}`;
@@ -83,7 +84,6 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
     return c.json(recentVisits(loadVisits(db, rangeOf(parsed.data, now())), parsed.data));
   });
 
-  const log = crawlLog ?? createCrawlLog(db, now);
   app.get('/crawlers', c => {
     const parsed = crawlersQuery.safeParse(c.req.query());
     if (!parsed.success) return c.json({ error: 'invalid_request', message: z.prettifyError(parsed.error) }, 400);

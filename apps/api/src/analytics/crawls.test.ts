@@ -70,6 +70,22 @@ describe('crawler requests', () => {
     expect(one.recent.map(r => r.bot)).toEqual(['GPTBot (OpenAI)']);
   });
 
+  it('shows on Live the crawlers here in the last five minutes, each stay with its requests and latest page', async () => {
+    await hand([
+      { at: NOW - 10 * 60_000, bot: 'Googlebot', path: '/city/rome' },
+      { at: NOW - 2 * 60_000, bot: 'Googlebot', path: '/city/berlin' },
+      { at: NOW - 60_000, bot: 'Googlebot', path: '/tr/city/paris' },
+      { at: NOW - 30_000, bot: 'GPTBot (OpenAI)', path: '/robots.txt' },
+      { at: NOW - 6 * 60_000, bot: 'bingbot', path: '/about' },
+    ]);
+    type Live = { crawlers: { bot: string; kind: string; since: number; at: number; hits: number; path: string }[] };
+    const { crawlers } = await kit.json<Live>(await kit.call(root.jar, 'GET', '/api/admin/analytics/live'));
+    expect(crawlers).toEqual([
+      { bot: 'GPTBot (OpenAI)', kind: 'ai', since: NOW - 30_000, at: NOW - 30_000, hits: 1, path: '/robots.txt' },
+      { bot: 'Googlebot', kind: 'search', since: NOW - 2 * 60_000, at: NOW - 60_000, hits: 2, path: '/tr/city/paris' },
+    ]);
+  });
+
   it('is behind the gate', async () => {
     const user = await t.signUpVerified(new Jar(), { name: 'Cy', email: 'cy@example.invalid', password: 'another horse battery' });
     await kit.expectGated('GET', '/api/admin/analytics/crawlers', user);

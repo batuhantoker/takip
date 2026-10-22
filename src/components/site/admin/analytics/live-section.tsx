@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { CRAWLER_KIND_LABEL } from '@takip/core/crawlers';
 import { ChartCard, Legend } from '@/components/site/admin/charts/chart-card';
 import { StatTile } from '@/components/site/admin/charts/stat-tile';
 import { WorldDots } from '@/components/site/admin/charts/world-dots';
 import { Muted, when } from '@/components/site/admin/parts/admin-parts';
 import { shortVisitor } from '@/components/site/admin/tables/visitors-table';
 import type { AnalyticsLive } from './analytics-types';
+import { kindColor } from './crawlers-section';
 import { actionLabel } from './lib/actions';
 import { featureLabel, splitFeature } from './lib/features';
-import { count } from './lib/format';
+import { count, plural } from './lib/format';
 import { deviceLabel, originLabel, pathLabel, since, STEP_INK } from './lib/journeys';
 import { NEUTRAL } from './lib/series';
 import { useAnalyticsData } from './lib/use-analytics-data';
@@ -22,6 +24,8 @@ const REFRESH_MS = 10_000;
 const MAX_LAYERS = 5;
 
 type Person = AnalyticsLive['people'][number];
+type Crawler = AnalyticsLive['crawlers'][number];
+const SMALL_MAP = 'view:embed';
 
 const KIND = { map: { label: 'On the map', color: STEP_INK.map }, page: { label: 'Reading a page', color: STEP_INK.page } } as const;
 
@@ -36,15 +40,16 @@ export function LiveSection({ hideAdmins }: { hideAdmins: boolean }) {
   return (
     <>
       <p className="text-[12px] text-ink-3">
-        Who is on the site right now: on the map (its once-a-minute tick came in the last 2½ minutes) or opened a public page in the last 5. Refreshes every
-        10 seconds. Kept in the api&apos;s memory only, so a restart empties it. Crawlers don&apos;t run the page&apos;s script and never show here.
+        Who is on the site right now: on the map (its once-a-minute tick came in the last 2½ minutes), or on a public page they opened or whose small map
+        they used in the last 5. Below them, the crawlers that made a request in the last 5 minutes, up to 10 seconds late. Refreshes every 10 seconds.
+        Kept in the api&apos;s memory only, so a restart empties it.
       </p>
-      <SectionFrame query={query}>{d => <Live people={d.people} />}</SectionFrame>
+      <SectionFrame query={query}>{d => <Live people={d.people} crawlers={d.crawlers} />}</SectionFrame>
     </>
   );
 }
 
-function Live({ people }: { people: Person[] }) {
+function Live({ people, crawlers }: { people: Person[]; crawlers: Crawler[] }) {
   const onMap = people.filter(p => p.kind === 'map').length;
   const countries = new Set(people.map(p => p.place?.country).filter(Boolean)).size;
 
@@ -69,10 +74,10 @@ function Live({ people }: { people: Person[] }) {
   return (
     <>
       <Tiles>
-        <StatTile label="Here now" value={count(people.length)} sub="Browsers and accounts" />
+        <StatTile label="Here now" value={count(people.length)} sub={`Browsers and accounts, ${plural(countries, 'country', 'countries')}`} />
         <StatTile label="On the map" value={count(onMap)} />
         <StatTile label="Reading a page" value={count(people.length - onMap)} />
-        <StatTile label="Countries" value={count(countries)} />
+        <StatTile label="Crawlers" value={count(crawlers.length)} sub={plural(crawlers.reduce((n, c) => n + c.hits, 0), 'request')} />
       </Tiles>
       <ChartCard title="Where they are" note="By the town their address points to; a dot holds everyone in one town">
         {points.length ? (
@@ -89,7 +94,29 @@ function Live({ people }: { people: Person[] }) {
           : <Muted>Nobody is on the site right now.</Muted>}
         {people.some(p => p.place) && <DbIpCredit />}
       </section>
+      <section className="flex flex-col gap-3 rounded-card border border-line bg-surface-1 p-4">
+        <h2 className="text-[12px] font-medium text-ink-2">Crawlers here now</h2>
+        {crawlers.length
+          ? <ul className="flex flex-col divide-y divide-line">{crawlers.map(c => <CrawlerRow key={c.bot} c={c} />)}</ul>
+          : <Muted>No crawler has made a request in the last 5 minutes.</Muted>}
+      </section>
     </>
+  );
+}
+
+function CrawlerRow({ c }: { c: Crawler }) {
+  return (
+    <li className="grid gap-x-4 gap-y-1 py-2.5 text-[12px] md:grid-cols-[14rem_minmax(0,1fr)_12rem]">
+      <span className="flex min-w-0 items-center gap-1.5 text-ink-1">
+        <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: kindColor(c.kind) }} />
+        <span className="truncate">{c.bot}</span>
+        <span className="shrink-0 text-[11px] text-ink-3">{CRAWLER_KIND_LABEL[c.kind]}</span>
+      </span>
+      <span className="truncate font-mono text-ink-1" title={c.path}>{c.path}</span>
+      <span className="text-[11px] text-ink-3" title={`Since ${when(c.since)}; last request ${when(c.at)}`}>
+        {plural(c.hits, 'request')}{c.hits > 1 && ` over ${since(c.since, c.at)}`} · last {since(c.at)} ago
+      </span>
+    </li>
   );
 }
 
@@ -121,6 +148,7 @@ function PersonRow({ p }: { p: Person }) {
         {p.kind === 'page'
           ? <span className="truncate font-mono text-ink-1">{pathLabel(p.path)}</span>
           : <span className="text-ink-1">{mapActivity(p.features)}</span>}
+        {p.kind === 'page' && p.features.includes(SMALL_MAP) && <span className="text-[11px] text-ink-2">Using its small map</span>}
         {p.actions.length > 0 && (
           <span className="text-[11px] text-ink-2" title="The latest actions on the map, newest first">
             Did: {p.actions.map(a => `${actionLabel(a.action)} (${since(a.at)} ago)`).join(' · ')}

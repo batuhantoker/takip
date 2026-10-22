@@ -443,14 +443,17 @@ export type VisitFilter = { origin?: string; page?: string; country?: string; ne
 /** GET /api/admin/analytics/pages/visits?days=&origin=&page=&country=&next=&offset=&limit= */
 export type PageVisitList = { total: number; visits: PageVisit[] };
 
-/** GET /api/admin/analytics/live: who is on the map (ticked in the last 2½ minutes) or opened a page in the last 5. */
+/**
+ * GET /api/admin/analytics/live: who is on the map (ticked in the last 2½ minutes) or opened a page or used its small
+ * map in the last 5, and the crawlers that made a request in the last 5.
+ */
 export type AnalyticsLive = {
   people: {
     key: string;
     kind: 'map' | 'page';
     /** The page's English path; '/' on the map. */
     path: string;
-    /** The map's features at its last tick: view:, panel:, layer:, section:, window:, device:. */
+    /** The map's features at its last tick: view:, panel:, layer:, section:, window:, device:. On a page, view:embed while its small map is in use. */
     features: string[];
     /** The latest actions on the map, newest first (packages/core usage.ts names). */
     actions: { action: string; at: number }[];
@@ -464,6 +467,8 @@ export type AnalyticsLive = {
     user: { id: string; email: string; name: string } | null;
     admin: boolean;
   }[];
+  /** Latest first; `since` is when this stay began, `hits` its requests since, `path` the latest. */
+  crawlers: { bot: string; kind: CrawlerKind; since: number; at: number; hits: number; path: string }[];
 };
 
 export type CrawlerKind = 'search' | 'ai' | 'seo' | 'preview' | 'ads' | 'monitor' | 'script' | 'archive' | 'other';

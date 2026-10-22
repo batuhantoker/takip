@@ -16,7 +16,7 @@ import { Pair, SectionFrame, Tiles } from './parts/section-frame';
 
 // A fixed colour per kind, so a kind keeps it whatever else is in range; the rarer kinds share the fold.
 const SLOTS: CrawlerKind[] = ['search', 'ai', 'seo', 'preview', 'ads', 'script'];
-const kindColor = (kind: CrawlerKind) => (SLOTS.includes(kind) ? ink(SLOTS.indexOf(kind)) : OTHER);
+export const kindColor = (kind: CrawlerKind) => (SLOTS.includes(kind) ? ink(SLOTS.indexOf(kind)) : OTHER);
 const FOLDED = 'Monitors, archives and other bots';
 
 /** Crawlers and scripts reaching the site's pages, by user agent; `range` is the page's ?days=…, a crawler can be picked to see only its requests. */
