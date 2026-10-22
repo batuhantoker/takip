@@ -1,11 +1,20 @@
 import { Plane } from 'lucide-react';
 import { FlightFinder } from '@/components/site/pages/flight-finder';
 import { Section } from '@/components/site/pages/site-frame';
-import type { Translate } from '@/lib/core/i18n/translator';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
+import { listOf, placeName, wordingOf } from '@/lib/platform/site/places/copy/format';
 import type { StationNow } from '@/lib/platform/site/places/live/metar-now';
 import type { FlightsData } from '@/lib/platform/site/places/topics/flights';
 import { Notes } from '../parts/notes';
 import type { TopicView } from './view';
+
+const MAJOR = [
+  msg('From {city}, the nearest major airport is {name} ({iata}), {km} km away.'),
+  msg('{name} ({iata}) is the nearest major airport to {city}, {km} km from the centre.'),
+];
+
+/** "Antwerp International Airport (Deurne)" before its own "(ANR)" reads as two brackets. */
+const bare = (name: string) => name.replace(/\s*\([^)]*\)$/, '');
 
 /** Each station's latest report, one per line. */
 export function StationsNow({ t, stations }: { t: Translate; stations: StationNow[] }) {
@@ -25,6 +34,21 @@ export function StationsNow({ t, stations }: { t: Translate; stations: StationNo
 
 export const FLIGHTS_VIEW: TopicView<FlightsData, StationNow[]> = {
   icon: Plane,
+
+  // OurAirports calls a few small fields scheduled (Teterboro), so the sentence leads with a large airport when one is near.
+  Lead({ text: { t }, place, page: { data } }) {
+    const near = [...data.airports].sort((a, b) => a.km - b.km);
+    const first = near.find(a => a.large) ?? near[0];
+    if (!first) return null;
+    const vars = { city: placeName(place, t), name: bare(first.name), iata: first.iata, km: first.km };
+    const others = near.filter(a => a !== first).map(a => t('{name} ({iata}, {km} km)', { name: bare(a.name), iata: a.iata, km: a.km }));
+    return (
+      <p className="text-[15px] leading-relaxed text-ink-1">
+        {first.large ? t(wordingOf(place, 'airport', MAJOR), vars) : t('From {city}, the nearest airport with scheduled flights is {name} ({iata}), {km} km away.', vars)}
+        {others.length > 0 && ` ${t('Also within reach: {airports}.', { airports: listOf(others, t) })}`}
+      </p>
+    );
+  },
 
   Live: ({ text, live }) => (live.length ? <StationsNow t={text.t} stations={live} /> : null),
 

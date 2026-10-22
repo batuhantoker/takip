@@ -11,7 +11,7 @@ import type { FlightsRow, WeatherMeta } from './air-weather-data';
  * the page would repeat its neighbour's.
  */
 
-export interface FlightsData { airports: { iata: string; icao: string; name: string; km: number }[] }
+export interface FlightsData { airports: { iata: string; icao: string; name: string; km: number; large: boolean }[] }
 
 const MIN_INDEXED_POP = 100_000;
 

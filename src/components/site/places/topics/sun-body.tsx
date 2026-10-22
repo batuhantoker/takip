@@ -1,9 +1,9 @@
 import { Sunrise } from 'lucide-react';
 import Link from 'next/link';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
-import type { Translate } from '@/lib/core/i18n/translator';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { localePath } from '@/lib/platform/site/locale-path';
-import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { nameOf, placeName, wordingOf } from '@/lib/platform/site/places/copy/format';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { latitudeOf, dayIn, zoneName } from '@/lib/platform/site/places/topics/sky-copy';
@@ -108,12 +108,19 @@ function noonLine(r: SunReport, tz: string, t: Translate): string {
     : t('Solar noon at {time}; the Sun stays {deg}° below the horizon.', { time, deg });
 }
 
-function riseLine(r: SunReport, tz: string, t: Translate): string {
+const RISE = [
+  msg('{day} in {city}: sunrise at {rise}, sunset at {set}.'),
+  msg('In {city} on {day}, the Sun rises at {rise} and sets at {set}.'),
+  msg('The Sun is up from {rise} to {set} in {city} on {day}.'),
+];
+
+function riseLine(r: SunReport, tz: string, place: Place, t: Translate): string {
   const { rise, set } = r.today;
   const day = dayIn(r.at, tz, t);
-  if (rise === 'above') return t('{day}: the Sun doesn’t set today, the midnight sun.', { day });
-  if (rise === 'below') return t('{day}: the Sun doesn’t rise today, the polar night.', { day });
-  return t('{day}: sunrise at {rise}, sunset at {set}.', { day, rise: sunAt(rise, r.date, tz, t), set: sunAt(set, r.date, tz, t) });
+  const city = placeName(place, t);
+  if (rise === 'above') return t('{day} in {city}: the Sun doesn’t set today, the midnight sun.', { day, city });
+  if (rise === 'below') return t('{day} in {city}: the Sun doesn’t rise today, the polar night.', { day, city });
+  return t(wordingOf(place, 'rise', RISE), { day, city, rise: sunAt(rise, r.date, tz, t), set: sunAt(set, r.date, tz, t) });
 }
 
 export const SUN_VIEW: TopicView<SunData, SunReport> = {
@@ -124,7 +131,7 @@ export const SUN_VIEW: TopicView<SunData, SunReport> = {
     const length = dayLength(r.today);
     return (
       <>
-        <p className="text-[15px] text-ink-1">{riseLine(r, data.tz, t)}</p>
+        <p className="text-[15px] text-ink-1">{riseLine(r, data.tz, place, t)}</p>
         {typeof r.today.rise === 'number' && (
           <p>{r.change === null
             ? t('Day length {length}.', { length: hoursOf(length, t) })

@@ -1,5 +1,6 @@
 /** One place's row in data/site/topics/flights.json (tools/site/topics/air-weather.ts): airports with scheduled flights within 50 km. */
-export interface FlightsRow { airports: { iata: string; icao: string; km: number }[] }
+/** `large`: one of OurAirports' large airports, the hubs; the rest are its medium ones with scheduled flights. */
+export interface FlightsRow { airports: { iata: string; icao: string; km: number; large: boolean }[] }
 
 /** One place's row in data/site/topics/weather.json: METAR stations within 30 km as [ICAO, km], and radar coverage. */
 export interface WeatherRow {

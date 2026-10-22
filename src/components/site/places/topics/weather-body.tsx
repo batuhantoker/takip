@@ -5,7 +5,7 @@ import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { layerPage, openPath, pagePath } from '@/lib/platform/site/layer-pages';
 import { localePath } from '@/lib/platform/site/locale-path';
-import { listOf, nameOf } from '@/lib/platform/site/places/copy/format';
+import { listOf, nameOf, placeName } from '@/lib/platform/site/places/copy/format';
 import type { Place } from '@/lib/platform/site/places/place';
 import type { WeatherData, WeatherLive } from '@/lib/platform/site/places/topics/weather';
 import type { CityForecast } from '@/lib/platform/site/places/topics/weather-forecast';
@@ -101,7 +101,9 @@ export const WEATHER_VIEW: TopicView<WeatherData, WeatherLive[], CityForecast> =
 
   Live: ({ text, live }) => (live.length ? <WeatherNow t={text.t} items={live} /> : null),
 
-  Wide: ({ text, place, detail }) => (detail ? <WeatherForecast t={text.t} city={nameOf(place, text.t)} cc={place.cc} forecast={detail} /> : null),
+  Wide: ({ text, place, detail }) => (detail
+    ? <WeatherForecast t={text.t} city={nameOf(place, text.t)} place={placeName(place, text.t)} seed={String(place.id)} cc={place.cc} forecast={detail} />
+    : null),
 
   Body({ text, place, page: { data } }) {
     const { t } = text;

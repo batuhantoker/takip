@@ -3,20 +3,40 @@ import { Fragment, type ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { LocalClock } from '@/components/site/pages/local-clock';
 import { Section } from '@/components/site/pages/site-frame';
-import { msg } from '@/lib/core/i18n/translator';
+import { haversine } from '@/lib/core/geodesic';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { mapHref } from '@/lib/platform/site/map-link';
-import { count, nameOf } from '@/lib/platform/site/places/copy/format';
+import { count, nameOf, placeName, wordingOf } from '@/lib/platform/site/places/copy/format';
 import type { CamerasData } from '@/lib/platform/site/places/topics/cameras';
 import { Notes } from '../parts/notes';
 import type { TopicView } from './view';
 
 const COUNTED = msg('Counted within {km} km of the centre of {city} from the camera list as it was at {time} on {day}. Cameras come and go as their owners add and retire them.');
 
+const NEAREST = [
+  msg('Nearest the centre of {city}: {name}, from {source}, {km} km away.'),
+  msg('{name} ({source}) is the closest camera to the centre of {city}, {km} km out.'),
+  msg('Of the cameras around {city}, {name} from {source} is nearest the centre, {km} km away.'),
+];
+
+const kmText = (km: number, t: Translate) => new Intl.NumberFormat(t.intl, { maximumFractionDigits: km < 10 ? 1 : 0 }).format(km);
+
 /** A camera on the map, close enough to pick out. */
 const cameraPath = (at: [number, number]) => mapHref({ layers: ['cctv', 'cctv_previews'], view: { lat: at[1], lon: at[0], zoom: 15 } });
 
 export const CAMERAS_VIEW: TopicView<CamerasData> = {
   icon: Video,
+
+  // Picks run nearest first, so the first on air is the one a reader in the centre would look at.
+  Lead({ text: { t }, place, page: { data } }) {
+    const near = data.onAir ? data.picks[0] : null;
+    if (!near) return null;
+    return (
+      <p className="text-[15px] leading-relaxed text-ink-1">
+        {t(wordingOf(place, 'nearest', NEAREST), { city: placeName(place, t), name: near.name, source: near.source, km: kmText(haversine(place.at, near.at), t) })}
+      </p>
+    );
+  },
 
   Body({ text, place, page: { data } }) {
     const { t } = text;
