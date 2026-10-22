@@ -6093,6 +6093,7 @@
   "{signedOut} those minutes are tied to the random visitor id this browser keeps, along with the browser’s name, the site that first sent you here, the page you landed on, and the address you connect from with the town and country it points to. Clearing this site’s data starts a new id.": "{signedOut}这些分钟会关联到此浏览器保存的随机访客 ID，同时记录浏览器名称、最初把你引到这里的网站、你进入的页面，以及你连接时使用的 IP 地址及其对应的城镇和国家。清除本站数据会生成新的 ID。",
   "{sites}. The handle breaks these sites’ username rules.": "{sites}。该用户名不符合这些网站的用户名规则。",
   "{sky, select, clear {Clear} fair {Mostly clear} partly {Partly cloudy} cloudy {Cloudy} fog {Fog} lightrain {Light rain} rain {Rain} heavyrain {Heavy rain} sleet {Sleet} lightsnow {Light snow} snow {Snow} heavysnow {Heavy snow} other {Thunderstorms}}": "{sky, select, clear {晴} fair {少云} partly {多云} cloudy {阴} fog {雾} lightrain {小雨} rain {中雨} heavyrain {大雨} sleet {雨夹雪} lightsnow {小雪} snow {中雪} heavysnow {大雪} other {雷阵雨}}",
+  "{sky} in {city} {when, select, today {today} tomorrow {tomorrow} other {on {day}}}: between {low} and {high}, {wet, select, yes {{rain} of rain} other {dry}}, wind up to {wind}.": "{city}{when, select, today {今天} tomorrow {明天} other {{day}}}：{sky}，{low}至{high}，{wet, select, yes {降水{rain}} other {无降水}}，风速最高{wind}。",
   "{start} to {end}": "{start}至{end}",
   "{start}–{end}": "{start}–{end}",
   "{status} · flown track on the map": "{status} · 已飞航迹显示在地图上",

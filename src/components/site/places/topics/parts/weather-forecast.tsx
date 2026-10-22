@@ -21,6 +21,30 @@ function SkyIcon({ symbol, t }: { symbol: string | null; t: Translate }) {
 const rain = (mm: number | null, u: WeatherUnits, t: Translate) =>
   mm == null ? '' : mm < 0.05 ? '–' : precipitationIn(mm, u, t);
 
+const nextDate = (date: string) => {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+};
+
+/** The table's first day as one sentence, so the forecast reads without the table and a search result can quote it. */
+function Outlook({ t, city, forecast, u }: { t: Translate; city: string; forecast: CityForecast; u: WeatherUnits }) {
+  const d = forecast.days[0];
+  const sky = d && skyOf(d.symbol);
+  if (!d || !sky || !city) return null;
+  const [y, m, dd] = d.date.split('-').map(Number);
+  return (
+    <p className="mb-4 text-[15px] leading-relaxed text-ink-1">
+      {t('{sky} in {city} {when, select, today {today} tomorrow {tomorrow} other {on {day}}}: between {low} and {high}, {wet, select, yes {{rain} of rain} other {dry}}, wind up to {wind}.', {
+        sky: skyWords(sky.sky, t), city,
+        when: d.date === forecast.today ? 'today' : d.date === nextDate(forecast.today) ? 'tomorrow' : 'other',
+        day: new Intl.DateTimeFormat(t.intl, { weekday: 'long', timeZone: 'UTC' }).format(Date.UTC(y, m - 1, dd)),
+        low: temperatureIn(d.minC, u, t), high: temperatureIn(d.maxC, u, t),
+        wet: d.precipMm >= 0.05 ? 'yes' : 'no', rain: precipitationIn(d.precipMm, u, t), wind: windSpeedIn(d.windMaxMs, u, t),
+      })}
+    </p>
+  );
+}
+
 /** MET Norway's forecast for the place: the next day every three hours, then a line a day. */
 export function WeatherForecast({ t, city, cc, forecast, title }: { t: Translate; city: string; cc: string; forecast: CityForecast; title?: string }) {
   const u = unitsFor(cc);
@@ -29,6 +53,7 @@ export function WeatherForecast({ t, city, cc, forecast, title }: { t: Translate
   const hour = new Intl.DateTimeFormat(t.intl, { hour: 'numeric', minute: '2-digit', timeZone: forecast.tz });
   return (
     <Section title={title ?? t('{city} weather forecast', { city })}>
+      <Outlook t={t} city={city} forecast={forecast} u={u} />
       {forecast.hours.length > 0 && (
         <div className="-mx-1 overflow-x-auto px-1">
           <ol className="grid min-w-[36rem] grid-cols-8 gap-2">

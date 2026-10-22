@@ -6093,6 +6093,7 @@
   "{signedOut} those minutes are tied to the random visitor id this browser keeps, along with the browser’s name, the site that first sent you here, the page you landed on, and the address you connect from with the town and country it points to. Clearing this site’s data starts a new id.": "{signedOut}、それらの分数はこのブラウザが保持するランダムな訪問者 ID に紐づけられ、あわせてブラウザ名、最初にここへ誘導したサイト、最初に開いたページ、接続元の IP アドレスとそれが示す町と国が記録されます。このサイトのデータを消去すると新しい ID になります。",
   "{sites}. The handle breaks these sites’ username rules.": "{sites}。このハンドルはこれらのサイトのユーザー名規則に反しています。",
   "{sky, select, clear {Clear} fair {Mostly clear} partly {Partly cloudy} cloudy {Cloudy} fog {Fog} lightrain {Light rain} rain {Rain} heavyrain {Heavy rain} sleet {Sleet} lightsnow {Light snow} snow {Snow} heavysnow {Heavy snow} other {Thunderstorms}}": "{sky, select, clear {快晴} fair {晴れ} partly {晴れ時々曇り} cloudy {曇り} fog {霧} lightrain {小雨} rain {雨} heavyrain {強い雨} sleet {みぞれ} lightsnow {小雪} snow {雪} heavysnow {大雪} other {雷雨}}",
+  "{sky} in {city} {when, select, today {today} tomorrow {tomorrow} other {on {day}}}: between {low} and {high}, {wet, select, yes {{rain} of rain} other {dry}}, wind up to {wind}.": "{city}の{when, select, today {今日} tomorrow {明日} other {{day}}}の天気：{sky}、{low}〜{high}、{wet, select, yes {降水量{rain}} other {降水なし}}、最大風速{wind}。",
   "{start} to {end}": "{start}〜{end}",
   "{start}–{end}": "{start}～{end}",
   "{status} · flown track on the map": "{status} · 飛行航跡を地図に表示",
