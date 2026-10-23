@@ -6,8 +6,8 @@ import { DAY_MS, utcDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
 import { noLocator, type IpLocator } from '../geoip/ip-location';
 import type { Presence } from './presence';
-import { linkPathOf } from './sources';
-import { parseUserAgent } from './user-agent';
+import { campaignOf, linkPathOf, originOf } from './sources';
+import { disguisedAgent, parseUserAgent } from './user-agent';
 
 /**
  * The public reading pages, by their English path: /map/<layer>, /city/<place>[/<topic>], /event/<slug>, /about and the
@@ -25,7 +25,6 @@ const MAX_VIEWS = 50;
 const MAX_LOGGED = 300;
 // The same page again this soon is a reload or a double report, not another step.
 const REPEAT_MS = 10_000;
-const CAMPAIGN = /^[a-z0-9._-]{1,60}$/;
 // A page's small map reports at most a minute a minute; a little less lets a late timer through.
 const MAP_MINUTE_GAP_MS = 50_000;
 
@@ -47,14 +46,6 @@ export type ReadContext = { ip: string; country: string | null; userId: string |
 const round2 = (n: number | null | undefined) => (n == null ? null : Math.round(n * 100) / 100);
 
 const isPage = (path: unknown): path is string => typeof path === 'string' && (path === MAP_PATH || PAGE.test(path));
-
-function campaignOf(landing: string | null) {
-  const query = landing?.split('?')[1];
-  if (!query) return null;
-  const params = new URLSearchParams(query);
-  const source = (params.get('utm_source') ?? params.get('ref') ?? params.get('source'))?.toLowerCase();
-  return source && CAMPAIGN.test(source) ? source : null;
-}
 
 /**
  * A view report's body ({ visitor: { id, referrer, landing }, path, locale, from, referrerPath }), or null when it isn't a
@@ -110,7 +101,7 @@ export function createPageReads(db: AppDb, { now = () => Date.now(), locate = no
     const agent = parseUserAgent(read.userAgent);
     presence?.note({
       key: read.visitorId, kind: read.path === MAP_PATH ? 'map' : 'page', visitorId: read.visitorId, userId, path: read.path,
-      features: [], referrer: read.referrer || null, place, agent, at,
+      features: [], referrer: originOf(read.referrer, read.campaign), place, agent, at,
     });
     const seen = logged.get({ visitorId: read.visitorId, path: read.path, at, dayStart: day * DAY_MS }) as { views: number; repeat: number };
     if (seen.views >= MAX_LOGGED || seen.repeat) return;
@@ -146,6 +137,7 @@ export function pageReadRoutes(reads: PageReads, { cloudflare = false } = {}) {
   const app = new Hono<AccessEnv>();
   app.post('/page-view', async c => {
     const body: unknown = await c.req.json().catch(() => null);
+    if (disguisedAgent(c.req.header('user-agent'), c.req.header('sec-ch-ua'), c.req.header('sec-ch-ua-platform'))) return c.body(null, 204);
     const principal = c.var.principal;
     const context = (): ReadContext => ({
       ip: clientIpOf(c),

@@ -2,6 +2,7 @@ import { DAY_MS, isoDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
 import { visitorPlaces } from './places';
 import { dayStartMs, eachDay, round1, visitorNotAdmin, weekStart, type Range } from './range';
+import { campaignOf, originOf, sourceOfTag } from './sources';
 import { parseUserAgent } from './user-agent';
 
 const COHORT_WEEKS = 8;
@@ -48,12 +49,13 @@ export function visitors(db: AppDb, r: Range) {
     hitWall: t.hitWall,
   };
 
-  // First-visit attribution belongs to the visitors whose first visit fell in the range.
+  // First-visit attribution belongs to the visitors whose first visit fell in the range; a tag naming a site counts as that site.
   const arrivals = all<{ referrer: string | null; landing: string | null; linked: number }>(`
-    SELECT v.referrer, v.landing, v.user_id IS NOT NULL AS linked FROM visitor v WHERE v.first_seen_at >= @from ${notAdmin}`, params);
-  const referrers = ranked(arrivals, a => a.referrer, (referrer, rows) => ({ referrer, visitors: rows.length, signedIn: rows.filter(a => a.linked).length }));
+    SELECT v.referrer, v.landing, v.user_id IS NOT NULL AS linked FROM visitor v WHERE v.first_seen_at >= @from ${notAdmin}`, params)
+    .map(a => ({ ...a, tag: campaignOf(a.landing) }));
+  const referrers = ranked(arrivals, a => originOf(a.referrer, a.tag), (referrer, rows) => ({ referrer, visitors: rows.length, signedIn: rows.filter(a => a.linked).length }));
   const landings = ranked(arrivals.filter(a => a.landing), a => a.landing!, (landing, rows) => ({ landing, visitors: rows.length }));
-  const campaigns = ranked(arrivals.filter(a => utmSource(a.landing)), a => utmSource(a.landing)!, (source, rows) => ({
+  const campaigns = ranked(arrivals.filter(a => a.tag && !sourceOfTag(a.tag)), a => a.tag!, (source, rows) => ({
     source, visitors: rows.length, signedIn: rows.filter(a => a.linked).length,
   }));
 
@@ -117,5 +119,3 @@ function ranked<R, K extends string | null, T>(rows: R[], key: (row: R) => K, ma
     .slice(0, TOP)
     .map(([k, group]) => make(k, group));
 }
-
-const utmSource = (landing: string | null) => (landing ? new URL(landing, 'http://local').searchParams.get('utm_source') || null : null);

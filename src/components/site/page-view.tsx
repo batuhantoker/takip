@@ -22,6 +22,8 @@ export function reportMapMinute(path: string) {
 }
 
 function send(report: object) {
+  // Puppeteer, Playwright and headless Chrome say so here, whatever user agent they give.
+  if (navigator.webdriver) return;
   const body = JSON.stringify(report);
   if (!navigator.sendBeacon?.('/api/v1/page-view', new Blob([body], { type: 'application/json' }))) {
     fetch('/api/v1/page-view', { method: 'POST', body, headers: { 'content-type': 'application/json' }, keepalive: true }).catch(() => {});

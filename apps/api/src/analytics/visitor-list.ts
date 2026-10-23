@@ -3,6 +3,7 @@ import type { AppDb } from '../db/app-db';
 import { latestDevices, type DeviceBrief } from './device-places';
 import { latestPlaces, type PlaceBrief } from './places';
 import { rangeQuery, visitorNotAdmin, type Range } from './range';
+import { campaignOf, originOf } from './sources';
 
 /* Visitors are browsers that keep a random id and send it with the map's minute tick (access/map-time.ts). */
 
@@ -16,9 +17,13 @@ export type ProfileRow = {
   linkedAt: number | null; userId: string | null; userEmail: string | null; userName: string | null;
 };
 
-/** `place` is the browser's latest address (places.ts latestPlaces), `device` its latest shared location (device-places.ts). */
+/**
+ * `referrer` falls back to the landing's tag when that names a known source (utm_source=chatgpt.com); `place` is the
+ * browser's latest address (places.ts latestPlaces), `device` its latest shared location (device-places.ts).
+ */
 export const toProfile = ({ userId, userEmail, userName, ...rest }: ProfileRow, place: PlaceBrief | null = null, device: DeviceBrief | null = null) => ({
   ...rest,
+  referrer: originOf(rest.referrer, campaignOf(rest.landing)),
   user: userId && userEmail ? { id: userId, email: userEmail, name: userName ?? '' } : null,
   place,
   device,

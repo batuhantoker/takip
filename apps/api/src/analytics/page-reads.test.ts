@@ -93,6 +93,18 @@ describe('reading the public pages', () => {
     expect(t.db.prepare('SELECT count(*) FROM visitor').pluck().get()).toBe(0);
   });
 
+  it('drops a view from a Chromium whose hints contradict its user agent', async () => {
+    const send = (platform: string) => t.app.request('/api/v1/page-view', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'user-agent': CHROME, 'sec-ch-ua-platform': platform },
+      body: JSON.stringify({ visitor: { id: ALPHA }, path: '/about', locale: 'en' }),
+    }, from('203.0.113.5'));
+    expect((await send('"Linux"')).status).toBe(204);
+    expect(rows()).toEqual([]);
+    await send('"macOS"');
+    expect(rows()).toHaveLength(1);
+  });
+
   it('counts a page reloaded over and over 50 times a day at most', async () => {
     for (let i = 0; i < 55; i++) await view({ id: BETA }, '/map/earthquakes');
     expect(rows()).toMatchObject([{ path: '/map/earthquakes', views: 50 }]);

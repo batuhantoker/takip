@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseUserAgent } from './user-agent';
+import { disguisedAgent, parseUserAgent } from './user-agent';
 
 describe('parseUserAgent', () => {
   it.each([
@@ -13,5 +13,22 @@ describe('parseUserAgent', () => {
     [null, { browser: 'Other', os: 'Other', device: 'desktop' }],
   ])('%s', (ua, expected) => {
     expect(parseUserAgent(ua)).toEqual(expected);
+  });
+});
+
+describe('disguisedAgent', () => {
+  const WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+  const BRANDS = '"Google Chrome";v="141", "Chromium";v="141", "Not)A;Brand";v="8"';
+
+  it('trusts a browser whose hints agree with its user agent, or that sends none', () => {
+    expect(disguisedAgent(WINDOWS, BRANDS, '"Windows"')).toBe(false);
+    expect(disguisedAgent('Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', BRANDS, '"Chrome OS"')).toBe(false);
+    expect(disguisedAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36', BRANDS, '"Android"')).toBe(false);
+    expect(disguisedAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1', undefined, undefined)).toBe(false);
+  });
+
+  it('catches a Chromium whose hints name another system or version', () => {
+    expect(disguisedAgent(WINDOWS, BRANDS, '"Linux"')).toBe(true);
+    expect(disguisedAgent(WINDOWS, '"Google Chrome";v="155", "Chromium";v="155"', '"Windows"')).toBe(true);
   });
 });

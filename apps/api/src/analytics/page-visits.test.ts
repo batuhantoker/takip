@@ -2,17 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAY_MS } from '../access/usage';
 import { adminKit } from '../admin/testing';
 import { Jar, startApp, type TestApp } from '../testing/helpers';
-import { groupVisits, type Visit } from './page-visits';
+import { automatedBrowsers, groupVisits, type Visit } from './page-visits';
 
 const NOW = Date.UTC(2026, 9, 14, 12);
 const MIN = 60_000;
 const CHROME = 'Mozilla/5.0 (Macintosh) Chrome/141.0';
 const [ALPHA, BETA, GAMMA] = ['v-alpha-0000000001', 'v-beta-00000000002', 'v-gamma-0000000003'];
 
-const row = (visitorId: string, at: number, path: string, over: { referrer?: string; fromPath?: string | null; campaign?: string } = {}) => ({
-  visitorId, at, path, locale: 'en', referrer: over.referrer ?? '', fromPath: over.fromPath ?? null, campaign: over.campaign ?? null,
+const row = (visitorId: string, at: number, path: string, over: { referrer?: string; fromPath?: string | null; campaign?: string; locale?: string; known?: number } = {}) => ({
+  visitorId, at, path, locale: over.locale ?? 'en', referrer: over.referrer ?? '', fromPath: over.fromPath ?? null, campaign: over.campaign ?? null,
   country: 'DE', region: null, city: 'Berlin', latitude: 52.52, longitude: 13.4, browser: 'Chrome', os: 'macOS', device: 'desktop',
-  known: 0, userId: null, email: null, referrerPath: null, mapSince: null, priorAt: null,
+  known: over.known ?? 0, userId: null, email: null, referrerPath: null, mapSince: null, priorAt: null,
 });
 const shape = (v: Visit) => ({ origin: v.origin, steps: v.steps.map(s => s.path), views: v.views, next: v.next, returning: v.returning });
 
@@ -51,6 +51,33 @@ describe('grouping views into visits', () => {
       { ...row(GAMMA, NOW, '/about'), mapSince: NOW + MIN },
     ]);
     expect([before.returning, map.returning, fresh.returning]).toEqual([true, true, false]);
+  });
+
+  it('counts a link tagged with a known source as that source, and keeps any other tag as a campaign', () => {
+    const [chatgpt, newsletter] = groupVisits([
+      row(ALPHA, NOW, '/', { campaign: 'chatgpt.com' }),
+      row(BETA, NOW, '/about', { campaign: 'newsletter' }),
+    ]);
+    expect(chatgpt).toMatchObject({ origin: null, source: 'ChatGPT', channel: 'ai', campaign: null });
+    expect(newsletter).toMatchObject({ origin: null, source: null, channel: 'direct', campaign: 'newsletter' });
+  });
+});
+
+describe('automated browsers', () => {
+  it('are those that leave the page a visit began on within seconds, and never use the map', () => {
+    const [DELTA, EPSILON] = ['v-delta-0000000004', 'v-epsilon-00000005'];
+    const automated = automatedBrowsers([
+      row(ALPHA, NOW, '/city/berlin'), row(ALPHA, NOW + 1_000, '/compare/berlin-vs-paris', { fromPath: '/city/berlin' }),
+      // Read for a minute first.
+      row(BETA, NOW, '/city/berlin'), row(BETA, NOW + MIN, '/city/paris', { fromPath: '/city/berlin' }),
+      // Used the map.
+      row(GAMMA, NOW, '/city/berlin', { known: 1 }), row(GAMMA, NOW + 1_000, '/city/paris', { known: 1 }),
+      // Opened two tabs at once from a page it had been reading.
+      row(DELTA, NOW, '/guides'), row(DELTA, NOW + MIN, '/guides/a'), row(DELTA, NOW + MIN + 500, '/guides/b'),
+      // The same page again, as a language switch logs it.
+      row(EPSILON, NOW, '/city/berlin'), row(EPSILON, NOW + 1_000, '/city/berlin', { locale: 'de', fromPath: '/city/berlin' }),
+    ]);
+    expect([...automated]).toEqual([ALPHA]);
   });
 });
 
@@ -109,6 +136,20 @@ describe('visits in admin', () => {
     expect(journeys.steps).toEqual([{ from: '/city/berlin', to: '/', visits: 1 }]);
     expect(journeys.campaigns).toEqual([{ campaign: 'newsletter', visits: 1 }]);
     expect(journeys.devices).toEqual([{ device: 'desktop', visits: 2 }, { device: 'mobile', visits: 1 }]);
+  });
+
+  it('counts a tag naming a source as that source, and leaves out a browser that moves on within seconds', async () => {
+    const log = t.db.prepare(`INSERT INTO page_view (visitor_id, at, day, path, locale, referrer, campaign, browser, os, device) VALUES (?, ?, ?, ?, 'en', '', ?, 'Chrome', 'macOS', 'desktop')`);
+    const at = NOW - 10 * MIN;
+    log.run('v-delta-0000000004', at, Math.floor(at / DAY_MS), '/', 'chatgpt.com');
+    for (const [i, path] of ['/city/berlin', '/compare/berlin-vs-paris', '/city/paris'].entries()) log.run('v-crawler-00000006', at + i * 1_000, Math.floor(at / DAY_MS), path, null);
+    type Journeys = { journeys: { totals: { visitors: number }; sources: unknown[]; campaigns: unknown[]; automated: number } };
+    const { journeys } = await get<Journeys>('/pages');
+    expect(journeys.automated).toBe(1);
+    expect(journeys.totals.visitors).toBe(4);
+    expect(journeys.sources).toContainEqual({ source: 'ChatGPT', channel: 'ai', hosts: [], visits: 1 });
+    expect(journeys.campaigns).toEqual([{ campaign: 'newsletter', visits: 1 }]);
+    expect((await get<{ total: number }>('/pages/visits')).total).toBe(4);
   });
 
   it('keeps to a window of hours, counted per hour', async () => {

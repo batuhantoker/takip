@@ -64,7 +64,10 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   get('/data', async (r, refresh) => dataAccumulation(dirs.dataDir, r, await history(refresh)));
   get('/system', r => system(db, r, { metrics, startedAt, backupDir: dirs.backupDir, now: now() }));
   get('/visitors', r => visitors(db, r));
-  get('/pages', r => ({ ...pages(db, r), journeys: journeys(db, loadVisits(db, r), r) }));
+  get('/pages', r => {
+    const { visits, automated } = loadVisits(db, r);
+    return { ...pages(db, r), journeys: { ...journeys(db, visits, r), automated } };
+  });
   const log = crawlLog ?? createCrawlLog(db, now);
   get('/live', r => live(db, presence, log, r));
   const searches = new Map<string, (fresh?: boolean) => Promise<object>>();
@@ -81,7 +84,7 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   app.get('/pages/visits', c => {
     const parsed = visitsQuery.safeParse(c.req.query());
     if (!parsed.success) return c.json({ error: 'invalid_request', message: z.prettifyError(parsed.error) }, 400);
-    return c.json(recentVisits(loadVisits(db, rangeOf(parsed.data, now())), parsed.data));
+    return c.json(recentVisits(loadVisits(db, rangeOf(parsed.data, now())).visits, parsed.data));
   });
 
   app.get('/crawlers', c => {
@@ -93,7 +96,7 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   app.get('/pages/page', c => {
     const parsed = rangeQuery.extend({ path: z.string().min(1).max(200) }).safeParse(c.req.query());
     if (!parsed.success) return c.json({ error: 'invalid_request', message: z.prettifyError(parsed.error) }, 400);
-    return c.json(pageDetail(loadVisits(db, rangeOf(parsed.data, now())), parsed.data.path));
+    return c.json(pageDetail(loadVisits(db, rangeOf(parsed.data, now())).visits, parsed.data.path));
   });
 
   // Before /visitors/:id, which would otherwise take 'list' for an id.

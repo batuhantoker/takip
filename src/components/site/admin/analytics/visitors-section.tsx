@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import type { AnalyticsPages, AnalyticsVisitors, VisitFilter } from './analytics-types';
+import { plural } from './lib/format';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
 import { ActivityLog, type LogView } from './parts/activity-log';
 import { JourneyAudience } from './parts/journey-audience';
@@ -37,6 +38,11 @@ export function VisitorsSection({ pages, visitors, range, hours }: {
       <SectionFrame query={pages}>
         {p => (
           <>
+            {p.journeys.automated > 0 && (
+              <p className="text-[12px] text-ink-3">
+                {plural(p.journeys.automated, 'browser')} left out as automated: each moved on from the page it landed on within three seconds and never used the map.
+              </p>
+            )}
             <VisitorsSummary j={p.journeys} hours={hours} hitWall={visitors.data?.totals.hitWall ?? 0} />
             <SectionHeading>How they arrived</SectionHeading>
             <JourneyFlow j={p.journeys} onPick={pick} />

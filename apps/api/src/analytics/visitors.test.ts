@@ -87,6 +87,15 @@ describe('visitors over the range', () => {
     expect(week('2026-10-12')).toEqual({ week: '2026-10-12', size: 1, retained: [1, null, null, null, null, null, null, null] });
   });
 
+  it('counts a landing tagged with a known source as that source, not a campaign', async () => {
+    const DELTA = 'v-delta-0000000004';
+    t.db.prepare('INSERT INTO visitor (visitor_id, first_seen_at, last_seen_at, landing) VALUES (?, ?, ?, ?)').run(DELTA, NOW - 5_000, NOW - 5_000, '/?utm_source=chatgpt.com');
+    const v = await get<{ referrers: unknown[]; campaigns: unknown[] }>('/visitors');
+    expect(v.referrers).toContainEqual({ referrer: 'chatgpt.com', visitors: 1, signedIn: 0 });
+    expect(v.campaigns).toEqual([{ source: 'hn', visitors: 2, signedIn: 2 }]);
+    expect((await list()).visitors.find(row => row.visitorId === DELTA)).toMatchObject({ referrer: 'chatgpt.com', landing: '/?utm_source=chatgpt.com' });
+  });
+
   it('leaves out browsers linked to admins when asked', async () => {
     const v = await get<{ totals: { visitors: number; signedIn: number }; campaigns: unknown[] }>('/visitors?admins=exclude');
     expect(v.totals).toMatchObject({ visitors: 2, signedIn: 1 });

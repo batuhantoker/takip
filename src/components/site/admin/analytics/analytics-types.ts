@@ -397,7 +397,10 @@ export interface PageJourneys {
   devices: { device: string; visits: number }[];
   browsers: { browser: string; visits: number }[];
   oses: { os: string; visits: number }[];
+  /** Link tags that name no known source; one that does (utm_source=chatgpt.com) counts as that source. */
   campaigns: { campaign: string; visits: number }[];
+  /** Browsers left out as automated: moved on from a visit's first page in under three seconds, and no map (page-visits.ts automatedBrowsers). */
+  automated: number;
 }
 
 /** GET /api/admin/analytics/pages/page?path=: one page across the range's visits. */

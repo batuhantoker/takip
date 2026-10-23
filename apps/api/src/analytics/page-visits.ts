@@ -3,7 +3,7 @@ import { utcDay } from '../access/usage';
 import type { AppDb } from '../db/app-db';
 import { MAP_PATH } from './page-reads';
 import { rangeQuery, visitorNotAdmin, type Range } from './range';
-import { sourceOf, type Channel } from './sources';
+import { arrivalOf, type Channel } from './sources';
 
 /** Views further apart than this are two visits. */
 const VISIT_GAP_MS = 30 * 60_000;
@@ -29,9 +29,10 @@ export type Visit = {
   origin: string | null;
   /** The linking page on that site, when it shared it. */
   originPath: string | null;
-  /** The origin by name ('Google' for any of its hosts) and how it arrived (sources.ts). */
+  /** The origin by name ('Google' for any of its hosts, or a tag naming it: ChatGPT for utm_source=chatgpt.com) and how it arrived (sources.ts). */
   source: string | null;
   channel: Channel;
+  /** The link's tag, when it names no known source. */
   campaign: string | null;
   locale: string;
   place: { country: string | null; region: string | null; city: string | null; latitude: number | null; longitude: number | null } | null;
@@ -60,10 +61,10 @@ export function groupVisits(rows: ViewRow[]): Visit[] {
     const arrived = row.referrer !== '' && row.fromPath === null && row.referrer !== open?.origin;
     if (!open || open.visitorId !== row.visitorId || row.at - open.end > VISIT_GAP_MS || arrived) {
       const again: boolean = (open as Visit | null)?.visitorId === row.visitorId;
-      const { source, channel } = sourceOf(row.referrer || null);
+      const { source, channel, campaign } = arrivalOf(row.referrer || null, row.campaign);
       open = {
         visitorId: row.visitorId, start: row.at, end: row.at, origin: row.referrer || null, originPath: row.referrerPath, source, channel,
-        campaign: row.campaign, locale: row.locale,
+        campaign, locale: row.locale,
         place: row.country || row.city
           ? { country: row.country, region: row.region, city: row.city, latitude: row.latitude, longitude: row.longitude }
           : null,
@@ -82,7 +83,28 @@ export function groupVisits(rows: ViewRow[]): Visit[] {
   return visits;
 }
 
-/** Every visit in the range (from `r.from` exactly), oldest first; a reader whose browser is linked to an admin's account is left out when admins are. */
+// No one reads the page a visit began on and moves to another this fast; the crawler behind most "direct" visits takes 0–3 s.
+const TOO_FAST_MS = 3_000;
+
+/**
+ * Browsers (`rows` as loadVisits orders them) that left the page a visit began on for another in under three seconds and
+ * never used the map. Someone opening links in new tabs does it from a page they've been on a while, not one just opened.
+ */
+export function automatedBrowsers(rows: ViewRow[]): Set<string> {
+  const found = new Set<string>();
+  rows.forEach((row, i) => {
+    const before = rows[i - 1];
+    const next = rows[i + 1];
+    const begins = before?.visitorId !== row.visitorId || row.at - before.at > VISIT_GAP_MS;
+    if (begins && !row.known && next?.visitorId === row.visitorId && next.path !== row.path && next.at - row.at < TOO_FAST_MS) found.add(row.visitorId);
+  });
+  return found;
+}
+
+/**
+ * Every visit in the range (from `r.from` exactly), oldest first, and how many browsers were left out as automated; a
+ * reader whose browser is linked to an admin's account is left out when admins are.
+ */
 export function loadVisits(db: AppDb, r: Range) {
   const rows = db.prepare(`
     WITH prior AS (SELECT visitor_id, min(at) AS at FROM page_view WHERE at < @from GROUP BY visitor_id)
@@ -92,7 +114,8 @@ export function loadVisits(db: AppDb, r: Range) {
     FROM page_view p LEFT JOIN visitor v ON v.visitor_id = p.visitor_id LEFT JOIN auth_user u ON u.id = v.user_id
       LEFT JOIN prior ON prior.visitor_id = p.visitor_id
     WHERE p.day >= @first AND p.at >= @from ${visitorNotAdmin(r)} ORDER BY p.visitor_id, p.at`).all({ first: utcDay(r.from), from: r.from }) as ViewRow[];
-  return groupVisits(rows).sort((a, b) => a.start - b.start);
+  const automated = automatedBrowsers(rows);
+  return { visits: groupVisits(rows.filter(row => !automated.has(row.visitorId))).sort((a, b) => a.start - b.start), automated: automated.size };
 }
 
 export const visitsQuery = rangeQuery.extend({
