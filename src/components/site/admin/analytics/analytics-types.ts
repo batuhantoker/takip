@@ -399,7 +399,7 @@ export interface PageJourneys {
   oses: { os: string; visits: number }[];
   /** Link tags that name no known source; one that does (utm_source=chatgpt.com) counts as that source. */
   campaigns: { campaign: string; visits: number }[];
-  /** Browsers left out as automated: moved on from a visit's first page in under three seconds, and no map (page-visits.ts automatedBrowsers). */
+  /** Desktop browsers left out as automated: moved on from a visit's first page to another in under two seconds, and no map (page-visits.ts automatedBrowsers). */
   automated: number;
 }
 

@@ -83,12 +83,13 @@ export function groupVisits(rows: ViewRow[]): Visit[] {
   return visits;
 }
 
-// No one reads the page a visit began on and moves to another this fast; the crawler behind most "direct" visits takes 0–3 s.
-const TOO_FAST_MS = 3_000;
+// Seeing a page, choosing a link and loading the next takes a person longer; the crawler behind most "direct" visits takes 0–1 s.
+const TOO_FAST_MS = 2_000;
 
 /**
- * Browsers (`rows` as loadVisits orders them) that left the page a visit began on for another in under three seconds and
- * never used the map. Someone opening links in new tabs does it from a page they've been on a while, not one just opened.
+ * Desktop browsers (`rows` as loadVisits orders them) that left the page a visit began on for another page in under two
+ * seconds and never used the map. A phone's quick tap on a page's map or topic button can be that fast; someone opening
+ * links in new tabs does it from a page they've been on a while.
  */
 export function automatedBrowsers(rows: ViewRow[]): Set<string> {
   const found = new Set<string>();
@@ -96,7 +97,8 @@ export function automatedBrowsers(rows: ViewRow[]): Set<string> {
     const before = rows[i - 1];
     const next = rows[i + 1];
     const begins = before?.visitorId !== row.visitorId || row.at - before.at > VISIT_GAP_MS;
-    if (begins && !row.known && next?.visitorId === row.visitorId && next.path !== row.path && next.at - row.at < TOO_FAST_MS) found.add(row.visitorId);
+    const hop = next?.visitorId === row.visitorId && next.path !== row.path && row.path !== MAP_PATH && next.path !== MAP_PATH;
+    if (begins && hop && row.device === 'desktop' && !row.known && next.at - row.at < TOO_FAST_MS) found.add(row.visitorId);
   });
   return found;
 }

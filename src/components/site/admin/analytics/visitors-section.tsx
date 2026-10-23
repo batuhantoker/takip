@@ -40,7 +40,7 @@ export function VisitorsSection({ pages, visitors, range, hours }: {
           <>
             {p.journeys.automated > 0 && (
               <p className="text-[12px] text-ink-3">
-                {plural(p.journeys.automated, 'browser')} left out as automated: each moved on from the page it landed on within three seconds and never used the map.
+                {plural(p.journeys.automated, 'desktop browser')} left out as automated: each moved on from the page it landed on to another within two seconds and never used the map.
               </p>
             )}
             <VisitorsSummary j={p.journeys} hours={hours} hitWall={visitors.data?.totals.hitWall ?? 0} />

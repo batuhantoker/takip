@@ -9,9 +9,9 @@ const MIN = 60_000;
 const CHROME = 'Mozilla/5.0 (Macintosh) Chrome/141.0';
 const [ALPHA, BETA, GAMMA] = ['v-alpha-0000000001', 'v-beta-00000000002', 'v-gamma-0000000003'];
 
-const row = (visitorId: string, at: number, path: string, over: { referrer?: string; fromPath?: string | null; campaign?: string; locale?: string; known?: number } = {}) => ({
+const row = (visitorId: string, at: number, path: string, over: { referrer?: string; fromPath?: string | null; campaign?: string; locale?: string; known?: number; device?: string } = {}) => ({
   visitorId, at, path, locale: over.locale ?? 'en', referrer: over.referrer ?? '', fromPath: over.fromPath ?? null, campaign: over.campaign ?? null,
-  country: 'DE', region: null, city: 'Berlin', latitude: 52.52, longitude: 13.4, browser: 'Chrome', os: 'macOS', device: 'desktop',
+  country: 'DE', region: null, city: 'Berlin', latitude: 52.52, longitude: 13.4, browser: 'Chrome', os: 'macOS', device: over.device ?? 'desktop',
   known: over.known ?? 0, userId: null, email: null, referrerPath: null, mapSince: null, priorAt: null,
 });
 const shape = (v: Visit) => ({ origin: v.origin, steps: v.steps.map(s => s.path), views: v.views, next: v.next, returning: v.returning });
@@ -64,8 +64,8 @@ describe('grouping views into visits', () => {
 });
 
 describe('automated browsers', () => {
-  it('are those that leave the page a visit began on within seconds, and never use the map', () => {
-    const [DELTA, EPSILON] = ['v-delta-0000000004', 'v-epsilon-00000005'];
+  it('are desktops that leave the page a visit began on for another within seconds, and never use the map', () => {
+    const [DELTA, EPSILON, ZETA, ETA] = ['v-delta-0000000004', 'v-epsilon-00000005', 'v-zeta-00000000006', 'v-eta-000000000007'];
     const automated = automatedBrowsers([
       row(ALPHA, NOW, '/city/berlin'), row(ALPHA, NOW + 1_000, '/compare/berlin-vs-paris', { fromPath: '/city/berlin' }),
       // Read for a minute first.
@@ -76,6 +76,9 @@ describe('automated browsers', () => {
       row(DELTA, NOW, '/guides'), row(DELTA, NOW + MIN, '/guides/a'), row(DELTA, NOW + MIN + 500, '/guides/b'),
       // The same page again, as a language switch logs it.
       row(EPSILON, NOW, '/city/berlin'), row(EPSILON, NOW + 1_000, '/city/berlin', { locale: 'de', fromPath: '/city/berlin' }),
+      // A phone's quick tap on a topic, and a quick jump to the map.
+      row(ZETA, NOW, '/city/berlin', { device: 'mobile' }), row(ZETA, NOW + 1_000, '/city/berlin/weather', { device: 'mobile', fromPath: '/city/berlin' }),
+      row(ETA, NOW, '/city/berlin'), row(ETA, NOW + 1_000, '/', { fromPath: '/city/berlin' }),
     ]);
     expect([...automated]).toEqual([ALPHA]);
   });
