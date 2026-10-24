@@ -110,6 +110,10 @@ export default function Dashboard() {
   const [activeCamera, setActiveCamera] = useState<any>(null);
   const [chosenLayers, setChosenLayers] = useState(DEFAULT_LAYERS);
   const { activeLayers, setActiveLayers } = useLayerGate(chosenLayers, setChosenLayers);
+  // Dev-only handle: tools/shorts switches layers between shots.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') Object.assign(window, { __takipLayers: setActiveLayers });
+  }, [setActiveLayers]);
   const [theme, setTheme] = useTheme();
   const isMobile = useIsMobile();
 
@@ -141,6 +145,10 @@ export default function Dashboard() {
     return on ? 'layers' : cur === 'layers' ? null : cur;
   }), []);
   const [mobilePanel, setMobilePanel] = useState<MobilePanel | null>(null);
+  // Dev-only handle: tools/shorts closes the phone's panel sheet so a History or Space tour shows the map.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') Object.assign(window, { __takipPanel: setMobilePanel });
+  }, []);
   const [showDesktopSearch, setShowDesktopSearch] = useState(false);
 
   const splash = useSplash(mapReady);

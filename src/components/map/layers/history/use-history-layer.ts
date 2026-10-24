@@ -3,7 +3,7 @@
 import { type RefObject, useEffect, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import { activeLocale } from '@/lib/core/i18n/active';
-import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryFeature } from '@/lib/history/popup';
+import { HISTORY_FALLBACK_COLOR, HISTORY_FAMILIES, type HistoryDetail, type HistoryFeature } from '@/lib/history/popup';
 import { LABEL_SIZE, MAP_INK, labelPaint } from '@/lib/map/style/tokens';
 import type { ReplayClock } from '@/lib/map/replay/clock';
 import type { MapRef } from '@/components/map/types';
@@ -221,6 +221,14 @@ export function useHistoryLayer({ mapRef, mapReady, timeline, families, kinds, p
       if (!f) return;
       openHistoryPopup(map, popupRef, f.properties as HistoryFeature, (f.geometry as GeoJSON.Point).coordinates as [number, number]);
     };
+    // Dev-only handle: tools/shorts opens an event's card by id, as a tap would, though the event sits inside a cluster.
+    if (process.env.NODE_ENV === 'development') {
+      Object.assign(window, {
+        __takipOpenEvent: (id: number) => void fetch(`/api/replay/history/events/${id}`)
+          .then(res => (res.ok ? (res.json() as Promise<HistoryDetail>) : null))
+          .then(r => { if (r && typeof r.lon === 'number' && typeof r.lat === 'number') openHistoryPopup(map, popupRef, r, [r.lon, r.lat], r); }),
+      });
+    }
     const onCellClick = (e: maplibregl.MapLayerMouseEvent) => {
       const f = e.features?.[0];
       if (!f) return;

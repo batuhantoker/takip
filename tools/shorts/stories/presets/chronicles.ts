@@ -14,9 +14,20 @@ export type Stop = {
   title: string;
   /** The day isn't known (only the season or year): the chronicle then counts years, not days. */
   approx?: boolean;
+  /** The pin's label on the map, when the title isn't a place ("South Pole" for "Amundsen at the Pole"). */
+  place?: string;
+  /** Where the pin goes (lat, lon), when the camera frames somewhere else to show the context. */
+  pin?: [number, number];
 };
 
-export type Chronicle = { kicker: string; topic: string; overview: string; postTitle: string; stops: Stop[]; sources: string[]; hashtags: string[] };
+export type Chronicle = {
+  kicker: string; topic: string; overview: string; postTitle: string; stops: Stop[];
+  /** The stops a short tells, by id; the rest are kept for longer cuts. */
+  short?: string[];
+  /** A story of conquest whose words don't say war (Napoleon, the Mongols): its hook is a plain one (loop.ts isGrave). */
+  grave?: boolean;
+  sources: string[]; hashtags: string[];
+};
 
 const WIKI = 'Wikipedia (CC BY-SA 4.0)';
 const CLIO = 'World borders: Cliopatria, Seshat (CC BY 4.0)';
@@ -28,6 +39,7 @@ export const CHRONICLES: Record<string, Chronicle> = {
     topic: 'how the United States went from neutrality to fighting in World War II',
     overview: 'United States in World War II',
     postTitle: 'How America was drawn into World War II',
+    short: ['pearl-harbor', 'normandy', 'hiroshima'],
     stops: [
       { id: 'poland', date: '1939-09-01', at: [51, 16, 3.4], layer: 'ww2-europe', wiki: 'Invasion of Poland', title: 'War in Europe' },
       { id: 'lend-lease', date: '1941-03-11', at: [44, -38, 1.7], layer: W, wiki: 'Lend-Lease', title: 'Lend-Lease' },
@@ -44,6 +56,7 @@ export const CHRONICLES: Record<string, Chronicle> = {
     topic: 'how one shot in Sarajevo became a world war, and how it ended',
     overview: 'World War I',
     postTitle: 'World War I in under a minute',
+    short: ['sarajevo', 'verdun', 'armistice'],
     stops: [
       { id: 'sarajevo', date: '1914-06-28', at: [43.86, 18.41, 5.5], layer: W, wiki: 'Assassination of Archduke Franz Ferdinand', title: 'Sarajevo' },
       { id: 'marne', date: '1914-09-06', at: [49, 3.5, 5.2], layer: W, wiki: 'First Battle of the Marne', title: 'The Marne' },
@@ -60,6 +73,7 @@ export const CHRONICLES: Record<string, Chronicle> = {
     topic: 'the Turkish War of Independence, from the landing at Samsun to the Republic',
     overview: 'Turkish War of Independence',
     postTitle: 'From Samsun to the Republic: the Turkish War of Independence',
+    short: ['samsun', 'sakarya', 'republic'],
     stops: [
       { id: 'mudros', date: '1918-10-30', at: [39.87, 25.27, 5.4], layer: W, wiki: 'Armistice of Mudros', title: 'Mudros' },
       { id: 'samsun', date: '1919-05-19', at: [41.29, 36.33, 5.6], layer: W, wiki: 'Turkish War of Independence', title: 'Samsun' },
@@ -73,9 +87,11 @@ export const CHRONICLES: Record<string, Chronicle> = {
   },
   'ottoman-rise': {
     kicker: 'Ottoman Empire',
+    grave: true,
     topic: 'how a small principality in Anatolia became an empire on three continents',
     overview: 'Ottoman Empire',
     postTitle: 'The rise of the Ottoman Empire',
+    short: ['kosovo', 'constantinople', 'vienna'],
     stops: [
       { id: 'bursa', date: '1326-04-06', at: [40.18, 29.06, 5.4], layer: W, wiki: 'Siege of Bursa', title: 'Bursa' },
       { id: 'kosovo', date: '1389-06-15', at: [42.7, 21.1, 5.2], layer: W, wiki: 'Battle of Kosovo', title: 'Kosovo' },
@@ -92,6 +108,7 @@ export const CHRONICLES: Record<string, Chronicle> = {
     topic: 'the Cold War between the United States and the Soviet Union, from Berlin to Berlin',
     overview: 'Cold War',
     postTitle: 'The Cold War in under a minute',
+    short: ['cuba', 'wall', 'ussr'],
     stops: [
       { id: 'blockade', date: '1948-06-24', at: [52.52, 13.4, 5.4], layer: W, wiki: 'Berlin Blockade', title: 'Berlin Blockade' },
       { id: 'korea', date: '1950-06-25', at: [38, 127.5, 5], layer: W, wiki: 'Korean War', title: 'Korea' },
@@ -108,6 +125,7 @@ export const CHRONICLES: Record<string, Chronicle> = {
     topic: 'the voyages that joined the world\'s oceans, and the empires that followed',
     overview: 'Age of Discovery',
     postTitle: 'The Age of Discovery in under a minute',
+    short: ['columbus', 'da-gama', 'magellan'],
     stops: [
       { id: 'columbus', date: '1492-10-12', at: [24, -75, 4.2], layer: W, wiki: 'Voyages of Christopher Columbus', title: 'Columbus' },
       { id: 'da-gama', date: '1498-05-20', at: [11.25, 75.78, 4.6], layer: W, wiki: 'Vasco da Gama', title: 'Calicut' },
@@ -121,9 +139,11 @@ export const CHRONICLES: Record<string, Chronicle> = {
   },
   rome: {
     kicker: 'Rome',
+    grave: true,
     topic: 'Rome from the destruction of Carthage to the end of the Western Empire',
     overview: 'Ancient Rome',
     postTitle: 'Rome, from Carthage to 476, in under a minute',
+    short: ['carthage', 'rubicon', 'fall'],
     stops: [
       { id: 'carthage', date: '-145-04-01', at: [36.85, 10.32, 5.4], layer: W, wiki: 'Siege of Carthage (Third Punic War)', title: 'Carthage', approx: true },
       { id: 'rubicon', date: '-48-01-10', at: [44.1, 12.4, 5.4], layer: W, wiki: "Caesar's civil war", title: 'The Rubicon' },
@@ -137,9 +157,11 @@ export const CHRONICLES: Record<string, Chronicle> = {
   },
   mongols: {
     kicker: 'Mongol Empire',
+    grave: true,
     topic: 'how the Mongols built the largest land empire in history',
     overview: 'Mongol Empire',
     postTitle: 'The Mongol conquests in under a minute',
+    short: ['khan', 'baghdad', 'yamen'],
     stops: [
       { id: 'khan', date: '1206-06-01', at: [47.9, 106.9, 4], layer: W, wiki: 'Genghis Khan', title: 'Genghis Khan', approx: true },
       { id: 'zhongdu', date: '1215-06-01', at: [39.9, 116.4, 5], layer: W, wiki: 'Battle of Zhongdu', title: 'Zhongdu', approx: true },
@@ -150,5 +172,274 @@ export const CHRONICLES: Record<string, Chronicle> = {
     ],
     sources: [WIKI, CLIO, 'TAKIP'],
     hashtags: ['#TAKIP', '#MongolEmpire', '#GenghisKhan', '#History', '#HistoryMaps'],
+  },
+  'polar-race': {
+    kicker: 'Race to the Pole',
+    topic: 'the race to the South Pole between Roald Amundsen and Robert Falcon Scott',
+    overview: "Amundsen's South Pole expedition",
+    postTitle: 'The race to the South Pole',
+    short: ['terra-nova', 'amundsen', 'scott'],
+    stops: [
+      // Antarctica has no state to colour, so the Pole is framed from the Ross Ice Shelf, with the coast in view; the globe
+      // draws nothing past ±85°, so its pin sits at that edge, labelled
+      { id: 'terra-nova', date: '1910-06-15', at: [51.46, -3.17, 5.2], layer: W, wiki: 'Terra Nova Expedition', title: 'Scott sets out', place: 'Cardiff' },
+      { id: 'framheim', date: '1911-01-14', at: [-76, -168, 2.6], layer: W, wiki: 'Framheim', title: 'The Bay of Whales', place: 'Framheim', pin: [-78.5, -164] },
+      { id: 'amundsen', date: '1911-12-14', at: [-80, -172, 2.1], layer: W, wiki: "Amundsen's South Pole expedition", title: 'Amundsen at the Pole', place: 'South Pole', pin: [-85, 0] },
+      { id: 'scott', date: '1912-01-17', at: [-80, -172, 2.1], layer: W, wiki: 'Terra Nova Expedition', title: 'Scott at the Pole', place: 'South Pole', pin: [-85, 0] },
+      { id: 'hobart', date: '1912-03-07', at: [-42.88, 147.33, 5], layer: W, wiki: "Amundsen's South Pole expedition", title: 'The news breaks', place: 'Hobart' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#SouthPole', '#Antarctica', '#Exploration', '#History'],
+  },
+  'space-race': {
+    kicker: 'The space race',
+    topic: 'the space race, from Sputnik to the first landing on the Moon',
+    overview: 'Space Race',
+    postTitle: 'The space race, from Sputnik to the Moon',
+    short: ['sputnik', 'gagarin', 'apollo-11'],
+    stops: [
+      { id: 'sputnik', date: '1957-10-04', at: [45.92, 63.34, 4.6], layer: W, wiki: 'Sputnik 1', title: 'Sputnik' },
+      { id: 'gagarin', date: '1961-04-12', at: [45.92, 63.34, 4.6], layer: W, wiki: 'Vostok 1', title: 'Gagarin' },
+      { id: 'glenn', date: '1962-02-20', at: [28.47, -80.56, 5], layer: W, wiki: 'Mercury-Atlas 6', title: 'Glenn orbits' },
+      { id: 'leonov', date: '1965-03-18', at: [45.92, 63.34, 4.6], layer: W, wiki: 'Voskhod 2', title: 'The first spacewalk' },
+      { id: 'apollo-8', date: '1968-12-21', at: [28.57, -80.65, 5], layer: W, wiki: 'Apollo 8', title: 'Around the Moon' },
+      { id: 'apollo-11', date: '1969-07-16', at: [28.57, -80.65, 5], layer: W, wiki: 'Apollo 11', title: 'To the Moon' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#SpaceRace', '#Apollo', '#Space', '#History'],
+  },
+  napoleon: {
+    kicker: 'Napoleon',
+    grave: true,
+    topic: "Napoleon's rise and fall, from Toulon to Saint Helena",
+    overview: 'Napoleon',
+    postTitle: 'Napoleon, from Toulon to Saint Helena',
+    short: ['austerlitz', 'borodino', 'waterloo'],
+    stops: [
+      { id: 'toulon', date: '1793-12-19', at: [43.12, 5.93, 5.5], layer: W, wiki: 'Siege of Toulon', title: 'Toulon' },
+      { id: 'coronation', date: '1804-12-02', at: [48.85, 2.35, 5.5], layer: W, wiki: 'Coronation of Napoleon', title: 'Emperor', place: 'Paris' },
+      { id: 'austerlitz', date: '1805-12-02', at: [49.13, 16.76, 5.2], layer: W, wiki: 'Battle of Austerlitz', title: 'Austerlitz' },
+      { id: 'borodino', date: '1812-09-07', at: [55.52, 35.82, 4.8], layer: W, wiki: 'Battle of Borodino', title: 'Borodino' },
+      { id: 'abdication', date: '1814-04-11', at: [48.4, 2.7, 5.5], layer: W, wiki: 'Treaty of Fontainebleau (1814)', title: 'Abdication', place: 'Fontainebleau' },
+      { id: 'waterloo', date: '1815-06-18', at: [50.68, 4.41, 5.5], layer: W, wiki: 'Battle of Waterloo', title: 'Waterloo' },
+      { id: 'st-helena', date: '1821-05-05', at: [-15.95, -5.7, 4], layer: W, wiki: 'Napoleon', title: 'Saint Helena' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#Napoleon', '#History', '#HistoryMaps', '#Europe'],
+  },
+  'french-revolution': {
+    kicker: 'French Revolution',
+    topic: 'the French Revolution, from the Estates-General to Napoleon taking power',
+    overview: 'French Revolution',
+    postTitle: 'The French Revolution in under a minute',
+    short: ['bastille', 'execution', 'brumaire'],
+    stops: [
+      { id: 'estates', date: '1789-05-05', at: [48.8, 2.12, 6], layer: W, wiki: 'Estates General of 1789', title: 'Estates-General', place: 'Versailles' },
+      { id: 'bastille', date: '1789-07-14', at: [48.85, 2.37, 6.4], layer: W, wiki: 'Storming of the Bastille', title: 'The Bastille' },
+      { id: 'rights', date: '1789-08-26', at: [48.86, 2.34, 5.6], layer: W, wiki: 'Declaration of the Rights of Man and of the Citizen', title: 'Rights of Man', place: 'Paris' },
+      { id: 'execution', date: '1793-01-21', at: [48.87, 2.32, 6.4], layer: W, wiki: 'Execution of Louis XVI', title: 'The king executed', place: 'Paris' },
+      { id: 'thermidor', date: '1794-07-27', at: [48.86, 2.35, 5.8], layer: W, wiki: 'Thermidorian Reaction', title: 'Robespierre falls', place: 'Paris' },
+      { id: 'brumaire', date: '1799-11-09', at: [48.85, 2.22, 6], layer: W, wiki: 'Coup of 18 Brumaire', title: 'Napoleon takes power', place: 'Saint-Cloud' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#FrenchRevolution', '#History', '#France', '#HistoryMaps'],
+  },
+  // the days of most of these are unknown, so the counter counts years
+  alexander: {
+    kicker: 'Alexander the Great',
+    grave: true,
+    topic: "Alexander the Great's march from Greece to India",
+    overview: 'Alexander the Great',
+    postTitle: 'Alexander the Great, from Greece to India',
+    short: ['issus', 'gaugamela', 'babylon'],
+    stops: [
+      { id: 'granicus', date: '-333-05-15', at: [40.25, 27.25, 5], layer: W, wiki: 'Battle of the Granicus', title: 'Granicus', approx: true },
+      { id: 'issus', date: '-332-11-05', at: [36.84, 36.2, 5], layer: W, wiki: 'Battle of Issus', title: 'Issus', approx: true },
+      { id: 'tyre', date: '-331-07-30', at: [33.27, 35.2, 5.4], layer: W, wiki: 'Siege of Tyre (332 BC)', title: 'Tyre', approx: true },
+      { id: 'alexandria', date: '-330-04-07', at: [31.2, 29.92, 5.2], layer: W, wiki: 'Alexandria', title: 'Alexandria', approx: true },
+      { id: 'gaugamela', date: '-330-10-01', at: [36.57, 43.44, 5], layer: W, wiki: 'Battle of Gaugamela', title: 'Gaugamela' },
+      { id: 'hydaspes', date: '-325-05-15', at: [32.83, 73.7, 5], layer: W, wiki: 'Battle of the Hydaspes', title: 'Hydaspes', approx: true, place: 'Hydaspes River' },
+      { id: 'babylon', date: '-322-06-11', at: [32.54, 44.42, 5], layer: W, wiki: 'Death of Alexander the Great', title: 'Babylon' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#AlexanderTheGreat', '#AncientHistory', '#History', '#HistoryMaps'],
+  },
+  vikings: {
+    kicker: 'Vikings',
+    grave: true,
+    topic: 'the Viking Age, from the raid on Lindisfarne to Stamford Bridge',
+    overview: 'Viking Age',
+    postTitle: 'The Viking Age, from Lindisfarne to America',
+    short: ['lindisfarne', 'vinland', 'stamford'],
+    stops: [
+      { id: 'lindisfarne', date: '793-06-08', at: [55.67, -1.8, 5.4], layer: W, wiki: 'Lindisfarne', title: 'Lindisfarne' },
+      { id: 'paris', date: '845-03-28', at: [48.86, 2.35, 5.4], layer: W, wiki: 'Siege of Paris (845)', title: 'Paris' },
+      { id: 'iceland', date: '874-06-01', at: [64.5, -19, 4.4], layer: W, wiki: 'Settlement of Iceland', title: 'Iceland', approx: true, pin: [64.15, -21.94], place: 'Reykjavík' },
+      { id: 'kyiv', date: '882-06-01', at: [50.45, 30.52, 4.6], layer: W, wiki: "Kievan Rus'", title: 'Kyiv', approx: true },
+      { id: 'normandy', date: '911-06-01', at: [49.44, 1.1, 5], layer: W, wiki: 'Treaty of Saint-Clair-sur-Epte', title: 'Normandy', approx: true, place: 'Rouen' },
+      { id: 'greenland', date: '985-06-01', at: [62, -46, 3.8], layer: W, wiki: 'Erik the Red', title: 'Greenland', approx: true, pin: [61.15, -45.52], place: 'Brattahlíð' },
+      { id: 'vinland', date: '1000-06-01', at: [51.6, -55.5, 4.4], layer: W, wiki: "L'Anse aux Meadows", title: 'Vinland', approx: true, place: "L'Anse aux Meadows" },
+      { id: 'stamford', date: '1066-09-25', at: [53.99, -0.91, 5.4], layer: W, wiki: 'Battle of Stamford Bridge', title: 'Stamford Bridge' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#Vikings', '#History', '#HistoryMaps', '#Exploration'],
+  },
+  crusades: {
+    kicker: 'The Crusades',
+    topic: 'the Crusades, from the call at Clermont to the fall of Acre',
+    overview: 'Crusades',
+    postTitle: 'Two hundred years of Crusades',
+    short: ['jerusalem', 'constantinople', 'fall-of-acre'],
+    stops: [
+      { id: 'clermont', date: '1095-11-27', at: [45.78, 3.09, 5], layer: W, wiki: 'Council of Clermont', title: 'Clermont' },
+      { id: 'jerusalem', date: '1099-07-15', at: [31.78, 35.23, 5.4], layer: W, wiki: 'Siege of Jerusalem (1099)', title: 'Jerusalem' },
+      { id: 'edessa', date: '1144-12-24', at: [37.16, 38.79, 5], layer: W, wiki: 'Siege of Edessa (1144)', title: 'Edessa' },
+      { id: 'hattin', date: '1187-07-04', at: [32.8, 35.45, 5.4], layer: W, wiki: 'Battle of Hattin', title: 'Hattin' },
+      { id: 'acre', date: '1191-07-12', at: [32.92, 35.07, 5.4], layer: W, wiki: 'Siege of Acre (1189–1191)', title: 'Acre' },
+      { id: 'constantinople', date: '1204-04-13', at: [41.01, 28.98, 5.4], layer: W, wiki: 'Sack of Constantinople', title: 'Constantinople' },
+      { id: 'fall-of-acre', date: '1291-05-18', at: [32.92, 35.07, 5.4], layer: W, wiki: 'Siege of Acre (1291)', title: 'Acre falls' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#Crusades', '#MedievalHistory', '#History', '#HistoryMaps'],
+  },
+  'american-revolution': {
+    kicker: 'American Revolution',
+    topic: 'the American Revolution, from Lexington to the Treaty of Paris',
+    overview: 'American Revolutionary War',
+    postTitle: 'The American Revolution in under a minute',
+    short: ['lexington', 'declaration', 'yorktown'],
+    stops: [
+      { id: 'lexington', date: '1775-04-19', at: [42.45, -71.23, 6], layer: W, wiki: 'Battles of Lexington and Concord', title: 'Lexington and Concord' },
+      { id: 'bunker-hill', date: '1775-06-17', at: [42.38, -71.06, 6.4], layer: W, wiki: 'Battle of Bunker Hill', title: 'Bunker Hill', place: 'Boston' },
+      { id: 'declaration', date: '1776-07-04', at: [39.95, -75.15, 6], layer: W, wiki: 'United States Declaration of Independence', title: 'Independence', place: 'Philadelphia' },
+      { id: 'saratoga', date: '1777-10-17', at: [43, -73.64, 6], layer: W, wiki: 'Battles of Saratoga', title: 'Saratoga' },
+      { id: 'yorktown', date: '1781-10-19', at: [37.24, -76.51, 6], layer: W, wiki: 'Siege of Yorktown', title: 'Yorktown' },
+      { id: 'paris', date: '1783-09-03', at: [48.86, 2.35, 4.6], layer: W, wiki: 'Treaty of Paris (1783)', title: 'Treaty of Paris', place: 'Paris' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#AmericanRevolution', '#History', '#USHistory', '#HistoryMaps'],
+  },
+  'ww2-europe': {
+    kicker: 'World War II',
+    topic: 'World War II in Europe, from the invasion of Poland to the German surrender',
+    overview: 'European theatre of World War II',
+    postTitle: 'World War II in Europe, start to end',
+    short: ['poland', 'stalingrad', 'normandy'],
+    stops: [
+      { id: 'poland', date: '1939-09-01', at: [52, 19, 4.4], layer: 'ww2-europe', wiki: 'Invasion of Poland', title: 'Poland' },
+      { id: 'france', date: '1940-06-22', at: [49.43, 2.91, 4.8], layer: 'ww2-europe', wiki: 'Armistice of 22 June 1940', title: 'France falls', place: 'Compiègne' },
+      { id: 'britain', date: '1940-07-10', at: [51.5, -0.12, 4.6], layer: 'ww2-europe', wiki: 'Battle of Britain', title: 'Battle of Britain', place: 'London' },
+      { id: 'barbarossa', date: '1941-06-22', at: [53, 30, 3.8], layer: 'ww2-europe', wiki: 'Operation Barbarossa', title: 'Barbarossa' },
+      { id: 'stalingrad', date: '1943-02-02', at: [48.7, 44.5, 4.6], layer: 'ww2-europe', wiki: 'Battle of Stalingrad', title: 'Stalingrad' },
+      { id: 'normandy', date: '1944-06-06', at: [49.35, -0.6, 5.2], layer: 'ww2-europe', wiki: 'Normandy landings', title: 'D-Day' },
+      { id: 'surrender', date: '1945-05-08', at: [52.49, 13.53, 5], layer: 'ww2-europe', wiki: 'German Instrument of Surrender', title: 'Surrender', place: 'Berlin' },
+    ],
+    sources: [WIKI, 'WWII borders: Stanford Spatial History Lab', CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#WorldWarII', '#WW2', '#History', '#HistoryMaps'],
+  },
+  'ww2-pacific': {
+    kicker: 'World War II',
+    topic: 'the Pacific War, from Pearl Harbor to the Japanese surrender',
+    overview: 'Pacific War',
+    postTitle: 'World War II in the Pacific, start to end',
+    short: ['pearl-harbor', 'midway', 'hiroshima'],
+    stops: [
+      { id: 'pearl-harbor', date: '1941-12-07', at: [21.36, -157.95, 5], layer: W, wiki: 'Attack on Pearl Harbor', title: 'Pearl Harbor' },
+      { id: 'singapore', date: '1942-02-15', at: [1.35, 103.82, 5], layer: W, wiki: 'Fall of Singapore', title: 'Singapore falls' },
+      { id: 'midway', date: '1942-06-04', at: [28.2, -177.37, 4.4], layer: W, wiki: 'Battle of Midway', title: 'Midway', place: 'Midway Atoll' },
+      { id: 'guadalcanal', date: '1942-08-07', at: [-9.5, 160, 5], layer: W, wiki: 'Guadalcanal campaign', title: 'Guadalcanal' },
+      { id: 'leyte', date: '1944-10-23', at: [11, 125.5, 4.6], layer: W, wiki: 'Battle of Leyte Gulf', title: 'Leyte Gulf', pin: [10.8, 125.4] },
+      { id: 'iwo-jima', date: '1945-02-19', at: [24.78, 141.32, 6], layer: W, wiki: 'Battle of Iwo Jima', title: 'Iwo Jima' },
+      { id: 'okinawa', date: '1945-04-01', at: [26.5, 127.9, 5.4], layer: W, wiki: 'Battle of Okinawa', title: 'Okinawa' },
+      { id: 'hiroshima', date: '1945-08-06', at: [34.39, 132.46, 5], layer: W, wiki: 'Atomic bombings of Hiroshima and Nagasaki', title: 'Hiroshima' },
+      { id: 'surrender', date: '1945-09-02', at: [35.35, 139.75, 5.4], layer: W, wiki: 'Surrender of Japan', title: 'Surrender', place: 'Tokyo Bay' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#WorldWarII', '#WW2', '#PacificWar', '#History'],
+  },
+  magellan: {
+    kicker: 'Around the world',
+    topic: "the Magellan expedition, the first voyage around the world",
+    overview: 'Magellan expedition',
+    postTitle: 'The first voyage around the world',
+    short: ['strait', 'mactan', 'home'],
+    stops: [
+      { id: 'sail', date: '1519-09-20', at: [36.78, -6.35, 5], layer: W, wiki: 'Magellan expedition', title: 'Setting sail', place: 'Sanlúcar de Barrameda' },
+      { id: 'strait', date: '1520-11-28', at: [-53.5, -70.9, 4.4], layer: W, wiki: 'Strait of Magellan', title: 'The strait' },
+      { id: 'guam', date: '1521-03-06', at: [13.44, 144.79, 5], layer: W, wiki: 'Magellan expedition', title: 'Across the Pacific', place: 'Guam' },
+      { id: 'mactan', date: '1521-04-27', at: [10.31, 124.02, 5.4], layer: W, wiki: 'Battle of Mactan', title: 'Mactan' },
+      { id: 'home', date: '1522-09-06', at: [36.78, -6.35, 5], layer: W, wiki: 'Juan Sebastián Elcano', title: 'Home again', place: 'Sanlúcar de Barrameda' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#Magellan', '#Exploration', '#History', '#HistoryMaps'],
+  },
+  cook: {
+    kicker: 'Captain Cook',
+    topic: "James Cook's first voyage, to Tahiti, New Zealand and Australia",
+    overview: 'First voyage of James Cook',
+    postTitle: "Captain Cook's first voyage",
+    short: ['tahiti', 'botany-bay', 'home'],
+    stops: [
+      { id: 'plymouth', date: '1768-08-26', at: [50.37, -4.14, 5], layer: W, wiki: 'First voyage of James Cook', title: 'Endeavour sails', place: 'Plymouth' },
+      { id: 'tahiti', date: '1769-06-03', at: [-17.65, -149.43, 5], layer: W, wiki: '1769 transit of Venus', title: 'Tahiti' },
+      { id: 'new-zealand', date: '1769-10-08', at: [-38.67, 178.02, 5], layer: W, wiki: 'First voyage of James Cook', title: 'New Zealand', place: 'Gisborne' },
+      { id: 'botany-bay', date: '1770-04-29', at: [-34, 151.2, 5.4], layer: W, wiki: 'Botany Bay', title: 'Botany Bay' },
+      { id: 'reef', date: '1770-06-11', at: [-15.47, 145.25, 5], layer: W, wiki: 'HMS Endeavour', title: 'Aground on the reef', place: 'Endeavour Reef' },
+      { id: 'home', date: '1771-07-12', at: [51.2, 1.4, 5], layer: W, wiki: 'First voyage of James Cook', title: 'Home', place: 'The Downs' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#CaptainCook', '#Exploration', '#History', '#Pacific'],
+  },
+  beagle: {
+    kicker: "Darwin's voyage",
+    topic: "Charles Darwin's voyage around the world on HMS Beagle",
+    overview: 'Second voyage of HMS Beagle',
+    postTitle: "Darwin's voyage on the Beagle",
+    short: ['bahia', 'galapagos', 'home'],
+    stops: [
+      { id: 'plymouth', date: '1831-12-27', at: [50.37, -4.14, 5], layer: W, wiki: 'Second voyage of HMS Beagle', title: 'Beagle sails', place: 'Plymouth' },
+      { id: 'bahia', date: '1832-02-28', at: [-12.97, -38.5, 5], layer: W, wiki: 'Second voyage of HMS Beagle', title: 'Brazil', place: 'Salvador' },
+      { id: 'tierra', date: '1832-12-17', at: [-54.8, -68.3, 4.6], layer: W, wiki: 'Tierra del Fuego', title: 'Tierra del Fuego' },
+      { id: 'galapagos', date: '1835-09-15', at: [-0.9, -89.6, 5], layer: W, wiki: 'Galápagos Islands', title: 'Galápagos' },
+      { id: 'sydney', date: '1836-01-12', at: [-33.87, 151.21, 5], layer: W, wiki: 'Second voyage of HMS Beagle', title: 'Australia', place: 'Sydney' },
+      { id: 'home', date: '1836-10-02', at: [50.15, -5.07, 5], layer: W, wiki: 'Charles Darwin', title: 'Home', place: 'Falmouth' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#Darwin', '#Evolution', '#Exploration', '#History'],
+  },
+  'lewis-and-clark': {
+    kicker: 'Lewis and Clark',
+    topic: 'the Lewis and Clark expedition across North America to the Pacific',
+    overview: 'Lewis and Clark Expedition',
+    postTitle: 'Lewis and Clark, coast to coast',
+    short: ['set-out', 'divide', 'pacific'],
+    stops: [
+      { id: 'set-out', date: '1804-05-14', at: [38.8, -90.1, 5.4], layer: W, wiki: 'Lewis and Clark Expedition', title: 'Setting out', place: 'Camp Dubois' },
+      { id: 'mandan', date: '1804-11-02', at: [47.3, -101.4, 5], layer: W, wiki: 'Fort Mandan', title: 'Fort Mandan' },
+      { id: 'great-falls', date: '1805-06-13', at: [47.5, -111.3, 5], layer: W, wiki: 'Great Falls of the Missouri River', title: 'Great Falls' },
+      { id: 'divide', date: '1805-08-12', at: [44.97, -113.43, 5.4], layer: W, wiki: 'Lemhi Pass', title: 'The Divide' },
+      { id: 'pacific', date: '1805-11-15', at: [46.25, -123.9, 5.4], layer: W, wiki: 'Fort Clatsop', title: 'The Pacific' },
+      { id: 'st-louis', date: '1806-09-23', at: [38.63, -90.2, 5.4], layer: W, wiki: 'Lewis and Clark Expedition', title: 'Back in St. Louis', place: 'St. Louis' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#LewisAndClark', '#USHistory', '#Exploration', '#History'],
+  },
+  // dates in the Gregorian calendar, as English Wikipedia leads give them
+  'russian-revolution': {
+    kicker: 'Russian Revolution',
+    topic: 'the Russian Revolution, from the fall of the Tsar to the founding of the Soviet Union',
+    overview: 'Russian Revolution',
+    postTitle: 'The Russian Revolution in under a minute',
+    short: ['february', 'october', 'ussr'],
+    stops: [
+      { id: 'february', date: '1917-03-08', at: [59.94, 30.31, 5.4], layer: W, wiki: 'February Revolution', title: 'February Revolution', place: 'Petrograd' },
+      { id: 'abdication', date: '1917-03-15', at: [57.8, 28.33, 5.4], layer: W, wiki: 'Abdication of Nicholas II', title: 'The Tsar abdicates', place: 'Pskov' },
+      { id: 'october', date: '1917-11-07', at: [59.94, 30.31, 6], layer: W, wiki: 'October Revolution', title: 'October Revolution', place: 'Petrograd' },
+      { id: 'brest', date: '1918-03-03', at: [52.08, 23.65, 5.4], layer: W, wiki: 'Treaty of Brest-Litovsk', title: 'Brest-Litovsk' },
+      { id: 'romanovs', date: '1918-07-17', at: [56.84, 60.6, 5.4], layer: W, wiki: 'Murder of the Romanov family', title: 'Yekaterinburg' },
+      { id: 'ussr', date: '1922-12-30', at: [55.75, 37.62, 5], layer: W, wiki: 'Treaty on the Creation of the USSR', title: 'The Soviet Union', place: 'Moscow' },
+    ],
+    sources: [WIKI, CLIO, 'TAKIP'],
+    hashtags: ['#TAKIP', '#RussianRevolution', '#History', '#HistoryMaps', '#Russia'],
   },
 };

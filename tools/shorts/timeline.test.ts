@@ -71,4 +71,38 @@ describe('layout', () => {
     expect(f.caption?.map(w => w.state)).toEqual([0, 1, ...Array(f.caption!.length - 2).fill(2)]);
     expect(frameAt(tl, script, tl.totalMs - 1).end?.explore).toBe('Explore it live');
   });
+
+  it('captions the last line over the picture, then shows the end card', () => {
+    const outro = tl.beats[tl.beats.length - 1];
+    const said = frameAt(tl, script, (outro.chunks[0].start + outro.chunks[0].end) / 2);
+    expect(said.card).toBeNull();
+    expect(said.caption).toBeDefined();
+    expect(outro.cardFrom).toBeGreaterThan(outro.voiceAt);
+    const card = frameAt(tl, script, outro.cardFrom! + 1);
+    expect(card).toMatchObject({ card: 'end', counter: false });
+    expect(card.caption).toBeUndefined();
+  });
+
+  it('says whether the cut loops', () => {
+    expect(tl.loop).toBe(true);
+    expect(layout(beats, script, voices, undefined, false).loop).toBe(false);
+  });
+  it('holds a title back until titleAt, part way through its beat', () => {
+    const late = layout(beats.map(b => (b.id === 'a' ? { ...b, titleAt: { p: 0.5 } } : b)), script, voices);
+    const b = late.beats[1];
+    expect(frameAt(late, script, b.start + 10).title).toBeUndefined();
+    expect(frameAt(late, script, b.titleFrom! + 10).title).toBe('Pangaea');
+    expect(b.titleFrom! - b.start).toBeCloseTo((b.end - b.start) / 2, -2);
+    const landed = layout(beats.map(b => (b.id === 'a' ? { ...b, titleAt: { ms: 2600 } } : b)), script, voices).beats[1];
+    expect(landed.titleFrom! - landed.start).toBeCloseTo(2600, -2);
+  });
+
+  it('holds the counter back with the title when asked, and fades it in', () => {
+    const held = layout(beats.map(b => (b.id === 'a' ? { ...b, titleAt: { ms: 2600 }, counterWithTitle: true } : b)), script, voices);
+    const b = held.beats[1];
+    expect(frameAt(held, script, b.start + 10).counter).toBe(false);
+    expect(frameAt(held, script, b.counterFrom! + 1).counterIn).toBeLessThan(0.1);
+    expect(frameAt(held, script, b.counterFrom! + 2000).counterIn).toBe(1);
+    expect(frameAt(tl, script, tl.beats[1].start + 10)).toMatchObject({ counter: true, counterIn: 1 });
+  });
 });

@@ -1,7 +1,7 @@
 /** Films one language's cut: opens the app, freezes its clocks, and for every frame steps time, waits for the data, and hands a JPEG to ffmpeg. */
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { WORDMARK } from '../../../src/components/shell/brand/geometry.generated';
 import { rampFor } from '../../../src/lib/history/series';
 import type { Scene, Script } from '../scene';
@@ -23,6 +23,15 @@ const COVER_MS = 1200;
 const TAP_MS = 500;
 /** How long a tap's `expect` may take in real time: a panel's first open compiles its code on the dev server. */
 const TAP_WAIT_MS = 20_000;
+/** A page that reloads mid-film (a dev-server full reload) has lost the scene, so the film starts over, this many times at most. */
+const ATTEMPTS = 3;
+const RELOAD_PAUSE_MS = 10_000;
+/** How far through its beat a fact chip appears. */
+const CHIP_AT = 0.4;
+
+class PageReloaded extends Error {
+  constructor() { super('the page reloaded mid-film'); }
+}
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -58,7 +67,25 @@ export interface FilmJob {
   limitMs?: number;
 }
 
-export async function film({ base, scene, script, timeline, audio, out, cover, limitMs }: FilmJob) {
+/** Films into a side file and puts it at `out` only once it is whole: a crash never leaves a short video that passes for the cut. */
+export async function film(job: FilmJob) {
+  const part = job.out.replace(/\.mp4$/, '.part.mp4');
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const cover = await filmOnce(job, part);
+      renameSync(part, job.out);
+      if (cover) writeFileSync(job.cover, cover);
+      return;
+    } catch (err) {
+      rmSync(part, { force: true });
+      if (!(err instanceof PageReloaded) || attempt >= ATTEMPTS) throw err;
+      console.warn(`\n  ! ${err.message}; starting over (${attempt + 1} of ${ATTEMPTS})`);
+      await sleep(RELOAD_PAUSE_MS);
+    }
+  }
+}
+
+async function filmOnce({ base, scene, script, timeline, audio, limitMs }: FilmJob, out: string): Promise<Buffer | null> {
   const frames = Math.min(timeline.frames, limitMs ? Math.round(limitMs / FRAME_MS) : Infinity);
   const when = quietWhen(scene.waitOn);
   const page = await Page.open({ viewport: VIEWPORT, locale: script.lang });
@@ -67,6 +94,9 @@ export async function film({ base, scene, script, timeline, audio, out, cover, l
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out], { stdio: ['pipe', 'inherit', 'inherit'] });
   const done = once(ffmpeg, 'close');
+  let cover: Buffer | null = null;
+  let failed = false;
+  let overlaid = false;
   try {
     await page.goto(base + scene.path);
     const ready = scene.ready ? `${READY} && (${scene.ready})` : READY;
@@ -75,6 +105,8 @@ export async function film({ base, scene, script, timeline, audio, out, cover, l
     await sleep(2500);
     await page.waitFor(ready, 20_000);
     if (scene.setup) await page.run(scene.setup);
+    // where the short begins, for the outro to come back to (loop.ts)
+    await page.run(`(() => { const m = __takipMap; window.__loopStart = { center: m.getCenter(), zoom: m.getZoom(), pitch: m.getPitch(), bearing: m.getBearing() }; })()`);
     await page.evaluate(OVERLAY);
     const config = {
       lang: script.lang, rtl: script.lang === 'ar', unspaced: ['zh', 'ja'].includes(script.lang), mapOnly: scene.chrome === 'map-only',
@@ -83,6 +115,7 @@ export async function film({ base, scene, script, timeline, audio, out, cover, l
       counter: scene.counter && script.unit ? { unit: script.unit, digits: scene.counter.digits ?? 0, kind: scene.counter.kind ?? 'number', bce: script.ui.bce } : null,
     };
     await page.run(`__shortsOverlay.init(${JSON.stringify(config)})`);
+    overlaid = true;
     await page.run('__shortsClock.freeze()');
     for (let t = 0; t < PREROLL_MS; t += FRAME_MS) await page.run(`__shortsClock.advance(${FRAME_MS})`);
     await quiet(page, when);
@@ -92,6 +125,8 @@ export async function film({ base, scene, script, timeline, audio, out, cover, l
     const started = Date.now();
     for (let f = 0; f < frames; f++) {
       const t = f * FRAME_MS;
+      // a reload wipes the overlay with everything else the scene set up
+      if (!(await page.evaluate<boolean>('!!window.__shortsOverlay'))) throw new PageReloaded();
       if (f) await page.run(`__shortsClock.advance(${FRAME_MS})`);
       const i = Math.max(0, timeline.beats.findIndex(b => t < b.end));
       const beat = scene.beats[i];
@@ -116,12 +151,14 @@ export async function film({ base, scene, script, timeline, audio, out, cover, l
       const ring = tap && t - tap.at < TAP_MS ? { x: tap.x, y: tap.y, p: (t - tap.at) / TAP_MS } : null;
       const count = scene.counter ? await page.evaluate<number | null>(scene.counter.expr).catch(() => null) : null;
       const legend = scene.legend ? await page.evaluate<{ lo: number; hi: number } | null>(scene.legend.expr).catch(() => null) : null;
-      await page.run(`__shortsOverlay.draw(${JSON.stringify({ ...frameAt(timeline, script, t), count, legend, tap: ring })})`);
+      // a chip names what the stretch arrives at, so it waits until the clock or camera has had time to get there
+      const chip = beat.chip && t >= span.start + (span.end - span.start) * (beat.chipAt ?? CHIP_AT) ? beat.chip : undefined;
+      await page.run(`__shortsOverlay.draw(${JSON.stringify({ ...frameAt(timeline, script, t), count, legend, tap: ring, chip, credits: !!beat.credits })})`);
       await quiet(page, when);
       // SHORTS_TRACE="page expression" logs its value each frame, to see what the page does between taps
       if (process.env.SHORTS_TRACE) console.log(`\n  ${f} ${Math.round(t)} ms: ${JSON.stringify(await page.evaluate(process.env.SHORTS_TRACE).catch(e => String(e)))}`);
       const jpeg = await page.screenshot('jpeg', 96);
-      if (Math.abs(t - COVER_MS) < FRAME_MS / 2) writeFileSync(cover, jpeg);
+      if (Math.abs(t - COVER_MS) < FRAME_MS / 2) cover = jpeg;
       if (!ffmpeg.stdin.write(jpeg)) await once(ffmpeg.stdin, 'drain');
       if (f % (FPS * 2) === 0 || f === frames - 1) {
         const rate = (f + 1) / ((Date.now() - started) / 1000);
@@ -129,10 +166,19 @@ export async function film({ base, scene, script, timeline, audio, out, cover, l
       }
     }
     process.stdout.write('\n');
+  } catch (err) {
+    failed = true;
+    // a reload between the check and a later call shows up as some other page error
+    const gone = overlaid && !(err instanceof PageReloaded) && !(await page.evaluate<boolean>('!!window.__shortsOverlay').catch(() => false));
+    throw gone ? new PageReloaded() : err;
   } finally {
-    ffmpeg.stdin.end();
+    if (failed) {
+      ffmpeg.stdin.on('error', () => {});
+      ffmpeg.kill('SIGKILL');
+    } else ffmpeg.stdin.end();
     await page.close();
   }
   const [code] = await done;
   if (code !== 0) throw new Error(`ffmpeg exited with ${code}`);
+  return cover;
 }

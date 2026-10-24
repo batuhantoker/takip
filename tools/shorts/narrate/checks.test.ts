@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Script } from '../scene';
-import { scriptProblem } from './script';
+import { scriptProblem, spokenFrom } from './script';
 import { cer } from './voice';
 
 const en: Script = {
@@ -34,5 +34,17 @@ describe('cer', () => {
   it('rises with garbling', () => {
     expect(cer('すべての大陸はひとつでした', 'すべての大陸はひとつでした')).toBe(0);
     expect(cer('すべての大陸はひとつでした', 'すべてのせいは一つでした')).toBeGreaterThan(0.3);
+  });
+});
+
+describe('spokenFrom', () => {
+  const known = new Map([['If it moves, TAKIP has it. Let\'s watch fireballs since 1988.', 'If it moves, Takip has it. Let\'s watch fireballs since nineteen eighty-eight.']]);
+  it('reuses the spoken sentences a new hype line ends with', () => {
+    expect(spokenFrom('This might be the most addictive map on the internet. Let\'s watch fireballs since 1988.', known))
+      .toBe('This might be the most addictive map on the internet. Let\'s watch fireballs since nineteen eighty-eight.');
+  });
+  it('leaves a line whose own part needs words to the model', () => {
+    expect(spokenFrom('Over 100 years of fireballs. Let\'s watch fireballs since 1988.', known)).toBeUndefined();
+    expect(spokenFrom('Let\'s watch volcanoes since 1800.', known)).toBeUndefined();
   });
 });

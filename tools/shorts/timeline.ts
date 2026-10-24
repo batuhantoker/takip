@@ -5,7 +5,8 @@ export const FPS = 30;
 export const FRAME_MS = 1000 / FPS;
 /** Quiet before a line and after it. */
 const LEAD_MS = 200;
-const TAIL_MS = 450;
+// short: lines follow each other closely (the user wants 10–20 s shorts)
+const TAIL_MS = 250;
 /** The end card stays up after the last word. */
 const END_HOLD_MS = 1800;
 const FADE_MS = 250;
@@ -23,10 +24,19 @@ export interface TimedBeat {
   card?: 'hook' | 'end';
   start: number;
   end: number;
+  /** When the beat's title appears; its start when absent. */
+  titleFrom?: number;
+  /** When the counter appears, for a beat that holds it back; its start when absent. */
+  counterFrom?: number;
+  /** When its card appears: the end card waits for the line, which is captioned over the picture first. */
+  cardFrom?: number;
+  /** Where its captions sit: top as a share of the frame's height, and a small sideways step in px. */
+  caption: { top: number; dx: number };
   voiceAt: number;
   chunks: Chunk[];
 }
-export interface Timeline { beats: TimedBeat[]; totalMs: number; frames: number }
+/** `loop`: a short that loops, or a long cut that ends on the end card. */
+export interface Timeline { beats: TimedBeat[]; totalMs: number; frames: number; loop: boolean }
 
 const UNSPACED = new Set(['zh', 'ja']);
 const BREAK_AFTER = /[.,;:!?…—–、。，；：！？」』)）]$/u;
@@ -85,10 +95,23 @@ export function timeWords(text: string, lang: string, from: number, to: number):
 
 const toFrame = (ms: number) => Math.ceil(ms / FRAME_MS) * FRAME_MS;
 
-export function layout(beats: Beat[], script: Script, voices: Record<string, Voice>): Timeline {
+/**
+ * Captions take turns between a top and a bottom band, beat by beat (the user, 2026-10-21: "maybe place them top and bottom
+ * rotating"), with a small nudge within the band. A beat with a card open at the bottom takes the top. The last beat is in
+ * the bottom band like the first, so the loop's seam doesn't jump. Shares of the frame's height from the top.
+ */
+/** `header`, under the app's top bar, is for a beat with a card open in the middle of the frame. */
+export type Bands = { top: number; bottom: number; header?: number };
+const BANDS: Bands = { top: 0.42, bottom: 0.63 };
+const HEADER = 0.18;
+const CAPTION_HOME = BANDS.bottom;
+const NUDGE = [0, 0.012, -0.012];
+const CAPTION_EASE_MS = 300;
+
+export function layout(beats: Beat[], script: Script, voices: Record<string, Voice>, bands: Bands = BANDS, loop = true): Timeline {
   const lines = new Map(script.beats.map(b => [b.id, b.say]));
   let at = 0;
-  const timed = beats.map(beat => {
+  const timed = beats.map((beat, n) => {
     const voice = voices[beat.id];
     if (!voice) throw new Error(`no voice for beat "${beat.id}" (${script.lang})`);
     const voiceAt = at + LEAD_MS;
@@ -97,11 +120,17 @@ export function layout(beats: Beat[], script: Script, voices: Record<string, Voi
     const [s, e] = voice.speech ?? [0, voice.ms];
     const words = timeWords(lines.get(beat.id) ?? beat.say, script.lang, voiceAt + s, voiceAt + e);
     const chunks = chunk(words, script.lang).map(c => ({ ...c, end: Math.min(c.end, end) }));
-    const t: TimedBeat = { id: beat.id, ...(beat.card ? { card: beat.card } : {}), start: at, end, voiceAt, chunks };
+    const band = beat.captionAt ?? (n === beats.length - 1 || n % 2 === 0 ? 'bottom' : 'top');
+    const caption = { top: (band === 'header' ? bands.header ?? HEADER : bands[band]) + (n === 0 || n === beats.length - 1 ? 0 : NUDGE[n % NUDGE.length]), dx: 0 };
+    const t: TimedBeat = { id: beat.id, ...(beat.card ? { card: beat.card } : {}), start: at, end, voiceAt, chunks, caption };
+    const titleIn = !beat.titleAt ? 0 : 'ms' in beat.titleAt ? Math.min(beat.titleAt.ms, end - at) : (end - at) * beat.titleAt.p;
+    if (titleIn > 0) t.titleFrom = at + toFrame(titleIn);
+    if (beat.counterWithTitle) t.counterFrom = t.titleFrom ?? t.end;
+    if (beat.card === 'end') t.cardFrom = Math.min(voiceAt + e + TAIL_MS, end - END_HOLD_MS);
     at = end;
     return t;
   });
-  return { beats: timed, totalMs: at, frames: Math.round(at / FRAME_MS) };
+  return { beats: timed, totalMs: at, frames: Math.round(at / FRAME_MS), loop };
 }
 
 /** What the overlay draws at time t; it has no clock of its own, so every frame is exact. */
@@ -115,7 +144,11 @@ export interface OverlayFrame {
   titleIn: number;
   /** Each word as already said (0), being said (1) or still to come (2). */
   caption?: { text: string; state: 0 | 1 | 2 }[];
+  /** Where the captions sit now, eased from the last beat's place. */
+  captionAt: { top: number; dx: number };
   counter: boolean;
+  /** 0–1: fading in. */
+  counterIn: number;
 }
 
 const fade = (t: number, from: number) => Math.max(0, Math.min(1, (t - from) / FADE_MS));
@@ -124,14 +157,23 @@ export function frameAt(timeline: Timeline, script: Script, t: number): OverlayF
   const i = Math.max(0, timeline.beats.findIndex(b => t < b.end));
   const beat = timeline.beats[i] ?? timeline.beats[timeline.beats.length - 1];
   const line = script.beats.find(b => b.id === beat.id);
-  const frame: OverlayFrame = { card: beat.card ?? null, cardIn: fade(t, beat.start), titleIn: 0, counter: !beat.card };
-  if (beat.card === 'hook') frame.hook = { kicker: script.kicker, line: line?.say ?? '' };
-  if (beat.card === 'end') frame.end = { line: line?.say ?? '', explore: script.ui.explore };
-  if (!beat.card && line?.title) {
+  const from = timeline.beats[i - 1]?.caption ?? beat.caption ?? { top: CAPTION_HOME, dx: 0 };
+  const to = beat.caption ?? { top: CAPTION_HOME, dx: 0 };
+  const k = Math.max(0, Math.min(1, (t - beat.start) / CAPTION_EASE_MS)), e = k * k * (3 - 2 * k);
+  const card = beat.card && t >= (beat.cardFrom ?? beat.start) ? beat.card : null;
+  const frame: OverlayFrame = {
+    captionAt: { top: from.top + (to.top - from.top) * e, dx: from.dx + (to.dx - from.dx) * e },
+    card, cardIn: fade(t, beat.cardFrom ?? beat.start), titleIn: 0,
+    counter: !card && t >= (beat.counterFrom ?? beat.start), counterIn: beat.counterFrom ? fade(t, beat.counterFrom) : 1,
+  };
+  if (card === 'hook') frame.hook = { kicker: script.kicker, line: line?.say ?? '' };
+  if (card === 'end') frame.end = { line: line?.say ?? '', explore: script.ui.explore };
+  if (!card && line?.title && t >= (beat.titleFrom ?? beat.start)) {
     frame.title = line.title;
-    frame.titleIn = fade(t, beat.start);
+    frame.titleIn = fade(t, beat.titleFrom ?? beat.start);
   }
-  const c = beat.card === 'hook' ? undefined : beat.chunks.find(ch => t >= ch.start && t < ch.end);
+  // a card already shows its line, so captions under it would be a ghost of the same words
+  const c = card ? undefined : beat.chunks.find(ch => t >= ch.start && t < ch.end);
   if (c) frame.caption = c.words.map(w => ({ text: w.text, state: t >= w.end ? 0 : t >= w.start ? 1 : 2 }));
   return frame;
 }

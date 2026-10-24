@@ -18,9 +18,12 @@
 #shorts-overlay .counter span.before { margin: 0 0 6px; }
 #shorts-overlay .title { position: absolute; left: 36px; right: 36px; top: 27%; text-align: center;
   font-size: 26px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+#shorts-overlay .chip { position: absolute; left: 36px; right: 36px; top: 33%; text-align: center; }
+#shorts-overlay .chip span { display: inline-block; padding: 8px 14px; border-radius: 12px; background: rgba(10,12,15,.74);
+  font-size: 17px; line-height: 1.25; font-weight: 550; color: #E8ECEF; }
 #shorts-overlay .hook { position: absolute; left: 32px; right: 32px; top: 34%; text-align: center; }
 #shorts-overlay .hook i { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--font-hud), 'Geist Mono', monospace;
-  font-style: normal; color: #52C1D6; }
+  font-style: normal; color: #52C1D6; padding: 7px 12px; border-radius: 999px; background: rgba(10,12,15,.72); }
 #shorts-overlay .hook i::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #52C1D6; }
 #shorts-overlay .hook p { margin: 14px 0 0; font-size: 34px; line-height: 1.12; font-weight: 650; letter-spacing: -0.02em;
   text-shadow: 0 2px 18px rgba(0,0,0,.7); }
@@ -36,6 +39,11 @@
 #shorts-overlay .end em { font-style: normal; font-size: 15px; color: #A4AAB2; }
 #shorts-overlay .end b { font: 500 30px/1 var(--font-hud), 'Geist Mono', monospace; color: #52C1D6; }
 #shorts-overlay .end small { margin-top: 10px; font-size: 11px; color: #6D737B; max-width: 320px; }
+#shorts-overlay .credits { position: absolute; left: 36px; right: 72px; top: 73%; display: flex; justify-content: center; }
+#shorts-overlay .credits div { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 9px 14px;
+  border-radius: 12px; background: rgba(10,12,15,.7); text-align: center; }
+#shorts-overlay .credits b { font: 500 22px/1 var(--font-hud), 'Geist Mono', monospace; color: #52C1D6; }
+#shorts-overlay .credits small { font-size: 10.5px; line-height: 1.3; color: #A4AAB2; max-width: 300px; }
 #shorts-overlay .tap { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%;
   border: 2px solid #52C1D6; background: rgba(82,193,214,.22); }
 #shorts-overlay .legend { position: absolute; left: 50%; top: 54%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;
@@ -81,10 +89,14 @@ body * { visibility: hidden !important; }
       const value = el('b', '', counter);
       const unit = el('span', '', counter);
       const title = el('div', 'title', root);
+      const chip = el('div', 'chip', root);
+      const chipText = el('span', '', chip);
       const hook = el('div', 'hook', root);
       const kicker = el('i', '', hook);
       const hookLine = el('p', '', hook);
       const caption = el('div', 'caption', root);
+      // an empty pill would show at frame 0, and at the loop's seam, before the first words
+      caption.hidden = true;
       const words = el('div', '', caption);
       const end = el('div', 'end', root);
       end.innerHTML = mark;
@@ -94,7 +106,12 @@ body * { visibility: hidden !important; }
       url.textContent = 'takip.dev';
       const sources = el('small', '', end);
       sources.textContent = cfg.sources;
-      for (const e of [title, hook, caption, end]) e.dir = cfg.rtl ? 'rtl' : 'ltr';
+      // the outro's lower third: the loop has no end card, so the address and the credits ride over the last beat
+      const credits = el('div', 'credits', root);
+      const creditsBox = el('div', '', credits);
+      el('b', '', creditsBox).textContent = 'takip.dev';
+      el('small', '', creditsBox).textContent = cfg.sources;
+      for (const e of [title, chip, hook, caption, end]) e.dir = cfg.rtl ? 'rtl' : 'ltr';
       const tap = el('div', 'tap', root);
       const legend = el('div', 'legend', root);
       const legendLabel = el('em', '', legend);
@@ -106,7 +123,7 @@ body * { visibility: hidden !important; }
       }
       // the app's own bar carries the brand; a scrim would dim the interface being shown
       scrim.hidden = !cfg.mapOnly;
-      parts = { scrim, brand, counter, before, value, unit, title, hook, kicker, hookLine, caption, words, end, endLine, explore, tap, legend, legendEnds };
+      parts = { credits, scrim, brand, counter, before, value, unit, title, chip, chipText, hook, kicker, hookLine, caption, words, end, endLine, explore, tap, legend, legendEnds };
     },
 
     /** frame: timeline.ts OverlayFrame plus `count` (the counter's number, or null). */
@@ -120,6 +137,7 @@ body * { visibility: hidden !important; }
         p.hookLine.textContent = frame.hook.line;
       }
       p.end.hidden = frame.card !== 'end';
+      p.credits.hidden = !frame.credits;
       if (frame.end) {
         p.end.style.opacity = frame.cardIn;
         p.endLine.textContent = frame.end.line;
@@ -145,6 +163,7 @@ body * { visibility: hidden !important; }
       const showCount = frame.counter && frame.count != null && config.counter;
       p.counter.hidden = !showCount;
       if (showCount) {
+        p.counter.style.opacity = frame.counterIn ?? 1;
         const c = config.counter;
         const fmt = new Intl.NumberFormat(config.lang, { maximumFractionDigits: c.digits ?? 0, useGrouping: c.kind === 'number' });
         p.value.className = c.kind === 'date' ? 'date' : '';
@@ -166,8 +185,17 @@ body * { visibility: hidden !important; }
         p.title.style.opacity = frame.titleIn;
         p.title.style.transform = `translateY(${(1 - frame.titleIn) * 10}px)`;
       }
-      p.caption.hidden = !frame.caption;
-      if (frame.caption) {
+      p.chip.hidden = !frame.chip;
+      if (frame.chip) {
+        p.chipText.textContent = frame.chip;
+        p.chip.style.opacity = frame.titleIn || 1;
+      }
+      if (frame.captionAt) {
+        p.caption.style.top = `${(frame.captionAt.top * 100).toFixed(2)}%`;
+        p.caption.style.transform = `translateX(${frame.captionAt.dx.toFixed(1)}px)`;
+      }
+      p.caption.hidden = !frame.caption?.length;
+      if (frame.caption?.length) {
         const key = frame.caption.map(w => w.text + w.state).join('|');
         if (key !== lastCaption) {
           lastCaption = key;

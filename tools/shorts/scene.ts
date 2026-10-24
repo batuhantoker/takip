@@ -5,9 +5,23 @@ export interface Beat {
   id: string;
   /** The voiceover line in English; each language gets a translation. */
   say: string;
+  /** How the narrator reads it, when the scene already knows (numbers in words); the script step spells out the rest. */
+  spoken?: string;
   /** A short heading shown with this beat, in English. */
   title?: string;
-  /** The opening beat shows its line big; the closing one shows the end card. */
+  /** When the title appears: `p` of the way through the beat (0–1), or `ms` into it; from its start without it. */
+  titleAt?: { p: number } | { ms: number };
+  /** Hides the counter until the title appears, then fades it in with it; on a beat with no title, throughout. */
+  counterWithTitle?: boolean;
+  /** A short fact under the title, from the data, so the value behind the line is on screen ("Bravo · 1954 · 15,000 kt"). */
+  chip?: string;
+  /** How far through the beat (0–1) the chip appears; 0.4 when absent. */
+  chipAt?: number;
+  /** The outro's lower third: takip.dev and the sources, which the end card used to carry. */
+  credits?: boolean;
+  /** Which caption band this beat uses instead of its turn: 'top' when a card is open at the bottom. */
+  captionAt?: 'top' | 'bottom' | 'header';
+  /** The opening beat shows its line big; the closing one shows the end card once its line is said. */
   card?: 'hook' | 'end';
   /** How long the picture needs whatever the voice does, e.g. a camera leg, in ms. */
   minMs?: number;
@@ -39,6 +53,8 @@ export interface Scene {
   path: string;
   /** Stories show only the map; tours keep the app's interface. */
   chrome: 'map-only' | 'app';
+  /** Caption bands other than the chrome's: 'history' keeps them under the title and chip and above History's folded key card. */
+  captions?: 'history';
   /** Page JavaScript that is true once the view is ready to film, beyond the map having loaded. */
   ready?: string;
   /** Page JavaScript run once ready, before time is frozen. */
@@ -50,8 +66,12 @@ export interface Scene {
   counter?: Counter;
   /** A colour key for a choropleth: English label, and page JavaScript returning { lo, hi } or null. */
   legend?: { label: string; expr: string };
-  /** In order; the first is usually the hook and the last the end card. */
+  /** In order; the first is the hook and the last the outro. */
   beats: Beat[];
+  /** false for a long cut, which ends on the end card (loop.ts closed); a short loops. */
+  loop?: boolean;
+  /** A grave story (war, weapons, disaster, disease) hooks with a plain loop; read from its words when unset (loop.ts isGrave). */
+  grave?: boolean;
   /** Credits, on screen and in the post. */
   sources: string[];
   post: { title: string; description: string; hashtags: string[] };
@@ -68,7 +88,12 @@ export interface Script {
   /** Fixed words of the overlay. */
   ui: { sources: string; explore: string; bce: string };
   post: { title: string; description: string; hashtags: string[] };
+  /** The scene's lines this script was written from, so a script that's out of date can be told from one edited by hand. */
+  written?: string;
 }
+
+/** A script's lines, one per beat, to compare with what it was written from. */
+export const linesOf = (s: { beats: { say: string }[] }) => s.beats.map(b => b.say).join('\n');
 
 export function englishScript(scene: Scene): Script {
   return {
@@ -76,7 +101,7 @@ export function englishScript(scene: Scene): Script {
     kicker: scene.kicker,
     unit: scene.counter?.unit,
     ...(scene.legend ? { legend: scene.legend.label } : {}),
-    beats: scene.beats.map(b => ({ id: b.id, say: b.say, ...(b.title ? { title: b.title } : {}) })),
+    beats: scene.beats.map(b => ({ id: b.id, say: b.say, ...(b.title ? { title: b.title } : {}), ...(b.spoken ? { spoken: b.spoken } : {}) })),
     ui: { sources: 'Sources', explore: 'Explore it live', bce: 'BCE' },
     post: scene.post,
   };

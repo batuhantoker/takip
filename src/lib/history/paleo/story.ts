@@ -131,7 +131,8 @@ export type Story = {
   arrived(): boolean;
   /** How long the run to the open chapter takes, in ms; 0 once there. */
   legMs(): number;
-  go(i: number): void;
+  /** `ms`: how long the run there takes, in place of its distance's (a short film's quicker runs). */
+  go(i: number, ms?: number): void;
   next(): void;
   prev(): void;
   setAuto(on: boolean): void;
@@ -191,7 +192,7 @@ export function createStory(clock: ReplayClock, { chapters = CHAPTERS, onOpen = 
     auto: () => auto,
     arrived: () => arrived,
     legMs: () => leg,
-    go(i) {
+    go(i, ms) {
       const next = Math.max(0, Math.min(chapters.length - 1, i));
       timers.clear(wait);
       stopTravel();
@@ -205,7 +206,7 @@ export function createStory(clock: ReplayClock, { chapters = CHAPTERS, onOpen = 
       // Only forward runs: the clock doesn't play backwards, so an earlier chapter is a cut.
       const from = clock.time();
       if (target > from) {
-        leg = legMs(maAt(from), chapters[next].ma);
+        leg = ms ?? legMs(maAt(from), chapters[next].ma);
         const peak = (EASE_STRETCH * (target - from)) / leg;
         let steering = false;
         const steer = () => {

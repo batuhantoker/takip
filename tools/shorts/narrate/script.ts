@@ -1,7 +1,7 @@
 /** The words of a short in each language: English from the scene, the rest translated by the local model, all kept as editable files. */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { englishScript, type Scene, type Script } from '../scene';
+import { englishScript, linesOf, type Scene, type Script } from '../scene';
 import { askJson } from './llm';
 
 export const LANGUAGE_NAMES: Record<string, string> = {
@@ -85,11 +85,68 @@ async function speakable(script: Script): Promise<Script> {
 
 const file = (dir: string, lang: string) => join(dir, `script.${lang}.json`);
 
+/** Spoken forms the folder's English scripts already hold, by line, so a script written anew needs no new spelling out. */
+function spokenKnown(dir: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const f of readdirSync(dir).filter(f => /^script\.en(\..+)?\.json$/.test(f))) {
+    try {
+      for (const b of (JSON.parse(readFileSync(join(dir, f), 'utf8')) as Script).beats) if (b.spoken) out.set(b.say, b.spoken);
+    } catch {
+      // a half-written backup holds nothing worth keeping
+    }
+  }
+  return out;
+}
+
+const sentences = (s: string) => s.trim().split(/(?<=[.!?…])\s+/);
+
+/**
+ * A line's spoken form from those the folder knows: the same line's, or one ending in the same sentences (a hook whose
+ * hype changed but whose "today" didn't) when what comes before needs no words of its own.
+ */
+export function spokenFrom(say: string, known: Map<string, string>): string | undefined {
+  const exact = known.get(say);
+  if (exact) return exact;
+  const mine = sentences(say);
+  for (const [other, spoken] of known) {
+    const theirs = sentences(other), heard = sentences(spoken);
+    if (theirs.length !== heard.length) continue;
+    // the most sentences both lines end with, leaving at least one of mine before them
+    let k = 0;
+    while (k < Math.min(mine.length - 1, theirs.length) && mine[mine.length - 1 - k] === theirs[theirs.length - 1 - k]) k++;
+    const head = mine.slice(0, mine.length - k).join(' ');
+    if (k && !NEEDS_WORDS.test(head)) return `${head} ${heard.slice(heard.length - k).join(' ')}`;
+  }
+  return undefined;
+}
+
 /** Reads each language's script from the short's folder, writing the ones that are missing. Edited files are kept. */
 export async function scripts(dir: string, scene: Scene, langs: string[]): Promise<Record<string, Script>> {
   const enPath = file(dir, 'en');
-  if (!existsSync(enPath)) writeFileSync(enPath, JSON.stringify(englishScript(scene), null, 2) + '\n');
-  const en = JSON.parse(readFileSync(enPath, 'utf8')) as Script;
+  const kept = existsSync(enPath) ? (JSON.parse(readFileSync(enPath, 'utf8')) as Script) : null;
+  const fresh = englishScript(scene);
+  // a script whose beats aren't the scene's (a short's script under a long cut, or the old format) is written anew, and so is
+  // one whose lines the scene has since changed (a fixed cache line), unless it was edited by hand since it was written
+  const fits = kept && kept.beats.map(b => b.id).join() === scene.beats.map(b => b.id).join();
+  const edited = !!kept?.written && linesOf(kept) !== kept.written;
+  const stale = !!fits && linesOf(kept!) !== linesOf(fresh) && !edited;
+  if (fits && edited && kept!.written !== linesOf(fresh)) console.warn(`  ! script.en.json was edited by hand and the scene's lines have changed since: check it`);
+  const known = spokenKnown(dir);
+  if (!fits || stale) {
+    if (kept) {
+      const old = fits ? 'script.en.stale.json' : 'script.en.replaced.json';
+      console.warn(`  ! script.en.json ${fits ? 'has older lines than the scene' : 'has other beats than this cut'}; writing it anew (the old one is ${old})`);
+      writeFileSync(join(dir, old), JSON.stringify(kept, null, 2) + '\n');
+      for (const lang of langs.filter(l => l !== 'en')) rmSync(file(dir, lang), { force: true });
+    }
+    writeFileSync(enPath, JSON.stringify({ ...fresh, written: linesOf(fresh) }, null, 2) + '\n');
+  }
+  const read = JSON.parse(readFileSync(enPath, 'utf8')) as Script;
+  const en = { ...read, beats: read.beats.map(b => {
+    const spoken = b.spoken || !NEEDS_WORDS.test(b.say) ? undefined : spokenFrom(b.say, known);
+    return spoken ? { ...b, spoken } : b;
+  }) };
+  if (en.beats.some((b, i) => b !== read.beats[i])) writeFileSync(enPath, JSON.stringify(en, null, 2) + '\n');
   const out: Record<string, Script> = { en };
   for (const lang of langs.filter(l => l !== 'en')) {
     const path = file(dir, lang);

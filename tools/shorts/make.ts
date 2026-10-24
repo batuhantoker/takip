@@ -8,6 +8,7 @@ import { scripts } from './narrate/script';
 import { ensureSpeech, voiceLine } from './narrate/voice';
 import { lay, readWav, writeWav } from './narrate/wav';
 import type { Scene, Script } from './scene';
+import { closed, plainIfGrave, trimmed } from './loop';
 import { context, type Maker } from './stories/context';
 import { layout, type Voice } from './timeline';
 
@@ -26,13 +27,27 @@ export interface MakeOptions {
   noMusic?: boolean;
 }
 
+/** The caption bands: a tour's top band sits under the app's bar; a story's under its counter, title and chip. */
+// a History tour keeps its captions under the title and chip, and above History's folded key card at about 60% of the height
+const CAPTION_BANDS = { app: { top: 0.18, bottom: 0.63 }, 'map-only': { top: 0.42, bottom: 0.63 }, history: { top: 0.42, bottom: 0.52 } } as const;
+
 function postText(scene: Scene, script: Script) {
   return [script.post.title, '', script.post.description, '', script.post.hashtags.join(' '), '', `${script.ui.sources}: ${scene.sources.join(' · ')}`, ''].join('\n');
 }
 
-/** A short's folder name: `--name`, or the maker and its options. */
+/** Options that change only the words, not which short it is, so they stay out of its folder name. */
+const UNNAMED = new Set(['variant', 'length', 'pace']);
+
+/** Whether a folder holds the long cut's lines (a tour's long lines are its `tour` cache). */
+const longWritten = (dir: string, maker: Maker) =>
+  existsSync(join(dir, 'cache.lines.long.json')) && (maker.id !== 'feature' || existsSync(join(dir, 'cache.tour.long.json')));
+
+/**
+ * A short's folder name: `--name`, or the maker and its options. `--angle` stays in it, or an angled tour would film over
+ * the plain one of the same page.
+ */
 export const slugFor = (maker: Maker, args: Record<string, string>) =>
-  args.name ?? [maker.id, ...Object.entries(args).map(([k, v]) => `${k}-${v}`)].join('-').replace(/[^a-z0-9-]+/gi, '_').slice(0, 80);
+  args.name ?? [maker.id, ...Object.entries(args).filter(([k]) => !UNNAMED.has(k)).map(([k, v]) => `${k}-${v}`)].join('-').replace(/[^a-z0-9-]+/gi, '_').slice(0, 80);
 
 /** Makes one short and returns its folder. */
 export async function make(maker: Maker, opts: MakeOptions): Promise<string> {
@@ -41,7 +56,12 @@ export async function make(maker: Maker, opts: MakeOptions): Promise<string> {
   mkdirSync(dir, { recursive: true });
   console.log(`${maker.id} → ${relative(ROOT, dir)}`);
 
-  const scene = await maker.make(context(dir, opts.base, opts.args));
+  // a short whose folder already has the long cut's lines takes that cut's opening at a short's pace: no new writing
+  const long = opts.args.length === 'long';
+  const fromLong = !long && longWritten(dir, maker);
+  const made = plainIfGrave(await maker.make(context(dir, opts.base, fromLong ? { ...opts.args, length: 'long', pace: 'short' } : opts.args)), slug, opts.args.variant);
+  const scene = long ? closed(made) : fromLong ? trimmed(made) : made;
+  if (fromLong) console.log(`  short from the long cut's lines: ${scene.beats.length - 2} of its ${made.beats.length - 2} beats`);
   writeFileSync(join(dir, 'scene.json'), JSON.stringify(scene, null, 2) + '\n');
   const all = await scripts(dir, scene, opts.langs);
   if (opts.scriptOnly) {
@@ -61,11 +81,11 @@ export async function make(maker: Maker, opts: MakeOptions): Promise<string> {
       voices[line.id] = { ms: take.ms, speech: take.speech };
       clips[line.id] = take.wav;
     }
-    const timeline = layout(scene.beats, script, voices);
+    const timeline = layout(scene.beats, script, voices, CAPTION_BANDS[scene.captions ?? scene.chrome], scene.loop !== false);
     const narration = join(voiceDir, 'narration.wav');
     writeFileSync(narration, writeWav(lay(timeline.beats.map(b => ({ atMs: b.voiceAt, pcm: readWav(readFileSync(clips[b.id])) })), timeline.totalMs)));
     const audio = join(voiceDir, 'mix.wav');
-    await mixTrack({ narration, music, out: audio, totalMs: timeline.totalMs });
+    await mixTrack({ narration, music, out: audio, totalMs: timeline.totalMs, loop: timeline.loop });
     writeFileSync(join(dir, `timeline.${lang}.json`), JSON.stringify(timeline, null, 2) + '\n');
     console.log(`  ${lang}: ${(timeline.totalMs / 1000).toFixed(1)} s, ${timeline.frames} frames`);
 
@@ -90,9 +110,9 @@ export async function remix(dir: string, opts: { langs?: string[]; noMusic?: boo
       console.warn(`  ! ${lang}: no video or narration to remix`);
       continue;
     }
-    const { totalMs } = JSON.parse(readFileSync(join(dir, `timeline.${lang}.json`), 'utf8')) as { totalMs: number };
+    const { totalMs, loop } = JSON.parse(readFileSync(join(dir, `timeline.${lang}.json`), 'utf8')) as { totalMs: number; loop?: boolean };
     const mix = join(dir, 'voice', lang, 'mix.wav');
-    await mixTrack({ narration, music, out: mix, totalMs });
+    await mixTrack({ narration, music, out: mix, totalMs, loop: loop !== false });
     const tmp = join(dir, `${lang}.remix.mp4`);
     await replaceAudio(video, mix, tmp);
     renameSync(tmp, video);

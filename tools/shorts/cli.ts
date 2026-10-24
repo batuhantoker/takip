@@ -64,7 +64,7 @@ async function main() {
     const failed: string[] = [];
     const film = flags.film === 'true';
     if (film) console.log(`${new Date().toISOString()} filming ${runs.length} stories in ${langs.join(', ')}.\n` +
-      'If it stops (AWS session expired: run `aws login`; app or Speech down), run the same command again: it resumes.');
+      'If it stops (the claude CLI signed out, or with SHORTS_LLM=bedrock the AWS session expired; app or Speech down), run the same command again: it resumes.');
     for (const [i, { maker, args }] of runs.entries()) {
       // a batch picks up where it stopped: languages already filmed are skipped
       const dir = join(ROOT, 'data/shorts', LIBRARY_DAY, slugFor(maker, args));

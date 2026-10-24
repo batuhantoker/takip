@@ -156,6 +156,10 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   // History and Replay show the past; a live selection has nothing to say there.
   const timeTravel = !!history || !!replay;
   useEffect(() => { if (timeTravel) { closeInspect(); clearSat(); } }, [timeTravel, closeInspect, clearSat]);
+  // Dev-only: tools/shorts closes a card between spots; Escape doesn't reach the phone sheet.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') Object.assign(window, { __takipInspect: { closeAll: () => { closeInspect(); clearSat(); } } });
+  }, [closeInspect, clearSat]);
   // The drawn route goes when its aircraft's card closes.
   const aircraftOpen = inspect.targets.filter(t => t.kind === 'aircraft').map(t => t.id).join(' ');
   useEffect(() => {

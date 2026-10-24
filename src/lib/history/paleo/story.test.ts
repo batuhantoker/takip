@@ -58,6 +58,13 @@ describe('story', () => {
     expect(story.legMs()).toBe(0);
   });
 
+  it('takes the run time it is given', () => {
+    const { story, run } = setup();
+    story.go(0, 1500);
+    expect(story.legMs()).toBe(1500);
+    expect(run()).toBeLessThan(1500 * 1.15);
+  });
+
   it('cuts back to an earlier chapter', () => {
     const { clock, story } = setup();
     clock.seek(atMa(50));
