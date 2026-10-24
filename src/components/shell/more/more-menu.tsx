@@ -33,7 +33,7 @@ export default function MoreMenu({ compact = false, rail = false, active = false
 }) {
   const t = useT();
   const trigger = rail
-    ? <RailButton glyph={<Ellipsis className="size-[18px]" strokeWidth={1.75} />} label={t('rail|More')} active={active} />
+    ? <RailButton glyph={<Ellipsis className="size-[18px]" strokeWidth={1.75} />} label={t('rail|More')} active={active} tour="more" />
     : <IconButton label={t('More')} icon={Ellipsis} tooltipSide="bottom" />;
 
   return (

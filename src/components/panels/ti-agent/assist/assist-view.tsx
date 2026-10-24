@@ -13,6 +13,7 @@ import { Navigation, ScanSearch, Search, type LucideIcon } from 'lucide-react';
 import { ListRow } from '@/components/ui/list-row';
 import { PanelSection } from '@/components/ui/panel';
 import { useT } from '@/components/ui/use-t';
+import { HowTo } from '@/components/shell/tour/how-to';
 import { msg } from '@/lib/core/i18n/translator';
 import type { AiClient } from '@/components/panels/ti-agent/use-ai';
 import type { AssistClient, Auth } from './use-assist';
@@ -116,6 +117,8 @@ export function AssistView(p: AssistViewProps) {
           return <ListRow key={s.text} leading={<Icon aria-hidden className="size-4" strokeWidth={1.75} />} title={t(s.text)} onClick={() => tryIt(t(s.text), s.mode)} />;
         })}
       </PanelSection>
+      {/* The tour is a desktop one: a phone's sheet would hide what it points at. */}
+      {!p.embedded && <div className="mt-6"><HowTo /></div>}
     </div>
   ) : (
     <div className="flex flex-col gap-6" aria-live="polite">

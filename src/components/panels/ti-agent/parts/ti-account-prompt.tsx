@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
 import { useT } from '@/components/ui/use-t';
+import { HowTo } from '@/components/shell/tour/how-to';
 import { askForAccount, useSignedIn } from '@/components/site/account/plan-gate';
 import { msg } from '@/lib/core/i18n/translator';
 import { TiGlyph } from '../atoms';
@@ -29,5 +30,5 @@ export default function TiAccountPrompt({ embedded, onClose }: { embedded: boole
       body={signedIn ? t('See which plans include it in Account settings.') : t('Ask TI to work the map, find what is live and forecast what happens next.')}
       action={<Button variant="primary" onClick={() => askForAccount(reason, signedIn)}>{signedIn ? t('See plans') : t('Create account')}</Button>} />
   );
-  return embedded ? prompt : <Panel title="TI" subtitle="Takip AI" icon={TiGlyph} onClose={onClose}>{prompt}</Panel>;
+  return embedded ? prompt : <Panel title="TI" subtitle="Takip AI" icon={TiGlyph} onClose={onClose}>{prompt}<HowTo /></Panel>;
 }

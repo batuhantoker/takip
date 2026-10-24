@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
 import { useT } from '@/components/ui/use-t';
+import { HowThisWorks } from '@/components/shell/tour/how-to';
 import LayerSection from '@/components/panels/layers/parts/layer-section';
 import LayersOnMap from '@/components/panels/layers/parts/layers-on-map';
 import { useLayerBrowser } from './use-layer-browser';
@@ -38,7 +39,12 @@ function LayersPane({ data, activeLayers, setActiveLayers, capabilities = NO_CAP
       meta={b.onMap.length > 0 ? t('{n} on', { n: b.onMap.length }) : undefined}
       onClose={onClose}
       bare
-      actions={<IconButton label={t('Collapse all groups')} icon={ChevronsDownUp} disabled={!b.anyOpen} onClick={b.collapseAll} />}
+      actions={(
+        <>
+          <HowThisWorks stop="layers" />
+          <IconButton label={t('Collapse all groups')} icon={ChevronsDownUp} disabled={!b.anyOpen} onClick={b.collapseAll} />
+        </>
+      )}
     >
       <div className={cx('shrink-0 border-b px-4 pb-3 transition-colors duration-150', scrolled ? 'border-line' : 'border-transparent')}>
         <SearchField value={b.query} onChange={b.setQuery} placeholder={t('Search {n} layers', { n: b.layerTotal })} autoComplete="off" spellCheck={false} />

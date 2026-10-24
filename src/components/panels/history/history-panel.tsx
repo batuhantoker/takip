@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Panel } from '@/components/ui/panel';
 import { useT } from '@/components/ui/use-t';
+import { HowThisWorks } from '@/components/shell/tour/how-to';
 import type { HistorySession } from '@/lib/history/session';
 import { DeepTimeSection } from '@/components/panels/history/parts/history-deep-section';
 import { CalendarSections } from '@/components/panels/history/parts/history-sections';
@@ -33,7 +34,8 @@ export default function HistoryPanel({ session, onOpen, onClose, onExit, onFlyTo
   if (session) {
     if (embedded) return <Sections session={session} onFlyTo={onFlyTo} closeSheet={onClose} />;
     return (
-      <Panel title={t('History')} subtitle={<WhereInTime session={session} />} onClose={onClose} actions={onExit && <HistoryBackToLive onExit={onExit} />}>
+      <Panel title={t('History')} subtitle={<WhereInTime session={session} />} onClose={onClose}
+        actions={<><HowThisWorks stop="history" />{onExit && <HistoryBackToLive onExit={onExit} />}</>}>
         <Sections session={session} onFlyTo={onFlyTo} />
       </Panel>
     );
@@ -43,5 +45,5 @@ export default function HistoryPanel({ session, onOpen, onClose, onExit, onFlyTo
       body={t('Wars, battles and country statistics back to 10,000 BCE, and the continents drifting over 1.8 billion years.')}
       action={<Button variant="primary" onClick={onOpen}>{t('Show history on the map')}</Button>} />
   );
-  return embedded ? empty : <Panel title={t('History')} onClose={onClose}>{empty}</Panel>;
+  return embedded ? empty : <Panel title={t('History')} onClose={onClose} actions={<HowThisWorks stop="history" />}>{empty}</Panel>;
 }

@@ -9,6 +9,7 @@ import { msg } from '@/lib/core/i18n/translator';
 import type { MapStyle } from '@/components/shell/state/types';
 import { towardMiddle, type Corner } from '@/components/shell/layout/lib/model';
 import StyleStudio from '@/components/shell/map-look/style-studio';
+import { useTourOn } from '@/components/shell/tour/tour-state';
 import { countAction } from '@/lib/platform/usage-actions';
 import { ClusterButton } from './cluster-button';
 
@@ -78,13 +79,15 @@ export function BaseMapButton({ mapStyle, setMapStyle, options, touch, corner = 
   const [studio, setStudio] = useState(false);
   const menu = towardMiddle(corner);
   const labelId = useId();
+  // The tour opens the menu to show it, and leaves it as it was after.
+  const touring = useTourOn('basemap');
   return (
     <>
-      <Popover label={t('Base map and options')} placement={menu.sideways} align={menu.alongEdge} className="w-[296px] p-3"
-        trigger={<ClusterButton label={t('Base map and options')} touch={touch}><MapIcon aria-hidden className="size-4" strokeWidth={1.75} /></ClusterButton>}>
+      <Popover label={t('Base map and options')} placement={menu.sideways} align={menu.alongEdge} className="w-[296px] p-3" open={touring || undefined}
+        trigger={<ClusterButton label={t('Base map and options')} touch={touch} data-tour="basemap"><MapIcon aria-hidden className="size-4" strokeWidth={1.75} /></ClusterButton>}>
         {close => (
           <>
-            <p id={labelId} className="mb-2 text-meta font-medium text-ink-3">{t('Base map')}</p>
+            <p id={labelId} data-tour="basemap-menu" className="mb-2 text-meta font-medium text-ink-3">{t('Base map')}</p>
             <BaseMapPicker mapStyle={mapStyle} setMapStyle={setMapStyle} labelledBy={labelId} />
             {options?.(() => { close(); setStudio(true); }, close)}
           </>

@@ -6,6 +6,7 @@ import { IconButton } from '@/components/ui/button';
 import { Panel } from '@/components/ui/panel';
 import { useEscape } from '@/components/ui/use-escape';
 import { useT } from '@/components/ui/use-t';
+import { HowThisWorks } from '@/components/shell/tour/how-to';
 import DonBotScan from '@/components/panels/markets/donbot-scan';
 import { toolById } from './recon-tools';
 import { useReconLookup } from './use-recon-lookup';
@@ -150,7 +151,7 @@ function OsintPanelInner({ isMobile, onClose, onSweepVisualize, onScanGeolocate 
       subtitle={t('Look up an IP, domain, username or phone number')}
       onClose={onClose}
       closeOnEscape={false}
-      actions={<IconButton label={t('Open full screen')} icon={Maximize2} onClick={() => setIsFullScreen(true)} />}
+      actions={<><HowThisWorks stop="recon" /><IconButton label={t('Open full screen')} icon={Maximize2} onClick={() => setIsFullScreen(true)} /></>}
       footer={askToSignIn ? <SignInFooter /> : undefined}
     >
       {body}

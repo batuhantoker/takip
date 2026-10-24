@@ -69,7 +69,7 @@ function MapSpaceControl({ map, down, ...trigger }: Omit<ComponentProps<'button'
   const t = useT();
   const Chevron = down ? ChevronDown : ChevronUp;
   return (
-    <div role="radiogroup" aria-label={t('View')} tabIndex={-1} className={PILL}
+    <div role="radiogroup" aria-label={t('View')} tabIndex={-1} data-tour="switcher" className={PILL}
       onFocus={e => { if (e.target === e.currentTarget) e.currentTarget.querySelector<HTMLElement>('[aria-haspopup]')?.focus(); }}>
       {map}
       <button type="button" {...trigger} className={cx(SEGMENT, tone(!!trigger['aria-expanded']), 'pr-2')}>

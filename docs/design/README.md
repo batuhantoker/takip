@@ -275,6 +275,20 @@ Two things open over the map without being windows:
   again (00:00 UTC). It sits under the account dialog, so its buttons open on
   top of it.
 
+### The tour
+
+The tour is the third thing that opens over the map without being a window
+(`@/components/shell/tour`). It dims the screen, rings the real controls in
+accent and puts a 320 px card beside the first one: the layout, the base map
+and its options, Layers, History, Space, Recon and TI. Any key or click goes
+on, ← or Backspace goes back, and Escape or the card's close stops it. It
+opens only what leaves the map as it was (the base map menu, the Layers and
+Recon panels), never starts History, Replay or Space, and puts back the panel
+that was open. A first visit to the plain map, not a shared link, offers it
+once in a small card; after that it lives in TI under How to use TAKIP, and
+the Layers, History, Space and Recon panels each have a How this works button
+that starts it on their stop. Desktop only for now.
+
 ## Panel anatomy
 
 Use `Panel` from `@/components/ui/panel`.

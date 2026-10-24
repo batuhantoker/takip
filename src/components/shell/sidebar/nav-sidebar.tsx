@@ -57,7 +57,7 @@ export function NavSidebar({ groups, active, onSelect, ti = true, tiLive, tiRunn
                 return (
                   <div key={item.id} className="relative">
                     <RailButton glyph={<Icon className="size-[18px]" strokeWidth={1.75} />} label={t(railLabel(item.label))}
-                      hint={t(item.hint)} kbd={item.kbd} badge={item.badge} active={active === item.id} pressed={active === item.id}
+                      hint={t(item.hint)} kbd={item.kbd} badge={item.badge} active={active === item.id} pressed={active === item.id} tour={item.id}
                       onClick={() => onSelect(item.id)} />
                     {item.running && active !== item.id && <span className="pointer-events-none absolute top-2 right-3 flex"><Dot tone="accent" label={t('{name} is on', { name: t(item.label) })} /></span>}
                   </div>
@@ -70,7 +70,7 @@ export function NavSidebar({ groups, active, onSelect, ti = true, tiLive, tiRunn
           <>
             <div aria-hidden className="mx-auto my-3 h-px w-8 shrink-0 bg-line" />
             <div className="relative">
-              <RailButton glyph={<AiMark size={18} live={tiLive} />} label="TI" tone="gold" hint={t('Ask TI to work the map')} kbd="T"
+              <RailButton glyph={<AiMark size={18} live={tiLive} />} label="TI" tone="gold" hint={t('Ask TI to work the map')} kbd="T" tour="ai"
                 active={active === 'ai'} pressed={active === 'ai'} onClick={() => onSelect('ai')} />
               {/* Dot is position: relative itself, so a wrapper places it. */}
               {tiRunning && <span className="pointer-events-none absolute top-2 right-3 flex"><Dot tone="gold" pulse label={t('TI is working')} /></span>}

@@ -32,7 +32,7 @@ export function Dock({ tool, onClose, children }: { tool: ToolId | null; onClose
   };
 
   return (
-    <div ref={root} data-hud onKeyDown={keepOpen}
+    <div ref={root} data-hud data-tour="dock" data-tool={tool ?? undefined} onKeyDown={keepOpen}
       className={cx('absolute top-0 bottom-[var(--shell-foot,28px)] z-[250] flex flex-col', tool === null && 'pointer-events-none')}
       style={{ left: NAV_WIDTH, width: DOCK_WIDTH }}>
       {children}

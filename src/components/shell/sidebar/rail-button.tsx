@@ -23,7 +23,7 @@ export function AnchorBox({ className, children }: { className?: string; childre
 }
 
 /** One sidebar entry: an 18 px glyph over an 11 px label. Active is a neutral fill with a 2 px bar on the sidebar's edge. */
-export function RailButton({ glyph, label, hint, kbd, active = false, tone = 'accent', badge, pressed, onClick, ...trigger }: TriggerProps & {
+export function RailButton({ glyph, label, hint, kbd, active = false, tone = 'accent', badge, pressed, tour, onClick, ...trigger }: TriggerProps & {
   glyph: ReactNode;
   label: ReactNode;
   /** Tooltip, to the right: what the entry is for. */
@@ -35,6 +35,8 @@ export function RailButton({ glyph, label, hint, kbd, active = false, tone = 'ac
   badge?: number;
   /** For toggles (sidebar panels); menus use aria-expanded instead. */
   pressed?: boolean;
+  /** Its mark for the map tour. */
+  tour?: string;
 }) {
   const gold = tone === 'gold';
   const open = trigger['aria-expanded'];
@@ -47,6 +49,7 @@ export function RailButton({ glyph, label, hint, kbd, active = false, tone = 'ac
             type="button"
             onClick={onClick}
             aria-pressed={pressed}
+            data-tour={tour}
             {...trigger}
             className={cx(
               'relative flex h-12 w-full flex-col items-center justify-center gap-1 rounded-card select-none',

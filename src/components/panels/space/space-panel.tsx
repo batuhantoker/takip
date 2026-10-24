@@ -6,6 +6,7 @@ import { Panel } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
 import { Segmented, segmentId, type SegmentedOption } from '@/components/ui/segmented';
 import { useT } from '@/components/ui/use-t';
+import { HowThisWorks } from '@/components/shell/tour/how-to';
 import { msg } from '@/lib/core/i18n/translator';
 import { age } from '@/lib/space/format';
 import CraftList from '@/components/panels/space/parts/craft-list';
@@ -82,7 +83,8 @@ export default function SpaceDock({ onClose, embedded }: { onClose: () => void; 
   );
 
   return (
-    <Panel<Tab> title={t('Space')} subtitle={subtitle} onClose={onClose} bare tabs={{ value: tab, onChange: setTab, options: tabs }}>
+    <Panel<Tab> title={t('Space')} subtitle={subtitle} onClose={onClose} bare tabs={{ value: tab, onChange: setTab, options: tabs }}
+      actions={<HowThisWorks stop="space" />}>
       {searchable && (
         <div className={cx('shrink-0 border-b px-4 pb-2 transition-colors duration-150', scrolled ? 'border-line' : 'border-transparent')}>
           <SearchField value={query} onChange={setQuery} autoComplete="off" spellCheck={false} placeholder={placeholder} />
