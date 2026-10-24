@@ -1,29 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { cx, FOCUS_RING } from '@/components/ui/class-names';
+import { cx } from '@/components/ui/class-names';
 import { LINK_BUTTON, Section, SiteFrame, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { requestLocale } from '@/lib/core/i18n/request';
-import type { Translate } from '@/lib/core/i18n/translator';
 import { comparePath } from '@/lib/platform/site/compare/compare';
+import { countryOptions, pickerOptions } from '@/lib/platform/site/compare/countries';
 import { comparedWith } from '@/lib/platform/site/compare/pairs';
 import { worldPath } from '@/lib/platform/site/compare/world';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { readingMetadata } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
-import { placeById } from '@/lib/platform/site/places/gazetteer';
-import type { Place } from '@/lib/platform/site/places/place';
 import { INDICATOR_GROUPS, INDICATORS } from '@/lib/platform/site/places/topics/indicators-data';
-import { indicatorTable } from '@/lib/platform/site/places/topics/indicators-table';
 import { siteText } from '@/lib/platform/site/text';
-
-/** Every country with numbers, by name in the reader's language. */
-function countries(t: Translate): { place: Place; name: string }[] {
-  const collator = new Intl.Collator(t.intl);
-  return Object.keys(indicatorTable().rows).flatMap(id => {
-    const place = placeById(Number(id));
-    return place ? [{ place, name: nameOf(place, t) }] : [];
-  }).sort((x, y) => collator.compare(x.name, y.name));
-}
+import { CountryPicker } from './parts/country-picker';
 
 export async function compareIndexMetadata(): Promise<Metadata> {
   const { t, locale } = await siteText((await requestLocale()).locale);
@@ -34,13 +23,12 @@ export async function compareIndexMetadata(): Promise<Metadata> {
   });
 }
 
-const SELECT = cx('h-10 min-w-0 flex-1 rounded-control border border-line-strong bg-surface-2 px-3 text-[14px] text-ink-1', FOCUS_RING);
-
 /** /compare: pick any two countries, or follow the pairs people compare and each measure's world page. */
 export async function CompareIndex() {
   const text = await siteText((await requestLocale()).locale);
   const { t } = text;
-  const all = countries(t);
+  const all = countryOptions(t);
+  const options = pickerOptions(t);
   const listed = all.map(c => ({ ...c, partners: comparedWith(c.place) })).filter(c => c.partners.length);
   return (
     <SiteFrame t={t} path="/compare">
@@ -52,13 +40,11 @@ export async function CompareIndex() {
         </p>
         <form action={localePath(t.locale, '/compare')} method="get" className="mt-8 flex flex-col gap-3 sm:flex-row">
           {(['a', 'b'] as const).map((field, i) => (
-            <label key={field} className="flex min-w-0 flex-1 flex-col gap-1.5 text-[12px] text-ink-3">
-              {i ? t('Second country') : t('First country')}
-              <select name={field} required defaultValue="" className={SELECT}>
-                <option value="" disabled>{t('Choose a country')}</option>
-                {all.map(c => <option key={c.place.id} value={c.place.slug}>{c.name}</option>)}
-              </select>
-            </label>
+            <div key={field} className="flex min-w-0 flex-1 flex-col gap-1.5 text-[12px] text-ink-3">
+              <span aria-hidden>{i ? t('Second country') : t('First country')}</span>
+              <CountryPicker name={field} required look="field" options={options} label={i ? t('Second country') : t('First country')}
+                placeholder={t('Choose a country')} empty={t('No country matches')} />
+            </div>
           ))}
           <button type="submit" className={cx(LINK_BUTTON.primary, 'self-end')}>{t('Compare')}</button>
         </form>

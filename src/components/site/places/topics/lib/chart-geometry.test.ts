@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bandPath, domainOf, linePath, niceTicks, scales, yearTicks } from './chart-geometry';
+import { bandPath, domainOf, linePath, logTicks, niceTicks, scales, yearTicks } from './chart-geometry';
 
 describe('domainOf', () => {
   it('spans every series and opens to zero where the values sit near it', () => {
@@ -19,6 +19,21 @@ describe('niceTicks', () => {
     expect(niceTicks(47, 88)).toEqual([40, 60, 80, 100]);
     expect(niceTicks(0, 1)).toEqual([0, 0.25, 0.5, 0.75, 1]);
     expect(niceTicks(-2.4, 3.1)).toEqual([-4, -2, 0, 2, 4]);
+  });
+});
+
+describe('a log axis', () => {
+  it('never opens to zero, and ticks powers of ten or finer steps where they are few', () => {
+    expect(domainOf([[2000, [10, 1000]]], { log: true })!.y[0]).toBeGreaterThan(0);
+    expect(logTicks(5e5, 2e9)).toEqual([1e6, 1e7, 1e8, 1e9]);
+    expect(logTicks(3, 60)).toEqual([5, 10, 20, 50]);
+    expect(logTicks(60, 90)).toEqual([60, 70, 80, 90]);
+  });
+
+  it('puts each power of ten the same distance apart', () => {
+    const s = scales({ x: [0, 1], y: [1, 1000] }, true);
+    expect(s.y(1)).toBe(1000);
+    expect(s.y(10) - s.y(100)).toBeCloseTo(s.y(100) - s.y(1000));
   });
 });
 

@@ -1,7 +1,8 @@
 import type { Translate } from '@/lib/core/i18n/translator';
-import { DESCRIPTION_RANGE, EN, fit, nameOf, TITLE_MAX } from '../places/copy/format';
+import { DESCRIPTION_RANGE, EN, fit, listOf, nameOf, TITLE_MAX } from '../places/copy/format';
 import type { PlaceCopy } from '../places/topic';
 import { basisOf, formatNumber, formatValue, projectionName } from '../places/topics/indicators-facts';
+import type { IndicatorSeries, IndicatorSpec } from '../places/topics/indicators-data';
 import { PAIR_INDEX, pairFacts, type PairMeasure } from './compare';
 import { pairReasons, type CountryPair } from './pairs';
 
@@ -167,4 +168,33 @@ export function pairHighlights(pair: CountryPair, measures: PairMeasure[], t: Tr
       });
     return [{ metric: t(m.spec.label), line }];
   }).slice(0, MAX_HIGHLIGHTS);
+}
+
+/**
+ * With countries beyond the pair, where they all stand in the latest year they share, highest first, or else each
+ * one's latest figure: "Life expectancy in 2023, highest first: Greece: 81.9 years, Germany: 81 years and Türkiye: 77.2 years."
+ */
+export function groupSentence(spec: IndicatorSpec, entries: { name: string; series?: IndicatorSeries }[], t: Translate): string | undefined {
+  const have = entries.flatMap(e => (e.series ? [{ name: e.name, s: e.series }] : []));
+  if (!have.length) return undefined;
+  const v = (x: number) => formatValue(spec, x, t);
+  const metric = t(spec.label);
+  const valueIn = (s: IndicatorSeries, y: number) => s.e[1][y - s.e[0]] ?? null;
+  const latest = Math.min(...have.map(h => h.s.f.last[0]));
+  let year = latest;
+  while (year >= latest - 10 && have.some(h => valueIn(h.s, year) === null)) year--;
+  if (year >= latest - 10) {
+    const sorted = have.map(h => ({ name: h.name, x: valueIn(h.s, year)! })).sort((p, q) => q.x - p.x);
+    return t('{metric} in {year}, highest first: {list}.', { metric, year: at(year), list: listOf(sorted.map(h => t('{place}: {v}', { place: h.name, v: v(h.x) })), t) });
+  }
+  return t('{metric}, latest figures: {list}.', {
+    metric, list: listOf(have.map(h => t('{place}: {v} in {year}', { place: h.name, v: v(h.s.f.last[1]), year: at(h.s.f.last[0]) })), t),
+  });
+}
+
+/** A comparison of more than two: its heading, which also titles it, as the page stays out of search. */
+export function groupCopy(names: string[], n: number, t: Translate, spec?: IndicatorSpec): Pick<PlaceCopy, 'title' | 'heading'> & { lede?: string } {
+  const list = listOf(names, t);
+  const heading = spec ? t('{list}: {metric}', { list, metric: t(spec.label) }) : list;
+  return { title: heading, heading, ...(!spec && { lede: t('How {list} compare on {n} measures.', { list, n }) }) };
 }

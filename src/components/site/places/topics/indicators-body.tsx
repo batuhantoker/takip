@@ -31,7 +31,7 @@ import type { TopicView } from './view';
 function MeasureChart({ place, m, t }: { place: Place; m: IndicatorMeasure; t: Translate }) {
   const name = nameOf(place, t);
   return (
-    <MeasureChartCard id={`chart-${m.spec.slug}`} spec={m.spec} places={[{ label: name, series: m.series, slot: 0 }]} world={worldSeries(m.spec.slug)} t={t}
+    <MeasureChartCard id={`chart-${m.spec.slug}`} spec={m.spec} places={[{ label: name, series: m.series, slot: 0 }]} world={m.spec.total ? undefined : worldSeries(m.spec.slug)} t={t}
       title={t('{metric} in {place}', { metric: t(m.spec.label), place: name })} desc={indicatorSentences(m.spec, m.series, m.meta, name, t).slice(0, 2).join(' ')} />
   );
 }

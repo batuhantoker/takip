@@ -46,6 +46,8 @@ export interface IndicatorSpec {
   digits: number;
   /** The series the page is about: estimates or measurements, or a climate model's run where `modelled`. */
   main: SeriesRef;
+  /** A country's total, which the World's sums: drawn beside a country, the World's line flattens it. */
+  total?: true;
   /** Every value is a climate model's (CMIP6's median), its historical run and then its projection. */
   modelled?: true;
   /** Measurements rather than estimates (ERA5's reanalysis of observations). */
@@ -128,7 +130,7 @@ export const INDICATORS: readonly IndicatorSpec[] = [
     credit: 'IHME, Global Burden of Disease, via Our World in Data', by: 'IHME',
   },
   wpp('wpp:TPopulation1July', {
-    slug: 'population', group: 'people', label: msg('Population'),
+    slug: 'population', group: 'people', label: msg('Population'), total: true,
     about: msg('Everyone living in the country on 1 July of each year.'),
     unit: msg('people'), value: msg('{v} people'), style: 'count', digits: 0,
     earlier: { code: 'owid:population', source: 'owid-longrun', since: 1800, credit: 'HYDE (2023), Gapminder (2022) and UN WPP (2024), via Our World in Data', by: 'HYDE and Gapminder' },
@@ -235,7 +237,7 @@ export const INDICATORS: readonly IndicatorSpec[] = [
     credit: 'V-Dem (2026), via Our World in Data', by: 'V-Dem',
   },
   {
-    slug: 'conflict-deaths', group: 'conflict', label: msg('Deaths in conflicts'),
+    slug: 'conflict-deaths', group: 'conflict', label: msg('Deaths in conflicts'), total: true,
     about: msg('Soldiers and civilians killed in the year’s armed conflicts fought in the country, by the Uppsala Conflict Data Program’s best estimate.'),
     unit: msg('deaths a year'), value: msg('{v} deaths'), style: 'count', digits: 0,
     main: { code: 'owid:conflict_deaths_all', source: 'owid-conflict' }, map: { code: 'owid:conflict_deaths_all' },
@@ -249,7 +251,7 @@ export const INDICATORS: readonly IndicatorSpec[] = [
     main: { code: 'sipri:milex_gdp', source: SIPRI_SOURCE }, marks: true, map: { code: 'sipri:milex_gdp' }, credit: SIPRI, by: 'SIPRI',
   },
   {
-    slug: 'military-spending-in-dollars', group: 'military', label: msg('Military spending in US dollars'), short: msg('Military spending, US$'),
+    slug: 'military-spending-in-dollars', group: 'military', label: msg('Military spending in US dollars'), short: msg('Military spending, US$'), total: true,
     about: msg('What the country spends on its armed forces and defence, in constant 2024 US dollars so that years compare, by SIPRI’s count.'),
     unit: msg('US dollars at 2024 prices'), value: '{v}', style: 'usd', digits: 0,
     main: { code: 'sipri:milex_const_usd', source: SIPRI_SOURCE }, marks: true, map: { code: 'sipri:milex_const_usd' }, credit: SIPRI, by: 'SIPRI',
@@ -268,7 +270,7 @@ export const INDICATORS: readonly IndicatorSpec[] = [
   },
   // IISS's Military Balance figures, republished by the World Bank under its CC BY 4.0; COW's are free to use, cited as COW asks.
   {
-    slug: 'armed-forces', group: 'military', label: msg('Armed forces personnel'), short: msg('Armed forces'),
+    slug: 'armed-forces', group: 'military', label: msg('Armed forces personnel'), short: msg('Armed forces'), total: true,
     about: msg('Active-duty military personnel, with paramilitary forces where they are trained and equipped like soldiers, by the IISS Military Balance.'),
     unit: msg('people'), value: msg('{v} people'), style: 'count', digits: 0,
     main: { code: 'wdi:MS.MIL.TOTL.P1', source: 'wdi' }, map: { code: 'wdi:MS.MIL.TOTL.P1' }, credit: IISS, by: 'IISS',
@@ -287,13 +289,13 @@ export const INDICATORS: readonly IndicatorSpec[] = [
     main: { code: 'wdi:MS.MIL.TOTL.TF.ZS', source: 'wdi' }, map: { code: 'wdi:MS.MIL.TOTL.TF.ZS' }, credit: IISS, by: 'IISS',
   },
   {
-    slug: 'arms-imports', group: 'military', label: msg('Arms imports'),
+    slug: 'arms-imports', group: 'military', label: msg('Arms imports'), total: true,
     about: msg('Major weapons the country received, in SIPRI trend-indicator values (TIV): what the arms are worth as military capability, priced by their production cost, not what was paid.'),
     unit: msg('SIPRI trend-indicator values'), value: msg('{v} TIV'), style: 'count', digits: 0,
     main: { code: 'wdi:MS.MIL.MPRT.KD', source: 'wdi' }, map: { code: 'wdi:MS.MIL.MPRT.KD' }, credit: SIPRI_ARMS, by: 'SIPRI',
   },
   {
-    slug: 'arms-exports', group: 'military', label: msg('Arms exports'),
+    slug: 'arms-exports', group: 'military', label: msg('Arms exports'), total: true,
     about: msg('Major weapons the country sent abroad, in SIPRI trend-indicator values (TIV): what the arms are worth as military capability, priced by their production cost, not what was paid.'),
     unit: msg('SIPRI trend-indicator values'), value: msg('{v} TIV'), style: 'count', digits: 0,
     main: { code: 'wdi:MS.MIL.XPRT.KD', source: 'wdi' }, map: { code: 'wdi:MS.MIL.XPRT.KD' }, credit: SIPRI_ARMS, by: 'SIPRI',

@@ -14,14 +14,18 @@ export type Domain = { x: [number, number]; y: [number, number] };
 export const points = ([from, values]: Yearly): [number, number][] =>
   values.flatMap((v, i) => (v === null ? [] : [[from + i, v] as [number, number]]));
 
-/** The years and values every series spans, the value range opened to include zero where it is close. */
-export function domainOf(series: (Yearly | undefined)[]): Domain | null {
+/**
+ * The years and values every series spans, the value range opened to include zero where it is close; on a log axis,
+ * which has no zero, opened a little either side instead.
+ */
+export function domainOf(series: (Yearly | undefined)[], { log = false } = {}): Domain | null {
   const all = series.flatMap(s => (s ? points(s) : []));
   if (!all.length) return null;
   const xs = all.map(p => p[0]);
   const ys = all.map(p => p[1]);
   let lo = Math.min(...ys);
   let hi = Math.max(...ys);
+  if (log) return { x: [Math.min(...xs), Math.max(...xs)], y: lo === hi ? [lo / 2, hi * 2] : [lo / 1.1, hi * 1.1] };
   // A series that stays above zero reads truest from zero, unless that flattens it to a line.
   if (lo > 0 && lo < hi * 0.4) lo = 0;
   if (lo === hi) {
@@ -45,6 +49,22 @@ export function niceTicks(lo: number, hi: number, count = 4): number[] {
   return out;
 }
 
+/** Ticks inside [lo, hi] on a log axis: powers of ten, or with 2s and 5s, or every digit, whichever gives three or more. */
+export function logTicks(lo: number, hi: number): number[] {
+  const within = (steps: number[]) => {
+    const out: number[] = [];
+    for (let e = Math.floor(Math.log10(lo)); e <= Math.ceil(Math.log10(hi)); e++) {
+      for (const step of steps) {
+        const v = Number((step * 10 ** e).toPrecision(12));
+        if (v >= lo && v <= hi) out.push(v);
+      }
+    }
+    return out;
+  };
+  const ticks = [[1], [1, 2, 5], [1, 2, 3, 4, 5, 6, 7, 8, 9]].map(within).find(t => t.length >= 3);
+  return ticks ?? niceTicks(lo, hi).filter(v => v >= lo && v <= hi);
+}
+
 /** Years to label: round decades or centuries, about `count` of them, inside the span. */
 export function yearTicks(from: number, to: number, count = 5): number[] {
   const span = Math.max(1, to - from);
@@ -54,12 +74,12 @@ export function yearTicks(from: number, to: number, count = 5): number[] {
   return out;
 }
 
-export function scales(d: Domain) {
+export function scales(d: Domain, log = false) {
   const [x0, x1] = d.x;
-  const [y0, y1] = d.y;
+  const [y0, y1] = log ? d.y.map(Math.log) : d.y;
   return {
     x: (year: number) => (x1 === x0 ? BOX / 2 : ((year - x0) / (x1 - x0)) * BOX),
-    y: (v: number) => BOX - ((v - y0) / (y1 - y0)) * BOX,
+    y: (v: number) => BOX - (((log ? Math.log(v) : v) - y0) / (y1 - y0)) * BOX,
   };
 }
 

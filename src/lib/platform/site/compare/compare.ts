@@ -1,3 +1,5 @@
+import { MAX_LINK_COUNTRIES } from '@/lib/map/view-mode-link';
+import type { Place } from '../places/place';
 import type { MapLink } from '../places/topic';
 import { HUB_INDEX, indicatorIndexed } from '../places/topics/indicators-facts';
 import { INDICATORS, type IndicatorMetricMeta, type IndicatorSeries, type IndicatorSpec, type Yearly } from '../places/topics/indicators-data';
@@ -93,12 +95,12 @@ export function pairFacts(m: Pick<PairMeasure, 'a' | 'b' | 'common'>): PairFacts
   return { year, av: a.get(year)!, bv: b.get(year)!, lead, since: years[i], ...(i > 0 && { before: leadIn(years[i - 1]) }), from: years[0] };
 }
 
-/** History colouring the countries by the measure (life expectancy for an overview) with both countries charted. */
-export function pairOpen(pair: CountryPair, measures: PairMeasure[], current?: PairMeasure): MapLink | undefined {
+/** History colouring the countries by the measure (life expectancy for an overview) with the countries charted, as many as it takes. */
+export function pairOpen(pair: CountryPair, measures: PairMeasure[], current?: PairMeasure, extra: Place[] = []): MapLink | undefined {
   const m = current ?? measures.find(x => x.spec.slug === 'life-expectancy') ?? measures[0];
   if (!m) return undefined;
   const from = Math.max(Math.min(m.a.f.first[0], m.b.f.first[0]), -2999);
-  const countries = [indicatorRow(pair.a.id)?.key, indicatorRow(pair.b.id)?.key].filter((k): k is string => !!k);
+  const countries = [pair.a, pair.b, ...extra].map(p => indicatorRow(p.id)?.key).filter((k): k is string => !!k).slice(0, MAX_LINK_COUNTRIES);
   return {
     mode: {
       view: 'history', year: from, layer: null, range: { from, to: new Date().getUTCFullYear() },

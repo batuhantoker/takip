@@ -7,48 +7,27 @@ import { IndicatorTable } from '@/components/site/places/topics/parts/indicator-
 import { measureTable } from '@/components/site/places/topics/parts/measure-chart';
 import { Points } from '@/components/site/places/topics/parts/stat-tiles';
 import type { Translate } from '@/lib/core/i18n/translator';
-import { comparePath, type PairMeasure } from '@/lib/platform/site/compare/compare';
+import type { PairMeasure } from '@/lib/platform/site/compare/compare';
 import { pairSentences } from '@/lib/platform/site/compare/compare-copy';
 import type { CountryPair } from '@/lib/platform/site/compare/pairs';
 import { worldPath } from '@/lib/platform/site/compare/world';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { listOf } from '@/lib/platform/site/places/copy/format';
+import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
-import { HEADLINE, HUB_SLUG } from '@/lib/platform/site/places/topics/indicators';
-import { INDICATOR_GROUPS } from '@/lib/platform/site/places/topics/indicators-data';
+import { HUB_SLUG } from '@/lib/platform/site/places/topics/indicators';
 import type { SiteText } from '@/lib/platform/site/text';
-import { PairCard } from './pair-card';
+import type { Entry } from './compare-chart';
+import { LatestTable } from './latest-table';
 
 const LAYERS = ['country-data-over-time'];
 
-type Props = { text: SiteText; pair: CountryPair; names: [string, string]; measures: PairMeasure[] };
-
 const href = (t: Translate, path: string) => localePath(t.locale, path);
 
-/** Every measure the two share, under its group's name, each leading to its comparison. */
-function PairGroups({ pair, names, measures, t, skip }: Omit<Props, 'text'> & { t: Translate; skip?: string }) {
-  return (
-    <div className="flex flex-col gap-8">
-      {INDICATOR_GROUPS.map(g => {
-        const inGroup = measures.filter(m => m.spec.group === g.id && m.spec.slug !== skip);
-        if (!inGroup.length) return null;
-        return (
-          <section key={g.id}>
-            <h3 className="text-[15px] font-semibold text-ink-1">{t(g.label)}</h3>
-            <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {inGroup.map(m => <li key={m.spec.slug}><PairCard href={href(t, comparePath(pair, m.spec.slug))} names={names} m={m} t={t} /></li>)}
-            </ul>
-          </section>
-        );
-      })}
-    </div>
-  );
-}
-
 /** Each country's own pages, and the measure around the world. */
-function OwnPages({ pair, names, t, slug }: { pair: CountryPair; names: [string, string]; t: Translate; slug?: string }) {
+function OwnPages({ places, names, t, slug }: { places: Place[]; names: string[]; t: Translate; slug?: string }) {
   const links = [
-    ...[pair.a, pair.b].map((p, i) => ({ path: placePath(p, slug ?? HUB_SLUG), label: slug ? names[i] : t('{place} in numbers', { place: names[i] }) })),
+    ...places.map((p, i) => ({ path: placePath(p, slug ?? HUB_SLUG), label: slug ? names[i] : t('{place} in numbers', { place: names[i] }) })),
     ...(slug ? [{ path: worldPath(slug), label: t('Around the world') }] : []),
   ];
   return (
@@ -58,31 +37,13 @@ function OwnPages({ pair, names, t, slug }: { pair: CountryPair; names: [string,
   );
 }
 
-export function PairOverviewHero({ pair, names, measures, t }: Omit<Props, 'text'> & { t: Translate }) {
-  const shown = [...HEADLINE.flatMap(slug => measures.filter(m => m.spec.slug === slug)), ...measures.filter(m => !HEADLINE.includes(m.spec.slug))].slice(0, 4);
-  return (
-    <ul className="grid grid-cols-2 gap-3">
-      {shown.map(m => <li key={m.spec.slug}><PairCard href={href(t, comparePath(pair, m.spec.slug))} names={names} m={m} t={t} big /></li>)}
-    </ul>
-  );
-}
-
-/** Every measure the two share, across the page's whole width; on a measure's page, the others. */
-export function PairMeasureGrid({ text: { t }, pair, names, measures, skip }: Props & { skip?: string }) {
-  return (
-    <Section title={skip ? t('{a} vs {b}', { a: names[0], b: names[1] }) : t('Every measure')}>
-      <PairGroups pair={pair} names={names} measures={measures} t={t} skip={skip} />
-    </Section>
-  );
-}
-
-export function PairOverviewBody({ text, pair, names, measures }: Props) {
+export function PairOverviewBody({ text, places, names, measures }: { text: SiteText; places: Place[]; names: string[]; measures: PairMeasure[] }) {
   const { t } = text;
   const by = [...new Set(measures.map(m => m.spec.by))];
   return (
     <>
       <Section title={t('Each country on its own')}>
-        <OwnPages pair={pair} names={names} t={t} />
+        <OwnPages places={places} names={names} t={t} />
       </Section>
       <Notes text={text} layers={LAYERS} notes={[
         t('Sources: {list}. Each measure’s page names its own and what it counts.', { list: listOf(by, t) }),
@@ -92,24 +53,28 @@ export function PairOverviewBody({ text, pair, names, measures }: Props) {
   );
 }
 
-export function PairMeasureBody({ text, pair, names, m }: Omit<Props, 'measures'> & { m: PairMeasure }) {
+/** A measure's figures under its chart; the pair's own sentences only while just the two are compared. */
+export function PairMeasureBody({ text, pair, places, entries, m }: { text: SiteText; pair: CountryPair; places: Place[]; entries: Entry[]; m: PairMeasure }) {
   const { t } = text;
-  const rest = pairSentences(pair, m, t).slice(2);
-  const places = [{ label: names[0], series: m.a, slot: 0 }, { label: names[1], series: m.b, slot: 1 }];
+  const rest = places.length === 2 ? pairSentences(pair, m, t).slice(2) : [];
+  const charted = entries.flatMap(e => (e.series ? [{ label: e.label, series: e.series, slot: e.slot }] : []));
   return (
     <>
+      <Section title={t('Latest figures')}>
+        <LatestTable spec={m.spec} rows={entries} meta={m.meta} t={t} />
+      </Section>
       {rest.length > 0 && (
         <Section title={t('What the numbers say')}>
           <Points points={rest} />
         </Section>
       )}
       <Section title={t('Every year')}>
-        <IndicatorTable year={t('Year')} words={chartWords(t)} {...measureTable(m.spec, places, m.meta?.world, t)} />
+        <IndicatorTable year={t('Year')} words={chartWords(t)} {...measureTable(m.spec, charted, m.meta?.world, t)} />
       </Section>
       <Section title={t('Each country on its own')}>
-        <OwnPages pair={pair} names={names} t={t} slug={m.spec.slug} />
+        <OwnPages places={places.filter((_, i) => entries[i].series)} names={entries.flatMap(e => (e.series ? [e.label] : []))} t={t} slug={m.spec.slug} />
       </Section>
-      <Notes text={text} layers={LAYERS} notes={indicatorNotes(m.spec, [m.a, m.b], m.meta, t)} />
+      <Notes text={text} layers={LAYERS} notes={indicatorNotes(m.spec, charted.map(c => c.series), m.meta, t)} />
     </>
   );
 }

@@ -24,7 +24,7 @@ export function proxy(request: NextRequest) {
   const split = splitLocalePath(pathname);
   // /compare/turkey-vs-greece is /compare/greece-vs-turkey.
   const canonical = split && reversedPairPath(split.path);
-  if (split && canonical) return NextResponse.redirect(new URL(localePath(split.locale, canonical), request.url), 308);
+  if (split && canonical) return NextResponse.redirect(new URL(localePath(split.locale, canonical) + request.nextUrl.search, request.url), 308);
   // An English page reached from outside goes to the reader's language; temporary and per reader, so never cached.
   const elsewhere = split && split.path === pathname && (request.method === 'GET' || request.method === 'HEAD')
     ? languageRedirect(pathname, request.nextUrl.search, request.headers, request.cookies.get(LOCALE_COOKIE)?.value)

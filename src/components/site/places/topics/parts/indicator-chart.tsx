@@ -1,6 +1,6 @@
 import { cx } from '@/components/ui/class-names';
 import type { Yearly } from '@/lib/platform/site/places/topics/indicators-data';
-import { bandPath, BOX, domainOf, linePath, niceTicks, pct, points, scales, yearTicks } from '../lib/chart-geometry';
+import { bandPath, BOX, domainOf, linePath, logTicks, niceTicks, pct, points, scales, yearTicks } from '../lib/chart-geometry';
 import { ChartHover, type HoverRow } from './chart-hover';
 import { SparkYears } from './spark-years';
 
@@ -107,7 +107,7 @@ function hoverRows(lines: ChartLine[], value: (v: number) => string, words: Char
   }));
 }
 
-export function IndicatorChart({ id, lines, legend, title, desc, tick, value, words, size = 'hero' }: {
+export function IndicatorChart({ id, lines, legend, title, desc, tick, value, words, size = 'hero', log = false }: {
   id: string;
   lines: ChartLine[];
   legend: LegendItem[];
@@ -119,13 +119,15 @@ export function IndicatorChart({ id, lines, legend, title, desc, tick, value, wo
   value: (v: number) => string;
   /** "Projected" at the projection's start, and what the tooltip calls a projected, modelled, estimated or uncertain value. */
   words: ChartWords;
-  size?: 'hero' | 'body';
+  size?: 'hero' | 'body' | 'wide';
+  /** A log value axis; every value must be above zero. */
+  log?: boolean;
 }) {
-  const domain = domainOf(lines.flatMap(l => [l.e, l.l, l.m, l.p, l.lo, l.hi]));
+  const domain = domainOf(lines.flatMap(l => [l.e, l.l, l.m, l.p, l.lo, l.hi]), { log });
   if (!domain) return null;
-  const yTicks = niceTicks(domain.y[0], domain.y[1]);
-  const full = { ...domain, y: [yTicks[0], yTicks[yTicks.length - 1]] as [number, number] };
-  const sc = scales(full);
+  const yTicks = log ? logTicks(domain.y[0], domain.y[1]) : niceTicks(domain.y[0], domain.y[1]);
+  const full = log ? domain : { ...domain, y: [yTicks[0], yTicks[yTicks.length - 1]] as [number, number] };
+  const sc = scales(full, log);
   const xTicks = yearTicks(full.x[0], full.x[1]);
   const lead = lines.find(l => !l.faint);
   const end = last(lead?.e);
@@ -136,7 +138,7 @@ export function IndicatorChart({ id, lines, legend, title, desc, tick, value, wo
 
   return (
     <figure className="w-full">
-      <div className={cx('relative w-full', size === 'hero' ? 'h-[240px] sm:h-[300px]' : 'h-[200px] sm:h-[240px]')}>
+      <div className={cx('relative w-full', { hero: 'h-[240px] sm:h-[300px]', body: 'h-[200px] sm:h-[240px]', wide: 'h-[260px] sm:h-[380px]' }[size])}>
         <div className="absolute inset-y-0 left-0 w-14" aria-hidden>
           {yTicks.map(v => (
             <span key={v} className="absolute right-2 -translate-y-1/2 font-mono text-[11px] text-ink-3 tabular-nums"

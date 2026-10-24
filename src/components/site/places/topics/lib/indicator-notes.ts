@@ -16,6 +16,6 @@ export function indicatorNotes(spec: IndicatorSpec, series: IndicatorSeries[], m
     ...(spec.modelled || spec.model ? [t('Climate model values are the median of the CMIP6 models, run on past emissions to 2014 and on SSP2-4.5, a middle-of-the-road path, after: they are not measurements.')] : []),
     ...(any(s => s.est || s.unc) ? [t('Marked points are {by}’s own: a dot where it gives the figure as its estimate, a ring where it calls the figure highly uncertain.', { by: spec.by })] : []),
     ...(ranked && meta?.rankYear !== undefined ? [t('Ranks count the {n} countries with a value in {year}, highest first.', { n: ranked[1], year: String(meta.rankYear) })] : []),
-    ...(meta?.world ? [t('The faint line is the world as a whole, as the same source counts it.')] : []),
+    ...(meta?.world && !spec.total ? [t('The faint line is the world as a whole, as the same source counts it.')] : []),
   ];
 }
