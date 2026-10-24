@@ -3,7 +3,7 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { IconButton } from './button';
-import { cx, type IconType } from './class-names';
+import { cx, type DataAttributes, type IconType } from './class-names';
 import { Segmented, segmentId, type SegmentedOption } from './segmented';
 import { useEscape } from './use-escape';
 import { useT } from './use-t';
@@ -94,7 +94,7 @@ export function Panel<T extends string = string>({
 }
 
 /** A labelled group inside a panel body. The label is 11 px, sentence case, ink-3. */
-export function PanelSection({ title, hint, action, className, children }: {
+export function PanelSection({ title, hint, action, className, children, ...data }: DataAttributes & {
   title?: ReactNode;
   /** Quiet context after the label: a count, a time. */
   hint?: ReactNode;
@@ -105,7 +105,7 @@ export function PanelSection({ title, hint, action, className, children }: {
 }) {
   const id = useId();
   return (
-    <section aria-labelledby={title ? id : undefined} className={cx('not-first:mt-6', className)}>
+    <section aria-labelledby={title ? id : undefined} className={cx('not-first:mt-6', className)} {...data}>
       {(title || action) && (
         <div className="mb-2 flex min-h-5 items-center gap-2">
           <h3 id={id} className="min-w-0 flex-1 truncate text-meta font-medium text-ink-3">

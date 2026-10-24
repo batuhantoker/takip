@@ -459,7 +459,8 @@ export default function Dashboard() {
       {!isMobile && (
         <>
           <TourOffer ready={splash.splashGone} />
-          <MapTour activeTool={activeTool} setActiveTool={setActiveTool} onStart={() => { setAiTheater(false); exitSpace(); }} />
+          <MapTour activeTool={activeTool} setActiveTool={setActiveTool} onStart={() => { setAiTheater(false); exitSpace(); }}
+            history={{ running: !!history.session, start: startHistory, exit: exitHistory }} />
         </>
       )}
     </main>

@@ -155,7 +155,7 @@ tools/    dev.mjs (web + api)  screenshot.mjs (headless Chrome with a session co
 - **Operator CLIs:**
   - `npm run plan -- plans | show <email> | grant <email> <plan> [--until YYYY-MM-DD] | revoke | set <plan> <key> <value> | override | unoverride`
   - `npm run admin -- list | promote <email> | demote <email>`
-- **The user is an admin:** `hello@takip.dev`, Google sign-in, 2FA on. Opening `/admin` asks them for a code every 12 hours.
+- **The user is an admin:** `hello@takip.dev`, Google sign-in, 2FA on. Opening `/admin` asks them for a code every 3 days (12 hours until 2026-10-24).
 
 ### 1.5 Known gaps (not bugs in what's built; things not done)
 

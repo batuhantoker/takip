@@ -54,7 +54,7 @@ describe('admin gate', () => {
     expect(await json(await call(jar, 'GET', '/api/admin/users'))).toEqual({ error: 'two_factor_required' });
   });
 
-  it('asks each session for a code, then stays open for 12 hours', async () => {
+  it('asks each session for a code, then stays open for 3 days', async () => {
     const { jar, secret } = await admin({ unlocked: false });
     expect(await json(await call(jar, 'GET', '/api/admin/users'))).toEqual({ error: 'unlock_required' });
     expect(await json(await call(jar, 'GET', '/api/admin/status'))).toEqual({
@@ -66,7 +66,10 @@ describe('admin gate', () => {
     expect((await call(jar, 'GET', '/api/admin/users')).status).toBe(200);
 
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(Date.now() + 13 * HOURS);
+    const start = Date.now();
+    vi.setSystemTime(start + 48 * HOURS);
+    expect((await call(jar, 'GET', '/api/admin/users')).status).toBe(200);
+    vi.setSystemTime(start + 73 * HOURS);
     expect(await json(await call(jar, 'GET', '/api/admin/users'))).toEqual({ error: 'unlock_required' });
   });
 

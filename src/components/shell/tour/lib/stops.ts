@@ -4,6 +4,9 @@ import { msg } from '@/lib/core/i18n/translator';
 
 export type StopId = 'layout' | 'basemap' | 'layers' | 'history' | 'space' | 'recon' | 'ai';
 
+/** A section the panel can't mark itself, such as the Panel kit's tabs or the timeline under the map. */
+export type StaticPart = { selector: string; title: string; body: string };
+
 export type Stop = {
   id: StopId;
   title: string;
@@ -20,6 +23,11 @@ export type Stop = {
   tool?: ToolId;
   /** Opened for the stop even when it was closed; only panels that don't change the map. */
   opens?: boolean;
+  /**
+   * The stop can show its panel from inside, section by section: the panel's own sections marked with
+   * tourPart(), and these, in the order they sit on screen.
+   */
+  inside?: StaticPart[];
 };
 
 /** The tour, in the order it plays. The targets are `data-tour` marks on the shell's own pieces. */
@@ -33,7 +41,7 @@ export const STOPS: Stop[] = [
   },
   {
     id: 'basemap',
-    title: msg('Base map and looks'),
+    title: msg('Base map and options'),
     body: msg('Dark, Satellite or Topo, and under them how the map is drawn: day and night, 3D buildings and terrain, the theme, and the Style studio for your own colours and type.'),
     hint: msg('Satellite, topo, 3D and the Style studio'),
     targets: ['[role="dialog"]:has([data-tour="basemap-menu"])', '[data-tour="basemap"]'],
@@ -49,6 +57,7 @@ export const STOPS: Stop[] = [
     kbd: 'L',
     tool: 'layers',
     opens: true,
+    inside: [],
   },
   {
     id: 'history',
@@ -59,6 +68,11 @@ export const STOPS: Stop[] = [
     side: 'right',
     kbd: 'H',
     tool: 'history',
+    inside: [{
+      selector: '[data-timeline]',
+      title: msg('Timeline'),
+      body: msg('Drag or play through time. J goes to a date, Space plays and pauses, and Back to live ends History.'),
+    }],
   },
   {
     id: 'space',
@@ -69,6 +83,11 @@ export const STOPS: Stop[] = [
     side: 'top',
     align: 'start',
     tool: 'space',
+    inside: [{
+      selector: '[data-tour="dock"] [role="tablist"]',
+      title: msg('Spacecraft, planets and the ISS'),
+      body: msg('Spacecraft lists every craft JPL Horizons can place right now, Planets the stars known to have planets, and ISS live the station’s outside cameras.'),
+    }],
   },
   {
     id: 'recon',
@@ -80,6 +99,7 @@ export const STOPS: Stop[] = [
     kbd: 'I',
     tool: 'recon',
     opens: true,
+    inside: [],
   },
   {
     id: 'ai',

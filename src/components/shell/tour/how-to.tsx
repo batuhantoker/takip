@@ -32,8 +32,8 @@ export function HowTo() {
   );
 }
 
-/** A panel's own way into the tour, on its stop. */
+/** A panel's own way into the tour: a look through what is inside it, then on to the next stop. */
 export function HowThisWorks({ stop }: { stop: StopId }) {
   const t = useT();
-  return <IconButton label={t('How this works')} icon={CircleHelp} onClick={() => startTour(STOPS.findIndex(s => s.id === stop))} />;
+  return <IconButton label={t('How this works')} icon={CircleHelp} onClick={() => startTour(STOPS.findIndex(s => s.id === stop), 0)} />;
 }

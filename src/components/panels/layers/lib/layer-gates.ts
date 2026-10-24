@@ -4,10 +4,13 @@ import { groupSections, sectionFor } from './layer-sections';
 
 const isPlanSection = (id: string | null): id is MapLayerSection => (MAP_LAYER_SECTIONS as readonly string[]).includes(id ?? '');
 
+// Shown under Live News in the panel, but gated with Conflict.
+const PLAN_SECTION: Record<string, MapLayerSection> = { gdelt_events: 'conflict' };
+
 // Display toggles and groups that land in Other belong to no plan section, so no plan can close them.
 const SECTION_OF = new Map(LAYER_GROUPS.flatMap(g => {
   const section = sectionFor(g.label);
-  return isPlanSection(section) ? g.layers.map(l => [l.key, section] as const) : [];
+  return isPlanSection(section) ? g.layers.map(l => [l.key, PLAN_SECTION[l.key] ?? section] as const) : [];
 }));
 
 const TITLES = new Map(groupSections(LAYER_GROUPS).map(s => [s.id, s.title]));

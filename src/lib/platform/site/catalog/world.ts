@@ -4,7 +4,7 @@ export const WORLD: LayerPage[] = [
   {
     slug: 'world-news-map',
     section: 'world',
-    layers: ['alert_pins', 'gdelt_events'],
+    layers: ['alert_pins', 'live_news', 'gdelt_events'],
     title: 'World news map: breaking news and events by place',
     description: 'Breaking news placed on a live map: reports from news wires and public Telegram channels pinned to the places they name, beside GDELT’s coded events.',
     heading: 'World news on the map',

@@ -24,6 +24,11 @@ const GROUPS: { id: string; label: string; actions: Record<string, string> }[] =
   },
   { id: 'map', label: 'Layers & map', actions: { 'layer.on': 'Layers switched on', 'layer.off': 'Layers switched off', 'basemap.change': 'Base map changed' } },
   { id: 'account', label: 'Account', actions: { 'account.sign_up_open': 'Opened sign-up', 'account.sign_in_open': 'Opened sign-in' } },
+  {
+    id: 'tour',
+    label: 'Tour',
+    actions: { 'tour.offer': 'Offered on a first visit', 'tour.decline': 'Offer turned down', 'tour.start': 'Tours started', 'tour.inside': 'Looked inside a panel', 'tour.skip': 'Stopped before the end', 'tour.finish': 'Tours finished' },
+  },
 ];
 
 const OTHER = { id: 'other', label: 'Other' };

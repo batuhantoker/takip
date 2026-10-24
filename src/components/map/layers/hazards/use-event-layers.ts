@@ -24,7 +24,7 @@ export function useIncidentLayers({ mapReady, data, activeLayers, setGeo }: Laye
   useEffect(() => {
     if (!mapReady) return;
     const al = activeLayers as any;
-    setGeo('gdelt-events', al.gdelt_events && data.gdelt_events ? data.gdelt_events.map((e: any) => ({
+    setGeo('gdelt-events', al.live_news && al.gdelt_events && data.gdelt_events ? data.gdelt_events.map((e: any) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [e.lng, e.lat] },
       properties: {
@@ -34,7 +34,7 @@ export function useIncidentLayers({ mapReady, data, activeLayers, setGeo }: Laye
         first_seen: e.first_seen, last_seen: e.last_seen,
       },
     })) : []);
-  }, [mapReady, data.gdelt_events, (activeLayers as any).gdelt_events, setGeo]);
+  }, [mapReady, data.gdelt_events, activeLayers.live_news, (activeLayers as any).gdelt_events, setGeo]);
 }
 
 export function useConflictZones({ mapReady, activeLayers, setGeo }: Pick<LayerHookArgs, 'mapReady' | 'activeLayers' | 'setGeo'>) {

@@ -1,75 +1,46 @@
 'use client';
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type WheelEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
-import { Button, IconButton } from '@/components/ui/button';
 import { cx, ENTER } from '@/components/ui/class-names';
-import { Kbd } from '@/components/ui/kbd';
-import { ENTER_FROM, place, type Align, type Side } from '@/components/ui/position';
-import { useT } from '@/components/ui/use-t';
-import { showSettingsTab } from '@/components/shell/settings/open-settings';
-import { STOPS, type Stop } from '../lib/stops';
-import { endTour, stepTour } from '../tour-state';
+import { place, type Align, type Side } from '@/components/ui/position';
+import { measure, partInView, partsOf, sameShot, scrollerOf, scrollToPart, type Shot } from '../lib/measure';
+import { STOPS } from '../lib/stops';
+import { endTour, setTourPart, stepTour, tourPart, useTourPart } from '../tour-state';
+import { TourCard } from './tour-card';
 
-type Box = { x: number; y: number; w: number; h: number };
-
-const PAD = 4;
 const IGNORED = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Fn']);
+const BACK = new Set(['ArrowLeft', 'ArrowUp', 'Backspace']);
 
-function onScreen(el: Element): Box | null {
-  const r = el.getBoundingClientRect();
-  if (r.width < 2 || r.height < 2 || r.right < 0 || r.bottom < 0 || r.left > innerWidth || r.top > innerHeight) return null;
-  if (getComputedStyle(el).visibility === 'hidden') return null;
-  return { x: r.left - PAD, y: r.top - PAD, w: r.width + PAD * 2, h: r.height + PAD * 2 };
-}
-
-/** What draws a box: a Popover's trigger sits in a display: contents wrapper, which has none. */
-function drawn(el: Element): Element[] {
-  return getComputedStyle(el).display === 'contents' ? [...el.children].flatMap(drawn) : [el];
-}
-
-/** Every target on screen, the card's anchor first. */
-function measure(stop: Stop): { boxes: Box[]; anchor: Element | null } {
-  const boxes: Box[] = [];
-  let anchor: Element | null = null;
-  for (const selector of stop.targets) {
-    for (const el of [...document.querySelectorAll(selector)].flatMap(drawn)) {
-      const box = onScreen(el);
-      if (!box) continue;
-      anchor ??= el;
-      boxes.push(box);
-    }
-  }
-  return { boxes, anchor };
-}
-
-const same = (a: Box[], b: Box[]) => a.length === b.length && a.every((x, i) => x.x === b[i].x && x.y === b[i].y && x.w === b[i].w && x.h === b[i].h);
-
-/** The dimmed screen with each target ringed, and the card beside the first. Any key or click goes on. */
+/**
+ * The dimmed screen with each target ringed, and the card beside the first. Any key or click goes on.
+ * On a stop with a panel, the panel scrolls under the wheel and the tour follows the section in view.
+ */
 export function TourLayer({ at }: { at: number }) {
-  const t = useT();
   const stop = STOPS[at];
-  const last = at === STOPS.length - 1;
-  const id = useId();
+  const part = useTourPart();
   const card = useRef<HTMLDivElement>(null);
-  const [shot, setShot] = useState<{ boxes: Box[]; anchor: Element | null }>({ boxes: [], anchor: null });
-  // An open panel stands in for its sidebar entry, so the card goes beside it.
-  const docked = !!shot.anchor?.matches('[data-tour="dock"]');
-  const side: Side | undefined = docked ? 'right' : stop.side;
-  const align: Align = docked ? 'start' : stop.align ?? 'center';
+  const [shot, setShot] = useState<Shot>({ boxes: [], anchor: null, parts: [] });
+  // A part reached by the wheel is already in view; one reached by a key is scrolled to.
+  const followed = useRef(false);
+  const wheelTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Inside a panel, or with the panel itself ringed, the card goes beside the panel; the timeline's goes above it.
+  const inDock = !!shot.anchor?.closest('[data-tour="dock"]');
+  const side: Side | undefined = inDock ? 'right' : part !== null ? 'top' : stop.side;
+  const align: Align = inDock ? 'start' : part !== null ? 'center' : stop.align ?? 'center';
 
   // Panels fade in and pieces slide as the dock opens, so the rings keep up. Layout, so a new stop never paints the last one's rings.
   useLayoutEffect(() => {
     const look = () => setShot(prev => {
-      const next = measure(stop);
-      return same(prev.boxes, next.boxes) && prev.anchor === next.anchor ? prev : next;
+      const next = measure(stop, part);
+      return sameShot(prev, next) ? prev : next;
     });
     look();
     const timer = setInterval(look, 120);
     window.addEventListener('resize', look);
     return () => { clearInterval(timer); window.removeEventListener('resize', look); };
-  }, [stop]);
+  }, [stop, part]);
 
   useLayoutEffect(() => {
     const el = card.current;
@@ -82,40 +53,70 @@ export function TourLayer({ at }: { at: number }) {
     el.style.left = `${p.x}px`;
     el.style.top = `${p.y}px`;
     el.style.visibility = 'visible';
-  }, [shot, side, align]);
+  }, [shot, side, align, part]);
 
   useEffect(() => {
     card.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus({ preventScroll: true });
-  }, [at]);
+  }, [at, part]);
+
+  useEffect(() => {
+    if (part === null) return;
+    if (followed.current) { followed.current = false; return; }
+    const p = partsOf(stop)[part];
+    if (p) scrollToPart(p.el);
+  }, [stop, part]);
+
+  useEffect(() => () => clearTimeout(wheelTimer.current), []);
+
+  const count = shot.parts.length;
+  const next = () => (part !== null && part + 1 < count ? setTourPart(part + 1) : stepTour(1));
+  const back = () => (part !== null ? setTourPart(part > 0 ? part - 1 : null) : stepTour(-1));
 
   // Capture on window runs before the map's keys, the shortcuts and Escape's stack, so none of them fire underneath.
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    if (IGNORED.has(e.key) || e.metaKey || e.ctrlKey || e.altKey) return;
+    const inCard = !!card.current?.contains(e.target as Node);
+    if (inCard && (e.key === 'Enter' || e.key === ' ')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.key === 'Tab') {
+      const buttons = [...(card.current?.querySelectorAll<HTMLElement>('button') ?? [])];
+      const i = buttons.indexOf(document.activeElement as HTMLElement);
+      buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+      return;
+    }
+    if (e.repeat) return;
+    if (e.key === 'Escape') endTour();
+    else if (BACK.has(e.key)) back();
+    else next();
+  });
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (IGNORED.has(e.key) || e.metaKey || e.ctrlKey || e.altKey) return;
-      const inCard = !!card.current?.contains(e.target as Node);
-      if (inCard && (e.key === 'Enter' || e.key === ' ')) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.key === 'Tab') {
-        const buttons = [...(card.current?.querySelectorAll<HTMLElement>('button') ?? [])];
-        const i = buttons.indexOf(document.activeElement as HTMLElement);
-        buttons[(i + (e.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
-        return;
-      }
-      if (e.repeat) return;
-      if (e.key === 'Escape') endTour();
-      else if (e.key === 'ArrowLeft' || e.key === 'Backspace') stepTour(-1);
-      else stepTour(1);
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
+    const handler = (e: KeyboardEvent) => onKey(e);
+    window.addEventListener('keydown', handler, true);
+    return () => window.removeEventListener('keydown', handler, true);
   }, []);
 
-  const openLayout = () => { endTour(); showSettingsTab('layout'); };
+  /** The wheel over an open panel scrolls it, and once it settles the tour shows the section in view. */
+  const onWheel = (e: WheelEvent) => {
+    const dock = document.querySelector<HTMLElement>('[data-tour="dock"]');
+    if (!stop.inside || !stop.tool || !dock || dock.dataset.tool !== stop.tool) return;
+    const r = dock.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right) return;
+    const scroller = scrollerOf(dock);
+    if (!scroller) return;
+    scroller.scrollBy({ top: e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY });
+    clearTimeout(wheelTimer.current);
+    wheelTimer.current = setTimeout(() => {
+      const i = partInView(partsOf(stop), scroller);
+      if (i < 0 || i === tourPart()) return;
+      followed.current = true;
+      setTourPart(i);
+    }, 120);
+  };
 
   return createPortal(
     <>
-      <div aria-hidden onClick={() => stepTour(1)} onContextMenu={e => e.preventDefault()} className={cx('fixed inset-0 z-[1500] cursor-pointer', ENTER)}>
+      <div aria-hidden onClick={next} onWheel={onWheel} onContextMenu={e => e.preventDefault()} className={cx('fixed inset-0 z-[1500] cursor-pointer', ENTER)}>
         <svg className="size-full">
           <defs>
             <mask id="takip-tour-mask">
@@ -129,27 +130,7 @@ export function TourLayer({ at }: { at: number }) {
           ))}
         </svg>
       </div>
-      <div key={at} ref={card} role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} aria-describedby={`${id}-body`}
-        style={{ visibility: 'hidden' }}
-        className={cx('fixed top-0 left-0 z-[1501] w-[320px] rounded-float border border-line bg-surface-1 p-4 shadow-float', ENTER, side && ENTER_FROM[side])}>
-        <div className="-mt-1 -mr-2 flex items-center gap-2">
-          <p className="min-w-0 flex-1 text-meta font-medium text-ink-3 tabular-nums">{t('{n} of {count}', { n: at + 1, count: STOPS.length })}</p>
-          <IconButton size="sm" label={t('Stop the tour')} kbd="Esc" icon={X} onClick={endTour} />
-        </div>
-        <h2 id={`${id}-title`} className="mt-1 flex items-center gap-2 text-title font-semibold text-ink-1">
-          {t(stop.title)}
-          {stop.kbd && <Kbd>{stop.kbd}</Kbd>}
-        </h2>
-        <p id={`${id}-body`} className="mt-1.5 text-body text-ink-2">{t(stop.body)}</p>
-        {stop.id === 'layout' && (
-          <Button variant="secondary" size="sm" className="mt-3" onClick={openLayout}>{t('Open Layout settings')}</Button>
-        )}
-        <div className="mt-4 flex items-center gap-1">
-          <p className="min-w-0 flex-1 text-meta text-ink-3">{t('Any key or click goes on')}</p>
-          {at > 0 && <Button variant="ghost" size="sm" onClick={() => stepTour(-1)}>{t('Back')}</Button>}
-          <Button variant="primary" size="sm" data-autofocus onClick={() => stepTour(1)}>{last ? t('Done') : t('Next')}</Button>
-        </div>
-      </div>
+      <TourCard key={`${at}:${part}`} ref={card} at={at} part={part} parts={shot.parts} side={side} onNext={next} onBack={back} />
     </>,
     document.body,
   );

@@ -287,7 +287,7 @@ It depends on where the business is registered. Stripe doesn't onboard every cou
 - **Where it runs:** web route group `/admin`, allowed only for role `admin` with 2FA. It calls `/api/admin/*`, and every mutation writes an `audit_event`.
 - *Built (2026-10-12):*
   - **Gate:** `apps/api/src/admin/gate.ts`.
-    - It needs the `admin` role, 2FA turned on, and a 2FA code entered on this session within the last 12 hours, stored in `admin_unlock`.
+    - It needs the `admin` role, 2FA turned on, and a 2FA code entered on this session within the last 3 days, stored in `admin_unlock`.
     - Wrong codes are counted per user: 5 within 15 minutes lock it.
     - The step-up is needed because Better Auth's `twoFactor` plugin only guards password sign-in. A session from Google or GitHub never saw a code.
     - Admin routes read the session with the cookie cache off, so demotions and bans apply at once.

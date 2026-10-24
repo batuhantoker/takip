@@ -13,6 +13,7 @@ import { sourceFor } from '@/components/panels/layers/lib/layer-sources';
 import { Disclosure } from '@/components/ui/disclosure';
 import { useT } from '@/components/ui/use-t';
 import { inSentence } from '@/components/panels/layers/lib/sentence-case';
+import { fewOf, tourPart } from '@/components/shell/tour/tour-part';
 
 const ICONS: Record<string, typeof Plane> = {
   air: Plane,
@@ -47,6 +48,11 @@ export default function LayerSection({ section, open, onOpenChange, activeLayers
   const on = counted.filter(l => activeLayers[l.key]).length;
   const title = t(section.title);
   const name = inSentence(title, t);
+  // For the tour's look inside: a group of many layers names a few.
+  const names = fewOf(counted.slice(0, 3).map(l => layerName(l, t)), t);
+  const summary = counted.length > 3
+    ? t('{n} layers, among them {names}.', { n: counted.length, names })
+    : t('{n, plural, one {# layer} other {# layers}}: {names}.', { n: counted.length, names });
   const detail = (l: LayerDef) => {
     const text = detailOf ? detailOf(l) : sourceFor(l.key, l.description);
     return text && t(text);
@@ -60,6 +66,7 @@ export default function LayerSection({ section, open, onOpenChange, activeLayers
       active={on > 0}
       open={open}
       onOpenChange={onOpenChange}
+      {...tourPart('layers', title, summary)}
       action={open && counted.length > 1 ? (
         <Button variant="ghost" size="sm" aria-label={on ? t('Turn every {section} layer off', { section: name }) : t('Turn every {section} layer on', { section: name })}
           onClick={() => onSetMany(counted.map(l => l.key), !on)}>

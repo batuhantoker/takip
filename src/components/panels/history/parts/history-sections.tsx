@@ -20,6 +20,7 @@ import { CountriesSection } from './history-countries-section';
 import { KindFilter } from './kind-filter';
 import { ToggleRow } from './toggle-row';
 import { countAction } from '@/lib/platform/usage-actions';
+import { tourPart } from '@/components/shell/tour/tour-part';
 
 /** A switch per event family. */
 export function FamilyRows({ session }: { session: HistorySession }) {
@@ -76,7 +77,7 @@ export function MomentsSection({ session, onFlyTo }: { session: HistorySession; 
     onFlyTo?.(m.place);
   };
   return (
-    <PanelSection title={t('Jump to')}>
+    <PanelSection title={t('Jump to')} {...tourPart('history', t('Jump to'), t('Moments worth starting from: the clock and the map go there together.'))}>
       <ul className="flex flex-col">
         {MOMENTS.map(m => <MomentRow key={m.label} moment={m} onGo={() => go(m)} />)}
       </ul>
@@ -106,7 +107,8 @@ export function CalendarSections({ session, onFlyTo, closeSheet }: { session: Hi
 
   return (
     <>
-      <PanelSection title={t('Watch it unfold')}>
+      <PanelSection title={t('Watch it unfold')}
+        {...tourPart('history', t('Watch it unfold'), t('Stories that play on the map: the continents drifting over 1.8 billion years, the world’s borders year by year, and each war’s fronts.'))}>
         <ul className="flex flex-col">
           <li>
             <ListRow leading={PLAY} title={t('How the continents moved')} subtitle={t('1.8 billion years of drifting plates')}
@@ -117,7 +119,8 @@ export function CalendarSections({ session, onFlyTo, closeSheet }: { session: Hi
           ))}
         </ul>
       </PanelSection>
-      <PanelSection title={t('On the map')}>
+      <PanelSection title={t('On the map')}
+        {...tourPart('history', t('On the map'), t('What the historical map draws: kinds of events, event families such as wars and disasters, and border layers. Click a point for what happened and its source.'))}>
         <KindFilter session={session} />
         <Disclosure title={t('Events')} hint={onCount(families.length)} {...fold('events')}>
           <FamilyRows session={session} />

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
-import { PageTitle, Select } from '@/components/site/admin/parts/admin-parts';
+import { RotateCw } from 'lucide-react';
+import { Button, PageTitle, Select } from '@/components/site/admin/parts/admin-parts';
 import type {
   AnalyticsApi, AnalyticsAudience, AnalyticsData, AnalyticsEngagement, AnalyticsPages, AnalyticsStorage, AnalyticsSystem, AnalyticsVisitors,
 } from '@/components/site/admin/analytics/analytics-types';
@@ -62,13 +63,16 @@ function useSection(): SectionId {
 export default function AnalyticsPage() {
   const [span, setSpan] = useState<RangeId>('30d');
   const [rescans, setRescans] = useState(0);
+  const [refreshes, setRefreshes] = useState(0);
   const section = useSection();
   const picked = RANGES.find(r => r.id === span)!;
   // The viewer's zone: Visitors counts its days from their midnight; the tables kept by UTC day ignore it.
   const tz = `tz=${encodeURIComponent(viewerZone())}`;
-  const range = `?${picked.unit}=${picked.n}&${ADMINS}&${tz}`;
+  // Refresh makes every address new, so each card and list on the tab asks again; the api drops n. Not ?refresh=1: that redoes the slow disk scans.
+  const again = refreshes ? `&n=${refreshes}` : '';
+  const range = `?${picked.unit}=${picked.n}&${ADMINS}&${tz}${again}`;
   const hours = picked.unit === 'hours' ? picked.n : null;
-  const dayRange = hours ? `?days=7&${ADMINS}&${tz}` : range;
+  const dayRange = hours ? `?days=7&${ADMINS}&${tz}${again}` : range;
   const byDay = BY_DAY.has(section);
 
   const audience = useAnalyticsData<AnalyticsAudience>(`/analytics/audience${range}`);
@@ -85,13 +89,19 @@ export default function AnalyticsPage() {
     audience: audience.data, visitors: visitors.data, pages: pages.data, api: api.data, data: data.data, system: system.data, storage: storage.data,
   });
   const flagged = flaggedTabs(notes);
+  const loading = [audience, visitors, pages, engagement, api, data, system].some(q => q.stale);
 
   return (
     <>
       <PageTitle title="Analytics">
-        <Select value={byDay && hours ? '7d' : span} onChange={e => setSpan(e.target.value as RangeId)} aria-label="Range">
-          {RANGES.map(r => <option key={r.id} value={r.id} disabled={byDay && r.unit === 'hours'}>{r.label}</option>)}
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={byDay && hours ? '7d' : span} onChange={e => setSpan(e.target.value as RangeId)} aria-label="Range">
+            {RANGES.map(r => <option key={r.id} value={r.id} disabled={byDay && r.unit === 'hours'}>{r.label}</option>)}
+          </Select>
+          <Button aria-label="Refresh" title="Refresh" className="px-2" onClick={() => setRefreshes(n => n + 1)}>
+            <RotateCw aria-hidden className={`size-4 ${loading ? 'animate-spin motion-reduce:animate-none' : ''}`} strokeWidth={1.75} />
+          </Button>
+        </div>
       </PageTitle>
 
       <div role="tablist" aria-label="Analytics sections" className="-mt-2 mb-5 flex gap-1 overflow-x-auto border-b border-line">

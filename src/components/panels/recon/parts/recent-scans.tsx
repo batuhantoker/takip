@@ -8,6 +8,7 @@ import { useT } from '@/components/ui/use-t';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { toolById } from '@/components/panels/recon/recon-tools';
 import type { HistoryEntry } from '@/components/panels/recon/use-recon-lookup';
+import { tourPart } from '@/components/shell/tour/tour-part';
 
 /** "just now", "5 min ago", "3 h ago", "2 d ago". */
 export const timeAgo = (at: number, t: Translate) => {
@@ -29,7 +30,7 @@ export function RecentScans({ history, onPick, onClear, hideTool }: {
 }) {
   const t = useT();
   return (
-    <PanelSection title={t('Recent')} action={onClear && <Button variant="ghost" size="sm" onClick={onClear}>{t('Clear')}</Button>}>
+    <PanelSection title={t('Recent')} {...tourPart('recon', t('Recent'), t('Your last lookups. Click one to run it again.'))} action={onClear && <Button variant="ghost" size="sm" onClick={onClear}>{t('Clear')}</Button>}>
       {history.slice(0, 5).map((h, i) => {
         const tool = toolById(h.tool);
         const label = tool ? t(tool.label) : h.tool;

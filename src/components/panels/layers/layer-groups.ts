@@ -16,8 +16,8 @@ export interface LayerDef {
   catKey?: string;
   /** Capability that must be configured server-side for this layer to appear. */
   requires?: string;
-  /** Key of the layer this one modifies. Renders indented beneath it, and reads
-   *  as inert while that parent is off — it has nothing to act on. */
+  /** Key of the layer this one sits under: a filter on it, or a layer drawn only
+   *  beside it. Renders indented beneath it, and reads as inert while that parent is off. */
   parent?: string;
 }
 
@@ -109,6 +109,7 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'cctv_previews', label: msg('Live Previews'), dataKey: '', parent: 'cctv' },
       { key: 'alpr', label: msg('Plate Readers (ALPR)'), description: msg('DeFlock · OpenStreetMap · US and Canada · view cones from zoom 13'), dataKey: '' },
       { key: 'live_news', label: msg('Live News Feeds'), dataKey: 'live_feeds' },
+      { key: 'gdelt_events', label: msg('GDELT Events'), description: msg('GDELT 2.0 · violence, protest and tension in world news · last 2 hours'), dataKey: 'gdelt_events', parent: 'live_news' },
     ],
   },
   {
@@ -139,7 +140,6 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
       { key: 'infrastructure', label: msg('Nuclear Facilities'), dataKey: 'infrastructure' },
       { key: 'global_incidents', label: msg('Global Incidents'), dataKey: 'gdelt' },
       { key: 'alert_pins', label: msg('Live Alert Pins'), dataKey: 'alert_pins' },
-      { key: 'gdelt_events', label: msg('GDELT Events'), dataKey: 'gdelt_events' },
       { key: 'war_alerts', label: msg('Air-Raid Alerts'), description: msg('Israel sirens · Ukraine oblasts · live'), dataKey: 'war_alerts' },
       { key: 'gps_jamming', label: msg('GNSS Interference'), description: msg('Inferred from aircraft position accuracy · 2° cells'), dataKey: 'gps_jamming' },
     ],
@@ -184,5 +184,5 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
   },
 ];
 
-/** Sub-layers modify a parent rather than draw anything, so they never count as "on". */
+/** Sub-layers only draw while their parent is on, so the parent alone counts as "on". */
 export const primary = (layers: LayerDef[]) => layers.filter(l => !l.parent);

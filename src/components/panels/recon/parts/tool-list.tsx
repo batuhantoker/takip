@@ -7,6 +7,7 @@ import { PanelSection } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
 import { useT } from '@/components/ui/use-t';
 import { GROUPS, matchTools, toolById, type ToolDef } from '@/components/panels/recon/recon-tools';
+import { fewOf, tourPart } from '@/components/shell/tour/tour-part';
 
 const icon = (tool: ToolDef) => <tool.icon aria-hidden className="size-4" strokeWidth={1.75} />;
 // ink-3 so the names carry the list and the descriptions recede.
@@ -29,6 +30,13 @@ export function ToolList({ filter = '', setFilter, activeTool, onPick, onSelfTra
   const selfWords = ['location', 'ip', 'self', 'track', 'me', 'my', 'own', ...t('Find my own location').toLowerCase().split(/\s+/)];
   const showSelfTrack = !q || selfWords.some(w => w.includes(q) || q.includes(w));
   const showOnMap = showSweep || showSelfTrack;
+  // For the tour's look inside: a group of many tools names a few.
+  const toolsIn = (tools: ToolDef[]) => {
+    const names = fewOf(tools.slice(0, 3).map(tool => t(tool.label)), t);
+    return tools.length > 3
+      ? t('{n} tools, among them {names}.', { n: tools.length, names })
+      : t('{n, plural, one {# tool} other {# tools}}: {names}.', { n: tools.length, names });
+  };
 
   return (
     <div className="flex flex-col">
@@ -42,7 +50,7 @@ export function ToolList({ filter = '', setFilter, activeTool, onPick, onSelfTra
           const tools = matched.filter(tool => tool.group === group.id && tool.id !== 'sweep');
           if (!tools.length) return null;
           return (
-            <PanelSection key={group.id} title={t(group.label)}>
+            <PanelSection key={group.id} title={t(group.label)} {...tourPart('recon', t(group.label), toolsIn(tools))}>
               {tools.map(tool => (
                 <ListRow key={tool.id} leading={icon(tool)} title={t(tool.label)} subtitle={blurb(t(tool.blurb))}
                   selected={activeTool === tool.id} onClick={() => onPick(tool.id)} />
@@ -53,7 +61,8 @@ export function ToolList({ filter = '', setFilter, activeTool, onPick, onSelfTra
       )}
 
       {showOnMap && (
-        <PanelSection title={t('On the map')}>
+        <PanelSection title={t('On the map')}
+          {...tourPart('recon', t('On the map'), t('Tools that draw on the map: exposed devices near an IP, and your own public IP’s rough location.'))}>
           {showSweep && (
             <ListRow leading={icon(sweep)} title={t(sweep.label)} subtitle={blurb(t(sweep.blurb))}
               selected={activeTool === 'sweep'} onClick={() => onPick('sweep')} />

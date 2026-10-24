@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cx, ENTER } from '@/components/ui/class-names';
 import { useEscape } from '@/components/ui/use-escape';
 import { useT } from '@/components/ui/use-t';
+import { countAction } from '@/lib/platform/usage-actions';
 import { markTourSeen, startTour, tourSeen, useTourAt } from './tour-state';
 
 // The middle of the map, clear of the bottom corners' pieces.
@@ -24,13 +25,13 @@ export default function TourOffer({ ready }: { ready: boolean }) {
 
   useEffect(() => {
     if (!ready || shared || tourSeen()) return;
-    const timer = setTimeout(() => setShow(true), 800);
+    const timer = setTimeout(() => { setShow(true); countAction('tour.offer'); }, 800);
     return () => clearTimeout(timer);
   }, [ready, shared]);
   // Started from TI instead: this is answered.
   if (touring && show) setShow(false);
 
-  const notNow = () => { markTourSeen(); setShow(false); };
+  const notNow = () => { markTourSeen(); setShow(false); countAction('tour.decline'); };
   useEscape(notNow, show);
   if (!show) return null;
 

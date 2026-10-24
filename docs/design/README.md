@@ -283,11 +283,18 @@ accent and puts a 320 px card beside the first one: the layout, the base map
 and its options, Layers, History, Space, Recon and TI. Any key or click goes
 on, ← or Backspace goes back, and Escape or the card's close stops it. It
 opens only what leaves the map as it was (the base map menu, the Layers and
-Recon panels), never starts History, Replay or Space, and puts back the panel
-that was open. A first visit to the plain map, not a shared link, offers it
-once in a small card; after that it lives in TI under How to use TAKIP, and
-the Layers, History, Space and Recon panels each have a How this works button
-that starts it on their stop. Desktop only for now.
+Recon panels) and never starts Replay or Space. Stopping it leaves things as it
+showed them: the panel in view stays open. A first visit to the plain map, not a shared link, offers it once in a
+small card; after that it lives in TI under How to use TAKIP. Desktop only for
+now.
+
+The Layers, History, Space and Recon stops can also show their panel from
+inside, one section at a time: through Show what's inside on the card, by
+scrolling the panel during the tour (the tour follows the section in view), or
+from the panel's own How this works button. A panel marks its sections with
+`tourPart()` and describes them from its own data, so a group of many layers
+names a few of them and says how many. Only this look inside starts History;
+the tour ends it again when it moves on, and leaves it running if stopped there.
 
 ## Panel anatomy
 

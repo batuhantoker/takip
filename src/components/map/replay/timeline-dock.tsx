@@ -50,7 +50,7 @@ export function TimelineDock({ label, status, above, compact, children }: {
         style={{ width: 'var(--shell-left, 72px)' }}>
         {status && <div className="hidden min-w-0 items-center gap-2 text-meta whitespace-nowrap text-ink-3 @[200px]:flex">{status}</div>}
       </div>
-      <section aria-label={label}
+      <section data-timeline aria-label={label}
         className="@container/timeline pointer-events-auto relative flex min-w-0 flex-1 items-center gap-4 border-t border-line bg-surface-1 pr-3 pl-4"
         style={{ height: TIMELINE_HEIGHT }}>
         {above && (

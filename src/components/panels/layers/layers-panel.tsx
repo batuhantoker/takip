@@ -9,6 +9,7 @@ import { Panel } from '@/components/ui/panel';
 import { SearchField } from '@/components/ui/search-field';
 import { useT } from '@/components/ui/use-t';
 import { HowThisWorks } from '@/components/shell/tour/how-to';
+import { tourPart } from '@/components/shell/tour/tour-part';
 import LayerSection from '@/components/panels/layers/parts/layer-section';
 import LayersOnMap from '@/components/panels/layers/parts/layers-on-map';
 import { useLayerBrowser } from './use-layer-browser';
@@ -46,12 +47,13 @@ function LayersPane({ data, activeLayers, setActiveLayers, capabilities = NO_CAP
         </>
       )}
     >
-      <div className={cx('shrink-0 border-b px-4 pb-3 transition-colors duration-150', scrolled ? 'border-line' : 'border-transparent')}>
+      <div className={cx('shrink-0 border-b px-4 pb-3 transition-colors duration-150', scrolled ? 'border-line' : 'border-transparent')}
+        {...tourPart('layers', t('Search'), t('Find any of the {n} layers by name or by source, such as ships, quakes or ADS-B.', { n: b.layerTotal }))}>
         <SearchField value={b.query} onChange={b.setQuery} placeholder={t('Search {n} layers', { n: b.layerTotal })} autoComplete="off" spellCheck={false} />
       </div>
       <div className="styled-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pt-1 pb-4" onScroll={e => setScrolled(e.currentTarget.scrollTop > 0)}>
         {!b.searching && (
-          <div className="mb-5">
+          <div className="mb-5" {...tourPart('layers', t('On the map'), t('What is switched on now, with how many of each are drawn. × turns one off, and Turn all off clears the map.'))}>
             <LayersOnMap items={b.onMap} undo={b.undo} onTurnOff={b.turnOff} onUndo={b.restore} />
           </div>
         )}

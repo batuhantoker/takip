@@ -11,6 +11,7 @@ import { curatedLabel, type Indicator, STARTERS, withProjections, yearSpan } fro
 import { startsTogether } from '@/lib/history/projection';
 import { formatAt } from '@/lib/history/series';
 import type { HistorySession } from '@/lib/history/session';
+import { tourPart } from '@/components/shell/tour/tour-part';
 import { IndicatorPicks } from './indicator-picks';
 import IndicatorSearch from './indicator-search';
 
@@ -99,6 +100,7 @@ export function CountriesSection({ session, onPicked }: { session: HistorySessio
 
   return (
     <PanelSection title={t('Colour countries by')}
+      {...tourPart('history', t('Colour countries by'), t('Shade the countries by a measure such as population, GDP or life expectancy, for the year on the timeline.'))}
       action={picks.length > 1 ? <Button variant="ghost" size="sm" onClick={() => view.select(null)}>{t('Clear all')}</Button> : undefined}>
       {picks.length > 0 && <div className="mb-2"><IndicatorPicks view={view} picks={picks} coloured={code} /></div>}
       <Button ref={trigger} size="sm" icon={browsing ? undefined : Plus} aria-expanded={browsing} aria-controls={browsing ? listId : undefined}

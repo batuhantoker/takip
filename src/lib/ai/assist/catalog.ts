@@ -310,7 +310,7 @@ export const LAYERS: Record<string, string> = {
   transit: 'cities with live public transit and what runs there; live buses, trams and trains from zoom 10 (GTFS-RT feeds)',
   terrain_3d: '3D terrain',
   cyber_attacks: 'cyber attack indicators',
-  gdelt_events: 'GDELT news events',
+  gdelt_events: 'GDELT news events: violence, protest and tension reported in the last two hours; a sub-layer of live_news, drawn only while that is on too',
   cf_outages: 'internet outages by country and network (Cloudflare Radar, IODA)',
   malware: 'malware command-and-control servers',
   balloons: 'high-altitude balloons',

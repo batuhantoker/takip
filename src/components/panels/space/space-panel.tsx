@@ -7,6 +7,7 @@ import { SearchField } from '@/components/ui/search-field';
 import { Segmented, segmentId, type SegmentedOption } from '@/components/ui/segmented';
 import { useT } from '@/components/ui/use-t';
 import { HowThisWorks } from '@/components/shell/tour/how-to';
+import { tourPart } from '@/components/shell/tour/tour-part';
 import { msg } from '@/lib/core/i18n/translator';
 import { age } from '@/lib/space/format';
 import CraftList from '@/components/panels/space/parts/craft-list';
@@ -69,6 +70,9 @@ export default function SpaceDock({ onClose, embedded }: { onClose: () => void; 
     : tab === 'planets' ? <PlanetList exo={exo} failed={exoFailed} query={planetQuery} />
       : <IssLive />;
   const placeholder = tab === 'craft' ? t('Find a spacecraft') : t('Find a star or planet');
+  const listPart = tab === 'craft' ? t('Every spacecraft JPL Horizons can place, grouped by where it is. Pick one to fly the space view to it.')
+    : tab === 'planets' ? t('The stars known to have planets, from the NASA Exoplanet Archive.')
+      : t('The station’s outside cameras, live.');
 
   if (embedded) return (
     <>
@@ -86,12 +90,13 @@ export default function SpaceDock({ onClose, embedded }: { onClose: () => void; 
     <Panel<Tab> title={t('Space')} subtitle={subtitle} onClose={onClose} bare tabs={{ value: tab, onChange: setTab, options: tabs }}
       actions={<HowThisWorks stop="space" />}>
       {searchable && (
-        <div className={cx('shrink-0 border-b px-4 pb-2 transition-colors duration-150', scrolled ? 'border-line' : 'border-transparent')}>
+        <div className={cx('shrink-0 border-b px-4 pb-2 transition-colors duration-150', scrolled ? 'border-line' : 'border-transparent')}
+          {...tourPart('space', t('Find'), tab === 'craft' ? t('Find a spacecraft by name.') : t('Find a star or planet by name.'))}>
           <SearchField value={query} onChange={setQuery} autoComplete="off" spellCheck={false} placeholder={placeholder} />
         </div>
       )}
       <div key={tab} className="styled-scrollbar min-h-0 flex-1 overflow-y-auto" onScroll={e => setScrolled(e.currentTarget.scrollTop > 0)}>
-        {list}
+        <div {...tourPart('space', t(TABS.find(o => o.value === tab)!.label), listPart)}>{list}</div>
       </div>
     </Panel>
   );

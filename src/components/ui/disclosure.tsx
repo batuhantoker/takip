@@ -2,13 +2,13 @@
 
 import { useId, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { cx, TRANSITION, type IconType } from '@/components/ui/class-names';
+import { cx, TRANSITION, type DataAttributes, type IconType } from '@/components/ui/class-names';
 
 /**
  * A group that folds: a 40 px header row (icon, name, a quiet count) with the
  * chevron on the right, and an optional action that stays clickable on its own.
  */
-export function Disclosure({ icon: Icon, title, hint, active, open, onOpenChange, action, children }: {
+export function Disclosure({ icon: Icon, title, hint, active, open, onOpenChange, action, children, ...data }: DataAttributes & {
   icon?: IconType;
   title: ReactNode;
   /** Quiet context after the name: "2 on", "86". */
@@ -22,7 +22,7 @@ export function Disclosure({ icon: Icon, title, hint, active, open, onOpenChange
 }) {
   const id = useId();
   return (
-    <section className="border-line not-first:border-t">
+    <section className="border-line not-first:border-t" {...data}>
       <div className={cx('group/row relative -mx-2 flex min-h-10 items-center gap-3 rounded-control px-2 hover:bg-surface-2', TRANSITION)}>
         {Icon && <Icon aria-hidden className={cx('size-4 shrink-0', active ? 'text-ink-1' : 'text-ink-3')} strokeWidth={1.75} />}
         <button
@@ -36,8 +36,9 @@ export function Disclosure({ icon: Icon, title, hint, active, open, onOpenChange
           {hint != null && <span className="shrink-0 text-meta text-ink-3">{hint}</span>}
         </button>
         {action && <span className="relative z-[1] -my-1 flex shrink-0 items-center">{action}</span>}
+        {/* Rotated, it would paint over the button's hit area and swallow the click that folds it. */}
         <ChevronRight aria-hidden strokeWidth={1.75} className={cx(
-          'size-4 shrink-0 text-ink-3 transition-transform duration-150 ease-out motion-reduce:transition-none',
+          'pointer-events-none size-4 shrink-0 text-ink-3 transition-transform duration-150 ease-out motion-reduce:transition-none',
           open && 'rotate-90',
         )} />
       </div>

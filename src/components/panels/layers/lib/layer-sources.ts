@@ -15,7 +15,6 @@ const SOURCES: Record<string, string> = {
   weather: msg('NOAA/NWS, GDACS and NASA EONET'),
   cctv: msg('Public traffic and city cameras'),
   live_news: msg('Live streams on YouTube, checked every 30 minutes for what is on air'),
-  gdelt_events: msg('GDELT 2.0 · sized by how many outlets report it'),
   malware: 'URLhaus · abuse.ch',
   cyber_attacks: 'Feodo Tracker · abuse.ch',
   cf_outages: 'Cloudflare Radar · IODA',

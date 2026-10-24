@@ -4,7 +4,7 @@ Parked 2026-10-13. The live layer works; history and the ingest connector are no
 
 ## What runs now
 
-`/api/gdelt-events` reads the last two hours of GDELT 2.0 files and shows one marker per story. It reads both the English and the translated feed, and both the Events export and the Mentions file for each 15-minute window. The GDELT Events layer is off by default (`gdelt_events`).
+`/api/gdelt-events` reads the last two hours of GDELT 2.0 files and shows one marker per story. It reads both the English and the translated feed, and both the Events export and the Mentions file for each 15-minute window. The GDELT Events layer is off by default (`gdelt_events`). It is a sub-layer of Live News Feeds (Cameras & media) and draws only while that is on; its plan gate stays Conflict (`layer-gates.ts`).
 
 - Fetching: `src/lib/intel/alerts/gdelt-events.ts`. Published windows are cached in memory, since they never change.
 - Parsing and reduction: `packages/connectors/src/gdelt/` (`parse.ts`, `reduce.ts`, `slug.ts`, `cameo.ts`), tested against real rows in `fixtures/export.tsv`.

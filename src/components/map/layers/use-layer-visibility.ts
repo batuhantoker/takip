@@ -33,7 +33,7 @@ export function useLayerVisibility({ mapRef, mapReady, activeLayers, setVis, sat
     // Clearing the 3D layer is what actually turns satellites off.
     if (!anySat) { satRowsRef.current = []; satLayerRef.current?.setPoints([]); }
     setVis(['gdelt-dots'], activeLayers.global_incidents);
-    setVis(['gdelt-events-dots'], (activeLayers as any).gdelt_events);
+    setVis(['gdelt-events-dots'], activeLayers.live_news && (activeLayers as any).gdelt_events);
     setVis(['cf-outage-dots','cf-outage-label'], (activeLayers as any).cf_outages);
     setVis(['cf-attack-dots','cf-attack-label'], (activeLayers as any).cf_attacks);
 

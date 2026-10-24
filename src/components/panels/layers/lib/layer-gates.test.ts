@@ -16,6 +16,7 @@ describe('plan sections', () => {
     expect(layerSection('flights')).toBe('air');
     expect(layerSection('maritime')).toBe('sea');
     expect(layerSection('cctv_previews')).toBe('cameras');
+    expect(layerSection('gdelt_events')).toBe('conflict');
     expect(layerSection('day_night')).toBeUndefined();
     expect(sectionTitle('weather')).toBe('Weather & hazards');
   });
@@ -33,6 +34,11 @@ describe('closedLayerKeys', () => {
     expect(closed).toContain('cctv');
     expect(closed).toContain('cctv_previews');
     expect(closed).not.toContain('maritime');
+  });
+
+  it('keeps GDELT with Conflict, though it sits under Live News', () => {
+    expect(closedLayerKeys(plan({ 'map.layers.conflict': false }))).toContain('gdelt_events');
+    expect(closedLayerKeys(plan({ 'map.layers.cameras': false }))).not.toContain('gdelt_events');
   });
 });
 

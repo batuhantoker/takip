@@ -242,8 +242,8 @@ export function useLiveData({ dataRef, setDataVersion, setBackendStatus, setSpac
 
     if (activeLayers.alert_pins) loadLayerOnce('alert_stories', STORIES_URL, storiesData);
 
-    // GDELT 2.0 geocoded events
-    if ((activeLayers as any).gdelt_events) {
+    // GDELT 2.0 geocoded events, drawn under Live News
+    if (activeLayers.live_news && (activeLayers as any).gdelt_events) {
       loadLayerOnce('gdelt_events', '/api/gdelt-events?limit=600', d => ({ gdelt_events: d.events }));
     }
 

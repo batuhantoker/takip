@@ -4,10 +4,10 @@ import type { AppDb } from '../db/app-db';
 
 /*
  * The admin console needs the admin role, 2FA turned on, and a 2FA code entered on this session
- * within the last 12 hours. The step-up matters because Better Auth's 2FA only guards password
+ * within the last 3 days. The step-up matters because Better Auth's 2FA only guards password
  * sign-in: a session from Google or GitHub never saw a code.
  */
-export const UNLOCK_TTL_MS = 12 * 60 * 60 * 1000;
+export const UNLOCK_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const MAX_FAILURES = 5;
 const FAILURE_WINDOW_MS = 15 * 60 * 1000;
 

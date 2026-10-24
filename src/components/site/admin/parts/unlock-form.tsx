@@ -47,7 +47,7 @@ export default function UnlockForm({ onUnlocked, retryAfterSeconds = null }: { o
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <p className="text-[12px] text-ink-3">
-        Enter a code from your authenticator app, or a backup code. The console then stays open on this device for 12 hours.
+        Enter a code from your authenticator app, or a backup code. The console then stays open on this device for 3 days.
       </p>
       <Label text="Code">
         <Input name="code" autoComplete="one-time-code" autoFocus required minLength={6} />

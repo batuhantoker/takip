@@ -4,6 +4,9 @@ export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(' ');
 }
 
+/** Marks passed through to a component's root, such as the tour's `data-tour-part`. */
+export type DataAttributes = { [key: `data-${string}`]: string | undefined };
+
 /** Any icon component that takes a className, such as a lucide icon. */
 export type IconType = ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: boolean | 'true' }>;
 

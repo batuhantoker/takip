@@ -13,6 +13,7 @@ import { RecentScans } from './recent-scans';
 import { suggestTools } from '@/lib/intel/recon/suggest-tools';
 import { detectQuery, type QueryKind } from '@/lib/intel/recon/detect-query';
 import { ErrorNote } from './error-note';
+import { tourPart } from '@/components/shell/tour/tour-part';
 import { TryExamples } from './example-link';
 import type { ReconLookup } from '@/components/panels/recon/use-recon-lookup';
 
@@ -49,7 +50,9 @@ export function ReconOverview({ lookup, isMobile, isFullScreen, onRun, onOpenByN
   const examples = <TryExamples values={EXAMPLES} onPick={tryOne} />;
   return (
     <>
-      <ReconSearch id={inputId} query={lookup.query} setQuery={lookup.setQuery} onRun={onRun} onOpen={onOpenByName} autoFocus={!isMobile} />
+      <div {...tourPart('recon', t('Look something up'), t('Paste an IP, domain, email, username or phone number, and the tools that fit it show up.'))}>
+        <ReconSearch id={inputId} query={lookup.query} setQuery={lookup.setQuery} onRun={onRun} onOpen={onOpenByName} autoFocus={!isMobile} />
+      </div>
       {fresh && !isFullScreen && <p className="mt-2 text-small text-ink-3">{examples}</p>}
       {selfTrackError && <ErrorNote className="mt-4" message={selfTrackError} onDismiss={onDismissSelfTrackError} />}
       {!typed && lookup.history.length > 0 && <RecentScans history={lookup.history} onPick={onRun} onClear={lookup.clearHistory} />}
