@@ -2,7 +2,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadEnv } from '../../env';
 
-/** The site's gazetteer (data/site/gazetteer.json, tools/site/build-gazetteer.ts): GeoNames' towns of about 15,000 and up. */
+/**
+ * GeoNames' places of 1,000 people and up (data/site/towns.json, tools/site/build-towns.ts), or else the site's
+ * gazetteer of towns of about 15,000 and up (data/site/gazetteer.json).
+ */
 export const GEONAMES_ATTRIBUTION = 'GeoNames (CC BY 4.0)';
 
 interface Town {
@@ -14,6 +17,12 @@ interface Town {
 
 interface GazetteerFile {
   places: { kind: string; name: string; region?: string; cc: string; at: [number, number]; pop: number }[];
+}
+
+interface TownsFile {
+  regions: string[];
+  /** Name, index into `regions` (-1 for none), ISO2, lat, lng, people. */
+  towns: [string, number, string, number, number, number][];
 }
 
 /** How far a town reaches: 8 km, a metropolis up to 45 km. The same as the place pages' reachKm. */
@@ -30,18 +39,28 @@ const cellKey = (lat: number, lng: number) => `${Math.floor(lat)},${Math.floor(l
 
 let towns: Map<string, Town[]> | null = null;
 
-function load(path: string): Map<string, Town[]> {
+type Place = { name: string; region?: string; cc: string; lat: number; lng: number; pop: number };
+
+function places(dir: string): Place[] {
+  const towns = join(dir, 'towns.json');
+  if (existsSync(towns)) {
+    const file = JSON.parse(readFileSync(towns, 'utf8')) as TownsFile;
+    return file.towns.map(([name, region, cc, lat, lng, pop]) => ({ name, ...(region >= 0 && { region: file.regions[region] }), cc, lat, lng, pop }));
+  }
+  const gazetteer = join(dir, 'gazetteer.json');
+  if (!existsSync(gazetteer)) return [];
+  // A country's `at` is where its label goes, not a town.
+  return (JSON.parse(readFileSync(gazetteer, 'utf8')) as GazetteerFile).places
+    .flatMap(p => (p.kind === 'city' ? [{ name: p.name, region: p.region, cc: p.cc, lat: p.at[1], lng: p.at[0], pop: p.pop }] : []));
+}
+
+function load(dir: string): Map<string, Town[]> {
   const grid = new Map<string, Town[]>();
-  if (!existsSync(path)) return grid;
-  const file = JSON.parse(readFileSync(path, 'utf8')) as GazetteerFile;
   const country = new Intl.DisplayNames(['en'], { type: 'region' });
-  for (const p of file.places) {
-    // A country's `at` is where its label goes, not a town.
-    if (p.kind !== 'city') continue;
-    const [lng, lat] = p.at;
+  for (const p of places(dir)) {
     const parts = [p.name, p.region, country.of(p.cc) ?? p.cc].filter((x): x is string => !!x);
-    const town = { label: parts.filter((x, i) => parts.indexOf(x) === i).join(', '), lat, lng, reach: reachKm(p.pop) };
-    const key = cellKey(lat, lng);
+    const town = { label: parts.filter((x, i) => parts.indexOf(x) === i).join(', '), lat: p.lat, lng: p.lng, reach: reachKm(p.pop) };
+    const key = cellKey(p.lat, p.lng);
     const list = grid.get(key);
     if (list) list.push(town);
     else grid.set(key, [town]);
@@ -51,10 +70,10 @@ function load(path: string): Map<string, Town[]> {
 
 /**
  * "Town, region, country" for the town whose reach holds the point, the nearest for its size; null out of every
- * town's reach (open sea, wilderness, villages far from a town). Answers in microseconds, with no upstream.
+ * town's reach (open sea, wilderness). Answers in microseconds, with no upstream.
  */
 export function nearestTown(lat: number, lng: number): string | null {
-  towns ??= load(join(loadEnv().TAKIP_DATA_DIR, 'site', 'gazetteer.json'));
+  towns ??= load(join(loadEnv().TAKIP_DATA_DIR, 'site'));
   const dLng = Math.ceil(MAX_REACH_KM / (111 * Math.max(Math.cos((lat * Math.PI) / 180), 0.05)));
   let best: Town | null = null;
   let bestScore = Infinity;

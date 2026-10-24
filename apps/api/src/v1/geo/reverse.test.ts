@@ -1,11 +1,18 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startApp, type TestApp } from '../../testing/helpers';
+import { clearNominatimCache } from '@takip/connectors/nominatim';
 import { run } from '../testing/observe';
 
 const { upstream, fails } = await vi.hoisted(() => import('../testing/upstream'));
 vi.mock('@takip/connectors/http-json', async importActual => ({
   ...(await importActual<typeof import('@takip/connectors/http-json')>()),
   httpJson: upstream.httpJson,
+}));
+// The tests' gap between requests is 1 ms, so a busy queue is said rather than made.
+const queue = vi.hoisted(() => ({ delayMs: 0 }));
+vi.mock('@takip/connectors/nominatim', async importActual => ({
+  ...(await importActual<typeof import('@takip/connectors/nominatim')>()),
+  nominatimDelayMs: () => queue.delayMs,
 }));
 
 const NOMINATIM = 'https://nominatim.openstreetmap.org/reverse';
@@ -22,7 +29,10 @@ beforeAll(async () => {
   t = await startApp();
 });
 afterAll(() => t.close());
-beforeEach(() => upstream.reset());
+beforeEach(() => {
+  upstream.reset();
+  queue.delayMs = 0;
+});
 
 /** Sends each query in turn from cold server-side caches. */
 const check = (...queries: string[]) => run(queries.map(q => `/api/v1/geo/reverse${q}`), path => t.app.request(path));
@@ -89,6 +99,35 @@ describe('GET /api/v1/geo/reverse', () => {
     expect(first.upstream).toHaveLength(1);
     expect(nearby.upstream).toEqual([]);
     expect(nearby.body).toEqual(first.body);
+  });
+
+  it('answers at once behind a busy queue, saying when to ask again, and the queued lookup fills the cache', async () => {
+    clearNominatimCache();
+    queue.delayMs = 3_000;
+    let release: (() => void) | undefined;
+    upstream.on(NOMINATIM, () => new Promise(resolve => { release = () => resolve(PARIS); }));
+    const res = await t.app.request(`/api/v1/geo/reverse${SEA}`);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(res.headers.get('retry-after')).toBe('4');
+    expect(await res.json()).toEqual({ label: null, attribution: ATTRIBUTION });
+
+    await vi.waitFor(() => expect(release).toBeDefined());
+    release!();
+    await vi.waitFor(async () => {
+      const again = await t.app.request(`/api/v1/geo/reverse${SEA}`);
+      expect(await again.json()).toEqual({ label: 'Paris, Île-de-France, France', attribution: ATTRIBUTION });
+    });
+  });
+
+  it('names a small town far from any big one without asking Nominatim', async () => {
+    const [res] = await check('?lat=34.11&lng=-109.29');
+    expect(res).toEqual({
+      status: 200,
+      type: 'application/json',
+      cache: CACHED,
+      body: { label: 'Eagar, Arizona, United States', attribution: 'GeoNames (CC BY 4.0)' },
+      upstream: [],
+    });
   });
 
   it('reads a repeated parameter as its first value', async () => {

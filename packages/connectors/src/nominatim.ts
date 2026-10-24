@@ -64,6 +64,8 @@ interface Entry { value: unknown; expires: number }
 const cache = new Map<string, Entry>();
 const inflight = new Map<string, Promise<unknown>>();
 let queueDepth = 0;
+/** Queued and not yet sent: the in-flight request, if any, is not among them. */
+let waiting = 0;
 let chain: Promise<unknown> = Promise.resolve();
 let lastRequestAt = 0;
 
@@ -168,10 +170,12 @@ export async function nominatim<T>(
   }
 
   queueDepth++;
+  waiting++;
   const run = chain.then(async () => {
     const wait = lastRequestAt + MIN_GAP_MS - Date.now();
     if (wait > 0) await new Promise(resolve => setTimeout(resolve, wait));
     lastRequestAt = Date.now();
+    waiting--;
     try {
       const value = await httpJson<T>(`${HOST}/${endpoint}?${query}`, { timeoutMs: 8000 });
       stats.sent++;
@@ -209,6 +213,16 @@ function within<T>(answer: Promise<T | null>, waitMs: number | undefined): Promi
 }
 
 /** How much we have asked of Nominatim since this process started. */
+/**
+ * How long a request asked for now would wait in the queue before it is sent: 0 when it would go at once. A caller
+ * can answer "not yet" straight away rather than hold its own caller while the queue drains.
+ */
+export const nominatimDelayMs = (now = Date.now()) => queueDelayMs(lastRequestAt, waiting, MIN_GAP_MS, now);
+
+/** A request goes `gapMs` after the last one sent, and after each of the `waiting` ahead of it. */
+export const queueDelayMs = (lastSentAt: number, waiting: number, gapMs: number, now: number) =>
+  Math.max(0, lastSentAt + (waiting + 1) * gapMs - now);
+
 export function nominatimStats() {
   return { ...stats, cached: cache.size, queueDepth };
 }
@@ -220,6 +234,7 @@ export function clearNominatimCache(): void {
   chain = Promise.resolve();
   lastRequestAt = 0;
   queueDepth = 0;
+  waiting = 0;
   loaded = null;
   for (const k of Object.keys(stats) as (keyof typeof stats)[]) stats[k] = 0;
 }

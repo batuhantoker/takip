@@ -59,12 +59,12 @@ describe('pointerPlace', () => {
 });
 
 describe('createPointerPlace', () => {
-  let reverse: { label: string | null; cache: string };
+  let reverse: { label: string | null; cache: string; retryAfter?: string };
   const fetchMock = vi.fn(async (url: string) => {
     if (url.endsWith('/countries.json')) return Response.json(COUNTRIES);
     if (url.endsWith('/admin1/AAA.json')) return Response.json(ALPHA_STATES);
     if (url.startsWith('/api/geo/reverse')) {
-      return Response.json({ label: reverse.label }, { headers: { 'cache-control': reverse.cache } });
+      return Response.json({ label: reverse.label }, { headers: { 'cache-control': reverse.cache, ...(reverse.retryAfter && { 'retry-after': reverse.retryAfter }) } });
     }
     return new Response(null, { status: 404 });
   });
@@ -155,6 +155,22 @@ describe('createPointerPlace', () => {
     await settle();
     expect(reverseCalls()).toHaveLength(3);
     expect(place.label()).toBe('West, Alpha');
+  });
+
+  it('asks again when the route’s Retry-After says the queued answer should be in', async () => {
+    const place = shown();
+    reverse = { label: null, cache: 'no-store', retryAfter: '5' };
+    place.point(5, 2);
+    await vi.advanceTimersByTimeAsync(REST_MS);
+    await settle();
+    reverse = { label: 'Townsville, Some Region, Alpha', cache: 'public, max-age=86400' };
+    await vi.advanceTimersByTimeAsync(TOWN_RETRY_MS);
+    await settle();
+    expect(reverseCalls()).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(5_000 - TOWN_RETRY_MS);
+    await settle();
+    expect(reverseCalls()).toHaveLength(2);
+    expect(place.label()).toBe('Townsville, West, Alpha');
   });
 
   it('asks again while the pointer rests on a still-queued lookup, a few times at most', async () => {

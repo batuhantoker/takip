@@ -14,8 +14,12 @@ export const REST_MS = 400;
 /** Countries failed to load: try again after this, not on every mouse move. */
 const RETRY_MS = 30_000;
 const MAX_CELLS = 2_000;
-/** The route stops waiting on a busy queue but keeps the lookup queued, so a resting pointer asks again this often. */
+/**
+ * The route answers a busy queue at once but keeps the lookup queued, so a resting pointer asks again when its
+ * Retry-After says the answer should be in, or after this without one.
+ */
 export const TOWN_RETRY_MS = 2_000;
+const MAX_RETRY_MS = 10_000;
 export const TOWN_TRIES = 4;
 
 /** The route's 0.1° cell; asking for the centre keeps the URL, and so the browser's cached answer, the same. */
@@ -99,7 +103,7 @@ export function createPointerPlace(): PointerPlace {
         if (!res.ok) return;
         const body = (await res.json()) as { label?: string | null };
         // A refused, failed or still-queued lookup is sent no-store: ask again rather than take it for open sea.
-        if (!body.label && res.headers.get('cache-control')?.includes('no-store')) return retryTown(cell);
+        if (!body.label && res.headers.get('cache-control')?.includes('no-store')) return retryTown(cell, Number(res.headers.get('retry-after')) * 1000);
         if (named.size >= MAX_CELLS) named.delete(named.keys().next().value!);
         named.set(cell.key, body.label || null);
         refresh();
@@ -109,12 +113,12 @@ export function createPointerPlace(): PointerPlace {
   }
 
   // Shares `rest` with follow(), so moving the pointer replaces the retry with its own rest and a fresh count.
-  function retryTown(cell: ReturnType<typeof geocodeCell>) {
+  function retryTown(cell: ReturnType<typeof geocodeCell>, after: number) {
     const asked = retrying?.key === cell.key ? retrying.asked + 1 : 1;
     if (asked >= TOWN_TRIES || !at || geocodeCell(at.lat, at.lng).key !== cell.key) return;
     retrying = { key: cell.key, asked };
     if (rest) clearTimeout(rest);
-    rest = setTimeout(() => { rest = null; askTown(cell); }, TOWN_RETRY_MS);
+    rest = setTimeout(() => { rest = null; askTown(cell); }, after > 0 ? Math.min(after, MAX_RETRY_MS) : TOWN_RETRY_MS);
   }
 
   // Nothing is fetched while no status bar shows the label: on a phone, or while a timeline replaces it.
