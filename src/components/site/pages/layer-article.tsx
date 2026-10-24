@@ -52,15 +52,15 @@ function LiveImage({ t, shot }: { t: Translate; shot: LiveShot }) {
  * comes from, what it can't tell you, places to start, and pages that go with it. Copy arrives already in the
  * reader's language.
  */
-export function LayerArticle({ text, page, image, live, shot, related, events }: {
+export function LayerArticle({ text, page, image, live, shot, related, more }: {
   text: SiteText;
   page: LayerPage;
   image: string | null;
   live: LiveLine | null;
   shot?: LiveShot | null;
   related: Related[];
-  /** A History topic's own events (events/topic-events.tsx). */
-  events?: ReactNode;
+  /** The page's own subjects, under the article: a History topic's events, a Space page's spacecraft. */
+  more?: ReactNode;
 }) {
   const t: Translate = text.t;
   const section = sectionIn(text, page.section);
@@ -166,7 +166,7 @@ export function LayerArticle({ text, page, image, live, shot, related, events }:
         </aside>
       </div>
 
-      {events}
+      {more}
 
       {related.length > 0 && (
         <section className="mt-20">

@@ -1,4 +1,6 @@
 import { KIND_FAMILY } from '@/lib/history/kinds';
+import type { SpaceSelection } from '@/lib/space/selection';
+import { SKY_BODIES } from '@/lib/space/sky';
 import type { SpaceFocus } from '@/lib/space/worlds';
 
 /** A link that opens the map in one of its other views: History at a year, deep time, Space at a body, or Replay at a moment. */
@@ -11,7 +13,13 @@ export type ViewModeLink =
     metric?: string; source?: string; countries?: string[];
   }
   | { view: 'deep'; ma: number | null; chapter: number | null }
-  | { view: 'space'; focus: SpaceFocus }
+  | {
+    view: 'space'; focus: SpaceFocus;
+    /** Something to select on arrival: a craft, a Mars rover, a landing site or a body. */
+    select?: SpaceSelection;
+    /** A spacecraft (Horizons ID) whose flight to play back. */
+    replay?: number;
+  }
   | { view: 'replay'; at: number | null };
 
 /** History's border layers a link may switch on (lib/history/world-borders.ts, war-layers.ts). */
@@ -23,6 +31,9 @@ export const HISTORY_FAMILY_LINKS = ['conflict', 'terror', 'territorial', 'herit
 export type HistoryFamilyLink = (typeof HISTORY_FAMILY_LINKS)[number];
 
 const FOCUS: readonly SpaceFocus[] = ['earth', 'moon', 'mars', 'sun', 'solar', 'stars', 'galaxy', 'universe'];
+const HORIZONS_CRAFT = /^-\d{1,9}$/;
+const ROVER = /^[a-z]{2,20}$/;
+const SITE = /^(moon|mars):([a-z0-9-]{1,40})$/;
 
 /** History's metric codes ("wpp:LEx", "wdi:NY.GDP.PCAP.KD"), source codes ("owid-le") and countries.json ids ("TUR", "SDS"). */
 const METRIC = /^[a-z][a-z0-9-]{0,15}:[A-Za-z0-9_.]{1,48}$/;
@@ -43,7 +54,8 @@ const int = (v: string | null, min: number, max: number) => {
  * `?view=history&year=1914&layer=world-borders`, a span of years with `&from=1927&to=2026`, families with
  * `&families=hazard,disaster`, only some kinds with `&kinds=accident.aviation,accident.rail` and countries coloured
  * with `&metric=wpp:LEx&source=wpp-2024&country=GRC,TUR`;
- * `?view=deep&ma=250` or `&chapter=3`, `?view=space&focus=mars`, `?view=replay&at=<epoch ms>`.
+ * `?view=deep&ma=250` or `&chapter=3`, `?view=space&focus=mars` (with `&craft=-76` and the like, or `&replay=-31`),
+ * `?view=replay&at=<epoch ms>`.
  */
 export function parseViewModeLink(p: URLSearchParams, now = Date.now()): ViewModeLink | null {
   switch (p.get('view')) {
@@ -72,7 +84,13 @@ export function parseViewModeLink(p: URLSearchParams, now = Date.now()): ViewMod
     case 'deep': return { view: 'deep', ma: int(p.get('ma'), 0, 1000), chapter: int(p.get('chapter'), 0, 99) };
     case 'space': {
       const focus = p.get('focus') as SpaceFocus | null;
-      return { view: 'space', focus: focus && FOCUS.includes(focus) ? focus : 'solar' };
+      const select = spaceSelect(p);
+      const replay = matching(p.get('replay'), HORIZONS_CRAFT);
+      return {
+        view: 'space', focus: focus && FOCUS.includes(focus) ? focus : 'solar',
+        ...(select ? { select } : {}),
+        ...(replay ? { replay: Number(replay) } : {}),
+      };
     }
     case 'replay': {
       const at = int(p.get('at'), 0, now);
@@ -80,6 +98,18 @@ export function parseViewModeLink(p: URLSearchParams, now = Date.now()): ViewMod
     }
     default: return null;
   }
+}
+
+/** `&craft=-76`, `&rover=curiosity`, `&site=mars:viking-1` or `&body=jupiter`. */
+function spaceSelect(p: URLSearchParams): SpaceSelection | null {
+  const craft = matching(p.get('craft'), HORIZONS_CRAFT);
+  if (craft) return { kind: 'craft', id: Number(craft) };
+  const rover = matching(p.get('rover'), ROVER);
+  if (rover) return { kind: 'rover', id: rover };
+  const site = SITE.exec(p.get('site') ?? '');
+  if (site) return { kind: 'site', world: site[1] as 'moon' | 'mars', id: site[2] };
+  const body = SKY_BODIES.find(b => b.key === p.get('body'));
+  return body ? { kind: 'body', key: body.key } : null;
 }
 
 /** 1 January of a year as epoch ms; years 0–99 included, which Date.UTC would read as 1900–1999. */
@@ -107,6 +137,14 @@ export function viewModeQuery(link: ViewModeLink): string {
   if (link.view === 'deep' && link.chapter !== null) q.set('chapter', String(link.chapter));
   else if (link.view === 'deep' && link.ma !== null) q.set('ma', String(link.ma));
   if (link.view === 'space') q.set('focus', link.focus);
+  if (link.view === 'space' && link.select) {
+    const s = link.select;
+    if (s.kind === 'craft') q.set('craft', String(s.id));
+    else if (s.kind === 'rover') q.set('rover', s.id);
+    else if (s.kind === 'site') q.set('site', `${s.world}:${s.id}`);
+    else if (s.kind === 'body') q.set('body', s.key);
+  }
+  if (link.view === 'space' && link.replay !== undefined) q.set('replay', String(link.replay));
   if (link.view === 'replay' && link.at !== null) q.set('at', String(link.at));
   return q.toString();
 }

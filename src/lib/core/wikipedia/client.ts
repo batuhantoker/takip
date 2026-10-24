@@ -2,7 +2,7 @@
  * Wikipedia lookups for server routes, English unless a wiki code is given. Keyless; Wikimedia asks for a
  * descriptive User-Agent and a gentle request rate.
  */
-import { trimExtract, type WikiArticle, type WikiSummary } from './summary';
+import { largeImage, trimExtract, type WikiArticle, type WikiSummary } from './summary';
 
 const UA = 'TAKIP/0.1 (+https://github.com/batuhantoker/takip)';
 const API = 'https://en.wikipedia.org';
@@ -46,13 +46,14 @@ export async function wikiSummary(title: string, lang = 'en'): Promise<WikiSumma
   const res = await fetch(`${api}/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, '_'))}`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(8000) });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Wikipedia summary HTTP ${res.status}`);
-  const s = await res.json() as { type?: string; title: string; description?: string; extract?: string; thumbnail?: { source: string; width: number; height: number }; content_urls?: { desktop?: { page?: string } } };
+  const s = await res.json() as { type?: string; title: string; description?: string; extract?: string; thumbnail?: { source: string; width: number; height: number }; originalimage?: { source: string; width: number }; content_urls?: { desktop?: { page?: string } } };
   if (s.type === 'disambiguation') return null;
   return {
     title: s.title,
     description: s.description ?? null,
     extract: trimExtract(s.extract ?? ''),
     image: s.thumbnail ? { src: s.thumbnail.source, width: s.thumbnail.width, height: s.thumbnail.height } : null,
+    large: largeImage(s.thumbnail?.source, s.originalimage),
     url: s.content_urls?.desktop?.page ?? `${api}/wiki/${encodeURIComponent(s.title)}`,
   };
 }

@@ -6,6 +6,7 @@ import { isWorldSlug, worldMetadata, WorldPage } from '@/components/site/compare
 import { TopicEvents } from '@/components/site/events/topic-events';
 import { LayerArticle } from '@/components/site/pages/layer-article';
 import { SiteFrame } from '@/components/site/pages/site-frame';
+import { SpaceLinks } from '@/components/site/space/space-links';
 import { requestLocale } from '@/lib/core/i18n/request';
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { worldSlugs } from '@/lib/platform/site/compare/world';
@@ -80,7 +81,7 @@ export default async function LayerPageRoute({ params }: Props) {
         }] : []),
       ]) }} />
       <LayerArticle text={text} page={page} image={shotUrl(page.slug)} live={live} shot={shot} related={related}
-        events={events ? <TopicEvents t={text.t} events={events} /> : undefined} />
+        more={events ? <TopicEvents t={text.t} events={events} /> : page.spaceLinks ? <SpaceLinks t={text.t} which={page.spaceLinks} /> : undefined} />
     </SiteFrame>
   );
 }

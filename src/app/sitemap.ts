@@ -8,6 +8,7 @@ import { POLICY_LINKS } from '@/lib/platform/site/legal';
 import { liveImagePath } from '@/lib/platform/site/live-images';
 import { languageAlternates, localePath } from '@/lib/platform/site/locale-path';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
+import { spacePaths } from '@/lib/platform/site/space/sitemap';
 
 // No lastModified: stamped with the request time, it would change on every fetch and crawlers learn to ignore it.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -26,6 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Each History measure around the world; the comparisons are chunked with the place pages.
     ...worldSlugs().flatMap(slug => reading(worldPath(slug))),
     ...reading('/compare'),
+    ...spacePaths().flatMap(path => reading(path, path.startsWith('/planet/'))),
     ...reading('/ramadan'),
     ...reading('/easter'),
     ...reading('/jewish-holidays'),

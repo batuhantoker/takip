@@ -8,6 +8,7 @@ import { eventCard } from '@/lib/platform/site/events/card';
 import { isSlug } from '@/lib/platform/site/events/slug';
 import { layerPage } from '@/lib/platform/site/layer-pages';
 import { placeCard } from '@/lib/platform/site/places/card';
+import { spaceCard } from '@/lib/platform/site/space/card';
 import { ogFontFamily, ogFonts } from '@/lib/platform/site/og-fonts';
 import { describeView } from '@/lib/platform/site/share-view';
 import { shotFile } from '@/lib/platform/site/shots';
@@ -66,6 +67,8 @@ export async function GET(req: Request) {
   const pageParam = params.get('page');
   const placeParam = params.get('place');
   const eventParam = params.get('event');
+  const spaceParam = params.get('space');
+  const spaceOk = !!spaceParam && /^(craft|planet|index):[a-z0-9-]{0,64}$/.test(spaceParam);
   const langParam = params.get('lang');
 
   let card: Card;
@@ -85,6 +88,12 @@ export async function GET(req: Request) {
     if (!found) return new Response('Not found', { status: 404 });
     card = found;
     key = `event:${eventParam}:${locale}`;
+  } else if (spaceOk) {
+    locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
+    const found = spaceCard(spaceParam!, (await siteText(locale)).t);
+    if (!found) return new Response('Not found', { status: 404 });
+    card = found;
+    key = `space:${spaceParam}:${locale}`;
   } else if (pageParam && /^[a-z0-9-]{1,64}$/.test(pageParam)) {
     locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
     const found = await readingCard(pageParam, locale);
@@ -108,6 +117,7 @@ export async function GET(req: Request) {
 
   const english = async () => (placeParam ? placeCard(placeParam, (await siteText(DEFAULT_LOCALE)).t)
     : eventParam && isSlug(eventParam) ? eventCard(eventParam, (await siteText(DEFAULT_LOCALE)).t)
+    : spaceOk ? spaceCard(spaceParam!, (await siteText(DEFAULT_LOCALE)).t)
     : pageParam ? await readingCard(pageParam, DEFAULT_LOCALE) : null);
   // A script Geist can't draw needs a font fetched for it; without one, the card is drawn in English.
   let fonts = await ogFonts(locale, `${card.kicker}${card.title}${card.subtitle}TAKIP`);

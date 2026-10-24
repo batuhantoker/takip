@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { historyDir as dir, historyFile as file } from '@/lib/space/replay/flight-files';
 import { historyDue, type CraftHistory } from '@/lib/space/replay/flight-history';
 import { jdFromMs } from '@/lib/space/horizons';
 import type { Lane } from '../horizons-fetch';
@@ -12,15 +12,10 @@ import { collectHistory } from './collect';
  * someone waits for it.
  */
 
-/** Bump when the `CraftHistory` shape changes; files of older versions are then ignored. */
-const VERSION = 7;
 /** Behind a replay, a live flight is refetched for next time once its prediction is this old. */
 const REPLAY_REFRESH_DAYS = 0.5;
 /** The warm-up refetches one nobody has replayed once it is this old. */
 const WARM_REFRESH_DAYS = 7;
-
-const dir = () => join(process.env.TAKIP_SPACE_HISTORY_DIR || join(process.cwd(), '.cache', 'space-history'), `v${VERSION}`);
-const file = (id: number) => join(dir(), `${id}.json`);
 
 const memory = new Map<number, CraftHistory>();
 const inflight = new Map<number, Promise<CraftHistory | null>>();

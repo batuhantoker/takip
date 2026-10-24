@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { leadSentences, trimExtract } from './summary';
+import { largeImage, leadSentences, trimExtract } from './summary';
 
 describe('trimExtract', () => {
   it('cuts at a sentence end', () => {
@@ -29,5 +29,21 @@ describe('leadSentences', () => {
   it('doesn’t end a sentence at an initial', () => {
     expect(leadSentences('Built by J. Smith in 1900. Torn down later.', 30)).toBe('Built by J. Smith in 1900.');
     expect(leadSentences('Built by J. Smith in 1900. Torn down later.', 20)).toBe('Built by J. Smith…');
+  });
+});
+
+describe('largeImage', () => {
+  const thumb = 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Rover.jpg/330px-Rover.jpg';
+  it('asks for the 960 px step when the original is at least that wide', () => {
+    expect(largeImage(thumb, { source: 'https://upload.wikimedia.org/wikipedia/commons/f/f3/Rover.jpg', width: 4000 }))
+      .toBe('https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Rover.jpg/960px-Rover.jpg');
+  });
+  it('uses a smaller original as it is, and an SVG at any width', () => {
+    expect(largeImage(thumb, { source: 'https://upload.wikimedia.org/x/Rover.jpg', width: 600 })).toBe('https://upload.wikimedia.org/x/Rover.jpg');
+    expect(largeImage('https://u/thumb/a/Map.svg/330px-Map.svg.png', { source: 'https://u/a/Map.svg', width: 512 })).toBe('https://u/thumb/a/Map.svg/960px-Map.svg.png');
+  });
+  it('keeps the thumbnail when there is no original', () => {
+    expect(largeImage(thumb, undefined)).toBe(thumb);
+    expect(largeImage(undefined, undefined)).toBeNull();
   });
 });

@@ -66,6 +66,15 @@ describe('parseViewModeLink', () => {
     expect(parse('view=space&focus=pluto')).toEqual({ view: 'space', focus: 'solar' });
   });
 
+  it('selects a craft, rover, landing site or body in space, or replays a flight', () => {
+    expect(parse('view=space&focus=mars&craft=-76')).toEqual({ view: 'space', focus: 'mars', select: { kind: 'craft', id: -76 } });
+    expect(parse('view=space&focus=mars&rover=curiosity')).toMatchObject({ select: { kind: 'rover', id: 'curiosity' } });
+    expect(parse('view=space&focus=moon&site=moon:apollo-11')).toMatchObject({ select: { kind: 'site', world: 'moon', id: 'apollo-11' } });
+    expect(parse('view=space&body=jupiter')).toMatchObject({ select: { kind: 'body', key: 'jupiter' } });
+    expect(parse('view=space&replay=-31')).toEqual({ view: 'space', focus: 'solar', replay: -31 });
+    expect(parse('view=space&craft=76&site=venus:x&body=vulcan&replay=abc')).toEqual({ view: 'space', focus: 'solar' });
+  });
+
   it('refuses a replay moment in the future', () => {
     expect(parse(`view=replay&at=${NOW - 3_600_000}`)).toEqual({ view: 'replay', at: NOW - 3_600_000 });
     expect(parse(`view=replay&at=${NOW + 3_600_000}`)).toEqual({ view: 'replay', at: null });
@@ -80,6 +89,7 @@ describe('parseViewModeLink', () => {
       'view=history&year=1683&layer=world-borders', 'view=history&year=1927&from=1927&to=2026&families=hazard',
       'view=history&year=1950&from=1950&to=2026&families=disaster&kinds=accident.aviation%2Caccident.rail',
       'view=history&year=1950&from=1950&to=2026&metric=wpp%3ALEx&source=wpp-2024&country=GRC%2CTUR', 'view=deep&ma=66', 'view=space&focus=moon',
+      'view=space&focus=mars&rover=curiosity', 'view=space&focus=solar&craft=-31&replay=-31',
     ]) {
       expect(viewModeQuery(parse(q)!)).toBe(q);
     }

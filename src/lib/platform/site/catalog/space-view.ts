@@ -8,6 +8,7 @@ export const SPACE_VIEW: LayerPage[] = [
   {
     slug: 'solar-system-3d',
     section: 'space',
+    spaceLinks: 'planets',
     layers: [],
     mode: { view: 'space', focus: 'solar' },
     title: 'Solar system in 3D: planets and spacecraft, live',
@@ -28,6 +29,7 @@ export const SPACE_VIEW: LayerPage[] = [
   {
     slug: 'spacecraft-tracker',
     section: 'space',
+    spaceLinks: 'all',
     layers: [],
     mode: { view: 'space', focus: 'solar' },
     panel: 'space',
@@ -51,6 +53,7 @@ export const SPACE_VIEW: LayerPage[] = [
   {
     slug: 'moon-3d',
     section: 'space',
+    spaceLinks: 'moon',
     layers: [],
     mode: { view: 'space', focus: 'moon' },
     title: 'Moon map in 3D: landing sites, rovers and orbiters',
@@ -69,6 +72,7 @@ export const SPACE_VIEW: LayerPage[] = [
   {
     slug: 'mars-3d',
     section: 'space',
+    spaceLinks: 'mars',
     layers: [],
     mode: { view: 'space', focus: 'mars' },
     title: 'Mars map in 3D: rover tracks and landing sites',

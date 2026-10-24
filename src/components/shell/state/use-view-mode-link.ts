@@ -7,6 +7,7 @@ import { atMa } from '@/lib/history/paleo/deep-time';
 import { loadCountries } from '@/lib/places/areas/boundary-store';
 import type { ReplaySession } from '@/lib/map/replay/session';
 import { HISTORY_FAMILY_LINKS, parsePanelLink, parseViewModeLink, yearStart, type PanelLink, type ViewModeLink } from '@/lib/map/view-mode-link';
+import { requestWorld } from '@/lib/space/world-events';
 import type { SpaceFocus } from '@/lib/space/worlds';
 import { SPEEDS } from '@/components/panels/history/lib/history-timeline-config';
 import type { ToolId } from '@/components/shell/sidebar/dock';
@@ -63,7 +64,10 @@ export function useViewModeLink({ splashGone, autoLocateCancelled: autoLocateCan
     const a = actRef.current;
     if (mode?.view === 'history' || mode?.view === 'deep') {
       if (a.isMobile) { a.startHistory(); a.setMobilePanel('history'); } else a.openTool('history');
-    } else if (mode?.view === 'space') a.enterSpace(mode.focus);
+    } else if (mode?.view === 'space') {
+      if (mode.select || mode.replay !== undefined) requestWorld({ focus: mode.focus, select: mode.select, replay: mode.replay });
+      else a.enterSpace(mode.focus);
+    }
     else if (mode?.view === 'replay' && !a.replay) a.toggleReplay();
     if (panel) {
       const mobile = MOBILE[panel];

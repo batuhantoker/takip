@@ -3,7 +3,18 @@ export interface WikiSummary {
   description: string | null;
   extract: string;
   image: { src: string; width: number; height: number } | null;
+  /** The same picture up to 960 px wide, for a page that shows it large. */
+  large?: string | null;
   url: string;
+}
+
+const LARGE_PX = 960;
+
+/** Wikimedia scales thumbnails only down, and in fixed steps (960 is one); a smaller original is used as it is. */
+export function largeImage(thumb: string | undefined, original: { source: string; width: number } | undefined): string | null {
+  if (!thumb || !original) return thumb ?? null;
+  const scalable = /\.svg$/i.test(original.source) || original.width >= LARGE_PX;
+  return scalable && /\/\d+px-/.test(thumb) ? thumb.replace(/\/\d+px-/, `/${LARGE_PX}px-`) : original.source;
 }
 
 /** A summary in the reader's Wikipedia when it has the article, else the English one; `lang` says which. */
