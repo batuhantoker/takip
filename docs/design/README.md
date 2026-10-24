@@ -284,7 +284,8 @@ and its options, Layers, History, Space, Recon and TI. Any key or click goes
 on, ← or Backspace goes back, and Escape or the card's close stops it. It
 opens only what leaves the map as it was (the base map menu, the Layers and
 Recon panels) and never starts Replay or Space. Stopping it leaves things as it
-showed them: the panel in view stays open. A first visit to the plain map, not a shared link, offers it once in a
+showed them: the panel in view stays open, and the first time someone stops it
+early a small card asks, once, whether to carry on from that stop. A first visit to the plain map, not a shared link, offers it once in a
 small card; after that it lives in TI under How to use TAKIP. Desktop only for
 now.
 

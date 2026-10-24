@@ -73,6 +73,7 @@ import { useShellFoot } from '@/components/shell/layout/use-shell-foot';
 import ShowingChip from '@/components/shell/showing/showing-chip';
 import MapTour from '@/components/shell/tour/map-tour';
 import TourOffer from '@/components/shell/tour/tour-offer';
+import TourResume from '@/components/shell/tour/tour-resume';
 import { useSpaceMode } from '@/components/panels/space/view/use-space-mode';
 import { warmSpace } from '@/components/panels/space/view/warm-space';
 import type { GlobeLink } from '@/lib/space/globe-match';
@@ -467,6 +468,7 @@ export default function Dashboard() {
       {!isMobile && (
         <>
           <TourOffer ready={splash.splashGone} />
+          <TourResume />
           <MapTour activeTool={activeTool} setActiveTool={setActiveTool} onStart={() => { setAiTheater(false); exitSpace(); }}
             history={{ running: !!history.session, start: startHistory, exit: exitHistory }} />
         </>

@@ -18,7 +18,7 @@ export const USAGE_ACTIONS = [
   'link.share', 'report.send',
   'layer.on', 'layer.off', 'basemap.change',
   'account.sign_up_open', 'account.sign_in_open',
-  'tour.offer', 'tour.decline', 'tour.start', 'tour.inside', 'tour.skip', 'tour.finish',
+  'tour.offer', 'tour.decline', 'tour.start', 'tour.inside', 'tour.skip', 'tour.resume', 'tour.finish',
 ] as const;
 
 export type UsageAction = (typeof USAGE_ACTIONS)[number];

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { STOPS } from './lib/stops';
-import { endTour, setTourPart, startTour, stepTour, tourAt, tourPart } from './tour-state';
+import { endTour, forgetStop, resumeTour, setTourPart, startTour, stepTour, tourAt, tourPart, tourStopped } from './tour-state';
 
 afterEach(endTour);
 
@@ -46,6 +46,20 @@ describe('tour state', () => {
   it('has no panel to go into with the tour off', () => {
     setTourPart(2);
     expect([tourAt(), tourPart()]).toEqual([null, null]);
+  });
+
+  it('remembers an early stop, picks it up again, and forgets it on a finish', () => {
+    startTour(3, 2);
+    endTour();
+    expect(tourStopped()).toMatchObject({ at: 3, part: 2 });
+    resumeTour();
+    expect([tourAt(), tourPart(), tourStopped()]).toEqual([3, 2, null]);
+    endTour();
+    forgetStop();
+    expect(tourStopped()).toBeNull();
+    startTour(STOPS.length - 1);
+    stepTour(1);
+    expect(tourStopped()).toBeNull();
   });
 
   it('gives every stop something to ring', () => {

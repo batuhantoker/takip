@@ -27,7 +27,7 @@ const GROUPS: { id: string; label: string; actions: Record<string, string> }[] =
   {
     id: 'tour',
     label: 'Tour',
-    actions: { 'tour.offer': 'Offered on a first visit', 'tour.decline': 'Offer turned down', 'tour.start': 'Tours started', 'tour.inside': 'Looked inside a panel', 'tour.skip': 'Stopped before the end', 'tour.finish': 'Tours finished' },
+    actions: { 'tour.offer': 'Offered on a first visit', 'tour.decline': 'Offer turned down', 'tour.start': 'Tours started', 'tour.inside': 'Looked inside a panel', 'tour.skip': 'Stopped before the end', 'tour.resume': 'Came back to the tour', 'tour.finish': 'Tours finished' },
   },
 ];
 
