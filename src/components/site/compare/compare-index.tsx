@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { cx } from '@/components/ui/class-names';
+import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { LINK_BUTTON, Section, SiteFrame, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { requestLocale } from '@/lib/core/i18n/request';
-import { comparePath } from '@/lib/platform/site/compare/compare';
+import { comparePath, pairMeasures } from '@/lib/platform/site/compare/compare';
+import { pairHighlights } from '@/lib/platform/site/compare/compare-copy';
 import { countryOptions, pickerOptions } from '@/lib/platform/site/compare/countries';
-import { comparedWith } from '@/lib/platform/site/compare/pairs';
+import { comparedWith, popularPairs } from '@/lib/platform/site/compare/pairs';
 import { worldPath } from '@/lib/platform/site/compare/world';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { readingMetadata } from '@/lib/platform/site/meta';
@@ -23,13 +24,17 @@ export async function compareIndexMetadata(): Promise<Metadata> {
   });
 }
 
+/** Each country's partners shown in the list, the ones it is most readily compared with; the rest are in the sitemap. */
+const PARTNERS = 6;
+
 /** /compare: pick any two countries, or follow the pairs people compare and each measure's world page. */
 export async function CompareIndex() {
   const text = await siteText((await requestLocale()).locale);
   const { t } = text;
   const all = countryOptions(t);
   const options = pickerOptions(t);
-  const listed = all.map(c => ({ ...c, partners: comparedWith(c.place) })).filter(c => c.partners.length);
+  const listed = all.map(c => ({ ...c, partners: comparedWith(c.place).slice(0, PARTNERS) })).filter(c => c.partners.length);
+  const popular = popularPairs().map(pair => ({ pair, top: pairHighlights(pair, pairMeasures(pair), t)[0] }));
   return (
     <SiteFrame t={t} path="/compare">
       <header className="mt-8 max-w-[44rem]">
@@ -50,7 +55,21 @@ export async function CompareIndex() {
         </form>
       </header>
 
-      <Section title={t('Each measure around the world')} className="mt-16">
+      <Section title={t('Popular comparisons')} className="mt-16">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {popular.map(({ pair, top }) => (
+            <li key={`${pair.a.id}-${pair.b.id}`}>
+              <Link href={localePath(t.locale, comparePath(pair))}
+                className={cx('flex h-full flex-col gap-1.5 rounded-card border border-line bg-surface-1 p-4 hover:border-line-strong hover:bg-surface-2', FOCUS_RING, TRANSITION)}>
+                <span className="text-[15px] font-medium text-ink-1">{t('{a} vs {b}', { a: nameOf(pair.a, t), b: nameOf(pair.b, t) })}</span>
+                {top && <span className="text-[13px] leading-snug text-ink-3"><span className="text-ink-2">{top.metric}</span> · {top.line}</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section title={t('Each measure around the world')}>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {INDICATOR_GROUPS.map(g => (
             <div key={g.id}>

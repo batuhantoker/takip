@@ -3,7 +3,7 @@ import { DESCRIPTION_RANGE, EN, fit, listOf, nameOf, TITLE_MAX } from '../places
 import type { PlaceCopy } from '../places/topic';
 import { basisOf, formatNumber, formatValue, projectionName } from '../places/topics/indicators-facts';
 import type { IndicatorSeries, IndicatorSpec } from '../places/topics/indicators-data';
-import { PAIR_INDEX, pairFacts, pairMeasures, type PairFacts, type PairMeasure } from './compare';
+import { PAIR_INDEX, pairFacts, pairMeasures, type Lead, type PairFacts, type PairMeasure } from './compare';
 import { pairReasons, type CountryPair } from './pairs';
 
 /**
@@ -94,6 +94,41 @@ export function pairSentences(pair: CountryPair, m: PairMeasure, t: Translate): 
 /** Below this, "1.02 times" says nothing the gap doesn't. */
 const RATIO_WORTH = 1.2;
 
+/** A figure as it is shown, to `digits` places, halves away from zero as Intl rounds them (0.865 is 0.87, not toFixed's 0.86). */
+const shown = (v: number, digits: number) => (Math.sign(v) * Math.round(Number((Math.abs(v) * 10 ** digits).toPrecision(12)))) / 10 ** digits;
+
+/** Rates of change and degrees Celsius, of which "times as high" means nothing. */
+const NO_RATIO = new Set(['population-growth', 'gdp-growth', 'inflation', 'net-migration', 'temperature']);
+
+/** How many times the higher figure is the lower, where both are above zero as shown and it says more than the gap. */
+function timesOf(spec: IndicatorSpec, { av, bv }: Pick<PairFacts, 'av' | 'bv'>): number | undefined {
+  const low = Math.min(av, bv);
+  if (NO_RATIO.has(spec.slug) || low <= 0 || shown(low, spec.digits) === 0) return undefined;
+  const r = Math.max(av, bv) / low;
+  return r >= RATIO_WORTH ? r : undefined;
+}
+
+/** A row of the side-by-side table: both figures, in the latest year both have where they share one. */
+export interface SideBySide {
+  a: [year: number, v: number];
+  b: [year: number, v: number];
+  /** Who is higher, said only where both figures are for one year. */
+  lead?: Lead;
+  /** "1.84", where the higher is that many times the lower; else the gap. */
+  ratio?: string;
+  gap?: number;
+}
+
+export function sideBySide(m: Pick<PairMeasure, 'spec' | 'a' | 'b' | 'common'>, t: Translate): SideBySide {
+  const f = pairFacts(m);
+  if (!f) return { a: m.a.f.last, b: m.b.f.last };
+  const side = { a: [f.year, f.av], b: [f.year, f.bv] } satisfies Pick<SideBySide, 'a' | 'b'>;
+  if (timesOf(m.spec, f)) return { ...side, lead: f.lead, ratio: ratioOf(f.av, f.bv, t) };
+  // The gap between the figures as shown, so 83.3 and 81.4 differ by 1.9 rather than a rounded 2, and 0.4 and 0.4 by nothing.
+  const gap = Math.abs(shown(f.av, m.spec.digits) - shown(f.bv, m.spec.digits));
+  return gap ? { ...side, lead: f.lead, gap } : { ...side, lead: 'tie' };
+}
+
 /** One country's figure in the answer, split so the number can stand out from its unit: "6.8 million" and " people". */
 export interface AnswerTile { slot: 0 | 1; name: string; before: string; number: string; after: string; note: string }
 
@@ -122,8 +157,7 @@ export function pairAnswer(pair: CountryPair, m: PairMeasure, t: Translate): { t
   if (f.lead === 'tie') return { tiles, verdict: t('In {year} both had {v}.', { year: at(f.year), v: formatValue(spec, f.av, t) }) };
   const lead = f.lead === 'a' ? a : b;
   const other = f.lead === 'a' ? b : a;
-  const ratio = f.av > 0 && f.bv > 0 && Math.max(f.av, f.bv) / Math.min(f.av, f.bv) >= RATIO_WORTH;
-  const verdict = ratio
+  const verdict = timesOf(spec, f)
     ? t('Higher in {lead} by {gap}: {ratio} times the figure for {other}.', { lead, other, gap: gapOf(spec, f, t), ratio: ratioOf(f.av, f.bv, t) })
     : t('Higher in {lead} by {gap}.', { lead, gap: gapOf(spec, f, t) });
   return { tiles, verdict, since: sinceSentence(f, a, b, t) };
@@ -190,7 +224,6 @@ export function pairSpan(measures: PairMeasure[]) {
 export function pairOverviewCopy(pair: CountryPair, measures: PairMeasure[], t: Translate): PlaceCopy {
   const span = pairSpan(measures);
   const vars = (t: Translate) => ({ ...names(pair, t), n: measures.length, from: at(span.from), to: at(span.to) });
-  const le = measures.find(m => m.spec.slug === 'life-expectancy');
   return {
     title: fit([
       t => t('{a} vs {b}: {n} measures compared since {from}', vars(t)),
@@ -203,30 +236,46 @@ export function pairOverviewCopy(pair: CountryPair, measures: PairMeasure[], t: 
       t => t('{a} and {b} compared on {n} measures, each charted year by year for both from {from} to {to}.', vars(t)),
     ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
     heading: t('{a} vs {b}', vars(t)),
-    lede: le ? t('How {a} and {b} compare on {n} measures, from {from} to {to}. The main differences:', vars(t))
-      : t('How {a} and {b} compare on {n} measures, from {from} to {to}.', vars(t)),
+    lede: pairHighlights(pair, measures, t).length ? t('How {a} and {b} compare on {n} measures. The main differences:', vars(t))
+      : t('How {a} and {b} compare on {n} measures.', vars(t)),
   };
 }
 
-/** The overview's bullets, in this order where both have the measure. */
+/** The measures people look at first, for the pair's next links and to make up the overview's bullets. */
 export const HIGHLIGHTS = ['life-expectancy', 'gdp-per-person', 'population', 'military-spending', 'co2-per-person', 'democracy'];
 const MAX_HIGHLIGHTS = 5;
+const MIN_HIGHLIGHTS = 3;
 
-/** "Life expectancy" / "In 2023, Singapore was higher: 83.7 years against 79.3 years". */
+/**
+ * Where the overview looks for the pair's main differences: measures read at a glance. Totals other than population
+ * are left out, as they mostly repeat the difference in size.
+ */
+const DIFFERENCES = new Set([
+  'population', 'gdp-per-person', 'life-expectancy', 'median-age', 'fertility-rate', 'child-mortality', 'people-aged-65-and-over',
+  'government-debt', 'military-spending', 'military-spending-per-person', 'co2-per-person', 'democracy', 'human-rights',
+  'internet-users', 'urban-population', 'forest-area', 'electricity-access', 'safe-drinking-water',
+]);
+
+/**
+ * The overview's bullets: the measures where one figure is the most times the other, then the ones people look at
+ * first while there are fewer than three. "Government debt" / "1.84 times as high in France: 115.5% of GDP against 62.7% of GDP in 2025".
+ */
 export function pairHighlights(pair: CountryPair, measures: PairMeasure[], t: Translate): { slug: string; metric: string; line: string }[] {
   const { a, b } = names(pair, t);
-  return HIGHLIGHTS.flatMap(slug => {
-    const m = measures.find(x => x.spec.slug === slug);
-    const f = m && pairFacts(m);
-    if (!m || !f) return [];
+  const facts = measures.flatMap(m => {
+    const f = pairFacts(m);
+    return f ? [{ m, f, times: timesOf(m.spec, f) }] : [];
+  });
+  const differ = facts.filter(x => x.times && DIFFERENCES.has(x.m.spec.slug)).sort((x, y) => y.times! - x.times!).slice(0, MAX_HIGHLIGHTS);
+  const fill = HIGHLIGHTS.flatMap(slug => facts.filter(x => x.m.spec.slug === slug && !differ.includes(x))).slice(0, Math.max(0, MIN_HIGHLIGHTS - differ.length));
+  return [...differ, ...fill].map(({ m, f, times }) => {
     const v = (x: number) => formatValue(m.spec, x, t);
-    const line = f.lead === 'tie'
-      ? t('In {year}, both had {v}', { year: at(f.year), v: v(f.av) })
-      : t('In {year}, {lead} was higher: {lv} against {ov}', {
-        year: at(f.year), lead: f.lead === 'a' ? a : b, lv: v(f.lead === 'a' ? f.av : f.bv), ov: v(f.lead === 'a' ? f.bv : f.av),
-      });
-    return [{ slug, metric: t(m.spec.label), line }];
-  }).slice(0, MAX_HIGHLIGHTS);
+    const vars = { year: at(f.year), lead: f.lead === 'a' ? a : b, lv: v(f.lead === 'a' ? f.av : f.bv), ov: v(f.lead === 'a' ? f.bv : f.av) };
+    const line = f.lead === 'tie' ? t('In {year}, both had {v}', { year: at(f.year), v: v(f.av) })
+      : times ? t('{ratio} times as high in {lead}: {lv} against {ov} in {year}', { ...vars, ratio: ratioOf(f.av, f.bv, t) })
+        : t('In {year}, {lead} was higher: {lv} against {ov}', vars);
+    return { slug: m.spec.slug, metric: t(m.spec.label), line };
+  });
 }
 
 /**

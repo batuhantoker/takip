@@ -17,9 +17,10 @@ export function ChartHeader({ kicker, heading, lede, points, open, openLabel, he
   /** Under the map button: where to go next. */
   children?: ReactNode;
 }) {
+  // On a phone where to go next follows the chart, so the chart is on the first screen; beside it, it stays under the text.
   return (
-    <header className="mt-8 grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
-      <div>
+    <header className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-x-12 lg:gap-y-0">
+      <div className={cx('lg:col-start-1 lg:row-start-1', children ? 'lg:self-end' : 'lg:self-center')}>
         <Link href={kicker.href} className={cx('text-[13px] font-medium text-ink-3 hover:text-ink-1', FOCUS_RING)}>{kicker.label}</Link>
         <h1 className="mt-3 text-4xl leading-[1.08] font-semibold tracking-[-0.02em] sm:text-5xl">{heading}</h1>
         <p className="mt-5 text-[17px] leading-relaxed text-ink-2">{lede}</p>
@@ -43,9 +44,9 @@ export function ChartHeader({ kicker, heading, lede, points, open, openLabel, he
             <a href={open} className={LINK_BUTTON.primary}>{openLabel}<ArrowUpRight className="size-4" aria-hidden /></a>
           </div>
         )}
-        {children}
       </div>
-      {hero}
+      <div className={cx('lg:col-start-2 lg:row-start-1 lg:self-center', !!children && 'lg:row-span-2')}>{hero}</div>
+      {children && <div className="lg:col-start-1 lg:row-start-2 lg:self-start">{children}</div>}
     </header>
   );
 }

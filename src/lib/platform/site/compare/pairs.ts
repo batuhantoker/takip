@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { haversine } from '@/lib/core/geodesic';
 import { DATA_RECHECK_MS, placeById, placeBySlug, SITE_DATA } from '../places/gazetteer';
 import type { Place } from '../places/place';
 import type { ComparePairsFile, PairReason, WorldRegion } from './pairs-data';
@@ -52,10 +53,33 @@ export function parsePairSlug(slug: string): { pair: CountryPair; canonical: boo
 /** Why a pair is in search, or null for one that renders when asked but stays out of it. */
 export const pairReasons = (x: Place, y: Place): PairReason[] | null => pairs().why.get(key(x.id, y.id)) ?? null;
 
-/** The countries a country is compared with in search, most populous first. */
-export function comparedWith(country: Place): Place[] {
-  return (pairs().byCountry.get(country.id) ?? []).map(placeById).filter((p): p is Place => !!p).sort((p, q) => q.pop - p.pop);
+// Label points of next-door countries sit closer than their size; past this they no longer outrank bigger neighbours.
+const NEAR_KM = 1000;
+const BORDER_WEIGHT = 4;
+
+/** How readily a pair is compared: bigger and nearer partners first, neighbours across a border well ahead. */
+function nearness(country: Place, other: Place): number {
+  const d = Math.max(haversine(country.at, other.at), NEAR_KM) / NEAR_KM;
+  return (Math.sqrt(other.pop / 1e6) / d ** 2) * (pairReasons(country, other)?.includes('border') ? BORDER_WEIGHT : 1);
 }
+
+/** The countries a country is compared with in search, the ones it is most readily compared with first. */
+export function comparedWith(country: Place): Place[] {
+  return (pairs().byCountry.get(country.id) ?? []).map(placeById).filter((p): p is Place => !!p)
+    .map(p => ({ p, score: nearness(country, p) })).sort((x, y) => y.score - x.score).map(x => x.p);
+}
+
+const POPULAR = [
+  'china-vs-united-states', 'china-vs-india', 'india-vs-pakistan', 'russia-vs-ukraine', 'russia-vs-united-states', 'france-vs-germany',
+  'france-vs-united-kingdom', 'japan-vs-south-korea', 'greece-vs-turkey', 'iran-vs-israel', 'argentina-vs-brazil', 'canada-vs-united-states',
+];
+
+/** The rivals and neighbours the index puts first, those that are listed. */
+export const popularPairs = (): CountryPair[] =>
+  POPULAR.flatMap(slug => {
+    const found = parsePairSlug(slug);
+    return found && pairReasons(found.pair.a, found.pair.b) ? [found.pair] : [];
+  });
 
 /** Every listed pair, for the sitemap. */
 export function listedPairs(): CountryPair[] {

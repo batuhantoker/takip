@@ -27,6 +27,15 @@ describe('listed pairs', () => {
     expect(comparedWith(turkey).map(p => p.slug)).toContain('greece');
   });
 
+  it('compares a country with its neighbours before far-off big countries', () => {
+    const france = placeBySlug('country', 'france');
+    if (!france || !comparedWith(france).length) return;
+    const first = comparedWith(france).slice(0, 4).map(p => p.slug);
+    expect(first).toContain('germany');
+    expect(first).not.toContain('india');
+    expect(first).not.toContain('china');
+  });
+
   it('gives every listed pair in its URL order', () => {
     const all = listedPairs();
     expect(all.length).toBeGreaterThan(300);

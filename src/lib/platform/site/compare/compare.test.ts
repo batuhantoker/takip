@@ -4,7 +4,7 @@ import { placeBySlug } from '../places/gazetteer';
 import type { Place } from '../places/place';
 import type { IndicatorSeries } from '../places/topics/indicators-data';
 import { commonYears, comparePath, pairFacts, pairFocus, pairMeasures } from './compare';
-import { pairAnswer, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairSentences } from './compare-copy';
+import { pairAnswer, pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairSentences, sideBySide } from './compare-copy';
 import { nextMeasures, nextPairs } from './next';
 import { listedPairs, pairReasons } from './pairs';
 import { worldCopy, worldMeasure, worldSlugs } from './world';
@@ -76,6 +76,27 @@ describe('a real pair', () => {
     expect(answer.tiles[0].note).toMatch(/^\d{4} · UN estimates$/);
     expect(answer.verdict).toMatch(/^Higher in Türkiye by [\d.]+ million people: [\d.]+ times the figure for Greece\.$/);
     expect(answer.since).toMatch(/^Türkiye has been higher/);
+  });
+
+  it('leads the overview with the measures where one figure is the most times the other', () => {
+    if (!greece || !turkey) return;
+    const pair = { a: greece, b: turkey };
+    const measures = pairMeasures(pair);
+    if (!measures.length) return;
+    const points = pairHighlights(pair, measures, EN);
+    expect(points.length).toBeGreaterThanOrEqual(3);
+    expect(points[0].line).toMatch(/^[\d.]+ times as high in (Greece|Türkiye): .+ in \d{4}$/);
+    const times = points.map(p => Number(/^([\d.]+) times/.exec(p.line)?.[1] ?? 0));
+    expect(times).toEqual([...times].sort((x, y) => y - x));
+  });
+
+  it('sets both figures side by side, as times only where that means something', () => {
+    if (!greece || !turkey) return;
+    const measures = pairMeasures({ a: greece, b: turkey });
+    const pop = measures.find(m => m.spec.slug === 'population');
+    if (pop) expect(sideBySide(pop, EN)).toMatchObject({ lead: 'b', ratio: expect.stringMatching(/^[\d.]+$/) });
+    const temp = measures.find(m => m.spec.slug === 'temperature');
+    if (temp) expect(sideBySide(temp, EN).ratio).toBeUndefined();
   });
 
   it('leads on to listed pairs sharing a country, and the pair’s other measures', () => {
