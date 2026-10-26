@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAY_MS, isoDay } from '../access/usage';
 import { adminKit } from '../admin/testing';
 import { Jar, startApp, type TestApp } from '../testing/helpers';
-import { sectionOf } from './crawls';
+import { pageOf, sectionOf } from './crawls';
 
 const NOW = Date.UTC(2026, 9, 14, 12);
 const TODAY = Math.floor(NOW / DAY_MS);
@@ -32,6 +32,11 @@ describe('crawler requests', () => {
     expect(['/tr/city/berlin/weather', '/city/berlin', '/robots.txt', '/', '/tr', '/guides'].map(sectionOf)).toEqual(['/city', '/city', '/robots.txt', '/', '/', '/guides']);
   });
 
+  it('counts pages by kind, whatever the place, event or pair', () => {
+    expect(['/tr/city/berlin/weather', '/city/paris', '/compare/chad-vs-peru/gdp-growth', '/event/sitemap/41.xml', '/robots.txt', '/', '/tr', '/city/', '/a/b/c/d'].map(pageOf))
+      .toEqual(['/city/*/weather', '/city/*', '/compare/*/gdp-growth', '/event/sitemap/*', '/robots.txt', '/', '/', '/city', '/a/*/c']);
+  });
+
   it('takes batches from this machine only', async () => {
     expect((await hand([{ at: NOW, bot: 'Googlebot', path: '/city/berlin' }], { incoming: { socket: { remoteAddress: '203.0.113.5' } } })).status).toBe(403);
     expect((await hand([{ at: NOW, bot: 'Googlebot', path: 'no-slash' }])).status).toBe(400);
@@ -51,22 +56,22 @@ describe('crawler requests', () => {
       daily: { day: string; kinds: Record<string, number> }[];
       bots: { bot: string; kind: string; hits: number; days: number }[];
       sections: { section: string; hits: number }[];
-      paths: { path: string; hits: number }[];
+      pages: { page: string; hits: number }[];
       recent: { bot: string; path: string; kind: string }[];
     };
     const res = await kit.call(root.jar, 'GET', '/api/admin/analytics/crawlers?days=7');
     expect(res.status).toBe(200);
     const c = await kit.json<Crawlers>(res);
-    expect(c.totals).toEqual({ hits: 4, bots: 2, pages: 3 });
+    expect(c.totals).toEqual({ hits: 4, bots: 2, pages: 2 });
     expect(c.daily.at(-1)).toMatchObject({ day: isoDay(TODAY), kinds: { search: 2, ai: 1 } });
     expect(c.bots).toMatchObject([{ bot: 'Googlebot', kind: 'search', hits: 3, days: 2 }, { bot: 'GPTBot (OpenAI)', kind: 'ai', hits: 1, days: 1 }]);
     expect(c.sections).toMatchObject([{ section: '/city', hits: 3 }, { section: '/robots.txt', hits: 1 }]);
-    expect(c.paths[0]).toMatchObject({ path: '/city/berlin', hits: 2 });
+    expect(c.pages[0]).toMatchObject({ page: '/city/*', hits: 3 });
     expect(c.recent[0]).toMatchObject({ bot: 'GPTBot (OpenAI)', path: '/robots.txt', kind: 'ai' });
 
     const one = await kit.json<Crawlers>(await kit.call(root.jar, 'GET', '/api/admin/analytics/crawlers?days=7&bot=GPTBot%20(OpenAI)'));
     expect(one.totals.hits).toBe(1);
-    expect(one.paths.map(p => p.path)).toEqual(['/robots.txt']);
+    expect(one.pages.map(p => p.page)).toEqual(['/robots.txt']);
     expect(one.recent.map(r => r.bot)).toEqual(['GPTBot (OpenAI)']);
   });
 

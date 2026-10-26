@@ -11,13 +11,19 @@ const RECENT = 300;
 // As with a page reader on Live: a crawler is here while its requests come less than five minutes apart.
 const HERE_MS = 5 * 60_000;
 const TOP = 50;
-/** crawl_path's window; usage-prune.ts keeps the same. */
-export const CRAWL_PATH_DAYS = 14;
 
 const LOCALE_PREFIX = /^\/(?:tr|es|pt|fr|de|ru|ar|zh|ja)(?=\/|$)/;
 
 /** '/tr/city/berlin' → '/city', '/robots.txt' → '/robots.txt', '/' → '/'. */
 export const sectionOf = (path: string) => `/${path.replace(LOCALE_PREFIX, '').split('/')[1] ?? ''}`;
+
+// '/tr/city/berlin/weather' → '/city/*/weather', '/event/sitemap/4.xml' → '/event/sitemap/*', '/privacy' → '/privacy'.
+// Crawlers walk millions of place, event and compare pages, so pages are counted by kind.
+export const pageOf = (path: string) => {
+  const [, section = '', entity, topic] = path.replace(LOCALE_PREFIX, '').split('/');
+  if (!entity) return `/${section}`;
+  return entity === 'sitemap' ? `/${section}/sitemap/*` : `/${section}/*${topic ? `/${topic}` : ''}`;
+};
 
 const hitSchema = z.object({
   at: z.number().int().positive(),
@@ -31,16 +37,16 @@ export type CrawlHit = z.infer<typeof hitSchema>;
 export type CrawlerHere = { bot: string; since: number; at: number; hits: number; path: string };
 
 /**
- * Crawler requests, counted per day by section and by page; the latest few are also held in memory for the admin, and
+ * Crawler requests, counted per day by section and by kind of page; the latest few are also held in memory for the admin, and
  * the crawlers here now (`here`, for Live).
  */
 export function createCrawlLog(db: AppDb, now = () => Date.now()) {
   const bySection = db.prepare(`
     INSERT INTO crawl_hit (day, bot, section, hits) VALUES (@day, @bot, @section, 1)
     ON CONFLICT (day, bot, section) DO UPDATE SET hits = hits + 1`);
-  const byPath = db.prepare(`
-    INSERT INTO crawl_path (day, bot, path, hits, last_at) VALUES (@day, @bot, @path, 1, @at)
-    ON CONFLICT (day, bot, path) DO UPDATE SET hits = hits + 1, last_at = max(last_at, excluded.last_at)`);
+  const byPage = db.prepare(`
+    INSERT INTO crawl_page (day, bot, page, hits, last_at) VALUES (@day, @bot, @page, 1, @at)
+    ON CONFLICT (day, bot, page) DO UPDATE SET hits = hits + 1, last_at = max(last_at, excluded.last_at)`);
   const latest: CrawlHit[] = [];
   const stays = new Map<string, CrawlerHere>();
   const note = (hit: CrawlHit) => {
@@ -52,7 +58,7 @@ export function createCrawlLog(db: AppDb, now = () => Date.now()) {
     for (const hit of hits) {
       const day = utcDay(hit.at);
       bySection.run({ day, bot: hit.bot, section: sectionOf(hit.path) });
-      byPath.run({ day, bot: hit.bot, path: hit.path, at: hit.at });
+      byPage.run({ day, bot: hit.bot, page: pageOf(hit.path), at: hit.at });
     }
   });
   return {
@@ -101,7 +107,7 @@ export const crawlersQuery = rangeQuery.extend({ bot: z.string().max(80).optiona
 
 /** GET /api/admin/analytics/crawlers?days=&bot=: crawler requests over the range, all of them or one crawler's. */
 export function crawlers(db: AppDb, log: CrawlLog, r: Range, bot?: string) {
-  const params = { first: r.first, bot: bot ?? null, pathFirst: Math.max(r.first, r.today - CRAWL_PATH_DAYS + 1) };
+  const params = { first: r.first, bot: bot ?? null };
   const one = 'AND (@bot IS NULL OR bot = @bot)';
   const all = <T>(sql: string) => db.prepare(sql).all(params) as T[];
   const since = db.prepare('SELECT min(day) FROM crawl_hit').pluck().get() as number | null;
@@ -126,18 +132,17 @@ export function crawlers(db: AppDb, log: CrawlLog, r: Range, bot?: string) {
 
   return {
     since: since == null ? null : isoDay(since),
-    pathDays: CRAWL_PATH_DAYS,
     totals: {
       hits: bots.filter(b => !bot || b.bot === bot).reduce((n, b) => n + b.hits, 0),
       bots: bots.length,
-      pages: db.prepare(`SELECT count(DISTINCT path) FROM crawl_path WHERE day >= @pathFirst ${one}`).pluck().get(params) as number,
+      pages: db.prepare(`SELECT count(DISTINCT page) FROM crawl_page WHERE day >= @first ${one}`).pluck().get(params) as number,
     },
     daily,
     bots,
     sections: [...sections.values()].sort((a, b) => b.hits - a.hits),
-    paths: all<{ path: string; hits: number; bots: number; lastAt: number }>(`
-      SELECT path, sum(hits) AS hits, count(DISTINCT bot) AS bots, max(last_at) AS lastAt FROM crawl_path WHERE day >= @pathFirst ${one}
-      GROUP BY path ORDER BY hits DESC, path LIMIT ${TOP}`),
+    pages: all<{ page: string; hits: number; bots: number; lastAt: number }>(`
+      SELECT page, sum(hits) AS hits, count(DISTINCT bot) AS bots, max(last_at) AS lastAt FROM crawl_page WHERE day >= @first ${one}
+      GROUP BY page ORDER BY hits DESC, page LIMIT ${TOP}`),
     recent: log.recent().filter(h => !bot || h.bot === bot).slice(0, 100).map(h => ({ ...h, kind: crawlerKind(h.bot) })),
   };
 }

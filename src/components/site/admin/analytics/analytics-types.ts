@@ -478,16 +478,15 @@ export type CrawlerKind = 'search' | 'ai' | 'seo' | 'preview' | 'ads' | 'monitor
 
 /**
  * GET /api/admin/analytics/crawlers?days=&bot= (apps/api analytics/crawls.ts): crawler and script requests the web app's
- * proxy saw, told by user agent. `paths` cover the last `pathDays` days only; `recent` is held in the api's memory.
+ * proxy saw, told by user agent. `pages` are kinds of page, a star standing for any place, event or pair; `recent` is held in the api's memory.
  */
 export type AnalyticsCrawlers = {
   since: string | null;
-  pathDays: number;
   totals: { hits: number; bots: number; pages: number };
   daily: { day: string; kinds: Record<CrawlerKind, number> }[];
   bots: { bot: string; kind: CrawlerKind; hits: number; days: number; lastDay: string }[];
   sections: { section: string; hits: number; bots: { bot: string; hits: number }[] }[];
-  paths: { path: string; hits: number; bots: number; lastAt: number }[];
+  pages: { page: string; hits: number; bots: number; lastAt: number }[];
   recent: { at: number; bot: string; kind: CrawlerKind; path: string }[];
 };
 

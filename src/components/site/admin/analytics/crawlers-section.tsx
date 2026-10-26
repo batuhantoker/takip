@@ -59,7 +59,7 @@ function Crawlers({ c, bot, onBot }: { c: AnalyticsCrawlers; bot: string | null;
         <StatTile label="Crawler requests" value={count(c.totals.hits)} sub={bot ? bot : `${count(c.totals.bots)} crawlers and scripts`} />
         <StatTile label="Search engines" value={pct(kindTotal('search'), c.totals.hits)} sub={plural(kindTotal('search'), 'request')} />
         <StatTile label="AI companies" value={pct(kindTotal('ai'), c.totals.hits)} sub={plural(kindTotal('ai'), 'request')} />
-        <StatTile label="Pages crawled" value={count(c.totals.pages)} sub={`Different pages, last ${c.pathDays} days`} />
+        <StatTile label="Kinds of page" value={count(c.totals.pages)} sub="Every city's weather page is one: /city/*/weather" />
       </Tiles>
 
       <ChartCard title="Requests per day, by kind of crawler"
@@ -88,11 +88,11 @@ function Crawlers({ c, bot, onBot }: { c: AnalyticsCrawlers; bot: string | null;
       </Pair>
 
       <Pair>
-        <ChartCard title={`Most crawled pages, last ${c.pathDays} days`}
-          table={c.paths.length ? { columns: ['Page', 'Requests', 'Crawlers'], rows: c.paths.map(p => [p.path, p.hits, p.bots]) } : null}>
-          <BarList format={count} limit={15} share={false} empty="No pages crawled in this window."
-            rows={c.paths.map(p => ({
-              key: p.path, value: p.hits, label: <span className="font-mono text-[12px]">{p.path}</span>,
+        <ChartCard title="Most crawled kinds of page" note="A * stands for any place, event or pair"
+          table={c.pages.length ? { columns: ['Page', 'Requests', 'Crawlers'], rows: c.pages.map(p => [p.page, p.hits, p.bots]) } : null}>
+          <BarList format={count} limit={15} share={false} empty="No pages crawled in this range."
+            rows={c.pages.map(p => ({
+              key: p.page, value: p.hits, label: <span className="font-mono text-[12px]">{p.page}</span>,
               detail: `${p.bots} crawler${p.bots === 1 ? '' : 's'} · last ${timeAgo(new Date(p.lastAt))}`,
             }))} />
         </ChartCard>

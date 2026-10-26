@@ -468,6 +468,18 @@ const MIGRATIONS: (string | ((db: AppDb) => void))[] = [
       UPDATE map_time SET charged = minutes, charged_at = last_tick_at;
     `);
   },
+  // Crawled pages by kind (analytics/crawls.ts pageOf), not one row per page: crawl_path reached millions of rows a week.
+  `
+  DROP TABLE IF EXISTS crawl_path;
+  CREATE TABLE IF NOT EXISTS crawl_page (
+    day      INTEGER NOT NULL,
+    bot      TEXT NOT NULL,
+    page     TEXT NOT NULL,
+    hits     INTEGER NOT NULL,
+    last_at  INTEGER NOT NULL,
+    PRIMARY KEY (day, bot, page)
+  ) STRICT, WITHOUT ROWID;
+  `,
 ];
 
 export function migrateAppSchema(db: AppDb) {
