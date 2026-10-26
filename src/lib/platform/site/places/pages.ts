@@ -35,13 +35,20 @@ export function nearbyWith(place: Place, topicId: string | undefined, limit = 8)
   return nearestPlaces(place, p => placePages(p).some(x => x.page.index && (topicId ? x.topic.id === topicId : !x.topic.faith)), limit);
 }
 
-/** Every indexed page, as [place, page slug or undefined for the overview], for the sitemap and the index pages. */
+let listed: { at: number; pages: { place: Place; slug?: string }[] } | null = null;
+
+/**
+ * Every indexed page, as [place, page slug or undefined for the overview], for the sitemap and the index pages. Kept a
+ * while: an overview that stands on its child places takes a pass over every place.
+ */
 export function indexedPages(kind?: PlaceKind): { place: Place; slug?: string }[] {
-  return allPlaces().filter(p => !kind || p.kind === kind).flatMap(place => {
-    const all = placePages(place);
-    const pages = all.filter(p => p.page.index).map(p => ({ place, slug: p.page.slug as string | undefined }));
-    return overviewIndexed(all) ? [{ place }, ...pages] : pages;
-  });
+  if (!listed || Date.now() - listed.at >= DERIVED_TTL_MS) {
+    listed = { at: Date.now(), pages: allPlaces().flatMap(place => {
+      const pages = placePages(place).filter(p => p.page.index).map(p => ({ place, slug: p.page.slug as string | undefined }));
+      return placeIndexed(place) ? [{ place }, ...pages] : pages;
+    }) };
+  }
+  return kind ? listed.pages.filter(p => p.place.kind === kind) : listed.pages;
 }
 
 const hasIndexed = (p: Place) => placePages(p).some(x => x.page.index);
