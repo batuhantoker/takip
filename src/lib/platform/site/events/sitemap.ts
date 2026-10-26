@@ -2,10 +2,10 @@ import { LOCALES, type Locale } from '@/lib/core/i18n/locales';
 import { buildStamp, pagesDb, stmt } from './store';
 
 /**
- * The indexed event pages for /event/sitemap/<n>.xml: every page in every language, 5,000 entries a file as the
+ * The indexed event pages for /event/sitemap/<n>.xml: every page in every language, 50,000 entries a file as the
  * place sitemaps have. Indexed pages are numbered in the index (event.seq), so a chunk is one range read.
  */
-const PER_CHUNK = 5_000;
+const PER_CHUNK = 50_000;
 const EVENTS_PER_CHUNK = PER_CHUNK / LOCALES.length;
 
 export const eventPath = (slug: string) => `/event/${slug}`;

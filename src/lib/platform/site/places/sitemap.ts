@@ -4,10 +4,10 @@ import { indexedPages } from './pages';
 import { placePath } from './paths';
 
 /**
- * Every indexed page in every language, each entry naming its ten alternates. An entry is about 1.5 KB with its
- * alternates, so 5,000 keep a file near 8 MB, far under the 50 MB and 50,000-entry limits.
+ * Every indexed page in every language, 50,000 entries a file (the limit), about 6 MB. The alternates are in each
+ * page's head, not here: with them an entry is ten times the size.
  */
-const PER_CHUNK = 5_000;
+const PER_CHUNK = 50_000;
 
 // The country comparisons (compare/) are chunked with them.
 const paths = () => [...indexedPages().map(({ place, slug }) => placePath(place, slug)), ...compareSitemapPaths()];
