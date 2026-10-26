@@ -3,6 +3,7 @@ import type { AnalyticsApi, AnalyticsPages, AnalyticsStorage, AnalyticsSystem } 
 import { attention, flaggedTabs } from './attention';
 
 const NOW = Date.parse('2026-10-19T15:00:00Z');
+const UNTIMED = { views: 0, medianMs: null, meanMs: null, short: 0 };
 
 const system = (over: Partial<AnalyticsSystem> = {}): AnalyticsSystem => ({
   now: NOW, startedAt: NOW - 60_000, node: 'v24', platform: 'linux x64',
@@ -39,6 +40,7 @@ describe('attention', () => {
             visits: 0, views: 0, left: 0, readOn: 0, toMap: 0, landedOnMap: 0, returning: 0, avgSteps: 0, medianMs: null,
           },
           series: [], flow: [], channels: [], sources: [{ source: 'Google', channel: 'search', hosts: ['www.google.com'], visits: 2 }], links: [], steps: [], pages: [], hours: [], countries: [], cities: [], points: [], devices: [], browsers: [], oses: [], campaigns: [], automated: 0,
+          engaged: { all: UNTIMED, untimed: 0, landing: { ...UNTIMED, left: UNTIMED, wentOn: UNTIMED }, kinds: [] },
         } } as AnalyticsPages,
     }, NOW);
     expect(items.map(i => [i.tone, i.tab, i.text])).toEqual([

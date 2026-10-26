@@ -480,6 +480,12 @@ const MIGRATIONS: (string | ((db: AppDb) => void))[] = [
     PRIMARY KEY (day, bot, page)
   ) STRICT, WITHOUT ROWID;
   `,
+  // Each page view's engaged time (analytics/page-reads.ts): on screen with input in the last 30 s, as the page last
+  // reported it. NULL when no report came. ADD COLUMN has no IF NOT EXISTS.
+  db => {
+    const columns = db.prepare('SELECT name FROM pragma_table_info(?)').pluck().all('page_view');
+    if (!columns.includes('engaged_ms')) db.exec('ALTER TABLE page_view ADD COLUMN engaged_ms INTEGER');
+  },
 ];
 
 export function migrateAppSchema(db: AppDb) {

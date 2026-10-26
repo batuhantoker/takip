@@ -25,8 +25,8 @@ export type TickReport = { opening?: boolean; features?: readonly string[]; visi
 
 /**
  * Minutes of map a day against the plan's `map.minutes_per_day`, per account or per anonymous address block.
- * The web app ticks once a minute while a tab is visible and walls the map once the minutes run out; keys
- * have quotas instead and are never counted. Unlimited plans are counted too, for the admin's analytics.
+ * The web app ticks once a minute while a tab is visible and in use (use-map-time.ts) and walls the map once the minutes
+ * run out; keys have quotas instead and are never counted. Unlimited plans are counted too, for the admin's analytics.
  *
  * Two counts, each with its own one-a-minute check: `charged` is the minutes against the limit, one per tick; `minutes`
  * is each minute begun on the map, for analytics. The tick that opens the map (`opening`, a few seconds in) begins a

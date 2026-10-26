@@ -69,18 +69,15 @@ const get = async <T = Record<string, unknown>>(path: string) => {
 };
 
 describe('actions', () => {
-  it('counts each action with its accounts and visitors, and charts the busiest per day', async () => {
-    const e = await get<{ actions: unknown[]; actionDays: { day: string; counts: Record<string, number> }[] }>('/engagement');
-    // Alpha is one visitor; the daily hash on two days is two visitor-days.
+  it('counts each action with the people who took it, a signed-in browser as its account', async () => {
+    const e = await get<{ actions: unknown[] }>('/engagement');
+    // Alpha is Bea's browser, so her searches are one person's; the daily hashes are no one's.
     expect(e.actions).toEqual([
-      { action: 'search.run', count: 7, users: 1, visitors: 3 },
-      { action: 'ti.ask', count: 4, users: 1, visitors: 0 },
-      { action: 'camera.open', count: 1, users: 0, visitors: 1 },
-      { action: 'route.plan', count: 1, users: 1, visitors: 0 },
+      { action: 'search.run', count: 5, users: 1, visitors: 1, people: 1, medianUses: 5 },
+      { action: 'ti.ask', count: 4, users: 1, visitors: 0, people: 1, medianUses: 4 },
+      { action: 'camera.open', count: 1, users: 0, visitors: 1, people: 1, medianUses: 1 },
+      { action: 'route.plan', count: 1, users: 1, visitors: 0, people: 1, medianUses: 1 },
     ]);
-    expect(e.actionDays).toHaveLength(30);
-    expect(e.actionDays.at(-1)!.counts).toEqual({ 'search.run': 6, 'ti.ask': 4, 'camera.open': 1, 'route.plan': 0 });
-    expect(e.actionDays.at(-2)!.counts).toEqual({ 'search.run': 1, 'ti.ask': 0, 'camera.open': 0, 'route.plan': 1 });
     // Without admins, their own actions and their browser's go.
     expect((await get<{ actions: { action: string }[] }>('/engagement?admins=exclude')).actions.map(a => a.action)).toEqual(['search.run', 'route.plan']);
   });

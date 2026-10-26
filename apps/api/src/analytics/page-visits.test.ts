@@ -12,7 +12,7 @@ const [ALPHA, BETA, GAMMA] = ['v-alpha-0000000001', 'v-beta-00000000002', 'v-gam
 const row = (visitorId: string, at: number, path: string, over: { referrer?: string; fromPath?: string | null; campaign?: string; locale?: string; known?: number; device?: string } = {}) => ({
   visitorId, at, path, locale: over.locale ?? 'en', referrer: over.referrer ?? '', fromPath: over.fromPath ?? null, campaign: over.campaign ?? null,
   country: 'DE', region: null, city: 'Berlin', latitude: 52.52, longitude: 13.4, browser: 'Chrome', os: 'macOS', device: over.device ?? 'desktop',
-  known: over.known ?? 0, userId: null, email: null, referrerPath: null, mapSince: null, priorAt: null,
+  known: over.known ?? 0, userId: null, email: null, referrerPath: null, mapSince: null, priorAt: null, engagedMs: null,
 });
 const shape = (v: Visit) => ({ origin: v.origin, steps: v.steps.map(s => s.path), views: v.views, next: v.next, returning: v.returning });
 
@@ -213,6 +213,18 @@ describe('visits in admin', () => {
     expect(page).toMatchObject({ path: '/city/berlin', visits: 2, landings: 2, exits: 1, medianMs: 2 * MIN });
     expect(page.cameFrom).toEqual([{ from: 'origin:Google', visits: 2 }]);
     expect(page.wentTo).toEqual([{ to: '', visits: 1 }, { to: '/', visits: 1 }]);
+  });
+
+  it('times the page each visit landed on, apart for the visits that left from it', async () => {
+    t.db.prepare('UPDATE page_view SET engaged_ms = ? WHERE visitor_id = ? AND path = ?').run(40_000, ALPHA, '/city/berlin');
+    t.db.prepare('UPDATE page_view SET engaged_ms = ? WHERE visitor_id = ? AND path = ?').run(8_000, BETA, '/city/berlin');
+    type Engaged = { journeys: { engaged: { all: object; untimed: number; landing: { left: object; wentOn: object }; kinds: object[] } } };
+    const { engaged } = (await get<Engaged>('/pages')).journeys;
+    expect(engaged.all).toEqual({ views: 2, medianMs: 24_000, meanMs: 24_000, short: 1 });
+    expect(engaged.landing.left).toMatchObject({ views: 1, medianMs: 8_000 });
+    expect(engaged.landing.wentOn).toMatchObject({ views: 1, medianMs: 40_000 });
+    expect(engaged.kinds).toEqual([{ kind: '/city/*', views: 2, medianMs: 24_000, meanMs: 24_000, short: 1, landings: 2, landingMedianMs: 24_000 }]);
+    expect(engaged.untimed).toBe(0);
   });
 
   it('lists the latest visits, narrowed by origin, page, country or what came next', async () => {

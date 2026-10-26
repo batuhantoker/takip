@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { engagedClock } from '@/lib/platform/engaged-clock';
 import { notePage, noteArrival, outsideReferrer, outsideReferrerPath, visitorId } from '@/lib/platform/visitor';
 
 /**
@@ -30,11 +31,49 @@ function send(report: object) {
   }
 }
 
-/** Counts one view of a public page as it opens. It spends none of the reader's map time. */
+const INPUTS = ['scroll', 'wheel', 'pointerdown', 'pointermove', 'keydown', 'touchstart'] as const;
+const LISTEN = { capture: true, passive: true };
+
+/**
+ * Sends `path`'s engaged time so far (engaged-clock.ts) each time the tab hides or closes, and once more from the
+ * returned stop, when the reader moves on to another page here. The api keeps the highest total it is sent.
+ */
+function trackEngagedTime(path: string) {
+  const visible = () => document.visibilityState === 'visible';
+  const clock = engagedClock(performance.now(), visible());
+  let sent = -1;
+  const report = () => {
+    const ms = Math.round(clock.total(performance.now()));
+    const id = visitorId();
+    if (ms === sent || !id) return;
+    sent = ms;
+    send({ visitor: { id }, path, use: 'time', ms });
+  };
+  const input = () => clock.input(performance.now());
+  // Back from the browser's page cache too, which may not say the page became visible.
+  const shown = () => {
+    clock.shown(performance.now(), visible());
+    if (!visible()) report();
+  };
+  for (const name of INPUTS) window.addEventListener(name, input, LISTEN);
+  document.addEventListener('visibilitychange', shown);
+  window.addEventListener('pageshow', shown);
+  window.addEventListener('pagehide', report);
+  return () => {
+    for (const name of INPUTS) window.removeEventListener(name, input, LISTEN);
+    document.removeEventListener('visibilitychange', shown);
+    window.removeEventListener('pageshow', shown);
+    window.removeEventListener('pagehide', report);
+    report();
+  };
+}
+
+/** Counts one view of a public page as it opens, and how long it is read. It spends none of the reader's map time. */
 export function PageView({ path, locale }: { path: string; locale: string }) {
   useEffect(() => {
     noteArrival();
     reportView(path, locale);
+    return trackEngagedTime(path);
   }, [path, locale]);
   // Back from another page, the browser may show this one as it left it, without its effects: the tab still names
   // the other page, and this page's small map would book its minutes there.

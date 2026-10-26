@@ -121,34 +121,24 @@ describe('analytics in the console', () => {
     expect((await get<{ hours?: Hour[] }>('/audience?days=7')).hours).toBeUndefined();
   });
 
-  it('shows where the minutes went: features, hours, session lengths, top users and the wall', async () => {
+  it('counts the map per person, accounts here, with or without admins (engagement.test.ts has the rest)', async () => {
     seedMinutes();
     type Engagement = {
       days: number; since: string;
-      features: { feature: string; minutes: number; users: number; visitors: number }[];
-      featureDays: { day: string; minutes: Record<string, number> }[];
-      hours: { dow: number; hour: number; minutes: number }[];
-      sessionLength: { bucket: string; users: number; visitors: number }[];
+      totals: { people: number; visitors: number; accounts: number; minutes: number };
+      features: { feature: string; minutes: number; users: number; visitors: number; people: number }[];
       topUsers: { userId: string; email: string; minutes: number; activeDays: number; lastDay: string; topFeature: string | null }[];
-      wall: { day: string; users: number; visitors: number }[];
     };
     const e = await get<Engagement>('/engagement?days=7');
-    expect(e).toMatchObject({ days: 7, since: isoDay(TODAY - 1) });
-    expect(e.features[0]).toEqual({ feature: 'view:map', minutes: 14, users: 2, visitors: 2 });
-    expect(e.features.find(f => f.feature === 'layer:flights')).toEqual({ feature: 'layer:flights', minutes: 4, users: 1, visitors: 0 });
-    expect(Object.keys(e.featureDays[0].minutes).sort()).toEqual(['panel:ai', 'panel:history', 'panel:layers', 'view:history', 'view:map', 'view:wall']);
-    expect(e.featureDays.at(-1)!.minutes).toMatchObject({ 'view:map': 13, 'panel:history': 0 });
-    expect(e.hours).toEqual([{ dow: 2, hour: 23, minutes: 3 }, { dow: 3, hour: 10, minutes: 14 }]);
-    expect(e.sessionLength.find(b => b.bucket === '2–5')).toEqual({ bucket: '2–5', users: 2, visitors: 1 });
-    expect(e.sessionLength.find(b => b.bucket === '6–15')).toEqual({ bucket: '6–15', users: 1, visitors: 0 });
+    expect(e).toMatchObject({ days: 7, since: isoDay(TODAY - 1), totals: { people: 2, visitors: 0, accounts: 2, minutes: 15 } });
+    expect(e.features.find(f => f.feature === 'layer:flights')).toMatchObject({ minutes: 4, users: 1, visitors: 0, people: 1 });
     expect(e.topUsers.map(u => [u.email, u.minutes, u.activeDays, u.lastDay, u.topFeature])).toEqual([
       ['ada@example.com', 8, 2, isoDay(TODAY), 'panel:history'],
       ['root@example.com', 7, 1, isoDay(TODAY), 'panel:ai'],
     ]);
-    expect(e.wall.at(-1)).toEqual({ day: isoDay(TODAY), users: 0, visitors: 1 });
 
     const people = await get<Engagement>('/engagement?days=7&admins=exclude');
-    expect(people.features[0]).toEqual({ feature: 'view:map', minutes: 7, users: 1, visitors: 2 });
+    expect(people.totals).toMatchObject({ people: 1, accounts: 1, minutes: 8 });
     expect(people.topUsers.map(u => u.email)).toEqual(['ada@example.com']);
   });
 

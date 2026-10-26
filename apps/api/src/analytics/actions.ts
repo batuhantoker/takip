@@ -1,39 +1,35 @@
 import type { AppDb } from '../db/app-db';
-import { eachDay, type Range } from './range';
+import { median, personOf } from './engagement-people';
+import type { Range } from './range';
 
 /* Named actions per day and subject (action_count, written by access/map-time.ts); names only, never what was typed. */
 
-const CHARTED = 8;
+const ADMINS = "(SELECT id FROM auth_user WHERE role = 'admin')";
 
-// Daily visitor hashes can't be tied to an account, so they always count.
-const actionNotAdmin = (r: Range) =>
-  r.excludeAdmins
-    ? `AND NOT (subject_type = 'user' AND subject_id IN (SELECT id FROM auth_user WHERE role = 'admin'))
-       AND NOT (subject_type = 'visitor' AND subject_id IN (SELECT visitor_id FROM visitor WHERE user_id IN (SELECT id FROM auth_user WHERE role = 'admin')))`
-    : '';
+/**
+ * Every action in the range taken by an account or a browser with a visitor id (the daily address hashes of browsers that
+ * keep none can't be told apart), with its uses, who took it and the median uses per person. A browser signed in to an
+ * account counts as that account, as in engagement-people.ts.
+ */
+export function actionReach(db: AppDb, r: Range) {
+  const rows = db.prepare(`
+    SELECT a.subject_type AS type, a.subject_id AS id, v.user_id AS userId, a.action, sum(a.count) AS count
+    FROM action_count a LEFT JOIN visitor v ON a.subject_type = 'visitor' AND v.visitor_id = a.subject_id
+    WHERE a.day >= ? AND a.subject_type IN ('user', 'visitor')
+      ${r.excludeAdmins ? `AND NOT (a.subject_type = 'user' AND a.subject_id IN ${ADMINS}) AND (v.user_id IS NULL OR v.user_id NOT IN ${ADMINS})` : ''}
+    GROUP BY a.subject_type, a.subject_id, a.action`).all(r.first) as { type: 'user' | 'visitor'; id: string; userId: string | null; action: string; count: number }[];
 
-/** Every action in the range with how many accounts and visitors took it, and per-day counts of the busiest. */
-export function actionUse(db: AppDb, r: Range) {
-  // A visitor id is one visitor across days; a daily hash is one visitor-day, as elsewhere.
-  const actions = db.prepare(`
-    SELECT action, sum(count) AS count,
-           count(DISTINCT CASE WHEN subject_type = 'user' THEN subject_id END) AS users,
-           count(DISTINCT CASE WHEN subject_type = 'visitor' THEN subject_id WHEN subject_type = 'anon' THEN day || ':' || subject_id END) AS visitors
-    FROM action_count WHERE day >= ? ${actionNotAdmin(r)} GROUP BY action ORDER BY count DESC, action`)
-    .all(r.first) as { action: string; count: number; users: number; visitors: number }[];
-
-  const charted = actions.slice(0, CHARTED).map(a => a.action);
-  const actionDays = eachDay(r, day => ({ day, counts: Object.fromEntries(charted.map(a => [a, 0])) as Record<string, number> }));
-  if (charted.length) {
-    for (const row of db.prepare(`
-      SELECT day, action, sum(count) AS count FROM action_count
-      WHERE day >= ? AND action IN (SELECT value FROM json_each(?)) ${actionNotAdmin(r)} GROUP BY day, action`)
-      .all(r.first, JSON.stringify(charted)) as { day: number; action: string; count: number }[]) {
-      const entry = actionDays[row.day - r.first];
-      if (entry) entry.counts[row.action] = row.count;
-    }
+  const by = new Map<string, { count: number; users: Set<string>; visitors: Set<string>; people: Map<string, number> }>();
+  for (const row of rows) {
+    const a = by.get(row.action) ?? by.set(row.action, { count: 0, users: new Set(), visitors: new Set(), people: new Map() }).get(row.action)!;
+    const person = personOf(row.type === 'user' ? 'u' : 'v', row.id, row.userId);
+    a.count += row.count;
+    (row.type === 'user' ? a.users : a.visitors).add(row.id);
+    a.people.set(person, (a.people.get(person) ?? 0) + row.count);
   }
-  return { actions, actionDays };
+  return [...by].map(([action, a]) => ({
+    action, count: a.count, users: a.users.size, visitors: a.visitors.size, people: a.people.size, medianUses: median([...a.people.values()]),
+  })).sort((a, b) => b.people - a.people || b.count - a.count || a.action.localeCompare(b.action));
 }
 
 /** One account's or visitor's actions in the range, with on how many days. */

@@ -16,6 +16,7 @@ type ViewRow = {
   known: number; userId: string | null; email: string | null;
   /** When the browser first ticked the map, and its first view before the range, if any. */
   mapSince: number | null; priorAt: number | null;
+  engagedMs: number | null;
 };
 
 /** What a visit did after the page it landed on: opened the map, read another page, or nothing more. */
@@ -37,8 +38,11 @@ export type Visit = {
   locale: string;
   place: { country: string | null; region: string | null; city: string | null; latitude: number | null; longitude: number | null } | null;
   agent: { browser: string; os: string; device: string };
-  /** Pages in order ('/' for the map), a reload folded into the step before; at most MAX_STEPS. */
-  steps: { path: string; at: number }[];
+  /**
+   * Pages in order ('/' for the map), a reload folded into the step before; at most MAX_STEPS. `engagedMs` is the time
+   * the page was on screen and in use (page-reads.ts), null when it never reported any (the map, or before it did).
+   */
+  steps: { path: string; at: number; engagedMs: number | null }[];
   views: number;
   next: Next;
   /** The browser was seen before this visit: an earlier view, or the map. */
@@ -77,7 +81,10 @@ export function groupVisits(rows: ViewRow[]): Visit[] {
     }
     open.end = row.at;
     open.views += 1;
-    if (open.steps.at(-1)?.path !== row.path && open.steps.length < MAX_STEPS) open.steps.push({ path: row.path, at: row.at });
+    const last = open.steps.at(-1);
+    if (last?.path === row.path) {
+      if (row.engagedMs != null) last.engagedMs = (last.engagedMs ?? 0) + row.engagedMs;
+    } else if (open.steps.length < MAX_STEPS) open.steps.push({ path: row.path, at: row.at, engagedMs: row.engagedMs });
     open.next = nextOf(open.steps);
   }
   return visits;
@@ -111,7 +118,7 @@ export function loadVisits(db: AppDb, r: Range) {
   const rows = db.prepare(`
     WITH prior AS (SELECT visitor_id, min(at) AS at FROM page_view WHERE at < @from GROUP BY visitor_id)
     SELECT p.visitor_id AS visitorId, p.at, p.path, p.locale, p.referrer, p.referrer_path AS referrerPath, p.from_path AS fromPath, p.campaign,
-      p.country, p.region, p.city, p.latitude, p.longitude, p.browser, p.os, p.device,
+      p.country, p.region, p.city, p.latitude, p.longitude, p.browser, p.os, p.device, p.engaged_ms AS engagedMs,
       v.visitor_id IS NOT NULL AS known, v.first_seen_at AS mapSince, prior.at AS priorAt, u.id AS userId, u.email
     FROM page_view p LEFT JOIN visitor v ON v.visitor_id = p.visitor_id LEFT JOIN auth_user u ON u.id = v.user_id
       LEFT JOIN prior ON prior.visitor_id = p.visitor_id

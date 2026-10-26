@@ -1,6 +1,6 @@
 import { MAP_LAYER_SECTIONS, type MapLayerSection } from '@takip/core/entitlements';
 import { LAYER_GROUPS } from '@/components/panels/layers/layer-groups';
-import { sectionTitle } from '@/components/panels/layers/lib/layer-gates';
+import { layerSection, sectionTitle } from '@/components/panels/layers/lib/layer-gates';
 import { DEFAULT_LAYERS } from '@/lib/map/layers/defaults';
 
 const VIEWS: Record<string, string> = {
@@ -82,6 +82,14 @@ const ON_BY_DEFAULT = new Set(Object.entries(DEFAULT_LAYERS).filter(([, on]) => 
 export const onByDefault = (feature: string) => {
   const { kind, id } = splitFeature(feature);
   return kind === 'layer' && ON_BY_DEFAULT.has(id);
+};
+
+const DEFAULT_SECTIONS = new Set<string>([...ON_BY_DEFAULT].flatMap(key => layerSection(key) ?? []));
+
+/** A Layers section holding a layer the map opens with, so nearly everyone on the map counts as following it. */
+export const sectionOnByDefault = (feature: string) => {
+  const { kind, id } = splitFeature(feature);
+  return kind === 'section' && DEFAULT_SECTIONS.has(id);
 };
 
 /** A visitor's first arrival with no referring site: typed, bookmarked, or the referrer was withheld. */

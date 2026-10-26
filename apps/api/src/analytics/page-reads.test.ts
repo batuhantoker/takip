@@ -4,7 +4,7 @@ import { adminKit } from '../admin/testing';
 import { Jar, startApp, type TestApp } from '../testing/helpers';
 import { openAppDb } from '../db/app-db';
 import { migrateAppSchema } from '../db/migrations';
-import { createPageReads, parseMapMinute, parsePageRead, SMALL_MAP_FEATURE } from './page-reads';
+import { createPageReads, MAX_ENGAGED_MS, parseEngagedTime, parseMapMinute, parsePageRead, SMALL_MAP_FEATURE } from './page-reads';
 import { createPresence } from './presence';
 
 const NOW = Date.UTC(2026, 9, 14, 12);
@@ -58,6 +58,23 @@ describe('a view report', () => {
     expect(parsePageRead(body({ locale: 'xx' }), CHROME)).toBeNull();
     expect(parsePageRead(body({ visitor: { id: 'short' } }), CHROME)).toBeNull();
     expect(parsePageRead(null, CHROME)).toBeNull();
+  });
+});
+
+describe('an engaged-time report', () => {
+  const body = (over: object = {}) => ({ visitor: { id: ALPHA }, path: '/city/berlin/weather', use: 'time', ms: 42_000.4, ...over });
+
+  it('keeps the page and its whole milliseconds, capped at half an hour', () => {
+    expect(parseEngagedTime(body(), CHROME)).toEqual({ visitorId: ALPHA, path: '/city/berlin/weather', ms: 42_000 });
+    expect(parseEngagedTime(body({ ms: 0 }), CHROME)?.ms).toBe(0);
+    expect(parseEngagedTime(body({ ms: 5 * 60 * 60_000 }), CHROME)?.ms).toBe(MAX_ENGAGED_MS);
+  });
+
+  it('drops a crawler, the map, a page that isn’t public and a time it can’t read', () => {
+    expect(parseEngagedTime(body(), 'Mozilla/5.0 (compatible; Googlebot/2.1)')).toBeNull();
+    for (const over of [{ path: '/' }, { path: '/admin' }, { ms: -1 }, { ms: '9000' }, { ms: null }, { use: 'map' }, { visitor: { id: 'short' } }])
+      expect(parseEngagedTime(body(over), CHROME), JSON.stringify(over)).toBeNull();
+    expect(parseEngagedTime(null, CHROME)).toBeNull();
   });
 });
 
@@ -151,6 +168,44 @@ describe('reading the public pages', () => {
     expect(rows()).toEqual([]);
     expect(logged()).toEqual([]);
     expect(t.db.prepare('SELECT count(*) FROM map_time').pluck().get()).toBe(0);
+  });
+
+  const engaged = (visitor: object, path: string, ms: unknown, userAgent = CHROME) => t.app.request('/api/v1/page-view', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'user-agent': userAgent },
+    body: JSON.stringify({ visitor, path, use: 'time', ms }),
+  }, from('203.0.113.5'));
+  const timed = () => t.db.prepare('SELECT visitor_id AS id, path, engaged_ms AS ms FROM page_view ORDER BY view_id').all();
+
+  it('keeps each view’s engaged time, raised by a later report and never lowered', async () => {
+    await view({ id: ALPHA }, '/city/berlin/weather');
+    vi.setSystemTime(NOW + 5_000);
+    await view({ id: ALPHA }, '/city/berlin/weather');
+    expect((await engaged({ id: ALPHA }, '/city/berlin/weather', 12_000)).status).toBe(204);
+    await engaged({ id: ALPHA }, '/city/berlin/weather', 3_000);
+    vi.setSystemTime(NOW + 2 * 60_000);
+    await view({ id: ALPHA }, '/city/paris');
+    await engaged({ id: ALPHA }, '/city/paris', 3 * 60 * 60_000);
+    vi.setSystemTime(NOW + 3 * 60_000);
+    await view({ id: ALPHA }, '/city/berlin/weather');
+    await engaged({ id: ALPHA }, '/city/berlin/weather', 7_000);
+    expect(timed()).toEqual([
+      { id: ALPHA, path: '/city/berlin/weather', ms: 12_000 },
+      { id: ALPHA, path: '/city/paris', ms: MAX_ENGAGED_MS },
+      { id: ALPHA, path: '/city/berlin/weather', ms: 7_000 },
+    ]);
+    expect(rows()).toMatchObject([{ path: '/city/berlin/weather', views: 3 }, { path: '/city/paris', views: 1 }]);
+  });
+
+  it('times only a view this browser logged in the last day, and never from a crawler', async () => {
+    await view({ id: ALPHA }, '/city/paris');
+    await engaged({ id: BETA }, '/city/paris', 5_000);
+    await engaged({ id: ALPHA }, '/city/berlin', 5_000);
+    await engaged({ id: ALPHA }, '/city/paris', 5_000, 'Mozilla/5.0 (compatible; Googlebot/2.1)');
+    expect(timed()).toEqual([{ id: ALPHA, path: '/city/paris', ms: null }]);
+    vi.setSystemTime(NOW + DAY_MS + 1);
+    await engaged({ id: ALPHA }, '/city/paris', 5_000);
+    expect(timed()).toEqual([{ id: ALPHA, path: '/city/paris', ms: null }]);
   });
 });
 

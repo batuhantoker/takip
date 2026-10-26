@@ -27,6 +27,8 @@ const MAX_LOGGED = 300;
 const REPEAT_MS = 10_000;
 // A page's small map reports at most a minute a minute; a little less lets a late timer through.
 const MAP_MINUTE_GAP_MS = 50_000;
+/** A view's engaged time is kept up to this; past it the reader is long gone or the report is wrong. */
+export const MAX_ENGAGED_MS = 30 * 60_000;
 
 export type PageRead = {
   visitorId: string; path: string; locale: string; referrer: string;
@@ -73,6 +75,21 @@ export function parseMapMinute(body: unknown, userAgent: string | null | undefin
   return { visitorId: visitor.id, path: b.path, userAgent: visitor.userAgent };
 }
 
+export type EngagedReport = { visitorId: string; path: string; ms: number };
+
+/**
+ * How long a view of a public page was engaged so far ({ visitor: { id }, path, use: 'time', ms }), capped at
+ * MAX_ENGAGED_MS, or null when it isn't one. The page sends its running total each time it hides or the reader moves on.
+ */
+export function parseEngagedTime(body: unknown, userAgent: string | null | undefined): EngagedReport | null {
+  if (userAgent && BOT.test(userAgent)) return null;
+  const b = body as { visitor?: unknown; path?: unknown; use?: unknown; ms?: unknown } | null;
+  const visitor = parseVisitor(b?.visitor, userAgent);
+  if (b?.use !== 'time' || !visitor || !isPage(b.path) || b.path === MAP_PATH) return null;
+  if (typeof b.ms !== 'number' || !Number.isFinite(b.ms) || b.ms < 0) return null;
+  return { visitorId: visitor.id, path: b.path, ms: Math.min(Math.round(b.ms), MAX_ENGAGED_MS) };
+}
+
 /** On a page, the presence feature that says its small map is in use. */
 export const SMALL_MAP_FEATURE = 'view:embed';
 
@@ -90,6 +107,10 @@ export function createPageReads(db: AppDb, { now = () => Date.now(), locate = no
     INSERT INTO page_map_minute (visitor_id, day, hour, path, minutes, last_at) VALUES (@visitorId, @day, @hour, @path, 1, @at)
     ON CONFLICT (visitor_id, day, hour, path) DO UPDATE SET minutes = minutes + 1, last_at = excluded.last_at
     WHERE excluded.last_at - last_at >= ${MAP_MINUTE_GAP_MS} AND minutes < 60`);
+  // The browser's latest view of the page: a quick reload logs no view of its own, so its time joins the one before.
+  const engaged = db.prepare(`
+    UPDATE page_view SET engaged_ms = max(coalesce(engaged_ms, 0), @ms)
+    WHERE view_id = (SELECT view_id FROM page_view WHERE visitor_id = @visitorId AND path = @path AND at >= @since ORDER BY at DESC LIMIT 1)`);
 
   const placeOf = (ip: string, country: string | null) => locate(ip) ?? (country ? { country, region: null, city: null, latitude: null, longitude: null } : null);
 
@@ -123,14 +144,20 @@ export function createPageReads(db: AppDb, { now = () => Date.now(), locate = no
     });
   }
 
-  return { record, recordMapMinute };
+  /** Raises the view's engaged time to the page's latest total; a late or repeated report never lowers it. */
+  function recordEngagedTime({ visitorId, path, ms }: EngagedReport) {
+    engaged.run({ visitorId, path, ms, since: now() - DAY_MS });
+  }
+
+  return { record, recordMapMinute, recordEngagedTime };
 }
 
 export type PageReads = ReturnType<typeof createPageReads>;
 
 /**
- * Mounted at /api/v1: POST /page-view is what a public page sends once as it opens, the map as it loads, and a page's
- * small map for each minute the reader moves it (`use: 'map'`). It counts toward nobody's map time. Anything that isn't one of those is accepted and dropped, so a page never learns why.
+ * Mounted at /api/v1: POST /page-view is what a public page sends once as it opens and with its engaged time as it hides
+ * or the reader moves on (`use: 'time'`), the map as it loads, and a page's small map for each minute the reader moves
+ * it (`use: 'map'`). It counts toward nobody's map time. Anything that isn't one of those is accepted and dropped, so a page never learns why.
  * `cloudflare`: Cloudflare is the trusted edge, so its CF-IPCountry header can place an address the database can't.
  */
 export function pageReadRoutes(reads: PageReads, { cloudflare = false } = {}) {
@@ -147,6 +174,11 @@ export function pageReadRoutes(reads: PageReads, { cloudflare = false } = {}) {
     const use = parseMapMinute(body, c.req.header('user-agent'));
     if (use) {
       reads.recordMapMinute(use, context());
+      return c.body(null, 204);
+    }
+    const time = parseEngagedTime(body, c.req.header('user-agent'));
+    if (time) {
+      reads.recordEngagedTime(time);
       return c.body(null, 204);
     }
     const read = parsePageRead(body, c.req.header('user-agent'));

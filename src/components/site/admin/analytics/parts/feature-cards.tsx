@@ -1,85 +1,137 @@
-import { BarList } from '@/components/site/admin/charts/bar-list';
-import { ChartCard } from '@/components/site/admin/charts/chart-card';
-import { Meter } from '@/components/site/admin/charts/meter';
-import { Sparkline } from '@/components/site/admin/charts/stat-tile';
-import { Muted } from '@/components/site/admin/parts/admin-parts';
+'use client';
+
+import { useId } from 'react';
+import { BarList, type BarRow } from '@/components/site/admin/charts/bar-list';
+import { ChartCard, type TableView } from '@/components/site/admin/charts/chart-card';
+import { Segmented, segmentId } from '@/components/ui/segmented';
 import type { AnalyticsEngagement, FeatureUse } from '../analytics-types';
-import { featureLabel, onByDefault, splitFeature } from '../lib/features';
-import { minutes, plural, sum } from '../lib/format';
-import { ink } from '../lib/series';
-import { Pair } from './section-frame';
+import type { UseTab } from '../lib/engagement-findings';
+import { featureLabel, onByDefault, sectionOnByDefault, splitFeature, type FeatureKind } from '../lib/features';
+import { count, minutes, pct, sum } from '../lib/format';
+import { ACTIONS_NOTE, actionRows, actionTable } from './action-cards';
 
 /** Sections and actions arrived in a later release than map minutes, so their history starts later. */
 export const SECTIONS_NOTE = 'The Layers panel’s sections (Air, Sea, Weather…), counted from the release that added them.';
 
-export const reach = (f: FeatureUse) => `${plural(f.users, 'account')} · ${plural(f.visitors, 'visitor-day')}`;
+const DIM = 'var(--ink-4)';
 
-const rowsOf = (features: FeatureUse[]) => features.map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: reach(f) }));
+type Group = { id: string; label?: string; note?: string; rows: BarRow[] };
 
-/** Layers people switched on first; the ones the map opens with after, greyed, since their minutes are mostly defaults kept. */
-const layerRows = (layers: FeatureUse[]) => [
-  ...rowsOf(layers.filter(f => !onByDefault(f.feature))),
-  ...layers.filter(f => onByDefault(f.feature)).map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: `On by default · ${reach(f)}`, color: 'var(--ink-4)' })),
+/** Bars on one scale, the share of people on the map; a group's heading says why its rows sit apart. */
+function ReachGroups({ groups, total, empty }: { groups: Group[]; total: number; empty: string }) {
+  const shown = groups.filter(g => g.rows.length);
+  if (!shown.length) return <p className="text-[12px] text-ink-3">{empty}</p>;
+  return (
+    <div className="flex flex-col gap-4">
+      {shown.map(g => (
+        <div key={g.id} className="flex flex-col gap-2">
+          {g.label && (
+            <div className="border-b border-line pb-1 text-[11px] text-ink-3">
+              <span className="font-medium">{g.label}</span>{g.note && ` · ${g.note}`}
+            </div>
+          )}
+          <BarList format={count} total={total} max={total} limit={8} rows={g.rows} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** `whole`: the minutes of a kind that takes turns (views, panels), so each one's minutes are a share of the map's. */
+const featureRow = (f: FeatureUse, { whole, color, extra }: { whole?: number; color?: string; extra?: string } = {}): BarRow => ({
+  key: f.feature,
+  label: featureLabel(f.feature),
+  value: f.people,
+  color,
+  detail: [`median ${minutes(f.medianMinutes)} each`, whole ? `${pct(f.minutes, whole)} of map minutes` : null, extra].filter(Boolean).join(' · '),
+});
+
+const featureTable = (features: FeatureUse[]): TableView => ({
+  columns: ['Feature', 'People', 'Median minutes', 'Minutes', 'Browsers', 'Accounts'],
+  rows: features.map(f => [featureLabel(f.feature), f.people, f.medianMinutes ?? '—', f.minutes, f.visitors, f.users]),
+});
+
+const TABS: { value: UseTab; label: string }[] = [
+  { value: 'actions', label: 'Actions' },
+  { value: 'panels', label: 'Panels' },
+  { value: 'layers', label: 'Layers' },
+  { value: 'sections', label: 'Sections' },
+  { value: 'views', label: 'Views' },
 ];
 
-/** Panels (with a small multiple per panel over the range), the Layers sections people follow, layers, windows and devices. */
-export function FeatureCards({ e, panels, layers, devices }: { e: AnalyticsEngagement; panels: FeatureUse[]; layers: FeatureUse[]; devices: FeatureUse[] }) {
-  const ofKind = (kind: string) => e.features.filter(f => splitFeature(f.feature).kind === kind).sort((a, b) => b.minutes - a.minutes);
-  const windows = ofKind('window');
-  const sections = ofKind('section');
-  const daily = [...new Set(e.featureDays.flatMap(d => Object.keys(d.minutes)))]
-    .filter(f => f.startsWith('panel:'))
-    .map(f => ({ feature: f, values: e.featureDays.map(d => d.minutes[f] ?? 0) }))
-    .map(p => ({ ...p, total: sum(p.values) }))
-    .filter(p => p.total > 0)
-    .sort((a, b) => b.total - a.total);
+/**
+ * What people did on the map, each by the people who did it (the bar, a share of everyone on the map) and the median
+ * a person. The tab is the section's, so a finding can open the one that backs it.
+ */
+export function UseCard({ e, tab, onTab }: { e: AnalyticsEngagement; tab: UseTab; onTab: (tab: UseTab) => void }) {
+  const id = useId();
+  const total = e.totals.people;
+  const of = (kind: FeatureKind) => e.features.filter(f => splitFeature(f.feature).kind === kind);
+  const views = of('view').filter(f => f.feature !== 'view:wall');
+  const windows = of('window');
+  const panels = of('panel');
+  const layers = of('layer');
+  const sections = of('section');
+  const optIn = layers.filter(f => !onByDefault(f.feature));
+  const cameOn = (f: FeatureUse) => (f.arrivedOn ?? 0) * 2 >= f.people;
+
+  const body: Record<UseTab, { note: string; table: TableView; groups: Group[]; empty: string }> = {
+    actions: {
+      note: ACTIONS_NOTE,
+      table: actionTable(e.actions),
+      groups: [{ id: 'all', rows: actionRows(e.actions) }],
+      empty: 'No actions counted in this range yet.',
+    },
+    panels: {
+      note: 'Time with each sidebar panel open. One is open at a time, so their minutes add up to the map’s.',
+      table: featureTable(panels),
+      groups: [{ id: 'all', rows: panels.map(f => featureRow(f, { whole: sum(panels.map(p => p.minutes)) })) }],
+      empty: 'No panel time in this range yet.',
+    },
+    layers: {
+      note: 'Data layers people had on. Every layer on in a minute gets all of it, so their minutes overlap.',
+      table: featureTable(layers),
+      groups: [
+        { id: 'chose', label: 'Switched on', rows: optIn.filter(f => !cameOn(f)).map(f => featureRow(f)) },
+        {
+          id: 'came', label: 'Came on with a link or a saved map', note: 'most switched no layer on that day',
+          rows: optIn.filter(cameOn).map(f => featureRow(f, { extra: `${count(f.arrivedOn)} of ${count(f.people)} switched none on` })),
+        },
+        { id: 'default', label: 'On when the map opens', rows: layers.filter(f => onByDefault(f.feature)).map(f => featureRow(f, { color: DIM })) },
+      ],
+      empty: 'No layer time in this range yet.',
+    },
+    sections: {
+      note: `${SECTIONS_NOTE} A section counts while any of its layers is on.`,
+      table: featureTable(sections),
+      groups: [
+        { id: 'chose', label: 'Followed by choice', rows: sections.filter(f => !sectionOnByDefault(f.feature)).map(f => featureRow(f)) },
+        { id: 'default', label: 'Holding a layer the map opens with', rows: sections.filter(f => sectionOnByDefault(f.feature)).map(f => featureRow(f, { color: DIM })) },
+      ],
+      empty: 'No section time in this range yet.',
+    },
+    views: {
+      note: 'Map, space view, History and Replay take turns, so their minutes add up; windows open over them. The time-limit wall is in the funnel.',
+      table: featureTable([...views, ...windows]),
+      groups: [
+        { id: 'views', label: 'Views', rows: views.map(f => featureRow(f, { whole: sum(views.map(v => v.minutes)) })) },
+        { id: 'windows', label: 'Windows over the map', rows: windows.map(f => featureRow(f)) },
+      ],
+      empty: 'No map time in this range yet.',
+    },
+  };
+  const shown = body[tab];
 
   return (
-    <>
-      <Pair>
-        <ChartCard title="Panels" note="Time with each sidebar panel open, and who opened it">
-          <BarList format={minutes} share={false} limit={10} rows={rowsOf(panels)} empty="No panel time in this range yet." />
-        </ChartCard>
-        <ChartCard title="Panels per day" note="Each panel on its own scale; the dot is the last day">
-          {daily.length ? (
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-3">
-              {daily.map(p => (
-                <li key={p.feature} className="flex min-w-0 items-center justify-between gap-2 border-b border-line pb-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-[12px] text-ink-1">{featureLabel(p.feature)}</div>
-                    <div className="font-mono text-[11px] tabular-nums text-ink-3">{minutes(p.total)}</div>
-                  </div>
-                  {p.values.length > 1 && <Sparkline values={p.values} width={96} height={28} />}
-                </li>
-              ))}
-            </ul>
-          ) : <Muted>No panel time in this range yet.</Muted>}
-        </ChartCard>
-      </Pair>
-
-      <Pair>
-        <ChartCard title="Sections followed" note={`${SECTIONS_NOTE} Minutes with any layer of the section on, and who followed it.`}>
-          <BarList format={minutes} share={false} rows={rowsOf(sections)} empty="No section time in this range yet." />
-        </ChartCard>
-        <ChartCard title="Layers" note="Minutes each data layer was on the map; the ones it opens with come last">
-          <BarList format={minutes} share={false} limit={12} rows={layerRows(layers)} empty="No layer time in this range yet." />
-        </ChartCard>
-      </Pair>
-
-      <Pair>
-        <ChartCard title="Windows" note="Camera players, live feeds, dossiers and search open over the map">
-          <BarList format={minutes} share={false} rows={rowsOf(windows)} empty="No windows opened in this range." />
-        </ChartCard>
-        <ChartCard title="Devices" note="Map minutes on desktop and on phones">
-          {devices.length ? (
-            <Meter
-              format={minutes}
-              total={sum(devices.map(d => d.minutes))}
-              parts={['device:desktop', 'device:mobile'].map((f, i) => ({ label: featureLabel(f), value: devices.find(d => d.feature === f)?.minutes ?? 0, color: ink(i) }))}
-            />
-          ) : <Muted>No map time in this range yet.</Muted>}
-        </ChartCard>
-      </Pair>
-    </>
+    <ChartCard
+      title="What people use"
+      note={shown.note}
+      table={shown.table}
+      actions={<Segmented size="sm" semantics="tabs" id={id} label="What people use" value={tab} onChange={onTab} options={TABS} />}
+    >
+      <div role="tabpanel" aria-labelledby={segmentId(id, tab)}>
+        <ReachGroups key={tab} groups={shown.groups} total={total} empty={shown.empty} />
+      </div>
+    </ChartCard>
   );
 }

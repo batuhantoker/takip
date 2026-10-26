@@ -14,8 +14,9 @@ export function StatTile({ label, value, sub, delta, trend }: { label: string; v
     <div className="flex min-w-0 flex-col gap-1 rounded-card border border-line bg-surface-1 px-4 py-3">
       <div className="text-[11px] font-medium text-ink-3">{label}</div>
       <div className="flex items-end justify-between gap-3">
-        <div className="truncate font-mono text-[22px] font-medium leading-7 text-ink-1">{value}</div>
-        {trend && trend.length > 1 && <Sparkline values={trend} />}
+        <div className="max-w-full flex-none truncate font-mono text-[22px] font-medium leading-7 text-ink-1">{value}</div>
+        {/* On a narrow tile the sparkline gives way, never the value. */}
+        {trend && trend.length > 1 && <div className="min-w-0 overflow-hidden"><Sparkline values={trend} /></div>}
       </div>
       {(sub || delta) && (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-ink-3">

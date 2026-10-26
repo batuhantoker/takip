@@ -5,6 +5,7 @@ import type { AnalyticsPages, AnalyticsVisitors, VisitFilter } from './analytics
 import { plural } from './lib/format';
 import type { AnalyticsQuery } from './lib/use-analytics-data';
 import { ActivityLog, type LogView } from './parts/activity-log';
+import { EngagedTime } from './parts/engaged-time';
 import { JourneyAudience } from './parts/journey-audience';
 import { JourneyFlow } from './parts/journey-flow';
 import { JourneyPages } from './parts/journey-pages';
@@ -48,6 +49,8 @@ export function VisitorsSection({ pages, visitors, range, hours }: {
             <JourneyFlow j={p.journeys} onPick={pick} />
             <SectionHeading>What they read</SectionHeading>
             <JourneyPages j={p.journeys} onPick={pick} />
+            <SectionHeading>How long they read</SectionHeading>
+            <EngagedTime e={p.journeys.engaged} />
             <SectionHeading>Where and when</SectionHeading>
             <JourneyAudience j={p.journeys} onPick={pick} />
             <VisitorsMore v={visitors.data} p={p} />

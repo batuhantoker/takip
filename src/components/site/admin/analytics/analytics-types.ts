@@ -45,8 +45,11 @@ export type DevicePlace = {
 /** The latest shared location, as table rows show it. */
 export type DeviceBrief = { latitude: number; longitude: number; accuracyM: number | null; label: string | null; at: number };
 
-/** Counts of named actions (packages/core/src/usage.ts USAGE_ACTIONS), e.g. 'search.run', 'route.plan', 'recon.email'. */
-export type ActionUse = { action: string; count: number; users: number; visitors: number };
+/**
+ * A named action (packages/core/src/usage.ts USAGE_ACTIONS: 'search.run', 'route.plan', 'recon.email') with its uses, the
+ * accounts and browsers that took it, the people they are (a browser signed in counts as its account) and their median uses.
+ */
+export type ActionUse = { action: string; count: number; users: number; visitors: number; people: number; medianUses: number | null };
 
 export type AudienceDay = {
   day: string;
@@ -99,29 +102,58 @@ export type FeatureUse = {
    * (the Layers sections with a layer on), 'window:camera|feed|dossier|search', 'device:desktop|mobile'.
    */
   feature: string;
+  /** Minutes with it on. Every feature on in a minute gets all of it, so only view:, panel: and device: add up to the map's time. */
   minutes: number;
-  /** Distinct accounts and visitor-days that spent time there. */
+  /** Accounts and browsers (visitor ids) that spent time there, and the people they are: a browser signed in counts as its account. */
   users: number;
   visitors: number;
+  people: number;
+  /** Of each person's minutes with it on. */
+  medianMinutes: number | null;
+  /** Layers only: people who switched no layer on on any day they had this one, so it came on with a link or their saved map. */
+  arrivedOn?: number;
 };
 
+// Landings on one kind of page ('/city/*/cameras', '/map/live-news', '/' for the map) or section ('/city').
+export type EngagementEntry = { page: string; people: number; openedMap: number; medianMapMinutes: number | null };
+
+/**
+ * GET /api/admin/analytics/engagement: what draws people to the map and how long they stay. People are browsers (visitor
+ * ids) and accounts, a browser signed in counted once as its account; browsers that keep no id aren't in it. Minutes are
+ * minutes begun on the map, the first booked a few seconds in, so 1 means under a minute; the time-limit wall's are apart.
+ */
 export type AnalyticsEngagement = AnalyticsRange & {
   /** The range asked for. */
   days: number;
+  /** First day of the view log: arrivals and entry points start there. */
+  viewsSince: string | null;
+  totals: {
+    /** People with a map minute, and the browsers and accounts behind them. */
+    people: number; visitors: number; accounts: number;
+    minutes: number;
+    /** Of each person's minutes over the range. */
+    medianMinutes: number | null;
+    /** One minute begun in the whole range. */
+    leftWithinMinute: number;
+  };
+  /**
+   * Each step counts everyone who took it, not only those who took the one before: arrived (a page or the map), opened the
+   * map, stayed 2 min or more over the range, on the map on two days or more, opened sign-up, and accounts made in the range.
+   */
+  funnel: { arrived: number; openedMap: number; stayed: number; cameBack: number; signUpOpened: number; signedUp: number };
+  /** People by their minutes over the range: 'Under 1 min', '1–2 min', '2–5 min', '5–15 min', '15–60 min', 'Over 1 h'. */
+  length: { bucket: string; people: number }[];
+  /** People on the map and their minutes, per UTC day. */
+  daily: { day: string; people: number; minutes: number }[];
+  /** Where each person's first view in the range was, by section and by kind of page, scripts left out. */
+  entries: { sections: EngagementEntry[]; pages: EngagementEntry[] };
+  /** Most people first. */
   features: FeatureUse[];
-  /** Minutes per day for the busiest `view:` and `panel:` features (top 8 of each), keyed by feature. */
-  featureDays: { day: string; minutes: Record<string, number> }[];
-  /** Minutes by UTC weekday (0 = Sunday) and hour, everyone together; only cells with minutes. */
-  hours: { dow: number; hour: number; minutes: number }[];
-  /** Map minutes per subject-day, bucketed: '1', '2–5', '6–15', '16–30', '31–60', '61–120', '120+'. */
-  sessionLength: { bucket: string; users: number; visitors: number }[];
-  topUsers: { userId: string; email: string; name: string; minutes: number; activeDays: number; lastDay: string; topFeature: string | null }[];
-  /** Subjects that reached their plan's daily map limit (spent a minute on 'view:wall'). */
-  wall: { day: string; users: number; visitors: number }[];
-  /** Actions in the range, busiest first; `visitors` counts visitor ids and daily visitor hashes. */
+  /** Most people first; accounts and browsers with an id only. */
   actions: ActionUse[];
-  /** Actions per day for the 8 busiest. */
-  actionDays: { day: string; counts: Record<string, number> }[];
+  /** Map minutes by UTC weekday (0 = Sunday) and hour, admins left out when asked; only cells with minutes. */
+  hours: { dow: number; hour: number; minutes: number }[];
+  topUsers: { userId: string; email: string; name: string; minutes: number; activeDays: number; lastDay: string; topFeature: string | null }[];
 };
 
 export type AnalyticsApi = AnalyticsRange & {
@@ -401,7 +433,23 @@ export interface PageJourneys {
   campaigns: { campaign: string; visits: number }[];
   /** Desktop browsers left out as automated: moved on from a visit's first page to another in under two seconds, and no map (page-visits.ts automatedBrowsers). */
   automated: number;
+  engaged: PageEngagedTime;
 }
+
+/** Timed views: how many, their median and mean engaged time, and how many were under 10 s. */
+export type EngagedStats = { views: number; medianMs: number | null; meanMs: number | null; short: number };
+
+/**
+ * Engaged time on the public pages (apps/api analytics/engaged-time.ts): on screen with a scroll, click, key or touch in
+ * the last 30 s, per view of a visit, the map left out. `untimed` views reported none. `kinds` collapse the entity:
+ * '/city/*\/weather'.
+ */
+export type PageEngagedTime = {
+  all: EngagedStats;
+  untimed: number;
+  landing: EngagedStats & { left: EngagedStats; wentOn: EngagedStats };
+  kinds: (EngagedStats & { kind: string; landings: number; landingMedianMs: number | null })[];
+};
 
 /** GET /api/admin/analytics/pages/page?path=: one page across the range's visits. */
 export interface PageDetail {

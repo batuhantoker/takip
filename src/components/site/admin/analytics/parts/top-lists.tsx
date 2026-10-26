@@ -37,7 +37,7 @@ export function TopLists({ pages, engagement, hours }: {
               .filter(f => splitFeature(f.feature).kind === 'layer' && !onByDefault(f.feature))
               .sort((a, b) => b.minutes - a.minutes)
               .slice(0, TOP)
-              .map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: `${plural(f.users, 'account')} · ${plural(f.visitors, 'visitor-day')}` }))} />
+              .map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: `${plural(f.users, 'account')} · ${plural(f.visitors, 'browser')}` }))} />
         )}
       </ChartCard>
       <ChartCard title="Where visits came from" actions={more('#visitors', 'Visitors')}>

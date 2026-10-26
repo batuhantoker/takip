@@ -11,6 +11,7 @@ import { dataAccumulation, historyCounts } from './data';
 import { engagement } from './engagement';
 import { live } from './live';
 import { crawlers, crawlersQuery, createCrawlLog, type CrawlLog } from './crawls';
+import { engagedTime } from './engaged-time';
 import { journeys, pageDetail } from './journeys';
 import { loadVisits, recentVisits, visitsQuery } from './page-visits';
 import { pages } from './pages';
@@ -66,7 +67,7 @@ export function analyticsRoutes({ db, access, usage, metrics, dirs = {}, started
   get('/visitors', r => visitors(db, r));
   get('/pages', r => {
     const { visits, automated } = loadVisits(db, r);
-    return { ...pages(db, r), journeys: { ...journeys(db, visits, r), automated } };
+    return { ...pages(db, r), journeys: { ...journeys(db, visits, r), automated, engaged: engagedTime(visits) } };
   });
   const log = crawlLog ?? createCrawlLog(db, now);
   get('/live', r => live(db, presence, log, r));

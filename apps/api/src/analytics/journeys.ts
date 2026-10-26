@@ -7,7 +7,7 @@ import { localDayStarts, type Range } from './range';
 
 const TOP = 40;
 
-const median = (values: number[]) => {
+export const median = (values: number[]) => {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = sorted.length >> 1;

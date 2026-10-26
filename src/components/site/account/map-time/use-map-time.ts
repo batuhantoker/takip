@@ -13,6 +13,10 @@ const TICK_MS = 60_000;
 const OPENING_MS = 5_000;
 // Read once, as the module loads: the map rewrites the address (layers, view) soon after.
 const ARRIVAL = typeof window === 'undefined' ? null : arrival();
+// A map left open stops counting; watching a camera or live feed needs no input.
+const IDLE_MS = 5 * 60_000;
+const WATCHING = ['window:camera', 'window:feed'];
+const INPUT = ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart'] as const;
 
 async function ask(method: 'GET' | 'POST', features?: readonly string[], opening = false): Promise<MapTime | null> {
   const id = method === 'POST' ? visitorId() : null;
@@ -46,7 +50,8 @@ function flushActions() {
 }
 
 /**
- * Today's map minutes: read on load and whenever the signed-in user changes, ticked once a minute while the tab is visible.
+ * Today's map minutes: read on load and whenever the signed-in user changes, ticked once a minute while the tab is visible
+ * and in use (input in the last five minutes, or a camera or live feed open).
  * Each tick carries the features in use then (map-time-features.ts), the actions counted since (usage-actions.ts) and this
  * browser's visitor id. A few seconds after the tab is first seen, an opening tick books the minute the map opened in for
  * the admin's analytics, without spending map time.
@@ -82,19 +87,30 @@ export function useMapTime(features: readonly string[] = []): MapTime | null {
       opening = setTimeout(open, OPENING_MS);
     };
     awaitOpening();
+    let lastInput = Date.now();
+    const onInput = () => {
+      lastInput = Date.now();
+    };
+    const inUse = () => Date.now() - lastInput < IDLE_MS || latest.current.some(f => WATCHING.includes(f));
     const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') void ask('POST', latest.current).then(update);
+      if (document.visibilityState === 'visible' && inUse()) void ask('POST', latest.current).then(update);
     }, TICK_MS);
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') flushActions();
-      else awaitOpening();
+      else {
+        onInput();
+        awaitOpening();
+      }
     };
+    // Captured, so a map or window that stops an event's propagation still counts it.
+    for (const type of INPUT) window.addEventListener(type, onInput, { capture: true, passive: true });
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', flushActions);
     return () => {
       live = false;
       clearTimeout(opening);
       clearInterval(timer);
+      for (const type of INPUT) window.removeEventListener(type, onInput, { capture: true });
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', flushActions);
     };
