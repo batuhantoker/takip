@@ -1,14 +1,16 @@
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { count, DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MAX, wordingOf } from '../copy/format';
-import { reachKm, type Place } from '../gazetteer';
+import { km as kmBetween, reachKm, type Place } from '../gazetteer';
 import type { PlaceTopic, TopicPage } from '../topic';
-import { camerasNear } from './camera-catalogue';
+import { camerasNear, type CameraLook, type CameraStream, type CatalogueCamera } from './camera-catalogue';
 
 /**
  * Public cameras at /city/<place>/cameras: who publishes the ones around the place and which they are. Read from the
  * app's own camera catalogue when the page renders, so the count is current. A page wherever one camera is listed,
  * even off air (a search for a town's cameras deserves the truth about them); indexed from two on air.
  */
+
+export interface CameraPick { name: string; at: [number, number]; source: string; offline: boolean; km: number; look?: CameraLook }
 
 export interface CamerasData {
   km: number;
@@ -18,19 +20,57 @@ export interface CamerasData {
   sources: [string, number][];
   others: number;
   /** Nearest first; on air where any are, otherwise the off-air ones. */
-  picks: { name: string; at: [number, number]; source: string; offline: boolean }[];
+  picks: CameraPick[];
+  /** On-air stills nearest the centre, each at least FRAME_APART_KM from the others: what the page shows as pictures. */
+  frames: (CameraPick & { frame: string })[];
+  /** The same for video, which the page plays only when asked; [] where there are frames. */
+  streams: (CameraPick & { stream: CameraStream })[];
+  /** The on-air camera nearest the centre that the map draws as a picture tile, where "Open the live map" centres. */
+  tileAt?: [number, number];
   /** When the catalogue was built, epoch ms. */
   counted: number;
 }
 
 const MIN_INDEXED = 2;
 const PICKS = 12;
+const FRAMES = 6;
+const STREAMS = 4;
+/** Two views from one junction read as the same picture. */
+const FRAME_APART_KM = 0.2;
+/** cctv-previews.tsx draws picture tiles from this zoom. */
+export const CAMERA_TILE_ZOOM = 13;
 
 /** A source named after a place ("Cincinnati, OH") says nothing about who runs the camera. */
 const namedSource = (source: string, n: number) => n >= 3 && !!source && !/,\s*[A-Z]{2}$/.test(source);
 const cleanName = (name: string) => name.replace(/,\s*\d+$/, '').replace(/\s+/g, ' ').trim();
+const round5 = (c: CatalogueCamera): [number, number] => [Number(c.lng.toFixed(5)), Number(c.lat.toFixed(5))];
 
 export const camerasKm = (place: Place) => Math.round(Math.max(8, reachKm(place)));
+
+/** Nearest first, one per name. */
+function distinct<C extends CatalogueCamera>(cameras: C[]): C[] {
+  const seen = new Set<string>();
+  return cameras.filter(c => {
+    const name = cleanName(c.name).toLowerCase();
+    if (!name || seen.has(name)) return false;
+    seen.add(name);
+    return true;
+  });
+}
+
+/** Up to `n`, nearest first, none within FRAME_APART_KM of another. */
+function spread<C extends CatalogueCamera & { km: number }>(cameras: C[], n: number): C[] {
+  const out: C[] = [];
+  for (const c of distinct(cameras)) {
+    if (out.length >= n) break;
+    if (!out.some(o => kmBetween([o.lng, o.lat], [c.lng, c.lat]) < FRAME_APART_KM)) out.push(c);
+  }
+  return out;
+}
+
+const pickOf = (c: CatalogueCamera & { km: number }): CameraPick => ({
+  name: cleanName(c.name), at: round5(c), source: c.source, offline: c.offline, km: Math.round(c.km * 100) / 100, ...(c.look ? { look: c.look } : {}),
+});
 
 export function camerasData(place: Place): CamerasData | null {
   const km = camerasKm(place);
@@ -40,16 +80,14 @@ export function camerasData(place: Place): CamerasData | null {
   const bySource = new Map<string, number>();
   for (const c of onAir) bySource.set(c.source, (bySource.get(c.source) ?? 0) + 1);
   const sources = [...bySource].filter(([s, n]) => namedSource(s, n)).sort((a, b) => b[1] - a[1]);
-  const seen = new Set<string>();
-  const picks = (onAir.length ? onAir : near.cameras).filter(c => {
-    const name = cleanName(c.name).toLowerCase();
-    if (!name || seen.has(name)) return false;
-    seen.add(name);
-    return true;
-  }).slice(0, PICKS).map(c => ({ name: cleanName(c.name), at: [Number(c.lng.toFixed(5)), Number(c.lat.toFixed(5))] as [number, number], source: c.source, offline: c.offline }));
+  const picks = distinct(onAir.length ? onAir : near.cameras).slice(0, PICKS).map(pickOf);
+  const frames = spread(onAir.filter(c => c.frame), FRAMES).map(c => ({ ...pickOf(c), frame: c.frame! }));
+  const streams = frames.length ? [] : spread(onAir.filter(c => c.stream), STREAMS).map(c => ({ ...pickOf(c), stream: c.stream! }));
+  const tile = onAir.find(c => c.look === 'still' || c.look === 'stream');
   return {
     km, onAir: onAir.length, offAir: near.cameras.length - onAir.length,
-    sources, others: onAir.length - sources.reduce((s, [, n]) => s + n, 0), picks, counted: near.builtAt,
+    sources, others: onAir.length - sources.reduce((s, [, n]) => s + n, 0), picks, frames, streams,
+    ...(tile ? { tileAt: round5(tile) } : {}), counted: near.builtAt,
   };
 }
 
@@ -104,13 +142,19 @@ export const CAMERAS: PlaceTopic<CamerasData> = {
 
   summary(place, { data }, t) {
     if (!data.onAir) return t('{n, plural, one {One camera listed, off air.} other {# cameras listed, all off air.}}', { n: data.offAir });
-    const sources = data.sources.slice(0, 3).map(([s]) => s).concat(data.others ? [t('others')] : []);
+    const named = data.sources.slice(0, 3).map(([s]) => s);
+    const sources = named.length && data.others ? [...named, t('others')] : named;
     return sources.length
       ? t('{n, plural, one {One camera} other {# cameras}}, from {sources}.', { n: data.onAir, sources: listOf(sources, t) })
       : t('{n, plural, one {One camera} other {# cameras}} on the map.', { n: data.onAir });
   },
 
-  open: () => ({ layers: ['cctv', 'cctv_previews'], zoom: 11 }),
+  // Where the map draws cameras as pictures; a country's overview passes no page.
+  open: (_place, page?: TopicPage<CamerasData>) => {
+    const at = page?.data.tileAt;
+    return at ? { layers: ['cctv', 'cctv_previews'], view: { lat: at[1], lon: at[0], zoom: CAMERA_TILE_ZOOM } } : { layers: ['cctv', 'cctv_previews'], zoom: 11 };
+  },
+  openLabel: msg('See them on the live map'),
 };
 
 export type CamerasPage = TopicPage<CamerasData>;

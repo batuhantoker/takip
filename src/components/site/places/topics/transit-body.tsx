@@ -32,6 +32,7 @@ function OperatorRow({ t, op }: { t: Translate; op: TransitOperator }) {
 }
 
 export const TRANSIT_VIEW: TopicView<TransitData, TransitNow> = {
+  nearbySummary: true,
   icon: Bus,
 
   Live({ text: { t }, place, live: now }) {

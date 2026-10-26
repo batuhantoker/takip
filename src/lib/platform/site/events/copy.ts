@@ -93,10 +93,20 @@ export const summaryText = (e: EventPage, heading: string) =>
   recordSummary(e) ?? longDescription(e.title, e.attrs) ?? (e.title && e.title !== heading && e.title.startsWith(heading) ? e.title : null);
 
 const ZOOM: Record<number, number> = { 0: 6, 1: 6, 2: 5.5, 3: 5, 4: 4.5, 5: 3.5 };
+const FIRST_YEAR = -3000;
+
+const startYear = (e: EventPage) => new Date(e.tStart * 1000).getUTCFullYear();
+const openYear = (e: EventPage) => Math.max(FIRST_YEAR, Math.min(new Date().getUTCFullYear(), startYear(e)));
+
+/** The map link's label, naming the year History opens at ("See 480 BCE on the map"), where that is the event's own. */
+export function eventOpenLabel(t: Translate, e: EventPage): string {
+  if (openYear(e) !== startYear(e)) return t('Open on the map');
+  return t('See {year} on the map', { year: formatAt(e.tStart, Math.min(e.prec, Prec.year), t, t.intl) });
+}
 
 /** History at the event's year and place, with its family switched on. */
 export function eventOpenPath(e: EventPage): string {
-  const year = Math.max(-3000, Math.min(new Date().getUTCFullYear(), new Date(e.tStart * 1000).getUTCFullYear()));
+  const year = openYear(e);
   const family = (HISTORY_FAMILY_LINKS as readonly string[]).includes(e.family) ? [e.family as HistoryFamilyLink] : undefined;
   return mapHref({
     layers: [],

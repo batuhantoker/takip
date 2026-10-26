@@ -7,8 +7,8 @@ Two countries side by side on History's measures, and each measure around the wo
 | URL | What it is | Where |
 |---|---|---|
 | `/compare` | Two country pickers that go to any pair (`?a=greece&b=turkey` redirects; names and codes as typed work too), every measure's world page, and every country with the countries it is compared with, for crawling | `app/compare/page.tsx`, `components/site/compare/compare-index.tsx` |
-| `/compare/<a>-vs-<b>` | The headline measure's chart beside the main differences, then one table of every measure both countries have, grouped as on a country's hub: each country's latest value with a bar to scale against the others', and their lines | `app/compare/[pair]/[[...measure]]`, `components/site/compare/compare-page.tsx`, `parts/overview-table.tsx` |
-| `/compare/<a>-vs-<b>/<measure>` | The chart across the page with its settings; each latest value, the gap and ratio in the latest year both have (percentage points between shares), who has been higher since when and whom they overtook; a table of each country's latest value, ten years before, rank and projection; the year table for all; the other measures down the side | same, `parts/compare-chart.tsx`, `parts/latest-table.tsx`, `parts/measure-nav.tsx` |
+| `/compare/<a>-vs-<b>` | The headline measure's chart beside the main differences (each leading to its measure's page) and other listed pairs that share a country, then one table of every measure both countries have, grouped as on a country's hub: each country's latest value with a bar to scale against the others', and their lines | `app/compare/[pair]/[[...measure]]`, `components/site/compare/compare-page.tsx`, `parts/overview-table.tsx` |
+| `/compare/<a>-vs-<b>/<measure>` | The answer first (`pairAnswer`, `parts/pair-answer.tsx`): both figures in the latest year both have, who is higher by how much (percentage points between shares, and a ratio from 1.2 times), and since when; beside it, where to go next. Then the chart across the page with its settings (under it on a phone); a table of each country's latest value, ten years before, rank and projection; ranks, projections and the world in sentences; the year table for all; the other measures down the side | same, `parts/compare-chart.tsx`, `parts/latest-table.tsx`, `parts/measure-nav.tsx`, `parts/next-steps.tsx` |
 | `/map/<measure>` | The measure around the world: the World and the five most populous countries with figures on one chart, every country ranked by its latest value (linked to its page), the highest and lowest in the measure's rank year | `app/map/[slug]/page.tsx` (after the layer pages, which no measure slug collides with), `components/site/compare/world-page.tsx` |
 
 ## The reader's view
@@ -29,7 +29,9 @@ The settings are links (`parts/chart-controls.tsx`, `rel="nofollow"`), and the p
 
 The pair's address names the two country slugs in alphabetical order (`pairs.ts` `pairSlug`); the other order answers 308 to it, measure and language kept, in `src/proxy.ts` (`compare/pair-path.ts`, no data read) and again in the page. Unknown countries, a country with itself, a pair with no measure in common and unknown measures are 404.
 
-"Watch it change on the map" opens History coloured by the measure, playing from its first year, with both countries charted: the link's `country` takes up to four countries.json ids (`?country=GRC,TUR`, `lib/map/view-mode-link.ts`).
+"Watch it change on the map" opens History coloured by the measure, playing from its first year, with both countries charted: the link's `country` takes up to four countries.json ids (`?country=GRC,TUR`, `lib/map/view-mode-link.ts`). It frames the countries (`pairFocus`: their label points, widened by each one's size), or leaves the view alone where they span more than 120°, as the US and China do.
+
+Where a comparison leads next (`compare/next.ts`): the pair's other measures, the overview's highlights first, and the same measure for listed pairs that share a country, each country's partners in turn, most populous first. Only indexed pages are offered (`pairMeasureIndexed`, `pairIndexed`), so the links add no addresses for crawlers, and a view with added countries offers no other pairs.
 
 ## What gets indexed
 

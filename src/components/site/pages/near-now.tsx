@@ -11,7 +11,7 @@ import { conditionsForYou, lightningForYou, rainForYou, type WeatherNowAnswer } 
 import { localePath } from '@/lib/platform/site/locale-path';
 import { browserTimeZone, locateVisitor, type VisitorPoint } from '@/lib/places/ip-location/browser';
 import { LocalClock } from './local-clock';
-import { TEXT_LINK } from './site-frame';
+import { TEXT_LINK } from './site-parts';
 
 export type NearKind = 'lightning' | 'rain' | 'weather';
 

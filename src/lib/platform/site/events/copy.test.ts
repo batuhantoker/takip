@@ -2,7 +2,7 @@ import { Prec } from '@takip/core/time';
 import { describe, expect, it } from 'vitest';
 import { createTranslator } from '@/lib/core/i18n/translator';
 import { parseViewModeLink } from '@/lib/map/view-mode-link';
-import { eventHeading, eventOpenPath, eventYears, isoDate, magnitudeRow, summaryText } from './copy';
+import { eventHeading, eventOpenLabel, eventOpenPath, eventYears, isoDate, magnitudeRow, summaryText } from './copy';
 import type { EventPage } from './event-page';
 
 const s = (year: number, month = 0, day = 1) => {
@@ -54,5 +54,11 @@ describe('event page copy', () => {
     expect(link).toMatchObject({ view: 'history', year: 1915, families: ['conflict'] });
     const old = parseViewModeLink(new URL(eventOpenPath(event({ tStart: s(-7500) })), 'http://x').searchParams);
     expect(old).toMatchObject({ view: 'history', year: -3000 });
+  });
+
+  it('names the year the map opens at, but not one History can’t reach', () => {
+    expect(eventOpenLabel(en, event())).toBe('See 1915 on the map');
+    expect(eventOpenLabel(en, event({ tStart: s(-479, 8, 22) }))).toBe('See 480 BCE on the map');
+    expect(eventOpenLabel(en, event({ tStart: s(-7500), prec: Prec.year }))).toBe('Open on the map');
   });
 });

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { EN } from '../places/copy/format';
 import { placeBySlug } from '../places/gazetteer';
+import type { Place } from '../places/place';
 import type { IndicatorSeries } from '../places/topics/indicators-data';
-import { commonYears, comparePath, pairFacts, pairMeasures } from './compare';
-import { pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairSentences } from './compare-copy';
-import { listedPairs } from './pairs';
+import { commonYears, comparePath, pairFacts, pairFocus, pairMeasures } from './compare';
+import { pairAnswer, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairSentences } from './compare-copy';
+import { nextMeasures, nextPairs } from './next';
+import { listedPairs, pairReasons } from './pairs';
 import { worldCopy, worldMeasure, worldSlugs } from './world';
 
 const series = (from: number, values: (number | null)[]): IndicatorSeries =>
@@ -27,6 +29,25 @@ describe('pairFacts', () => {
   });
 });
 
+const country = (lon: number, lat: number, area: number) => ({ id: lon * 1000 + lat, kind: 'country', slug: 'x', name: 'X', cc: 'XX', at: [lon, lat], pop: 1, area }) as Place;
+
+describe('pairFocus', () => {
+  it('frames two neighbours between them, closer for small ones', () => {
+    const balkans = pairFocus([country(25.2, 42.7, 111_000), country(21.7, 41.6, 25_700)])!;
+    expect(balkans.lon).toBeGreaterThan(21.7);
+    expect(balkans.lon).toBeLessThan(25.2);
+    expect(balkans.zoom).toBeGreaterThanOrEqual(5);
+    const big = pairFocus([country(22, 39, 132_000), country(35, 39, 784_000)])!;
+    expect(big.zoom).toBeLessThan(balkans.zoom);
+  });
+
+  it('frames a pair across the antimeridian the short way, and none too far apart', () => {
+    const pacific = pairFocus([country(178, -17.8, 18_000), country(-175.2, -21.2, 750)])!;
+    expect(Math.abs(pacific.lon)).toBeGreaterThan(175);
+    expect(pairFocus([country(-98, 39, 9_800_000), country(104, 35, 9_600_000)])).toBeUndefined();
+  });
+});
+
 describe('a real pair', () => {
   const greece = placeBySlug('country', 'greece');
   const turkey = placeBySlug('country', 'turkey');
@@ -42,6 +63,34 @@ describe('a real pair', () => {
     expect(pairSentences(pair, le, EN)[0]).toMatch(/^Life expectancy in 2023: [\d.]+ years in Greece and [\d.]+ years in Türkiye, by UN estimates\.$/);
     const milex = measures.find(m => m.spec.slug === 'military-spending');
     if (milex) expect(pairSentences(pair, milex, EN)[1]).toMatch(/percentage points/);
+  });
+
+  it('answers with both figures in the year they share, who is higher and by how much', () => {
+    if (!greece || !turkey) return;
+    const pair = { a: greece, b: turkey };
+    const pop = pairMeasures(pair).find(m => m.spec.slug === 'population');
+    if (!pop) return;
+    const answer = pairAnswer(pair, pop, EN);
+    expect(answer.tiles.map(t => t.name)).toEqual(['Greece', 'Türkiye']);
+    expect(answer.tiles[1]).toMatchObject({ before: '', after: ' people' });
+    expect(answer.tiles[0].note).toMatch(/^\d{4} · UN estimates$/);
+    expect(answer.verdict).toMatch(/^Higher in Türkiye by [\d.]+ million people: [\d.]+ times the figure for Greece\.$/);
+    expect(answer.since).toMatch(/^Türkiye has been higher/);
+  });
+
+  it('leads on to listed pairs sharing a country, and the pair’s other measures', () => {
+    if (!greece || !turkey) return;
+    const pair = { a: greece, b: turkey };
+    const next = nextPairs(pair, 'population');
+    expect(next.length).toBeGreaterThan(0);
+    for (const p of next) {
+      expect([greece.id, turkey.id]).toContain(p.a.id);
+      expect([greece.id, turkey.id]).not.toContain(p.b.id);
+      expect(pairReasons(p.a, p.b)).not.toBeNull();
+    }
+    const measures = nextMeasures(pairMeasures(pair), 'population');
+    expect(measures.map(m => m.spec.slug)).not.toContain('population');
+    expect(measures[0].spec.slug).toBe('life-expectancy');
   });
 });
 

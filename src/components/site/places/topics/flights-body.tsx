@@ -33,6 +33,7 @@ export function StationsNow({ t, stations }: { t: Translate; stations: StationNo
 }
 
 export const FLIGHTS_VIEW: TopicView<FlightsData, StationNow[]> = {
+  nearbySummary: true,
   icon: Plane,
 
   // OurAirports calls a few small fields scheduled (Teterboro), so the sentence leads with a large airport when one is near.

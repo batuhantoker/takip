@@ -1,5 +1,6 @@
 import { readFileSync, statSync } from 'node:fs';
 import { snapshotPath } from '@/lib/feeds/cameras/catalog/snapshot';
+import { previewMedia } from '@/lib/feeds/cameras/preview';
 import { km } from '../gazetteer';
 
 /**
@@ -7,7 +8,35 @@ import { km } from '../gazetteer';
  * what place pages need and indexed on a half-degree grid. Read again when the file changes, at most every 10 minutes.
  */
 
-export interface CatalogueCamera { name: string; lat: number; lng: number; source: string; offline: boolean }
+export interface CatalogueCamera {
+  name: string; lat: number; lng: number; source: string; offline: boolean;
+  /** What it shows: a still a page can show as it is (`frame`), video on the map, or nothing beyond a link. */
+  look?: CameraLook;
+  frame?: string;
+  /** Video a page can play when asked. */
+  stream?: CameraStream;
+}
+
+export interface CameraStream { kind: 'hls' | 'mp4'; url: string }
+
+/** `still`: a snapshot the map tiles and pages show; `stream`: video in a map tile; `player`: video in the map's window only. */
+export type CameraLook = 'still' | 'stream' | 'player';
+
+/** Hosts that answer every still with one "no live feed" picture (nvroads.com, all 24 on 2026-10-26). */
+const PLACEHOLDER_STILLS = /^https:\/\/www\.nvroads\.com\/map\/Cctv\//;
+
+/** Read with the map tiles' own rule (preview.ts), so a page shows what the map does. */
+function lookOf(c: Record<string, unknown>): { look?: CameraLook; frame?: string; stream?: CameraStream } {
+  const media = previewMedia({
+    stream_type: typeof c.stream_type === 'string' ? c.stream_type : undefined,
+    feed_url: typeof c.feed_url === 'string' ? c.feed_url : undefined,
+    stream_url: typeof c.stream_url === 'string' ? c.stream_url : undefined,
+  });
+  if (media?.kind === 'jpg') return PLACEHOLDER_STILLS.test(media.url) ? {} : { look: 'still', frame: media.url };
+  if (media?.kind === 'hls' || media?.kind === 'mp4') return { look: 'stream', stream: { kind: media.kind, url: media.url } };
+  if (media) return { look: 'stream' };
+  return c.stream_type === 'iframe' && c.stream_url ? { look: 'player' } : {};
+}
 
 const RECHECK_MS = 10 * 60_000;
 const cellOf = (lat: number, lng: number) => `${Math.floor(lat * 2)},${Math.floor(lng * 2)}`;
@@ -33,7 +62,7 @@ function load() {
   for (const cams of Object.values(file.regions ?? {})) for (const c of cams) {
     const lat = Number(c.lat), lng = Number(c.lng);
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-    const cam = { name: String(c.name ?? ''), lat, lng, source: String(c.source ?? ''), offline: c.offline === true };
+    const cam: CatalogueCamera = { name: String(c.name ?? ''), lat, lng, source: String(c.source ?? ''), offline: c.offline === true, ...lookOf(c) };
     const k = cellOf(lat, lng);
     const list = grid.get(k);
     if (list) list.push(cam);

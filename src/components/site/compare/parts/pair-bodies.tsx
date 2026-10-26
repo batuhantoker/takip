@@ -8,7 +8,7 @@ import { measureTable } from '@/components/site/places/topics/parts/measure-char
 import { Points } from '@/components/site/places/topics/parts/stat-tiles';
 import type { Translate } from '@/lib/core/i18n/translator';
 import type { PairMeasure } from '@/lib/platform/site/compare/compare';
-import { pairSentences } from '@/lib/platform/site/compare/compare-copy';
+import { pairParts } from '@/lib/platform/site/compare/compare-copy';
 import type { CountryPair } from '@/lib/platform/site/compare/pairs';
 import { worldPath } from '@/lib/platform/site/compare/world';
 import { localePath } from '@/lib/platform/site/locale-path';
@@ -53,10 +53,10 @@ export function PairOverviewBody({ text, places, names, measures }: { text: Site
   );
 }
 
-/** A measure's figures under its chart; the pair's own sentences only while just the two are compared. */
+/** A measure's figures under its chart; the pair's own sentences, past what the answer above says, only while just the two are compared. */
 export function PairMeasureBody({ text, pair, places, entries, m }: { text: SiteText; pair: CountryPair; places: Place[]; entries: Entry[]; m: PairMeasure }) {
   const { t } = text;
-  const rest = places.length === 2 ? pairSentences(pair, m, t).slice(2) : [];
+  const rest = places.length === 2 ? pairParts(pair, m, t).rest : [];
   const charted = entries.flatMap(e => (e.series ? [{ label: e.label, series: e.series, slot: e.slot }] : []));
   return (
     <>

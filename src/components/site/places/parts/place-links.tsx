@@ -5,7 +5,7 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { countryName, nameOf } from '@/lib/platform/site/places/copy/format';
 import { inNavOrder, placePages, topicPages, type PlacePageRef } from '@/lib/platform/site/places/pages';
-import { regionLabel } from '@/lib/platform/site/places/gazetteer';
+import { km, regionLabel } from '@/lib/platform/site/places/gazetteer';
 import { topicShown } from '@/lib/platform/site/places/topics/faith-reach';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
@@ -55,19 +55,25 @@ export function LinkCard({ href, title, line, Icon }: { href: string; title: str
   );
 }
 
-/** Other places, each as a card naming its region and its indexed pages; to the same topic page when it has one. */
-export function PlaceCards({ text, places, page }: { text: SiteText; places: Place[]; page?: string }) {
+/**
+ * Other places, each as a card naming its region and its indexed pages; to the same topic page when it has one. With
+ * `from`, a card on that page's topic says what the topic holds there and how far it is instead.
+ */
+export function PlaceCards({ text, places, page, from }: { text: SiteText; places: Place[]; page?: string; from?: Place }) {
   const { t } = text;
   return (
     <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {places.map(p => {
         const pages = placePages(p).filter(x => x.page.index);
         const named = pages.filter(x => !x.topic.faith);
-        const to = page && pages.some(x => x.page.slug === page) ? page : undefined;
+        const same = page ? pages.find(x => x.page.slug === page) : undefined;
+        const region = regionLabel(p, t.locale) ?? countryName(p.cc, t);
+        const line = from && same
+          ? `${region} · ${t('{km, distance} away', { km: km(from.at, p.at) })} · ${same.topic.summary(p, same.page, t)}`
+          : `${region} · ${[...new Set(named.map(x => t(x.topic.label)))].join(', ')}`;
         return (
           <li key={p.id}>
-            <LinkCard href={localePath(t.locale, placePath(p, to))} title={nameOf(p, t)}
-              line={`${regionLabel(p, t.locale) ?? countryName(p.cc, t)} · ${[...new Set(named.map(x => t(x.topic.label)))].join(', ')}`} />
+            <LinkCard href={localePath(t.locale, placePath(p, same?.page.slug))} title={nameOf(p, t)} line={line} />
           </li>
         );
       })}

@@ -20,6 +20,7 @@ import { NearForecast, NearNow, NearProvider } from './near-now';
 import { PageCard } from './page-card';
 import { SECTION_ICON } from './section-icon';
 import { LINK_BUTTON, Section } from './site-frame';
+import { SpotLand, SpotSketch } from './spot-sketch';
 import { WorldSketch } from './world-sketch';
 
 const AS_OF = msg('Right now · as of {time}');
@@ -68,7 +69,7 @@ export function LayerArticle({ text, page, image, live, shot, related, more }: {
   const open = openPath(page);
   const article = (
     <article>
-      <header className="mt-8 grid items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
+      <header className="mt-8 grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
         <div>
           <Link href={`${localePath(text.locale, '/map')}#${page.section}`}
             className={cx('inline-flex items-center gap-2 text-[13px] font-medium text-ink-3 hover:text-ink-1', FOCUS_RING)}>
@@ -78,7 +79,8 @@ export function LayerArticle({ text, page, image, live, shot, related, more }: {
           <p className="mt-5 text-[17px] leading-relaxed text-ink-2">{page.lede}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href={open} className={LINK_BUTTON.primary}>{t('Open the live map')}<ArrowUpRight className="size-4" aria-hidden /></a>
-            <Link href={localePath(text.locale, '/map')} className={LINK_BUTTON.secondary}>{t('Everything on the map')}</Link>
+            {/* On a phone it would take a row of its own; the trail's "On the map" goes there too. */}
+            <Link href={localePath(text.locale, '/map')} className={cx(LINK_BUTTON.secondary, 'max-sm:hidden')}>{t('Everything on the map')}</Link>
           </div>
           {page.findFlights && <FlightFinder className="mt-8" />}
           {page.nearNow && <NearNow className="mt-8" />}
@@ -93,14 +95,15 @@ export function LayerArticle({ text, page, image, live, shot, related, more }: {
           )}
         </div>
         {hasEmbed(page)
+          // A client component's props travel with the page, so the sketch goes only where it is drawn.
           ? <LiveWindow src={localePath(text.locale, embedPath(page.slug))} href={open} image={image} alt={page.heading}
               cta={t('Open the live map')} explore={t('Explore it here')} badge={live ? t('Live') : undefined}
-              fallback={<WorldSketch points={(page.spots ?? []).map(s => s.view)} />} />
+              fallback={image ? null : <WorldSketch points={(page.spots ?? []).map(s => s.view)} />} />
           : <MapWindow href={open} image={image} alt={page.heading} cta={t('Open the live map')} badge={live ? t('Live') : undefined}
               points={(page.spots ?? []).map(s => s.view)} priority />}
       </header>
 
-      <div className="mt-20 grid gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
+      <div className="mt-20 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
         <div>
           {shot && <LiveImage t={t} shot={shot} />}
           {page.nearNow === 'weather' && <NearForecast />}
@@ -142,6 +145,7 @@ export function LayerArticle({ text, page, image, live, shot, related, more }: {
         <aside className="flex flex-col gap-10">
           {page.spots && page.spots.length > 0 && (
             <section>
+              <SpotLand />
               <h2 className="text-[15px] font-semibold text-ink-1">{t('Places to start')}</h2>
               <ul className="mt-4 flex flex-col gap-2">
                 {page.spots.map(s => (
@@ -149,7 +153,7 @@ export function LayerArticle({ text, page, image, live, shot, related, more }: {
                     <a href={openPath(page, s.view)}
                       className={cx('group flex items-center gap-3 rounded-card border border-line bg-surface-1 p-2 pr-3 hover:border-line-strong', FOCUS_RING, TRANSITION)}>
                       <span className="block h-12 w-20 flex-shrink-0 overflow-hidden rounded-control border border-line">
-                        <WorldSketch focus={s.view} />
+                        <SpotSketch view={s.view} />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[14px] font-medium text-ink-1">{s.label}</span>

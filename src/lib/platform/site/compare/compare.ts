@@ -1,4 +1,5 @@
 import { MAX_LINK_COUNTRIES } from '@/lib/map/view-mode-link';
+import type { MapView } from '../map-link';
 import type { Place } from '../places/place';
 import type { MapLink } from '../places/topic';
 import { HUB_INDEX, indicatorIndexed } from '../places/topics/indicators-facts';
@@ -95,13 +96,46 @@ export function pairFacts(m: Pick<PairMeasure, 'a' | 'b' | 'common'>): PairFacts
   return { year, av: a.get(year)!, bv: b.get(year)!, lead, since: years[i], ...(i > 0 && { before: leadIn(years[i - 1]) }), from: years[0] };
 }
 
-/** History colouring the countries by the measure (life expectancy for an overview) with the countries charted, as many as it takes. */
+// Past this many degrees across, a view framing every country shows little more than the whole globe.
+const FOCUS_SPAN = 120;
+// About a phone's map width over MapLibre's 512 px world at zoom 0, in degrees: the zoom that fits `span` is log2(FIT / span).
+const FIT = 300;
+
+/** The map framing the countries, each with room for its size; undefined when they lie too far apart to frame together. */
+export function pairFocus(places: Place[]): MapView | undefined {
+  if (!places.length) return undefined;
+  const base = places[0].at[0];
+  const boxes = places.map(p => {
+    // Each country's own lon taken nearest the first's, so a pair across the antimeridian frames the short way.
+    const lon = p.at[0] + 360 * Math.round((base - p.at[0]) / 360);
+    const r = Math.sqrt(p.area ?? 0) / 2 / 111;
+    const rLon = r / Math.max(0.2, Math.cos((p.at[1] * Math.PI) / 180));
+    return { w: lon - rLon, e: lon + rLon, s: p.at[1] - r, n: p.at[1] + r };
+  });
+  const w = Math.min(...boxes.map(b => b.w));
+  const e = Math.max(...boxes.map(b => b.e));
+  const s = Math.max(-80, Math.min(...boxes.map(b => b.s)));
+  const n = Math.min(80, Math.max(...boxes.map(b => b.n)));
+  const lat = (s + n) / 2;
+  const span = Math.max(e - w, (n - s) / Math.cos((lat * Math.PI) / 180));
+  if (span > FOCUS_SPAN) return undefined;
+  const lon = ((((w + e) / 2 + 180) % 360) + 360) % 360 - 180;
+  const zoom = Math.round(Math.min(6, Math.max(1.5, Math.log2(FIT / Math.max(span, 1)))) * 4) / 4;
+  return { lat: Math.round(lat * 100) / 100, lon: Math.round(lon * 100) / 100, zoom };
+}
+
+/**
+ * History colouring the countries by the measure (life expectancy for an overview) with the countries charted, as many
+ * as it takes, framed on them where they lie close enough.
+ */
 export function pairOpen(pair: CountryPair, measures: PairMeasure[], current?: PairMeasure, extra: Place[] = []): MapLink | undefined {
   const m = current ?? measures.find(x => x.spec.slug === 'life-expectancy') ?? measures[0];
   if (!m) return undefined;
   const from = Math.max(Math.min(m.a.f.first[0], m.b.f.first[0]), -2999);
   const countries = [pair.a, pair.b, ...extra].map(p => indicatorRow(p.id)?.key).filter((k): k is string => !!k).slice(0, MAX_LINK_COUNTRIES);
+  const view = pairFocus([pair.a, pair.b, ...extra].slice(0, MAX_LINK_COUNTRIES));
   return {
+    ...(view && { view }),
     mode: {
       view: 'history', year: from, layer: null, range: { from, to: new Date().getUTCFullYear() },
       metric: m.spec.map.code, ...(m.spec.map.source && { source: m.spec.map.source }), ...(countries.length && { countries }),

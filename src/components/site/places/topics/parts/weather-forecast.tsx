@@ -1,5 +1,5 @@
 import { Cloud, CloudFog, CloudHail, CloudLightning, CloudMoon, CloudRain, CloudRainWind, CloudSnow, CloudSun, Moon, Snowflake, Sun, type LucideIcon } from 'lucide-react';
-import { Section } from '@/components/site/pages/site-frame';
+import { Section } from '@/components/site/pages/site-parts';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { MET_CREDIT } from '@/lib/feeds/weather/forecast';
 import { wordingFor } from '@/lib/platform/site/places/copy/wording';

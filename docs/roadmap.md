@@ -128,6 +128,12 @@ Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages
 14. Neighbourhoods: below towns there is no national boundary set. OpenStreetMap's `place=neighbourhood` areas and `admin_level=10` boundaries cover some big cities (New York's boroughs are counties already: Kings County, NY is Brooklyn).
 15. Statistics, the long tail: about 1,500 more WDI indicators sit in `history.db` with English names only. Each needs a translated label, unit and one-line definition before it can have pages; pick by search demand rather than taking them all.
 16. Statistics left out for now: COVID-19's weekly series (a weekly chart and copy of their own), the OECD long-term scenarios and the World Bank's GDP forecast (scenarios beside a projection need their own wording), `wup:CityShare` and `wpp:OldAgeDep` (close to measures already in), and `iq:*` (its methodology is unverified). The pages also carry three sources whose terms restrict commercial use, each marked in `topics/indicators-data.ts`: the IMF's World Economic Outlook, SIPRI (military spending, arms transfers) and IHME's Global Burden of Disease (depression, suicide). The Correlates of War's other capability series (iron and steel, energy, its own population counts) and its spending in pounds before 1914 are in `history.db` but have no page.
+17. `/compare` crawl load (2026-10-26): crawlers walked the chart settings' query variants (`?from`, `?log`, `?add`…), millions of copies of canonical pages; robots.txt now disallows `/compare/*?`. If the load stays, make the settings client-side toggles over the page's own data. The country picker's list (~37 KB) is on every compare page; load it on focus.
+18. Deep links from pages into the map: `camera=<id>` to open one camera's window (`shell/state/use-startup.ts`, `map/inspect/track-request.ts`), so a camera page's frame lands on that camera rather than a zoom-15 view; and `&event=<id>` to open an event's History popup (`lib/map/view-mode-link.ts`, `shell/state/use-view-mode-link.ts`).
+19. NDOT's stills (`www.nvroads.com/map/Cctv/<id>`) all return one "No live camera feed" picture, which the map shows as live tiles. Mark them off air in `lib/feeds/cameras/liveness.ts`, then drop `PLACEHOLDER_STILLS` from `places/topics/camera-catalogue.ts`.
+20. Page weight on place pages and guides: `WorldSketch` repeats the 44 KB world outline per thumbnail; the layer pages' `spot-sketch.tsx` draws it once (cut `/map/earthquakes` from 499 to 195 KB). Fold the two together.
+21. Country "now" pages count inside the country's map box, so they say "in and around"; a border-exact count needs a point-in-country test on the web side (the api's `geo/nearest-place.ts` has one).
+22. Things to do: pictures (Commons P18, licensed per file: credit each), a map layer for the listed places, and opening hours where Wikidata has them (P3025).
 
 ### 1.8 Languages
 Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/README.md`, Language).
@@ -145,6 +151,17 @@ Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/RE
 3. Tours: more than the Layers tap. History's time bar, an inspect window opened on a marker, TI answering a question, Space.
 4. `ideas`: the day's anniversaries in `history.db`, big fires, air-raid alerts (needs careful wording).
 5. Speed: a camera move into new ground waits on tiles each frame. Run the timeline once without capturing to fill the tile cache, then film.
+
+### 1.10 The apps
+iPhone, Android, Windows, macOS and Linux shells around takip.dev (`architecture/native-apps.md`), built 2026-10-24; nothing is in a store or on takip.dev/download yet. Steps: `runbooks/app-stores.md`.
+1. (you) Review the web side, deploy it, then the stores: the Play and Apple developer accounts, the Android upload key, the CI secrets.
+2. Sign in with Apple on the api (`APPLE_CLIENT_*`): until then the iPhone app offers email sign-in only (rule 4.8).
+3. Sign-in back on a verified link (`https://takip.dev/app/verify` as an App Link and a universal link) instead of the `dev.takip.app` scheme, once the association files are served (`architecture/native-apps.md` §2).
+4. CarPlay as an app of its own: ask Apple for the public-safety category (developer.apple.com/contact/carplay), then a list and spoken alerts on CarPlay's templates from `/api/near-now`. The Near you widget already shows on CarPlay's dashboard (`architecture/native-apps.md` §7).
+5. Push notifications for watched areas and alerts (APNs, FCM): the native reason to install the app, and the answer if Apple refuses it as a website (rule 4.2).
+6. Translate the native text: the iOS permission prompts (`InfoPlist.strings`), the widget's name and description in the widget gallery, the desktop menu.
+7. Desktop: auto-update (electron-builder's `latest*.yml` and a feed on takip.dev, once the Mac build is signed; until then the site's update note covers it), Windows signing (Azure Trusted Signing).
+8. A privacy manifest (`PrivacyInfo.xcprivacy`) for the iOS app, describing what the site collects.
 
 ## 2. After the action items
 
@@ -179,6 +196,7 @@ The fix-it pass (1.2) adds to this list.
 - Rebrand leftovers: the upstream X account (`@soulsimplifai`) in `more-menu.tsx`.
 - Global Incidents (`global_incidents`) reads the GDACS feed (`api/(intel)/gdelt/route.ts`), but `use-sdk-entities.ts` labels it "GDELT Project".
 - Active Fires adds NASA EONET volcanoes to the FIRMS hotspots with made-up readings (brightness 500 K, FRP 100 MW, `api/(feeds)/fires/route.ts`), and the popup presents them as heat detected by satellite. `/map/wildfires` says so until this is fixed.
+- `layer.on` doesn't say which layer (`use-layer-browser.ts`), so Admin → Engagement can only infer which layers people switched on themselves; "came back another day" counts UTC days, so a sitting across midnight counts two.
 
 ## 5. Parked until the release decision
 

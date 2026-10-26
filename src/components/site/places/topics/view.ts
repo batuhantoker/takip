@@ -15,9 +15,9 @@ export interface TopicView<D, L = never, X = never> {
   /** `detail` is what the topic's detail() returned, null when it failed. */
   Body(props: TopicViewProps<D> & { detail?: X | null }): ReactNode;
   Live?(props: TopicViewProps<D> & { live: L }): ReactNode;
-  /** Shown in the header instead of the live map, which can't show this topic. */
+  /** Shown in the header instead of the live map, where something shows the topic better; null keeps the map. */
   Hero?(props: TopicViewProps<D>): ReactNode;
-  /** In the header under the lede: the page's figures. */
+  /** In the header under the lede: the page's figures; null for none. */
   Lead?(props: TopicViewProps<D>): ReactNode;
   /** Across the page's whole width, between the header and the body's column. */
   Wide?(props: TopicViewProps<D> & { detail?: X | null }): ReactNode;
@@ -27,4 +27,8 @@ export interface TopicView<D, L = never, X = never> {
   Footer?(props: TopicViewProps<D>): ReactNode;
   /** On the place's overview, below its pages, for the listed page: the topic at a glance. */
   Overview?(props: TopicViewProps<D>): ReactNode;
+  /** Its Overview goes above the list of the place's pages rather than below it. */
+  overviewFirst?: true;
+  /** The "nearby" cards on this topic's page say what the topic holds in each place (its summary()), not its other topics. */
+  nearbySummary?: true;
 }

@@ -1,14 +1,20 @@
 import { ArrowUpRight, Video } from 'lucide-react';
+import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { LocalClock } from '@/components/site/pages/local-clock';
-import { Section } from '@/components/site/pages/site-frame';
+import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { haversine } from '@/lib/core/geodesic';
-import { msg } from '@/lib/core/i18n/translator';
+import { msg, type Translate } from '@/lib/core/i18n/translator';
+import { localePath } from '@/lib/platform/site/locale-path';
 import { mapHref } from '@/lib/platform/site/map-link';
 import { count, nameOf, placeName, wordingOf } from '@/lib/platform/site/places/copy/format';
-import type { CamerasData } from '@/lib/platform/site/places/topics/cameras';
+import type { Place } from '@/lib/platform/site/places/place';
+import { placePath } from '@/lib/platform/site/places/paths';
+import type { CameraPick, CamerasData } from '@/lib/platform/site/places/topics/cameras';
 import { Notes } from '../parts/notes';
+import { CameraFrames, type CameraFrame } from './parts/camera-frames';
+import { CameraPlayer } from './parts/camera-player';
 import type { TopicView } from './view';
 
 const COUNTED = msg('Counted within {km, radius} of the centre of {city} from the camera list as it was at {time} on {day}. Cameras come and go as their owners add and retire them.');
@@ -22,12 +28,48 @@ const NEAREST = [
 /** A camera on the map, close enough to pick out. */
 const cameraPath = (at: [number, number]) => mapHref({ layers: ['cctv', 'cctv_previews'], view: { lat: at[1], lon: at[0], zoom: 15 } });
 
+const AWAY = msg('{km, distance} away');
+
+/** Frames, as the client grid takes them: its text already in the reader's language. */
+const framesOf = (data: CamerasData, t: Translate): CameraFrame[] => data.frames.map(f => ({
+  key: `${f.at.join(',')}-${f.name}`, name: f.name, src: f.frame, href: cameraPath(f.at), meta: `${f.source} · ${t(AWAY, { km: f.km })}`,
+}));
+
+/** Four make a square; three would leave a hole, so two. */
+const shownOf = (n: number) => (n >= 4 ? 4 : Math.min(n, 2));
+
+function pickMeta(p: CameraPick, t: Translate): string {
+  if (p.offline) return `${p.source} · ${t('off air')}`;
+  return [p.source, t(AWAY, { km: p.km }), ...(p.look === 'stream' || p.look === 'player' ? [t('video')] : [])].join(' · ');
+}
+
+const NONE_SENDING = msg('None of these cameras is sending a picture just now. They may still play on the live map.');
+
 export const CAMERAS_VIEW: TopicView<CamerasData> = {
   icon: Video,
+  nearbySummary: true,
+  overviewFirst: true,
 
-  // Picks run nearest first, so the first on air is the one a reader in the centre would look at.
+  // The pictures are what a reader came for; on a phone they sit right under the map button.
+  Hero({ text: { t }, page: { data } }) {
+    if (!data.frames.length) {
+      if (!data.streams.length) return null;
+      return (
+        <CameraPlayer labels={{ play: t('Play video'), failed: t('This camera isn’t sending video just now. Try another, or the live map.'), onMap: t('On the map') }}
+          cameras={data.streams.map(c => ({ key: `${c.at.join(',')}-${c.name}`, name: c.name, meta: `${c.source} · ${t(AWAY, { km: c.km })}`, href: cameraPath(c.at), ...c.stream }))} />
+      );
+    }
+    return (
+      <div>
+        <CameraFrames frames={framesOf(data, t)} show={shownOf(data.frames.length)} empty={t(NONE_SENDING)} />
+        <p className="mt-3 text-[12px] leading-relaxed text-ink-3">{t('The latest picture from each camera nearest the centre, fetched again every minute. Open one to see it on the live map.')}</p>
+      </div>
+    );
+  },
+
+  // Picks run nearest first, so the first on air is the one a reader in the centre would look at; the frames say it when they show.
   Lead({ text: { t }, place, page: { data } }) {
-    const near = data.onAir ? data.picks[0] : null;
+    const near = data.onAir && !data.frames.length && !data.streams.length ? data.picks[0] : null;
     if (!near) return null;
     return (
       <p className="text-[15px] leading-relaxed text-ink-1">
@@ -75,7 +117,7 @@ export const CAMERAS_VIEW: TopicView<CamerasData> = {
                   className={cx('group flex items-center gap-3 rounded-card border border-line bg-surface-1 px-3 py-2.5 hover:border-line-strong', FOCUS_RING, TRANSITION, p.offline && 'opacity-70')}>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-medium text-ink-1">{p.name}</span>
-                    <span className="block text-[12px] text-ink-3">{p.offline ? `${p.source} · ${t('off air')}` : p.source}</span>
+                    <span className="block truncate text-[12px] text-ink-3">{pickMeta(p, t)}</span>
                   </span>
                   <ArrowUpRight className="size-4 flex-shrink-0 text-ink-3 group-hover:text-ink-1" aria-hidden />
                 </a>
@@ -88,4 +130,23 @@ export const CAMERAS_VIEW: TopicView<CamerasData> = {
       </>
     );
   },
+
+  Overview({ text: { t }, place, page }) {
+    return <CameraStrip t={t} place={place} data={page.data} slug={page.slug} />;
+  },
 };
+
+/** A place's nearest camera pictures, leading to its camera page: on its overview and beside its other topics. */
+export function CameraStrip({ t, place, data, slug }: { t: Translate; place: Place; data: CamerasData; slug: string }) {
+  if (!data.frames.length) return null;
+  return (
+    <Section title={t('The latest from cameras in {city}', { city: nameOf(place, t) })}>
+      <CameraFrames frames={framesOf(data, t)} show={shownOf(data.frames.length)} empty={t(NONE_SENDING)} eager={false} />
+      <p className="mt-4 text-[14px]">
+        <Link href={localePath(t.locale, placePath(place, slug))} className={TEXT_LINK}>
+          {t('{n, plural, one {The camera in and around {city}} other {All # cameras in and around {city}}}', { n: data.onAir, city: nameOf(place, t) })}
+        </Link>
+      </p>
+    </Section>
+  );
+}

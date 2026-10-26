@@ -3,7 +3,7 @@ import { DESCRIPTION_RANGE, EN, fit, listOf, nameOf, TITLE_MAX } from '../places
 import type { PlaceCopy } from '../places/topic';
 import { basisOf, formatNumber, formatValue, projectionName } from '../places/topics/indicators-facts';
 import type { IndicatorSeries, IndicatorSpec } from '../places/topics/indicators-data';
-import { PAIR_INDEX, pairFacts, type PairMeasure } from './compare';
+import { PAIR_INDEX, pairFacts, type PairFacts, type PairMeasure } from './compare';
 import { pairReasons, type CountryPair } from './pairs';
 
 /**
@@ -17,6 +17,11 @@ const at = (y: number) => String(y);
 const ratioOf = (x: number, y: number, t: Translate) =>
   new Intl.NumberFormat(t.intl, { maximumSignificantDigits: Math.max(x, y) / Math.min(x, y) >= 10 ? 2 : 3 }).format(Math.max(x, y) / Math.min(x, y));
 
+// The gap between two shares is in percentage points, not a share itself.
+const gapOf = (spec: IndicatorSpec, f: PairFacts, t: Translate) => (spec.value.includes('%')
+  ? t('{v} percentage points', { v: formatNumber(Math.abs(f.av - f.bv), spec.style, spec.digits, t) })
+  : formatValue(spec, Math.abs(f.av - f.bv), t));
+
 function names(pair: CountryPair, t: Translate) {
   return { a: nameOf(pair.a, t), b: nameOf(pair.b, t) };
 }
@@ -25,58 +30,103 @@ function names(pair: CountryPair, t: Translate) {
 export const pairFrom = (m: PairMeasure) => Math.min(m.a.f.first[0], m.b.f.first[0]);
 export const pairTo = (m: PairMeasure) => Math.max(m.a.f.last[0], m.b.f.last[0]);
 
-export function pairSentences(pair: CountryPair, m: PairMeasure, t: Translate): string[] {
+/** Who has been higher since when, over the years both have; undefined for a tie. */
+function sinceSentence(f: PairFacts, a: string, b: string, t: Translate): string | undefined {
+  if (f.lead === 'tie') return undefined;
+  const lead = f.lead === 'a' ? a : b;
+  const other = f.lead === 'a' ? b : a;
+  if (f.since === f.from) return t('{lead} has been higher in every year both have figures for since {from}.', { lead, from: at(f.from) });
+  if (f.before && f.before !== 'tie') return t('{lead} has been higher since {since}, when it overtook {other}.', { lead, other, since: at(f.since) });
+  return t('{lead} has been higher since {since}.', { lead, since: at(f.since) });
+}
+
+/** A comparison's sentences by role: the latest values, the gap in the latest year both have, since when, then the rest. */
+export function pairParts(pair: CountryPair, m: PairMeasure, t: Translate): { values: string; gap?: string; since?: string; rest: string[] } {
   const { spec, a: sa, b: sb } = m;
   const { a, b } = names(pair, t);
   const v = (x: number) => formatValue(spec, x, t);
   const basis = { basis: basisOf(spec), by: spec.by, metric: t(spec.label) };
-  const out: string[] = [
-    sa.f.last[0] === sb.f.last[0]
-      ? t('{metric} in {year}: {av} in {a} and {bv} in {b}, {basis, select, modelled {in the {by} climate models’ median run} observed {by {by} observations} other {by {by} estimates}}.', {
-        ...basis, year: at(sa.f.last[0]), av: v(sa.f.last[1]), bv: v(sb.f.last[1]), a, b,
-      })
-      : t('{metric}: {av} in {a} in {ay} and {bv} in {b} in {byear}, {basis, select, modelled {in the {by} climate models’ median run} observed {by {by} observations} other {by {by} estimates}}.', {
-        ...basis, av: v(sa.f.last[1]), ay: at(sa.f.last[0]), bv: v(sb.f.last[1]), byear: at(sb.f.last[0]), a, b,
-      }),
-  ];
+  const values = sa.f.last[0] === sb.f.last[0]
+    ? t('{metric} in {year}: {av} in {a} and {bv} in {b}, {basis, select, modelled {in the {by} climate models’ median run} observed {by {by} observations} other {by {by} estimates}}.', {
+      ...basis, year: at(sa.f.last[0]), av: v(sa.f.last[1]), bv: v(sb.f.last[1]), a, b,
+    })
+    : t('{metric}: {av} in {a} in {ay} and {bv} in {b} in {byear}, {basis, select, modelled {in the {by} climate models’ median run} observed {by {by} observations} other {by {by} estimates}}.', {
+      ...basis, av: v(sa.f.last[1]), ay: at(sa.f.last[0]), bv: v(sb.f.last[1]), byear: at(sb.f.last[0]), a, b,
+    });
   const f = pairFacts(m);
-  if (f) {
+  let gap: string | undefined;
+  if (f?.lead === 'tie') gap = t('In {year} both had {v}.', { year: at(f.year), v: v(f.av) });
+  else if (f) {
     const lead = f.lead === 'a' ? a : b;
     const other = f.lead === 'a' ? b : a;
-    if (f.lead === 'tie') out.push(t('In {year} both had {v}.', { year: at(f.year), v: v(f.av) }));
-    else {
-      // The gap between two shares is in percentage points, not a share itself.
-      const gap = spec.value.includes('%')
-        ? t('{v} percentage points', { v: formatNumber(Math.abs(f.av - f.bv), spec.style, spec.digits, t) })
-        : v(Math.abs(f.av - f.bv));
-      out.push(f.av > 0 && f.bv > 0
-        ? t('In {year} the value was higher in {lead}, by {gap}, or {ratio} times that in {other}.', { year: at(f.year), lead, other, gap, ratio: ratioOf(f.av, f.bv, t) })
-        : t('In {year} the value was higher in {lead}, by {gap}.', { year: at(f.year), lead, gap }));
-      if (f.since === f.from) out.push(t('{lead} has been higher in every year both have figures for since {from}.', { lead, from: at(f.from) }));
-      else if (f.before && f.before !== 'tie') out.push(t('{lead} has been higher since {since}, when it overtook {other}.', { lead, other, since: at(f.since) }));
-      else out.push(t('{lead} has been higher since {since}.', { lead, since: at(f.since) }));
-    }
+    gap = f.av > 0 && f.bv > 0
+      ? t('In {year} the value was higher in {lead}, by {gap}, or {ratio} times that in {other}.', { year: at(f.year), lead, other, gap: gapOf(spec, f, t), ratio: ratioOf(f.av, f.bv, t) })
+      : t('In {year} the value was higher in {lead}, by {gap}.', { year: at(f.year), lead, gap: gapOf(spec, f, t) });
   }
+  const rest: string[] = [];
   const ry = m.meta?.rankYear;
   if (ry !== undefined && sa.f.rank?.length === 2 && sb.f.rank?.length === 2) {
-    out.push(t('In {year}, {a} ranked {ra} and {b} ranked {rb} of {n} countries, counting from the highest.', { year: at(ry), a, b, ra: sa.f.rank[0], rb: sb.f.rank[0], n: sa.f.rank[1] }));
+    rest.push(t('In {year}, {a} ranked {ra} and {b} ranked {rb} of {n} countries, counting from the highest.', { year: at(ry), a, b, ra: sa.f.rank[0], rb: sb.f.rank[0], n: sa.f.rank[1] }));
   }
   if (spec.projection) {
     const projection = projectionName(spec.projection, t);
     const pa = sa.f.proj;
     const pb = sb.f.proj;
-    if (pa && pb && pa[0] === pb[0]) out.push(t('The {projection} puts {a} at {pa} and {b} at {pb} in {year}.', { projection, a, b, pa: v(pa[1]), pb: v(pb[1]), year: at(pa[0]) }));
+    if (pa && pb && pa[0] === pb[0]) rest.push(t('The {projection} puts {a} at {pa} and {b} at {pb} in {year}.', { projection, a, b, pa: v(pa[1]), pb: v(pb[1]), year: at(pa[0]) }));
     else {
       for (const [place, p] of [[a, pa], [b, pb]] as const) {
-        if (p) out.push(t('The {projection} puts {place} at {v} in {year}.', { projection, place, v: v(p[1]), year: at(p[0]) }));
+        if (p) rest.push(t('The {projection} puts {place} at {v} in {year}.', { projection, place, v: v(p[1]), year: at(p[0]) }));
       }
     }
   }
   const world = m.meta?.world;
   const wy = f?.year;
   const wv = world && wy !== undefined ? world.e[1][wy - world.e[0]] : null;
-  if (wv != null && wy !== undefined) out.push(t('The world as a whole: {v} in {year}.', { v: v(wv), year: at(wy) }));
-  return out;
+  if (wv != null && wy !== undefined) rest.push(t('The world as a whole: {v} in {year}.', { v: v(wv), year: at(wy) }));
+  return { values, gap, since: f && sinceSentence(f, a, b, t), rest };
+}
+
+export function pairSentences(pair: CountryPair, m: PairMeasure, t: Translate): string[] {
+  const p = pairParts(pair, m, t);
+  return [p.values, ...(p.gap ? [p.gap] : []), ...(p.since ? [p.since] : []), ...p.rest];
+}
+
+/** Below this, "1.02 times" says nothing the gap doesn't. */
+const RATIO_WORTH = 1.2;
+
+/** One country's figure in the answer, split so the number can stand out from its unit: "6.8 million" and " people". */
+export interface AnswerTile { slot: 0 | 1; name: string; before: string; number: string; after: string; note: string }
+
+/**
+ * The answer at the top of a measure's comparison: both countries' figures in the latest year they share (else each
+ * one's latest), who is higher and by how much, and since when.
+ */
+export function pairAnswer(pair: CountryPair, m: PairMeasure, t: Translate): { tiles: AnswerTile[]; verdict?: string; since?: string } {
+  const { spec } = m;
+  const { a, b } = names(pair, t);
+  const f = pairFacts(m);
+  const mark = '\u0000';
+  const basisName = t('{basis, select, modelled {{by} model median} observed {{by} observations} other {{by} estimates}}', { basis: basisOf(spec), by: spec.by });
+  const tile = (slot: 0 | 1, name: string, [year, x]: [number, number]): AnswerTile => {
+    const parts = t(spec.value, { v: mark }).split(mark);
+    const note = `${at(year)} · ${basisName}`;
+    return parts.length === 2
+      ? { slot, name, before: parts[0], number: formatNumber(x, spec.style, spec.digits, t), after: parts[1], note }
+      : { slot, name, before: '', number: formatValue(spec, x, t), after: '', note };
+  };
+  const tiles = [
+    tile(0, a, f ? [f.year, f.av] : m.a.f.last),
+    tile(1, b, f ? [f.year, f.bv] : m.b.f.last),
+  ];
+  if (!f) return { tiles };
+  if (f.lead === 'tie') return { tiles, verdict: t('In {year} both had {v}.', { year: at(f.year), v: formatValue(spec, f.av, t) }) };
+  const lead = f.lead === 'a' ? a : b;
+  const other = f.lead === 'a' ? b : a;
+  const ratio = f.av > 0 && f.bv > 0 && Math.max(f.av, f.bv) / Math.min(f.av, f.bv) >= RATIO_WORTH;
+  const verdict = ratio
+    ? t('Higher in {lead} by {gap}: {ratio} times the figure for {other}.', { lead, other, gap: gapOf(spec, f, t), ratio: ratioOf(f.av, f.bv, t) })
+    : t('Higher in {lead} by {gap}.', { lead, gap: gapOf(spec, f, t) });
+  return { tiles, verdict, since: sinceSentence(f, a, b, t) };
 }
 
 function titles(pair: CountryPair, m: PairMeasure) {
@@ -101,6 +151,7 @@ export const pairIndexed = (pair: CountryPair, measures: PairMeasure[]) =>
 export function pairMeasureCopy(pair: CountryPair, m: PairMeasure, t: Translate): PlaceCopy {
   const { spec } = m;
   const f = pairFacts(m);
+  const { values, gap } = pairParts(pair, m, t);
   const vars = (t: Translate) => {
     const { a, b } = names(pair, t);
     return {
@@ -119,7 +170,7 @@ export function pairMeasureCopy(pair: CountryPair, m: PairMeasure, t: Translate)
       t => t('{metric}: {a} and {b} year by year, {from} to {to}, charted with their sources.', vars(t)),
     ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
     heading: t('{a} vs {b}: {metric}', vars(t)),
-    lede: pairSentences(pair, m, t).slice(0, 2).join(' '),
+    lede: gap ? `${values} ${gap}` : values,
   };
 }
 
@@ -150,11 +201,11 @@ export function pairOverviewCopy(pair: CountryPair, measures: PairMeasure[], t: 
 }
 
 /** The overview's bullets, in this order where both have the measure. */
-const HIGHLIGHTS = ['life-expectancy', 'gdp-per-person', 'population', 'military-spending', 'co2-per-person', 'democracy'];
+export const HIGHLIGHTS = ['life-expectancy', 'gdp-per-person', 'population', 'military-spending', 'co2-per-person', 'democracy'];
 const MAX_HIGHLIGHTS = 5;
 
 /** "Life expectancy" / "In 2023, Singapore was higher: 83.7 years against 79.3 years". */
-export function pairHighlights(pair: CountryPair, measures: PairMeasure[], t: Translate): { metric: string; line: string }[] {
+export function pairHighlights(pair: CountryPair, measures: PairMeasure[], t: Translate): { slug: string; metric: string; line: string }[] {
   const { a, b } = names(pair, t);
   return HIGHLIGHTS.flatMap(slug => {
     const m = measures.find(x => x.spec.slug === slug);
@@ -166,7 +217,7 @@ export function pairHighlights(pair: CountryPair, measures: PairMeasure[], t: Tr
       : t('In {year}, {lead} was higher: {lv} against {ov}', {
         year: at(f.year), lead: f.lead === 'a' ? a : b, lv: v(f.lead === 'a' ? f.av : f.bv), ov: v(f.lead === 'a' ? f.bv : f.av),
       });
-    return [{ metric: t(m.spec.label), line }];
+    return [{ slug, metric: t(m.spec.label), line }];
   }).slice(0, MAX_HIGHLIGHTS);
 }
 

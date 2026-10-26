@@ -50,24 +50,27 @@ export function CompareChart({ id, spec, entries, world, view, title, desc, t, h
   const { lines, legend } = measureLines(spec, places, chart.world, t, { bands: places.length <= 2 });
   const raw = entries.flatMap(e => (e.series ? [e.series] : []));
   const { tick, value, caption } = formats(spec, chart.change, t);
+  // On a phone the settings follow the chart, so the chart is what the first screen reaches.
   return (
-    <div className="rounded-card border border-line bg-surface-1 p-4 sm:p-5">
-      {heading && <Link href={heading.href} className={cx('text-[14px] font-medium text-ink-1 hover:text-accent', FOCUS_RING)}>{heading.label} →</Link>}
-      <div className={cx('mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2', heading && 'mt-1')}>
-        <p className="text-[12px] text-ink-3">
-          {caption} · {spec.by}{chart.log ? ` · ${t('log scale')}` : ''}
-        </p>
-        {href && (
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-card border border-line bg-surface-1 p-4 sm:p-5">
+      {heading && <Link href={heading.href} className={cx('-mb-2 w-full text-[14px] font-medium text-ink-1 hover:text-accent', FOCUS_RING)}>{heading.label} →</Link>}
+      <p className="text-[12px] text-ink-3">
+        {caption} · {spec.by}{chart.log ? ` · ${t('log scale')}` : ''}
+      </p>
+      {href && (
+        <div className="order-last w-full sm:order-none sm:w-auto">
           <ChartControls view={view} chart={chart} href={href} t={t}
             first={Math.min(...raw.map(s => Math.min(s.f.first[0], s.l?.[0] ?? Infinity)))} world={!!world} projected={raw.some(s => s.p)} />
+        </div>
+      )}
+      <div className="w-full">
+        {places.length ? (
+          <IndicatorChart id={id} lines={lines} legend={legend} title={title} desc={desc} size={size} log={chart.log}
+            tick={tick} value={value} words={chartWords(t)} />
+        ) : (
+          <p className="py-16 text-center text-[14px] text-ink-3">{t('None of these countries has a figure in these years.')}</p>
         )}
       </div>
-      {places.length ? (
-        <IndicatorChart id={id} lines={lines} legend={legend} title={title} desc={desc} size={size} log={chart.log}
-          tick={tick} value={value} words={chartWords(t)} />
-      ) : (
-        <p className="py-16 text-center text-[14px] text-ink-3">{t('None of these countries has a figure in these years.')}</p>
-      )}
     </div>
   );
 }
