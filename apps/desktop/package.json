@@ -9,6 +9,7 @@
   "homepage": "https://takip.dev",
   "type": "module",
   "main": "main.mjs",
+  "workspaces": [],
   "scripts": {
     "start": "electron .",
     "icons": "node tools/make-icons.mjs",

@@ -1,4 +1,5 @@
 // Signing and notarisation turn on from the environment (CSC_LINK, APPLE_ID…, WIN_CSC_LINK); without them builds are unsigned.
+// package.json's empty "workspaces" stops the builder walking up to the repo root's package.json, whose dependencies a CI job here never installs.
 const signed = Boolean(process.env.CSC_LINK || process.env.CSC_NAME);
 
 const config = {
