@@ -6,12 +6,12 @@ import { requestLocale } from '@/lib/core/i18n/request';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { localePath } from '@/lib/platform/site/locale-path';
-import { readingMetadata } from '@/lib/platform/site/meta';
+import { crawlRel, readingMetadata, unindexed } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
 import { countryPlace, placeById, placeBySlug, type PlaceKind } from '@/lib/platform/site/places/gazetteer';
 import { overviewCopy } from '@/lib/platform/site/places/overview';
-import { childPlaces, findPlacePage, nearbyWith, overviewIndexed, placePages, type PlacePageRef } from '@/lib/platform/site/places/pages';
+import { childPlaces, findPlacePage, nearbyWith, placeIndexed, placePages, type PlacePageRef } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placeCardKey } from '@/lib/platform/site/places/card';
 import { KIND_INDEX, KIND_LABEL, placePath } from '@/lib/platform/site/places/paths';
@@ -37,7 +37,7 @@ const load = cache(async (kind: PlaceKind, slug: string, pageSlug?: string) => {
   // Distances in the place's own unit: miles in the US and the UK.
   const text = { ...base, t: base.t.inUnit(unitsFor(place.cc).distance) };
   const copy = current ? current.topic.header(place, current.page, text.t) : overviewCopy(place, pages, text.t, places.length);
-  const index = current ? current.page.index : overviewIndexed(pages) || places.length > 0;
+  const index = placeIndexed(place, pageSlug);
   return { place, pages, places, current, text, copy, index };
 });
 
@@ -52,7 +52,7 @@ export async function placeMetadata(kind: PlaceKind, slug: string, page?: string
     image: `/og?place=${encodeURIComponent(placeCardKey(place.kind, place.slug, current?.page.slug))}&lang=${text.locale}`, type: 'article',
   });
   // Thin pages work for visitors and shared links but stay out of search until their data passes the topic's bar.
-  return index ? meta : { ...meta, robots: { index: false, follow: true } };
+  return index ? meta : unindexed(meta);
 }
 
 /** What each page's topic says is true right now, stamped with when it was. */
@@ -73,7 +73,7 @@ async function livesFor(refs: PlacePageRef[], place: Place, t: Translate, overvi
 export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: string; page?: string }) {
   const found = await load(kind, slug, page);
   if (!found) return null;
-  const { place, pages, places, current, text, copy } = found;
+  const { place, pages, places, current, text, copy, index: indexed } = found;
   const { t } = text;
   const [lives, detail] = await Promise.all([
     livesFor(current ? [current] : pages.filter(p => OVERVIEW_LIVE.includes(p.topic.id)), place, t, !current),
@@ -86,10 +86,11 @@ export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: s
   const name = nameOf(place, t);
   // United States › Georgia › Fulton County › Atlanta.
   const country = place.kind === 'state' || place.parents?.length ? countryPlace(place.cc) : undefined;
-  const parents = [country, ...(place.parents ?? []).map(placeById)].filter(p => !!p).map(p => ({ href: localePath(text.locale, placePath(p)), label: nameOf(p, t) }));
-  const trail = [{ href: index, label: kindLabel }, ...parents, ...(current ? [{ href: overview, label: name }] : [])];
+  const parents = [country, ...(place.parents ?? []).map(placeById)].filter(p => !!p)
+    .map(p => ({ href: localePath(text.locale, placePath(p)), label: nameOf(p, t), rel: crawlRel(placeIndexed(p)) }));
+  const trail = [{ href: index, label: kindLabel }, ...parents, ...(current ? [{ href: overview, label: name, rel: crawlRel(placeIndexed(place)) }] : [])];
   return (
-    <SiteFrame t={t} path={placePath(place, current?.page.slug)} trail={trail}>
+    <SiteFrame t={t} path={placePath(place, current?.page.slug)} trail={trail} indexed={indexed}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbs(origin, [
         { name: 'TAKIP', path: '/' },
         ...trail.map(c => ({ name: c.label, path: c.href })),
@@ -98,7 +99,7 @@ export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: s
       <PlaceArticle text={text} place={place} copy={copy} pages={pages} places={places} current={current} lives={lives} detail={detail}
         image={shotUrl(placeShotSlug(place.kind, place.slug, current?.page.slug))}
         nearby={nearbyWith(place, current?.topic.id)}
-        kicker={current ? { href: overview, label: name } : { href: index, label: kindLabel }} />
+        kicker={current ? { href: overview, label: name, rel: crawlRel(placeIndexed(place)) } : { href: index, label: kindLabel }} />
     </SiteFrame>
   );
 }

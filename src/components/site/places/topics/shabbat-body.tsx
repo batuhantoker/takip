@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { longDay, prayerClock, shortDate } from '@/lib/platform/site/places/topics/prayer-copy';
@@ -131,7 +133,7 @@ export const SHABBAT_VIEW: TopicView<ShabbatData, ShabbatNow> = {
           {shabbatWeeks(r).some(w => w.havdalah?.at === null) && <p className="mt-2 text-[13px] text-ink-3">{t('– On these summer nights the Sun never gets 8.5° below the horizon, so there is no nightfall to give a havdalah time by.')}</p>}
           <p className="mt-3 text-[14px] text-ink-2">
             {t('Sunrise, sunset, twilight and day length:')}{' '}
-            <Link href={localePath(t.locale, placePath(place, 'sun'))} className={TEXT_LINK}>{t('Sunrise and sunset in {city}', { city })}</Link>
+            <Link href={localePath(t.locale, placePath(place, 'sun'))} rel={crawlRel(placeIndexed(place, 'sun'))} className={TEXT_LINK}>{t('Sunrise and sunset in {city}', { city })}</Link>
           </p>
           <p className="mt-1 text-[14px] text-ink-2">
             {t('Holidays and their dates, every year:')}{' '}

@@ -4,8 +4,11 @@ import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { SERIES_INK } from '@/lib/map/style/tokens';
+import { compareIndexed } from '@/lib/platform/site/compare/compare-copy';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { listOf, nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { TopicPage } from '@/lib/platform/site/places/topic';
@@ -66,7 +69,7 @@ function CompareLinks({ place, m, t }: { place: Place; m: IndicatorMeasure; t: T
         <ul className="mt-3 divide-y divide-line rounded-card border border-line bg-surface-1">
           {partners.map(p => (
             <li key={p.id}>
-              <Link href={localePath(t.locale, comparePath({ a: place, b: p }, m.spec.slug))}
+              <Link href={localePath(t.locale, comparePath({ a: place, b: p }, m.spec.slug))} rel={crawlRel(compareIndexed({ a: place, b: p }, m.spec.slug))}
                 className={cx('flex items-center justify-between gap-3 px-3 py-2 text-[14px] text-ink-2 hover:text-ink-1', FOCUS_RING)}>
                 {t('{a} vs {b}', { a: nameOf(place, t), b: nameOf(p, t) })}
                 <ArrowUpRight className="size-3.5 shrink-0 text-ink-3" aria-hidden />
@@ -109,7 +112,7 @@ function OtherMeasures({ place, m, t }: { place: Place; m: IndicatorMeasure; t: 
   return (
     <Section title={t('{place} in numbers', { place: name })}>
       <p className="mb-5">
-        <Link href={localePath(t.locale, placePath(place, HUB_SLUG))} className={TEXT_LINK}>{t('Every measure for {place} on one page', { place: name })}</Link>
+        <Link href={localePath(t.locale, placePath(place, HUB_SLUG))} rel={crawlRel(placeIndexed(place, HUB_SLUG))} className={TEXT_LINK}>{t('Every measure for {place} on one page', { place: name })}</Link>
       </p>
       <MeasureGroups place={place} measures={others} t={t} skip={m.spec.slug} wide />
     </Section>
@@ -137,7 +140,7 @@ function OverviewNumbers({ place, measures, t }: { place: Place; measures: Topic
         {shown.map(m => <li key={m.slug}><MeasureCard place={place} m={m} t={t} /></li>)}
       </ul>
       <p className="mt-4 text-[14px]">
-        <Link href={localePath(t.locale, placePath(place, HUB_SLUG))} className={TEXT_LINK}>{t('Every measure for {place} on one page', { place: name })}</Link>
+        <Link href={localePath(t.locale, placePath(place, HUB_SLUG))} rel={crawlRel(placeIndexed(place, HUB_SLUG))} className={TEXT_LINK}>{t('Every measure for {place} on one page', { place: name })}</Link>
       </p>
     </Section>
   );
@@ -152,7 +155,7 @@ function HubCompare({ place, t }: { place: Place; t: Translate }) {
       <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
         {partners.map(p => (
           <li key={p.id} className="text-[14px]">
-            <Link href={localePath(t.locale, comparePath({ a: place, b: p }))} className={TEXT_LINK}>{t('{a} vs {b}', { a: name, b: nameOf(p, t) })}</Link>
+            <Link href={localePath(t.locale, comparePath({ a: place, b: p }))} rel={crawlRel(compareIndexed({ a: place, b: p }))} className={TEXT_LINK}>{t('{a} vs {b}', { a: name, b: nameOf(p, t) })}</Link>
           </li>
         ))}
       </ul>

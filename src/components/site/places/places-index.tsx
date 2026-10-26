@@ -4,10 +4,10 @@ import { cx, FOCUS_RING } from '@/components/ui/class-names';
 import { Section, SiteFrame } from '@/components/site/pages/site-frame';
 import { requestLocale } from '@/lib/core/i18n/request';
 import { localePath } from '@/lib/platform/site/locale-path';
-import { readingMetadata } from '@/lib/platform/site/meta';
+import { crawlRel, readingMetadata } from '@/lib/platform/site/meta';
 import { count, nameOf } from '@/lib/platform/site/places/copy/format';
 import { countryPlace } from '@/lib/platform/site/places/gazetteer';
-import { indexedPages } from '@/lib/platform/site/places/pages';
+import { indexedPages, placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { siteText } from '@/lib/platform/site/text';
 import { PlaceList } from './parts/place-links';
@@ -60,7 +60,7 @@ export async function PlacesIndex({ kind }: { kind: 'city' | 'country' }) {
         <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-4">
           {sorted.map(({ country, n }) => (
             <li key={country.cc} className="text-[14px]">
-              <Link href={localePath(t.locale, placePath(country))} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{nameOf(country, t)}</Link>
+              <Link href={localePath(t.locale, placePath(country))} rel={crawlRel(placeIndexed(country))} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{nameOf(country, t)}</Link>
               <span className="text-ink-3"> · {count(n, t)}</span>
             </li>
           ))}

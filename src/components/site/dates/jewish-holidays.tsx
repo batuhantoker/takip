@@ -10,9 +10,10 @@ import { AD_SLOTS } from '@/lib/platform/ads';
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { HOLIDAY_KEYS, jewishHolidays, SPAN, type Holiday, type HolidayKey, type JewishDates, type JewishLead, type JewishYear } from '@/lib/platform/site/jewish-holidays';
 import { localePath } from '@/lib/platform/site/locale-path';
-import { readingImage, readingMetadata } from '@/lib/platform/site/meta';
+import { crawlRel, readingImage, readingMetadata } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { countryName, nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { jewishCommunity } from '@/lib/platform/site/places/topics/faith-reach';
 import { dayMonth, fullDay, longDay, shortDate } from '@/lib/platform/site/places/topics/prayer-copy';
@@ -148,7 +149,7 @@ function ShabbatCities({ t }: { t: Translate }) {
             <dt className="text-ink-3">{countryName(cc, t)}</dt>
             <dd className="flex flex-wrap gap-x-4 gap-y-1">
               {(cc === 'IL' ? g.cities : [...g.cities].sort((a, b) => (jewishCommunity(b.place)?.jews ?? 0) - (jewishCommunity(a.place)?.jews ?? 0)))
-                .map(c => <Link key={c.place.id} href={localePath(t.locale, placePath(c.place, c.slug))} className={TEXT_LINK}>{nameOf(c.place, t)}</Link>)}
+                .map(c => <Link key={c.place.id} href={localePath(t.locale, placePath(c.place, c.slug))} rel={crawlRel(placeIndexed(c.place, c.slug))} className={TEXT_LINK}>{nameOf(c.place, t)}</Link>)}
             </dd>
           </div>
         ))}

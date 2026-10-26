@@ -3,8 +3,10 @@ import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { msg } from '@/lib/core/i18n/translator';
 import { layerPage, pagePath } from '@/lib/platform/site/layer-pages';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { count, nameOf } from '@/lib/platform/site/places/copy/format';
 import { countryLive, type LiveTopic } from '@/lib/platform/site/places/country-live';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { pageIn, type SiteText } from '@/lib/platform/site/text';
@@ -28,7 +30,7 @@ export function CountryLive({ text, place }: { text: SiteText; place: Place }) {
               {r.links.map((l, i) => (
                 <span key={l.place.id}>
                   {i > 0 && ', '}
-                  <Link href={localePath(t.locale, placePath(l.place, l.slug))} className={TEXT_LINK}>{nameOf(l.place, t)}</Link>
+                  <Link href={localePath(t.locale, placePath(l.place, l.slug))} rel={crawlRel(placeIndexed(l.place, l.slug))} className={TEXT_LINK}>{nameOf(l.place, t)}</Link>
                   {l.cameras !== undefined && <span className="text-ink-3"> ({count(l.cameras, t)})</span>}
                 </span>
               ))}

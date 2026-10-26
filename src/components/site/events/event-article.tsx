@@ -13,6 +13,7 @@ import { coordinates, eventName, eventOpenLabel, eventOpenPath, eventWhen, kindL
 import type { EventPage } from '@/lib/platform/site/events/event-page';
 import { eventPath } from '@/lib/platform/site/events/sitemap';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import type { SiteText } from '@/lib/platform/site/text';
 import { EventFacts } from './parts/event-facts';
 import { EventList } from './parts/event-list';
@@ -70,7 +71,7 @@ export function EventArticle({ text, event: e, name, article, kicker }: {
               {e.partOf.map((p, i) => (
                 <span key={p.slug}>
                   {i > 0 && ', '}
-                  <Link href={localePath(t.locale, eventPath(p.slug))} className={TEXT_LINK}>{eventName(t, p)}</Link>
+                  <Link href={localePath(t.locale, eventPath(p.slug))} rel={crawlRel(p.indexed)} className={TEXT_LINK}>{eventName(t, p)}</Link>
                 </span>
               ))}
             </p>

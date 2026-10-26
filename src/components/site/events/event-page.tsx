@@ -14,7 +14,7 @@ import { topicForKind } from '@/lib/platform/site/events/topics';
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { layerPage, pagePath } from '@/lib/platform/site/layer-pages';
 import { localePath } from '@/lib/platform/site/locale-path';
-import { readingMetadata } from '@/lib/platform/site/meta';
+import { readingMetadata, unindexed } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { pageIn, siteText, type SiteText } from '@/lib/platform/site/text';
 import { EventArticle } from './event-article';
@@ -73,7 +73,7 @@ export async function eventMetadata(slug: string): Promise<Metadata> {
     image: ogImage(e.slug, text.locale), type: 'article',
   });
   // Only events with a Wikipedia article of their own or two sources are worth a search result (docs/architecture/public-pages.md).
-  return e.indexed ? meta : { ...meta, robots: { index: false, follow: true } };
+  return e.indexed ? meta : unindexed(meta);
 }
 
 /** The page; the route answers 404 or a redirect before it renders. */
@@ -114,7 +114,7 @@ export async function EventPageView({ slug }: { slug: string }) {
     ...(sameAs.length ? { sameAs } : {}),
   };
   return (
-    <SiteFrame t={t} path={eventPath(e.slug)} trail={trail}>
+    <SiteFrame t={t} path={eventPath(e.slug)} trail={trail} indexed={e.indexed}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd([
         breadcrumbs(origin, [{ name: 'TAKIP', path: '/' }, ...trail.map(c => ({ name: c.label, path: c.href })), { name, path }]),
         event,

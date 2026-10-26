@@ -5,8 +5,9 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { articleUrl } from '@/lib/core/wikipedia/refs';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
-import { placePages } from '@/lib/platform/site/places/pages';
+import { placeIndexed, placePages } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { HAZARD_LABEL, type HazardData } from '@/lib/platform/site/places/topics/hazards';
@@ -112,7 +113,7 @@ export const HAZARDS_VIEW: TopicView<HazardData, HazardsNow> = {
         {ranges.length > 1 && (
           <nav aria-label={t('Earthquakes')} className="flex flex-wrap gap-2">
             {ranges.map(r => (
-              <Link key={r.page.slug} href={localePath(t.locale, placePath(place, r.page.slug))} aria-current={r.page.slug === slug ? 'page' : undefined}
+              <Link key={r.page.slug} href={localePath(t.locale, placePath(place, r.page.slug))} rel={crawlRel(placeIndexed(place, r.page.slug))} aria-current={r.page.slug === slug ? 'page' : undefined}
                 className={cx('inline-flex h-8 items-center rounded-control border px-2.5 text-[13px]', FOCUS_RING, TRANSITION,
                   r.page.slug === slug ? 'border-line-strong bg-surface-3 text-ink-1' : 'border-line bg-surface-1 text-ink-2 hover:text-ink-1')}>
                 {t(HAZARD_LABEL[(r.page.data as HazardData).facts.range])}

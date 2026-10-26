@@ -4,6 +4,7 @@ import { Section } from '@/components/site/pages/site-frame';
 import { embedHref } from '@/lib/map/embed/spec';
 import { AD_SLOTS } from '@/lib/platform/ads';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf, shortHeading } from '@/lib/platform/site/places/copy/format';
 import { countryMap } from '@/lib/platform/site/places/country-live';
 import type { PlacePageRef } from '@/lib/platform/site/places/pages';
@@ -37,7 +38,7 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
   detail?: unknown;
   image: string | null;
   nearby: Place[];
-  kicker: { href: string; label: string };
+  kicker: { href: string; label: string; rel?: string };
 }) {
   const { t } = text;
   const listed = listedPages(pages);
@@ -86,7 +87,7 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
               <ul className="grid gap-3 sm:grid-cols-2">
                 {browse.map(p => (
                   <li key={p.page.slug}>
-                    <LinkCard href={localePath(t.locale, placePath(place, p.page.slug))} title={shortHeading(p.topic.header(place, p.page, t).heading, place, t)}
+                    <LinkCard href={localePath(t.locale, placePath(place, p.page.slug))} rel={crawlRel(p.page.index)} title={shortHeading(p.topic.header(place, p.page, t).heading, place, t)}
                       line={p.topic.summary(place, p.page, t)} Icon={TOPIC_VIEWS[p.topic.id]?.icon} />
                   </li>
                 ))}

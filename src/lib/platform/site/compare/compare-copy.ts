@@ -3,7 +3,7 @@ import { DESCRIPTION_RANGE, EN, fit, listOf, nameOf, TITLE_MAX } from '../places
 import type { PlaceCopy } from '../places/topic';
 import { basisOf, formatNumber, formatValue, projectionName } from '../places/topics/indicators-facts';
 import type { IndicatorSeries, IndicatorSpec } from '../places/topics/indicators-data';
-import { PAIR_INDEX, pairFacts, type PairFacts, type PairMeasure } from './compare';
+import { PAIR_INDEX, pairFacts, pairMeasures, type PairFacts, type PairMeasure } from './compare';
 import { pairReasons, type CountryPair } from './pairs';
 
 /**
@@ -147,6 +147,14 @@ export const pairMeasureIndexed = (pair: CountryPair, m: PairMeasure) => m.index
 /** A listed pair's overview is indexed once PAIR_INDEX of its measures are. */
 export const pairIndexed = (pair: CountryPair, measures: PairMeasure[]) =>
   pairReasons(pair.a, pair.b) !== null && measures.filter(m => pairMeasureIndexed(pair, m)).length >= PAIR_INDEX;
+
+/** Whether a pair's page (its overview without a measure), as it first opens, is put forward for search. */
+export function compareIndexed(pair: CountryPair, measure?: string): boolean {
+  const measures = pairMeasures(pair);
+  if (measure === undefined) return pairIndexed(pair, measures);
+  const m = measures.find(x => x.spec.slug === measure);
+  return !!m && pairMeasureIndexed(pair, m);
+}
 
 export function pairMeasureCopy(pair: CountryPair, m: PairMeasure, t: Translate): PlaceCopy {
   const { spec } = m;

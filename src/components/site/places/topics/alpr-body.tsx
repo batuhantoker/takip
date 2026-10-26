@@ -6,10 +6,11 @@ import type { Translate } from '@/lib/core/i18n/translator';
 import { bearing, compassPoint, haversine } from '@/lib/core/geodesic';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { mapHref } from '@/lib/platform/site/map-link';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { count, countryName, dayOf, nameOf, shortHeading } from '@/lib/platform/site/places/copy/format';
 import { compass } from '@/lib/platform/site/places/copy/weather-words';
 import { placeById, type Place } from '@/lib/platform/site/places/gazetteer';
-import { findPlacePage } from '@/lib/platform/site/places/pages';
+import { findPlacePage, placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { AlprData } from '@/lib/platform/site/places/topics/alpr';
 import type { AlprPick } from '@/lib/platform/site/places/topics/alpr-data';
@@ -128,7 +129,7 @@ export const ALPR_VIEW: TopicView<AlprData> = {
             <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
               {areas.map(({ p, n }) => (
                 <li key={p.id} className="flex items-baseline justify-between gap-4 text-[14px]">
-                  <Link href={localePath(t.locale, placePath(p, 'flock-cameras'))} className={TEXT_LINK}>{nameOf(p, t)}</Link>
+                  <Link href={localePath(t.locale, placePath(p, 'flock-cameras'))} rel={crawlRel(placeIndexed(p, 'flock-cameras'))} className={TEXT_LINK}>{nameOf(p, t)}</Link>
                   <span className="font-mono tabular-nums text-ink-3">{count(n, t)}</span>
                 </li>
               ))}
@@ -158,7 +159,7 @@ export const ALPR_VIEW: TopicView<AlprData> = {
     if (!data.onAir) return null;
     return (
       <Section title={t('Public cameras')}>
-        <LinkCard href={localePath(t.locale, placePath(place, cams.page.slug))} title={shortHeading(cams.topic.header(place, cams.page, t).heading, place, t)}
+        <LinkCard href={localePath(t.locale, placePath(place, cams.page.slug))} rel={crawlRel(placeIndexed(place, cams.page.slug))} title={shortHeading(cams.topic.header(place, cams.page, t).heading, place, t)}
           line={cams.topic.summary(place, cams.page, t)} Icon={Video} />
       </Section>
     );

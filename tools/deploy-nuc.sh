@@ -5,7 +5,8 @@
 #   tools/deploy-nuc.sh
 #
 # Build-time settings (NEXT_PUBLIC_*) come from the NUC's own .env.local and .env.production.local, copied into a
-# throwaway worktree and deleted with it. The site is down only while .next is copied and the services restart.
+# throwaway worktree and deleted with it. The build is copied beside the running one, so the site is down only for
+# the swap and the restart (and npm ci, when the lockfile changed).
 set -euo pipefail
 
 NUC=${NUC:-user@nuc}
@@ -33,16 +34,23 @@ OLD=$(ssh "$NUC" 'cd ~/takip && git rev-parse HEAD')
 ssh "$NUC" "cd ~/takip && git pull -q --ff-only && test \"\$(git rev-parse HEAD)\" = $SHA" \
   || { echo "The NUC's checkout didn't land on ${SHA:0:7}; not deploying." >&2; exit 1; }
 
+# Files unchanged since the running build are hard-linked from it; the rest use it as the basis for their delta.
+rsync -a --delete --exclude cache --exclude standalone --link-dest=../.next "$WORK/.next/" "$NUC:takip/.next-new/"
+
 echo "Switching the NUC from ${OLD:0:7} to ${SHA:0:7}"
 ssh "$NUC" 'systemctl --user stop takip-web'
 # Packages are reinstalled only when the lockfile changed, and never under running services.
 if ! git -C "$REPO" diff --quiet "$OLD" "$SHA" -- package-lock.json; then
   ssh "$NUC" 'systemctl --user stop takip-api takip-ingest && cd ~/takip && npm ci --no-audit --no-fund --loglevel=error'
 fi
-rsync -a --delete --exclude cache --exclude standalone "$WORK/.next/" "$NUC:takip/.next/"
+# The server's own cache (fetches, images) moves across with the swap. If the swap fails, the old build comes back.
+ssh "$NUC" 'cd ~/takip && rm -rf .next-old .next-new/cache && { [ ! -d .next/cache ] || mv .next/cache .next-new/cache; } && mv .next .next-old && mv .next-new .next' \
+  || { ssh "$NUC" 'cd ~/takip && { [ -d .next ] || mv .next-old .next; } && systemctl --user start takip-web takip-api takip-ingest'
+       echo "The swap failed; the NUC is back on the build it had." >&2; exit 1; }
 # The api runs its migrations on start, so a deploy that adds one keeps a copy of the accounts database first.
 if ! git -C "$REPO" diff --quiet "$OLD" "$SHA" -- apps/api/src/db/migrations.ts; then
   ssh "$NUC" 'cd ~/takip && npm run -s backup -w @takip/api'
 fi
 ssh "$NUC" 'systemctl --user start takip-web && systemctl --user restart takip-api takip-ingest && sleep 8 && systemctl --user is-active takip-web takip-api takip-ingest'
+ssh "$NUC" 'rm -rf ~/takip/.next-old'
 echo "takip.dev: $(curl -s -o /dev/null -w '%{http_code}' --max-time 60 https://takip.dev/)"

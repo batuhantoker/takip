@@ -24,6 +24,12 @@ export const findPlacePage = (place: Place, slug: string) => placePages(place).f
 export const overviewIndexed = (pages: PlacePageRef[]) =>
   new Set(pages.filter(p => p.page.index && !p.topic.faith).map(p => p.topic.id)).size >= 2;
 
+/** Whether a place's page (its overview without a slug) is put forward for search: what its metadata says. */
+export function placeIndexed(place: Place, slug?: string): boolean {
+  if (slug !== undefined) return !!findPlacePage(place, slug)?.page.index;
+  return overviewIndexed(placePages(place)) || childPlaces(place, 1).length > 0;
+}
+
 /** Nearby places of the same kind with an indexed page of this topic (or any but a faith page, for an overview). */
 export function nearbyWith(place: Place, topicId: string | undefined, limit = 8): Place[] {
   return nearestPlaces(place, p => placePages(p).some(x => x.page.index && (topicId ? x.topic.id === topicId : !x.topic.faith)), limit);

@@ -4,9 +4,10 @@ import { Section, TEXT_LINK } from '@/components/site/pages/site-parts';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { viewPath } from '@/lib/map/view-link';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
 import { placeById } from '@/lib/platform/site/places/gazetteer';
-import { placePages } from '@/lib/platform/site/places/pages';
+import { placeIndexed, placePages } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { attractionName, attractionWiki, KIND_LABEL, type AttractionEntry, type AttractionsData } from '@/lib/platform/site/places/topics/attractions';
@@ -69,7 +70,7 @@ export const ATTRACTIONS_VIEW: TopicView<AttractionsData> = {
             <ul className="grid gap-3 sm:grid-cols-2">
               {also.map(({ topic, page }) => (
                 <li key={`${topic.id}/${page.slug}`}>
-                  <Link href={localePath(t.locale, placePath(place, page.slug))}
+                  <Link href={localePath(t.locale, placePath(place, page.slug))} rel={crawlRel(placeIndexed(place, page.slug))}
                     className={cx('block h-full rounded-card border border-line bg-surface-1 p-4 hover:bg-surface-2', FOCUS_RING, TRANSITION)}>
                     <span className="block text-[15px] font-medium text-ink-1">{t(page.label ?? topic.label)}</span>
                     <span className="mt-1 block text-[14px] leading-relaxed text-ink-2">{topic.summary(place, page, t)}</span>

@@ -25,7 +25,7 @@ function Sparklines({ lines }: { lines: { series: IndicatorSeries; ink: string }
   );
 }
 
-export interface OverviewRow { spec: IndicatorSpec; series: (IndicatorSeries | undefined)[]; href: string }
+export interface OverviewRow { spec: IndicatorSpec; series: (IndicatorSeries | undefined)[]; href: string; rel?: string }
 
 /**
  * Every measure the countries share, a row each under its group: each country's latest figure with a bar to scale
@@ -61,13 +61,13 @@ export function OverviewTable({ countries, rows, t }: {
               <tr className="bg-surface-2/40">
                 <th scope="colgroup" colSpan={countries.length + 2} className="px-3 pt-4 pb-2 text-left text-[12px] font-semibold text-ink-2">{t(g.label)}</th>
               </tr>
-              {inGroup.map(({ spec, series, href }) => {
+              {inGroup.map(({ spec, series, href, rel }) => {
                 const year = Math.max(...series.flatMap(s => (s ? [s.f.last[0]] : [])));
                 const top = Math.max(...series.flatMap(s => (s ? [Math.abs(s.f.last[1])] : []))) || 1;
                 return (
                   <tr key={spec.slug} className="text-ink-2 hover:bg-surface-2/60">
                     <th scope="row" className="min-w-[10rem] px-3 py-2 text-left font-normal">
-                      <Link href={href} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{t(spec.label)}</Link>
+                      <Link href={href} rel={rel} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{t(spec.label)}</Link>
                       <span className="block text-[11px] text-ink-3">{t(spec.unit)} · {year}</span>
                     </th>
                     {series.map((s, i) => (

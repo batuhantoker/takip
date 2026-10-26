@@ -11,7 +11,7 @@ import type { Locale } from '@/lib/core/i18n/locales';
 import { requestLocale } from '@/lib/core/i18n/request';
 import { AD_SLOTS } from '@/lib/platform/ads';
 import { comparePath, pairMeasures, pairOpen, type PairMeasure } from '@/lib/platform/site/compare/compare';
-import { groupCopy, groupSentence, pairAnswer, pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy } from '@/lib/platform/site/compare/compare-copy';
+import { compareIndexed, groupCopy, groupSentence, pairAnswer, pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy } from '@/lib/platform/site/compare/compare-copy';
 import { findCountry } from '@/lib/platform/site/compare/countries';
 import { nextMeasures, nextPairs } from '@/lib/platform/site/compare/next';
 import { parsePairSlug, type CountryPair } from '@/lib/platform/site/compare/pairs';
@@ -19,7 +19,7 @@ import { addedView, extraSeries, isPlainView, MAX_COUNTRIES, parseView, viewQuer
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { mapHref } from '@/lib/platform/site/map-link';
-import { readingMetadata } from '@/lib/platform/site/meta';
+import { crawlRel, readingMetadata, unindexed } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { listOf, nameOf } from '@/lib/platform/site/places/copy/format';
 import { HEADLINE } from '@/lib/platform/site/places/topics/indicators';
@@ -61,7 +61,7 @@ export async function compareMetadata(slug: string, measure: string | undefined,
     image: `/og?place=${encodeURIComponent(`compare/${slug}${measure ? `/${measure}` : ''}`)}&lang=${text.locale}`,
   });
   // Any two countries render; only a listed pair with enough in common, as it first opens, is put forward for search.
-  return index ? meta : { ...meta, robots: { index: false, follow: true } };
+  return index ? meta : unindexed(meta);
 }
 
 /** Each country in the bar, with where its × leads: an added one goes, one of the pair gives way to the first added. */
@@ -87,10 +87,11 @@ export async function ComparePage({ slug, measure, search }: { slug: string; mea
   const index = localePath(locale, '/compare');
   const overview = localePath(locale, comparePath(pair));
   const together = view.with.length ? listOf(names, t) : t('{a} vs {b}', { a: names[0], b: names[1] });
-  const trail = [{ href: index, label: t('Compare') }, ...(current ? [{ href: overview + qs, label: together }] : [])];
+  const trail = [{ href: index, label: t('Compare') }, ...(current ? [{ href: overview + qs, label: together, rel: crawlRel(pairIndexed(pair, measures)) }] : [])];
   const link = pairOpen(pair, measures, current, view.with);
   const open = link?.mode && mapHref({ layers: [], view: link.view, mode: link.mode });
   const to = (v: CompareView, slugOf = measure) => localePath(locale, comparePath(pair, slugOf)) + viewQuery(v);
+  const measureRel = (slug: string) => crawlRel(measures.some(m => m.spec.slug === slug && pairMeasureIndexed(pair, m)));
   const entriesOf = (m: PairMeasure): Entry[] => [m.a, m.b, ...extraSeries(view, m.spec.slug)].map((series, slot) => ({ label: names[slot], series, slot }));
   const bar = (
     <CountryBar countries={barCountries(pair, view, names, measure, locale)} t={t}
@@ -109,7 +110,7 @@ export async function ComparePage({ slug, measure, search }: { slug: string; mea
     <a href={open} className={LINK_BUTTON.primary}>{t('Watch it change on the map')}<ArrowUpRight className="size-4" aria-hidden /></a>
   );
   const pairLink = (next: CountryPair, slugOf?: string) => ({
-    href: localePath(locale, comparePath(next, slugOf)), label: t('{a} vs {b}', { a: nameOf(next.a, t), b: nameOf(next.b, t) }),
+    href: localePath(locale, comparePath(next, slugOf)), label: t('{a} vs {b}', { a: nameOf(next.a, t), b: nameOf(next.b, t) }), rel: crawlRel(compareIndexed(next, slugOf)),
   });
 
   if (current) {
@@ -118,20 +119,20 @@ export async function ComparePage({ slug, measure, search }: { slug: string; mea
     const answer = group ? undefined : pairAnswer(pair, current, t);
     const metric = t(current.spec.label);
     return (
-      <SiteFrame t={t} path={path} trail={trail}>
+      <SiteFrame t={t} path={path} trail={trail} indexed={found.index}>
         {ld}
         <article>
           <header className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:items-end lg:gap-16">
             <div>
-              <Link href={trail[1].href} className={cx('text-[13px] font-medium text-ink-3 hover:text-ink-1', FOCUS_RING)}>{trail[1].label}</Link>
+              <Link href={trail[1].href} rel={trail[1].rel} className={cx('text-[13px] font-medium text-ink-3 hover:text-ink-1', FOCUS_RING)}>{trail[1].label}</Link>
               <h1 className="mt-3 text-4xl leading-[1.08] font-semibold tracking-[-0.02em] sm:text-5xl">{heading}</h1>
               {answer ? <PairAnswer {...answer} /> : <p className="mt-5 text-[17px] leading-relaxed text-ink-2">{lede}</p>}
               {mapButton && <div className="mt-6 flex flex-wrap gap-3">{mapButton}</div>}
             </div>
             <NextSteps rows={[
               { label: t('Other measures'), links: [
-                ...nextMeasures(measures, current.spec.slug).map(m => ({ href: to(view, m.spec.slug), label: t(m.spec.label) })),
-                { href: overview + qs, label: t('All {n} measures', { n: measures.length }) },
+                ...nextMeasures(measures, current.spec.slug).map(m => ({ href: to(view, m.spec.slug), label: t(m.spec.label), rel: measureRel(m.spec.slug) })),
+                { href: overview + qs, label: t('All {n} measures', { n: measures.length }), rel: trail[1].rel },
               ] },
               // Other pairs only while just the two are compared: a page with added countries is no search's landing.
               ...(group ? [] : [{ label: t('{metric} in other comparisons', { metric }), links: nextPairs(pair, current.spec.slug).map(p => pairLink(p, current.spec.slug)) }]),
@@ -147,8 +148,8 @@ export async function ComparePage({ slug, measure, search }: { slug: string; mea
               <PairMeasureBody text={text} pair={pair} places={places} entries={entries} m={current} />
             </div>
             <aside className="flex flex-col gap-10">
-              <MeasureNav title={t('Other measures')} overview={{ href: overview + qs, label: t('Every measure at a glance') }}
-                specs={measures.map(m => m.spec)} current={current.spec.slug} href={s => to(view, s)} t={t} />
+              <MeasureNav title={t('Other measures')} overview={{ href: overview + qs, label: t('Every measure at a glance'), rel: trail[1].rel }}
+                specs={measures.map(m => m.spec)} current={current.spec.slug} href={s => to(view, s)} rel={measureRel} t={t} />
               <AdSlot slot={AD_SLOTS.page} variant="page" />
             </aside>
           </div>
@@ -159,7 +160,7 @@ export async function ComparePage({ slug, measure, search }: { slug: string; mea
 
   const hero = HEADLINE.flatMap(s => measures.filter(m => m.spec.slug === s))[0] ?? measures[0];
   return (
-    <SiteFrame t={t} path={path} trail={trail}>
+    <SiteFrame t={t} path={path} trail={trail} indexed={found.index}>
       {ld}
       <article>
         <ChartHeader kicker={trail[0]} heading={heading} lede={group?.lede ?? copy.lede}
@@ -175,7 +176,7 @@ export async function ComparePage({ slug, measure, search }: { slug: string; mea
           <div className="flex flex-col gap-4">
             {bar}
             <OverviewTable countries={names.map((label, slot) => ({ label, slot }))} t={t}
-              rows={measures.map(m => ({ spec: m.spec, series: entriesOf(m).map(e => e.series), href: to(view, m.spec.slug) }))} />
+              rows={measures.map(m => ({ spec: m.spec, series: entriesOf(m).map(e => e.series), href: to(view, m.spec.slug), rel: measureRel(m.spec.slug) }))} />
           </div>
         </Section>
         <div className="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">

@@ -2,7 +2,9 @@ import { BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { prayerToday } from '@/lib/platform/site/places/topics/prayer';
 import { longDay, PRAYER_LABEL, prayerClock, waitOf } from '@/lib/platform/site/places/topics/prayer-copy';
@@ -33,8 +35,8 @@ export const PRAYERS_VIEW: TopicView<PrayersData> = {
             <Section title={t('Islamic prayer times')}>
               {next && <p className="text-[15px] text-ink-1">{t('Next prayer: {prayer} {when}, {wait}.', { prayer: t(PRAYER_LABEL[next.prayer]), when: onDay(next.at, now, data.tz, t), wait: waitOf(next.at - now, t) })}</p>}
               <ul className={LIST}>
-                <li><Link href={href('prayer-times')} className={TEXT_LINK}>{t('Prayer times in {city}', { city })}</Link></li>
-                <li><Link href={href(ramadan.slug)} className={TEXT_LINK}>{t('Ramadan {year} in {city}', { city, year: ramadanLabel(ramadan, t) })}</Link></li>
+                <li><Link href={href('prayer-times')} rel={crawlRel(placeIndexed(place, 'prayer-times'))} className={TEXT_LINK}>{t('Prayer times in {city}', { city })}</Link></li>
+                <li><Link href={href(ramadan.slug)} rel={crawlRel(placeIndexed(place, ramadan.slug))} className={TEXT_LINK}>{t('Ramadan {year} in {city}', { city, year: ramadanLabel(ramadan, t) })}</Link></li>
               </ul>
             </Section>
           );
@@ -45,7 +47,7 @@ export const PRAYERS_VIEW: TopicView<PrayersData> = {
             <Section title={t('Shabbat')}>
               {w.candles?.at != null && <p className="text-[15px] text-ink-1">{t('Candle lighting on {friday} at {time}.', { friday: longDay(w.friday, t), time: prayerClock(w.candles.at, data.tz, t) })}</p>}
               <ul className={LIST}>
-                <li><Link href={href(SHABBAT_SLUG)} className={TEXT_LINK}>{t('Shabbat times in {city}', { city })}</Link></li>
+                <li><Link href={href(SHABBAT_SLUG)} rel={crawlRel(placeIndexed(place, SHABBAT_SLUG))} className={TEXT_LINK}>{t('Shabbat times in {city}', { city })}</Link></li>
               </ul>
             </Section>
           );

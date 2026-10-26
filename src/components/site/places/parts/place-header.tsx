@@ -14,7 +14,7 @@ import type { MapView } from '@/lib/platform/site/map-link';
  */
 export function PlaceHeader({ t, kicker, heading, lede, facts, open, embed, focus, image, live, secondary, hero, openLabel }: {
   t: Translate;
-  kicker: { href: string; label: string };
+  kicker: { href: string; label: string; rel?: string };
   heading: string;
   lede: string;
   open: string;
@@ -35,7 +35,7 @@ export function PlaceHeader({ t, kicker, heading, lede, facts, open, embed, focu
   return (
     <header className="mt-8 grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
       <div>
-        <Link href={kicker.href} className={cx('text-[13px] font-medium text-ink-3 hover:text-ink-1', FOCUS_RING)}>{kicker.label}</Link>
+        <Link href={kicker.href} rel={kicker.rel} className={cx('text-[13px] font-medium text-ink-3 hover:text-ink-1', FOCUS_RING)}>{kicker.label}</Link>
         <h1 className="mt-3 text-4xl leading-[1.08] font-semibold tracking-[-0.02em] sm:text-5xl">{heading}</h1>
         <p className="mt-5 text-[17px] leading-relaxed text-ink-2">{lede}</p>
         {facts && <div className="mt-6">{facts}</div>}

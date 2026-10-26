@@ -4,7 +4,9 @@ import { Section, TEXT_LINK } from '@/components/site/pages/site-parts';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import type { NearKind } from '@/lib/feeds/hazards/near-now';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { NOW_TOPICS, nowCitiesOf, type NowCity, type NowCountry, type NowData, type NowLive } from '@/lib/platform/site/places/topics/now';
@@ -29,7 +31,7 @@ function CityBody({ text, place, data }: { text: SiteText; place: Place; data: N
           <ul className="grid gap-3 sm:grid-cols-2">
             {pages.map(({ topic, page }) => (
               <li key={topic.id}>
-                <Link href={localePath(t.locale, placePath(place, page.slug))} className={CARD}>
+                <Link href={localePath(t.locale, placePath(place, page.slug))} rel={crawlRel(placeIndexed(place, page.slug))} className={CARD}>
                   <span className="block text-[15px] font-medium text-ink-1">{t(page.label ?? topic.label)}</span>
                   <span className="mt-1 block text-[14px] leading-relaxed text-ink-2">{topic.summary(place, page, t)}</span>
                 </Link>
@@ -59,7 +61,7 @@ function CountryBody({ text, place, data }: { text: SiteText; place: Place; data
           <ul className="grid gap-3 sm:grid-cols-2">
             {cities.map(c => (
               <li key={c.id}>
-                <Link href={localePath(t.locale, placePath(c, 'now'))} className={CARD}>
+                <Link href={localePath(t.locale, placePath(c, 'now'))} rel={crawlRel(placeIndexed(c, 'now'))} className={CARD}>
                   <span className="block text-[15px] font-medium text-ink-1">{nameOf(c, t)}</span>
                   <span className="mt-1 block text-[14px] leading-relaxed text-ink-2">{t('Warnings, earthquakes, fires, lightning and rain around {city} now', { city: nameOf(c, t) })}</span>
                 </Link>

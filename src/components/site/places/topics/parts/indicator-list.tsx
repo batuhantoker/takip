@@ -3,6 +3,8 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { SERIES_INK } from '@/lib/map/style/tokens';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { IndicatorMeasure } from '@/lib/platform/site/places/topics/indicators';
@@ -25,7 +27,7 @@ export function latestLine(m: IndicatorMeasure, t: Translate): string {
 export function MeasureCard({ place, m, t, spark = true, big = false }: { place: Place; m: Measure; t: Translate; spark?: boolean; big?: boolean }) {
   const s = m.data.series;
   return (
-    <Link href={localePath(t.locale, placePath(place, m.slug))}
+    <Link href={localePath(t.locale, placePath(place, m.slug))} rel={crawlRel(placeIndexed(place, m.slug))}
       className={cx('flex h-full flex-col gap-1 rounded-card border border-line bg-surface-1 p-3 hover:border-line-strong', FOCUS_RING, TRANSITION)}>
       <span className="text-[14px] font-medium text-ink-1">{t(m.data.spec.label)}</span>
       <span className="text-[12px] text-ink-3">{latestLine(m.data, t)}</span>

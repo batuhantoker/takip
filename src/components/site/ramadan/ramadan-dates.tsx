@@ -9,11 +9,11 @@ import type { Translate } from '@/lib/core/i18n/translator';
 import { AD_SLOTS } from '@/lib/platform/ads';
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { localePath } from '@/lib/platform/site/locale-path';
-import { readingImage, readingMetadata } from '@/lib/platform/site/meta';
+import { crawlRel, readingImage, readingMetadata } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { DESCRIPTION_RANGE, fit, nameOf, TITLE_MAX } from '@/lib/platform/site/places/copy/format';
 import { placeBySlug } from '@/lib/platform/site/places/gazetteer';
-import { findPlacePage } from '@/lib/platform/site/places/pages';
+import { findPlacePage, placeIndexed } from '@/lib/platform/site/places/pages';
 import { KIND_LABEL, placePath } from '@/lib/platform/site/places/paths';
 import { dayMonth, fullDay, shortDate } from '@/lib/platform/site/places/topics/prayer-copy';
 import { ramadanLabel } from '@/lib/platform/site/places/topics/ramadan';
@@ -158,7 +158,7 @@ export async function RamadanDatesPage() {
           <Section title={t('Timetables for your city')}>
             <p className="text-[14px] text-ink-2">{t('Sehri and iftar times for each day of Ramadan {year}:', { year: ramadanLabel(near, t) })}</p>
             <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
-              {cities.map(p => <li key={p!.id}><Link href={localePath(locale, placePath(p!, near.slug))} className={TEXT_LINK}>{nameOf(p!, t)}</Link></li>)}
+              {cities.map(p => <li key={p!.id}><Link href={localePath(locale, placePath(p!, near.slug))} rel={crawlRel(placeIndexed(p!, near.slug))} className={TEXT_LINK}>{nameOf(p!, t)}</Link></li>)}
             </ul>
             <p className="mt-4 text-[14px] text-ink-2">
               {t('Every other city:')} <Link href={localePath(locale, '/city')} className={TEXT_LINK}>{t(KIND_LABEL.city)}</Link>

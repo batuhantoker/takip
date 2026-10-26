@@ -4,8 +4,10 @@ import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { SHIP_CLASSES } from '@/lib/feeds/maritime/ship-filter';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { count, dayOf, listOf, nameOf } from '@/lib/platform/site/places/copy/format';
 import { placeById, type Place } from '@/lib/platform/site/places/gazetteer';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { portLabel, type PortsData } from '@/lib/platform/site/places/topics/ports';
 import { PORT_KM, type HarbourSize, type NearPort } from '@/lib/platform/site/places/topics/ports-data';
@@ -34,7 +36,7 @@ function HarbourRow({ t, place, port }: { t: Translate; place: Place; port: Near
       <span className="text-[14px] leading-relaxed text-ink-2">
         {port.size ? t(SIZE[port.size]) : t('Not rated by the Index')}
         {home && (
-          <> · <Link href={localePath(t.locale, placePath(home, 'port'))} className={TEXT_LINK}>{t('counted on the page for {place}', { place: nameOf(home, t) })}</Link></>
+          <> · <Link href={localePath(t.locale, placePath(home, 'port'))} rel={crawlRel(placeIndexed(home, 'port'))} className={TEXT_LINK}>{t('counted on the page for {place}', { place: nameOf(home, t) })}</Link></>
         )}
       </span>
     </li>

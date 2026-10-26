@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { addDays } from '@/lib/platform/site/places/topics/prayer-hijri';
 import { longDay, prayerClock, shortDay } from '@/lib/platform/site/places/topics/prayer-copy';
@@ -124,7 +126,7 @@ export const RAMADAN_VIEW: TopicView<RamadanData, RamadanNow> = {
           <ul className="flex flex-col gap-2 text-[14px] leading-relaxed text-ink-2">{facts(r, data, data.tz, t).map(f => <li key={f}>{f}</li>)}</ul>
           <p className="mt-3 text-[14px] text-ink-2">
             {t('Fajr, Dhuhr, Asr, Maghrib and Isha today:')}{' '}
-            <Link href={localePath(t.locale, placePath(place, 'prayer-times'))} className={TEXT_LINK}>{t('Prayer times in {city}', { city })}</Link>
+            <Link href={localePath(t.locale, placePath(place, 'prayer-times'))} rel={crawlRel(placeIndexed(place, 'prayer-times'))} className={TEXT_LINK}>{t('Prayer times in {city}', { city })}</Link>
           </p>
           <p className="mt-1 text-[14px] text-ink-2">
             {t('When Ramadan begins and ends, every year:')}{' '}

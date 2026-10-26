@@ -7,17 +7,20 @@ import type { Translate } from '@/lib/core/i18n/translator';
 import { appsOut } from '@/lib/platform/native/downloads';
 import { POLICY_LINKS } from '@/lib/platform/site/legal';
 import { isReadingPath, localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 
 export { Bullets, LINK_BUTTON, Section, TEXT_LINK } from './site-parts';
 
 /**
  * The frame of TAKIP's public reading pages: a trail back, the page, and a footer with the other pages and this
- * page in every language. `path` is the page's English path; links follow the reader's language.
+ * page in every language. `path` is the page's English path; links follow the reader's language. `indexed` false: a page
+ * kept out of search, whose other languages crawlers aren't sent to.
  */
-export async function SiteFrame({ t, path, trail = [], children }: {
+export async function SiteFrame({ t, path, trail = [], indexed = true, children }: {
   t: Translate;
   path: string;
-  trail?: { href: string; label: string }[];
+  trail?: { href: string; label: string; rel?: string }[];
+  indexed?: boolean;
   children: ReactNode;
 }) {
   const here = (p: string) => localePath(t.locale, p);
@@ -39,7 +42,7 @@ export async function SiteFrame({ t, path, trail = [], children }: {
           {trail.map(c => (
             <span key={c.href} className="flex items-center gap-2">
               <span aria-hidden>/</span>
-              <Link href={c.href} className={cx('hover:text-ink-1', FOCUS_RING)}>{c.label}</Link>
+              <Link href={c.href} rel={c.rel} className={cx('hover:text-ink-1', FOCUS_RING)}>{c.label}</Link>
             </span>
           ))}
         </nav>
@@ -55,7 +58,7 @@ export async function SiteFrame({ t, path, trail = [], children }: {
           {/* A page with one URL in every language (the guides, until translated) has no other languages to offer. */}
           {isReadingPath(path) && <nav aria-label={t('This page in other languages')} className="flex flex-wrap content-start gap-x-4 gap-y-2">
             {LOCALES.map(l => (
-              <a key={l} href={localePath(l, path)} hrefLang={l} lang={l} aria-current={l === t.locale ? 'page' : undefined}
+              <a key={l} href={localePath(l, path)} hrefLang={l} lang={l} rel={crawlRel(indexed)} aria-current={l === t.locale ? 'page' : undefined}
                 className={cx(l === t.locale ? 'text-ink-1' : 'hover:text-ink-1', FOCUS_RING, TRANSITION)}>
                 {LOCALE_NAMES[l]}
               </a>

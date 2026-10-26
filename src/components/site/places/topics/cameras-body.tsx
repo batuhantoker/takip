@@ -8,7 +8,9 @@ import { haversine } from '@/lib/core/geodesic';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { mapHref } from '@/lib/platform/site/map-link';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { count, nameOf, placeName, wordingOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { CameraPick, CamerasData } from '@/lib/platform/site/places/topics/cameras';
@@ -143,7 +145,7 @@ export function CameraStrip({ t, place, data, slug }: { t: Translate; place: Pla
     <Section title={t('The latest from cameras in {city}', { city: nameOf(place, t) })}>
       <CameraFrames frames={framesOf(data, t)} show={shownOf(data.frames.length)} empty={t(NONE_SENDING)} eager={false} />
       <p className="mt-4 text-[14px]">
-        <Link href={localePath(t.locale, placePath(place, slug))} className={TEXT_LINK}>
+        <Link href={localePath(t.locale, placePath(place, slug))} rel={crawlRel(placeIndexed(place, slug))} className={TEXT_LINK}>
           {t('{n, plural, one {The camera in and around {city}} other {All # cameras in and around {city}}}', { n: data.onAir, city: nameOf(place, t) })}
         </Link>
       </p>

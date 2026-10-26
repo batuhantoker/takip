@@ -21,5 +21,11 @@ export function readingMetadata({ locale, path, title, description, image, type 
   };
 }
 
+/** A page kept out of search: noindex, and no alternates, which would send crawlers on to its other languages. */
+export const unindexed = (meta: Metadata): Metadata => ({ ...meta, robots: { index: false, follow: true }, alternates: { canonical: meta.alternates?.canonical } });
+
+/** A link's rel: crawlers aren't sent on to a page kept out of search. */
+export const crawlRel = (indexed: boolean) => (indexed ? undefined : 'nofollow');
+
 /** The share card for a reading page, drawn by /og in the page's language. */
 export const readingImage = (page: string, locale: Locale) => `/og?page=${encodeURIComponent(page)}&lang=${locale}`;

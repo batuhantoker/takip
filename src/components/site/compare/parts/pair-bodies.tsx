@@ -12,7 +12,9 @@ import { pairParts } from '@/lib/platform/site/compare/compare-copy';
 import type { CountryPair } from '@/lib/platform/site/compare/pairs';
 import { worldPath } from '@/lib/platform/site/compare/world';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { listOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { HUB_SLUG } from '@/lib/platform/site/places/topics/indicators';
@@ -27,12 +29,14 @@ const href = (t: Translate, path: string) => localePath(t.locale, path);
 /** Each country's own pages, and the measure around the world. */
 function OwnPages({ places, names, t, slug }: { places: Place[]; names: string[]; t: Translate; slug?: string }) {
   const links = [
-    ...places.map((p, i) => ({ path: placePath(p, slug ?? HUB_SLUG), label: slug ? names[i] : t('{place} in numbers', { place: names[i] }) })),
-    ...(slug ? [{ path: worldPath(slug), label: t('Around the world') }] : []),
+    ...places.map((p, i) => ({
+      path: placePath(p, slug ?? HUB_SLUG), label: slug ? names[i] : t('{place} in numbers', { place: names[i] }), rel: crawlRel(placeIndexed(p, slug ?? HUB_SLUG)),
+    })),
+    ...(slug ? [{ path: worldPath(slug), label: t('Around the world'), rel: undefined }] : []),
   ];
   return (
     <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[14px]">
-      {links.map(l => <li key={l.path}><Link href={href(t, l.path)} className={TEXT_LINK}>{l.label}</Link></li>)}
+      {links.map(l => <li key={l.path}><Link href={href(t, l.path)} rel={l.rel} className={TEXT_LINK}>{l.label}</Link></li>)}
     </ul>
   );
 }

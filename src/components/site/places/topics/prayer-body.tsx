@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { kaabaKm, prayerToday, type PrayerData, type PrayerNow } from '@/lib/platform/site/places/topics/prayer';
 import { AT_THE_KAABA_KM, compassOf, degreesOf, hijriIn, longDay, PRAYER_LABEL, prayerClock, shortDay, waitOf } from '@/lib/platform/site/places/topics/prayer-copy';
@@ -135,11 +137,11 @@ export const PRAYER_VIEW: TopicView<PrayerData, PrayerNow> = {
           </p>
           <p className="mt-3 text-[14px] text-ink-2">
             {t('Sunrise, sunset, twilight and day length:')}{' '}
-            <Link href={localePath(t.locale, placePath(place, 'sun'))} className={TEXT_LINK}>{t('Sunrise and sunset in {city}', { city })}</Link>
+            <Link href={localePath(t.locale, placePath(place, 'sun'))} rel={crawlRel(placeIndexed(place, 'sun'))} className={TEXT_LINK}>{t('Sunrise and sunset in {city}', { city })}</Link>
           </p>
           <p className="mt-1 text-[14px] text-ink-2">
             {t('Sehri and iftar for each day of the month:')}{' '}
-            <Link href={localePath(t.locale, placePath(place, ramadan.slug))} className={TEXT_LINK}>{t('Ramadan {year} in {city}', { city, year: ramadanLabel(ramadan, t) })}</Link>
+            <Link href={localePath(t.locale, placePath(place, ramadan.slug))} rel={crawlRel(placeIndexed(place, ramadan.slug))} className={TEXT_LINK}>{t('Ramadan {year} in {city}', { city, year: ramadanLabel(ramadan, t) })}</Link>
           </p>
           <p className="mt-1 text-[14px] text-ink-2">
             {t('When Ramadan begins and ends, every year:')}{' '}

@@ -4,7 +4,9 @@ import type { ReactNode } from 'react';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
 import { localePath } from '@/lib/platform/site/locale-path';
+import { crawlRel } from '@/lib/platform/site/meta';
 import { listOf, nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { factsFor, HOLIDAYS, holidaySlug, inBreaks, todayIn, type HolidayData } from '@/lib/platform/site/places/topics/holidays';
@@ -19,6 +21,7 @@ import type { TopicView } from './view';
 
 const thisYearOf = (row: HolidayRow) => Number(todayIn(row).slice(0, 4));
 const yearHref = (place: Place, year: number, t: Translate) => localePath(t.locale, placePath(place, holidaySlug(year)));
+const yearRel = (place: Place, year: number) => crawlRel(placeIndexed(place, holidaySlug(year)));
 const hasYear = (place: Place, year: number) => HOLIDAYS.pages(place).some(p => p.data.year === year);
 
 /** The neighbouring years; on this year's page the next one says so. */
@@ -26,9 +29,9 @@ function YearNav({ place, row, year, t }: { place: Place; row: HolidayRow; year:
   const current = year === thisYearOf(row);
   return (
     <nav aria-label={t('Other years')} className="mb-10 flex flex-wrap justify-between gap-3 text-[14px]">
-      {hasYear(place, year - 1) ? <Link href={yearHref(place, year - 1, t)} className={TEXT_LINK}>← {String(year - 1)}</Link> : <span />}
+      {hasYear(place, year - 1) ? <Link href={yearHref(place, year - 1, t)} rel={yearRel(place, year - 1)} className={TEXT_LINK}>← {String(year - 1)}</Link> : <span />}
       {hasYear(place, year + 1) && (
-        <Link href={yearHref(place, year + 1, t)} className={TEXT_LINK}>{current ? t('Next year ({year})', { year: String(year + 1) }) : String(year + 1)} →</Link>
+        <Link href={yearHref(place, year + 1, t)} rel={yearRel(place, year + 1)} className={TEXT_LINK}>{current ? t('Next year ({year})', { year: String(year + 1) }) : String(year + 1)} →</Link>
       )}
     </nav>
   );
@@ -198,7 +201,7 @@ export const HOLIDAYS_VIEW: TopicView<HolidayData> = {
             <li key={y}>
               {y === data.year
                 ? <span aria-current="page" className="inline-flex h-8 items-center rounded-control border border-line-strong bg-surface-3 px-2.5 text-[13px] text-ink-1">{String(y)}</span>
-                : <Link href={yearHref(place, y, t)} className="inline-flex h-8 items-center rounded-control border border-line bg-surface-1 px-2.5 text-[13px] text-ink-2 hover:text-ink-1">{String(y)}</Link>}
+                : <Link href={yearHref(place, y, t)} rel={yearRel(place, y)} className="inline-flex h-8 items-center rounded-control border border-line bg-surface-1 px-2.5 text-[13px] text-ink-2 hover:text-ink-1">{String(y)}</Link>}
             </li>
           ))}
         </ul>

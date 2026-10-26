@@ -13,9 +13,10 @@ import { worldCopy, worldMeasure, worldOpen, worldPath, type WorldMeasure } from
 import { breadcrumbs, jsonLd } from '@/lib/platform/site/json-ld';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { mapHref } from '@/lib/platform/site/map-link';
-import { readingMetadata } from '@/lib/platform/site/meta';
+import { crawlRel, readingMetadata } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { placeIndexed } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import { SERIES_INK } from '@/lib/map/style/tokens';
 import { basisOf, formatNumber } from '@/lib/platform/site/places/topics/indicators-facts';
@@ -66,7 +67,7 @@ function Ranking({ w, text }: { w: WorldMeasure; text: SiteText }) {
               <tr key={r.place.id} className="hover:bg-surface-2/60">
                 <td className="px-3 py-1.5 text-right font-mono text-ink-3 tabular-nums">{i + 1}</td>
                 <th scope="row" className="px-3 py-1.5 text-left font-normal">
-                  <Link href={localePath(t.locale, placePath(r.place, w.spec.slug))} className="text-ink-1 hover:text-accent">{nameOf(r.place, t)}</Link>
+                  <Link href={localePath(t.locale, placePath(r.place, w.spec.slug))} rel={crawlRel(placeIndexed(r.place, w.spec.slug))} className="text-ink-1 hover:text-accent">{nameOf(r.place, t)}</Link>
                 </th>
                 <td className="px-3 py-1.5 text-right font-mono whitespace-nowrap text-ink-1 tabular-nums">{formatNumber(r.v, w.spec.style, w.spec.digits, t)}</td>
                 <td aria-hidden className="hidden px-3 py-1.5 sm:table-cell">
