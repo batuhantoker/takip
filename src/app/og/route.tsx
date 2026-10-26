@@ -9,6 +9,7 @@ import { isSlug } from '@/lib/platform/site/events/slug';
 import { layerPage } from '@/lib/platform/site/layer-pages';
 import { placeCard } from '@/lib/platform/site/places/card';
 import { spaceCard } from '@/lib/platform/site/space/card';
+import { mountainCard, mountainsCard } from '@/lib/platform/site/mountains/card';
 import { ogFontFamily, ogFonts } from '@/lib/platform/site/og-fonts';
 import { describeView } from '@/lib/platform/site/share-view';
 import { shotFile } from '@/lib/platform/site/shots';
@@ -69,6 +70,9 @@ export async function GET(req: Request) {
   const placeParam = params.get('place');
   const eventParam = params.get('event');
   const spaceParam = params.get('space');
+  const mountainParam = params.get('mountain');
+  const mountainsParam = params.get('mountains');
+  const mountainsOk = !!mountainsParam && /^(world|[A-Z]{2})$/.test(mountainsParam);
   const spaceOk = !!spaceParam && /^(craft|planet|index):[a-z0-9-]{0,64}$/.test(spaceParam);
   const langParam = params.get('lang');
 
@@ -89,6 +93,18 @@ export async function GET(req: Request) {
     if (!found) return new Response('Not found', { status: 404 });
     card = found;
     key = `event:${eventParam}:${locale}`;
+  } else if (mountainParam && isSlug(mountainParam)) {
+    locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
+    const found = mountainCard(mountainParam, (await siteText(locale)).t);
+    if (!found) return new Response('Not found', { status: 404 });
+    card = found;
+    key = `mountain:${mountainParam}:${locale}`;
+  } else if (mountainsOk) {
+    locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
+    const found = mountainsCard(mountainsParam!, (await siteText(locale)).t);
+    if (!found) return new Response('Not found', { status: 404 });
+    card = found;
+    key = `mountains:${mountainsParam}:${locale}`;
   } else if (spaceOk) {
     locale = isLocale(langParam) ? langParam : DEFAULT_LOCALE;
     const found = spaceCard(spaceParam!, (await siteText(locale)).t);
@@ -118,6 +134,8 @@ export async function GET(req: Request) {
 
   const english = async () => (placeParam ? placeCard(placeParam, (await siteText(DEFAULT_LOCALE)).t)
     : eventParam && isSlug(eventParam) ? eventCard(eventParam, (await siteText(DEFAULT_LOCALE)).t)
+    : mountainParam && isSlug(mountainParam) ? mountainCard(mountainParam, (await siteText(DEFAULT_LOCALE)).t)
+    : mountainsOk ? mountainsCard(mountainsParam!, (await siteText(DEFAULT_LOCALE)).t)
     : spaceOk ? spaceCard(spaceParam!, (await siteText(DEFAULT_LOCALE)).t)
     : pageParam ? await readingCard(pageParam, DEFAULT_LOCALE) : null);
   // A script Geist can't draw needs a font fetched for it; without one, the card is drawn in English.

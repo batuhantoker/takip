@@ -135,6 +135,7 @@ Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages
 21. Country "now" pages count inside the country's map box, so they say "in and around"; a border-exact count needs a point-in-country test on the web side (the api's `geo/nearest-place.ts` has one).
 22. Things to do: opening hours where Wikidata has them (P3025); pictures on the city overview's best-known six (only the topic's own page fetches them now); a three-day plan for cities that fill three days but not seven.
 23. Place pages, from the 2026-10-26 design review: an overview lede and right-now box built from facts ("39 places to see, led by the Louvre · 738 vehicles live · sunset 18:24") rather than the list of topics; layer pages that list what their live line counts (the day's strongest quakes); camera stills shown only once loaded; Paris's arrondissements and other city sections (GeoNames PPLX) indexed with their city's cameras, and filling its "nearby" cards.
+24. Mountain pages (`architecture/public-pages.md`, Mountain pages), next: check each language's titles against autocomplete ("Ağrı Dağı kaç metre" may beat "yüksekliği"); Commons thumbnails on the peak rows; range pages (`/mountain-range/<slug>`, the 22,810 ranges on Wikidata) once the lists show they draw readers; links from country and city place pages to their mountains; and a peaks layer on the map if the user wants one (not asked).
 
 ### 1.8 Languages
 Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/README.md`, Language).
