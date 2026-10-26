@@ -28,11 +28,14 @@ const DB = 'data/db/attractions.db';
 const GAZETTEER = 'data/site/gazetteer.json';
 const CACHE = '.cache/site/attractions';
 const LANGS: readonly Locale[] = ['en', 'tr', 'es', 'pt', 'fr', 'de', 'ru', 'ar', 'zh', 'ja'];
+const NAME_FALLBACK: readonly Locale[] = ['es', 'pt', 'fr', 'de', 'tr'];
 const CITY_KM = 30;
+const OLD_CITY_KM = 5;
+const BIG_CITY = 500_000;
 const PER_CITY = 40;
 const PER_COUNTRY = 40;
 const CHUNK = 400;
-const PAUSE_MS = 1500;
+const PAUSE_MS = 4000;
 const offline = process.argv.includes('--offline');
 
 type Binding = Record<string, { value: string; 'xml:lang'?: string }>;
@@ -53,8 +56,8 @@ async function cached(key: string, query: string): Promise<Binding[]> {
       writeFileSync(file, JSON.stringify(rows));
       return rows;
     } catch (e) {
-      if (attempt >= 8) throw e;
-      const wait = (/ 429/.test((e as Error).message) ? 60 : 10) * attempt;
+      if (attempt >= 12) throw e;
+      const wait = (/ 429/.test((e as Error).message) ? Math.min(600, 60 * attempt) : 10 * attempt);
       console.log(`  ${(e as Error).message.slice(0, 120)}; again in ${wait} s`);
       await sleep(wait * 1000);
     }
@@ -132,12 +135,17 @@ async function worldHeritage(): Promise<{ ids: Set<string>; raw: Raw[] }> {
 /**
  * What isn't a thing to do of its own:
  * - Towns, prefectures and other settlements and areas that are on the World Heritage List or called tourist
- *   attractions ("Spa", "Kyoto Prefecture"): places to go, not things to do in a city.
+ *   attractions ("Spa", "Kyoto Prefecture"): places to go, not things to do in a city. Only for what came in as a
+ *   tourist attraction or World Heritage site: Wikidata's classes put the Eiffel Tower under both too.
+ * - Ancient cities on the site of a living big one (Constantinople, Tenochtitlan), which are that city, not a sight
+ *   in it; Pompeii and Ephesus stay.
  * - Works of art held in a collection, which are seen inside their museum (the Venus de Milo).
- * - Parts of a better-known place on the list (Chartres' astronomical clock, in its cathedral).
+ * - Parts of a better-known thing to do within a kilometre (Chartres' astronomical clock, in its cathedral), but not
+ *   of a World Heritage area, whose churches and palaces are each worth the visit.
  */
-async function notSights(all: Map<string, Raw>): Promise<Set<string>> {
+async function notSights(all: Map<string, Raw>, heritageOnly: Set<string>, onBigCity: (at: [number, number]) => boolean): Promise<Set<string>> {
   const areas = 'VALUES ?c { wd:Q486972 wd:Q56061 } ?item wdt:P31/wdt:P279* ?c .';
+  const generic = (r: Binding) => all.get(qid(r.item.value))?.kind === 'landmark';
   const heritage = await cached('not-sights:heritage', `SELECT DISTINCT ?item WHERE { ?item wdt:P1435 wd:${WORLD_HERITAGE} . ${areas} }`);
   const attractions = await cached('not-sights:attractions', `SELECT DISTINCT ?item WHERE { ?item wdt:P31/wdt:P279* wd:Q570116 . ${areas} }`);
   const held = await cached('not-sights:collections', `SELECT DISTINCT ?item WHERE {
@@ -149,9 +157,17 @@ async function notSights(all: Map<string, Raw>): Promise<Set<string>> {
   const inside = parts.filter(r => {
     const part = all.get(qid(r.item.value));
     const whole = all.get(qid(r.whole.value));
-    return part && whole && whole.links > part.links;
+    return part && whole && !heritageOnly.has(whole.id) && whole.links > part.links && km(part.at, whole.at) <= 1;
   });
-  return new Set([...heritage, ...attractions, ...held, ...inside].map(r => qid(r.item.value)));
+  const settled = await cached('not-sights:old-cities', `SELECT DISTINCT ?item WHERE {
+    ?item wdt:P31/wdt:P279* wd:Q839954 . ?item wdt:P31/wdt:P279* wd:Q486972 .
+    ?item wikibase:sitelinks ?links . FILTER(?links >= 5)
+  }`);
+  const oldCities = settled.filter(r => {
+    const item = all.get(qid(r.item.value));
+    return item && onBigCity(item.at);
+  });
+  return new Set([...heritage.filter(generic), ...attractions.filter(generic), ...held, ...inside, ...oldCities].map(r => qid(r.item.value)).filter(id => all.has(id)));
 }
 
 /** Names and Wikipedias every cached answer already holds, so a changed list of items asks only about the new ones. */
@@ -209,10 +225,15 @@ async function main() {
     for (const r of items) if (!all.has(r.id)) all.set(r.id, r);
   }
   const heritage = await worldHeritage();
-  for (const r of heritage.raw) if (!all.has(r.id)) all.set(r.id, r);
+  const heritageOnly = new Set<string>();
+  for (const r of heritage.raw) {
+    if (all.has(r.id)) continue;
+    all.set(r.id, r);
+    heritageOnly.add(r.id);
+  }
   console.log(`items: ${all.size}, of them World Heritage: ${heritage.ids.size}`);
 
-  const skip = await notSights(all);
+  const skip = await notSights(all, heritageOnly, at => grid.near(at, OLD_CITY_KM).some(c => c.p.pop >= BIG_CITY));
   for (const id of skip) all.delete(id);
   console.log(`left out ${skip.size} towns, areas, works of art in collections and parts of better-known places`);
 
@@ -245,7 +266,8 @@ async function main() {
   const itemOf = (id: string, d: Awaited<ReturnType<typeof details>>): AttractionItem | null => {
     const r = all.get(id)!;
     const n = d.names.get(id) ?? {};
-    const en = n.en ?? Object.values(n)[0];
+    // Without an English label, a Latin-script one reads better to most readers than Cyrillic, Arabic or CJK.
+    const en = n.en ?? NAME_FALLBACK.map(l => n[l]).find(Boolean) ?? Object.values(n)[0];
     if (!en) return null;
     const shown: Partial<Record<Locale, string>> = { en };
     for (const l of LANGS) if (l !== 'en' && n[l] && n[l] !== en) shown[l] = n[l];
