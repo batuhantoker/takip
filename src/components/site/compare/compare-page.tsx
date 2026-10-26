@@ -11,7 +11,7 @@ import type { Locale } from '@/lib/core/i18n/locales';
 import { requestLocale } from '@/lib/core/i18n/request';
 import { AD_SLOTS } from '@/lib/platform/ads';
 import { comparePath, pairMeasures, pairOpen, type PairMeasure } from '@/lib/platform/site/compare/compare';
-import { compareIndexed, groupCopy, groupSentence, pairAnswer, pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, sideBySide } from '@/lib/platform/site/compare/compare-copy';
+import { compareIndexed, groupCopy, groupSentence, pairAnswer, pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairTurns, sideBySide } from '@/lib/platform/site/compare/compare-copy';
 import { findCountry } from '@/lib/platform/site/compare/countries';
 import { nextMeasures, nextPairs } from '@/lib/platform/site/compare/next';
 import { parsePairSlug, type CountryPair } from '@/lib/platform/site/compare/pairs';
@@ -188,7 +188,8 @@ export async function ComparePage({ slug, measure, search }: { slug: string; mea
         </Section>
         <div className="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
           <div>
-            <PairOverviewBody text={text} places={places} names={names} measures={measures} />
+            <PairOverviewBody text={text} places={places} names={names} measures={measures}
+              turns={group ? [] : pairTurns(pair, measures, t).map(p => ({ ...p, href: to(view, p.slug), rel: measureRel(p.slug) }))} />
           </div>
           <aside className="flex flex-col gap-10">
             <AdSlot slot={AD_SLOTS.page} variant="page" />

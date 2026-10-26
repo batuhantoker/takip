@@ -4,7 +4,7 @@ import { placeBySlug } from '../places/gazetteer';
 import type { Place } from '../places/place';
 import type { IndicatorSeries } from '../places/topics/indicators-data';
 import { commonYears, comparePath, pairFacts, pairFocus, pairMeasures } from './compare';
-import { pairAnswer, pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairSentences, sideBySide } from './compare-copy';
+import { pairAnswer, pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIndexed, pairOverviewCopy, pairSentences, pairTurns, sideBySide } from './compare-copy';
 import { nextMeasures, nextPairs } from './next';
 import { listedPairs, pairReasons } from './pairs';
 import { worldCopy, worldMeasure, worldSlugs } from './world';
@@ -97,6 +97,16 @@ describe('a real pair', () => {
     if (pop) expect(sideBySide(pop, EN)).toMatchObject({ lead: 'b', ratio: expect.stringMatching(/^[\d.]+$/) });
     const temp = measures.find(m => m.spec.slug === 'temperature');
     if (temp) expect(sideBySide(temp, EN).ratio).toBeUndefined();
+  });
+
+  it('tells the latest changes of lead, newest first, leaving out measures that flip most years', () => {
+    if (!greece || !turkey) return;
+    const pair = { a: greece, b: turkey };
+    const turns = pairTurns(pair, pairMeasures(pair), EN);
+    for (const turn of turns) expect(turn.line).toMatch(/^(Greece|Türkiye) has been higher since \d{4}, when it overtook (Greece|Türkiye)\.$/);
+    const years = turns.map(turn => Number(/since (\d{4})/.exec(turn.line)![1]));
+    expect(years).toEqual([...years].sort((x, y) => y - x));
+    expect(turns.map(turn => turn.slug)).not.toContain('gdp-growth');
   });
 
   it('leads on to listed pairs sharing a country, and the pair’s other measures', () => {

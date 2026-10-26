@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { cx, FOCUS_RING } from '@/components/ui/class-names';
+import { cx } from '@/components/ui/class-names';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { SERIES_INK } from '@/lib/map/style/tokens';
 import type { SideBySide } from '@/lib/platform/site/compare/compare-copy';
@@ -61,9 +61,13 @@ export function HeadToHead({ countries, rows, t }: { countries: [string, string]
                 };
                 const lead = side.lead === 'a' ? 0 : side.lead === 'b' ? 1 : undefined;
                 return (
-                  <li key={spec.slug} className={cx(ROW, 'py-2.5 hover:bg-surface-2/60')}>
+                  <li key={spec.slug} className={cx(ROW, 'group relative py-2.5 hover:bg-surface-2/60')}>
                     <div className="min-w-0">
-                      <Link href={href} rel={rel} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{t(spec.label)}</Link>
+                      {/* The whole row leads to the measure's page. */}
+                      <Link href={href} rel={rel}
+                        className="text-ink-1 outline-none group-hover:text-accent after:absolute after:inset-0 focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-accent">
+                        {t(spec.label)}
+                      </Link>
                       <span className="block text-[11px] text-ink-3">{t(spec.unit)}{shared && ` · ${side.a[0]}`}</span>
                     </div>
                     <div className={MIDDLE}>

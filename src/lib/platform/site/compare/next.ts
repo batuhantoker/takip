@@ -7,7 +7,7 @@ import { comparedWith, type CountryPair } from './pairs';
  * country with it. Only pages put forward for search are offered, so the links add no addresses for crawlers.
  */
 
-const NEXT_PAIRS = 4;
+const NEXT_PAIRS = 6;
 const NEXT_MEASURES = 4;
 
 /**

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cx } from '@/components/ui/class-names';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { Notes } from '@/components/site/places/parts/notes';
 import { chartWords } from '@/components/site/places/topics/lib/indicator-lines';
@@ -41,11 +42,37 @@ function OwnPages({ places, names, t, slug }: { places: Place[]; names: string[]
   );
 }
 
-export function PairOverviewBody({ text, places, names, measures }: { text: SiteText; places: Place[]; names: string[]; measures: PairMeasure[] }) {
+/** Facts led by the measure they are about, which leads to its page. */
+function Facts({ facts }: { facts: { metric: string; line: string; href: string; rel?: string }[] }) {
+  return (
+    <ul className="flex flex-col gap-2.5">
+      {facts.map(f => (
+        <li key={f.href} className="flex gap-2.5 text-[15px] leading-relaxed text-ink-2">
+          <span aria-hidden className="mt-[10px] size-1.5 shrink-0 rounded-full bg-ink-3" />
+          <span><Link href={f.href} rel={f.rel} className={cx(TEXT_LINK, 'font-medium')}>{f.metric}</Link>{' · '}{f.line}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function PairOverviewBody({ text, places, names, measures, turns }: {
+  text: SiteText;
+  places: Place[];
+  names: string[];
+  measures: PairMeasure[];
+  /** The latest changes of lead, while just the two are compared. */
+  turns: { metric: string; line: string; href: string; rel?: string }[];
+}) {
   const { t } = text;
   const by = [...new Set(measures.map(m => m.spec.by))];
   return (
     <>
+      {turns.length > 0 && (
+        <Section title={t('When the lead changed')}>
+          <Facts facts={turns} />
+        </Section>
+      )}
       <Section title={t('Each country on its own')}>
         <OwnPages places={places} names={names} t={t} />
       </Section>

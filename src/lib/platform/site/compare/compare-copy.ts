@@ -278,6 +278,23 @@ export function pairHighlights(pair: CountryPair, measures: PairMeasure[], t: Tr
   });
 }
 
+/** Measures whose lead flips most years, where an overtake is noise rather than news. */
+const VOLATILE = new Set(['population-growth', 'gdp-growth', 'inflation', 'net-migration', 'conflict-deaths', 'arms-imports', 'arms-exports']);
+const MAX_TURNS = 4;
+/** How long ago an overtake is still worth telling. */
+const TURN_YEARS = 30;
+
+/** The pair's latest changes of lead, newest first: "Military spending" / "Germany has been higher since 2025, when it overtook France." */
+export function pairTurns(pair: CountryPair, measures: PairMeasure[], t: Translate): { slug: string; metric: string; line: string }[] {
+  const { a, b } = names(pair, t);
+  return measures.flatMap(m => {
+    const f = pairFacts(m);
+    const turned = f && f.lead !== 'tie' && f.before && f.before !== 'tie' && f.year - f.since <= TURN_YEARS && !VOLATILE.has(m.spec.slug);
+    return turned ? [{ m, f }] : [];
+  }).sort((x, y) => y.f.since - x.f.since).slice(0, MAX_TURNS)
+    .map(({ m, f }) => ({ slug: m.spec.slug, metric: t(m.spec.label), line: sinceSentence(f, a, b, t)! }));
+}
+
 /**
  * With countries beyond the pair, where they all stand in the latest year they share, highest first, or else each
  * one's latest figure: "Life expectancy in 2023, highest first: Greece: 81.9 years, Germany: 81 years and Türkiye: 77.2 years."
