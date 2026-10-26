@@ -18,7 +18,7 @@ const HOW: Record<OperatorHow, string> = {
 
 function OperatorRow({ t, op }: { t: Translate; op: TransitOperator }) {
   return (
-    <li className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
+    <li className="flex flex-col gap-1 py-3 sm:flex-row sm:gap-6">
       <span className="text-[14px] font-medium text-ink-1 sm:w-64 sm:flex-shrink-0">
         {op.name}
         {op.modes.length > 0 && <span className="block text-[12px] font-normal text-ink-3">{modesText(op.modes, t)}</span>}
@@ -34,6 +34,7 @@ function OperatorRow({ t, op }: { t: Translate; op: TransitOperator }) {
 export const TRANSIT_VIEW: TopicView<TransitData, TransitNow> = {
   nearbySummary: true,
   icon: Bus,
+  figures: ({ text: { t }, live }) => (live?.total ? [{ value: count(live.total, t), label: t('vehicles on the map') }] : []),
 
   Live({ text: { t }, place, live: now }) {
     return (
@@ -76,7 +77,7 @@ export const TRANSIT_VIEW: TopicView<TransitData, TransitNow> = {
     return (
       <>
         <Section title={t('Who runs it')}>
-          <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
+          <ul className="divide-y divide-line border-y border-line">
             {ops.map(op => <OperatorRow key={op.name} t={t} op={op} />)}
           </ul>
         </Section>

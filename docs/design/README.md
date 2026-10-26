@@ -297,6 +297,33 @@ from the panel's own How this works button. A panel marks its sections with
 names a few of them and says how many. Only this look inside starts History;
 the tour ends it again when it moves on, and leaves it running if stopped there.
 
+## Reading pages
+
+The public pages around the map (places, layers, events, guides, compare, space) are read, not operated, so they
+get a larger scale of their own. The tokens, colours and voice are the panels'.
+
+| Role | Size / line | Weight |
+|---|---|---|
+| Page title (h1) | 48 / 52, 36 / 40 on a phone | 600 |
+| Section title (h2) | 22 / 28 | 600 |
+| Lede | 17 / 26, `ink-2` | 400 |
+| Body, list row title | 15 / 24 | 400, titles 500 |
+| Notes, sources, closing band | 13 / 20, `ink-2`/`ink-3` | 400 |
+| Figure | 22 / 28 to 28 / 32, mono | 500 |
+
+- Lead with figures: counts, temperatures, times, distances in mono `tabular-nums`, each saying what it is and
+  linking to the page that explains it. The sentence that says the same stays under them for search engines.
+- Two tiers of sections. Primary sections carry the page; their source and freshness sit right-aligned beside the
+  title in 11 px `ink-3`. A closing band, after a hairline, holds notes, sources and nearby places at 13 px. Notes
+  are plain text: no coloured rule (amber means warning).
+- Links to other pages are lists split by hairlines, the whole row the link: a title, then one line with its key
+  number in mono. No boxes, arrows or icons. Cards are for pictures (cameras, photos, day trips).
+- A list repeated under many items is cut to what differs between them, with a count for the rest.
+- One column of about 46 rem for prose. Lists and pictures may run the full width. A side column holds something
+  real (the live map beside a list) or isn't there; it never holds only an ad.
+- A place's chrome is its breadcrumb and its row of text tabs, sticky at the top; the heading follows. On a phone the
+  first screen holds the heading and the figures, the map's picture below them.
+
 ## Panel anatomy
 
 Use `Panel` from `@/components/ui/panel`.

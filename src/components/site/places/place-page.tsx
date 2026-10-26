@@ -21,7 +21,7 @@ import { siteText } from '@/lib/platform/site/text';
 import { PlaceArticle, type PageLive } from './place-article';
 
 /** The topics whose "right now" also shows on a place's overview. */
-const OVERVIEW_LIVE = ['transit', 'weather'];
+const OVERVIEW_LIVE = ['transit', 'weather', 'ports'];
 
 /** The place and page a URL names, if it has one. Shared by the metadata and the page within one request. */
 const load = cache(async (kind: PlaceKind, slug: string, pageSlug?: string) => {
@@ -56,11 +56,9 @@ export async function placeMetadata(kind: PlaceKind, slug: string, page?: string
 }
 
 /** What each page's topic says is true right now, stamped with when it was. */
-async function livesFor(refs: PlacePageRef[], place: Place, t: Translate, overview: boolean): Promise<PageLive[]> {
+async function livesFor(refs: PlacePageRef[], place: Place, t: Translate): Promise<PageLive[]> {
   const found = await Promise.all(refs.filter(r => r.topic.live).map(async ref => {
-    const answer: unknown = await ref.topic.live!(place, ref.page, t).catch(() => null);
-    // The overview gives each topic one line: the first of a list (the nearest station).
-    const live = overview && Array.isArray(answer) ? answer.slice(0, 1) : answer;
+    const live: unknown = await ref.topic.live!(place, ref.page, t).catch(() => null);
     if (live == null || (Array.isArray(live) && !live.length)) return null;
     // A live answer may say when it was true (transit does); an array's `at` is its method, not a time.
     const stamp = !Array.isArray(live) && (live as { at?: unknown }).at;
@@ -76,7 +74,7 @@ export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: s
   const { place, pages, places, current, text, copy, index: indexed } = found;
   const { t } = text;
   const [lives, detail] = await Promise.all([
-    livesFor(current ? [current] : pages.filter(p => OVERVIEW_LIVE.includes(p.topic.id)), place, t, !current),
+    livesFor(current ? [current] : pages.filter(p => OVERVIEW_LIVE.includes(p.topic.id)), place, t),
     current?.topic.detail ? current.topic.detail(place, current.page, t).catch(() => null) : null,
   ]);
   const origin = configuredOrigin() ?? publicOrigin(await headers());
@@ -98,8 +96,7 @@ export async function PlacePage({ kind, slug, page }: { kind: PlaceKind; slug: s
       ])) }} />
       <PlaceArticle text={text} place={place} copy={copy} pages={pages} places={places} current={current} lives={lives} detail={detail}
         image={shotUrl(placeShotSlug(place.kind, place.slug, current?.page.slug))}
-        nearby={nearbyWith(place, current?.topic.id)}
-        kicker={current ? { href: overview, label: name, rel: crawlRel(placeIndexed(place)) } : { href: index, label: kindLabel }} />
+        nearby={nearbyWith(place, current?.topic.id)} />
     </SiteFrame>
   );
 }

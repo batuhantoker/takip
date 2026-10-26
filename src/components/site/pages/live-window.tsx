@@ -62,7 +62,7 @@ export function LiveWindow({ src, href, image, fallback, alt, cta, explore, badg
   }, [mode, wide]);
 
   return (
-    <div ref={box} className={cx('relative overflow-hidden rounded-float border border-line bg-surface-1 shadow-float', mode === 'beside' ? 'h-[min(calc(100vh-6rem),40rem)]' : 'aspect-[16/9]')}>
+    <div ref={box} className={cx('relative overflow-hidden rounded-float border border-line bg-surface-1 shadow-float', mode === 'beside' ? 'h-[min(calc(100vh-6rem),40rem)]' : 'aspect-[16/9] lg:aspect-[4/3]')}>
       <a href={href} aria-label={`${cta}: ${alt}`} tabIndex={ready ? -1 : undefined} className={cx('group absolute inset-0 block', FOCUS_RING)}>
         {image
           // eslint-disable-next-line @next/next/no-img-element -- served from .cache by our own route.

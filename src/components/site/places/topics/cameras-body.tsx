@@ -1,4 +1,4 @@
-import { ArrowUpRight, Video } from 'lucide-react';
+import { Video } from 'lucide-react';
 import Link from 'next/link';
 import { Fragment, type ReactNode } from 'react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
@@ -15,6 +15,7 @@ import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { CameraPick, CamerasData } from '@/lib/platform/site/places/topics/cameras';
 import { Notes } from '../parts/notes';
+import { WithFigures } from '../parts/place-links';
 import { CameraFrames, type CameraFrame } from './parts/camera-frames';
 import { CameraPlayer } from './parts/camera-player';
 import type { TopicView } from './view';
@@ -54,6 +55,7 @@ export const CAMERAS_VIEW: TopicView<CamerasData> = {
   nearbySummary: true,
   overviewFirst: true,
   mapBeside: true,
+  figures: ({ text: { t }, page: { data } }) => (data.onAir ? [{ value: count(data.onAir, t), label: t('public cameras') }] : []),
 
   // The pictures are what a reader came for; on a phone they sit right under the map button.
   Hero({ text: { t }, page: { data } }) {
@@ -97,15 +99,15 @@ export const CAMERAS_VIEW: TopicView<CamerasData> = {
       <>
         {data.sources.length > 0 && (
           <Section title={t('Who publishes them')}>
-            <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
+            <ul className="divide-y divide-line border-y border-line">
               {data.sources.map(([name, n]) => (
-                <li key={name} className="flex items-baseline justify-between gap-6 px-4 py-3 text-[14px]">
+                <li key={name} className="flex items-baseline justify-between gap-6 py-3 text-[14px]">
                   <span className="font-medium text-ink-1">{name}</span>
                   <span className="font-mono tabular-nums text-ink-2">{count(n, t)}</span>
                 </li>
               ))}
               {data.others > 0 && (
-                <li className="flex items-baseline justify-between gap-6 px-4 py-3 text-[14px]">
+                <li className="flex items-baseline justify-between gap-6 py-3 text-[14px]">
                   <span className="text-ink-2">{t('Other sources')}</span>
                   <span className="font-mono tabular-nums text-ink-2">{count(data.others, t)}</span>
                 </li>
@@ -115,16 +117,12 @@ export const CAMERAS_VIEW: TopicView<CamerasData> = {
         )}
 
         <Section title={data.onAir ? t('The cameras nearest the centre') : t('The cameras listed, off air')}>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-8">
             {data.picks.map(p => (
-              <li key={`${p.name}-${p.at.join(',')}`} data-map={p.at.join(',')} data-map-label={p.name}>
-                <a href={cameraPath(p.at)} data-map-jump={CAMERA_ZOOM}
-                  className={cx('group flex items-center gap-3 rounded-card border border-line bg-surface-1 px-3 py-2.5 hover:border-line-strong', FOCUS_RING, TRANSITION, p.offline && 'opacity-70')}>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-medium text-ink-1">{p.name}</span>
-                    <span className="block truncate text-[12px] text-ink-3">{pickMeta(p, t)}</span>
-                  </span>
-                  <ArrowUpRight className="size-4 flex-shrink-0 text-ink-3 group-hover:text-ink-1" aria-hidden />
+              <li key={`${p.name}-${p.at.join(',')}`} data-map={p.at.join(',')} data-map-label={p.name} className="border-b border-line">
+                <a href={cameraPath(p.at)} data-map-jump={CAMERA_ZOOM} className={cx('group block py-3', FOCUS_RING, p.offline && 'opacity-70')}>
+                  <span className={cx('block truncate text-[15px] leading-6 font-medium text-ink-1 group-hover:text-accent', TRANSITION)}>{p.name}</span>
+                  <span className="block truncate text-[13px] leading-5 text-ink-3"><WithFigures text={pickMeta(p, t)} /></span>
                 </a>
               </li>
             ))}

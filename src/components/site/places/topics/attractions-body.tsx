@@ -8,7 +8,7 @@ import { GROUP_COLOR } from '@/lib/places/attractions/map-layers';
 import type { Photo } from '@/lib/places/attractions/photos';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
-import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { count, nameOf } from '@/lib/platform/site/places/copy/format';
 import { placeById } from '@/lib/platform/site/places/gazetteer';
 import { placeIndexed, placePages } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
@@ -58,7 +58,7 @@ export const mapRow = (id: string, item: AttractionItem, locale: Locale) =>
 function TopFew({ text, entries }: { text: SiteText; entries: AttractionEntry[] }) {
   const { t } = text;
   return (
-    <ol className="grid gap-x-8 sm:grid-cols-2">
+    <ol className="grid gap-x-8 sm:grid-cols-2 lg:grid-cols-3">
       {entries.map((e, i) => {
         const city = e.city ? placeById(e.city) : undefined;
         const where = e.km !== undefined ? t('{km, distance} from the centre', { km: e.km }) : city ? nameOf(city, t) : null;
@@ -92,6 +92,7 @@ const HIGHLIGHTS = 6;
 
 export const ATTRACTIONS_VIEW: TopicView<AttractionsData, never, Photos> = {
   icon: Landmark,
+  figures: ({ text: { t }, page: { data } }) => (data.entries.length ? [{ value: count(data.entries.length, t), label: t('places to see') }] : []),
   overviewFirst: true,
   mapBeside: true,
 

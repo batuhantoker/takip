@@ -127,6 +127,10 @@ function riseLine(r: SunReport, tz: string, place: Place, t: Translate): string 
 
 export const SUN_VIEW: TopicView<SunData, SunReport> = {
   icon: Sunrise,
+  figures: ({ text: { t }, place, page: { data }, live }) => {
+    const r = live ?? sunToday(place, data.tz);
+    return typeof r.today.set === 'number' ? [{ value: sunAt(r.today.set, r.date, data.tz, t), label: t('sunset today') }] : [];
+  },
 
   Live({ text, place, page: { data }, live: r }) {
     const { t } = text;

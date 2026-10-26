@@ -67,9 +67,9 @@ export const FLIGHTS_VIEW: TopicView<FlightsData, StationNow[]> = {
           <FlightFinder near={{ lat: place.at[1], lng: place.at[0] }} />
         </Section>
         <Section title={t('Airports')}>
-          <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
+          <ul className="divide-y divide-line border-y border-line">
             {data.airports.map(a => (
-              <li key={a.icao} className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-baseline sm:gap-6">
+              <li key={a.icao} className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:gap-6">
                 <span className="text-[14px] font-medium text-ink-1 sm:w-72 sm:flex-shrink-0">{a.name}</span>
                 <span className="text-[14px] text-ink-2">
                   <span className="font-mono">{a.iata} · {a.icao}</span>

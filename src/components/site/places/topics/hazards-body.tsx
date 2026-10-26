@@ -35,7 +35,7 @@ function EventRow({ e, t }: { e: HazardEventFact; t: Translate }) {
   const links = hazardLinks(e);
   const m = measure(e, t);
   return (
-    <li className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
+    <li className="flex flex-col gap-1 py-3 sm:flex-row sm:gap-6">
       <span className="text-[14px] font-medium text-ink-1 sm:w-44 sm:flex-shrink-0">
         {hazardDate(e.d, t)}
         <span className="block text-[12px] font-normal text-ink-3">{t(KIND[e.k])}{m && <> · <span className="font-mono tabular-nums">{m}</span></>}</span>
@@ -128,7 +128,7 @@ export const HAZARDS_VIEW: TopicView<HazardData, HazardsNow> = {
         )}
         {f.list.length > 0 && (
           <Section title={t('The events')}>
-            <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
+            <ul className="divide-y divide-line border-y border-line">
               {f.list.map(e => <EventRow key={e.id} e={e} t={t} />)}
             </ul>
           </Section>

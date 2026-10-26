@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { Fragment } from 'react';
-import { ArrowUpRight, type LucideIcon } from 'lucide-react';
+import { Fragment, type ReactNode } from 'react';
+import { ArrowUpRight } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
-import { countryName, nameOf } from '@/lib/platform/site/places/copy/format';
+import { listOf, nameOf } from '@/lib/platform/site/places/copy/format';
 import { inNavOrder, placeIndexed, placePages, topicPages, type PlacePageRef } from '@/lib/platform/site/places/pages';
-import { km, regionLabel } from '@/lib/platform/site/places/gazetteer';
+import { km } from '@/lib/platform/site/places/gazetteer';
 import { topicShown } from '@/lib/platform/site/places/topics/faith-reach';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
@@ -50,7 +50,7 @@ export function TopicNav({ text, place, pages, current }: { text: SiteText; plac
   const live = listed.filter(p => LIVE_TOPICS.has(p.topic.id)).map(item);
   const rest = listed.filter(p => !LIVE_TOPICS.has(p.topic.id)).map(item);
   return (
-    <nav aria-label={t('{city} on TAKIP', { city: nameOf(place, t) })} className="sticky top-0 z-20 mt-8 border-b border-line bg-surface-0/95 backdrop-blur">
+    <nav aria-label={t('{city} on TAKIP', { city: nameOf(place, t) })} className="sticky top-0 z-20 mt-6 border-b border-line bg-surface-0/95 backdrop-blur">
       <TabRow className="relative -mx-3 flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <Tab t={t} item={{ href: placePath(place), label: t('Overview'), here: !current, rel: crawlRel(placeIndexed(place)) }} />
         {live.length > 0 && <Rule />}
@@ -65,11 +65,10 @@ export function TopicNav({ text, place, pages, current }: { text: SiteText; plac
 }
 
 /** A plain card that leads to another page. */
-export function LinkCard({ href, title, line, rel, Icon }: { href: string; title: string; line: string; rel?: string; Icon?: LucideIcon }) {
+export function LinkCard({ href, title, line, rel }: { href: string; title: string; line: string; rel?: string }) {
   return (
     <Link href={href} rel={rel} className={cx('group flex h-full flex-col gap-2 rounded-card border border-line bg-surface-1 p-4 hover:border-line-strong', FOCUS_RING, TRANSITION)}>
       <span className="flex items-center gap-2 text-[15px] font-semibold text-ink-1">
-        {Icon && <Icon className="size-4 text-ink-3" aria-hidden />}
         <span className="flex-1">{title}</span>
         <ArrowUpRight className="size-4 text-ink-3 group-hover:text-ink-1" aria-hidden />
       </span>
@@ -78,25 +77,49 @@ export function LinkCard({ href, title, line, rel, Icon }: { href: string; title
   );
 }
 
+/** A line with its numbers in mono, as the reading pages set figures. */
+export function WithFigures({ text }: { text: string }) {
+  return text.split(/(\d[\d.,:\u00a0\u202f]*\d|\d)/).map((part, i) =>
+    i % 2 ? <span key={i} className="font-mono tabular-nums">{part}</span> : part);
+}
+
+/** Other pages as a list split by hairlines: each row the link, its title and then one line about it. */
+export function PageList({ items }: { items: { href: string; rel?: string; title: string; line: string }[] }) {
+  return (
+    <ul className="grid border-t border-line sm:grid-cols-2 sm:gap-x-10">
+      {items.map(i => (
+        <li key={i.href} className="border-b border-line">
+          <Link href={i.href} rel={i.rel} className={cx('group block py-3.5', FOCUS_RING)}>
+            <span className={cx('block text-[15px] leading-6 font-medium text-ink-1 group-hover:text-accent', TRANSITION)}>{i.title}</span>
+            <span className="mt-0.5 block text-[13px] leading-5 text-ink-3"><WithFigures text={i.line} /></span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /**
- * Other places, each as a card naming its region and its indexed pages; to the same topic page when it has one. With
- * `from`, a card on that page's topic says what the topic holds there and how far it is instead.
+ * Places near `from`, each with how far it is and what it has; to the same topic page when it has one. With `summary`,
+ * a place says what that topic holds there instead of naming its pages.
  */
-export function PlaceCards({ text, places, page, from }: { text: SiteText; places: Place[]; page?: string; from?: Place }) {
+export function NearbyList({ text, places, from, page, summary }: { text: SiteText; places: Place[]; from: Place; page?: string; summary?: boolean }) {
   const { t } = text;
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <ul className="grid grid-cols-1 border-t border-line sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-4">
       {places.map(p => {
         const pages = placePages(p).filter(x => x.page.index);
-        const named = pages.filter(x => !x.topic.faith);
         const same = page ? pages.find(x => x.page.slug === page) : undefined;
-        const region = regionLabel(p, t.locale) ?? countryName(p.cc, t);
-        const line = from && same
-          ? `${region} · ${t('{km, distance} away', { km: km(from.at, p.at) })} · ${same.topic.summary(p, same.page, t)}`
-          : `${region} · ${[...new Set(named.map(x => t(x.topic.label)))].join(', ')}`;
+        const labels = [...new Set(pages.filter(x => !x.topic.faith).map(x => t(x.topic.label)))];
+        const fact = summary && same ? same.topic.summary(p, same.page, t) : listOf(labels, t);
         return (
-          <li key={p.id}>
-            <LinkCard href={localePath(t.locale, placePath(p, same?.page.slug))} rel={crawlRel(!!same || placeIndexed(p))} title={nameOf(p, t)} line={line} />
+          <li key={p.id} className="border-b border-line">
+            <Link href={localePath(t.locale, placePath(p, same?.page.slug))} rel={crawlRel(!!same || placeIndexed(p))} className={cx('group block py-2.5', FOCUS_RING)}>
+              <span className={cx('block text-[14px] leading-5 font-medium text-ink-1 group-hover:text-accent', TRANSITION)}>{nameOf(p, t)}</span>
+              <span className="mt-0.5 block text-[12px] leading-[18px] text-ink-3">
+                <WithFigures text={[t('{km, distance} away', { km: km(from.at, p.at) }), fact].filter(Boolean).join(' · ')} />
+              </span>
+            </Link>
           </li>
         );
       })}
@@ -104,22 +127,44 @@ export function PlaceCards({ text, places, page, from }: { text: SiteText; place
   );
 }
 
-/** Many places as plain links, each with its topics linked to their pages there. */
+/**
+ * Many places as plain links, each with its population and the pages that set it apart: a topic most of the others
+ * also have is counted, not named again under every place.
+ */
 export function PlaceList({ text, places }: { text: SiteText; places: Place[] }) {
   const { t } = text;
+  const pagesOf = new Map(places.map(p => [p.id, topicPages(p)]));
+  const held = new Map<string, number>();
+  for (const pages of pagesOf.values()) for (const id of new Set(pages.map(x => x.topic.id))) held.set(id, (held.get(id) ?? 0) + 1);
+  const rare = (id: string) => (held.get(id) ?? 0) <= places.length / 2;
+  const people = new Intl.NumberFormat(t.intl, { notation: 'compact', maximumFractionDigits: 1 });
   return (
-    <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
-      {places.map(p => (
-        <li key={p.id} className="text-[14px]">
-          <Link href={localePath(t.locale, placePath(p))} rel={crawlRel(placeIndexed(p))} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{nameOf(p, t)}</Link>
-          <span className="text-ink-3"> · {topicPages(p).map((x, i) => (
-            <Fragment key={x.topic.id}>
-              {i > 0 && ', '}
-              <Link href={localePath(t.locale, placePath(p, x.page.slug))} className={cx('hover:text-ink-1', FOCUS_RING)}>{t(x.topic.label)}</Link>
-            </Fragment>
-          ))}</span>
-        </li>
-      ))}
+    <ul className="grid grid-cols-1 border-t border-line sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-3">
+      {places.map(p => {
+        const pages = pagesOf.get(p.id) ?? [];
+        const named = pages.filter(x => rare(x.topic.id)).slice(0, 2);
+        const more = pages.length - named.length;
+        const line: ReactNode[] = named.map((x, i) => (
+          <Fragment key={x.topic.id}>
+            {i > 0 && ', '}
+            <Link href={localePath(t.locale, placePath(p, x.page.slug))} className={cx('hover:text-ink-1', FOCUS_RING)}>{t(x.topic.label)}</Link>
+          </Fragment>
+        ));
+        return (
+          <li key={p.id} className="flex flex-col gap-0.5 border-b border-line py-2.5">
+            <span className="flex items-baseline justify-between gap-3">
+              <Link href={localePath(t.locale, placePath(p))} rel={crawlRel(placeIndexed(p))} className={cx('truncate text-[15px] leading-6 font-medium text-ink-1 hover:text-accent', FOCUS_RING)}>{nameOf(p, t)}</Link>
+              {p.pop > 0 && <span className="shrink-0 font-mono text-[12px] tabular-nums text-ink-3">{people.format(p.pop)}</span>}
+            </span>
+            {(named.length > 0 || more > 0) && (
+              <span className="text-[13px] leading-5 text-ink-3">
+                {line}
+                {more > 0 && `${named.length ? ' · ' : ''}${t('{n, plural, one {# more page} other {# more pages}}', { n: more })}`}
+              </span>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

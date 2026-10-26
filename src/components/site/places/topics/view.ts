@@ -6,6 +6,9 @@ import type { SiteText } from '@/lib/platform/site/text';
 
 export interface TopicViewProps<D> { text: SiteText; place: Place; page: TopicPage<D> }
 
+/** A number a page leads with, in mono, and what it is. */
+export interface Figure { value: string; label: string }
+
 /**
  * How a topic's page renders: its body below the header, and the "right now" box when its lib module's live()
  * returned something. Server components; they get their text already in the reader's language through text.t.
@@ -15,6 +18,11 @@ export interface TopicView<D, L = never, X = never> {
   /** `detail` is what the topic's detail() returned, null when it failed. */
   Body(props: TopicViewProps<D> & { detail?: X | null }): ReactNode;
   Live?(props: TopicViewProps<D> & { live: L }): ReactNode;
+  /**
+   * The page's figures, for its header; the place's overview leads with each listed page's first. From the page's data,
+   * and its live() answer where one came back. Called, not mounted.
+   */
+  figures?(props: TopicViewProps<D> & { live?: L }): Figure[];
   /** Shown in the header instead of the live map, where something shows the topic better; null keeps the map. */
   Hero?(props: TopicViewProps<D>): ReactNode;
   /** In the header under the lede: the page's figures; null for none. */

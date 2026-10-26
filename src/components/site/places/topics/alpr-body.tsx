@@ -1,4 +1,4 @@
-import { ArrowUpRight, ScanLine, Video } from 'lucide-react';
+import { ArrowUpRight, ScanLine } from 'lucide-react';
 import Link from 'next/link';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
@@ -41,9 +41,9 @@ function areasTitle(place: Place, t: Translate): string {
 
 function Tally({ rows, t }: { rows: [string, number][]; t: Translate }) {
   return (
-    <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
+    <ul className="divide-y divide-line border-y border-line">
       {rows.map(([name, n]) => (
-        <li key={name} className="flex items-baseline justify-between gap-6 px-4 py-3 text-[14px]">
+        <li key={name} className="flex items-baseline justify-between gap-6 py-3 text-[14px]">
           <span className="font-medium text-ink-1">{name}</span>
           <span className="font-mono tabular-nums text-ink-2">{count(n, t)}</span>
         </li>
@@ -160,7 +160,7 @@ export const ALPR_VIEW: TopicView<AlprData> = {
     return (
       <Section title={t('Public cameras')}>
         <LinkCard href={localePath(t.locale, placePath(place, cams.page.slug))} rel={crawlRel(placeIndexed(place, cams.page.slug))} title={shortHeading(cams.topic.header(place, cams.page, t).heading, place, t)}
-          line={cams.topic.summary(place, cams.page, t)} Icon={Video} />
+          line={cams.topic.summary(place, cams.page, t)} />
       </Section>
     );
   },

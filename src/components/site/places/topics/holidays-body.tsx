@@ -45,9 +45,9 @@ function LongWeekends({ place, row, data, year, t }: { place: Place; row: Holida
   return (
     <Section title={t('Long weekends and bridge days in {year}', { year: String(year) })}>
       {f.longWeekends.length ? (
-        <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
+        <ul className="divide-y divide-line border-y border-line">
           {f.longWeekends.map(r => (
-            <li key={r.from} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-[14px]">
+            <li key={r.from} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-[14px]">
               <span className="font-medium text-ink-1">{shortSpan(r.from, r.to, t)}</span>
               <span className="text-ink-2">{t('{n} days off', { n: r.days })} · {runNames(r, t)}</span>
             </li>

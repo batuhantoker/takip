@@ -1,7 +1,7 @@
 import { Footprints } from 'lucide-react';
 import { Section, TEXT_LINK } from '@/components/site/pages/site-frame';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
-import { dayOf, nameOf } from '@/lib/platform/site/places/copy/format';
+import { count, dayOf, nameOf } from '@/lib/platform/site/places/copy/format';
 import type { HikingData } from '@/lib/platform/site/places/topics/hiking';
 import { HIKING_SOURCE, routeLink } from '@/lib/platform/site/places/topics/hiking-data';
 import { kmText, renderHikingSentence, routeName, type ListedRoute } from '@/lib/platform/site/places/topics/hiking-facts';
@@ -18,7 +18,7 @@ function RouteRow({ t, route, r }: { t: Translate; route: ListedRoute; r: number
   const network = NETWORK[route.net] ? t(NETWORK[route.net]) : route.net;
   const whole = !!route.km && route.km > route.kmIn * 1.1;
   return (
-    <li className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
+    <li className="flex flex-col gap-1 py-3 sm:flex-row sm:gap-6">
       <span className="text-[14px] font-medium text-ink-1 sm:w-72 sm:flex-shrink-0">
         <a href={routeLink(route.id)} rel="noopener nofollow" target="_blank" className={TEXT_LINK}>{routeName(route, route.id)}</a>
         <span className="block text-[12px] font-normal text-ink-3">
@@ -38,6 +38,7 @@ function RouteRow({ t, route, r }: { t: Translate; route: ListedRoute; r: number
 
 export const HIKING_VIEW: TopicView<HikingData> = {
   icon: Footprints,
+  figures: ({ text: { t }, page: { data } }) => (data.story.facts.total ? [{ value: count(data.story.facts.total, t), label: t('waymarked hiking routes') }] : []),
 
   Body({ text, place, page: { data } }) {
     const { t } = text;
@@ -58,7 +59,7 @@ export const HIKING_VIEW: TopicView<HikingData> = {
         {more.length > 0 && <Section title={t('Around {city}', { city })}><p>{more.join(' ')}</p></Section>}
         {f.routes.length > 0 && (
           <Section title={t('The routes with most of their length within {r, radius}', { r: f.r })}>
-            <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
+            <ul className="divide-y divide-line border-y border-line">
               {f.routes.map(route => <RouteRow key={route.id} t={t} route={route} r={f.r} />)}
             </ul>
             <p className="mt-3 text-[13px] text-ink-3">

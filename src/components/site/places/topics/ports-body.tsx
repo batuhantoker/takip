@@ -28,7 +28,7 @@ const shipClass = (type: string, t: Translate) => t(SHIP_CLASSES.find(c => c.typ
 function HarbourRow({ t, place, port }: { t: Translate; place: Place; port: NearPort }) {
   const home = port.home !== place.id ? placeById(port.home) : undefined;
   return (
-    <li className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-6">
+    <li className="flex flex-col gap-1 py-3 sm:flex-row sm:gap-6">
       <span className="text-[14px] font-medium text-ink-1 sm:w-64 sm:flex-shrink-0">
         {portLabel(port.name, place, t)}
         <span className="block text-[12px] font-normal text-ink-3">{t('{km, distance} from the centre', { km: Math.max(1, Math.round(port.km)) })}</span>
@@ -45,6 +45,7 @@ function HarbourRow({ t, place, port }: { t: Translate; place: Place; port: Near
 
 export const PORTS_VIEW: TopicView<PortsData, ShipsNow> = {
   icon: Ship,
+  figures: ({ text: { t }, live }) => (live?.total ? [{ value: count(live.total, t), label: t('ships near the port') }] : []),
 
   Live({ text: { t }, place, live: now }) {
     return (
@@ -76,7 +77,7 @@ export const PORTS_VIEW: TopicView<PortsData, ShipsNow> = {
         {about.length > 0 && <Section title={t('The harbour')}><p>{about.join(' ')}</p></Section>}
         {harbours.length > 0 && (
           <Section title={t('Harbours within {km, radius}', { km: PORT_KM })}>
-            <ul className="divide-y divide-line rounded-card border border-line bg-surface-1">
+            <ul className="divide-y divide-line border-y border-line">
               {harbours.map(p => <HarbourRow key={p.wpi} t={t} place={place} port={p} />)}
             </ul>
           </Section>

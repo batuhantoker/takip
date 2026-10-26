@@ -66,11 +66,11 @@ function CompareLinks({ place, m, t }: { place: Place; m: IndicatorMeasure; t: T
     <section>
       <h2 className="text-[15px] font-semibold text-ink-1">{t('{metric} beside other countries', { metric })}</h2>
       {partners.length > 0 && (
-        <ul className="mt-3 divide-y divide-line rounded-card border border-line bg-surface-1">
+        <ul className="mt-3 divide-y divide-line border-y border-line">
           {partners.map(p => (
             <li key={p.id}>
               <Link href={localePath(t.locale, comparePath({ a: place, b: p }, m.spec.slug))} rel={crawlRel(compareIndexed({ a: place, b: p }, m.spec.slug))}
-                className={cx('flex items-center justify-between gap-3 px-3 py-2 text-[14px] text-ink-2 hover:text-ink-1', FOCUS_RING)}>
+                className={cx('flex items-center justify-between gap-3 py-2 text-[14px] text-ink-2 hover:text-ink-1', FOCUS_RING)}>
                 {t('{a} vs {b}', { a: nameOf(place, t), b: nameOf(p, t) })}
                 <ArrowUpRight className="size-3.5 shrink-0 text-ink-3" aria-hidden />
               </Link>

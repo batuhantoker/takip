@@ -3,6 +3,25 @@ import { DESCRIPTION_RANGE, fit, listOf, nameOf, placeFirst, placeName, TITLE_MA
 import { inNavOrder, type PlacePageRef } from './pages';
 import type { Place } from './place';
 import type { PlaceCopy } from './topic';
+import type { AttractionsData } from './topics/attractions';
+import { attractionName } from './topics/attractions-data';
+import type { CamerasData } from './topics/cameras';
+import type { HikingData } from './topics/hiking';
+
+const LEDE = [msg('On the live map of {place}: {facts}.'), msg('{place} on TAKIP’s live map: {facts}.')];
+
+/** What the place has, from its pages' own data, a phrase each: a lede about this place rather than about TAKIP. */
+function factsOf(pages: PlacePageRef[], t: Translate): string[] {
+  const data = <D>(id: string) => pages.find(p => p.topic.id === id)?.page.data as D | undefined;
+  const sights = data<AttractionsData>('attractions')?.entries ?? [];
+  const cameras = data<CamerasData>('cameras')?.onAir ?? 0;
+  const routes = data<HikingData>('hiking')?.story.facts.total ?? 0;
+  return [
+    sights.length ? t('{n, plural, one {one place to see} other {# places to see}} led by {top}', { n: sights.length, top: attractionName(sights[0].item, t.locale) }) : '',
+    cameras ? t('{n, plural, one {one public camera} other {# public cameras}}', { n: cameras }) : '',
+    routes ? t('{n, plural, one {one waymarked hiking route} other {# waymarked hiking routes}}', { n: routes }) : '',
+  ].filter(Boolean);
+}
 
 /** A place's overview page: what it has on the map, by its topics' own names and summaries. */
 export function overviewCopy(place: Place, all: PlacePageRef[], t: Translate, places = 0): PlaceCopy {
@@ -13,6 +32,7 @@ export function overviewCopy(place: Place, all: PlacePageRef[], t: Translate, pl
   // A topic with several pages (earthquakes over 10 and 100 years) is named once.
   const labels = (t: Translate, k: number) => listOf([...new Set(pages.map(p => t(p.topic.inline)))].slice(0, k), t);
   const n = pages.length;
+  const facts = factsOf(pages, t);
   return {
     title: fit(placeFirst(place, [
       ...[n, 3, 2].map(k => (t: Translate, city: string) => t('{city} live map: {things}', { city, things: labels(t, k) })),
@@ -24,9 +44,11 @@ export function overviewCopy(place: Place, all: PlacePageRef[], t: Translate, pl
       t => t('{place} on one free live map, with where each layer’s data comes from and what is true there right now.', { place: placeName(place, t) }),
     ], t, DESCRIPTION_RANGE[1], DESCRIPTION_RANGE[0]),
     heading: t('{city}, live', { city: name(t) }),
-    lede: t(wordingOf(place, 'lede', [msg('What TAKIP’s live map has for {place}: {things}. Each page says where its data comes from and what is true there right now.'), msg('TAKIP’s live map for {place}: {things}. Every page names its sources and shows what is true there now.')]), {
-      place: placeName(place, t), things: labels(t, n),
-    }),
+    lede: facts.length
+      ? t(wordingOf(place, 'lede', LEDE), { place: placeName(place, t), facts: listOf(facts, t) })
+      : t(wordingOf(place, 'lede', [msg('What TAKIP’s live map has for {place}: {things}. Each page says where its data comes from and what is true there right now.'), msg('TAKIP’s live map for {place}: {things}. Every page names its sources and shows what is true there now.')]), {
+        place: placeName(place, t), things: labels(t, n),
+      }),
   };
 }
 

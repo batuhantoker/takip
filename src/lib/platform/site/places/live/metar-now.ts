@@ -4,7 +4,7 @@ import { ownApi } from '../../live/own-api';
 import { compass, humidity, knotsToMs, temperatureIn, unitsFor, weatherWords, windSpeedIn } from '../copy/weather-words';
 
 /** One station's latest report, in words. */
-export interface StationNow { icao: string; name: string; km: number; text: string; cat: AirportWx['cat']; minutesAgo: number }
+export interface StationNow { icao: string; name: string; km: number; text: string; cat: AirportWx['cat']; minutesAgo: number; tempC?: number }
 
 // Every station in the world is a few MB, over Next's 2 MB fetch-cache limit, so it is kept here instead.
 const TTL_MS = 5 * 60_000;
@@ -86,7 +86,7 @@ export function stationsNow(rows: AirportWx[], stations: { icao: string; name: s
     const minutesAgo = Math.max(0, Math.round((now - at) / 60_000));
     if (minutesAgo > MAX_AGE_MIN) return [];
     const text = style === 'everyday' ? describeEveryday(w, cc, t) : describeReport(w, cc, t);
-    return text ? [{ icao: s.icao, name: s.name, km: s.km, text, cat: w.cat, minutesAgo }] : [];
+    return text ? [{ icao: s.icao, name: s.name, km: s.km, text, cat: w.cat, minutesAgo, ...(w.tempC != null ? { tempC: w.tempC } : {}) }] : [];
   });
 }
 
