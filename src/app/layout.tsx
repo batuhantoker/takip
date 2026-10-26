@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import AdsProvider from '@/components/shell/ads/ads-provider';
+import AppLinks from '@/components/shell/native/app-links';
+import AppUpdateNote from '@/components/shell/native/app-update-note';
 import ErrorBoundary from '@/components/ui/error-boundary';
 import LocaleProvider from '@/components/ui/locale-provider';
 import { headers } from 'next/headers';
@@ -8,19 +10,28 @@ import { ogLocale } from '@/lib/core/i18n/locales';
 import { getT, requestLocale } from '@/lib/core/i18n/request';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { jsonLd } from '@/lib/platform/site/json-ld';
+import { appsOut, readDownloads, storeLinks } from '@/lib/platform/native/downloads';
+import { appShell, isPhoneApp } from '@/lib/platform/native/shell';
+import { appUpdate } from '@/lib/platform/native/updates';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, siteJsonLd } from '@/lib/platform/site/site-copy';
 import "./globals.css";
 
 // Settings saved before the rename live under osiris.* / osiris:* keys.
 const MIGRATE_STORAGE_KEYS = `try{for(const k of Object.keys(localStorage)){if(!/^osiris[.:]/.test(k))continue;const n='takip'+k.slice(6);if(localStorage.getItem(n)===null)localStorage.setItem(n,localStorage.getItem(k));localStorage.removeItem(k)}}catch(e){}`;
 
-export const viewport: Viewport = {
-  themeColor: "#0A0C0F",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  colorScheme: "dark",
-};
+const requestShell = async () => appShell((await headers()).get('user-agent'));
+
+export async function generateViewport(): Promise<Viewport> {
+  return {
+    themeColor: "#0A0C0F",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+    colorScheme: "dark",
+    // The phone apps draw under the status bar and home indicator; the page keeps clear with env(safe-area-inset-*).
+    ...(isPhoneApp(await requestShell()) ? { viewportFit: "cover" as const } : {}),
+  };
+}
 
 /** SITE_URL once the domain exists; until then the address the request came in on (the tunnel link rotates). */
 async function origin() {
@@ -92,8 +103,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const { locale, chosen, automatic } = await requestLocale();
+  const shell = await requestShell();
+  const update = shell && appUpdate(shell, await readDownloads(), storeLinks());
   return (
-    <html lang={locale} dir="ltr">
+    <html lang={locale} dir="ltr" data-app={shell?.platform} data-apps={(await appsOut()) ? '' : undefined}>
       <head>
         {/* Must run before any client code reads its settings. */}
         <script dangerouslySetInnerHTML={{ __html: MIGRATE_STORAGE_KEYS }} />
@@ -104,8 +117,10 @@ export default async function RootLayout({
       <body className="antialiased">
         <LocaleProvider locale={locale} chosen={chosen} automatic={automatic}>
           <ErrorBoundary name="TAKIP Core">
-            <AdsProvider>{children}</AdsProvider>
+            <AdsProvider inApp={!!shell}>{children}</AdsProvider>
           </ErrorBoundary>
+          {isPhoneApp(shell) && <AppLinks />}
+          {update && <AppUpdateNote version={update} />}
         </LocaleProvider>
       </body>
     </html>

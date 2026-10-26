@@ -10,6 +10,7 @@ import { ArrowDownRight, ArrowUpRight, Check, Download, Link2 } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { PanelSection } from '@/components/ui/panel';
+import { saveFile } from '@/lib/platform/native/save-file';
 import { useT } from '@/components/ui/use-t';
 import { toMarkdown } from '@/lib/ai/client';
 import { evidenceLedger } from '@/lib/ai/engine/sources';
@@ -63,14 +64,7 @@ export function ReportBody({ s, runId, selected, onSelect }: { s: RunState; runI
   const copy = async () => {
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ }
   };
-  const download = () => {
-    const blob = new Blob([toMarkdown(s, url)], { type: 'text/markdown' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `takip-ti-${(runId ?? 'forecast').slice(0, 8)}.md`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  };
+  const download = () => void saveFile(new Blob([toMarkdown(s, url)], { type: 'text/markdown' }), `takip-ti-${(runId ?? 'forecast').slice(0, 8)}.md`);
 
   return (
     <section className="flex flex-col" aria-label={t('Prediction')}>

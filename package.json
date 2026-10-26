@@ -23,6 +23,7 @@
     "shorts": "tsx tools/shorts/cli.ts"
   },
   "dependencies": {
+    "@capacitor/core": "8.5.3",
     "@google/generative-ai": "^0.24.1",
     "@mapbox/mapbox-gl-rtl-text": "0.3.0",
     "@takip/archive": "*",
@@ -68,7 +69,8 @@
     "vitest": "^4.1.11"
   },
   "workspaces": [
-    "apps/*",
+    "apps/api",
+    "apps/ingest",
     "packages/*"
   ]
 }

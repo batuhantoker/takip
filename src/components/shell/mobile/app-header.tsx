@@ -8,7 +8,7 @@ import { cx } from '@/components/ui/class-names';
 export default function AppHeader({ revealed }: { revealed: boolean }) {
   return (
     <div data-hud className={cx(
-      'pointer-events-none absolute top-3 left-3 z-[200] flex h-10 items-center gap-2 rounded-float border border-line bg-surface-1 px-3 text-ink-1 shadow-float',
+      'pointer-events-none absolute top-[calc(12px+env(safe-area-inset-top))] left-3 z-[200] flex h-10 items-center gap-2 rounded-float border border-line bg-surface-1 px-3 text-ink-1 shadow-float',
       'transition-opacity duration-150 ease-out',
       revealed ? 'opacity-100' : 'opacity-0',
     )}>

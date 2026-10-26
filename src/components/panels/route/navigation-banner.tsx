@@ -18,7 +18,7 @@ export default function NavigationBanner({ navSession, setNavSession, liveLocati
 }) {
   return (
     // Centred over the map, not the window: the sidebar and an open panel sit to its left. On a phone it clears the header.
-    <div className="pointer-events-auto absolute top-3 z-[400] max-md:top-16 flex w-[min(92vw,400px)] -translate-x-1/2 flex-col gap-2" style={{ left: 'calc((100% + var(--shell-left, 0px)) / 2)' }}>
+    <div className="pointer-events-auto absolute top-3 z-[400] max-md:top-[calc(64px+env(safe-area-inset-top))] flex w-[min(92vw,400px)] -translate-x-1/2 flex-col gap-2" style={{ left: 'calc((100% + var(--shell-left, 0px)) / 2)' }}>
       {navSession ? (
         <div className="transition-[opacity,translate] duration-150 ease-out starting:-translate-y-2 starting:opacity-0 motion-reduce:transition-none">
           <NavigationView

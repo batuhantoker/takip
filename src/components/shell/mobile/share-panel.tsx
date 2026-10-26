@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { useT } from '@/components/ui/use-t';
@@ -10,6 +10,7 @@ import { formatPosition } from '@/components/shell/status-bar/use-cursor-readout
 import { trackKey, trackedNow } from '@/components/map/inspect/track-request';
 import { viewPath } from '@/lib/map/view-link';
 import { countAction } from '@/lib/platform/usage-actions';
+import { useAppPlatform } from '@/components/shell/native/use-app-platform';
 
 interface SharePanelProps {
   /** Where the map is looking; use-startup.ts reads lat, lon and zoom back from the link. */
@@ -54,6 +55,14 @@ export default function SharePanel({ center, zoom, activeLayers }: SharePanelPro
     timer.current = setTimeout(() => setCopied(false), 2000);
   };
 
+  // The phone apps have the system share sheet, which already lists every app the person uses.
+  const platform = useAppPlatform();
+  const phoneApp = platform === 'ios' || platform === 'android';
+  const share = async () => {
+    countAction('link.share');
+    await (await import('@/lib/platform/native/bridge')).shareLink(url(), t('A view on TAKIP'));
+  };
+
   const link = encodeURIComponent(url());
   const caption = encodeURIComponent(t('A view on TAKIP'));
   const targets = [
@@ -70,7 +79,8 @@ export default function SharePanel({ center, zoom, activeLayers }: SharePanelPro
       </p>
       <div className="flex gap-2">
         <Button variant="primary" icon={copied ? Check : Copy} onClick={copy} className="flex-1">{copied ? t('Link copied') : t('Copy link')}</Button>
-        {targets.map(target => (
+        {phoneApp && <Button icon={Share2} onClick={() => void share()}>{t('link|Share')}</Button>}
+        {!phoneApp && targets.map(target => (
           <a key={target.label} href={target.href} target="_blank" rel="noopener noreferrer"
             className={cx('inline-flex h-8 items-center rounded-control border border-line-strong bg-surface-2 px-3 text-body font-medium text-ink-1 hover:bg-surface-3', FOCUS_RING, TRANSITION)}>
             {target.label}

@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The app shells' generated and native build output (docs/architecture/native-apps.md).
+    "apps/mobile/android/**",
+    "apps/mobile/ios/**",
+    "apps/mobile/www/**",
+    "apps/desktop/dist/**",
+    "apps/desktop/build/**",
+    "apps/desktop/offline/**",
   ]),
 ]);
 

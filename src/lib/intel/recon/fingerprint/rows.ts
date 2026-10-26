@@ -2,6 +2,7 @@ import { platformCategory, toCsv, type Category } from './search';
 import type { ProfileFacts } from '../people/facts';
 import type { Match, MatchTier } from '../people/correlate';
 import type { EmailReport } from '../people/email';
+import { saveFile } from '@/lib/platform/native/save-file';
 
 export const ACCENT = '#3B82F6';
 
@@ -144,12 +145,7 @@ export function exportRows(rows: Row[], search: { query: string; type: string; c
 }
 
 export function download(filename: string, body: string, type: string) {
-  const url = URL.createObjectURL(new Blob([body], { type }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  void saveFile(new Blob([body], { type }), filename);
 }
 
 export const bareUrl = (u: string) => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');

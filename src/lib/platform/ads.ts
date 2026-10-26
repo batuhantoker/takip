@@ -15,7 +15,8 @@ export const AD_SLOTS = {
   page: process.env.NEXT_PUBLIC_ADSENSE_SLOT_PAGE || null,
 };
 
-const AD_FREE_PATHS = ['/admin', '/privacy', '/terms'];
+// /app: the apps' sign-in steps, passed through in the system browser.
+const AD_FREE_PATHS = ['/admin', '/privacy', '/terms', '/app'];
 
 /** Ads only once the plan is known, so a paying user never sees one flash by. */
 export function showAds(client: string | null, access: Access | null, pathname: string): boolean {

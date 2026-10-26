@@ -41,6 +41,8 @@ describe('showAds', () => {
     expect(showAds(CLIENT, access(false), '/privacy')).toBe(false);
     expect(showAds(CLIENT, access(false), '/admin/users')).toBe(false);
     expect(showAds(CLIENT, access(false), '/administrator')).toBe(true);
+    expect(showAds(CLIENT, access(false), '/app/handoff')).toBe(false);
+    expect(showAds(CLIENT, access(false), '/apps')).toBe(true);
   });
 });
 

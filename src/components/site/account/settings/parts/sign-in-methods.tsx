@@ -11,11 +11,14 @@ import { FALLBACK_ERROR } from '@/components/site/account/use-form-action';
 import ChangePasswordForm from './change-password-form';
 import { Row, Section, SignInAgain, SmallButton, needsFreshSignIn } from '@/components/site/account/settings/settings-parts';
 import { useT } from '@/components/ui/use-t';
+import { useAppPlatform } from '@/components/shell/native/use-app-platform';
 
 type Account = { id: string; providerId: string };
 
 export default function SignInMethods({ email }: { email: string }) {
   const t = useT();
+  // Providers refuse an app's web view, and connecting needs this session in the same browser.
+  const inApp = useAppPlatform() !== null;
   const [accounts, setAccounts] = useState<Account[] | null>(null);
   const [configured, setConfigured] = useState<ProviderId[]>([]);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -96,6 +99,8 @@ export default function SignInMethods({ email }: { email: string }) {
               >
                 {t('Disconnect')}
               </SmallButton>
+            ) : inApp ? (
+              <span className="text-meta text-ink-3">{t('Connect it on takip.dev')}</span>
             ) : (
               // On success the browser leaves for the provider and comes back to these settings.
               <SmallButton

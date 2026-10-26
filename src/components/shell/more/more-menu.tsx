@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, BookOpen, Ellipsis, Info, Keyboard, Mail, MessageSquareWarning, Settings, ShieldCheck } from 'lucide-react';
+import { BarChart3, BookOpen, Download, Ellipsis, Info, Keyboard, Mail, MessageSquareWarning, Settings, ShieldCheck } from 'lucide-react';
 import { APP_VERSION } from '@/lib/platform/app-version';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { IconButton } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { RailButton } from '@/components/shell/sidebar/rail-button';
 import { showShortcuts } from '@/components/shell/keyboard/shortcuts-state';
 import { openSettings } from '@/components/shell/settings/open-settings';
 import { showReportDialog } from '@/components/site/report/report-dialog-state';
+import { useAppPlatform, useAppsOut } from '@/components/shell/native/use-app-platform';
 
 const SOCIAL = [
   { href: 'https://x.com/soulsimplifai', label: msg('TAKIP on X'), Icon: XIcon },
@@ -32,6 +33,9 @@ export default function MoreMenu({ compact = false, rail = false, active = false
   onOpenMarkets: () => void;
 }) {
   const t = useT();
+  const inApp = useAppPlatform() !== null;
+  const appsOut = useAppsOut();
+  const offerApps = !inApp && appsOut;
   const trigger = rail
     ? <RailButton glyph={<Ellipsis className="size-[18px]" strokeWidth={1.75} />} label={t('rail|More')} active={active} tour="more" />
     : <IconButton label={t('More')} icon={Ellipsis} tooltipSide="bottom" />;
@@ -44,6 +48,7 @@ export default function MoreMenu({ compact = false, rail = false, active = false
           <MenuDivider />
           <MenuItem icon={Settings} onSelect={() => { close(); openSettings(); }}>{t('Settings')}</MenuItem>
           <MenuItem icon={Info} href={localePath(t.locale, '/about')} onSelect={close}>{t('About TAKIP')}</MenuItem>
+          {offerApps && <MenuItem icon={Download} href={localePath(t.locale, '/download')} onSelect={close}>{t('Get the app')}</MenuItem>}
           <MenuItem icon={BookOpen} href="/docs" onSelect={close}>{t('Docs and API')}</MenuItem>
           {!compact && <MenuItem icon={Keyboard} kbd="?" onSelect={() => { close(); showShortcuts(); }}>{t('Keyboard shortcuts')}</MenuItem>}
           <MenuItem icon={ShieldCheck} href="/privacy" onSelect={close}>{t('Privacy')}</MenuItem>

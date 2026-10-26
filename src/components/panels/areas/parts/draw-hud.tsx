@@ -109,7 +109,7 @@ export default function DrawHud({ mode, progress, onUndo, onFinish, onCancel, le
   const figure = mode === 'region' ? regionSize : measurement;
 
   return (
-    <div className="pointer-events-none absolute top-3 right-3 left-(--hud-left) z-[500] flex justify-center max-md:left-3"
+    <div className="pointer-events-none absolute top-3 right-3 left-(--hud-left) z-[500] flex justify-center max-md:top-[calc(12px+env(safe-area-inset-top))] max-md:left-3"
       style={{ '--hud-left': `${left + 12}px` } as CSSProperties}>
       <div role="group" aria-label={t('Drawing')}
         className="pointer-events-auto flex min-h-14 max-w-full items-center gap-3 rounded-float border border-line bg-surface-1 py-2 pr-2 pl-3 shadow-float">

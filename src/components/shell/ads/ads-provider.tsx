@@ -19,11 +19,12 @@ const AdsContext = createContext<AdsState>({ on: false, blocked: false });
 export const useAds = () => useContext(AdsContext);
 
 /** Loads Google's ad script for plans that show ads, and notices when a blocker stops it. */
-export default function AdsProvider({ children }: { children: ReactNode }) {
+export default function AdsProvider({ inApp, children }: { inApp: boolean; children: ReactNode }) {
   // An embed sits in a page that runs its own ads; it also mustn't ask the account API about the visitor.
   const pathname = usePathname() ?? '';
   const embedded = /^\/embed(\/|$)/.test(splitLocalePath(pathname)?.path ?? pathname);
-  return AD_CLIENT && !embedded ? <AdsRuntime client={AD_CLIENT}>{children}</AdsRuntime> : children;
+  // AdSense's policies don't allow its ads inside an app's web view (apps/mobile, apps/desktop).
+  return AD_CLIENT && !embedded && !inApp ? <AdsRuntime client={AD_CLIENT}>{children}</AdsRuntime> : children;
 }
 
 function AdsRuntime({ client, children }: { client: string; children: ReactNode }) {

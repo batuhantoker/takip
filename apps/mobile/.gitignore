@@ -1,0 +1,4 @@
+node_modules/
+# Written by tools/sync-native.mjs from the web catalogs on every sync.
+www/
+out/

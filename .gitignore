@@ -92,3 +92,5 @@ scanner_backend_backup.js
 
 # Agent worktrees (Claude Code)
 .claude/worktrees/
+# App downloads served at /download (tools/native/publish.mjs)
+/data/downloads/

@@ -4,6 +4,7 @@ import { LOCALES } from '@/lib/core/i18n/locales';
 import { availableGuides, guidePath } from '@/lib/platform/site/guides/guides';
 import { worldPath, worldSlugs } from '@/lib/platform/site/compare/world';
 import { availablePages, pagePath } from '@/lib/platform/site/layer-pages';
+import { appsOut } from '@/lib/platform/native/downloads';
 import { POLICY_LINKS } from '@/lib/platform/site/legal';
 import { liveImagePath } from '@/lib/platform/site/live-images';
 import { languageAlternates, localePath } from '@/lib/platform/site/locale-path';
@@ -32,6 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...reading('/easter'),
     ...reading('/jewish-holidays'),
     ...reading('/about'),
+    ...(await appsOut() ? reading('/download') : []),
     // English only until the guides are translated; the place pages have their own sitemap (app/places/sitemap.ts).
     { url: `${origin}/guides`, changeFrequency: 'weekly' },
     ...availableGuides().map(g => ({ url: `${origin}${guidePath(g)}`, changeFrequency: 'monthly' as const })),

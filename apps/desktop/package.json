@@ -1,0 +1,29 @@
+{
+  "name": "@takip/desktop",
+  "productName": "TAKIP",
+  "desktopName": "takip.desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TAKIP for Windows, macOS and Linux: a native window around takip.dev",
+  "author": "TAKIP <hello@takip.dev>",
+  "homepage": "https://takip.dev",
+  "type": "module",
+  "main": "main.mjs",
+  "scripts": {
+    "start": "electron .",
+    "icons": "node tools/make-icons.mjs",
+    "offline": "node tools/make-offline.mjs",
+    "prepare-build": "npm run icons && npm run offline",
+    "smoke": "node tools/smoke.mjs",
+    "dist:mac": "npm run prepare-build && electron-builder --mac",
+    "dist:win": "npm run prepare-build && electron-builder --win",
+    "dist:linux": "npm run prepare-build && electron-builder --linux",
+    "dist": "npm run prepare-build && electron-builder --mac --win --linux",
+    "test": "node --test tools/*.test.mjs"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "sharp": "^0.35.5"
+  }
+}

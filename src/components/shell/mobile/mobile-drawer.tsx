@@ -4,6 +4,7 @@ import { useRef, useState, type Dispatch, type PointerEvent, type ReactNode, typ
 import { X } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { cx } from '@/components/ui/class-names';
+import { useEscape } from '@/components/ui/use-escape';
 import { useT } from '@/components/ui/use-t';
 import { msg } from '@/lib/core/i18n/translator';
 import type { MobilePanel } from '@/components/shell/state/types';
@@ -37,6 +38,8 @@ export function MobileDrawer({ mobilePanel, setMobilePanel, title: titled, subti
   const t = useT();
   const [pull, setPull] = useState(0);
   const from = useRef<number | null>(null);
+  // Also Android's back button in the app (components/shell/native/app-links.tsx).
+  useEscape(() => setMobilePanel(null), !!mobilePanel);
   if (!mobilePanel) return null;
   const title = titled ?? t(TITLES[mobilePanel]);
   const close = () => setMobilePanel(null);

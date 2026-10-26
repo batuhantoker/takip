@@ -1,5 +1,5 @@
 import { betterAuth, type BetterAuthOptions } from 'better-auth';
-import { admin, twoFactor } from 'better-auth/plugins';
+import { admin, oneTimeToken, twoFactor } from 'better-auth/plugins';
 import { getMigrations } from 'better-auth/db/migration';
 import type { Logger } from 'pino';
 import { APP_NAME, LINK_TTL_S, deleteAccountEmail, existingAccountEmail, resetPasswordEmail, verificationEmail } from './emails';
@@ -86,6 +86,8 @@ function authOptions(db: AppDb, env: AuthEnv, email: EmailSender, { billingPorta
       impersonationGuard(),
       // Guards password sign-in only; social sign-in relies on the provider's own second factor.
       twoFactor({ issuer: APP_NAME, allowPasswordless: true, schema: { twoFactor: { modelName: 'auth_two_factor' } } }),
+      // The apps' sign-in (src/lib/platform/native/handoff.ts): the system browser mints a token, the app's web view trades it for the session.
+      oneTimeToken({ storeToken: 'hashed' }),
       deletion.plugin,
     ],
     // Better Auth limits only when NODE_ENV=production, and the NUC's api runs in development until mail is set up.

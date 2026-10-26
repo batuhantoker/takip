@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TAKIP</string>
+    <string name="title_activity_main">TAKIP</string>
+    <string name="package_name">dev.takip.app</string>
+    <string name="custom_url_scheme">dev.takip.app</string>
+</resources>

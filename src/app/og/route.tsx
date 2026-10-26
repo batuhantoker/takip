@@ -39,6 +39,7 @@ async function readingCard(page: string, locale: Locale): Promise<Card | null> {
   if (page === 'ramadan') return { kicker: t('Umm al-Qura calendar'), title: t('Ramadan dates'), subtitle: t('When Ramadan begins and ends, with Laylat al-Qadr and both Eids, for every year from ten back to ten ahead.'), picture: PICTURE.ramadan };
   if (page === 'easter') return { kicker: t('Western and Orthodox churches'), title: t('Easter dates'), subtitle: t('When Easter falls for Western and Orthodox churches, with Good Friday, Ascension and Pentecost, for every year from ten back to ten ahead.'), picture: PICTURE.easter };
   if (page === 'jewish-holidays') return { kicker: t('Hebrew calendar'), title: t('Jewish holidays'), subtitle: t('When Rosh Hashanah, Yom Kippur, Passover, Hanukkah and the other holidays fall, for every year from ten back to ten ahead.'), picture: PICTURE['jewish-holidays'] };
+  if (page === 'download') return { kicker: 'TAKIP', title: t('TAKIP on your phone and computer'), subtitle: t('The apps open the same live map as the website, signed in to the same account, and change when it does: new layers and fixes reach them without an app update.'), picture: PICTURE.map };
   if (page === 'about') {
     const about = text.copy.about ?? {};
     const s = (k: 'heading' | 'kicker') => (typeof about[k] === 'string' ? about[k] as string : ABOUT[k]);

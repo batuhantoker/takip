@@ -1,0 +1,5 @@
+node_modules/
+dist/
+# Made by `npm run prepare-build` from public/brand and the web's catalogs.
+build/
+offline/

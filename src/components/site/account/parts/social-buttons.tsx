@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { SIGN_IN_FAILED_CALLBACK } from '@/lib/platform/account/links';
+import { appProviders } from '@/lib/platform/native/handoff';
+import { appShell } from '@/lib/platform/native/shell';
 import { authClient } from '@/components/site/account/auth-client';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/components/ui/use-t';
@@ -17,7 +19,7 @@ export default function SocialButtons() {
   useEffect(() => {
     let live = true;
     void loadProviders().then(list => {
-      if (live) setProviders(list);
+      if (live) setProviders(appProviders(appShell(navigator.userAgent), list));
     });
     return () => {
       live = false;
@@ -29,6 +31,14 @@ export default function SocialButtons() {
   const signIn = async (provider: ProviderId) => {
     setPending(provider);
     setFailed(null);
+    // Providers refuse an app's web view, so the apps sign in through the system browser.
+    const shell = appShell(navigator.userAgent);
+    if (shell) {
+      const { startAppSignIn } = await import('@/lib/platform/native/bridge');
+      await startAppSignIn(shell, provider).catch(() => setFailed(provider));
+      setPending(null);
+      return;
+    }
     // On success the client follows the provider's redirect and comes back to this same view.
     const { error } = await authClient.signIn.social({
       provider,

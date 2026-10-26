@@ -76,7 +76,7 @@ export function ShortcutsButton({ tight }: { tight: boolean }) {
 export function MobileStatus({ revealed, onOpenMarkets }: { revealed: boolean; onOpenMarkets: () => void }) {
   return (
     <div data-hud className={cx(
-      'absolute top-3 right-3 z-[200] flex items-center gap-1 rounded-float border border-line bg-surface-1 p-1 shadow-float',
+      'absolute top-[calc(12px+env(safe-area-inset-top))] right-3 z-[200] flex items-center gap-1 rounded-float border border-line bg-surface-1 p-1 shadow-float',
       'transition-opacity duration-150 ease-out',
       revealed ? 'opacity-100' : 'pointer-events-none opacity-0',
     )}>

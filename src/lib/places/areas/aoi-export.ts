@@ -1,5 +1,6 @@
 import type { DrawnShape } from './draw';
 import type { AoiReport } from './aoi';
+import { saveFile } from '@/lib/platform/native/save-file';
 
 /**
  * TAKIP — AOI persistence and export
@@ -142,11 +143,5 @@ export function deserializeShapes(raw: string | null): DrawnShape[] {
 /** Trigger a client-side download. No-ops outside the browser. */
 export function downloadFile(filename: string, content: string, mime: string): void {
   if (typeof document === 'undefined') return;
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  void saveFile(new Blob([content], { type: mime }), filename);
 }

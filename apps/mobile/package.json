@@ -1,0 +1,28 @@
+{
+  "name": "@takip/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The iOS and Android apps: native shells around takip.dev",
+  "scripts": {
+    "sync": "node tools/sync-native.mjs && cap sync",
+    "assets": "node tools/make-assets.mjs",
+    "android:debug": "npm run sync && cd android && nice ./gradlew assembleDebug",
+    "android:release": "npm run sync && cd android && nice ./gradlew bundleRelease",
+    "ios:build": "npm run sync && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/DerivedData CODE_SIGNING_ALLOWED=NO build",
+    "ios:open": "npm run sync && cap open ios",
+    "test": "node --test tools/*.test.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.5.3",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}
