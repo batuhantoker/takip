@@ -27,8 +27,10 @@ const NEAREST = [
   msg('Of the cameras around {city}, {name} from {source} is nearest the centre, {km, distance} away.'),
 ];
 
+const CAMERA_ZOOM = 15;
+
 /** A camera on the map, close enough to pick out. */
-const cameraPath = (at: [number, number]) => mapHref({ layers: ['cctv', 'cctv_previews'], view: { lat: at[1], lon: at[0], zoom: 15 } });
+const cameraPath = (at: [number, number]) => mapHref({ layers: ['cctv', 'cctv_previews'], view: { lat: at[1], lon: at[0], zoom: CAMERA_ZOOM } });
 
 const AWAY = msg('{km, distance} away');
 
@@ -51,6 +53,7 @@ export const CAMERAS_VIEW: TopicView<CamerasData> = {
   icon: Video,
   nearbySummary: true,
   overviewFirst: true,
+  mapBeside: true,
 
   // The pictures are what a reader came for; on a phone they sit right under the map button.
   Hero({ text: { t }, page: { data } }) {
@@ -114,8 +117,8 @@ export const CAMERAS_VIEW: TopicView<CamerasData> = {
         <Section title={data.onAir ? t('The cameras nearest the centre') : t('The cameras listed, off air')}>
           <ul className="grid gap-2 sm:grid-cols-2">
             {data.picks.map(p => (
-              <li key={`${p.name}-${p.at.join(',')}`}>
-                <a href={cameraPath(p.at)}
+              <li key={`${p.name}-${p.at.join(',')}`} data-map={p.at.join(',')} data-map-label={p.name}>
+                <a href={cameraPath(p.at)} data-map-jump={CAMERA_ZOOM}
                   className={cx('group flex items-center gap-3 rounded-card border border-line bg-surface-1 px-3 py-2.5 hover:border-line-strong', FOCUS_RING, TRANSITION, p.offline && 'opacity-70')}>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-medium text-ink-1">{p.name}</span>

@@ -142,6 +142,14 @@ export function attachHighlights(map: MlMap): Highlighter {
     (map.getSource(OUTLINES) as GeoJSONSource).setData(d.outlines);
   };
 
+  const rest = () => {
+    cancelAnimationFrame(pulse);
+    pulse = 0;
+    if (!map.getLayer('ai-hl-halo')) return;
+    map.setPaintProperty('ai-hl-halo', 'circle-radius', 13);
+    map.setPaintProperty('ai-hl-halo', 'circle-opacity', 0.22);
+  };
+
   /** Three pulses as new marks land, then still. */
   const land = () => {
     cancelAnimationFrame(pulse);
@@ -149,11 +157,7 @@ export function attachHighlights(map: MlMap): Highlighter {
     const tick = (now: number) => {
       const t = (now - t0) / 700;
       if (!map.getLayer('ai-hl-halo')) return;
-      if (t >= 3) {
-        map.setPaintProperty('ai-hl-halo', 'circle-radius', 13);
-        map.setPaintProperty('ai-hl-halo', 'circle-opacity', 0.22);
-        return;
-      }
+      if (t >= 3) return rest();
       const k = t % 1;
       map.setPaintProperty('ai-hl-halo', 'circle-radius', 8 + 18 * k);
       map.setPaintProperty('ai-hl-halo', 'circle-opacity', 0.5 * (1 - k));
@@ -169,9 +173,15 @@ export function attachHighlights(map: MlMap): Highlighter {
   return {
     set(h) {
       current = h;
-      if (!map.isStyleLoaded()) return;
-      ensure();
-      if (h) land();
+      // isStyleLoaded() is false while any tile loads, so through every camera move; only a style being swapped refuses
+      // layers, and onStyle draws the marks once it's in.
+      try {
+        ensure();
+      } catch {
+        return;
+      }
+      if (h && !h.quiet) land();
+      else if (pulse) rest();
     },
     destroy() {
       cancelAnimationFrame(pulse);

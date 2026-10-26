@@ -14,7 +14,7 @@ const LAYER_NAME: Record<string, string> = {
   satellites: msg('Satellites'), cctv: msg('Cameras'), alpr: msg('Plate readers'), traffic: msg('Road traffic'), live_news: msg('Live news'), earthquakes: msg('Earthquakes'), fires: msg('Fires'), weather: msg('Weather warnings'),
   radiation: msg('Radiation'), infrastructure: msg('Infrastructure'), global_incidents: msg('Disaster alerts'), alert_pins: msg('News pins'), war_alerts: msg('Air-raid alerts'),
   airport_delays: msg('Airport delays'), chokepoint_flow: msg('Chokepoint traffic'), outbreaks: msg('Outbreaks'), day_night: msg('Day and night'), cables: msg('Undersea cables'),
-  live_clouds: msg('Clouds'), wx_temperature: msg('Temperature'), wx_wind: msg('Wind'), wx_radar: msg('Rain radar'), wx_lightning: msg('Lightning'), hiking_routes: msg('Hiking routes'), transit: msg('Buses and trains'), terrain_3d: msg('3D terrain'),
+  live_clouds: msg('Clouds'), wx_temperature: msg('Temperature'), wx_wind: msg('Wind'), wx_radar: msg('Rain radar'), wx_lightning: msg('Lightning'), hiking_routes: msg('Hiking routes'), things_to_do: msg('Things to do'), transit: msg('Buses and trains'), terrain_3d: msg('3D terrain'),
   cyber_attacks: msg('Cyber attacks'), gdelt_events: msg('GDELT events'), cf_outages: msg('Internet outages'), malware: msg('Malware servers'), balloons: msg('Balloons'),
   launches: msg('Rocket launches'), aurora: msg('Aurora'), service_status: msg('Service status'), gps_jamming: msg('GPS interference'),
   airport_weather: msg('Airport weather'), sigmets: msg('Hazard airspace'),

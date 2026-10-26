@@ -8,11 +8,29 @@ import { LINK_BUTTON } from '@/components/site/pages/site-frame';
 import type { Translate } from '@/lib/core/i18n/translator';
 import type { MapView } from '@/lib/platform/site/map-link';
 
+/** The close view of the place that turns into the live map there; `mode` as LiveWindow takes it. */
+export function PlaceMap({ t, heading, open, embed, focus, image, live, mode }: {
+  t: Translate;
+  heading: string;
+  open: string;
+  embed: string;
+  focus: MapView;
+  image: string | null;
+  live: boolean;
+  mode?: 'header' | 'phone' | 'beside';
+}) {
+  return (
+    <LiveWindow src={embed} href={open} image={image} alt={heading} cta={t('Open the live map')} explore={t('Explore it here')} mode={mode}
+      badge={live ? t('Live') : undefined} fallback={<WorldSketch focus={{ ...focus, zoom: Math.min(focus.zoom, 9) }} />} />
+  );
+}
+
 /**
  * The top of a place page: where it belongs, the heading, the lede, a way onto the map, and what is true right now,
- * beside a close view of the place that turns into the live map there.
+ * beside a close view of the place that turns into the live map there. With `mapBeside`, a wide screen has the map
+ * by the body instead, and the header is its text alone.
  */
-export function PlaceHeader({ t, kicker, heading, lede, facts, open, embed, focus, image, live, secondary, hero, openLabel }: {
+export function PlaceHeader({ t, kicker, heading, lede, facts, open, embed, focus, image, live, secondary, hero, openLabel, mapBeside }: {
   t: Translate;
   kicker: { href: string; label: string; rel?: string };
   heading: string;
@@ -31,9 +49,11 @@ export function PlaceHeader({ t, kicker, heading, lede, facts, open, embed, focu
   facts?: ReactNode;
   /** The map button's words, where "Open the live map" isn't what it does. */
   openLabel?: string;
+  mapBeside?: boolean;
 }) {
+  const beside = mapBeside && !hero;
   return (
-    <header className="mt-8 grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
+    <header className={cx('mt-8 grid grid-cols-1 items-center gap-8', beside ? 'lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16' : 'lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12')}>
       <div>
         <Link href={kicker.href} rel={kicker.rel} className={cx('text-[13px] font-medium text-ink-3 hover:text-ink-1', FOCUS_RING)}>{kicker.label}</Link>
         <h1 className="mt-3 text-4xl leading-[1.08] font-semibold tracking-[-0.02em] sm:text-5xl">{heading}</h1>
@@ -45,10 +65,9 @@ export function PlaceHeader({ t, kicker, heading, lede, facts, open, embed, focu
         </div>
         {live}
       </div>
-      {hero ?? (
-        <LiveWindow src={embed} href={open} image={image} alt={heading} cta={t('Open the live map')} explore={t('Explore it here')}
-          badge={live ? t('Live') : undefined} fallback={<WorldSketch focus={{ ...focus, zoom: Math.min(focus.zoom, 9) }} />} />
-      )}
+      {hero ?? (beside
+        ? <div className="lg:hidden"><PlaceMap t={t} heading={heading} open={open} embed={embed} focus={focus} image={image} live={!!live} mode="phone" /></div>
+        : <PlaceMap t={t} heading={heading} open={open} embed={embed} focus={focus} image={image} live={!!live} />)}
     </header>
   );
 }

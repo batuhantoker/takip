@@ -31,4 +31,6 @@ export interface TopicView<D, L = never, X = never> {
   overviewFirst?: true;
   /** The "nearby" cards on this topic's page say what the topic holds in each place (its summary()), not its other topics. */
   nearbySummary?: true;
+  /** On a wide screen the live map leaves the header for the body's side column and stays in view beside its rows. */
+  mapBeside?: true;
 }

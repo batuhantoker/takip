@@ -18,6 +18,7 @@ import type { BackendStatus, FlyToTarget, LiveData, MapCenter } from '@/componen
 import { embedLayers, type EmbedSpec } from '@/lib/map/embed/spec';
 import { locateVisitor } from '@/lib/places/ip-location/browser';
 import { usePageMapTime } from '../hooks/use-page-map-time';
+import { usePageTalk } from '../hooks/use-page-talk';
 import { useWindowData } from '../hooks/use-window-data';
 import { WatchLabel } from './watch-label';
 import { WindowCaption } from './window-caption';
@@ -34,7 +35,8 @@ type Picked = Record<string, unknown> & { type?: string; url?: string; name?: st
 function startCamera(spec: EmbedSpec): Partial<MapOptions> {
   if (spec.bbox) {
     const [w, s, e, n] = spec.bbox;
-    return { bounds: [[w, s], [w > e ? e + 360 : e, n]], fitBoundsOptions: { padding: 24 } };
+    // Room at the sides for labels of places on the edge, and at the foot for the frame's buttons.
+    return { bounds: [[w, s], [w > e ? e + 360 : e, n]], fitBoundsOptions: { padding: { top: 32, bottom: 56, left: 64, right: 64 } } };
   }
   return spec.view ? { center: [spec.view.lon, spec.view.lat], zoom: spec.view.zoom } : {};
 }
@@ -69,6 +71,8 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
   const shown = useWindowData({ spec, dataRef, setDataVersion });
   const pin = useMemo(() => (spec.pin ? { lat: spec.pin.lat, lng: spec.pin.lon, name: spec.pin.name } : null), [spec.pin]);
   usePageMapTime();
+  const talk = usePageTalk({ zoom, center: mapCenter, setFlyTo });
+  const { pick } = talk;
 
   useEffect(() => {
     if (spec.near === undefined) return;
@@ -126,14 +130,16 @@ export default function EmbedMap({ spec }: { spec: EmbedSpec }) {
   const onEntityClick = useCallback((entity: Picked | null) => {
     if (entity?.type === 'cctv') setCamera(entity);
     if (entity?.type === 'live_news' && entity.url) openFeed(entity.url, entity.name ?? '', entity.embed_allowed !== false);
-  }, [openFeed]);
+    if (entity?.type === 'attraction' && typeof entity.id === 'string') pick(entity.id);
+  }, [openFeed, pick]);
   const onViewStateChange = useCallback((vs: { zoom: number }) => setZoom(vs.zoom), []);
 
   return (
     <InEmbed.Provider value>
       <ErrorBoundary name="Map">
         <WorldMap data={data} activeLayers={layers} mapOptions={mapOptions} contextMenu={false} flyToLocation={flyTo}
-          onEntityClick={onEntityClick} onViewStateChange={onViewStateChange} onMapCenter={setMapCenter} pin={pin} />
+          onEntityClick={onEntityClick} onViewStateChange={onViewStateChange} onMapCenter={setMapCenter} pin={pin} plan={spec.plan ?? null}
+          aiHighlight={talk.highlight} onReady={talk.ready} />
       </ErrorBoundary>
       <WatchLabel satellites={data.satellites} />
       {shown && <WindowCaption shown={shown} />}

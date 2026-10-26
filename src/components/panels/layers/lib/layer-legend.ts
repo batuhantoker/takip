@@ -5,6 +5,7 @@ import { MAP_INK } from '@/lib/map/style/tokens';
 import { REFERENCE_DATASETS } from '@/lib/feeds/reference/catalog';
 import { TRAFFIC_COLOR } from '@/lib/feeds/traffic/map-layers';
 import { SHIP_CLASSES } from '@/lib/feeds/maritime/ship-filter';
+import { GROUP_COLOR } from '@/lib/places/attractions/map-layers';
 import { TRANSIT_COLOR, TRANSIT_RAIL_COLOR } from '@/lib/feeds/transit/map-layers';
 
 /** How a layer looks on the map, small enough to sit beside its name. */
@@ -76,6 +77,7 @@ const LEGEND: Record<string, LegendSpec> = {
 
   // Waymarked Trails paints international routes red; the rest follow in other colours.
   hiking_routes: one('line', MAP_INK.red),
+  things_to_do: many('cluster', ...Object.values(GROUP_COLOR)),
 
   ...Object.fromEntries(SHIP_CLASSES.map(c => [c.key, one('dot', c.color)])),
   ...Object.fromEntries(REFERENCE_DATASETS.map(d => [

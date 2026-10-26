@@ -39,6 +39,8 @@ export interface PlaceTopic<D = unknown, L = unknown, X = unknown> {
   openLabel?: string;
   /** A faith page (prayer times, Ramadan, Shabbat): reached from the place's Prayers page, never from lists of its topics. */
   faith?: true;
+  /** Its layers come first on the overview's live map, which has room for four. */
+  leadsOverviewMap?: true;
 }
 
 export interface TopicPage<D = unknown> {

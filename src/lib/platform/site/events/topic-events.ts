@@ -1,5 +1,6 @@
 import { ref, type EventRef, type IndexRow } from './event-page';
-import { buildStamp, pagesDb, stmt } from './store';
+import { stmt } from '@/lib/core/read-db';
+import { buildStamp, pagesDb } from './store';
 
 /**
  * The events a History topic page lists: the largest by the family's own measure (deaths, magnitude, yield) where

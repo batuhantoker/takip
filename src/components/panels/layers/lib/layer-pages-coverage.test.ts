@@ -9,6 +9,7 @@ const NO_PAGE: Record<string, string> = {
   infrastructure: 'a hand-picked list of 64 sites, too incomplete to offer as a map of nuclear plants',
   terrain_3d: 'a display option',
   terrain_elevation: 'a display option',
+  things_to_do: 'each city and country has its own things-to-do page',
 };
 
 describe('public layer pages', () => {

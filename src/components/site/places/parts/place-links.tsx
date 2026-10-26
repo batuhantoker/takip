@@ -11,34 +11,55 @@ import { topicShown } from '@/lib/platform/site/places/topics/faith-reach';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { SiteText } from '@/lib/platform/site/text';
-import { TOPIC_VIEWS } from '../topics/registry';
+import { TabRow } from './tab-row';
 
 /** The place's listed pages, without those a topic's other page stands for. */
 export const listedPages = (pages: PlacePageRef[]) => pages.filter(p => p.page.listed !== false);
 
-/** The place's pages side by side: its overview and each listed topic page; an unlisted page marks its topic's first. */
+/** Topics about what is moving there now: listed first, behind the live dot. */
+const LIVE_TOPICS = new Set(['now', 'transit', 'cameras', 'flights', 'weather', 'ports']);
+
+type NavItem = { href: string; label: string; here: boolean; rel?: string };
+
+function Tab({ t, item }: { t: SiteText['t']; item: NavItem }) {
+  return (
+    <Link href={localePath(t.locale, item.href)} rel={item.rel} aria-current={item.here ? 'page' : undefined}
+      className={cx('relative inline-flex h-11 shrink-0 items-center whitespace-nowrap px-3 text-[14px] font-medium', FOCUS_RING, TRANSITION,
+        item.here ? 'text-ink-1' : 'text-ink-2 hover:text-ink-1')}>
+      {item.label}
+      {item.here && <span aria-hidden className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-accent" />}
+    </Link>
+  );
+}
+
+const Rule = () => <span aria-hidden className="mx-2 my-3.5 w-px shrink-0 bg-line-strong" />;
+
+/**
+ * The place's pages as one row of tabs that stays at the top while the page scrolls: its overview, the live topics,
+ * then the rest. An unlisted page marks its topic's first. On a phone the row scrolls sideways.
+ */
 export function TopicNav({ text, place, pages, current }: { text: SiteText; place: Place; pages: PlacePageRef[]; current?: string }) {
   const { t } = text;
   const unlisted = pages.find(p => p.page.slug === current && p.page.listed === false)?.topic;
   const listed = inNavOrder(place, listedPages(pages));
   // A faith page is marked by the Prayers entry where that page lists it.
   const stands = unlisted && listed.find(p => p.topic.id === unlisted.id || (p.topic.faith && topicShown(place, unlisted.id)))?.page.slug;
-  const items: { href: string; label: string; here: boolean; rel?: string; Icon?: LucideIcon }[] = [
-    { href: placePath(place), label: t('Overview'), here: !current, rel: crawlRel(placeIndexed(place)) },
-    ...listed.map(p => ({
-      href: placePath(place, p.page.slug), label: t(p.page.label ?? p.topic.label), here: p.page.slug === current || p.page.slug === stands,
-      rel: crawlRel(p.page.index), Icon: TOPIC_VIEWS[p.topic.id]?.icon,
-    })),
-  ];
+  const item = (p: PlacePageRef): NavItem => ({
+    href: placePath(place, p.page.slug), label: t(p.page.label ?? p.topic.label), here: p.page.slug === current || p.page.slug === stands, rel: crawlRel(p.page.index),
+  });
+  const live = listed.filter(p => LIVE_TOPICS.has(p.topic.id)).map(item);
+  const rest = listed.filter(p => !LIVE_TOPICS.has(p.topic.id)).map(item);
   return (
-    <nav aria-label={t('{city} on TAKIP', { city: nameOf(place, t) })} className="mt-6 flex flex-wrap gap-2">
-      {items.map(({ href, label, here, rel, Icon }) => (
-        <Link key={href} href={localePath(t.locale, href)} rel={rel} aria-current={here ? 'page' : undefined}
-          className={cx('inline-flex h-8 items-center gap-1.5 rounded-control border px-2.5 text-[13px]', FOCUS_RING, TRANSITION,
-            here ? 'border-line-strong bg-surface-3 text-ink-1' : 'border-line bg-surface-1 text-ink-2 hover:text-ink-1')}>
-          {Icon && <Icon className="size-3.5" aria-hidden />}{label}
-        </Link>
-      ))}
+    <nav aria-label={t('{city} on TAKIP', { city: nameOf(place, t) })} className="sticky top-0 z-20 mt-8 border-b border-line bg-surface-0/95 backdrop-blur">
+      <TabRow className="relative -mx-3 flex overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <Tab t={t} item={{ href: placePath(place), label: t('Overview'), here: !current, rel: crawlRel(placeIndexed(place)) }} />
+        {live.length > 0 && <Rule />}
+        {live.length > 0 && <span role="img" aria-label={t('Live')} className="my-auto ml-1 size-1.5 shrink-0 rounded-full bg-green" />}
+        {live.map(i => <Tab key={i.href} t={t} item={i} />)}
+        {rest.length > 0 && <Rule />}
+        {rest.map(i => <Tab key={i.href} t={t} item={i} />)}
+      </TabRow>
+      <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface-0 sm:hidden" />
     </nav>
   );
 }

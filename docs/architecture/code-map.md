@@ -83,6 +83,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `places/areas/` | Areas of interest: drawing, watch rules, AOI export, geoBoundaries outlines | panels/areas, map/interaction, shell/showing, shell/state (a statistics link's charted country); api/boundaries; lib platform/workspaces, feeds/imagery |
 | `places/route/` | Route planning and turn-by-turn | panels/route |
 | `places/labels/` | A labelled place on the base map: matching it to its Wikipedia article, and its popup | map/interaction; api/map |
+| `places/attractions/` | Things to do on the map: the zoom each shows from, the box query on `data/db/attractions.db` (`store.ts`), the layer and its popup, day plans (`plan.ts`) and their route on the map, Commons pictures with credits | map/layers, map/interaction, panels/layers, site/places; api/things-to-do; lib platform/site/places |
 | `places/` root | Nominatim, country centroids, recent places, landing cities, the place under the pointer (`pointer-place.ts`) | panels/route, shell/search, shell/state, shell/status-bar, map/inspect; api/health, api/outbreaks, api/cloudflare-radar, region-dossier; lib intel, map/splash, platform/workspaces, ai |
 
 ## src/components
@@ -106,7 +107,7 @@ Route groups mirror lib; the parentheses don't appear in URLs.
 | `(intel)` | news, live-news, gdelt, gdelt-events, link-preview, conflicts, frontlines, war-alerts, country-risk, advisories, markets, crypto, scm-suppliers, cyber-attacks, cyber-threats, malware, osint, chain, radar, cloudflare-radar, service-status, ai | intel/*, core/net, platform/account | shell/state, panels/recon, panels/alerts, map/layers |
 | `(space)` | space, launches, space-weather, aurora | space, core/net | panels/space, shell/state |
 | `(ai)` | ai, mcp | ai | panels/ti-agent; outside MCP clients |
-| `(places)` | boundaries, geo, map | places, core/net | shell/search, panels/route, map/inspect, map/interaction, lib places/areas |
+| `(places)` | boundaries, geo, map, things-to-do | places, core/net | shell/search, panels/route, map/inspect, map/interaction, lib places/areas |
 | `(history)` | history | history, places | map/layers |
 | `(platform)` | health, stats, github-webhook, sdk | places/nominatim | outside callers |
 | ungrouped | region-dossier | core/net, places | map/dossier |

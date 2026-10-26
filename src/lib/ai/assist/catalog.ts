@@ -307,6 +307,7 @@ export const LAYERS: Record<string, string> = {
   sat_live: 'live satellite picture of the whole Earth from the geostationary ring every 10 minutes, about 40 minutes behind: GOES and Meteosat in colour, Himawari infrared clouds over NASA Blue Marble across Asia-Pacific (NASA GIBS, EUMETSAT)',
   sat_daily: 'true-colour satellite picture of the whole Earth for one day, following the History or Replay date back to 2000-02-24, else yesterday (NASA GIBS, VIIRS and MODIS)',
   hiking_routes: 'marked hiking trails and long-distance walking routes (Waymarked Trails / OpenStreetMap)',
+  things_to_do: 'things to do: museums, castles, palaces, cathedrals, parks, gardens, zoos and landmarks, the best known first, more as you zoom in (Wikidata)',
   transit: 'cities with live public transit and what runs there; live buses, trams and trains from zoom 10 (GTFS-RT feeds)',
   terrain_3d: '3D terrain',
   cyber_attacks: 'cyber attack indicators',

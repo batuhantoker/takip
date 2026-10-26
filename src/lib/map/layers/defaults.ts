@@ -70,6 +70,8 @@ export const DEFAULT_LAYERS = {
   sat_daily: false,
   /* Waymarked Trails' OSM hiking routes — see lib/feeds/hiking. */
   hiking_routes: false,
+  /* Museums, castles, parks and landmarks from Wikidata — see lib/places/attractions. */
+  things_to_do: false,
   transit: false,
   terrain_3d: false,
   terrain_elevation: false,

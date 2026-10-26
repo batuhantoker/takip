@@ -16,6 +16,8 @@ import { SHIP_CLASSES } from '@/lib/feeds/maritime/ship-filter';
 import { flowTip, trafficTip } from '@/lib/feeds/traffic/describe';
 import { TRAFFIC_FLOW_LAYER, TRAFFIC_LAYER } from '@/lib/feeds/traffic/map-layers';
 import { transitTipMeta, transitTitle } from '@/lib/feeds/transit/describe';
+import { attractionTip } from '@/lib/places/attractions/describe';
+import { ATTRACTION_DOTS } from '@/lib/places/attractions/map-layers';
 import type { SatelliteRow } from '@/components/map/types';
 import { REPLAY_SLOP, replayAt, replayFlightLayer } from '@/components/map/replay/replay-pick';
 import type { ReplayEntity } from '@/lib/map/replay/track-sample';
@@ -61,6 +63,7 @@ const DESCRIBE: Record<string, (p: Props, layer: string) => Tip | null> = {
   [TRAFFIC_LAYER]: p => { const tip = trafficTip(p); return { ...tip, meta: htmlEsc(tip.meta) }; },
   [TRAFFIC_FLOW_LAYER]: p => { const tip = flowTip(p); return { ...tip, meta: htmlEsc(tip.meta) }; },
   ...Object.fromEntries(ALPR_PICK_LAYERS.map(id => [id, (p: Props) => { const tip = alprTip(p); return tip && { ...tip, meta: htmlEsc(tip.meta) }; }])),
+  [ATTRACTION_DOTS]: p => { const tip = attractionTip(p); return { ...tip, meta: htmlEsc(tip.meta) }; },
   'transit-city-dots': p => ({ key: `transit-city:${p.name}`, name: String(p.name || t('City')), meta: htmlEsc(join([String(p.modes || t('Live transit')), t('Click to zoom in')])) }),
 };
 const LAYERS = Object.keys(DESCRIBE);

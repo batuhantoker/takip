@@ -34,6 +34,9 @@ import { outbreakPopupHtml } from '@/lib/feeds/hazards/outbreaks';
 import { TRANSIT_CITY_LAYER, TRANSIT_PICK_LAYERS } from '@/lib/feeds/transit/map-layers';
 import { TRANSIT_MIN_ZOOM } from '@/lib/feeds/transit/view';
 import { cameraDetail } from '@/lib/feeds/cameras/camera-details';
+import { attractionPopupHtml } from '@/lib/places/attractions/describe';
+import { ATTRACTION_DOTS } from '@/lib/places/attractions/map-layers';
+import { PLAN_STOPS } from '@/lib/places/attractions/plan-layers';
 import type { CameraInfo, InspectSink, TransitTarget } from '@/components/map/inspect/types';
 import type { ShowPopup, WorldMapProps } from '@/components/map/types';
 
@@ -174,7 +177,7 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
   });
 
   // ── Generic hover for clickables ──
-  ['conflict-icons','cctv-dots','cctv-clusters','eq-circles','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','launch-dots','rad-dots','war-alert-dots','fire-incident-dots',FIRE_PERIMETER_FILL,NHC_POINTS,NHC_CONE,'airport-delay-dots','chokepoint-flow-ring','outbreak-rings','ship-dots','ship-arrows',...TRANSIT_PICK_LAYERS,TRANSIT_CITY_LAYER,'sweep-device-dots','scan-targets-dots','sdk-sea','sdk-air','sdk-intel','malware-dots','cyber-heads','gdelt-events-dots','cf-outage-dots','cf-attack-dots','service-status-dots','gnss-fill','alert-pin-dots','wx-wind','wx-temp-label',...ALPR_PICK_LAYERS,TRAFFIC_LAYER,TRAFFIC_FLOW_LAYER].forEach(layer => {
+  ['conflict-icons','cctv-dots','cctv-clusters','eq-circles','fires-heat','gdelt-dots','weather-dots','infra-dots','maritime-dots','choke-dots','news-dots','balloon-dots','launch-dots','rad-dots','war-alert-dots','fire-incident-dots',FIRE_PERIMETER_FILL,NHC_POINTS,NHC_CONE,'airport-delay-dots','chokepoint-flow-ring','outbreak-rings','ship-dots','ship-arrows',...TRANSIT_PICK_LAYERS,TRANSIT_CITY_LAYER,'sweep-device-dots','scan-targets-dots','sdk-sea','sdk-air','sdk-intel','malware-dots','cyber-heads','gdelt-events-dots','cf-outage-dots','cf-attack-dots','service-status-dots','gnss-fill','alert-pin-dots','wx-wind','wx-temp-label',...ALPR_PICK_LAYERS,TRAFFIC_LAYER,TRAFFIC_FLOW_LAYER,ATTRACTION_DOTS].forEach(layer => {
     map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   });
@@ -284,6 +287,19 @@ export function bindFeaturePopups(map: maplibregl.Map, popup: ShowPopup, onEntit
   map.on('click', TRAFFIC_FLOW_LAYER, e => {
     const f = e.features?.[0];
     if (f) popup(e.lngLat, flowPopupHtml(f.properties ?? {}));
+  });
+
+  // ── Things to do ──
+  map.on('click', ATTRACTION_DOTS, e => {
+    const f = e.features?.[0];
+    if (f?.geometry.type !== 'Point') return;
+    popup(f.geometry.coordinates, attractionPopupHtml(f.properties ?? {}));
+    // A page framing the map lights the row for it.
+    onEntityClick?.({ type: 'attraction', id: f.properties?.id });
+  });
+  map.on('click', PLAN_STOPS, e => {
+    const id = e.features?.[0]?.properties?.id;
+    if (id) onEntityClick?.({ type: 'attraction', id });
   });
 
   // ── Airport weather (METAR) and SIGMET hazard areas ──

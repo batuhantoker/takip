@@ -8,6 +8,7 @@ import { HIKING_VIEW } from './hiking-body';
 import { HOLIDAYS_VIEW } from './holidays-body';
 import { INDICATORS_VIEW } from './indicators-body';
 import { NOW_VIEW } from './now-body';
+import { PLANS_VIEW } from './plans-body';
 import { ISS_VIEW } from './iss-body';
 import { PORTS_VIEW } from './ports-body';
 import { PRAYER_VIEW } from './prayer-body';
@@ -24,6 +25,7 @@ import { WEATHER_VIEW } from './weather-body';
 export const TOPIC_VIEWS: Record<string, TopicView<any, any, any>> = {
   now: NOW_VIEW,
   attractions: ATTRACTIONS_VIEW,
+  plans: PLANS_VIEW,
   transit: TRANSIT_VIEW,
   cameras: CAMERAS_VIEW,
   alpr: ALPR_VIEW,

@@ -41,6 +41,12 @@ describe('parseEmbedSpec', () => {
     expect(parse('pin=95,9.6&pinname=Dalmine').pin).toBeUndefined();
     expect(parse('pin=45.6833').pin).toBeUndefined();
   });
+
+  it('reads a day plan to outline, dropping a malformed one', () => {
+    expect(parse('plan=2988507:one-day-itinerary').plan).toBe('2988507:one-day-itinerary');
+    expect(parse('plan=paris:one-day-itinerary').plan).toBeUndefined();
+    expect(parse('plan=2988507/one-day-itinerary').plan).toBeUndefined();
+  });
 });
 
 describe('embedQuery', () => {
@@ -51,6 +57,7 @@ describe('embedQuery', () => {
       { layers: ['wx_radar'], view: { lat: 50, lon: 5, zoom: 4.5 }, near: 6 },
       { layers: ['sat_science'], view: { lat: 45.6833, lon: 9.6, zoom: 1.8 }, track: 'satellite:25544', pin: { lat: 45.6833, lon: 9.6, name: 'Далмине' } },
       { layers: ['earthquakes'], window: { from: Date.UTC(1999, 7, 17), to: Date.UTC(1999, 7, 18) } },
+      { layers: [], bbox: [2.29, 48.84, 2.37, 48.87], plan: '2988507:one-week-itinerary' },
     ];
     for (const spec of specs) expect(parse(embedQuery(spec))).toEqual(spec);
   });

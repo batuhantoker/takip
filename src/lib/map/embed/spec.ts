@@ -30,6 +30,8 @@ export interface EmbedSpec {
   window?: EmbedWindow;
   /** Earthquakes from this magnitude up. */
   minMag?: number;
+  /** A place page's day plan to outline, `<GeoNames id>:<page slug>` (lib/platform/site/places/topics/plans.ts). */
+  plan?: string;
 }
 
 /** The display layers drawn under every embed's own: day and night, and the sky. */
@@ -41,6 +43,7 @@ const KNOWN = new Set(Object.keys(DEFAULT_LAYERS));
 const MAX_LAYERS = 12;
 const DAY_MS = 86_400_000;
 const TRACK = /^(aircraft|ship|satellite):[\w-]{1,40}$/i;
+const PLAN = /^\d{1,10}:[a-z0-9-]{1,40}$/;
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
@@ -102,6 +105,8 @@ export function parseEmbedSpec(p: URLSearchParams, now = Date.now()): EmbedSpec 
   if (window) spec.window = window;
   const minMag = num(p.get('minmag'), 0, 9.9);
   if (minMag !== null) spec.minMag = Math.round(minMag * 10) / 10;
+  const plan = p.get('plan')?.trim();
+  if (plan && PLAN.test(plan)) spec.plan = plan;
   return spec;
 }
 
@@ -127,6 +132,7 @@ export function embedQuery(spec: EmbedSpec): string {
     p.set('to', isoDay(spec.window.to));
   }
   if (spec.minMag !== undefined) p.set('minmag', String(spec.minMag));
+  if (spec.plan) p.set('plan', spec.plan);
   return p.toString().replace(/%2C/g, ',').replace(/%3A/g, ':');
 }
 

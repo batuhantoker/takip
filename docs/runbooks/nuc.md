@@ -80,6 +80,8 @@ The site is down for a minute or two while the services are stopped. The previou
 
 ## Pictures for the public pages
 
+The map's Things to do layer reads `data/db/attractions.db`, which `tools/site/topics/attractions.ts` writes on the Mac beside the tracked `data/site/topics/attractions.json`. The NUC can't rebuild it (it needs the Mac's QLever cache), so copy it after each run: `rsync -a data/db/attractions.db user@nuc:takip/data/db/attractions.db.new && ssh user@nuc 'mv takip/data/db/attractions.db.new takip/data/db/attractions.db'` (the server picks up the new file within a minute). Without it the layer shows only each city's best known, from the tracked table.
+
 The `/map/…` pages lead with pictures of the map kept in `.cache/site-shots/`, outside git. Take them on the Mac against the dev server (`nice npx tsx tools/site/shots.ts`) and copy them over: `rsync -a .cache/site-shots/ user@nuc:takip/.cache/site-shots/`. Without them the pages show a sketch of the world instead.
 
 ## Known limits

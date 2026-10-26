@@ -14,7 +14,7 @@ export const LAYER_NOUNS: Record<string, string> = {
   sat_navigation: msg('navigation satellites'), sat_earth: msg('Earth-observation satellites'), sat_science: msg('space stations and telescopes'),
   balloons: msg('balloons'), launches: msg('rocket launches'), aurora: msg('the aurora forecast'),
   cctv: msg('live cameras'), alpr: msg('licence-plate readers'), live_news: msg('live news streams'), traffic: msg('road traffic'),
-  transit: msg('buses and trains'), hiking_routes: msg('hiking routes'),
+  transit: msg('buses and trains'), hiking_routes: msg('hiking routes'), things_to_do: msg('things to do'),
   earthquakes: msg('earthquakes'), fires: msg('wildfires'), weather: msg('severe weather'), radiation: msg('radiation readings'),
   outbreaks: msg('disease outbreaks'), infrastructure: msg('nuclear facilities'), global_incidents: msg('disaster alerts'),
   alert_pins: msg('alerts'), gdelt_events: msg('news events'), war_alerts: msg('air-raid alerts'), gps_jamming: msg('GPS interference'),

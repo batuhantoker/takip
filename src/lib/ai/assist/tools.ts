@@ -54,6 +54,8 @@ export interface Highlight {
   area: { lat: number; lng: number; radiusKm: number; label: string } | null;
   lines?: HighlightLine[];
   outlines?: { geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon; label: string }[];
+  /** Lands without pulsing: marks that follow a reader's pointer down a page. */
+  quiet?: true;
 }
 
 export type Depth = 'quick' | 'standard' | 'deep';

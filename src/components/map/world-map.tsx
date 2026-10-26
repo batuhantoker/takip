@@ -81,10 +81,12 @@ import { useArcgisLayers, useDrawnPolygons } from '@/components/map/layers/overl
 import { useBalloonLayer, useCctvLayer, useInfrastructureLayer, useMaritimeLayers, useNaturalEventLayers, useRadiationLayer } from '@/components/map/layers/live/use-point-layers';
 import { useReconLayers } from '@/components/map/layers/overlays/use-recon-layers';
 import { useReferenceLayers } from '@/components/map/layers/reference/use-reference-layers';
+import { useAttractionsLayer } from '@/components/map/layers/reference/use-attractions-layer';
 import { useRegionPick } from '@/components/map/interaction/hooks/use-region-pick';
 import { useSatelliteDismiss, useSatelliteLayer } from '@/components/map/layers/live/use-satellite-layer';
 import { useSatelliteMotion } from '@/components/map/layers/live/use-satellite-motion';
 import { usePlacePin } from '@/components/map/layers/overlays/use-place-pin';
+import { usePlanRoute } from '@/components/map/layers/overlays/use-plan-route';
 import { useSatelliteSelection } from '@/components/map/layers/live/use-satellite-selection';
 import { useWeatherGridLayer, useWeatherRasters } from '@/components/map/layers/hazards/use-weather-layers';
 import { useGibsImagery } from '@/components/map/layers/live/use-gibs-imagery';
@@ -98,7 +100,7 @@ import './map-popup.css';
 const NO_FAMILIES: readonly string[] = [];
 const QUAKES: readonly string[] = ['hazard'];
 
-function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, mapOptions, contextMenu = true, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], imageryRequest = null, drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, onGlobeLink, route = null, userLocation = null, pin = null, followUser = false, onFollowInterrupt, navigating = false, onAiGlobe, onAiSelect, onAiHover, onAiFollow, aiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES, historyKinds = NO_FAMILIES }: WorldMapProps) {
+function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightClick, onViewStateChange, onReady, mapOptions, contextMenu = true, flyToLocation, alertPinIds = null, projection = 'globe', terrainEnabled = false, terrainRetry = 0, terrainFocus = 0, onTerrainStatusChange, mapStyle = 'dark', sweepData, scanTargets = [], demoMode = false, theme = 'core', drawnPolygons = [], arcgisLayers = [], imageryRequest = null, drawMode = null, onDrawComplete, onDrawProgress, onDrawCancel, drawCommand = null, onMapCenter, onZoomPastGlobe, onNearGlobe, onGlobeLink, route = null, userLocation = null, pin = null, plan = null, followUser = false, onFollowInterrupt, navigating = false, onAiGlobe, onAiSelect, onAiHover, onAiFollow, aiHighlight = null, mobileSheetOpen = false, onInspectOpen, replay = null, onReplayToggle, history = null, historyFamilies = NO_FAMILIES, historyKinds = NO_FAMILIES }: WorldMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
@@ -340,6 +342,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useHistoryLayer({ mapRef, mapReady, timeline: history ?? replay, families: eventFamilies, kinds: history ? historyKinds : NO_FAMILIES, popupRef });
   useReconLayers({ ...layerArgs, sweepData, scanTargets });
   useReferenceLayers(layerArgs);
+  useAttractionsLayer(layerArgs);
 
   useProjectionTerrain({ mapRef, mapReady, containerRef, projection, terrainEnabled, terrainRetry, terrainFocus, onTerrainStatusChange });
 
@@ -362,6 +365,7 @@ function WorldMap({ data, activeLayers, onEntityClick, onMouseCoords, onRightCli
   useDirections({ mapRef, mapReady, route });
   useUserLocation({ mapRef, mapReady, userLocation, followUser, onFollowInterrupt, navigating });
   usePlacePin({ mapRef, mapReady, pin });
+  usePlanRoute({ mapRef, mapReady, plan });
 
   // Restore the selected view only when guidance ends, not on first map load.
   useEffect(() => {

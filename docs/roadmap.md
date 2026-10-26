@@ -133,7 +133,8 @@ Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages
 19. NDOT's stills (`www.nvroads.com/map/Cctv/<id>`) all return one "No live camera feed" picture, which the map shows as live tiles. Mark them off air in `lib/feeds/cameras/liveness.ts`, then drop `PLACEHOLDER_STILLS` from `places/topics/camera-catalogue.ts`.
 20. Page weight on place pages and guides: `WorldSketch` repeats the 44 KB world outline per thumbnail; the layer pages' `spot-sketch.tsx` draws it once (cut `/map/earthquakes` from 499 to 195 KB). Fold the two together.
 21. Country "now" pages count inside the country's map box, so they say "in and around"; a border-exact count needs a point-in-country test on the web side (the api's `geo/nearest-place.ts` has one).
-22. Things to do: pictures (Commons P18, licensed per file: credit each), a map layer for the listed places, and opening hours where Wikidata has them (P3025).
+22. Things to do: opening hours where Wikidata has them (P3025); pictures on the city overview's best-known six (only the topic's own page fetches them now); a three-day plan for cities that fill three days but not seven.
+23. Place pages, from the 2026-10-26 design review: an overview lede and right-now box built from facts ("39 places to see, led by the Louvre · 738 vehicles live · sunset 18:24") rather than the list of topics; layer pages that list what their live line counts (the day's strongest quakes); camera stills shown only once loaded; Paris's arrondissements and other city sections (GeoNames PPLX) indexed with their city's cameras, and filling its "nearby" cards.
 
 ### 1.8 Languages
 Since 2026-10-19 the UI is in ten languages, machine-translated (`docs/design/README.md`, Language).

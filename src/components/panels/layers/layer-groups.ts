@@ -1,6 +1,6 @@
 import {
   Plane, Satellite, Sun, AlertTriangle, Camera,
-  CloudLightning, Ship, Network, Megaphone, CloudSun, Mountain, Bus
+  CloudLightning, Ship, Network, Megaphone, CloudSun, Mountain, Bus, Landmark
 } from 'lucide-react';
 import { Car } from 'lucide-react';
 import { msg } from '@/lib/core/i18n/translator';
@@ -164,6 +164,14 @@ export const LAYER_GROUPS: LayerGroupDef[] = [
     ],
   },
   ...REFERENCE_LAYER_GROUPS,
+  {
+    label: 'SIGHTS',
+    fullLabel: msg('THINGS TO DO'),
+    icon: Landmark,
+    layers: [
+      { key: 'things_to_do', label: msg('Things to Do'), description: msg('Wikidata · museums, castles, parks and landmarks · the best known first, the rest as you zoom in'), dataKey: '' },
+    ],
+  },
   {
     label: 'OUTDOOR',
     fullLabel: msg('OUTDOOR'),

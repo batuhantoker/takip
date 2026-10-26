@@ -1,5 +1,6 @@
 import { LOCALES, type Locale } from '@/lib/core/i18n/locales';
-import { buildStamp, pagesDb, stmt } from './store';
+import { stmt } from '@/lib/core/read-db';
+import { buildStamp, pagesDb } from './store';
 
 /**
  * The indexed event pages for /event/sitemap/<n>.xml: every page in every language, 50,000 entries a file as the

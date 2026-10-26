@@ -14,7 +14,7 @@ import type { MapLink, PlaceCopy } from '@/lib/platform/site/places/topic';
 import type { SiteText } from '@/lib/platform/site/text';
 import { CountryLive } from './parts/country-live';
 import { LiveBox } from './parts/live-box';
-import { PlaceHeader } from './parts/place-header';
+import { PlaceHeader, PlaceMap } from './parts/place-header';
 import { LinkCard, listedPages, PlaceCards, PlaceList, TopicNav } from './parts/place-links';
 import { TOPIC_VIEWS } from './topics/registry';
 
@@ -44,8 +44,9 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
   const listed = listedPages(pages);
   // The overview's cards and map leave out faith pages, which the nav's Prayers entry leads to.
   const browse = listed.filter(p => !p.topic.faith);
+  const leading = [...browse.filter(p => p.topic.leadsOverviewMap), ...browse.filter(p => !p.topic.leadsOverviewMap)];
   const link: MapLink = current ? current.topic.open(place, current.page)
-    : place.kind === 'country' ? countryMap(place) : { layers: browse.flatMap(p => p.topic.open(place, p.page).layers ?? []).slice(0, 4) };
+    : place.kind === 'country' ? countryMap(place) : { layers: [...new Set(leading.flatMap(p => p.topic.open(place, p.page).layers ?? []))].slice(0, 4) };
   const open = placeOpenPath(place, link);
   const focus = { lat: place.at[1], lon: place.at[0], zoom: placeZoom(place, link.zoom) };
   // Following something away from the place, the map keeps it marked.
@@ -64,6 +65,8 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
   const hero = current && view?.Hero?.({ text, place, page: current.page });
   const facts = current && view?.Lead?.({ text, place, page: current.page });
   const Footer = view?.Footer;
+  const beside = !!(current && view?.mapBeside);
+  const wide = Wide && current ? <Wide text={text} place={place} page={current.page} detail={detail} /> : null;
   const openLabel = current?.topic.openLabel;
   const overviews = (first: boolean) => browse.map(p => {
     const v = TOPIC_VIEWS[p.topic.id];
@@ -74,12 +77,14 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
     <article>
       <PlaceHeader t={t} kicker={kicker} heading={copy.heading} lede={copy.lede} open={open} embed={embed} image={image} focus={focus}
         live={shown.length ? <LiveBox t={t} at={Math.min(...shown.map(s => s.at))} label={current?.topic.liveLabel}>{shown.map(s => s.node)}</LiveBox> : undefined}
-        hero={hero ?? undefined} openLabel={openLabel && t(openLabel)} facts={facts ?? undefined} />
+        hero={hero ?? undefined} openLabel={openLabel && t(openLabel)} facts={facts ?? undefined} mapBeside={beside} />
       {listed.length > 1 && <TopicNav text={text} place={place} pages={pages} current={current?.page.slug} />}
 
-      {Wide && current && <div className="mt-16"><Wide text={text} place={place} page={current.page} detail={detail} /></div>}
+      {wide && !beside && <div className="mt-16">{wide}</div>}
       <div className="mt-16 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,7fr)_minmax(0,4fr)] lg:gap-16">
         <div>
+          {/* Beside the map, so what it shows can mark it from the first screen. */}
+          {beside && wide}
           {!current && place.kind === 'country' && <CountryLive text={text} place={place} />}
           {!current && overviews(true)}
           {!current && browse.length > 0 && (
@@ -88,7 +93,7 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
                 {browse.map(p => (
                   <li key={p.page.slug}>
                     <LinkCard href={localePath(t.locale, placePath(place, p.page.slug))} rel={crawlRel(p.page.index)} title={shortHeading(p.topic.header(place, p.page, t).heading, place, t)}
-                      line={p.topic.summary(place, p.page, t)} Icon={TOPIC_VIEWS[p.topic.id]?.icon} />
+                      line={p.topic.summary(place, p.page, t)} />
                   </li>
                 ))}
               </ul>
@@ -103,6 +108,14 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
           )}
         </div>
         <aside className="flex flex-col gap-10">
+          {beside && (
+            // Fills the column down to the ad, so the map stays in view beside the whole list.
+            <div className="hidden flex-1 lg:block">
+              <div className="sticky top-14">
+                <PlaceMap t={t} heading={copy.heading} open={open} embed={embed} focus={focus} image={image} live={shown.length > 0} mode="beside" />
+              </div>
+            </div>
+          )}
           {Aside && current && <Aside text={text} place={place} page={current.page} />}
           <AdSlot slot={AD_SLOTS.page} variant="page" />
         </aside>

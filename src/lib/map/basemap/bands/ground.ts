@@ -3,6 +3,7 @@ import { addAlprLayers } from '@/lib/feeds/cameras/alpr-layers';
 import { addCctvLayers } from '@/lib/feeds/cameras/map-layers';
 import { LABEL_SIZE, MAP_INK, MARKER_STROKE, labelPaint, markerRadius } from '@/lib/map/style/tokens';
 import { addTrafficLayers } from '@/lib/feeds/traffic/map-layers';
+import { addAttractionLayers } from '@/lib/places/attractions/map-layers';
 import { FIRE_PERIMETER_FILL, FIRE_PERIMETER_LINE, FIRE_PERIMETER_SOURCE } from '@/lib/feeds/hazards/fire-perimeters';
 import type { LayerColor } from './shared';
 
@@ -60,6 +61,7 @@ export function addGroundLayers(map: maplibregl.Map, isGhost: boolean, cameraCol
   }});
 
   addTrafficLayers(map);
+  addAttractionLayers(map);
   // Under the CCTV dots: a live camera wins a shared spot.
   addAlprLayers(map);
   addCctvLayers(map, cameraColor);

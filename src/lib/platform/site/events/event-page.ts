@@ -1,4 +1,5 @@
-import { buildStamp, historyDb, pagesDb, stmt } from './store';
+import { stmt } from '@/lib/core/read-db';
+import { buildStamp, historyDb, pagesDb } from './store';
 
 /**
  * One event's page, read from the slug index (event-pages.db) and history.db: the event, every source that has it

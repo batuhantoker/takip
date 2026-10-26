@@ -20,7 +20,8 @@ const { values, positionals: [url, out] } = parseArgs({
 if (!url || !out) throw new Error('usage: node tools/screenshot.mjs <url> <out.png> [--size WxH] [--phone] [--cookies jar.txt] [--script steps.js]');
 
 const chromePath = process.env.CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const port = 9333;
+// A port of its own, so screenshots from two sessions at once don't drive each other's Chrome.
+const port = 9300 + Math.floor(Math.random() * 600);
 const chrome = spawn(chromePath, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${mkdtempSync(join(tmpdir(), 'shot-'))}`, 'about:blank'], { stdio: 'ignore' });
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 

@@ -492,6 +492,16 @@ html:has(.admin-root) body {
   .news-tile:hover { filter: none; }
 }
 
+/* ── Place pages ── */
+
+/* The row whose place was clicked on the page's live map (components/site/pages/map-talk.ts): a selected row,
+   its fill carried a little past the text, since the rows have no padding of their own. */
+[data-map] { transition: background-color var(--motion) var(--ease), box-shadow var(--motion) var(--ease); }
+[data-map][data-map-on] { background-color: var(--surface-3); box-shadow: 0 0 0 6px var(--surface-3); border-radius: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  [data-map] { transition: none; }
+}
+
 /* ── TI, search and directions ── */
 
 /* TI's theatre takes the whole screen: the app's own HUD steps back until it closes. */

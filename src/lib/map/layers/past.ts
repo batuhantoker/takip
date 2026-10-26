@@ -10,7 +10,7 @@ export const HISTORY_KEEPS = new Set(['terrain_3d', 'terrain_elevation', 'sky_st
  * Replay moves recorded ships and aircraft, satellites and dated imagery with its clock, and is a few days
  * back at most, so static reference layers still hold. The other layers are live feeds.
  */
-const REPLAY_KEEPS = new Set([...HISTORY_KEEPS, 'flights', 'private', 'jets', 'military', 'maritime', 'satellites', 'cables', 'infrastructure', 'hiking_routes', 'wx_radar', 'wx_lightning']);
+const REPLAY_KEEPS = new Set([...HISTORY_KEEPS, 'flights', 'private', 'jets', 'military', 'maritime', 'satellites', 'cables', 'infrastructure', 'hiking_routes', 'things_to_do', 'wx_radar', 'wx_lightning']);
 const REPLAY_PREFIXES = ['ships_', 'sat_'];
 
 /** Whether turning `layer` on needs today's map rather than the past one shown. */
