@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { PageView } from '@/components/site/page-view';
 import { LOCALES, LOCALE_NAMES } from '@/lib/core/i18n/locales';
@@ -16,11 +17,13 @@ export { Bullets, LINK_BUTTON, Section, TEXT_LINK } from './site-parts';
  * page in every language. `path` is the page's English path; links follow the reader's language. `indexed` false: a page
  * kept out of search, whose other languages crawlers aren't sent to.
  */
-export async function SiteFrame({ t, path, trail = [], indexed = true, children }: {
+export async function SiteFrame({ t, path, trail = [], indexed = true, credits, children }: {
   t: Translate;
   path: string;
   trail?: { href: string; label: string; rel?: string }[];
   indexed?: boolean;
+  /** The page's own data credit, under the site's. */
+  credits?: string;
   children: ReactNode;
 }) {
   const here = (p: string) => localePath(t.locale, p);
@@ -51,19 +54,29 @@ export async function SiteFrame({ t, path, trail = [], indexed = true, children 
           <div>
             <p className="max-w-[36rem]">{t('TAKIP is a free live map of public data: flights, ships, satellites, cameras, weather, earthquakes and news, gathered onto one map.')}</p>
             <p className="mt-2 max-w-[36rem] text-[12px]">{t('Places from GeoNames (CC BY 4.0), with names from Wikidata.')}</p>
+            {credits && <p className="mt-1 max-w-[36rem] text-[12px]">{credits}</p>}
             <nav aria-label={t('More from TAKIP')} className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
               {footer.map(l => <Link key={l.href} href={l.href} className={cx('hover:text-ink-1', FOCUS_RING)}>{l.label}</Link>)}
             </nav>
           </div>
-          {/* A page with one URL in every language (the guides, until translated) has no other languages to offer. */}
-          {isReadingPath(path) && <nav aria-label={t('This page in other languages')} className="flex flex-wrap content-start gap-x-4 gap-y-2">
-            {LOCALES.map(l => (
-              <a key={l} href={localePath(l, path)} hrefLang={l} lang={l} rel={crawlRel(indexed)} aria-current={l === t.locale ? 'page' : undefined}
-                className={cx(l === t.locale ? 'text-ink-1' : 'hover:text-ink-1', FOCUS_RING, TRANSITION)}>
-                {LOCALE_NAMES[l]}
-              </a>
-            ))}
-          </nav>}
+          {/* A page with one URL in every language (the guides, until translated) has no other languages to offer. Folded:
+              few readers switch, and the head's alternates tell search engines about the others. */}
+          {isReadingPath(path) && (
+            <details className="group self-start md:justify-self-end">
+              <summary title={t('This page in other languages')} className={cx('inline-flex cursor-pointer list-none items-center gap-1.5 hover:text-ink-1 [&::-webkit-details-marker]:hidden', FOCUS_RING, TRANSITION)}>
+                <span className="sr-only">{t('Language')}: </span>{LOCALE_NAMES[t.locale]}
+                <ChevronDown aria-hidden className="size-3.5 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+              </summary>
+              <nav aria-label={t('This page in other languages')} className="mt-3 flex max-w-[24rem] flex-wrap gap-x-4 gap-y-2">
+                {LOCALES.map(l => (
+                  <a key={l} href={localePath(l, path)} hrefLang={l} lang={l} rel={crawlRel(indexed)} aria-current={l === t.locale ? 'page' : undefined}
+                    className={cx(l === t.locale ? 'text-ink-1' : 'hover:text-ink-1', FOCUS_RING, TRANSITION)}>
+                    {LOCALE_NAMES[l]}
+                  </a>
+                ))}
+              </nav>
+            </details>
+          )}
         </footer>
       </div>
     </main>

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { cx, FOCUS_RING } from '@/components/ui/class-names';
+import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { Section } from '@/components/site/pages/site-frame';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
@@ -17,11 +17,13 @@ export function TopicPlaces({ text, topicId }: { text: SiteText; topicId: string
   if (!topic || !places.length) return null;
   return (
     <Section title={t('{topic}, place by place', { topic: t(topic.label) })}>
-      <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1 border-t border-line sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-3">
         {places.map(({ place, slug }) => (
-          <li key={place.id} className="text-[14px]">
-            <Link href={localePath(t.locale, placePath(place, slug))} rel={crawlRel(placeIndexed(place, slug))} className={cx('text-ink-1 hover:text-accent', FOCUS_RING)}>{nameOf(place, t)}</Link>
-            {place.kind !== 'country' && <span className="text-ink-3"> · {countryName(place.cc, t)}</span>}
+          <li key={place.id} className="border-b border-line">
+            <Link href={localePath(t.locale, placePath(place, slug))} rel={crawlRel(placeIndexed(place, slug))} className={cx('group flex items-baseline justify-between gap-3 py-2.5', FOCUS_RING)}>
+              <span className={cx('truncate text-[15px] leading-6 font-medium text-ink-1 group-hover:text-accent', TRANSITION)}>{nameOf(place, t)}</span>
+              {place.kind !== 'country' && <span className="shrink-0 text-[13px] text-ink-3">{countryName(place.cc, t)}</span>}
+            </Link>
           </li>
         ))}
       </ul>

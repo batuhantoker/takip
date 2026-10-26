@@ -11,15 +11,14 @@ import { crawlRel } from '@/lib/platform/site/meta';
 export function EventList({ t, events, more = 0, columns = false }: { t: Translate; events: EventRef[]; more?: number; columns?: boolean }) {
   return (
     <>
-      <ul className={cx('grid gap-2', columns && 'sm:grid-cols-2')}>
+      <ul className={cx('grid grid-cols-1 border-t border-line', columns && 'sm:grid-cols-2 sm:gap-x-10')}>
         {events.map(r => {
           const mag = magnitudeRow(t, r);
           return (
-            <li key={r.slug}>
-              <Link href={localePath(t.locale, eventPath(r.slug))} rel={crawlRel(r.indexed)}
-                className={cx('flex h-full flex-col gap-0.5 rounded-card border border-line bg-surface-1 px-3.5 py-2.5 hover:border-line-strong', FOCUS_RING, TRANSITION)}>
-                <span className="text-[14px] font-medium text-ink-1">{eventName(t, r)}</span>
-                <span className="text-[12px] text-ink-3">
+            <li key={r.slug} className="border-b border-line">
+              <Link href={localePath(t.locale, eventPath(r.slug))} rel={crawlRel(r.indexed)} className={cx('group block py-2.5', FOCUS_RING)}>
+                <span className={cx('block text-[15px] leading-6 font-medium text-ink-1 group-hover:text-accent', TRANSITION)}>{eventName(t, r)}</span>
+                <span className="mt-0.5 block text-[13px] leading-5 text-ink-3">
                   {[refWhen(t, r), kindLabel(t, r.kind), mag && `${mag.label} ${mag.value}`].filter(Boolean).join(' · ')}
                 </span>
               </Link>

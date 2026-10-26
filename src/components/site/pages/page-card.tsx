@@ -4,15 +4,16 @@ import type { MapView } from '@/lib/platform/site/map-link';
 import { WorldSketch } from './world-sketch';
 
 /** A page in a gallery: its picture, its name and a line about it. */
-export function PageCard({ href, image, title, description, points }: {
+export function PageCard({ href, image, title, description, points, className }: {
   href: string;
   image: string | null;
   title: string;
   description: string;
   points?: MapView[];
+  className?: string;
 }) {
   return (
-    <Link href={href} className={cx('group flex flex-col overflow-hidden rounded-card border border-line bg-surface-1 hover:border-line-strong', FOCUS_RING, TRANSITION)}>
+    <Link href={href} className={cx('group flex flex-col overflow-hidden rounded-card border border-line bg-surface-1 hover:border-line-strong', FOCUS_RING, TRANSITION, className)}>
       <span className="block aspect-[16/9] overflow-hidden border-b border-line">
         {image
           // eslint-disable-next-line @next/next/no-img-element -- see map-window.tsx

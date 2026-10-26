@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LAYERS } from '@/lib/map/layers/defaults';
-import { availablePages, LAYER_PAGES, layerPage, openPath, SECTIONS } from './layer-pages';
+import { availablePages, LAYER_PAGES, layerPage, openPath, SECTION_GROUPS, SECTIONS, type SectionId } from './layer-pages';
 import { TOPICS } from './places/topics/registry';
 
 describe('LAYER_PAGES', () => {
@@ -27,6 +27,14 @@ describe('LAYER_PAGES', () => {
     expect(p.layers.length > 0 || !!p.mode || !!p.panel || !!p.view, 'opens something').toBe(true);
     expect(p.sources.length).toBeGreaterThan(0);
     if (p.places) expect(TOPICS.map(x => x.id)).toContain(p.places);
+  });
+
+  it('puts every page of a grouped section in exactly one of its groups', () => {
+    for (const [section, groups] of Object.entries(SECTION_GROUPS) as [SectionId, NonNullable<typeof SECTION_GROUPS[SectionId]>][]) {
+      for (const p of LAYER_PAGES.filter(x => x.section === section)) {
+        expect(groups.filter(g => g.slugs.has(p.slug)).length, p.slug).toBe(1);
+      }
+    }
   });
 
   it('leaves out pages whose layer needs a key the server lacks', () => {

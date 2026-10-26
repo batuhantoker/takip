@@ -1,3 +1,4 @@
+import { msg } from '@/lib/core/i18n/translator';
 import { AIR } from './catalog/air';
 import { CAMERAS } from './catalog/cameras';
 import { GROUND } from './catalog/ground';
@@ -36,6 +37,21 @@ export const SECTIONS: { id: SectionId; label: string; blurb: string }[] = [
 export const LAYER_PAGES: readonly LayerPage[] = [
   ...AIR, ...SEA, ...SPACE, ...SPACE_VIEW, ...WEATHER, ...HAZARDS, ...CAMERAS, ...GROUND, ...WORLD, ...NETWORK, ...PAST, ...PAST_CONFLICT, ...PAST_POLITICS, ...PAST_NATURE, ...PAST_ACCIDENTS, ...TOOLS,
 ];
+
+/** The long sections, split under headings on /map by the catalog file each page comes from. */
+export const SECTION_GROUPS: Partial<Record<SectionId, { label: string; slugs: ReadonlySet<string> }[]>> = {
+  space: [
+    { label: msg('Around the Earth'), slugs: new Set(SPACE.map(p => p.slug)) },
+    { label: msg('The solar system and beyond'), slugs: new Set(SPACE_VIEW.map(p => p.slug)) },
+  ],
+  past: [
+    { label: msg('Maps of the past'), slugs: new Set(PAST.map(p => p.slug)) },
+    { label: msg('Wars and violence'), slugs: new Set(PAST_CONFLICT.map(p => p.slug)) },
+    { label: msg('Politics and society'), slugs: new Set(PAST_POLITICS.map(p => p.slug)) },
+    { label: msg('Disasters and epidemics'), slugs: new Set(PAST_NATURE.map(p => p.slug)) },
+    { label: msg('Accidents and launches'), slugs: new Set(PAST_ACCIDENTS.map(p => p.slug)) },
+  ],
+};
 
 /** Pages this server can back: a page whose layer needs a key the server lacks would promise a layer that isn't there. */
 export function availablePages(env: Record<string, string | undefined> = process.env): LayerPage[] {

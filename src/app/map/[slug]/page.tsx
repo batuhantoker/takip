@@ -58,16 +58,18 @@ export default async function LayerPageRoute({ params }: Props) {
   const origin = configuredOrigin() ?? publicOrigin(await headers());
   const live = page.live ? await liveLine(page.live, text.t) : null;
   const shot = page.liveImage ? { id: page.liveImage, taken: await liveImageTaken(page.liveImage) } : null;
-  const related = page.related.map(slug => layerPage(slug)).filter(p => !!p)
-    .map(p => ({ page: pageIn(text, p), image: shotUrl(p.slug) }));
+  const related = page.related.map(slug => layerPage(slug)).filter(p => !!p).map(p => pageIn(text, p));
   const index = localePath(text.locale, '/map');
+  const section = sectionIn(text, page.section);
   const events = page.eventKinds && topicEvents(page.eventKinds);
   return (
-    <SiteFrame t={text.t} path={pagePath(page)} trail={[{ href: index, label: text.t('On the map') }]}>
+    <SiteFrame t={text.t} path={pagePath(page)} trail={[{ href: index, label: text.t('On the map') }, { href: `${index}#${page.section}`, label: section.label }]}
+      // A dot between names: several already have "and" in them, and no list style reads right in every language.
+      credits={`${text.t('Data from {sources}.', { sources: page.sources.map(s => s.name).join(' · ') })} ${page.freshness}`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd([
         breadcrumbs(origin, [
           { name: 'TAKIP', path: '/' },
-          { name: sectionIn(text, page.section).label, path: index },
+          { name: section.label, path: index },
           { name: page.heading, path: localePath(text.locale, pagePath(page)) },
         ]),
         ...(shot ? [{
