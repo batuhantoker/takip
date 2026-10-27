@@ -8,8 +8,9 @@ import { msg, type Translate, type Vars } from '@/lib/core/i18n/translator';
 import { LY_KM, scale } from '../astro';
 import { compact } from '../format';
 import { bodyDirection, EQUATORIAL_TO_ECLIPTIC, GALACTIC_TO_ECLIPTIC, galacticDirection, mul } from '../frames';
-import { BASINS } from './basins.generated';
-import type { Basin } from './cosmic-web';
+import { BASINS, NEARBY_VOIDS } from './basins.generated';
+import { NEARBY_VOID_NAMES, nearbyVoidId, type Basin, type NearbyVoid } from './cosmic-web';
+import { STRUCTURES, type Structure, type StructureKind } from './structures';
 import { DEEP_SKY_PLACED, deepSkyImage } from './deep-sky';
 import { GALACTIC_CENTRE_KM } from './galaxy';
 import type { Vec3 } from '../horizons';
@@ -90,6 +91,43 @@ function basinFeature(b: Basin): DeepFeature {
   };
 }
 
+const STRUCTURE_SUBTITLE: Record<StructureKind, string> = { cluster: msg('Galaxy cluster'), supercluster: msg('Supercluster'), wall: msg('Wall of galaxies'), void: msg('Cosmic void') };
+/** Roughly how big each kind is, for framing the camera on it. */
+const STRUCTURE_RADIUS_MLY: Record<StructureKind, number> = { cluster: 8, supercluster: 100, wall: 250, void: 160 };
+
+/** A named cluster, supercluster, wall or void, where its redshift puts it. */
+function structureFeature(s: Structure): DeepFeature {
+  return {
+    id: s.id, name: s.title, subtitle: STRUCTURE_SUBTITLE[s.kind], illustration: false,
+    fields: t => [
+      [t('From the Sun'), `${compact(s.mly * 1e6, t.intl)} ly`],
+      [t('Redshift'), s.z.toLocaleString(t.intl, { minimumFractionDigits: 4, maximumFractionDigits: 4 })],
+      [t('RA / Dec'), `${s.ra.toFixed(2)}° / ${s.dec.toFixed(2)}°`],
+    ],
+    note: s.note,
+    footnote: msg('Placed by its redshift, at the distance the expansion has carried it to by now; the dots around it are galaxies of the 2MASS and SDSS surveys, placed the same way.'),
+    position: scale(mul(EQUATORIAL_TO_ECLIPTIC, bodyDirection(s.dec, s.ra)), s.mly * 1e6 * LY_KM), radiusKm: STRUCTURE_RADIUS_MLY[s.kind] * 1e6 * LY_KM,
+  };
+}
+
+/** One of Pustilnik et al.'s 25 nearest voids. */
+function nearbyVoidFeature(v: NearbyVoid, k: number): DeepFeature {
+  return {
+    id: nearbyVoidId(k), name: NEARBY_VOID_NAMES[v.name], subtitle: msg('One of the 25 nearest voids'), illustration: false,
+    fields: t => [
+      [t('From the Sun'), `${compact(Math.hypot(...v.centre) * 1e6, t.intl)} ly`],
+      [t('Across'), t('about {size}', { size: `${compact(2 * v.reffMly * 1e6, t.intl)} ly` })],
+      [t('Galaxies inside'), t('{n}, mostly dwarfs', { n: v.galaxies })],
+      [t('RA / Dec'), `${v.ra.toFixed(1)}° / ${v.dec.toFixed(1)}°`],
+    ],
+    note: msg('A region with no bright galaxies, one of the 25 voids within 80 million light-years that Pustilnik et al. (2019) mapped over the whole sky, walled by galaxies brighter than absolute K magnitude −22. It is a cluster of overlapping empty spheres, drawn as the ellipsoid spanning its extent along the supergalactic axes.'),
+    position: scale(mul(EQUATORIAL_TO_ECLIPTIC, v.centre), 1e6 * LY_KM), radiusKm: v.reffMly * 1e6 * LY_KM,
+  };
+}
+
+/** Voids, catalogued or named: the camera stands back from them as it does from any void. */
+export const VOID_FEATURES = new Set([...NEARBY_VOIDS.map((_, k) => nearbyVoidId(k)), ...STRUCTURES.filter(s => s.kind === 'void').map(s => s.id)]);
+
 export const DEEP_FEATURES: Record<string, DeepFeature> = {
   'termination-shock': {
     id: 'termination-shock', name: msg('Termination shock'), subtitle: msg('Heliosphere · model'), illustration: true,
@@ -165,6 +203,8 @@ export const DEEP_FEATURES: Record<string, DeepFeature> = {
     position: galaxyPosition(g), radiusKm: (g.diameterLy / 2) * LY_KM,
   } satisfies DeepFeature])),
   ...Object.fromEntries(BASINS.map(b => [b.id, basinFeature(b)])),
+  ...Object.fromEntries(STRUCTURES.filter(s => s.id !== 'local-void').map(s => [s.id, structureFeature(s)])),
+  ...Object.fromEntries(NEARBY_VOIDS.map((v, k) => [nearbyVoidId(k), nearbyVoidFeature(v, k)])),
   ...Object.fromEntries(DEEP_SKY_PLACED.filter(d => !d.object.feature).map(({ object: d, image, place }) => [d.id, {
     id: d.id, name: d.name, subtitle: d.subtitle, illustration: false,
     fields: t => [

@@ -2,7 +2,8 @@ import type { Translate } from '@/lib/core/i18n/translator';
 import { KIND_LABEL, ROSTER } from '@/lib/platform/site/space/roster';
 import { DEEP_SKY, type DeepSkyObject } from '@/lib/space/deep/deep-sky';
 import { BASINS } from '@/lib/space/deep/basins.generated';
-import { DEEP_FEATURES, NEARBY_GALAXIES } from '@/lib/space/deep/features';
+import { DEEP_FEATURES, NEARBY_GALAXIES, VOID_FEATURES } from '@/lib/space/deep/features';
+import { STRUCTURES } from '@/lib/space/deep/structures';
 import type { SpaceSelection } from '@/lib/space/selection';
 import { SKY_BODIES } from '@/lib/space/sky';
 import { isSpaceFocus, type SpaceFocus } from '@/lib/space/worlds';
@@ -14,7 +15,7 @@ const DEEP_FOCUS: Record<DeepSkyObject['realm'], SpaceFocus> = { 'milky-way': 's
 const FEATURE_FOCUS: Record<string, SpaceFocus> = {
   'milky-way': 'galaxy', 'sgr-a': 'galaxy', cmb: 'universe', 'local-void': 'universe', 'zone-of-avoidance': 'universe',
   heliopause: 'solar', 'termination-shock': 'solar', 'kuiper-belt': 'solar', 'oort-cloud': 'stars',
-  ...Object.fromEntries(BASINS.map(b => [b.id, 'universe' as const])),
+  ...Object.fromEntries([...BASINS.map(b => b.id), ...STRUCTURES.map(x => x.id), ...VOID_FEATURES].map(id => [id, 'universe' as const])),
 };
 
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

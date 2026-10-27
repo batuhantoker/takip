@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { t } from '@/lib/core/i18n/active';
 import { AU_KM, LY_KM } from '@/lib/space/astro';
 import { BASINS, NEARBY_VOIDS } from '@/lib/space/deep/basins.generated';
-import { NEARBY_VOID_NAMES } from '@/lib/space/deep/cosmic-web';
+import { NEARBY_VOID_NAMES, nearbyVoidId } from '@/lib/space/deep/cosmic-web';
+import { STRUCTURES } from '@/lib/space/deep/structures';
 import { DEEP_SKY_PLACED } from '@/lib/space/deep/deep-sky';
 import { DEEP_FEATURES, NEARBY_GALAXIES } from '@/lib/space/deep/features';
 import { apparentMag } from '@/lib/space/deep/nearby-stars';
@@ -58,10 +59,10 @@ export function deepTargets(scene: SpaceScene, jd: number, out: Target[]) {
   if (f.stars > 0.25) starTargets(scene, cam, out);
   if (f.disc > 0.3) out.push(feature('sgr-a', new THREE.Vector3(...DEEP_FEATURES['sgr-a'].position!), 'Sgr A*', '#FFC98A', 60));
   if (f.localGalaxies > 0.3) for (const l of scene.cosmos.labels()) {
-    // Once the catalogued void is drawn, it carries Boötes' name itself; the Local Void's label is the feature's.
-    if (l.id === 'cosmos:Boötes Void' && scene.web.bootes() >= 0 && f.web > 0.3) continue;
-    if (l.id === 'cosmos:Local Void' && f.web > 0.3) continue;
-    if (l.id !== 'cmb' || f.cmb > 0.3) out.push(feature(l.id, l.position, l.name, l.id === 'cmb' ? '#FF9F6B' : '#E6D9FF', l.id === 'cmb' ? 50 : 38));
+    // Once the catalogued void is outlined, it carries Boötes' name itself.
+    if (l.id === 'bootes-void' && scene.web.bootes() >= 0 && f.web > 0.3) continue;
+    const isVoid = STRUCTURES.some(s => s.id === l.id && s.kind === 'void');
+    if (l.id !== 'cmb' || f.cmb > 0.3) out.push(feature(l.id, l.position, l.name, l.id === 'cmb' ? '#FF9F6B' : isVoid ? VOID_COLOR : '#E6D9FF', l.id === 'cmb' ? 50 : isVoid ? 36 : 38));
   }
   if (f.localGroup > 0.3) {
     for (const g of NEARBY_GALAXIES) out.push(feature(g.id, new THREE.Vector3(...DEEP_FEATURES[g.id].position!), t(g.name), '#C9CFFF', g.diameterLy > 30_000 ? 55 : 34));
@@ -70,10 +71,7 @@ export function deepTargets(scene: SpaceScene, jd: number, out: Target[]) {
   if (f.localGalaxies > 0.3 && illus) out.push(feature('zone-of-avoidance', new THREE.Vector3(...DEEP_FEATURES['zone-of-avoidance'].position!), t('Zone of Avoidance · illustration'), '#A9B8D6', 30));
   if (f.web > 0.3 || f.farVoids > 0.3) voidTargets(scene, out);
   if (f.web > 0.3) superclusterTargets(scene, cam, out);
-  if (f.web > 0.3) {
-    if (scene.web.basinsLoaded() && scene.web.basinReveal() > 0.3) basinTargets(scene, cam, out);
-    out.push(feature('local-void', new THREE.Vector3(...DEEP_FEATURES['local-void'].position!), t('Local Void'), VOID_COLOR, 36));
-  }
+  if (f.web > 0.3 && scene.web.basinsLoaded() && scene.web.basinReveal() > 0.3) basinTargets(scene, cam, out);
 }
 
 function basinTargets(scene: SpaceScene, cam: THREE.Vector3, out: Target[]) {
@@ -93,7 +91,7 @@ function basinTargets(scene: SpaceScene, cam: THREE.Vector3, out: Target[]) {
 /** The named structure (cosmos.json) a supercluster holds, if one lies within it: the Sloan Great Wall's richest part, say. */
 export function superclusterName(scene: SpaceScene, i: number): string | null {
   const c = scene.web.superclusterCentre(i), r = scene.web.superclusterRadiusKm(i);
-  const hit = scene.cosmos.labels().find(l => l.id.startsWith('cosmos:') && !/void/i.test(l.id) && l.position.distanceTo(c) < r * 1.2);
+  const hit = scene.cosmos.labels().find(l => STRUCTURES.some(s => s.id === l.id && s.kind !== 'void') && l.position.distanceTo(c) < r * 1.2);
   return hit ? hit.name : null;
 }
 
@@ -123,7 +121,9 @@ function voidTargets(scene: SpaceScene, out: Target[]) {
       : v.nearby !== undefined ? t(NEARBY_VOID_NAMES[NEARBY_VOIDS[v.nearby].name])
       : v.catalogue === 'quaia' ? t('Supervoid, {n} million ly across', { n: mly(scene.web.voidRadiusKm(i)) })
       : t('Void, {n} million ly across', { n: mly(scene.web.voidRadiusKm(i)) });
-    out.push({ sel: { kind: 'feature', id: `void:${i}` }, position: scene.web.voidCentre(i), radiusPx: Math.min(px, 400), text, color: VOID_COLOR, priority: 20 + Math.min(12, px / 40) });
+    // The named ones are features, with their own card and page.
+    const id = i === scene.web.bootes() ? 'bootes-void' : v.nearby !== undefined ? nearbyVoidId(v.nearby) : `void:${i}`;
+    out.push({ sel: { kind: 'feature', id }, position: scene.web.voidCentre(i), radiusPx: Math.min(px, 400), text, color: VOID_COLOR, priority: 20 + Math.min(12, px / 40) });
   }
 }
 

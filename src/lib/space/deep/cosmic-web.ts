@@ -9,6 +9,8 @@
 
 import { msg } from '@/lib/core/i18n/translator';
 import type { Vec3 } from '../horizons';
+import { NEARBY_VOIDS } from './basins.generated';
+import { slugOf } from './structures';
 
 /**
  * Which catalogue a void is from: Douglass et al. 2023 (SDSS), Einasto et al. 1994 (all sky, near), Arsenov et al.
@@ -42,7 +44,15 @@ export interface Basin {
   volumeHMpc3: number;
 }
 
-export interface NearbyVoid { name: string; galaxies: number }
+export interface NearbyVoid {
+  name: string;
+  galaxies: number;
+  ra: number;
+  dec: number;
+  /** Mly, J2000 equatorial. */
+  centre: Vec3;
+  reffMly: number;
+}
 
 /** Pustilnik et al. name the nearest voids by the constellations they lie behind. */
 export const NEARBY_VOID_NAMES: Record<string, string> = {
@@ -53,6 +63,9 @@ export const NEARBY_VOID_NAMES: Record<string, string> = {
   Lib: msg('Libra Void'), Her: msg('Hercules Void'), 'Oph-Sgr-Cap': msg('Ophiuchus–Sagittarius–Capricornus Void'), 'Dra-Cep': msg('Draco–Cepheus Void'),
   Cyg: msg('Cygnus Void'), 'Pav-Oct': msg('Pavo–Octans Void'), Aqu: msg('Aquarius Void'),
 };
+
+/** The feature id of nearby void k, from its English name: hercules-void. */
+export const nearbyVoidId = (k: number) => slugOf(NEARBY_VOID_NAMES[NEARBY_VOIDS[k].name]);
 
 export interface BasinMesh { positions: Float32Array; indices: Uint32Array }
 

@@ -194,19 +194,6 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     };
   }
 
-  if (sel.kind === 'feature' && sel.id.startsWith('cosmos:')) {
-    const m = scene.cosmos.meta();
-    const st = m?.structures.find(x => `cosmos:${x.name}` === sel.id);
-    const at = scene.cosmos.labels().find(l => l.id === sel.id);
-    if (!m || !st || !at) return null;
-    const ly = st.mly * 1e6;
-    return {
-      title: st.name, subtitle: /void/i.test(st.name) ? t('Cosmic void') : t('Large-scale structure'), color: '#E6D9FF',
-      fields: [[t('From the Sun'), distance(ly * LY_KM, t)], [t('From here'), here(at.position)], [t('Redshift'), st.z.toLocaleString(t.intl, { minimumFractionDigits: 4, maximumFractionDigits: 4 })], [t('RA / Dec'), `${st.ra.toFixed(2)}° / ${st.dec.toFixed(2)}°`]],
-      note: t('Placed by its redshift: comoving distance, {cosmology}. The dots around it are 2MASS Redshift Survey galaxies ({local}) and SDSS galaxies and quasars ({deep} sampled).', { cosmology: m.cosmology, local: m.local.count, deep: m.deep.count }),
-    };
-  }
-
   if (sel.kind === 'feature') {
     const f = DEEP_FEATURES[sel.id];
     if (!f) return null;

@@ -1,4 +1,5 @@
 import { AU_KM, LY_KM } from '@/lib/space/astro';
+import { VOID_FEATURES } from '@/lib/space/deep/features';
 import { jdFromMs } from '@/lib/space/horizons';
 import type { SpaceSelection } from '@/lib/space/selection';
 import type { MapPose } from '@/lib/space/globe-match';
@@ -75,7 +76,7 @@ export function createZoomAnchoring(scene: SpaceScene, root: HTMLElement, onSurf
     const aimed = Math.hypot(x - rect.width / 2, y - rect.height / 2) > CENTRE_ZONE * Math.min(rect.width, rect.height);
     const sel = aimed ? pickAt(scene, x, y, rect.width, rect.height) : null;
     // A picture is only seen face on, from Earth's side: zooming at one flies round to it, as its card does.
-    if (sel?.kind === 'feature' && (picturedUp(sel.id) || sel.id.startsWith('void:') || sel.id.startsWith('scl:')) && !same({ kind: 'feature', id: sel.id }, scene.anchor)) {
+    if (sel?.kind === 'feature' && (picturedUp(sel.id) || sel.id.startsWith('void:') || sel.id.startsWith('scl:') || VOID_FEATURES.has(sel.id)) && !same({ kind: 'feature', id: sel.id }, scene.anchor)) {
       const v = deepView(sel, a => scene.anchorState(a)?.position, a => scene.anchorState(a)?.radius);
       if (v) scene.setAnchor(v.anchor, v);
       return;

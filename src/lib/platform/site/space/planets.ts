@@ -29,3 +29,26 @@ export const PLANETS: PlanetEntry[] = [
 export const planetEntry = (key: string) => PLANETS.find(p => p.key === key) ?? null;
 
 export const planetPath = (p: { key: string }) => `/planet/${p.key}`;
+
+/** The dwarf planets past Neptune and the interstellar visitors the space view draws, each with a page at /planet/<key>. */
+export interface OuterEntry {
+  key: string;
+  kind: 'dwarf' | 'visitor';
+  /** English Wikipedia title. */
+  wiki: string;
+}
+
+export const OUTER_BODIES: OuterEntry[] = [
+  { key: 'eris', kind: 'dwarf', wiki: 'Eris (dwarf planet)' },
+  { key: 'haumea', kind: 'dwarf', wiki: 'Haumea' },
+  { key: 'makemake', kind: 'dwarf', wiki: 'Makemake' },
+  { key: 'gonggong', kind: 'dwarf', wiki: 'Gonggong (dwarf planet)' },
+  { key: 'quaoar', kind: 'dwarf', wiki: 'Quaoar' },
+  { key: 'sedna', kind: 'dwarf', wiki: 'Sedna (dwarf planet)' },
+  { key: 'orcus', kind: 'dwarf', wiki: 'Orcus (dwarf planet)' },
+  { key: 'oumuamua', kind: 'visitor', wiki: '1I/ʻOumuamua' },
+  { key: 'borisov', kind: 'visitor', wiki: '2I/Borisov' },
+  { key: 'atlas', kind: 'visitor', wiki: '3I/ATLAS' },
+];
+
+export const outerEntry = (key: string) => OUTER_BODIES.find(p => p.key === key) ?? null;

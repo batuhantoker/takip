@@ -5,7 +5,8 @@
  */
 
 import { msg } from '@/lib/core/i18n/translator';
-import { AU_KM } from '../astro';
+import { AU_KM, GM_SUN } from '../astro';
+import { drift } from '../frames';
 import type { StateRow, Vec3 } from '../horizons';
 
 export interface OuterBodyDef {
@@ -124,4 +125,15 @@ export function parseMpcLine(line: string): { H: number; el: Elements } | null {
 /** Where a distant body sits: centaurs cross the giant planets, the Kuiper belt is 30–50 AU, beyond is the scattered disc. */
 export function distantClass(a: number): 'centaur' | 'kuiper' | 'scattered' {
   return a < 30 ? 'centaur' : a <= 50 ? 'kuiper' : 'scattered';
+}
+
+/** Where an outer body is at `jd`: a visitor from its path, a dwarf planet only near the payload's epoch, where drift holds. */
+export function outerPosition(b: OuterBody, jd: number, epochJd: number): Vec3 | null {
+  if (b.path?.length && jd >= b.path[0].jd && jd <= b.path[b.path.length - 1].jd) {
+    const i = Math.max(1, b.path.findIndex(r => r.jd >= jd));
+    const a = b.path[i - 1], c = b.path[i];
+    const f = (jd - a.jd) / Math.max(1e-9, c.jd - a.jd);
+    return [a.pos[0] + (c.pos[0] - a.pos[0]) * f, a.pos[1] + (c.pos[1] - a.pos[1]) * f, a.pos[2] + (c.pos[2] - a.pos[2]) * f];
+  }
+  return Math.abs(jd - epochJd) < 60 ? drift(b.helio, b.vel, (jd - epochJd) * 86_400, GM_SUN) : null;
 }

@@ -7,7 +7,8 @@
 
 import { pastMission } from './craft/past-missions';
 import { deepSkyObject } from './deep/deep-sky';
-import { NEARBY_GALAXIES } from './deep/features';
+import { NEARBY_GALAXIES, VOID_FEATURES } from './deep/features';
+import { STRUCTURES } from './deep/structures';
 import type { SpaceSelection } from './selection';
 import type { SkyKey } from './sky';
 
@@ -22,6 +23,7 @@ const FEATURE: Record<string, string> = {
   heliopause: 'Heliosphere', 'termination-shock': 'Heliosphere', 'kuiper-belt': 'Kuiper belt',
   'gravitational-focus': 'Solar gravitational lens', 'oort-cloud': 'Oort cloud', 'sgr-a': 'Sagittarius A*',
   'milky-way': 'Milky Way', cmb: 'Cosmic microwave background', 'zone-of-avoidance': 'Zone of Avoidance', laniakea: 'Laniakea Supercluster', 'local-void': 'Local Void',
+  ...Object.fromEntries(STRUCTURES.map(s => [s.id, s.wiki])),
   'basin-shapley': 'Shapley Supercluster', 'basin-perseus-pisces': 'Perseus–Pisces Supercluster', 'basin-hercules': 'Hercules Supercluster', 'sculptor-void': 'Sculptor Void',
 };
 
@@ -49,8 +51,7 @@ export function wikiTopic(sel: SpaceSelection, name?: string): WikiTopic | null 
       const g = NEARBY_GALAXIES.find(x => x.id === sel.id);
       if (g) return { q: `${g.name} galaxy` };
       if (sel.id.startsWith('scl:')) return { title: 'Supercluster' };
-      if (sel.id.startsWith('void:')) return { title: name === 'Boötes Void' ? 'Boötes Void' : 'Void (astronomy)' };
-      if (sel.id.startsWith('cosmos:')) return { q: sel.id.slice(7).replace(/\s*\(.*\)/, '') };
+      if (sel.id.startsWith('void:') || VOID_FEATURES.has(sel.id)) return { title: 'Void (astronomy)' };
       return null;
     }
   }

@@ -1,6 +1,7 @@
 import type { SurfacePayload, SurfaceRover } from '@/lib/space/bodies/surface';
 import type { FleetCraft, FleetPayload } from '@/lib/space/craft/fleet';
-import { C_KM_S, norm } from '@/lib/space/astro';
+import { C_KM_S, norm, sub } from '@/lib/space/astro';
+import { outerPosition, type OuterPayload } from '@/lib/space/deep/outer';
 import { jdFromMs } from '@/lib/space/horizons';
 import { sampleAt, type SkyPayload } from '@/lib/space/sky';
 import { ownApi } from '../live/own-api';
@@ -45,6 +46,18 @@ export async function planetNow(key: string, now = Date.now()): Promise<PlanetNo
     lightSec: s.km / C_KM_S,
     trendKmDay: days > 0.5 ? (last.km - first.km) / days : null,
   };
+}
+
+/** A dwarf planet or interstellar visitor now, from the space view's own outer payload and Earth's place in the sky one. */
+export async function outerNow(key: string, now = Date.now()): Promise<PlanetNow | null> {
+  const [outer, sky] = await Promise.all([ownApi<OuterPayload>('/api/space/outer', 3600), ownApi<SkyPayload>('/api/space/sky', 1800)]);
+  const b = outer?.bodies.find(x => x.key === key);
+  const earth = sky?.bodies?.find(x => x.key === 'earth');
+  const p = outer && b ? outerPosition(b, jdFromMs(now), jdFromMs(Date.parse(outer.epoch))) : null;
+  if (!p || !earth) return null;
+  const earthKm = norm(sub(p, earth.helio));
+  // Over a day Earth's own motion swamps the change, so no trend is claimed.
+  return { at: now, earthKm, sunKm: norm(p), lightSec: earthKm / C_KM_S, trendKmDay: null };
 }
 
 export async function marsRovers(): Promise<RoverNow[]> {

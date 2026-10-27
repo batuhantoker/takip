@@ -10,7 +10,9 @@ import { readingMetadata } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { spaceImage } from '@/lib/platform/site/space/sitemap';
 import { REALMS, realmPages, SKY_INDEX_PATH, SKY_PAGES, skyIndexDescription, skyIndexTitle } from '@/lib/platform/site/space/sky-pages';
+import { groupPages, STRUCTURE_GROUPS } from '@/lib/platform/site/space/structure-pages';
 import { DeepSkyCards } from './parts/sky-cards';
+import { StructureCards } from './parts/structure-cards';
 
 export async function skyIndexMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -39,6 +41,15 @@ export async function SkyIndex() {
       {REALMS.map(r => (
         <Section key={r.id} title={t(r.label)} className="mt-16">
           <DeepSkyCards t={t} items={realmPages(r.id).map(p => p.object)} columns="sm:grid-cols-3 lg:grid-cols-4" />
+        </Section>
+      ))}
+      <h2 className="mt-24 text-[28px] leading-tight font-semibold tracking-[-0.015em] text-ink-1">{t('The large-scale universe')}</h2>
+      <p className="mt-3 max-w-[46rem] text-[15px] leading-relaxed text-ink-2">
+        {t('Past the galaxies we have pictures of, the space view draws the structure they are part of from survey data: superclusters and the basins their galaxies flow in, clusters and walls, the voids between them, and the microwave background at the edge.')}
+      </p>
+      {STRUCTURE_GROUPS.map(g => (
+        <Section key={g.id} title={t(g.label)} className="mt-10">
+          <StructureCards t={t} items={groupPages(g.id)} />
         </Section>
       ))}
     </SiteFrame>

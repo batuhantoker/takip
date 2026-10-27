@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { AU_KM, LY_KM } from '@/lib/space/astro';
 import { BASINS } from '@/lib/space/deep/basins.generated';
 import { picturedFeature } from '@/lib/space/deep/deep-sky';
-import { DEEP_FEATURES } from '@/lib/space/deep/features';
+import { DEEP_FEATURES, VOID_FEATURES } from '@/lib/space/deep/features';
 import type { FleetCraft, Region } from '@/lib/space/craft/fleet';
 import { bodyDirection, earthOrientation, mul, transpose } from '@/lib/space/frames';
 import { GALACTIC_CENTRE_KM, GALACTIC_NORTH } from '@/lib/space/deep/galaxy';
@@ -94,9 +94,8 @@ export function deepView(sel: SpaceSelection, positionOf: (a: Anchor) => THREE.V
   if (sel.kind === 'exohost') return beyond({ kind: 'exohost', name: sel.name }, 0.35 * LY_KM);
   if (sel.kind === 'outer') return beyond({ kind: 'outer', key: sel.key }, 4e8);
   if (sel.kind !== 'feature') return null;
-  if (sel.id.startsWith('cosmos:')) return { anchor: { kind: 'feature', id: sel.id }, distance: 60e6 * LY_KM };
   // A void is seen whole from a few of its radii out, from the Sun's side, where its galaxies were measured.
-  if (sel.id.startsWith('void:') || sel.id.startsWith('scl:')) {
+  if (sel.id.startsWith('void:') || sel.id.startsWith('scl:') || VOID_FEATURES.has(sel.id)) {
     const anchor: Anchor = { kind: 'feature', id: sel.id };
     const at = positionOf(anchor), r = radiusOf?.(anchor) ?? 100e6 * LY_KM;
     // One around the Local Group would hold the camera on the Sun's side: it looks back home through it instead.

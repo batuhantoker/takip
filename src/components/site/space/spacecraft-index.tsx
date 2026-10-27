@@ -12,7 +12,8 @@ import { readingMetadata } from '@/lib/platform/site/meta';
 import { configuredOrigin, publicOrigin } from '@/lib/platform/site/origin';
 import { bodyName, distanceText } from '@/lib/platform/site/space/copy';
 import { fleetNow, type FleetNow } from '@/lib/platform/site/space/live';
-import { planetPath, PLANETS } from '@/lib/platform/site/space/planets';
+import { OUTER_BODIES, planetPath, PLANETS } from '@/lib/platform/site/space/planets';
+import { DWARF_PLANETS, VISITORS } from '@/lib/space/deep/outer';
 import { ROSTER, ROSTER_GROUPS, type RosterCraft } from '@/lib/platform/site/space/roster';
 import { spaceImage } from '@/lib/platform/site/space/sitemap';
 import { LANDING_SITES } from '@/lib/space/craft/landing-sites';
@@ -65,6 +66,14 @@ export async function SpacecraftIndex() {
         <ul className="flex flex-wrap gap-2">
           {PLANETS.map(p => (
             <li key={p.key}><Link href={localePath(t.locale, planetPath(p))} className={LINK_BUTTON.secondary}>{bodyName(t, p.key)}</Link></li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section title={t('Dwarf planets and interstellar visitors')} className="mt-10">
+        <ul className="flex flex-wrap gap-2">
+          {OUTER_BODIES.map(p => (
+            <li key={p.key}><Link href={localePath(t.locale, planetPath(p))} className={LINK_BUTTON.secondary}>{[...DWARF_PLANETS, ...VISITORS].find(b => b.key === p.key)?.name ?? p.key}</Link></li>
           ))}
         </ul>
       </Section>

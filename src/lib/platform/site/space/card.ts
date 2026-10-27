@@ -1,8 +1,10 @@
 import type { Translate } from '@/lib/core/i18n/translator';
 import { bodyName } from './copy';
-import { planetEntry } from './planets';
+import { outerEntry, planetEntry } from './planets';
+import { DWARF_PLANETS, VISITORS } from '@/lib/space/deep/outer';
 import { KIND_LABEL, ROSTER_GROUPS, rosterCraft } from './roster';
 import { KIND, skyPage } from './sky-pages';
+import { STRUCTURE_GROUPS, structurePage } from './structure-pages';
 import { MISSION_NOTES } from '@/lib/space/craft/mission-notes';
 import { LANDING_SITES } from '@/lib/space/craft/landing-sites';
 
@@ -18,11 +20,19 @@ export function spaceCard(param: string, t: Translate) {
   if (kind === 'sky') {
     if (!slug) return { kicker: 'TAKIP', title: t('Nebulae, galaxies and black holes'), subtitle: t('Telescope pictures hung where their objects really are, in 3D.'), picture: 'stars-and-galaxies' };
     const p = skyPage(slug);
-    if (!p) return null;
-    return { kicker: t(KIND[p.object.kind]), title: t(p.object.name), subtitle: t(p.object.subtitle), picture: 'stars-and-galaxies' };
+    if (p) return { kicker: t(KIND[p.object.kind]), title: t(p.object.name), subtitle: t(p.object.subtitle), picture: 'stars-and-galaxies' };
+    const s = structurePage(slug);
+    if (!s) return null;
+    const group = STRUCTURE_GROUPS.find(g => g.id === s.group)!;
+    return { kicker: t(group.label), title: t(s.feature.name), subtitle: t(s.feature.subtitle, s.feature.subtitleVars), picture: 'stars-and-galaxies' };
   }
   if (kind === 'planet') {
     const p = planetEntry(slug);
+    const outer = !p ? outerEntry(slug) : null;
+    if (outer) {
+      const def = [...DWARF_PLANETS, ...VISITORS].find(b => b.key === outer.key);
+      return { kicker: outer.kind === 'visitor' ? t('Interstellar object') : t('Dwarf planet'), title: def?.name ?? outer.key, subtitle: t('Where it is now, in 3D.'), picture: 'solar-system-3d' };
+    }
     if (!p) return null;
     return {
       kicker: p.key === 'pluto' ? t('Dwarf planet') : t('Planet'),

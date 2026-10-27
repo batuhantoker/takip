@@ -1,5 +1,6 @@
 import { KIND_FAMILY } from '@/lib/history/kinds';
 import { DEEP_FEATURES } from '@/lib/space/deep/features';
+import { DWARF_PLANETS, VISITORS } from '@/lib/space/deep/outer';
 import type { SpaceSelection } from '@/lib/space/selection';
 import { SKY_BODIES } from '@/lib/space/sky';
 import type { SpaceFocus } from '@/lib/space/worlds';
@@ -111,6 +112,8 @@ function spaceSelect(p: URLSearchParams): SpaceSelection | null {
   if (site) return { kind: 'site', world: site[1] as 'moon' | 'mars', id: site[2] };
   const feature = p.get('feature');
   if (feature && Object.hasOwn(DEEP_FEATURES, feature)) return { kind: 'feature', id: feature };
+  const outer = [...DWARF_PLANETS, ...VISITORS].find(b => b.key === p.get('outer'));
+  if (outer) return { kind: 'outer', key: outer.key };
   const body = SKY_BODIES.find(b => b.key === p.get('body'));
   return body ? { kind: 'body', key: body.key } : null;
 }
@@ -147,6 +150,7 @@ export function viewModeQuery(link: ViewModeLink): string {
     else if (s.kind === 'site') q.set('site', `${s.world}:${s.id}`);
     else if (s.kind === 'body') q.set('body', s.key);
     else if (s.kind === 'feature') q.set('feature', s.id);
+    else if (s.kind === 'outer') q.set('outer', s.key);
   }
   if (link.view === 'space' && link.replay !== undefined) q.set('replay', String(link.replay));
   if (link.view === 'replay' && link.at !== null) q.set('at', String(link.at));

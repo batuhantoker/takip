@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { MLY_KM } from '@/lib/space/deep/cosmos';
 import { BASINS } from '@/lib/space/deep/basins.generated';
-import { bootesIndex, filamentSegments, type Basin, type BasinFlows, type BasinMesh, type CosmicWeb } from '@/lib/space/deep/cosmic-web';
+import { bootesIndex, filamentSegments, nearbyVoidId, type Basin, type BasinFlows, type BasinMesh, type CosmicWeb } from '@/lib/space/deep/cosmic-web';
 import { EQUATORIAL_TO_ECLIPTIC } from '@/lib/space/frames';
 import { inFront } from '../hud/labels';
 import { LOGDEPTH, rotation } from '../shared';
@@ -357,8 +357,16 @@ export function createCosmicWeb() {
    * `k` fades the near web, `farK` the supervoids; far out the threads crowd into a blot, so they thin with
    * distance as the galaxies do. `pickedId` is the selected feature's id: a void (`void:<i>`) or a basin lights up.
    */
+  /** The void a selected feature is: a catalogued one by index, Boötes, or one of the nearest by its name. */
+  function voidIndexOf(id: string | null): number {
+    if (!id || !web) return -1;
+    if (id.startsWith('void:')) return Number(id.slice(5));
+    if (id === 'bootes-void') return bootes;
+    return web.voids.findIndex(v => v.nearby !== undefined && nearbyVoidId(v.nearby) === id);
+  }
+
   function update(k: number, farK: number, sunKm: number, camera: THREE.PerspectiveCamera, heightPx: number, pickedId: string | null = null) {
-    const picked = pickedId?.startsWith('void:') ? Number(pickedId.slice(5)) : -1;
+    const picked = voidIndexOf(pickedId);
     const crowd = Math.min(1, Math.max(0.15, (1_500 * MLY_KM) / Math.max(sunKm, 1)));
     lineUniforms.opacity.value = 0.22 * k * crowd;
     if (lines) lines.visible = k > 0.005;

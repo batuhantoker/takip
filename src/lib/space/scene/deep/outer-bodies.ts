@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { AU_KM, GM_SUN, orbitPath } from '@/lib/space/astro';
-import { drift } from '@/lib/space/frames';
+import { AU_KM, orbitPath } from '@/lib/space/astro';
 import type { Vec3 } from '@/lib/space/horizons';
-import { distantClass, type OuterBody, type OuterPayload } from '@/lib/space/deep/outer';
+import { distantClass, outerPosition, type OuterBody, type OuterPayload } from '@/lib/space/deep/outer';
 import { AbsolutePositions } from '../floating-origin';
 import { dotTexture } from '../shared';
 
@@ -83,16 +82,8 @@ export function createOuterBodies() {
     distant.geometry.setAttribute('color', new THREE.BufferAttribute(dcol, 3));
   }
 
-  /** Now, or on a replay's date: a visitor from its path, a dwarf planet only near the epoch, where drift holds. */
-  function positionOf(b: OuterBody, jd: number): Vec3 | null {
-    if (b.path?.length && jd >= b.path[0].jd && jd <= b.path[b.path.length - 1].jd) {
-      const i = Math.max(1, b.path.findIndex(r => r.jd >= jd));
-      const a = b.path[i - 1], c = b.path[i];
-      const f = (jd - a.jd) / Math.max(1e-9, c.jd - a.jd);
-      return [a.pos[0] + (c.pos[0] - a.pos[0]) * f, a.pos[1] + (c.pos[1] - a.pos[1]) * f, a.pos[2] + (c.pos[2] - a.pos[2]) * f];
-    }
-    return Math.abs(jd - epochJd) < 60 ? drift(b.helio, b.vel, (jd - epochJd) * 86_400, GM_SUN) : null;
-  }
+  /** Now, or on a replay's date. */
+  const positionOf = (b: OuterBody, jd: number): Vec3 | null => outerPosition(b, jd, epochJd);
 
   /**
    * `near` fades the bodies and paths, `belt` the field of distant minor planets; a replay hides the belt, which is

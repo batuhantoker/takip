@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { t } from '@/lib/core/i18n/active';
 import { distinctStructures, fillZoneOfAvoidance, MLY_KM, parseRecords, RECORD_FLOATS, type CosmosMeta } from '@/lib/space/deep/cosmos';
+import { structureByName } from '@/lib/space/deep/structures';
 import { bodyDirection, EQUATORIAL_TO_ECLIPTIC } from '@/lib/space/frames';
 import { LOGDEPTH, loadTexture, rotation } from '../shared';
 
@@ -193,7 +194,10 @@ export function createCosmos() {
     if (!meta) return [];
     const at = (ra: number, dec: number, mly: number) => new THREE.Vector3(...bodyDirection(dec, ra).map(v => v * mly)).applyMatrix4(group.matrix);
     return [
-      ...distinctStructures(meta.structures).map(s => ({ id: `cosmos:${s.name}`, name: s.name, position: at(s.ra, s.dec, s.mly) })),
+      ...distinctStructures(meta.structures).flatMap(s => {
+        const known = structureByName(s.name);
+        return known ? [{ id: known.id, name: t(known.title), position: at(s.ra, s.dec, s.mly) }] : [];
+      }),
       { id: 'cmb', name: t('Cosmic microwave background'), position: at(0, 75, meta.horizon.cmbMly) },
     ];
   }

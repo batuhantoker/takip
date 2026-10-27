@@ -390,9 +390,13 @@ export const BASINS: Basin[] = [
 ${meshes.map(m => `  ${JSON.stringify(m.meta)},`).join('\n')}
 ];
 
-/** Pustilnik et al. 2019, in catalogue order: name, and galaxies inside. */
+/** Pustilnik et al. 2019, in catalogue order: name, galaxies inside, centre (Mly) and radius of the sphere of its volume. */
 export const NEARBY_VOIDS: NearbyVoid[] = [
-${nearby.map(([, name, , , , , , , galaxies]) => `  ${JSON.stringify({ name, galaxies })},`).join('\n')}
+${nearby.map(([, name, ra, dec, dist, ex, ey, ez, galaxies]) => {
+  const k = 0.73 * MLY_PER_HMPC;
+  const centre = unit(ra, dec).map(v => +(v * dist * k).toFixed(2));
+  return `  ${JSON.stringify({ name, galaxies, ra, dec, centre, reffMly: +(Math.cbrt((ex / 2) * (ey / 2) * (ez / 2)) * k).toFixed(1) })},`;
+}).join('\n')}
 ];
 `);
 for (const m of meshes) console.log(`${m.meta.id}: ${m.positions.length / 3} vertices, ${m.tris.length / 3} triangles, ${m.meta.volumeHMpc3}e6 (h⁻¹ Mpc)³, ${m.meta.acrossMly} Mly end to end`);

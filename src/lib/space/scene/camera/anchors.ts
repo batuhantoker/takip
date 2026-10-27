@@ -63,8 +63,7 @@ export function anchorState(scene: SpaceScene, anchor: Anchor, jd: number): Anch
         const i = Number(anchor.id.slice(5));
         return scene.web.voidCentre(i) ? { position: scene.web.voidCentre(i).clone(), radius: scene.web.voidRadiusKm(i) } : null;
       }
-      const s = anchor.id.startsWith('cosmos:') ? scene.cosmos.labels().find(l => l.id === anchor.id) : null;
-      return s ? { position: s.position, radius: 5e6 * LY_KM } : null;
+      return null;
     }
   }
 }
