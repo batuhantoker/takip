@@ -89,7 +89,7 @@ const copy: SiteCopy = {
     free: 'TAKIP бесплатен. Без аккаунта у вас есть ежедневный лимит времени на карте, а бесплатный аккаунт даёт больше. На бесплатных тарифах показывается немного рекламы, но никогда — на карте. Что TAKIP сохраняет о вашем визите, прямо изложено на странице о конфиденциальности.',
   },
   sourceNames: {
-    '2MRS, SDSS and WMAP': '2MRS, SDSS и WMAP',
+    '2MRS, SDSS and Planck': '2MRS, SDSS и Planck',
     'adsb.lol and adsb.fi': 'adsb.lol и adsb.fi',
     'adsbdb, hexdb.io and airplanes.live': 'adsbdb, hexdb.io и airplanes.live',
     'Agency APIs': 'API транспортных операторов',
@@ -560,7 +560,7 @@ const copy: SiteCopy = {
         '12 807 звёзд из Yale Bright Star Catalogue, Hipparcos и, в пределах примерно 100 световых лет, Gaia DR3.',
         'Звёзды, у которых известны планеты, из NASA Exoplanet Archive.',
         'Млечный Путь изнутри, а снаружи — в виде иллюстрации художника, подписанной как иллюстрация.',
-        'Местная группа, 43 463 галактики из обзора 2MASS Redshift Survey, галактики и квазары SDSS и реликтовое излучение по данным WMAP.',
+        'Местная группа, 43 463 галактики из обзора 2MASS Redshift Survey, галактики и квазары SDSS и реликтовое излучение по данным Planck.',
       ],
       sources: [
         'Положения и яркость звёзд.',

@@ -118,13 +118,13 @@ export const SPACE_VIEW: LayerPage[] = [
       'Telescope pictures from Webb, ESO and NOIRLab, each hung at its object’s distance, facing Earth, as large as it is on the sky: the Pillars of Creation, the Crab Nebula, both black holes ever imaged and more.',
       '12,807 stars from the Yale Bright Star Catalogue, Hipparcos and, within about 100 light years, Gaia DR3, and 213,000 more Gaia stars out to about 20,000 light years, with the stars known to have planets from the NASA Exoplanet Archive.',
       'The Milky Way from inside, and from outside as an artist’s illustration, labelled so.',
-      'The Local Group, 43,463 galaxies from the 2MASS Redshift Survey, SDSS galaxies and quasars, the cosmic web’s 15,421 traced filaments and 531 measured voids, and the cosmic microwave background from WMAP.',
+      'The Local Group, 43,463 galaxies from the 2MASS Redshift Survey, SDSS galaxies and quasars, the cosmic web’s 15,421 traced filaments and 531 measured voids, and the cosmic microwave background from Planck.',
     ],
     sources: [
       { name: 'ESA/Webb, ESO, NOIRLab and the Digitized Sky Survey', detail: 'The pictures of nebulae and galaxies, with where each sits on the sky.' },
       { name: 'Yale Bright Star, Hipparcos and Gaia DR3', detail: 'Star positions and brightness.' },
       { name: 'NASA Exoplanet Archive', detail: 'Stars with known planets.' },
-      { name: 'NASA SVS, 2MRS, SDSS and WMAP', detail: 'The Milky Way from inside, galaxies, quasars and the cosmic microwave background; the cosmic web’s filaments and voids from Tempel et al. 2014 and Douglass et al. 2023.' },
+      { name: 'NASA SVS, 2MRS, SDSS and Planck', detail: 'The Milky Way from inside, galaxies, quasars and the cosmic microwave background; the cosmic web’s filaments and voids from Tempel et al. 2014 and Douglass et al. 2023.' },
     ],
     freshness: 'Catalogues, updated when they are.',
     limits: [

@@ -16,6 +16,8 @@ export const KIND_COLOR: Record<DeepSkyKind, string> = {
 /** On-screen size, px, over which a sheet fades in; below LOAD_PX its texture is not wanted. */
 const SHOW_PX = [14, 60] as const;
 const LOAD_PX = 10, DROP_PX = 3;
+/** Above this many pixels the full picture replaces the 512 px one, and below DOWN_PX it goes back: a 2048 px texture is 22 MB. */
+const FULL_PX = 480, DOWN_PX = 320;
 /** Screen heights over which a sheet fades out as the camera closes in: past that it is a blur, or a frame round a sharper one. */
 const OVERSIZE = [1.6, 3.5] as const;
 
@@ -74,7 +76,9 @@ interface Sheet {
   /** Unit vector from the picture back toward the Sun: the side it is seen from. */
   face: THREE.Vector3;
   sizeKm: number;
-  state: 'idle' | 'loading' | 'ready';
+  /** What is shown: nothing, the 512 px rendition or the full picture; and what is on its way, if anything. */
+  tier: 0 | 1 | 2;
+  loading: 1 | 2 | null;
 }
 
 function sheetGeometry(corners: THREE.Vector3[], centre: THREE.Vector3): THREE.BufferGeometry {
@@ -100,7 +104,7 @@ export function createDeepSky() {
     mesh.frustumCulled = false;
     mesh.visible = false;
     group.add(mesh);
-    return { id: object.id, mesh, uniforms, centre, face: v3(place.normal).negate(), sizeKm: Math.max(place.widthKm, place.heightKm), state: 'idle' };
+    return { id: object.id, mesh, uniforms, centre, face: v3(place.normal).negate(), sizeKm: Math.max(place.widthKm, place.heightKm), tier: 0, loading: null };
   });
 
   const alpha = new Float32Array(sheets.length);
@@ -119,19 +123,23 @@ export function createDeepSky() {
   const px = new Float32Array(sheets.length);
   const index = new Map(sheets.map((s, i) => [s.id, i]));
 
-  function load(s: Sheet) {
-    s.state = 'loading';
-    loadTexture(deepSkyUrl(s.id), t => {
-      if (s.state !== 'loading') { t.dispose(); return; }
+  /** The shown rendition stays up until the wanted one has arrived. */
+  function want(s: Sheet, tier: 0 | 1 | 2) {
+    if (tier === 0) {
+      s.uniforms.map.value?.dispose();
+      s.uniforms.map.value = null;
+      s.tier = 0;
+      s.loading = null;
+      return;
+    }
+    s.loading = tier;
+    loadTexture(deepSkyUrl(s.id, tier === 1), t => {
+      if (s.loading !== tier) { t.dispose(); return; }
+      s.uniforms.map.value?.dispose();
       s.uniforms.map.value = t;
-      s.state = 'ready';
+      s.tier = tier;
+      s.loading = null;
     });
-  }
-
-  function drop(s: Sheet) {
-    s.uniforms.map.value?.dispose();
-    s.uniforms.map.value = null;
-    s.state = 'idle';
   }
 
   /**
@@ -148,10 +156,10 @@ export function createDeepSky() {
       const k = fade(i);
       const facing = THREE.MathUtils.smoothstep(toCam.dot(s.face) / d, 0.08, 0.4);
       const shown = k * facing * THREE.MathUtils.smoothstep(px[i], SHOW_PX[0], SHOW_PX[1]) * (1 - THREE.MathUtils.smoothstep(px[i] / heightPx, OVERSIZE[0], OVERSIZE[1]));
-      if (k > 0 && px[i] > LOAD_PX && s.state === 'idle') load(s);
-      else if ((px[i] < DROP_PX || k === 0) && s.state !== 'idle') drop(s);
+      const tier = k === 0 || px[i] < DROP_PX ? 0 : px[i] > FULL_PX ? 2 : s.tier === 2 && px[i] < DOWN_PX ? 1 : s.tier === 0 && px[i] > LOAD_PX ? 1 : s.tier;
+      if (tier !== s.tier && tier !== s.loading) want(s, tier);
       s.uniforms.opacity.value = 0.92 * shown;
-      s.mesh.visible = shown > 0.004 && s.state === 'ready';
+      s.mesh.visible = shown > 0.004 && s.tier > 0;
       // The marker stands in until the picture itself can be seen.
       alpha[i] = dotFade(i) * (1 - THREE.MathUtils.smoothstep(px[i], 4, SHOW_PX[1]));
       anyDot ||= alpha[i] > 0.004;

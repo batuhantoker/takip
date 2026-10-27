@@ -81,7 +81,7 @@ const copy: SiteCopy = {
     free: 'TAKIP est gratuit. Sans compte, vous disposez chaque jour d’un temps d’utilisation de la carte, et un compte gratuit vous en donne davantage. Les formules gratuites affichent quelques publicités, jamais sur la carte. Ce que TAKIP conserve de votre visite est exposé clairement sur la page de confidentialité.',
   },
   sourceNames: {
-    '2MRS, SDSS and WMAP': '2MRS, SDSS et WMAP',
+    '2MRS, SDSS and Planck': '2MRS, SDSS et Planck',
     'adsb.lol and adsb.fi': 'adsb.lol et adsb.fi',
     'adsbdb, hexdb.io and airplanes.live': 'adsbdb, hexdb.io et airplanes.live',
     'Agency APIs': 'API des exploitants',
@@ -539,7 +539,7 @@ const copy: SiteCopy = {
         '12 807 étoiles du Yale Bright Star Catalogue, d’Hipparcos et, à moins d’environ 100 années-lumière, de Gaia DR3.',
         'Les étoiles dont on connaît des planètes, d’après la NASA Exoplanet Archive.',
         'La Voie lactée vue de l’intérieur, et de l’extérieur en illustration d’artiste, signalée comme telle.',
-        'Le Groupe local, 43 463 galaxies du 2MASS Redshift Survey, les galaxies et quasars du SDSS, et le fond diffus cosmologique vu par WMAP.',
+        'Le Groupe local, 43 463 galaxies du 2MASS Redshift Survey, les galaxies et quasars du SDSS, et le fond diffus cosmologique vu par Planck.',
       ],
       sources: [
         'Les positions et la luminosité des étoiles.',

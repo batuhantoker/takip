@@ -35,4 +35,6 @@ export interface SpaceSceneEvents {
   onSurface?: (to: MapTarget) => void;
   /** A flight replay's clock, a few times a second while one runs. */
   onReplay?: (state: ReplayState | null) => void;
+  /** The Moon or Mars has come close enough to show its landing sites; their data loads only then. */
+  onNear?: (body: 'moon' | 'mars') => void;
 }

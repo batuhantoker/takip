@@ -23,8 +23,9 @@
 // tools/build-cosmos.mjs (Planck 2018), so they sit on the galaxies drawn from it. Tempel's axes are the SDSS survey
 // ones: x toward RA 95°, Dec 0, and y, z turned 32.5° about x from the equator.
 //   nice node tools/build-cosmic-web.mjs [cache-dir]
-// web.bin, little-endian: u32 voids, u32 filaments, u32 points; voids × 13 f32 (centre xyz, three axes xyz, Mly; catalogue:
-// 0 Douglass, 1 Einasto, 2 Quaia, 3 Pustilnik); filaments × u16 point counts (padded to 4 bytes); points × 3 f32 (Mly).
+// web.bin, little-endian: u32 voids, u32 filaments, u32 points, f32 Mly per point unit; voids × 13 f32 (centre xyz,
+// three axes xyz, Mly; catalogue: 0 Douglass, 1 Einasto, 2 Quaia, 3 Pustilnik); filaments × u16 point counts (padded to
+// 4 bytes); points × 3 i16, a tenth of a million light-years apart at most, half the size of floats.
 // basins.bin: u32 basins; per basin u32 vertices, u32 triangles; then each basin's vertices × 3 f32 (Mly) and
 // triangles × 3 u32, in the order of BASINS; then u32 streamlines, each u16 basin and u16 points, and their points
 // × 3 f32 (Mly), in the direction matter moves.
@@ -404,15 +405,17 @@ writeFileSync(OUT_SCL, JSON.stringify(scl));
 console.log(`${scl.length} superclusters → ${OUT_SCL}`);
 
 const countBytes = Math.ceil((counts.length * 2) / 4) * 4;
-const buf = Buffer.alloc(12 + voids.length * 52 + countBytes + points.length * 4);
+const quantum = points.reduce((m, v) => Math.max(m, Math.abs(v)), 0) / 32767;
+const buf = Buffer.alloc(16 + voids.length * 52 + countBytes + points.length * 2);
 buf.writeUInt32LE(voids.length, 0);
 buf.writeUInt32LE(counts.length, 4);
 buf.writeUInt32LE(points.length / 3, 8);
-let o = 12;
+buf.writeFloatLE(quantum, 12);
+let o = 16;
 for (const v of voids) for (const n of v) { buf.writeFloatLE(n, o); o += 4; }
 counts.forEach((n, i) => buf.writeUInt16LE(n, o + i * 2));
 o += countBytes;
-for (const n of points) { buf.writeFloatLE(n, o); o += 4; }
+for (const n of points) { buf.writeInt16LE(Math.round(n / quantum), o); o += 2; }
 writeFileSync(OUT, buf);
 
 // The voids lie in SDSS's northern cap; a frame mix-up would throw the filaments elsewhere on the sky.

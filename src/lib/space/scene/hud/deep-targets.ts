@@ -29,8 +29,6 @@ const STAR_LABEL_MAG = 4.5;
 const SKY_RANK_NEAR = 85, SKY_RANK_FAR = 50, SKY_NEAR_LY = 1_000;
 /** A picture this many pixels across is named whatever its rank; a black hole's only within this many picture-widths. */
 const SKY_SEEN_PX = 28, SHADOW_CLOSE = 10_000;
-/** The voids named on screen: the biggest-looking few, once wider than this many pixels. */
-const VOID_LABELS = 5, VOID_MIN_PX = 60;
 const SCL_LABELS = 3, SCL_MIN_PX = 50;
 /** Laniakea is always named; the basins around it once they span this many pixels. */
 const BASIN_MIN_PX = 40;
@@ -70,11 +68,11 @@ export function deepTargets(scene: SpaceScene, jd: number, out: Target[]) {
   }
   if (scene.layers.deepSky) deepSkyTargets(scene, cam, out);
   if (f.localGalaxies > 0.3 && illus) out.push(feature('zone-of-avoidance', new THREE.Vector3(...DEEP_FEATURES['zone-of-avoidance'].position!), t('Zone of Avoidance · illustration'), '#A9B8D6', 30));
-  if (f.web > 0.3 || f.farVoids > 0.3) voidTargets(scene, cam, out);
+  if (f.web > 0.3 || f.farVoids > 0.3) voidTargets(scene, out);
   if (f.web > 0.3) superclusterTargets(scene, cam, out);
   if (f.web > 0.3) {
     if (scene.web.basinsLoaded() && scene.web.basinReveal() > 0.3) basinTargets(scene, cam, out);
-    out.push(feature('local-void', new THREE.Vector3(...DEEP_FEATURES['local-void'].position!), t('Local Void'), VOID_COLOR.local, 36));
+    out.push(feature('local-void', new THREE.Vector3(...DEEP_FEATURES['local-void'].position!), t('Local Void'), VOID_COLOR, 36));
   }
 }
 
@@ -117,28 +115,15 @@ function superclusterTargets(scene: SpaceScene, cam: THREE.Vector3, out: Target[
   }
 }
 
-function voidTargets(scene: SpaceScene, cam: THREE.Vector3, out: Target[]) {
-  const pxPerRad = scene.renderer.domElement.clientHeight / 2 / Math.tan((scene.camera.fov * Math.PI) / 360);
-  const forward = scene.camera.getWorldDirection(new THREE.Vector3());
-  const seen: { i: number; px: number }[] = [];
-  const f = scene.fades;
-  scene.web.voids().forEach((v, i) => {
-    if ((v.catalogue === 'quaia' ? f.farVoids : f.web) < 0.3) return;
-    const c = scene.web.voidCentre(i);
-    const d = c.distanceTo(cam), r = scene.web.voidRadiusKm(i);
-    // From inside, or behind the camera, there is no outline to name.
-    if (d < r || !inFront(scene.camera, c, forward)) return;
-    const px = (r / d) * pxPerRad;
-    if (px > VOID_MIN_PX) seen.push({ i, px });
-  });
+function voidTargets(scene: SpaceScene, out: Target[]) {
   const mly = (km: number) => Math.round((2 * km) / (1e6 * LY_KM));
-  for (const { i, px } of seen.sort((a, b) => b.px - a.px).slice(0, VOID_LABELS)) {
+  for (const { i, px } of scene.web.namedVoids()) {
     const v = scene.web.voids()[i];
     const text = i === scene.web.bootes() ? t('Boötes Void')
       : v.nearby !== undefined ? t(NEARBY_VOID_NAMES[NEARBY_VOIDS[v.nearby].name])
       : v.catalogue === 'quaia' ? t('Supervoid, {n} million ly across', { n: mly(scene.web.voidRadiusKm(i)) })
       : t('Void, {n} million ly across', { n: mly(scene.web.voidRadiusKm(i)) });
-    out.push({ sel: { kind: 'feature', id: `void:${i}` }, position: scene.web.voidCentre(i), radiusPx: Math.min(px, 400), text, color: VOID_COLOR[v.catalogue], priority: 20 + Math.min(12, px / 40) });
+    out.push({ sel: { kind: 'feature', id: `void:${i}` }, position: scene.web.voidCentre(i), radiusPx: Math.min(px, 400), text, color: VOID_COLOR, priority: 20 + Math.min(12, px / 40) });
   }
 }
 

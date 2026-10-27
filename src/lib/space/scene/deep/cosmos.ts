@@ -39,12 +39,21 @@ void main() {
   gl_FragColor = vec4(vColor * opacity * smoothstep(1.0, 0.2, r), 1.0);
 }`;
 
-/** The CMB map shares the Milky Way sky's convention: u = 0.5 − RA/360, top row Dec +90°. */
+/**
+ * The CMB map shares the Milky Way sky's convention: u = 0.5 − RA/360, top row Dec +90°. The shell is two meshes:
+ * its inside (the whole sky from within, the far half from without) drawn before the galaxies, and from without its
+ * near half after them, as glass, clear in the middle and solid at the rim. One mesh drawn from both sides painted
+ * whichever half its triangles reached last, so the shell changed as the camera turned. Worked in the layer's own
+ * millions of light-years: squared kilometres this far out overflow a float.
+ */
 const CMB_VERT = `
 ${LOGDEPTH.vertexPars}
+uniform vec3 cameraLocal;
 varying vec3 vDir;
+varying vec3 vView;
 void main() {
   vDir = position;
+  vView = cameraLocal - position;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   ${LOGDEPTH.vertex}
 }`;
@@ -54,14 +63,23 @@ ${LOGDEPTH.fragmentPars}
 uniform sampler2D map;
 uniform float opacity;
 uniform float saturation;
+uniform float glass;
 varying vec3 vDir;
+varying vec3 vView;
 void main() {
   ${LOGDEPTH.fragment}
   vec3 d = normalize(vDir);
   float ra = degrees(atan(d.y, d.x));
   float dec = degrees(asin(clamp(d.z, -1.0, 1.0)));
-  vec3 c = texture2D(map, vec2(fract(0.5 - ra / 360.0), 0.5 + dec / 180.0)).rgb;
-  gl_FragColor = vec4(mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, saturation) * opacity, 1.0);
+  vec2 uv = vec2(fract(0.5 - ra / 360.0), 0.5 + dec / 180.0);
+  // fract() jumps where RA wraps, which would pick the smallest mip there: take the gradient from a copy wrapping elsewhere.
+  vec2 uv2 = vec2(fract(uv.x + 0.5), uv.y);
+  vec2 dx = dFdx(uv), dy = dFdy(uv), dx2 = dFdx(uv2), dy2 = dFdy(uv2);
+  if (dot(dx2, dx2) + dot(dy2, dy2) < dot(dx, dx) + dot(dy, dy)) { dx = dx2; dy = dy2; }
+  vec3 c = textureGrad(map, uv, dx, dy).rgb;
+  c = mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, saturation);
+  float rim = 1.0 - abs(dot(d, normalize(vView)));
+  gl_FragColor = glass > 0.5 ? vec4(c, opacity * (0.1 + 0.9 * rim * rim)) : vec4(c * opacity, 1.0);
   #include <colorspace_fragment>
 }`;
 
@@ -110,18 +128,23 @@ export function createCosmos() {
   let local: ReturnType<typeof pointCloud> | null = null;
   let deep: ReturnType<typeof pointCloud> | null = null;
   let zoa: ReturnType<typeof pointCloud> | null = null;
-  const cmbUniforms = { map: { value: null as THREE.Texture | null }, opacity: { value: 0 }, saturation: { value: 1 } };
-  let cmb: THREE.Mesh | null = null;
+  const cmbUniforms = { map: { value: null as THREE.Texture | null }, opacity: { value: 0 }, saturation: { value: 1 }, cameraLocal: { value: new THREE.Vector3() } };
+  const toLocal = new THREE.Matrix4().copy(group.matrix).invert();
+  let cmb: THREE.Mesh[] = [];
   let cmbLoading = false;
 
   function setMeta(m: CosmosMeta) {
     meta = m;
-    cmb = new THREE.Mesh(new THREE.SphereGeometry(m.horizon.cmbMly, 96, 48), new THREE.ShaderMaterial({
-      vertexShader: CMB_VERT, fragmentShader: CMB_FRAG, uniforms: cmbUniforms, side: THREE.DoubleSide, transparent: true, depthWrite: false,
-    }));
-    cmb.frustumCulled = false;
-    cmb.renderOrder = -3;
-    group.add(cmb);
+    const sphere = new THREE.SphereGeometry(m.horizon.cmbMly, 128, 64);
+    cmb = ([[THREE.BackSide, 0, -3], [THREE.FrontSide, 1, 3]] as const).map(([side, glass, order]) => {
+      const mesh = new THREE.Mesh(sphere, new THREE.ShaderMaterial({
+        vertexShader: CMB_VERT, fragmentShader: CMB_FRAG, uniforms: { ...cmbUniforms, glass: { value: glass } }, side, transparent: true, depthWrite: false,
+      }));
+      mesh.frustumCulled = false;
+      mesh.renderOrder = order;
+      return mesh;
+    });
+    group.add(...cmb);
   }
 
   function setLocal(buf: ArrayBuffer) {
@@ -141,9 +164,10 @@ export function createCosmos() {
    * From far outside, hundreds of thousands of additive points pile into one
    * white blot, so they dim as the camera pulls away.
    */
-  function update(localK: number, deepK: number, cmbK: number, sunKm: number, illustrations: boolean) {
+  function update(localK: number, deepK: number, cmbK: number, sunKm: number, camera: THREE.Camera, illustrations: boolean) {
     const pr = Math.min(window.devicePixelRatio, 2);
-    const crowd = Math.min(1, Math.max(0.1, (FULL_BRIGHT_MLY * MLY_KM) / Math.max(sunKm, 1)));
+    // Seen from outside the shell, the galaxies inside are a few pixels: at full strength they burnt into a white blot.
+    const crowd = Math.min(1, Math.max(0.03, (FULL_BRIGHT_MLY * MLY_KM) / Math.max(sunKm, 1)));
     for (const [layer, k] of [[local, localK], [deep, deepK], [zoa, illustrations ? localK : 0]] as const) {
       if (!layer) continue;
       layer.uniforms.opacity.value = k * crowd;
@@ -152,7 +176,7 @@ export function createCosmos() {
     }
     if (cmbK > 0 && !cmbLoading) {
       cmbLoading = true;
-      loadTexture(CMB_URL, tex => { tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; cmbUniforms.map.value = tex; });
+      loadTexture(CMB_URL, tex => { cmbUniforms.map.value = tex; });
     }
     // From inside it wraps the whole sky, so it waits until the camera nears the shell, or it would hide the quasars
     // and supervoids in front of it; from outside, a ball the whole view, it steps back so it doesn't shout.
@@ -160,7 +184,8 @@ export function createCosmos() {
     const near = THREE.MathUtils.smoothstep(shell, 0.45, 0.97), outside = THREE.MathUtils.smoothstep(shell, 0.97, 1.6);
     cmbUniforms.opacity.value = 0.75 * cmbK * (shell < 0.97 ? near : 1) * (1 - 0.45 * outside);
     cmbUniforms.saturation.value = (0.55 + 0.45 * near) * (1 - 0.35 * outside);
-    if (cmb) cmb.visible = cmbK > 0.005 && !!cmbUniforms.map.value;
+    cmbUniforms.cameraLocal.value.copy(camera.position).applyMatrix4(toLocal);
+    for (const mesh of cmb) mesh.visible = cmbK > 0.005 && !!cmbUniforms.map.value;
   }
 
   /** Label anchors in scene km: the named structures, and the CMB's own. */

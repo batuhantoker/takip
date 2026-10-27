@@ -61,7 +61,10 @@ export function createCraftLayer() {
 
     const seg: number[] = [];
     const segCol: number[] = [];
+    // Which craft each run of trail vertices belongs to, for clicks on a trail.
+    const ranges: { from: number; to: number; sel: { kind: 'craft'; id: FleetCraft['id'] } }[] = [];
     for (const k of shown) {
+      const from = seg.length / 3;
       const rgb = c.set(REGION_COLOR[k.region]).toArray();
       // Half a year: a full year around 1 AU just redraws Earth's orbit once per craft trailing it.
       const path = [...k.trail.slice(-TRAIL_WEEKS), k.helio];
@@ -69,7 +72,9 @@ export function createCraftLayer() {
         seg.push(...path[i - 1], ...path[i]);
         segCol.push(...rgb, ...rgb);
       }
+      ranges.push({ from, to: seg.length / 3, sel: { kind: 'craft', id: k.id } });
     }
+    trails.userData.ranges = ranges;
     trailKm = new AbsolutePositions(trails, seg);
     trailGeometry.setAttribute('position', trailKm.attribute);
     trailGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(segCol), 3));

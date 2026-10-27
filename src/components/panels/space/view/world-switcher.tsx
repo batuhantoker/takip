@@ -31,7 +31,7 @@ export const FOCUS_OPTIONS: FocusOption[] = [
   { id: 'solar', label: msg('System'), blurb: msg('The planets and every spacecraft JPL tracks'), title: msg('Pull back to the planets and every spacecraft JPL tracks'), icon: Orbit },
   { id: 'stars', label: msg('Stars'), blurb: msg('The nearest stars, at their real distances'), title: msg('Out past the heliopause to the nearest stars, each at its real distance (Gaia, Hipparcos), with the ones known to have planets'), icon: Sparkles },
   { id: 'galaxy', label: msg('Galaxy'), blurb: msg('The Milky Way from outside, illustrated'), title: msg('The Milky Way from outside (illustration), with the Sun and Sagittarius A* where they really are'), swatch: 'radial-gradient(ellipse at 50% 50%, #fff3d6 0%, #d8c2ff 28%, rgba(120,110,200,0.35) 55%, transparent 72%)' },
-  { id: 'universe', label: msg('Universe'), blurb: msg('Out to the edge of the observable universe'), title: msg('Out to the edge of the observable universe: 2MASS and SDSS galaxies and quasars, and the cosmic microwave background (NASA WMAP)'), swatch: 'radial-gradient(circle at 35% 35%, #ffb36b 0%, #e8564a 30%, #3a6fd8 65%, #1b2f7a 100%)' },
+  { id: 'universe', label: msg('Universe'), blurb: msg('Out to the edge of the observable universe'), title: msg('Out to the edge of the observable universe: 2MASS and SDSS galaxies and quasars, and the cosmic microwave background (ESA Planck)'), swatch: 'radial-gradient(circle at 35% 35%, #ffb36b 0%, #e8564a 30%, #3a6fd8 65%, #1b2f7a 100%)' },
 ];
 
 function Glyph({ o, dim }: { o: FocusOption; dim?: boolean }) {

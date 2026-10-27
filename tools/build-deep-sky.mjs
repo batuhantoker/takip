@@ -4,7 +4,9 @@
 // the picture's astrometry in their WorldWide Telescope link; ESA/Webb, ESA/Hubble and ESO images are CC BY 4.0,
 // NOIRLab's CC BY 4.0 as well. Whole galaxies too wide for any archive frame are cut from the DSS2 colour survey by
 // CDS hips2fits, north up and east left (DSS: STScI/AURA, Palomar and UK Schmidt plates; free for non-commercial use).
+// Each picture also gets <id>.small.jpg, 512 px across, which the space view shows until the picture is big on screen.
 //   nice node tools/build-deep-sky.mjs [id ...]   (rebuilds only those ids; the rest keep their last placement)
+//   nice node tools/build-deep-sky.mjs --small    (only remakes the 512 px renditions from the saved pictures)
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import sharpLib from 'sharp';
 
@@ -150,6 +152,14 @@ function previous() {
   return m ? JSON.parse(m[1]) : {};
 }
 
+const SMALL_PX = 512;
+const small = id => sharpLib(`${OUT_DIR}/${id}.jpg`).resize(SMALL_PX, SMALL_PX, { fit: 'inside' }).jpeg({ quality: 80, mozjpeg: true }).toFile(`${OUT_DIR}/${id}.small.jpg`);
+if (process.argv[2] === '--small') {
+  for (const [id] of SOURCES) if (existsSync(`${OUT_DIR}/${id}.jpg`)) await small(id);
+  console.log(`${SOURCES.length} small renditions → ${OUT_DIR}`);
+  process.exit(0);
+}
+
 const only = new Set(process.argv.slice(2));
 const out = previous();
 mkdirSync(OUT_DIR, { recursive: true });
@@ -163,6 +173,7 @@ for (const [id, site, source, edge] of SOURCES) {
   const perScreen = w / got.screenWidth;
   const pic = site === 'dss2' ? await masked(got.image, w, h, ellipseMask(w, h, source[2], source.slice(3))) : sharp(got.image).resize(w, h);
   await pic.jpeg({ quality: 82, mozjpeg: true }).toFile(`${OUT_DIR}/${id}.jpg`);
+  await small(id);
   out[id] = {
     ra: +got.ra.toFixed(6), dec: +got.dec.toFixed(6), x: +(got.x * perScreen).toFixed(2), y: +(got.y * perScreen).toFixed(2),
     arcsecPerPx: +(got.scale / perScreen).toPrecision(6), northLeftDeg: +got.northLeft.toFixed(3), width: w, height: h,

@@ -29,6 +29,10 @@ let deepGalaxies: Promise<ArrayBuffer | null> | null = null;
 let cosmicWeb: Promise<ArrayBuffer | null> | null = null;
 let superclusters: Promise<Supercluster[] | null> | null = null;
 let basins: Promise<ArrayBuffer | null> | null = null;
+/** Once space closes the big catalogues go too: the scene that drew them is gone, and the browser's cache has the files. */
+function forgetCatalogues() {
+  nearby = galacticStars = localGalaxies = deepGalaxies = cosmicWeb = basins = null;
+}
 
 /** What each deeper layer needs loaded, by camera distance from the Sun; the System view stays as light as before. */
 const OUTER_FROM_KM = 10 * AU_KM;
@@ -60,8 +64,10 @@ export function useSpaceScene(opts: {
   const sky = useSky(true);
   const fleet = useFleet(true);
   const sun = useSunFrames(true);
-  const moon = useSurface('moon');
-  const mars = useSurface('mars');
+  // Each world's landing sites and orbiters, once the camera has come near it.
+  const [near, setNear] = useState({ moon: false, mars: false });
+  const moon = useSurface(near.moon ? 'moon' : null);
+  const mars = useSurface(near.mars ? 'mars' : null);
   const outer = useOuter(reach.outer);
   const exoplanets = useExoplanets(reach.stars);
 
@@ -72,12 +78,14 @@ export function useSpaceScene(opts: {
       onCamera: setCamera,
       onReplay: setReplay,
       onSurface: to => handlers.current.onSurface(to),
+      onNear: body => setNear(n => (n[body] ? n : { ...n, [body]: true })),
     });
     loadStars().then(c => { if (c) s.setStars(c); });
     setScene(s);
     return () => {
       setScene(null);
       s.dispose();
+      forgetCatalogues();
     };
   }, []);
 

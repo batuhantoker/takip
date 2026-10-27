@@ -83,7 +83,7 @@ const copy: SiteCopy = {
     free: 'TAKIP ücretsizdir. Hesap olmadan her gün belirli bir süre haritayı kullanabilirsiniz; ücretsiz bir hesap size daha fazlasını verir. Ücretsiz planlarda birkaç reklam gösterilir, asla haritanın üzerinde değil. TAKIP’in ziyaretiniz hakkında neleri sakladığı gizlilik sayfasında açıkça anlatılır.',
   },
   sourceNames: {
-    '2MRS, SDSS and WMAP': '2MRS, SDSS ve WMAP',
+    '2MRS, SDSS and Planck': '2MRS, SDSS ve Planck',
     'adsb.lol and adsb.fi': 'adsb.lol ve adsb.fi',
     'adsbdb, hexdb.io and airplanes.live': 'adsbdb, hexdb.io ve airplanes.live',
     'Agency APIs': 'Ulaşım kurumlarının API’leri',
@@ -550,7 +550,7 @@ const copy: SiteCopy = {
         'Yale Bright Star Catalogue, Hipparcos ve yaklaşık 100 ışık yılı içinde Gaia DR3’ten 12.807 yıldız.',
         'NASA Exoplanet Archive’dan, gezegeni olduğu bilinen yıldızlar.',
         'Samanyolu içeriden; dışarıdan ise bir sanatçı çizimi olarak ve öyle etiketlenmiş hâlde.',
-        'Yerel Grup, 2MASS Redshift Survey’den 43.463 galaksi, SDSS galaksileri ve kuasarları ile WMAP’ten kozmik mikrodalga arka plan ışıması.',
+        'Yerel Grup, 2MASS Redshift Survey’den 43.463 galaksi, SDSS galaksileri ve kuasarları ile Planck’tan kozmik mikrodalga arka plan ışıması.',
       ],
       sources: [
         'Yıldızların konumları ve parlaklıkları.',

@@ -71,8 +71,8 @@ const len = (v: Vec3) => Math.hypot(v[0], v[1], v[2]);
 
 export function parseCosmicWeb(buf: ArrayBuffer): CosmicWeb {
   const head = new DataView(buf);
-  const nv = head.getUint32(0, true), nf = head.getUint32(4, true), np = head.getUint32(8, true);
-  const v = new Float32Array(buf, 12, nv * 13);
+  const nv = head.getUint32(0, true), nf = head.getUint32(4, true), np = head.getUint32(8, true), unit = head.getFloat32(12, true);
+  const v = new Float32Array(buf, 16, nv * 13);
   let nearby = 0;
   const voids = Array.from({ length: nv }, (_, i): CosmicVoid => {
     const at = (k: number): Vec3 => [v[i * 13 + k], v[i * 13 + k + 1], v[i * 13 + k + 2]];
@@ -80,10 +80,12 @@ export function parseCosmicWeb(buf: ArrayBuffer): CosmicWeb {
     const catalogue = CATALOGUES[v[i * 13 + 12]] ?? 'sdss';
     return { centre: at(0), catalogue, axes, reffMly: Math.cbrt(len(axes[0]) * len(axes[1]) * len(axes[2])), ...(catalogue === 'local' ? { nearby: nearby++ } : {}) };
   });
-  const countsAt = 12 + nv * 52;
+  const countsAt = 16 + nv * 52;
   const filamentPoints = new Uint16Array(buf.slice(countsAt, countsAt + nf * 2));
   const pointsAt = countsAt + Math.ceil((nf * 2) / 4) * 4;
-  return { voids, filamentPoints, points: new Float32Array(buf, pointsAt, np * 3) };
+  // Stored as 16-bit steps of `unit` Mly.
+  const points = Float32Array.from(new Int16Array(buf, pointsAt, np * 3), q => q * unit);
+  return { voids, filamentPoints, points };
 }
 
 /** basins.bin: each basin's surface, in the order of BASINS, and the streamlines through them. */

@@ -21,14 +21,14 @@ const TO_GALAXY_KM = 9_000 * LY_KM;
 /** Zooming in, nearer than these the pivot goes back down the chain toward Earth. */
 const BACK_TO_SUN_KM = 60_000 * LY_KM;
 const BACK_TO_EARTH_KM = 1.5 * AU_KM;
-const RETARGET_MS = 700;
+export const RETARGET_MS = 700;
 /** Pointer this near the middle of the view (fraction of its shorter side) zooms along the chain, not onto what is under it. */
 const CENTRE_ZONE = 0.12;
 const HANDOFF_MS = 1400;
 
 export type MapTarget = Required<MapPose>;
 
-function anchorFor(sel: SpaceSelection): Anchor | null {
+export function anchorFor(sel: SpaceSelection): Anchor | null {
   if (sel.kind === 'body') return sel.key === 'sun' ? { kind: 'system' } : { kind: 'body', key: sel.key };
   if (sel.kind === 'craft') return { kind: 'craft', id: sel.id };
   if (sel.kind === 'site' || sel.kind === 'orbiter') return { kind: 'body', key: sel.world };

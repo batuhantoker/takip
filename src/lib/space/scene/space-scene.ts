@@ -25,7 +25,7 @@ import { createEarth, EARTH_RADIUS_KM, type SatellitePoint } from './earth';
 import { createFlightReplay, type FlightReplay } from './craft/flight-replay';
 import { createOrigin } from './floating-origin';
 import { createHeliosphere } from './deep/heliosphere';
-import { createLabels, type LabelItem, type Occluder } from './hud/labels';
+import { createLabels, inFront, type LabelItem, type Occluder } from './hud/labels';
 import { anchorName, anchorState, type AnchorState } from './camera/anchors';
 import { createGroundCamera, overGround } from './craft/landed';
 import { craftPosition, placeCraft } from './craft/placement';
@@ -44,7 +44,7 @@ import { createStars } from './stars';
 import { createSurfaceMarks } from './bodies/surface-marks';
 import { ramp, tierFades, type TierFades } from './tiers';
 import { globePose, picturedUp, type MapLink } from './camera/focus';
-import { createZoomAnchoring } from './camera/zoom-anchor';
+import { anchorFor, createZoomAnchoring, RETARGET_MS } from './camera/zoom-anchor';
 import { fitToDistance, placeBodies } from './frame-passes';
 import { type Anchor, DEFAULT_SPACE_LAYERS, type SpaceLayers, type SpaceSceneEvents } from './types';
 
@@ -166,6 +166,15 @@ export class SpaceScene {
     this.craft.setFleet(p.craft);
     const v1 = p.craft.find(c => c.id === -31), v2 = p.craft.find(c => c.id === -32);
     if (v1 && v2) this.heliosphere.setVoyagers({ [-31]: v1.helio, [-32]: v2.helio });
+  }
+
+  private nearBodies = new Set<SkyKey>();
+  /** A body has come close enough on screen to want its surface: its picture, and the Moon's and Mars's sites. */
+  near(key: SkyKey) {
+    if (this.nearBodies.has(key)) return;
+    this.nearBodies.add(key);
+    this.planets.get(key)?.wantTexture();
+    if (key === 'moon' || key === 'mars') this.events.onNear?.(key);
   }
 
   setSurface(p: SurfacePayload) {
@@ -400,8 +409,18 @@ export class SpaceScene {
   private onUp = (e: PointerEvent) => {
     if (this.leaving() || !this.downAt || Math.hypot(e.clientX - this.downAt[0], e.clientY - this.downAt[1]) > 4) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
-    this.events.onSelect(pickAt(this, e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height));
+    const sel = pickAt(this, e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height, true);
+    this.events.onSelect(sel);
+    // A click on an orbit can pick a body that is out of view: the camera turns to it.
+    const anchor = sel && anchorFor(sel), at = anchor && this.anchorState(anchor)?.position;
+    if (anchor && at && !this.inView(at)) this.retarget(anchor, RETARGET_MS);
   };
+
+  private inView(p: THREE.Vector3): boolean {
+    if (!inFront(this.camera, p)) return false;
+    const v = p.clone().project(this.camera);
+    return Math.abs(v.x) < 0.95 && Math.abs(v.y) < 0.95;
+  }
 
   private frame = () => {
     this.raf = requestAnimationFrame(this.frame);

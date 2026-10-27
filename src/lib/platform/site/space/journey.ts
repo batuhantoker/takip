@@ -83,7 +83,7 @@ export const DEEP_JOURNEY: JourneyStop[] = [
   ...deep('m87-shadow', msg('The first picture ever taken of a black hole, 6.5 billion times the Sun’s mass.')),
   ...deep('stephans-quintet', msg('Four galaxies in a slow collision, in one of Webb’s first pictures.')),
   ...deep('webb-first-deep-field', msg('A galaxy cluster bending the light of galaxies far behind it into arcs.')),
-  { id: 'cmb', name: msg('Cosmic microwave background'), picture: { kind: 'file', src: '/data/cosmos/cmb.jpg', credit: 'NASA / WMAP Science Team' },
+  { id: 'cmb', name: msg('Cosmic microwave background'), picture: { kind: 'file', src: '/data/cosmos/cmb.jpg', credit: 'ESA and the Planck Collaboration' },
     ly: 45.3e9, mode: space('universe', { kind: 'feature', id: 'cmb' }),
     line: msg('The oldest light there is, from 380,000 years after the Big Bang. Nothing beyond it can be seen.') },
 ];

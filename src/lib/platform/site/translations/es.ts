@@ -81,7 +81,7 @@ const copy: SiteCopy = {
     free: 'TAKIP es gratuito. Sin cuenta tienes un tiempo de mapa diario, y una cuenta gratuita te da más. Los planes gratuitos muestran algunos anuncios, nunca sobre el mapa. Lo que TAKIP guarda de tu visita se explica con claridad en la página de privacidad.',
   },
   sourceNames: {
-    '2MRS, SDSS and WMAP': '2MRS, SDSS y WMAP',
+    '2MRS, SDSS and Planck': '2MRS, SDSS y Planck',
     'adsb.lol and adsb.fi': 'adsb.lol y adsb.fi',
     'adsbdb, hexdb.io and airplanes.live': 'adsbdb, hexdb.io y airplanes.live',
     'Agency APIs': 'API de los operadores',
@@ -540,7 +540,7 @@ const copy: SiteCopy = {
         '12.807 estrellas del Yale Bright Star Catalogue, de Hipparcos y, a menos de unos 100 años luz, de Gaia DR3.',
         'Estrellas con planetas conocidos, del NASA Exoplanet Archive.',
         'La Vía Láctea desde dentro y, desde fuera, como ilustración artística, rotulada como tal.',
-        'El Grupo Local, 43.463 galaxias del 2MASS Redshift Survey, galaxias y cuásares del SDSS y el fondo cósmico de microondas del WMAP.',
+        'El Grupo Local, 43.463 galaxias del 2MASS Redshift Survey, galaxias y cuásares del SDSS y el fondo cósmico de microondas del Planck.',
       ],
       sources: [
         'Posiciones y brillo de las estrellas.',

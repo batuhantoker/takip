@@ -92,6 +92,8 @@ export interface Planet {
   spin: THREE.Group;
   mesh: THREE.Mesh;
   marker: THREE.Sprite;
+  /** Fetches the body's surface picture, once; called the first time it is big enough on screen to show it. */
+  wantTexture: () => void;
 }
 
 const markerMap = dotTexture(64, 0.35);
@@ -100,8 +102,13 @@ export function createPlanet(def: SkyBodyDef, textureUrl?: string): Planet {
   const group = new THREE.Group();
   const spin = new THREE.Group();
   group.add(spin);
-  const material = new THREE.MeshLambertMaterial({ color: textureUrl ? 0xffffff : def.color });
-  if (textureUrl) loadTexture(textureUrl, t => { material.map = t; material.needsUpdate = true; });
+  const material = new THREE.MeshLambertMaterial({ color: def.color });
+  let asked = !textureUrl;
+  const wantTexture = () => {
+    if (asked) return;
+    asked = true;
+    loadTexture(textureUrl!, t => { material.map = t; material.color.set(0xffffff); material.needsUpdate = true; });
+  };
   const mesh = new THREE.Mesh(bodyGeometry(def.radiusKm, def.key === 'moon' || def.key === 'mars' ? 128 : 64), material);
   spin.add(mesh);
   const marker = new THREE.Sprite(new THREE.SpriteMaterial({ map: markerMap, color: def.color, sizeAttenuation: false, depthWrite: false, transparent: true }));
@@ -109,7 +116,7 @@ export function createPlanet(def: SkyBodyDef, textureUrl?: string): Planet {
   marker.renderOrder = 2;
   group.add(marker);
   if (def.key === 'saturn') group.add(saturnRings());
-  return { def, group, spin, mesh, marker };
+  return { def, group, spin, mesh, marker, wantTexture };
 }
 
 /** Saturn's rings, in the plane of its equator (pole RA 40.59°, Dec 83.54°, J2000). */

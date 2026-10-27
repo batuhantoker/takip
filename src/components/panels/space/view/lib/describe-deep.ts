@@ -185,7 +185,7 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
       },
     }[v.catalogue];
     return {
-      ...card, color: VOID_COLOR[v.catalogue],
+      ...card, color: VOID_COLOR,
       fields: [
         [t('From the Sun'), distance(at.length(), t)], [t('Across'), t('about {size}', { size: mly(2 * v.reffMly) })],
         ...(nearby ? [[t('Galaxies inside'), t('{n}, mostly dwarfs', { n: nearby.galaxies })] as [string, string]] : []),
@@ -221,7 +221,7 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
       note: f.footnote ? `${t(f.note)} ${t(f.footnote)}` : t(f.note),
       source: f.credit ? t('Image: {credit}', { credit: f.credit }) : null, illustration: f.illustration,
       ...(picture ? { link: { href: picture.page, label: archiveName(picture.page) } } : {}),
-      ...(placed ? { picture: { src: deepSkyUrl(placed.object.id), href: placed.image.page } } : {}),
+      ...(placed ? { picture: { src: deepSkyUrl(placed.object.id, true), href: placed.image.page } } : {}),
     };
   }
   return null;

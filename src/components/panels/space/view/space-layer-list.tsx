@@ -66,7 +66,7 @@ function AboutTheData({ deep }: { deep: { outer: OuterPayload | null; catalog: N
               : t('Stars: the Yale Bright Star Catalogue, Hipparcos and ESA Gaia DR3; planets from the NASA Exoplanet Archive.'),
             t('Imagery: NASA GIBS, Moon and Mars Trek, SDO; the Milky Way sky from NASA SVS; the face-on Milky Way is NASA/JPL-Caltech/R. Hurt artwork.'),
             t('Nebulae, clusters and galaxies: pictures from ESA/Webb, ESO, NOIRLab and the Digitized Sky Survey, each placed by its own astrometry.'),
-            t('Beyond: the 2MASS Redshift Survey (Huchra et al. 2012), SDSS DR17 galaxies and quasars, and the cosmic microwave background from NASA WMAP.'),
+            t('Beyond: the 2MASS Redshift Survey (Huchra et al. 2012), SDSS DR17 galaxies and quasars, and the cosmic microwave background from ESA Planck.'),
             t('Past positions in a flight replay: JPL Horizons, with the planets from JPL’s mean orbital elements between encounters.'),
             t('Sizes are true; distant things are drawn as dots so they stay visible.'),
             t('The heliosphere, Oort cloud and galactic disc are models, marked as illustrations.'),

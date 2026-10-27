@@ -8,6 +8,7 @@ import type { GlobeWorldId } from '@/lib/space/worlds';
 import { REGION_COLOR, SHOWN_IN_SPACE } from '../craft/layer';
 import { deepTargets, pickStar } from './deep-targets';
 import { inFront, type LabelItem } from './labels';
+import { pickOrbit } from './pick-orbit';
 import type { SpaceScene } from '../space-scene';
 import { ORBITER_COLOR, ROVER_COLOR, SITE_COLOR } from '../bodies/surface-marks';
 
@@ -96,8 +97,8 @@ export function labelItems(scene: SpaceScene, jd: number, ms: number): LabelItem
   });
 }
 
-/** The target under a click, nearest first; a body counts anywhere on its disc. */
-export function pickAt(scene: SpaceScene, x: number, y: number, w: number, h: number): SpaceSelection | null {
+/** The target under a click, nearest first; a body counts anywhere on its disc. `orbits`: a click may land on a body's orbit line. */
+export function pickAt(scene: SpaceScene, x: number, y: number, w: number, h: number, orbits = false): SpaceSelection | null {
   const ms = scene.timeMs();
   const jd = jdFromMs(ms);
   const v = new THREE.Vector3();
@@ -112,5 +113,5 @@ export function pickAt(scene: SpaceScene, x: number, y: number, w: number, h: nu
     const score = d - (t.sel.kind === 'body' ? 0 : 6);
     if (d <= Math.max(t.radiusPx, 8) && (!best || score < best.d)) best = { sel: t.sel, d: score };
   }
-  return best?.sel ?? pickStar(scene, x, y, w, h);
+  return best?.sel ?? (orbits ? pickOrbit(scene, x, y, w, h) : null) ?? pickStar(scene, x, y, w, h);
 }

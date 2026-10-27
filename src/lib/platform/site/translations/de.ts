@@ -81,7 +81,7 @@ const copy: SiteCopy = {
     free: 'TAKIP ist kostenlos. Ohne Konto bekommst du jeden Tag ein Kontingent an Kartenzeit, mit einem kostenlosen Konto mehr. Die kostenlosen Tarife zeigen ein paar Anzeigen, nie auf der Karte. Was TAKIP über deinen Besuch speichert, steht klar und offen auf der Datenschutzseite.',
   },
   sourceNames: {
-    '2MRS, SDSS and WMAP': '2MRS, SDSS und WMAP',
+    '2MRS, SDSS and Planck': '2MRS, SDSS und Planck',
     'adsb.lol and adsb.fi': 'adsb.lol und adsb.fi',
     'adsbdb, hexdb.io and airplanes.live': 'adsbdb, hexdb.io und airplanes.live',
     'Agency APIs': 'APIs der Verkehrsbetriebe',
@@ -539,7 +539,7 @@ const copy: SiteCopy = {
         '12.807 Sterne aus dem Yale Bright Star Catalogue, Hipparcos und, im Umkreis von etwa 100 Lichtjahren, Gaia DR3.',
         'Sterne mit bekannten Planeten, aus dem NASA Exoplanet Archive.',
         'Die Milchstraße von innen und, als künstlerische Illustration und so beschriftet, von außen.',
-        'Die Lokale Gruppe, 43.463 Galaxien aus dem 2MASS Redshift Survey, SDSS-Galaxien und -Quasare sowie der kosmische Mikrowellenhintergrund von WMAP.',
+        'Die Lokale Gruppe, 43.463 Galaxien aus dem 2MASS Redshift Survey, SDSS-Galaxien und -Quasare sowie der kosmische Mikrowellenhintergrund von Planck.',
       ],
       sources: [
         'Positionen und Helligkeit der Sterne.',

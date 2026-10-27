@@ -84,7 +84,7 @@ const copy: SiteCopy = {
       'TAKIP مجاني. من دون حساب تحصل على حصة يومية من وقت الخريطة، ويمنحك الحساب المجاني المزيد. تعرض الخطط المجانية بعض الإعلانات، ولا تظهر أبدًا على الخريطة. وما يحتفظ به TAKIP عن زيارتك مبيّن بوضوح في صفحة الخصوصية.',
   },
   sourceNames: {
-    '2MRS, SDSS and WMAP': '2MRS وSDSS وWMAP',
+    '2MRS, SDSS and Planck': '2MRS وSDSS وPlanck',
     'adsb.lol and adsb.fi': 'adsb.lol وadsb.fi',
     'adsbdb, hexdb.io and airplanes.live': 'adsbdb وhexdb.io وairplanes.live',
     'Agency APIs': 'واجهات API لشركات النقل',
@@ -551,7 +551,7 @@ const copy: SiteCopy = {
         '12,807 من النجوم من Yale Bright Star Catalogue وHipparcos، ومن Gaia DR3 ضمن نحو 100 سنة ضوئية.',
         'النجوم المعروف أن لها كواكب، من NASA Exoplanet Archive.',
         'درب التبانة من الداخل، ومن الخارج في رسم فني توضيحي، مُعلَّم على أنه كذلك.',
-        'المجموعة المحلية، و43,463 من المجرات من 2MASS Redshift Survey، ومجرات SDSS وكوازاراته، وإشعاع الخلفية الكونية الميكروي من WMAP.',
+        'المجموعة المحلية، و43,463 من المجرات من 2MASS Redshift Survey، ومجرات SDSS وكوازاراته، وإشعاع الخلفية الكونية الميكروي من Planck.',
       ],
       sources: [
         'مواقع النجوم وسطوعها.',

@@ -1,20 +1,26 @@
 import * as THREE from 'three';
 import { MLY_KM } from '@/lib/space/deep/cosmos';
 import { BASINS } from '@/lib/space/deep/basins.generated';
-import { bootesIndex, filamentSegments, type Basin, type BasinFlows, type BasinMesh, type CosmicVoid, type CosmicWeb, type VoidCatalogue } from '@/lib/space/deep/cosmic-web';
+import { bootesIndex, filamentSegments, type Basin, type BasinFlows, type BasinMesh, type CosmicWeb } from '@/lib/space/deep/cosmic-web';
 import { EQUATORIAL_TO_ECLIPTIC } from '@/lib/space/frames';
+import { inFront } from '../hud/labels';
 import { LOGDEPTH, rotation } from '../shared';
 
 /**
- * The cosmic web (lib/space/deep/cosmic-web.ts): filament spines as faint threads, and each void as its fitted
- * ellipsoid, drawn as a bubble whose rim glows where the camera sees its wall edge-on. A void is not drawn
- * from inside, where it would only fog the view. The Cosmicflows-4 basins, Laniakea first, are drawn the same way
+ * The cosmic web (lib/space/deep/cosmic-web.ts): filament spines as faint threads, and the voids named on screen
+ * outlined as their fitted ellipsoids, the rim faint where the camera sees the wall edge-on; drawn all at once they
+ * were a foam of circles over everything. A void is not drawn from inside, where it would only fog the view. The Cosmicflows-4 basins, Laniakea first, are drawn the same way
  * from their meshes, and from inside too: the Sun is in Laniakea. Through them run the velocity field's streamlines,
  * dashes travelling along each the way matter moves. Millions of light-years, J2000 equatorial, like the cosmos layer.
  */
 
-export const VOID_COLOR: Record<VoidCatalogue, string> = { sdss: '#7F9CFF', network: '#A99BFF', quaia: '#8C7BFF', local: '#8FC8FF' };
-const LANIAKEA_COLOR = '#FFD38A', BASIN_COLOR = '#D0896A', REPELLER_COLOR = '#93A6FF';
+export const VOID_COLOR = '#A9B3C6';
+/**
+ * The voids outlined and named at once: the biggest-looking few, once wider than this many pixels, and only while
+ * the whole outline fits on screen (radius under this share of its height); one round the camera is only an arc.
+ */
+const VOID_LABELS = 4, VOID_MIN_PX = 50, VOID_MAX_SCREEN = 0.32;
+const LANIAKEA_COLOR = '#FFD38A', BASIN_COLOR = '#D0896A', REPELLER_COLOR = VOID_COLOR;
 /** Inside Laniakea its walls would only streak across the nearby voids: the basins come in as the camera gets out of it. */
 const BASINS_FROM_MLY = 250, BASINS_FULL_MLY = 900;
 export const basinColor = (b: Basin) => (b.id === 'laniakea' ? LANIAKEA_COLOR : b.kind === 'repulsion' ? REPELLER_COLOR : BASIN_COLOR);
@@ -65,45 +71,39 @@ void main() {
 
 // An affine copy of the unit sphere: its normal is the inverse transpose of the instance matrix on the sphere's normal.
 // Worked in the layer's own millions of light-years: squared kilometres this far out overflow a float. The layer's
-// matrix only turns and scales evenly, so angles there are the scene's. Voids fill most of space, so each is drawn
-// as a soft rim only: together they read as the foam they are.
+// matrix only turns and scales evenly, so angles there are the scene's.
 const VOID_VERT = `
 ${LOGDEPTH.vertexPars}
+attribute float fade;
 uniform vec3 cameraLocal;
 uniform float selected;
 varying vec3 vNormal;
 varying vec3 vView;
 varying float vFade;
 varying float vPicked;
-varying vec3 vTint;
 void main() {
   vPicked = float(gl_InstanceID) == selected ? 1.0 : 0.0;
-  vTint = instanceColor;
+  vFade = fade;
   vec4 local = instanceMatrix * vec4(position, 1.0);
   vNormal = transpose(inverse(mat3(instanceMatrix))) * normal;
   vView = cameraLocal - local.xyz;
-  // Too small on screen, a rim is only speckle.
-  float across = length(instanceMatrix[0].xyz) / max(length(cameraLocal - instanceMatrix[3].xyz), 1e-3);
-  vFade = smoothstep(0.012, 0.05, across);
   gl_Position = projectionMatrix * modelViewMatrix * local;
   ${LOGDEPTH.vertex}
 }`;
 
 const VOID_FRAG = `
 ${LOGDEPTH.fragmentPars}
+uniform vec3 color;
 uniform float opacity;
 varying vec3 vNormal;
 varying vec3 vView;
-uniform float selected;
 varying float vFade;
 varying float vPicked;
-varying vec3 vTint;
 void main() {
   ${LOGDEPTH.fragment}
   float facing = abs(dot(normalize(vNormal), normalize(vView)));
-  // A picked void stands out, faintly filled; the rest step back.
-  float k = selected < 0.0 ? 1.0 : mix(0.45, 3.0, vPicked);
-  gl_FragColor = vec4(vTint * opacity * k * (vFade * pow(1.0 - facing, 4.0) + vPicked * 0.05), 1.0);
+  // A thin line at the silhouette; a picked void is brighter and faintly filled.
+  gl_FragColor = vec4(color * opacity * vFade * (pow(1.0 - facing, 6.0) * (1.0 + vPicked) + vPicked * 0.04), 1.0);
 }`;
 
 const BASIN_VERT = `
@@ -168,39 +168,35 @@ void main() {
   gl_FragColor = vec4(vColor * opacity * pick * (0.3 + 0.7 * vAlong) * (0.4 + 1.6 * dash), 1.0);
 }`;
 
-/** One InstancedMesh of void bubbles, for the voids `keep` picks; instance k is void `ids[k]`. */
-function bubbleSet() {
-  const uniforms = { opacity: { value: 0 }, cameraLocal: { value: new THREE.Vector3() }, selected: { value: -1 } };
-  let mesh: THREE.InstancedMesh | null = null;
-  let ids: number[] = [];
+const OUTLINES = 8;
 
-  function build(voids: CosmicVoid[], keep: (v: CosmicVoid) => boolean): THREE.InstancedMesh {
-    ids = voids.flatMap((v, i) => (keep(v) ? [i] : []));
-    mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 32, 20), new THREE.ShaderMaterial({
-      vertexShader: VOID_VERT, fragmentShader: VOID_FRAG, uniforms, transparent: true, depthWrite: false, side: THREE.FrontSide, blending: THREE.AdditiveBlending,
-    }), ids.length);
-    const m = new THREE.Matrix4(), tint = new THREE.Color();
-    ids.forEach((id, k) => {
-      const v = voids[id];
-      const [a, b, c] = v.axes;
-      m.set(a[0], b[0], c[0], v.centre[0], a[1], b[1], c[1], v.centre[1], a[2], b[2], c[2], v.centre[2], 0, 0, 0, 1);
-      // A left-handed triad would turn the sphere inside out, and FrontSide would then draw it from inside only.
-      if (m.determinant() < 0) m.set(a[0], b[0], -c[0], v.centre[0], a[1], b[1], -c[1], v.centre[1], a[2], b[2], -c[2], v.centre[2], 0, 0, 0, 1);
-      mesh!.setMatrixAt(k, m);
-      mesh!.setColorAt(k, tint.set(VOID_COLOR[v.catalogue]));
+/** One InstancedMesh holding the few void outlines shown, refilled each frame from every void's precomputed matrix. */
+function outlineSet() {
+  const uniforms = { color: { value: new THREE.Color(VOID_COLOR) }, opacity: { value: 0.55 }, cameraLocal: { value: new THREE.Vector3() }, selected: { value: -1 } };
+  const geometry = new THREE.SphereGeometry(1, 48, 32);
+  const fade = new THREE.InstancedBufferAttribute(new Float32Array(OUTLINES), 1).setUsage(THREE.DynamicDrawUsage);
+  geometry.setAttribute('fade', fade);
+  const mesh = new THREE.InstancedMesh(geometry, new THREE.ShaderMaterial({
+    vertexShader: VOID_VERT, fragmentShader: VOID_FRAG, uniforms, transparent: true, depthWrite: false, side: THREE.FrontSide, blending: THREE.AdditiveBlending,
+  }), OUTLINES);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  mesh.frustumCulled = false;
+  mesh.count = 0;
+
+  function show(list: { i: number; alpha: number }[], matrices: Float32Array, picked: number, cameraLocal: THREE.Vector3) {
+    mesh.count = list.length;
+    list.forEach(({ i, alpha }, k) => {
+      mesh.instanceMatrix.array.set(matrices.subarray(i * 16, i * 16 + 16), k * 16);
+      fade.array[k] = alpha;
     });
-    mesh.frustumCulled = false;
-    return mesh;
-  }
-
-  function update(opacity: number, cameraLocal: THREE.Vector3, picked: number) {
-    uniforms.opacity.value = opacity;
+    mesh.instanceMatrix.needsUpdate = true;
+    fade.needsUpdate = true;
+    uniforms.selected.value = list.findIndex(x => x.i === picked);
     uniforms.cameraLocal.value.copy(cameraLocal);
-    uniforms.selected.value = picked < 0 ? -1 : ids.indexOf(picked);
-    if (mesh) mesh.visible = opacity > 0.002;
+    mesh.visible = list.length > 0;
   }
 
-  return { build, update };
+  return { mesh, show };
 }
 
 export function createCosmicWeb() {
@@ -212,8 +208,14 @@ export function createCosmicWeb() {
   let lines: THREE.LineSegments | null = null;
   const toLocal = new THREE.Matrix4().copy(group.matrix).invert();
   const lineUniforms = { color: { value: new THREE.Color(FILAMENT_COLOR) }, opacity: { value: 0 } };
-  /** Near voids (SDSS, the all-sky network, the nearest) and the far supervoids fade in at their own scales. */
-  const near = bubbleSet(), far = bubbleSet();
+  const outlines = outlineSet();
+  /** Every void's ellipsoid as a matrix on the unit sphere, 16 floats each. */
+  let matrices = new Float32Array(0);
+  /** The voids named this frame, biggest-looking first, and each outline's fade in or out. */
+  let named: { i: number; px: number }[] = [];
+  const alphas = new Map<number, number>();
+  let lastMs = 0;
+  const toCamera = new THREE.Vector3(), forward = new THREE.Vector3(), onScreen = new THREE.Vector3();
   let basinReveal = 0;
   const flowUniforms = { opacity: { value: 0 }, time: { value: 0 }, picked: { value: -1 } };
   let flowLines: THREE.LineSegments | null = null;
@@ -245,7 +247,15 @@ export function createCosmicWeb() {
     lines = new THREE.LineSegments(g, new THREE.ShaderMaterial({ vertexShader: LINE_VERT, fragmentShader: LINE_FRAG, uniforms: lineUniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
     lines.frustumCulled = false;
 
-    group.add(near.build(w.voids, v => v.catalogue !== 'quaia'), far.build(w.voids, v => v.catalogue === 'quaia'), lines);
+    matrices = new Float32Array(w.voids.length * 16);
+    const m = new THREE.Matrix4();
+    w.voids.forEach(({ axes: [a, b, c], centre }, i) => {
+      m.set(a[0], b[0], c[0], centre[0], a[1], b[1], c[1], centre[1], a[2], b[2], c[2], centre[2], 0, 0, 0, 1);
+      // A left-handed triad would turn the sphere inside out, and FrontSide would then draw it from inside only.
+      if (m.determinant() < 0) m.set(a[0], b[0], -c[0], centre[0], a[1], b[1], -c[1], centre[1], a[2], b[2], -c[2], centre[2], 0, 0, 0, 1);
+      m.toArray(matrices, i * 16);
+    });
+    group.add(outlines.mesh, lines);
     group.updateMatrixWorld(true);
     centres = w.voids.map(v => new THREE.Vector3(...v.centre).applyMatrix4(group.matrix));
     bootes = bootesIndex(w.voids);
@@ -306,20 +316,56 @@ export function createCosmicWeb() {
     group.updateMatrixWorld(true);
   }
 
+  /** The voids worth naming from here: in front, not around the camera, wide enough on screen, biggest first. */
+  function nameVoids(camera: THREE.PerspectiveCamera, heightPx: number, k: number, farK: number, picked: number) {
+    named = [];
+    if (!web || (k < 0.3 && farK < 0.3)) return;
+    const voids = web.voids;
+    const pxPerRad = heightPx / 2 / Math.tan((camera.fov * Math.PI) / 360);
+    camera.getWorldDirection(forward);
+    const seen: { i: number; px: number }[] = [];
+    voids.forEach((v, i) => {
+      if ((v.catalogue === 'quaia' ? farK : k) < 0.3) return;
+      const c = centres[i], r = v.reffMly * MLY_KM, d = toCamera.subVectors(c, camera.position).length();
+      if (d < r || !inFront(camera, c, forward)) return;
+      // Centred off screen, its outline and name would be too.
+      onScreen.copy(c).project(camera);
+      if (Math.abs(onScreen.x) > 0.9 || Math.abs(onScreen.y) > 0.9) return;
+      const px = (r / d) * pxPerRad;
+      if ((px > VOID_MIN_PX && px < VOID_MAX_SCREEN * heightPx) || i === picked) seen.push({ i, px });
+    });
+    seen.sort((a, b) => b.px - a.px);
+    named = seen.filter((x, n) => n < VOID_LABELS || x.i === picked);
+  }
+
+  /** Outlines ease in and out as voids join and leave the named few. */
+  function fadeOutlines(picked: number, k: number, farK: number, cam: THREE.Vector3) {
+    const now = performance.now(), step = Math.min(1, (now - lastMs) / 300);
+    lastMs = now;
+    const wanted = new Set(named.map(x => x.i));
+    for (const i of new Set([...alphas.keys(), ...wanted])) {
+      const a = Math.min(1, Math.max(0, (alphas.get(i) ?? 0) + (wanted.has(i) ? step : -step)));
+      if (a > 0) alphas.set(i, a);
+      else alphas.delete(i);
+    }
+    const voids = web?.voids ?? [];
+    const list = [...alphas].map(([i, a]) => ({ i, alpha: a * (voids[i]?.catalogue === 'quaia' ? farK : k) })).sort((x, y) => y.alpha - x.alpha).slice(0, OUTLINES);
+    outlines.show(list, matrices, picked, cam);
+  }
+
   /**
    * `k` fades the near web, `farK` the supervoids; far out the threads crowd into a blot, so they thin with
-   * distance as the galaxies do. `picked` is the selected void's index, or −1.
+   * distance as the galaxies do. `pickedId` is the selected feature's id: a void (`void:<i>`) or a basin lights up.
    */
-  /** `pickedId` is the selected feature's id: a void (`void:<i>`) or a basin lights up when picked. */
-  function update(k: number, farK: number, sunKm: number, camera: THREE.Camera, pickedId: string | null = null) {
+  function update(k: number, farK: number, sunKm: number, camera: THREE.PerspectiveCamera, heightPx: number, pickedId: string | null = null) {
     const picked = pickedId?.startsWith('void:') ? Number(pickedId.slice(5)) : -1;
     const crowd = Math.min(1, Math.max(0.15, (1_500 * MLY_KM) / Math.max(sunKm, 1)));
     lineUniforms.opacity.value = 0.22 * k * crowd;
     if (lines) lines.visible = k > 0.005;
     const cam = camera.position.clone().applyMatrix4(toLocal);
-    near.update(0.22 * k, cam, picked);
+    nameVoids(camera, heightPx, k, farK, picked);
+    fadeOutlines(picked, k, farK, cam);
     glowUniforms.opacity.value = 0.09 * k;
-    far.update(0.2 * farK, cam, picked);
     basinReveal = THREE.MathUtils.smoothstep(sunKm / MLY_KM, BASINS_FROM_MLY, BASINS_FULL_MLY);
     const pickedIndex = BASINS.findIndex(x => x.id === pickedId);
     basins.forEach(({ mesh, uniforms }, i) => {
@@ -347,6 +393,8 @@ export function createCosmicWeb() {
     superclusterCentre: (i: number) => sclCentres[i],
     superclusterRadiusKm: (i: number) => (superclusters[i]?.[3] ?? 0) * MLY_KM,
     voids: () => web?.voids ?? [],
+    /** The voids named on screen this frame, with their size in pixels; the picked one among them. */
+    namedVoids: () => named,
     /** Scene position of void i, km. */
     voidCentre: (i: number) => centres[i],
     voidRadiusKm: (i: number) => (web?.voids[i].reffMly ?? 0) * MLY_KM,

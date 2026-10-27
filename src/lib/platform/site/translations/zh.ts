@@ -75,7 +75,7 @@ const copy: SiteCopy = {
     free: 'TAKIP 是免费的。不注册账号，每天有一定的地图使用时长；注册免费账号可获得更多。免费方案会显示少量广告，但绝不会出现在地图上。TAKIP 会保留哪些关于你访问的信息，隐私页面上写得清清楚楚。',
   },
   sourceNames: {
-    '2MRS, SDSS and WMAP': '2MRS、SDSS 和 WMAP',
+    '2MRS, SDSS and Planck': '2MRS、SDSS 和 Planck',
     'adsb.lol and adsb.fi': 'adsb.lol 和 adsb.fi',
     'adsbdb, hexdb.io and airplanes.live': 'adsbdb、hexdb.io 和 airplanes.live',
     'Agency APIs': '各公交机构的 API',
@@ -539,7 +539,7 @@ const copy: SiteCopy = {
         '12,807 颗恒星，来自耶鲁亮星星表、Hipparcos，以及约 100 光年内的 Gaia DR3。',
         '已知拥有行星的恒星，来自 NASA Exoplanet Archive（系外行星档案）。',
         '从内部看到的银河系，以及作为艺术示意图、并已标明的外部视角。',
-        '本星系群、2MASS 红移巡天中的 43,463 个星系、SDSS 星系和类星体，以及 WMAP 的宇宙微波背景。',
+        '本星系群、2MASS 红移巡天中的 43,463 个星系、SDSS 星系和类星体，以及 Planck 的宇宙微波背景。',
       ],
       sources: ['恒星的位置和亮度。', '已知拥有行星的恒星。', '从内部看到的银河系。', '星系、类星体和宇宙微波背景。'],
       freshness: '星表数据，随星表更新而更新。',

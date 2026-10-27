@@ -33,6 +33,7 @@ export function createOrbits() {
         const path = orbitPath(sub(b.helio, earth.helio), sub(b.vel, earth.vel), GM_EARTH_MOON, 360);
         if (!path) continue;
         const line = loop(b.color, 0.3);
+        line.userData.sel = { kind: 'body', key: b.key };
         line.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(path.flat()), 3));
         moonFrame.add(line);
         continue;
@@ -40,6 +41,7 @@ export function createOrbits() {
       const path = orbitPath(b.helio, b.vel, undefined, 720);
       if (!path) continue;
       const line = loop(b.color, b.key === 'earth' ? 0.6 : 0.42);
+      line.userData.sel = { kind: 'body', key: b.key };
       const km = new AbsolutePositions(line, path.flat());
       line.geometry.setAttribute('position', km.attribute);
       ellipses.push(km);
@@ -47,12 +49,13 @@ export function createOrbits() {
     }
   }
 
-  /** Planet orbits are sun-sized; up close to a body they are only stray lines across the view. */
-  function fade(k: number) {
-    planets.children.forEach(c => {
+  /** Planet orbits are sun-sized; up close to a body they are only stray lines across the view. The picked body's stands out. */
+  function fade(k: number, picked?: string) {
+    for (const c of [...planets.children, ...moonFrame.children]) {
       const m = (c as THREE.LineLoop).material as THREE.LineBasicMaterial;
-      m.opacity = (m.userData.base ?? (m.userData.base = m.opacity)) * k;
-    });
+      const base = m.userData.base ?? (m.userData.base = m.opacity);
+      m.opacity = Math.min(1, base * k * (c.userData.sel?.key === picked ? 2.2 : 1));
+    }
   }
 
   return { planets, moonFrame, setBodies, fade, rebase: (origin: THREE.Vector3) => ellipses.forEach(e => e.rebase(origin)) };

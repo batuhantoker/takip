@@ -89,7 +89,7 @@ const copy: SiteCopy = {
       'TAKIP は無料です。アカウントなしでも1日あたり一定の時間地図を使え、無料アカウントを作るとさらに長く使えます。無料プランでは広告が少し表示されますが、地図の上には決して表示しません。TAKIP があなたの訪問について何を保存するかは、プライバシーページにはっきり書いています。',
   },
   sourceNames: {
-    '2MRS, SDSS and WMAP': '2MRS、SDSS、WMAP',
+    '2MRS, SDSS and Planck': '2MRS、SDSS、Planck',
     'adsb.lol and adsb.fi': 'adsb.lol と adsb.fi',
     'adsbdb, hexdb.io and airplanes.live': 'adsbdb、hexdb.io、airplanes.live',
     'Agency APIs': '交通事業者の API',
@@ -535,7 +535,7 @@ const copy: SiteCopy = {
         'Yale Bright Star Catalogue、Hipparcos、そして約100光年以内は Gaia DR3 による12,807個の恒星。',
         'NASA Exoplanet Archive による、惑星をもつことが知られている恒星。',
         '内側から見た天の川銀河と、外側から見た想像図（そう表示しています）。',
-        '局所銀河群、2MASS Redshift Survey による43,463個の銀河、SDSS の銀河とクエーサー、WMAP による宇宙マイクロ波背景放射。',
+        '局所銀河群、2MASS Redshift Survey による43,463個の銀河、SDSS の銀河とクエーサー、Planck による宇宙マイクロ波背景放射。',
       ],
       sources: ['恒星の位置と明るさ。', '惑星が知られている恒星。', '内側から見た天の川銀河。', '銀河、クエーサー、宇宙マイクロ波背景放射。'],
       freshness: 'カタログのデータで、カタログの更新に合わせて更新します。',

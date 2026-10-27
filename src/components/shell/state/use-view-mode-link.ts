@@ -10,6 +10,7 @@ import { HISTORY_FAMILY_LINKS, parsePanelLink, parseViewModeLink, yearStart, typ
 import { requestWorld } from '@/lib/space/world-events';
 import type { SpaceFocus } from '@/lib/space/worlds';
 import { SPEEDS } from '@/components/panels/history/lib/history-timeline-config';
+import { warmSpace } from '@/components/panels/space/view/warm-space';
 import type { ToolId } from '@/components/shell/sidebar/dock';
 import type { MobilePanel } from './types';
 
@@ -55,6 +56,8 @@ export function useViewModeLink({ splashGone, autoLocateCancelled: autoLocateCan
     const p = new URLSearchParams(window.location.search);
     linkRef.current = { mode: parseViewModeLink(p), panel: parsePanelLink(p) };
     if (linkRef.current.mode && !p.has('lat')) autoLocateCancelledRef.current = true;
+    // Space opens once the splash lifts; its code and textures can come down while the map gets there.
+    if (linkRef.current.mode?.view === 'space') warmSpace();
   }, [autoLocateCancelledRef]);
 
   useEffect(() => {

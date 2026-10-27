@@ -146,10 +146,10 @@ export const DEEP_FEATURES: Record<string, DeepFeature> = {
     id: 'cmb', name: msg('Cosmic microwave background'), subtitle: msg('The edge of the observable universe'), illustration: false,
     fields: t => [
       [t('Distance now'), `${compact(45.3e9, t.intl, 1)} ly`], [t('Light left'), t('{amount} years ago', { amount: compact(13.8e9, t.intl, 1) })],
-      [t('Temperature'), `${(2.725).toLocaleString(t.intl)} K`], [t('Map'), t('NASA WMAP, {n} years', { n: 9 })],
+      [t('Temperature'), `${(2.725).toLocaleString(t.intl)} K`], [t('Map'), 'ESA Planck, SMICA'],
     ],
-    note: msg("The oldest light there is, released 380,000 years after the Big Bang when the universe first became transparent. Its source has since been carried 45 billion light-years away by the expansion. The map is WMAP's, the shell around the Sun is where that light comes from; nothing beyond it can be seen. Seen from outside, the sphere is a picture of our own horizon, not a place."),
-    credit: 'NASA / WMAP Science Team; LAMBDA, NASA GSFC',
+    note: msg("The oldest light there is, released 380,000 years after the Big Bang when the universe first became transparent. Its source has since been carried 45 billion light-years away by the expansion. The map is Planck's, the shell around the Sun is where that light comes from; nothing beyond it can be seen. Seen from outside, the sphere is a picture of our own horizon, not a place."),
+    credit: 'ESA and the Planck Collaboration',
   },
   ...Object.fromEntries(NEARBY_GALAXIES.map(g => [g.id, {
     id: g.id, name: g.name, subtitle: g.kind, illustration: false,

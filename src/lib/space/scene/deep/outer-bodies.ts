@@ -39,13 +39,14 @@ export function createOuterBodies() {
   let km: AbsolutePositions[] = [];
   let dots: AbsolutePositions | null = null;
 
-  function line(points: Vec3[], color: string, opacity: number, loop: boolean) {
+  function line(points: Vec3[], color: string, opacity: number, loop: boolean, key: string) {
     const positions = new AbsolutePositions(group, points.flat());
     km.push(positions);
     const geometry = new THREE.BufferGeometry().setAttribute('position', positions.attribute);
     const material = new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
     material.userData.base = opacity;
     const l = loop ? new THREE.LineLoop(geometry, material) : new THREE.Line(geometry, material);
+    l.userData.sel = { kind: 'outer', key };
     l.frustumCulled = false;
     return l;
   }
@@ -57,10 +58,10 @@ export function createOuterBodies() {
     lines.clear();
     km = [];
     for (const b of bodies) {
-      if (b.path?.length) lines.add(line(b.path.map(r => r.pos), b.color, 0.35, false));
+      if (b.path?.length) lines.add(line(b.path.map(r => r.pos), b.color, 0.35, false, b.key));
       else {
         const path = orbitPath(b.helio, b.vel, undefined, 720);
-        if (path) lines.add(line(path, b.color, 0.22, true));
+        if (path) lines.add(line(path, b.color, 0.22, true, b.key));
       }
     }
     const col = new Float32Array(bodies.flatMap(b => new THREE.Color(b.color).toArray()));
@@ -93,15 +94,18 @@ export function createOuterBodies() {
     return Math.abs(jd - epochJd) < 60 ? drift(b.helio, b.vel, (jd - epochJd) * 86_400, GM_SUN) : null;
   }
 
-  /** `near` fades the bodies and paths, `belt` the field of distant minor planets; a replay hides the belt, which is placed for today. */
-  function update(jd: number, near: number, belt: number, replay = false) {
+  /**
+   * `near` fades the bodies and paths, `belt` the field of distant minor planets; a replay hides the belt, which is
+   * placed for today. The `picked` body's path stands out.
+   */
+  function update(jd: number, near: number, belt: number, replay = false, picked?: string) {
     if (dots) bodies.forEach((b, i) => dots!.setXYZ(i, ...(positionOf(b, jd) ?? [NaN, NaN, NaN] as Vec3)));
     if (replay) belt = 0;
     (bodyPoints.material as THREE.PointsMaterial).opacity = near;
     bodyPoints.visible = near > 0.01;
     lines.children.forEach(l => {
       const m = (l as THREE.Line).material as THREE.LineBasicMaterial;
-      m.opacity = m.userData.base * near;
+      m.opacity = Math.min(1, m.userData.base * near * (l.userData.sel?.key === picked ? 2.2 : 1));
     });
     lines.visible = near > 0.01;
     distantMaterial.opacity = 0.55 * belt;
@@ -109,7 +113,7 @@ export function createOuterBodies() {
   }
 
   return {
-    group, setOuter, update, bodies: () => bodies, positionOf,
+    group, lines, setOuter, update, bodies: () => bodies, positionOf,
     rebase: (origin: THREE.Vector3) => km.forEach(k => k.rebase(origin)),
     distantCount: () => (distant.geometry.getAttribute('position')?.count ?? 0),
   };

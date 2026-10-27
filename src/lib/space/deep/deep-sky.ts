@@ -143,7 +143,8 @@ export const PICTURED_IN: Record<string, string> = { m32: 'm31', m110: 'm31' };
 const byId = new Map(DEEP_SKY.map(d => [d.id, d]));
 export const deepSkyObject = (id: string) => byId.get(id);
 export const deepSkyImage = (id: string): DeepSkyImage | undefined => DEEP_SKY_IMAGES[id];
-export const deepSkyUrl = (id: string) => `/data/sky/deep/${id}.jpg`;
+/** `small`: the 512 px rendition, for a picture that is small on screen or a card. */
+export const deepSkyUrl = (id: string, small = false) => `/data/sky/deep/${id}${small ? '.small' : ''}.jpg`;
 /** The placed picture a feature id stands for: its own, or a Local Group galaxy's. */
 export const picturedFeature = (id: string) => DEEP_SKY_PLACED.find(d => (d.object.feature ?? d.object.id) === id);
 

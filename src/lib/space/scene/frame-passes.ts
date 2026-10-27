@@ -31,11 +31,14 @@ export function placeBodies(scene: SpaceScene, jd: number, ms: number): Vec3 | n
   return earthPos;
 }
 
+/** A body this many pixels across, in radius, gets its surface picture and, for the Moon and Mars, its landing sites. */
+const TEXTURE_PX = 4;
+
 export function fitToDistance(scene: SpaceScene, jd: number, sunDist: number, f: TierFades, heightPx: number) {
   const cam = scene.camera.position;
   // Orbits and trails fade in from ~100,000 km out to ~10 million: across the solar system they guide, beside a moon they clutter.
   const fade = Math.max(0.06, Math.min(1, (Math.log10(Math.max(1, cam.distanceTo(scene.rig.controls.target))) - 5) / 2));
-  scene.orbits.fade(fade * f.planets);
+  scene.orbits.fade(fade * f.planets, scene.selection?.kind === 'body' ? scene.selection.key : undefined);
   scene.craft.fade(scene.replay ? 0 : fade * f.craft);
   scene.craft.points.visible = (scene.layers.fleet || !!scene.replay) && f.craft > 0.01;
 
@@ -51,13 +54,14 @@ export function fitToDistance(scene: SpaceScene, jd: number, sunDist: number, f:
   const pxPerRad = heightPx / 2 / Math.tan((scene.camera.fov * Math.PI) / 360);
   for (const p of scene.planets.values()) {
     const d = p.group.position.distanceTo(cam);
+    if ((p.def.radiusKm / d) * pxPerRad > TEXTURE_PX) scene.near(p.def.key);
     // A planet's dot hides once it would sit on the Sun's, a few pixels from it.
     p.marker.visible = (p.def.radiusKm / d) * pxPerRad < 3 && (p.group.position.length() / sunDist) * pxPerRad > 4;
     if (p.def.key === 'earth') scene.earth.scaleForDistance(d);
   }
 
   scene.backdrop?.update(scene.camera, f.backdrop);
-  scene.outer.update(jd, f.outer, f.belt, !!scene.replay);
+  scene.outer.update(jd, f.outer, f.belt, !!scene.replay, scene.selection?.kind === 'outer' ? scene.selection.key : undefined);
   scene.heliosphere.update(f.heliosphere, scene.layers.illustrations);
   scene.oort.update(sunDist, f.oort, scene.layers.illustrations);
   scene.galactic.update(f.galactic);
@@ -66,7 +70,7 @@ export function fitToDistance(scene: SpaceScene, jd: number, sunDist: number, f:
   scene.localGroup.update(f.localGroup, id => scene.deepSky.shown(PICTURED_IN[id] ?? id));
   const labelled = scene.layers.labels ? 1 : 0;
   scene.deepSky.update(scene.camera, heightPx, () => (scene.layers.deepSky ? f.deepSky : 0), i => labelled * (DEEP_SKY_PLACED[i].object.realm === 'milky-way' ? f.deepSkyNear : f.deepSkyFar));
-  scene.cosmos.update(f.localGalaxies, f.deepGalaxies, f.cmb, sunDist, scene.layers.illustrations);
+  scene.cosmos.update(f.localGalaxies, f.deepGalaxies, f.cmb, sunDist, scene.camera, scene.layers.illustrations);
   const sel = scene.selection;
-  scene.web.update(f.web, f.farVoids, sunDist, scene.camera, sel?.kind === 'feature' ? sel.id : null);
+  scene.web.update(f.web, f.farVoids, sunDist, scene.camera, heightPx, sel?.kind === 'feature' ? sel.id : null);
 }

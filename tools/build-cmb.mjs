@@ -1,20 +1,20 @@
-// Builds public/data/cosmos/cmb.jpg, the cosmic microwave background over the whole sky, from the NASA WMAP 9-year
-// Internal Linear Combination map (LAMBDA, lambda.gsfc.nasa.gov/product/wmap/dr5/ilc_map_get.html, public domain):
-// wmap_ilc_9yr_v5.fits, HEALPix Nside 512 NESTED, galactic coordinates, mK thermodynamic.
-// Credit: NASA / WMAP Science Team.
+// Builds public/data/cosmos/cmb.jpg, the cosmic microwave background over the whole sky, from the Planck 2015 SMICA
+// map (ESA and the Planck Collaboration, from IRSA's Planck archive): COM_CMB_IQU-smica_1024_R2.02_full.fits, HEALPix
+// Nside 1024 NESTED, galactic coordinates, K_CMB, smoothed to 10′, the galactic plane inpainted. WMAP's 9-year ILC map,
+// used before, is smoothed to 1°: spread over the sky round the camera it was a blur.
 // Plate carrée in J2000 like milky-way-sky.jpg: RA 0h at the centre, RA increasing to the left, Dec +90° on the top row,
 //   u = frac(0.5 − RA/360), v = (90 − Dec)/180.
-//   node tools/build-cmb.mjs [path/to/wmap_ilc_9yr_v5.fits]   (downloads it without a path)
+//   nice node tools/build-cmb.mjs [path/to/COM_CMB_IQU-smica_1024_R2.02_full.fits]   (downloads it, 176 MB, without a path)
 import { mkdirSync, readFileSync } from 'node:fs';
 import sharp from 'sharp';
 
-const SRC = 'https://lambda.gsfc.nasa.gov/data/map/dr5/dfp/ilc/wmap_ilc_9yr_v5.fits';
+const SRC = 'https://irsa.ipac.caltech.edu/data/Planck/release_2/all-sky-maps/maps/component-maps/cmb/COM_CMB_IQU-smica_1024_R2.02_full.fits';
 const OUT = 'public/data/cosmos/cmb.jpg';
-const W = 2048;
-const H = 1024;
-const SS = 3;
-// ≈ 99.5th percentile of |T| (σ ≈ 0.07 mK); the WMAP team's own ILC figures use ±200 µK as well.
-const RANGE_MK = 0.2;
+const W = 4096;
+const H = 2048;
+const SS = 2;
+// The Planck team's own CMB figures run ±300 µK.
+const RANGE_MK = 0.3;
 // Planck-style diverging palette, cold → hot.
 const PALETTE = [[0, 0, 255], [0, 112, 255], [0, 221, 255], [255, 237, 217], [255, 180, 0], [255, 75, 0], [100, 0, 0]];
 
@@ -27,7 +27,7 @@ async function fits() {
   const path = process.argv[2];
   if (path) return readFileSync(path);
   const res = await fetch(SRC);
-  if (!res.ok) throw new Error(`LAMBDA HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`IRSA HTTP ${res.status}`);
   return Buffer.from(await res.arrayBuffer());
 }
 
@@ -51,12 +51,16 @@ function readMap(buf) {
   const nside = Number(table.NSIDE);
   const rows = Number(table.NAXIS2);
   const stride = Number(table.NAXIS1);
-  if (primary.NAXIS !== '0' || table.XTENSION !== 'BINTABLE' || table.ORDERING !== 'NESTED' ||
-      table.TTYPE1 !== 'TEMPERATURE' || table.TFORM1 !== 'E' || rows !== 12 * nside * nside) {
+  if (primary.NAXIS !== '0' || table.XTENSION !== 'BINTABLE' || table.ORDERING !== 'NESTED' || table.COORDSYS !== 'GALACTIC' ||
+      table.TTYPE1 !== 'I_STOKES' || table.TFORM1 !== 'E' || table.TUNIT1 !== 'K_CMB' || rows !== 12 * nside * nside) {
     throw new Error('unexpected FITS layout');
   }
+  // Kelvin to mK; the few unseen pixels read as the mean.
   const T = new Float32Array(rows);
-  for (let i = 0; i < rows; i++) T[i] = buf.readFloatBE(off + i * stride);
+  for (let i = 0; i < rows; i++) {
+    const k = buf.readFloatBE(off + i * stride);
+    T[i] = k > -1e30 ? k * 1000 : 0;
+  }
   return { nside, T };
 }
 
@@ -137,7 +141,7 @@ for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
 
 mkdirSync('public/data/cosmos', { recursive: true });
 const info = await sharp(px, { raw: { width: W, height: H, channels: 3 } })
-  .jpeg({ quality: 85, mozjpeg: true })
+  .jpeg({ quality: 75, mozjpeg: true })
   .toFile(OUT);
 console.log(`${OUT}: ${info.width}×${info.height}, ${(info.size / 1024).toFixed(0)} KB, ` +
   `${((100 * saturated) / (W * H)).toFixed(2)}% of pixels beyond ±${RANGE_MK} mK`);
