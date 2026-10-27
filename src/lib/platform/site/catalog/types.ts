@@ -62,6 +62,6 @@ export interface LayerPage {
   requiresEnv?: string;
   /** History event kinds the page is about: their event pages link back to it, and it lists some of them. */
   eventKinds?: string[];
-  /** Space pages the page lists: a group of spacecraft (space/roster.ts), or the planets. */
-  spaceLinks?: 'mars' | 'moon' | 'all' | 'planets';
+  /** Space pages the page lists: a group of spacecraft (space/roster.ts), the planets and the way out, or the deep sky. */
+  spaceLinks?: 'mars' | 'moon' | 'all' | 'planets' | 'deep';
 }

@@ -1,4 +1,4 @@
-import type { Stop } from './stops';
+import type { AnyStop } from './stops';
 
 export type Box = { x: number; y: number; w: number; h: number };
 
@@ -39,7 +39,7 @@ function partBox(el: Element): Box | null {
 }
 
 /** The sections a stop shows from inside, in the order they sit on screen. */
-export function partsOf(stop: Stop): Part[] {
+export function partsOf(stop: AnyStop): Part[] {
   if (!stop.inside) return [];
   const own = [...document.querySelectorAll(`[data-tour-part="${stop.id}"]`)].map(el => ({
     el, title: el.getAttribute('data-tour-title') ?? '', body: el.getAttribute('data-tour-body') ?? '', own: true,
@@ -54,7 +54,7 @@ export function partsOf(stop: Stop): Part[] {
 }
 
 /** Every target on screen, the card's anchor first; inside a panel, the one section showing. */
-export function measure(stop: Stop, part: number | null): Shot {
+export function measure(stop: AnyStop, part: number | null): Shot {
   if (part !== null) {
     const parts = partsOf(stop);
     const p = parts[Math.min(part, parts.length - 1)];

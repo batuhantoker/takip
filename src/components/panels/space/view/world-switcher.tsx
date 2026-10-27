@@ -96,7 +96,7 @@ export default function WorldSwitcher({ inSpace, focus, onMap, onSpace, corner =
   const [open, setOpen] = useState(false);
   const menu = towardMiddle(corner);
   const map = (
-    <button type="button" role="radio" aria-checked={!inSpace} onClick={() => { setOpen(false); onMap(); }} className={cx(SEGMENT, tone(!inSpace))}>
+    <button type="button" role="radio" aria-checked={!inSpace} data-tour={inSpace ? 'space-map' : undefined} onClick={() => { setOpen(false); onMap(); }} className={cx(SEGMENT, tone(!inSpace))}>
       {t('Map')}
     </button>
   );
@@ -106,7 +106,7 @@ export default function WorldSwitcher({ inSpace, focus, onMap, onSpace, corner =
       <div role="radiogroup" aria-label={t('View')} className={PILL}>
         {map}
         <span aria-hidden className="mx-0.5 h-4 w-px bg-line" />
-        <Stops focus={focus} onSpace={onSpace} />
+        <div data-tour="space-stops" className="contents"><Stops focus={focus} onSpace={onSpace} /></div>
       </div>
     );
   }

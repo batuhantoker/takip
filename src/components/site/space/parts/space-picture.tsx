@@ -5,7 +5,7 @@ import { cx, FOCUS_RING } from '@/components/ui/class-names';
  * The page's picture as a window into the 3D view: a photo of the craft or world (whole, on black, since
  * Wikipedia's lead images come in every shape) or a picture of the space view, cropped to fill.
  */
-export function SpacePicture({ href, photo, shot, alt, cta, credit }: {
+export function SpacePicture({ href, photo, shot, alt, cta, credit, aspect, className }: {
   href: string;
   photo: string | null;
   shot: string | null;
@@ -13,16 +13,19 @@ export function SpacePicture({ href, photo, shot, alt, cta, credit }: {
   cta: string;
   /** Where the photo comes from, under it. */
   credit?: { label: string; href: string } | null;
+  /** Width over height of a photo that fills its frame edge to edge, as telescope pictures do; it is cropped to fit, not boxed. */
+  aspect?: number;
+  className?: string;
 }) {
   const src = photo ?? shot;
   return (
-    <figure>
-      <a href={href} aria-label={`${cta}: ${alt}`}
-        className={cx('group relative block aspect-[16/9] overflow-hidden rounded-float border border-line bg-black shadow-float', FOCUS_RING)}>
+    <figure className={className}>
+      <a href={href} aria-label={`${cta}: ${alt}`} style={aspect ? { aspectRatio: aspect } : undefined}
+        className={cx('group relative block overflow-hidden rounded-float border border-line bg-black shadow-float', !aspect && 'aspect-[16/9]', FOCUS_RING)}>
         {src && (
           // eslint-disable-next-line @next/next/no-img-element -- Wikimedia's or our own picture; next/image has no remote patterns here.
           <img src={src} alt={alt} loading="eager" fetchPriority="high" decoding="async"
-            className={cx('size-full transition-opacity duration-150 ease-out group-hover:opacity-90 motion-reduce:transition-none', photo ? 'object-contain' : 'object-cover')} />
+            className={cx('size-full transition-opacity duration-150 ease-out group-hover:opacity-90 motion-reduce:transition-none', photo && !aspect ? 'object-contain' : 'object-cover')} />
         )}
         <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/80 to-transparent" />
         <span className="absolute right-3 bottom-3 inline-flex h-9 items-center gap-1.5 rounded-control bg-accent px-3.5 text-body font-medium text-on-accent">

@@ -19,10 +19,12 @@ export interface SpaceLayers {
   illustrations: boolean;
   constellations: boolean;
   exoplanets: boolean;
+  /** Nebulae, clusters and galaxies as their telescope pictures. */
+  deepSky: boolean;
 }
 
 /** Everything drawn: how the space view opens. */
-export const DEFAULT_SPACE_LAYERS: SpaceLayers = { satellites: true, fleet: true, orbits: true, surface: true, labels: true, illustrations: true, constellations: true, exoplanets: true };
+export const DEFAULT_SPACE_LAYERS: SpaceLayers = { satellites: true, fleet: true, orbits: true, surface: true, labels: true, illustrations: true, constellations: true, exoplanets: true, deepSky: true };
 
 export interface CameraInfo { anchorName: string; distanceKm: number; sunKm: number }
 

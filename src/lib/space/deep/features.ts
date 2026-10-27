@@ -7,7 +7,10 @@
 import { msg, type Translate, type Vars } from '@/lib/core/i18n/translator';
 import { LY_KM, scale } from '../astro';
 import { compact } from '../format';
-import { bodyDirection, EQUATORIAL_TO_ECLIPTIC, mul } from '../frames';
+import { bodyDirection, EQUATORIAL_TO_ECLIPTIC, GALACTIC_TO_ECLIPTIC, galacticDirection, mul } from '../frames';
+import { BASINS } from './basins.generated';
+import type { Basin } from './cosmic-web';
+import { DEEP_SKY_PLACED, deepSkyImage } from './deep-sky';
 import { GALACTIC_CENTRE_KM } from './galaxy';
 import type { Vec3 } from '../horizons';
 
@@ -57,6 +60,36 @@ export function galaxyPosition(g: NearbyGalaxy): Vec3 {
 
 const ly = (n: number, t: Translate) => `${n.toLocaleString(t.intl)} ly`;
 
+const BASIN_TEXT: Record<string, { name: string; subtitle: string; note: string }> = {
+  laniakea: {
+    name: msg('Laniakea Supercluster'), subtitle: msg('Our home supercluster'),
+    note: msg("The basin of about 100,000 galaxies whose motions all flow toward one attractor, near the Great Attractor; the Milky Way sits near its edge. Tully et al. (2014) found it and named it, Hawaiian for 'immeasurable heaven'. Valade et al. (2024) find it may be one lobe of a larger basin around Shapley."),
+  },
+  'basin-apus': { name: msg('Apus basin'), subtitle: msg('Basin of attraction'), note: msg('A supercluster defined by motion: the region whose galaxies all flow toward one attractor, deep in the southern sky. One of the five such basins around Laniakea.') },
+  'basin-hercules': { name: msg('Hercules basin'), subtitle: msg('Basin of attraction'), note: msg('A supercluster defined by motion: the region whose galaxies all flow toward one attractor, around the Hercules Supercluster. One of the five such basins around Laniakea.') },
+  'basin-lepus': { name: msg('Lepus basin'), subtitle: msg('Basin of attraction'), note: msg('A supercluster defined by motion: the region whose galaxies all flow toward one attractor, low in the southern sky. One of the five such basins around Laniakea.') },
+  'basin-perseus-pisces': { name: msg('Perseus–Pisces basin'), subtitle: msg('Basin of attraction'), note: msg('A supercluster defined by motion: the region whose galaxies all flow toward the Perseus–Pisces Supercluster, across the sky from the Great Attractor. One of the five such basins around Laniakea.') },
+  'basin-shapley': { name: msg('Shapley basin'), subtitle: msg('Basin of attraction'), note: msg('A supercluster defined by motion: the region whose galaxies all flow toward the Shapley Supercluster, the most massive concentration of galaxies near us. The Coma Cluster falls inside it. One of the five such basins around Laniakea.') },
+  'sculptor-void': { name: msg('Sculptor Void'), subtitle: msg('Basin of repulsion'), note: msg('A void defined by motion: the region whose galaxies all flow away from one repeller at its heart, emptying it. It lies behind Cetus and Sculptor, in the southern sky.') },
+};
+
+/** A Cosmicflows-4 basin as a feature: data, not a model, its outline as coarse as the grid it was traced on. */
+function basinFeature(b: Basin): DeepFeature {
+  const text = BASIN_TEXT[b.id];
+  const core = Math.hypot(...b.core);
+  return {
+    id: b.id, ...text, illustration: false,
+    fields: t => [
+      [t('Across'), t('about {size}', { size: `${compact(2 * b.reffMly * 1e6, t.intl)} ly` })],
+      [t('End to end'), `${compact(b.acrossMly * 1e6, t.intl)} ly`],
+      [b.kind === 'attraction' ? t('Attractor') : t('Repeller'), t('{distance} from the Sun', { distance: `${compact(core * 1e6, t.intl)} ly` })],
+      ...(b.id === 'laniakea' ? [[t('Mass'), t('{mass} Suns', { mass: compact(1e17, t.intl, 1) })] as [string, string]] : []),
+    ],
+    footnote: msg("Its outline is the watershed Dupuy and Courtois (2023) traced through the Cosmicflows-4 velocity field, reconstructed from the measured distances of about 56,000 galaxies on a grid of 37-million-light-year cells, so its edges are approximate. Distances use this map's Planck Hubble constant; on Cosmicflows' own they are a tenth smaller. The threads are streamlines of the same field, the paths matter is moving along; their moving dashes show which way, not how fast."),
+    position: scale(mul(EQUATORIAL_TO_ECLIPTIC, b.centre), 1e6 * LY_KM), radiusKm: b.reffMly * 1e6 * LY_KM,
+  };
+}
+
 export const DEEP_FEATURES: Record<string, DeepFeature> = {
   'termination-shock': {
     id: 'termination-shock', name: msg('Termination shock'), subtitle: msg('Heliosphere · model'), illustration: true,
@@ -98,6 +131,17 @@ export const DEEP_FEATURES: Record<string, DeepFeature> = {
     credit: 'NASA/JPL-Caltech/R. Hurt (SSC/Caltech)',
     position: GALACTIC_CENTRE_KM, radiusKm: 2_000 * LY_KM,
   },
+  'local-void': {
+    id: 'local-void', name: msg('Local Void'), subtitle: msg('Beside the Local Group'), illustration: false,
+    fields: t => [[t('From the Sun'), t('about {size}', { size: `${compact(75e6, t.intl)} ly` })]],
+    note: msg("A nearly empty region next to the Local Group, toward Aquila and Hercules, much of it hidden behind the Milky Way. Its emptiness pushes the Local Group away from it at about 260 km/s (Tully et al. 2008). The nearest voids drawn around it are Pustilnik et al.'s (2019), who count its near part in the Ophiuchus–Sagittarius–Capricornus Void."),
+    position: scale(mul(EQUATORIAL_TO_ECLIPTIC, bodyDirection(18, 279.5)), 75e6 * LY_KM), radiusKm: 30e6 * LY_KM,
+  },
+  'zone-of-avoidance': {
+    id: 'zone-of-avoidance', name: msg('Zone of Avoidance'), subtitle: msg('Hidden behind the Milky Way'), illustration: true,
+    note: msg("The Milky Way's dust and crowded stars hide the galaxies behind its plane, so the 2MASS Redshift Survey leaves out the strip within 5° of it, 8° toward the centre. The dimmer galaxies in that band are stand-ins: the galaxies just above and below it copied in, as Erdoğdu et al. (2006) filled it to map the nearby universe. Radio and infrared surveys are finding the real ones one by one."),
+    position: scale(mul(GALACTIC_TO_ECLIPTIC, galacticDirection(90, 0)), 250e6 * LY_KM), radiusKm: 100e6 * LY_KM,
+  },
   cmb: {
     id: 'cmb', name: msg('Cosmic microwave background'), subtitle: msg('The edge of the observable universe'), illustration: false,
     fields: t => [
@@ -114,7 +158,23 @@ export const DEEP_FEATURES: Record<string, DeepFeature> = {
       [t('Across'), t('about {n} ly', { n: g.diameterLy })], [t('RA / Dec'), `${g.ra.toFixed(2)}° / ${g.dec.toFixed(2)}°`],
     ],
     note: g.note,
-    footnote: msg('Position and distance from NED; the glow is drawn to its size, not imaged.'),
+    footnote: deepSkyImage(g.id)
+      ? msg('Position and distance from NED. The picture, from the Digitized Sky Survey, hangs at that distance facing Earth.')
+      : msg('Position and distance from NED; the glow is drawn to its size, not imaged.'),
+    ...(deepSkyImage(g.id) ? { credit: deepSkyImage(g.id)!.credit } : {}),
     position: galaxyPosition(g), radiusKm: (g.diameterLy / 2) * LY_KM,
+  } satisfies DeepFeature])),
+  ...Object.fromEntries(BASINS.map(b => [b.id, basinFeature(b)])),
+  ...Object.fromEntries(DEEP_SKY_PLACED.filter(d => !d.object.feature).map(({ object: d, image, place }) => [d.id, {
+    id: d.id, name: d.name, subtitle: d.subtitle, illustration: false,
+    fields: t => [
+      [t('From the Sun'), d.ly >= 1e6 ? `${compact(d.ly, t.intl, 1)} ly` : ly(d.ly, t)],
+      [t('Picture spans'), d.kind === 'black-hole' ? `${compact(place.widthKm, t.intl)} km` : t('about {n} ly', { n: +(place.widthKm / LY_KM).toPrecision(2) })],
+      [t('RA / Dec'), `${image.ra.toFixed(2)}° / ${image.dec.toFixed(2)}°`],
+    ],
+    note: d.note,
+    footnote: msg('The picture hangs at that distance facing Earth, as large as it is on the sky; how deep the object is cannot be seen, so it is flat.'),
+    credit: image.credit,
+    position: place.centre, radiusKm: Math.max(place.widthKm, place.heightKm) / 2,
   } satisfies DeepFeature])),
 };

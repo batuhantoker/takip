@@ -34,8 +34,9 @@ export function createLocalGroup() {
     return s;
   });
 
-  function update(k: number) {
-    for (const s of sprites) (s.material as THREE.SpriteMaterial).opacity = 0.7 * k;
+  /** `pictured(id)` is how much of a galaxy's photograph is showing; its glow gives way to it. */
+  function update(k: number, pictured: (id: string) => number = () => 0) {
+    sprites.forEach((s, i) => { (s.material as THREE.SpriteMaterial).opacity = 0.7 * k * (1 - pictured(NEARBY_GALAXIES[i].id)); });
     group.visible = k > 0.005;
   }
 

@@ -2,6 +2,7 @@ import type { Translate } from '@/lib/core/i18n/translator';
 import { bodyName } from './copy';
 import { planetEntry } from './planets';
 import { KIND_LABEL, ROSTER_GROUPS, rosterCraft } from './roster';
+import { KIND, skyPage } from './sky-pages';
 import { MISSION_NOTES } from '@/lib/space/craft/mission-notes';
 import { LANDING_SITES } from '@/lib/space/craft/landing-sites';
 
@@ -13,6 +14,12 @@ export function spaceCard(param: string, t: Translate) {
   const [kind, slug] = param.split(':');
   if (kind === 'index') {
     return { kicker: 'TAKIP', title: t('Spacecraft'), subtitle: t('Every spacecraft, rover and lander we can place, and where each one is now.'), picture: 'spacecraft-tracker' };
+  }
+  if (kind === 'sky') {
+    if (!slug) return { kicker: 'TAKIP', title: t('Nebulae, galaxies and black holes'), subtitle: t('Telescope pictures hung where their objects really are, in 3D.'), picture: 'stars-and-galaxies' };
+    const p = skyPage(slug);
+    if (!p) return null;
+    return { kicker: t(KIND[p.object.kind]), title: t(p.object.name), subtitle: t(p.object.subtitle), picture: 'stars-and-galaxies' };
   }
   if (kind === 'planet') {
     const p = planetEntry(slug);

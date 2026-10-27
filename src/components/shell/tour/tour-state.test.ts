@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { STOPS } from './lib/stops';
-import { endTour, forgetStop, resumeTour, setTourPart, startTour, stepTour, tourAt, tourPart, tourStopped } from './tour-state';
+import { SPACE_STOPS, STOPS } from './lib/stops';
+import { endTour, forgetStop, quitTour, resumeTour, setTourPart, startTour, stepTour, tourAt, tourHeading, tourName, tourPart, tourStopped, tourStops } from './tour-state';
 
 afterEach(endTour);
 
@@ -65,5 +65,39 @@ describe('tour state', () => {
   it('gives every stop something to ring', () => {
     for (const stop of STOPS) expect(stop.targets.length).toBeGreaterThan(0);
     expect(new Set(STOPS.map(s => s.id)).size).toBe(STOPS.length);
+    expect(new Set(SPACE_STOPS.map(s => s.id)).size).toBe(SPACE_STOPS.length);
+  });
+
+  it('passes an unseen stop in the direction last moved', () => {
+    startTour(2, null, 'space');
+    expect(tourHeading()).toBe(1);
+    stepTour(-1);
+    expect(tourHeading()).toBe(-1);
+    stepTour(1);
+    expect(tourHeading()).toBe(1);
+  });
+
+  it('runs the space tour on its own stops, and ends it without offering to carry on', () => {
+    startTour(99, null, 'space');
+    expect([tourName(), tourAt(), tourStops()]).toEqual(['space', SPACE_STOPS.length - 1, SPACE_STOPS]);
+    stepTour(1);
+    expect(tourAt()).toBeNull();
+    startTour(1, null, 'space');
+    endTour();
+    expect(tourStopped()).toBeNull();
+  });
+
+  it('quits only the tour it names, and goes back to the map tour to resume', () => {
+    startTour(2, null, 'space');
+    quitTour('map');
+    expect(tourAt()).toBe(2);
+    quitTour('space');
+    expect(tourAt()).toBeNull();
+    startTour(3);
+    endTour();
+    startTour(0, null, 'space');
+    quitTour();
+    resumeTour();
+    expect([tourName(), tourAt()]).toEqual(['map', 3]);
   });
 });

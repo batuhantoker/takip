@@ -17,24 +17,30 @@ const MAX_MODEL_BYTES = 15e6;
 export function placeCraft(scene: SpaceScene, jd: number, ms: number, earthPos: Vec3 | null, heightPx: number) {
   const focus = focusCraft(scene);
   const grounded = !!scene.replay?.model.landed(jd);
-  scene.craftModel.show(focus ? String(focus.id) : null, focus ? CRAFT_MODELS[focus.id] ?? null : null);
-  const focusAt = focus && !grounded ? craftPosition(scene, focus, jd, ms) : null;
+  scene.craftModel.show(focus !== null ? String(focus) : null, focus !== null ? CRAFT_MODELS[focus] ?? null : null);
+  const live = focus !== null ? scene.fleet.find(c => c.id === focus) : undefined;
+  const focusAt = focus === null || grounded ? null
+    : scene.replay?.state.craftId === focus ? scene.replay.model.craftAt(jd)
+    : live ? craftPosition(scene, live, jd, ms) : null;
   const at = focusAt && new THREE.Vector3(...focusAt);
   // Never drawn bigger than half its height: a probe the size of its own altitude reads as sitting on the planet.
   const drawn = scene.craftModel.update(at, earthPos ? v3(earthPos) : null, scene.camera, heightPx, at ? 0.5 * clearanceKm(at, scene.planets.values()) : Infinity);
-  const modelled = drawn && focus ? focus.id : null;
+  const modelled = drawn ? focus : null;
   // Every frame: the camera follows a craft's exact position, so a dot moved less often steps against it.
   scene.craft.update(c => (c.id === modelled ? null : craftPosition(scene, c, jd, ms)));
 }
 
-/** The craft whose model to show: the one replayed, else followed, else selected; only those with a model of a sensible size. */
-function focusCraft(scene: SpaceScene): FleetCraft | null {
+/**
+ * The craft whose model to show: the one replayed (flying today or not), else one followed or selected in the
+ * fleet; only those with a model of a sensible size.
+ */
+function focusCraft(scene: SpaceScene): number | null {
   const id = scene.replay?.state.craftId
     ?? (scene.anchor.kind === 'craft' ? scene.anchor.id : null)
     ?? (scene.selection?.kind === 'craft' ? scene.selection.id : null);
   const model = id !== null ? CRAFT_MODELS[id] : undefined;
   if (id === null || !model || model.bytes > MAX_MODEL_BYTES) return null;
-  return scene.fleet.find(c => c.id === id) ?? null;
+  return id === scene.replay?.state.craftId || scene.fleet.some(c => c.id === id) ? id : null;
 }
 
 /**

@@ -5,8 +5,7 @@ import { createPortal } from 'react-dom';
 import { cx, ENTER } from '@/components/ui/class-names';
 import { place, type Align, type Side } from '@/components/ui/position';
 import { measure, partInView, partsOf, sameShot, scrollerOf, scrollToPart, type Shot } from '../lib/measure';
-import { STOPS } from '../lib/stops';
-import { endTour, setTourPart, stepTour, tourPart, useTourPart } from '../tour-state';
+import { endTour, setTourPart, stepTour, tourHeading, tourPart, useTourPart, useTourStops } from '../tour-state';
 import { TourCard } from './tour-card';
 
 const IGNORED = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Fn']);
@@ -17,7 +16,8 @@ const BACK = new Set(['ArrowLeft', 'ArrowUp', 'Backspace']);
  * On a stop with a panel, the panel scrolls under the wheel and the tour follows the section in view.
  */
 export function TourLayer({ at }: { at: number }) {
-  const stop = STOPS[at];
+  const stops = useTourStops();
+  const stop = stops[Math.min(at, stops.length - 1)];
   const part = useTourPart();
   const card = useRef<HTMLDivElement>(null);
   const [shot, setShot] = useState<Shot>({ boxes: [], anchor: null, parts: [] });
@@ -27,15 +27,24 @@ export function TourLayer({ at }: { at: number }) {
 
   // Inside a panel, or with the panel itself ringed, the card goes beside the panel; the timeline's goes above it.
   const inDock = !!shot.anchor?.closest('[data-tour="dock"]');
-  const side: Side | undefined = inDock ? 'right' : part !== null ? 'top' : stop.side;
-  const align: Align = inDock ? 'start' : part !== null ? 'center' : stop.align ?? 'center';
+  // A phone's bottom-bar button has room only above it.
+  const inBar = !!shot.anchor?.closest('[data-bottom-bar]');
+  const side: Side | undefined = inDock ? 'right' : part !== null || inBar ? 'top' : stop.side;
+  const align: Align = inDock ? 'start' : part !== null || inBar ? 'center' : stop.align ?? 'center';
 
   // Panels fade in and pieces slide as the dock opens, so the rings keep up. Layout, so a new stop never paints the last one's rings.
   useLayoutEffect(() => {
-    const look = () => setShot(prev => {
+    // Two empty looks in a row, not one: a piece can mount a frame after the stop does.
+    let misses = 0;
+    const look = () => {
       const next = measure(stop, part);
-      return sameShot(prev, next) ? prev : next;
-    });
+      if (stop.onlyWhenSeen && part === null && !next.boxes.length && ++misses >= 2) {
+        stepTour(tourHeading());
+        return;
+      }
+      if (next.boxes.length) misses = 0;
+      setShot(prev => (sameShot(prev, next) ? prev : next));
+    };
     look();
     const timer = setInterval(look, 120);
     window.addEventListener('resize', look);
@@ -53,7 +62,8 @@ export function TourLayer({ at }: { at: number }) {
     el.style.left = `${p.x}px`;
     el.style.top = `${p.y}px`;
     el.style.visibility = 'visible';
-  }, [shot, side, align, part]);
+    // `at` too: two stops in a row with nothing to ring measure the same, and the new card would stay hidden.
+  }, [shot, side, align, part, at]);
 
   useEffect(() => {
     card.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus({ preventScroll: true });
@@ -130,7 +140,7 @@ export function TourLayer({ at }: { at: number }) {
           ))}
         </svg>
       </div>
-      <TourCard key={`${at}:${part}`} ref={card} at={at} part={part} parts={shot.parts} side={side} onNext={next} onBack={back} />
+      <TourCard key={`${at}:${part}`} ref={card} stops={stops} at={at} part={part} parts={shot.parts} side={side} onNext={next} onBack={back} />
     </>,
     document.body,
   );

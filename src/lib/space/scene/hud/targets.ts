@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { t } from '@/lib/core/i18n/active';
 import { jdFromMs } from '@/lib/space/horizons';
 import { MISSION_NOTES } from '@/lib/space/craft/mission-notes';
+import { picturedFeature } from '@/lib/space/deep/deep-sky';
 import type { SpaceSelection } from '@/lib/space/selection';
 import type { GlobeWorldId } from '@/lib/space/worlds';
 import { REGION_COLOR, SHOWN_IN_SPACE } from '../craft/layer';
 import { deepTargets, pickStar } from './deep-targets';
-import type { LabelItem } from './labels';
+import { inFront, type LabelItem } from './labels';
 import type { SpaceScene } from '../space-scene';
 import { ORBITER_COLOR, ROVER_COLOR, SITE_COLOR } from '../bodies/surface-marks';
 
@@ -15,6 +16,8 @@ import { ORBITER_COLOR, ROVER_COLOR, SITE_COLOR } from '../bodies/surface-marks'
 const SUN_COLOR = '#FFD27A';
 /** Surface marks get labels only once the camera is this many radii from their body. */
 const SURFACE_LABEL_RADII = 40;
+/** Close up on a picture (within this many of its radii), only labels this many radii around it stay. */
+const PICTURE_CLOSE = 30, PICTURE_NEIGHBOURS = 60;
 
 export interface Target { sel: SpaceSelection; position: THREE.Vector3; radiusPx: number; text: string; color: string; priority: number }
 
@@ -62,6 +65,10 @@ function targets(scene: SpaceScene, jd: number, ms: number): Target[] {
   surfaceTargets(scene, 'moon', ms, out);
   surfaceTargets(scene, 'mars', ms, out);
   deepTargets(scene, jd, out);
+  const a = scene.anchor.kind === 'feature' && picturedFeature(scene.anchor.id) ? scene.anchorState(scene.anchor) : null;
+  if (a && scene.camera.position.distanceTo(a.position) < a.radius * PICTURE_CLOSE) {
+    return out.filter(t => t.position.distanceTo(a.position) < a.radius * PICTURE_NEIGHBOURS);
+  }
   for (const target of out) {
     if (target.sel.kind !== 'body') continue;
     const key = target.sel.key;
@@ -94,8 +101,10 @@ export function pickAt(scene: SpaceScene, x: number, y: number, w: number, h: nu
   const ms = scene.timeMs();
   const jd = jdFromMs(ms);
   const v = new THREE.Vector3();
+  const forward = scene.camera.getWorldDirection(new THREE.Vector3());
   let best: { sel: SpaceSelection; d: number } | null = null;
   for (const t of targets(scene, jd, ms)) {
+    if (!inFront(scene.camera, t.position, forward)) continue;
     v.copy(t.position).project(scene.camera);
     if (v.z > 1 || v.z < -1) continue;
     const d = Math.hypot((v.x + 1) / 2 * w - x, (1 - v.y) / 2 * h - y);

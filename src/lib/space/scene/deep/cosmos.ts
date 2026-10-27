@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { t } from '@/lib/core/i18n/active';
-import { distinctStructures, MLY_KM, parseRecords, RECORD_FLOATS, type CosmosMeta } from '@/lib/space/deep/cosmos';
+import { distinctStructures, fillZoneOfAvoidance, MLY_KM, parseRecords, RECORD_FLOATS, type CosmosMeta } from '@/lib/space/deep/cosmos';
 import { bodyDirection, EQUATORIAL_TO_ECLIPTIC } from '@/lib/space/frames';
 import { LOGDEPTH, loadTexture, rotation } from '../shared';
 
@@ -53,13 +53,15 @@ const CMB_FRAG = `
 ${LOGDEPTH.fragmentPars}
 uniform sampler2D map;
 uniform float opacity;
+uniform float saturation;
 varying vec3 vDir;
 void main() {
   ${LOGDEPTH.fragment}
   vec3 d = normalize(vDir);
   float ra = degrees(atan(d.y, d.x));
   float dec = degrees(asin(clamp(d.z, -1.0, 1.0)));
-  gl_FragColor = vec4(texture2D(map, vec2(fract(0.5 - ra / 360.0), 0.5 + dec / 180.0)).rgb * opacity, 1.0);
+  vec3 c = texture2D(map, vec2(fract(0.5 - ra / 360.0), 0.5 + dec / 180.0)).rgb;
+  gl_FragColor = vec4(mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, saturation) * opacity, 1.0);
   #include <colorspace_fragment>
 }`;
 
@@ -85,6 +87,12 @@ function localColour(absK: number): [number, number, number] {
   return [0.55 + 0.45 * k, 0.6 + 0.35 * k, 0.75 + 0.2 * k].map(c => c * (0.35 + 0.65 * k)) as [number, number, number];
 }
 
+/** The Zone of Avoidance's stand-in galaxies: the same colours, dimmer and a little blue, so they read as drawn in. */
+function zoaColour(absK: number): [number, number, number] {
+  const [r, g, b] = localColour(absK);
+  return [r * 0.45, g * 0.5, b * 0.65];
+}
+
 /** Galaxies a warm white, fading with redshift; quasars (stored with negative redshift) violet. */
 function deepColour(z: number): [number, number, number] {
   if (z < 0) return [0.55, 0.45, 0.95];
@@ -101,7 +109,8 @@ export function createCosmos() {
   let meta: CosmosMeta | null = null;
   let local: ReturnType<typeof pointCloud> | null = null;
   let deep: ReturnType<typeof pointCloud> | null = null;
-  const cmbUniforms = { map: { value: null as THREE.Texture | null }, opacity: { value: 0 } };
+  let zoa: ReturnType<typeof pointCloud> | null = null;
+  const cmbUniforms = { map: { value: null as THREE.Texture | null }, opacity: { value: 0 }, saturation: { value: 1 } };
   let cmb: THREE.Mesh | null = null;
   let cmbLoading = false;
 
@@ -116,8 +125,10 @@ export function createCosmos() {
   }
 
   function setLocal(buf: ArrayBuffer) {
-    local = pointCloud(parseRecords(buf), localColour, 2.2);
-    group.add(local.points);
+    const records = parseRecords(buf);
+    local = pointCloud(records, localColour, 2.2);
+    zoa = pointCloud(fillZoneOfAvoidance(records), zoaColour, 2.2);
+    group.add(local.points, zoa.points);
   }
 
   function setDeep(buf: ArrayBuffer) {
@@ -130,10 +141,10 @@ export function createCosmos() {
    * From far outside, hundreds of thousands of additive points pile into one
    * white blot, so they dim as the camera pulls away.
    */
-  function update(localK: number, deepK: number, cmbK: number, sunKm: number) {
+  function update(localK: number, deepK: number, cmbK: number, sunKm: number, illustrations: boolean) {
     const pr = Math.min(window.devicePixelRatio, 2);
     const crowd = Math.min(1, Math.max(0.1, (FULL_BRIGHT_MLY * MLY_KM) / Math.max(sunKm, 1)));
-    for (const [layer, k] of [[local, localK], [deep, deepK]] as const) {
+    for (const [layer, k] of [[local, localK], [deep, deepK], [zoa, illustrations ? localK : 0]] as const) {
       if (!layer) continue;
       layer.uniforms.opacity.value = k * crowd;
       layer.uniforms.pixelRatio.value = pr;
@@ -143,7 +154,12 @@ export function createCosmos() {
       cmbLoading = true;
       loadTexture(CMB_URL, tex => { tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; cmbUniforms.map.value = tex; });
     }
-    cmbUniforms.opacity.value = 0.75 * cmbK;
+    // From inside it wraps the whole sky, so it waits until the camera nears the shell, or it would hide the quasars
+    // and supervoids in front of it; from outside, a ball the whole view, it steps back so it doesn't shout.
+    const shell = meta ? sunKm / (meta.horizon.cmbMly * MLY_KM) : 0;
+    const near = THREE.MathUtils.smoothstep(shell, 0.45, 0.97), outside = THREE.MathUtils.smoothstep(shell, 0.97, 1.6);
+    cmbUniforms.opacity.value = 0.75 * cmbK * (shell < 0.97 ? near : 1) * (1 - 0.45 * outside);
+    cmbUniforms.saturation.value = (0.55 + 0.45 * near) * (1 - 0.35 * outside);
     if (cmb) cmb.visible = cmbK > 0.005 && !!cmbUniforms.map.value;
   }
 

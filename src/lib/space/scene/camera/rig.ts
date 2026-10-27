@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { flyPath, type FlyPath } from '@/lib/space/scene/camera/fly-path';
+import { zoomPace } from '../tiers';
 
 /**
  * The space camera: orbits whatever it is anchored to and moves with it, since
@@ -118,7 +119,7 @@ export function createRig(camera: THREE.PerspectiveCamera, dom: HTMLElement) {
     lastWheel = now;
     lastSign = Math.sign(px);
     const accel = 1 + 3 * Math.min(1, (now - streakFrom) / 2500);
-    pendingLog += px * (e.ctrlKey ? 0.012 : 0.0025) * accel;
+    pendingLog += px * (e.ctrlKey ? 0.012 : 0.0025) * accel * zoomPace(camera.position.length());
     // Scrolling during a flight takes the camera back: the flight becomes a swing of the view onto its anchor.
     if (flight) {
       flight = null;

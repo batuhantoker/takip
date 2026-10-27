@@ -3,9 +3,11 @@ import { earthOrientation, mul } from '@/lib/space/frames';
 import type { StarCatalog } from '@/lib/space/globe/sky-layer';
 import type { ExoplanetPayload } from '@/lib/space/deep/exoplanets';
 import type { FleetCraft, FleetPayload } from '@/lib/space/craft/fleet';
+import { parseBasins, parseCosmicWeb } from '@/lib/space/deep/cosmic-web';
 import { jdFromMs, type Vec3 } from '@/lib/space/horizons';
 import { SpaceModel } from '@/lib/space/scene/model';
 import type { NearbyStarCatalog } from '@/lib/space/deep/nearby-stars';
+import { parseGalacticStars } from '@/lib/space/deep/galactic-stars';
 import type { OuterPayload } from '@/lib/space/deep/outer';
 import type { ReplayModel } from '@/lib/space/replay/model';
 import { viewScale } from '@/lib/space/replay/pacing';
@@ -15,6 +17,7 @@ import type { SurfacePayload } from '@/lib/space/bodies/surface';
 import type { GlobeWorldId } from '@/lib/space/worlds';
 import type { GlobeView } from '@/lib/space/globe-match';
 import { createPlanet, createSun, SUN_RADIUS_KM, type Planet } from './bodies/planets';
+import { createCosmicWeb, type Supercluster } from './deep/cosmic-web';
 import { createCosmos } from './deep/cosmos';
 import { createCraftLayer } from './craft/layer';
 import { createCraftModel } from './craft/model';
@@ -26,9 +29,11 @@ import { createLabels, type LabelItem, type Occluder } from './hud/labels';
 import { anchorName, anchorState, type AnchorState } from './camera/anchors';
 import { createGroundCamera, overGround } from './craft/landed';
 import { craftPosition, placeCraft } from './craft/placement';
+import { createDeepSky } from './deep/deep-sky';
 import { createLocalGroup } from './deep/local-group';
 import { createMilkyWay } from './deep/milky-way';
 import { createNearbyStars } from './deep/nearby-stars';
+import { createGalacticStars } from './deep/galactic-stars';
 import { createOort } from './deep/oort';
 import { createOrbits } from './bodies/orbits';
 import { createOuterBodies } from './deep/outer-bodies';
@@ -38,7 +43,7 @@ import { labelItems, pickAt } from './hud/targets';
 import { createStars } from './stars';
 import { createSurfaceMarks } from './bodies/surface-marks';
 import { ramp, tierFades, type TierFades } from './tiers';
-import { globePose, type MapLink } from './camera/focus';
+import { globePose, picturedUp, type MapLink } from './camera/focus';
 import { createZoomAnchoring } from './camera/zoom-anchor';
 import { fitToDistance, placeBodies } from './frame-passes';
 import { type Anchor, DEFAULT_SPACE_LAYERS, type SpaceLayers, type SpaceSceneEvents } from './types';
@@ -70,9 +75,12 @@ export class SpaceScene {
   readonly outer = createOuterBodies();
   readonly oort = createOort();
   readonly nearby = createNearbyStars();
+  readonly galactic = createGalacticStars();
   readonly milkyWay = createMilkyWay();
   readonly localGroup = createLocalGroup();
+  readonly deepSky = createDeepSky();
   readonly cosmos = createCosmos();
+  readonly web = createCosmicWeb();
   /** The 3D model of whichever craft is in focus. */
   readonly craftModel = createCraftModel();
   private readonly zoom;
@@ -117,7 +125,7 @@ export class SpaceScene {
 
     // A point light with no falloff: every body is lit from the Sun's real direction.
     this.scene.add(new THREE.PointLight(0xffffff, 3.2, 0, 0), new THREE.AmbientLight(0xffffff, 0.035));
-    this.scene.add(this.cosmos.group, this.milkyWay.sky, this.milkyWay.galaxy, this.localGroup.group, this.nearby.group, this.oort.group, this.heliosphere.group, this.heliosphere.marks, this.outer.group);
+    this.scene.add(this.cosmos.group, this.web.group, this.milkyWay.sky, this.milkyWay.galaxy, this.localGroup.group, this.deepSky.group, this.galactic.group, this.nearby.group, this.oort.group, this.heliosphere.group, this.heliosphere.marks, this.outer.group);
     this.scene.add(this.sun.group, this.orbits.planets, this.orbits.moonFrame, this.craft.trails, this.craft.points, this.craftModel.holder);
 
     for (const def of SKY_BODIES) {
@@ -171,7 +179,14 @@ export class SpaceScene {
     this.scene.add(this.backdrop.points);
   }
   setNearbyStars(c: NearbyStarCatalog) { this.nearby.setCatalog(c); }
+  setGalacticStars(buf: ArrayBuffer) { this.galactic.setStars(parseGalacticStars(buf)); }
   setExoplanets(p: ExoplanetPayload) { this.nearby.setHosts(p.hosts); }
+  setCosmicWeb(buf: ArrayBuffer) { this.web.setWeb(parseCosmicWeb(buf)); }
+  setSuperclusters(rows: Supercluster[]) { this.web.setSuperclusters(rows); }
+  setBasins(buf: ArrayBuffer) {
+    const { meshes, flows } = parseBasins(buf);
+    this.web.setBasins(meshes, flows);
+  }
   setOuter(p: OuterPayload) { this.outer.setOuter(p, jdFromMs(Date.parse(p.epoch))); }
   setSunFrame(url: string | null) { this.sun.setFrame(url); }
   setMapLink(l: MapLink) { this.zoom.setMapLink(l); }
@@ -185,6 +200,7 @@ export class SpaceScene {
     this.orbits.planets.visible = l.orbits;
     this.orbits.moonFrame.visible = l.orbits;
     this.outer.group.visible = l.fleet || l.orbits;
+    this.deepSky.group.visible = l.deepSky;
     this.applyReplayLayers();
   }
 
@@ -324,6 +340,16 @@ export class SpaceScene {
     this.drop = pose.drop;
   }
 
+  /** Close to a pictured object, up turns to the picture's own up, so it reads as published. */
+  private pictureUp(north: THREE.Vector3) {
+    const up = this.anchor.kind === 'feature' ? picturedUp(this.anchor.id) : null;
+    const a = up && this.anchorState(this.anchor);
+    if (!up || !a) return;
+    const k = ramp(this.camera.position.distanceTo(a.position), a.radius * 80, a.radius * 8);
+    const blended = north.clone().lerp(up, k);
+    if (blended.lengthSq() > 1e-4) north.copy(blended.normalize());
+  }
+
   setSelection(sel: SpaceSelection | null) { this.selection = sel; }
 
   /** A click on a label or a mark: the owner decides what selecting means. */
@@ -402,6 +428,7 @@ export class SpaceScene {
       // Near Earth, Earth's north is up, as on the map; out among the planets, the ecliptic's.
       const toEarth = earthPos ? this.camera.position.distanceTo(v3(earthPos, this.scratch)) : Infinity;
       const north = this.scratch.set(...mul(earthOrientation(jd), [0, 0, 1])).lerp(ECLIPTIC_NORTH, ramp(toEarth, 2e6, 6e7)).normalize();
+      this.pictureUp(north);
       if (this.rig.setUp(north)) this.camera.lookAt(this.rig.controls.target);
       this.groundCamera.update(jd, wall);
     }
@@ -427,6 +454,7 @@ export class SpaceScene {
     this.orbits.rebase(origin);
     this.outer.rebase(origin);
     this.nearby.rebase(origin);
+    this.galactic.rebase(origin);
     this.replay?.rebase(origin);
     this.renderer.render(this.scene, this.camera);
 

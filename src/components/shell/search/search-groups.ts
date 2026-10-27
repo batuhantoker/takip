@@ -1,4 +1,6 @@
 import type { FlightHit } from '@/lib/feeds/aviation/flight-search';
+import type { SpaceSelection } from '@/lib/space/selection';
+import type { SpaceFocus } from '@/lib/space/worlds';
 import { kindGroup, type PlaceLike } from './places';
 
 export interface Hit extends PlaceLike {
@@ -10,6 +12,8 @@ export interface Hit extends PlaceLike {
   flight?: FlightHit;
   /** A replayed aircraft (kind `flight`): its entity in Replay's tracks. */
   replay?: number;
+  /** Something in space (kind `space`): the view flies there in 3D. */
+  space?: { focus: SpaceFocus; select: SpaceSelection };
 }
 
 export type HitSection = { title: string; items: Hit[] };

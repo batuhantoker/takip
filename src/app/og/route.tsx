@@ -73,7 +73,7 @@ export async function GET(req: Request) {
   const mountainParam = params.get('mountain');
   const mountainsParam = params.get('mountains');
   const mountainsOk = !!mountainsParam && /^(world|[A-Z]{2})$/.test(mountainsParam);
-  const spaceOk = !!spaceParam && /^(craft|planet|index):[a-z0-9-]{0,64}$/.test(spaceParam);
+  const spaceOk = !!spaceParam && /^(craft|planet|index|sky):[a-z0-9-]{0,64}$/.test(spaceParam);
   const langParam = params.get('lang');
 
   let card: Card;

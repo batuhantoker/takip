@@ -74,7 +74,14 @@ export default function SpaceCard({ selection, now, sky, fleet, surfaces, scene,
     </>
   ) : undefined;
 
-  const image = wiki?.image && <WikiImage key={wiki.image.src} wiki={wiki} image={wiki.image} />;
+  const image = card.picture
+    ? (
+      <a href={card.picture.href} target="_blank" rel="noopener noreferrer" className={cx('mb-4 block overflow-hidden rounded-card border border-line bg-surface-2', FOCUS_RING)}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- the scene's own picture, already loaded */}
+        <img src={card.picture.src} alt={card.title} className="h-[160px] w-full object-cover" />
+      </a>
+    )
+    : wiki?.image && <WikiImage key={wiki.image.src} wiki={wiki} image={wiki.image} />;
   const panel = (
     <Panel docked={false} closeOnEscape={false} className="pointer-events-auto" title={card.title} onClose={onClose}
       subtitle={(

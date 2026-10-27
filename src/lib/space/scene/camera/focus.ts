@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { AU_KM, LY_KM } from '@/lib/space/astro';
+import { BASINS } from '@/lib/space/deep/basins.generated';
+import { picturedFeature } from '@/lib/space/deep/deep-sky';
 import { DEEP_FEATURES } from '@/lib/space/deep/features';
 import type { FleetCraft, Region } from '@/lib/space/craft/fleet';
 import { bodyDirection, earthOrientation, mul, transpose } from '@/lib/space/frames';
@@ -22,7 +24,8 @@ export const FOCUS_DISTANCE_KM: Record<SpaceFocus, number> = {
   solar: 1.1e9,
   stars: 45 * LY_KM,
   galaxy: 115_000 * LY_KM,
-  universe: 120e9 * LY_KM,
+  // Inside the observable universe: the supervoids all round, the background radiation coming up behind them.
+  universe: 22e9 * LY_KM,
 };
 
 export function focusAnchor(f: SpaceFocus): Anchor {
@@ -81,7 +84,7 @@ export function mapEntry(jd: number, lat: number, lng: number, zoom: number): { 
 }
 
 /** Past the planets: where to stand for a star, a dwarf planet or a feature. */
-export function deepView(sel: SpaceSelection, positionOf: (a: Anchor) => THREE.Vector3 | undefined): { anchor: Anchor; distance: number; direction?: THREE.Vector3 } | null {
+export function deepView(sel: SpaceSelection, positionOf: (a: Anchor) => THREE.Vector3 | undefined, radiusOf?: (a: Anchor) => number | undefined): { anchor: Anchor; distance: number; direction?: THREE.Vector3 } | null {
   // Out beyond a star or a body, looking back toward the Sun.
   const beyond = (anchor: Anchor, distance: number) => {
     const at = positionOf(anchor);
@@ -91,17 +94,51 @@ export function deepView(sel: SpaceSelection, positionOf: (a: Anchor) => THREE.V
   if (sel.kind === 'exohost') return beyond({ kind: 'exohost', name: sel.name }, 0.35 * LY_KM);
   if (sel.kind === 'outer') return beyond({ kind: 'outer', key: sel.key }, 4e8);
   if (sel.kind !== 'feature') return null;
+  if (sel.id.startsWith('cosmos:')) return { anchor: { kind: 'feature', id: sel.id }, distance: 60e6 * LY_KM };
+  // A void is seen whole from a few of its radii out, from the Sun's side, where its galaxies were measured.
+  if (sel.id.startsWith('void:') || sel.id.startsWith('scl:')) {
+    const anchor: Anchor = { kind: 'feature', id: sel.id };
+    const at = positionOf(anchor), r = radiusOf?.(anchor) ?? 100e6 * LY_KM;
+    // One around the Local Group would hold the camera on the Sun's side: it looks back home through it instead.
+    if (at && at.length() < 3 * r) return { anchor, distance: 3.5 * r, direction: at.clone().normalize() };
+    // Short of the Sun, or the Local Group would stand in front of it.
+    const far = at ? at.length() * 0.75 : Infinity;
+    return { anchor, distance: Math.min(r * 4.5, far), direction: at?.clone().normalize().negate() };
+  }
+  // A basin is seen end to end; Laniakea with the Sun inside it.
+  const basin = BASINS.find(b => b.id === sel.id);
+  if (basin) return { anchor: { kind: 'feature', id: sel.id }, distance: basin.acrossMly * 1.2e6 * LY_KM };
   const f = DEEP_FEATURES[sel.id];
   if (!f) return null;
+  const pictured = picturedView(sel.id);
+  if (pictured) return pictured;
   if (sel.id === 'milky-way') return { anchor: { kind: 'galaxy' }, distance: FOCUS_DISTANCE_KM.galaxy };
   if (sel.id === 'cmb') return { anchor: { kind: 'galaxy' }, distance: FOCUS_DISTANCE_KM.universe };
-  if (sel.id.startsWith('cosmos:')) return { anchor: { kind: 'feature', id: sel.id }, distance: 60e6 * LY_KM };
   if (f.position) return { anchor: { kind: 'feature', id: sel.id }, distance: Math.max(f.radiusKm ?? LY_KM, 2_000 * LY_KM) * 5 };
   const au: Record<string, number> = {
     'termination-shock': 450, heliopause: 450, 'kuiper-belt': 160, 'gravitational-focus': 2_600,
     'light-day': 700, 'light-week': 4_500, 'light-month': 20_000, 'light-year': 250_000, 'oort-cloud': 350_000,
   };
   return { anchor: { kind: 'system' }, distance: (au[sel.id] ?? 500) * AU_KM };
+}
+
+/** The space view's vertical field of view, degrees. */
+const FOV_DEG = 45;
+
+/** A pictured object is seen from Earth's side, its picture filling most of the view as the telescope framed it. */
+function picturedView(id: string): { anchor: Anchor; distance: number; direction: THREE.Vector3 } | null {
+  const place = picturedFeature(id)?.place;
+  if (!place) return null;
+  const fit = Math.max(place.heightKm, place.widthKm / 1.6) / 2 / Math.tan((FOV_DEG / 2) * Math.PI / 180);
+  return { anchor: { kind: 'feature', id }, distance: fit * 1.1, direction: v3(place.normal).negate() };
+}
+
+/** Up on screen while near a pictured object: the picture's own up, as published. */
+export function picturedUp(id: string): THREE.Vector3 | null {
+  const d = picturedFeature(id);
+  if (!d) return null;
+  const [tl, , , bl] = d.place.corners;
+  return v3(tl).sub(v3(bl)).normalize();
 }
 
 /** How the Earth map draws its globe, for meeting it on the way out and on the way back. */

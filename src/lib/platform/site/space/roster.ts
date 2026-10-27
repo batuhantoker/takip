@@ -1,6 +1,9 @@
 import { msg } from '@/lib/core/i18n/translator';
 import type { SiteKind } from '@/lib/space/craft/landing-sites';
 import type { GlobeWorldId } from '@/lib/space/worlds';
+import { pastMission } from '@/lib/space/craft/past-missions';
+
+const pastNote = (id: number) => pastMission(id)!.note;
 
 /**
  * TAKIP — the spacecraft with a public page at /spacecraft/<slug>: the craft JPL Horizons places that have a
@@ -132,6 +135,26 @@ export const ROSTER_GROUPS: RosterGroup[] = [
         slug: 'cassini', name: 'Cassini', wiki: 'Cassini–Huygens', kind: 'orbiter', horizons: -82, agency: 'NASA · ESA · ASI', gone: true,
         summary: msg('Orbited Saturn for 13 years and dropped the Huygens probe onto Titan; plunged into Saturn in 2017.'),
       },
+    ],
+  },
+  {
+    id: 'past',
+    label: msg('Past missions'),
+    craft: [
+      { slug: 'artemis-ii', name: 'Artemis II', wiki: 'Artemis II', kind: 'other', horizons: -1024, agency: 'NASA', gone: true, summary: pastNote(-1024) },
+      { slug: 'artemis-i', name: 'Artemis I', wiki: 'Artemis I', kind: 'other', horizons: -1023, agency: 'NASA', gone: true, summary: pastNote(-1023) },
+      { slug: 'rosetta', name: 'Rosetta', wiki: 'Rosetta (spacecraft)', kind: 'orbiter', horizons: -226, agency: 'ESA', gone: true, summary: pastNote(-226) },
+      { slug: 'messenger', name: 'MESSENGER', wiki: 'MESSENGER', kind: 'orbiter', horizons: -236, agency: 'NASA', gone: true, summary: pastNote(-236) },
+      { slug: 'galileo', name: 'Galileo', wiki: 'Galileo (spacecraft)', kind: 'orbiter', horizons: -77, agency: 'NASA', gone: true, summary: pastNote(-77) },
+      { slug: 'deep-impact', name: 'Deep Impact', wiki: 'Deep Impact (spacecraft)', kind: 'probe', horizons: -140, agency: 'NASA', gone: true, summary: pastNote(-140) },
+      { slug: 'stardust', name: 'Stardust', wiki: 'Stardust (spacecraft)', kind: 'sample-return', horizons: -29, agency: 'NASA', gone: true, summary: pastNote(-29) },
+      { slug: 'deep-space-1', name: 'Deep Space 1', wiki: 'Deep Space 1', kind: 'probe', horizons: -30, agency: 'NASA', gone: true, summary: pastNote(-30) },
+      { slug: 'near-shoemaker', name: 'NEAR Shoemaker', wiki: 'NEAR Shoemaker', kind: 'orbiter', horizons: -93, agency: 'NASA', gone: true, summary: pastNote(-93) },
+      { slug: 'genesis', name: 'Genesis', wiki: 'Genesis (spacecraft)', kind: 'sample-return', horizons: -47, agency: 'NASA', gone: true, summary: pastNote(-47) },
+      { slug: 'venus-express', name: 'Venus Express', wiki: 'Venus Express', kind: 'orbiter', horizons: -248, agency: 'ESA', gone: true, summary: pastNote(-248) },
+      { slug: 'akatsuki', name: 'Akatsuki', wiki: 'Akatsuki (spacecraft)', kind: 'orbiter', horizons: -5, agency: 'JAXA', gone: true, summary: pastNote(-5) },
+      { slug: 'grail', name: 'GRAIL', wiki: 'Gravity Recovery and Interior Laboratory', kind: 'orbiter', horizons: -177, agency: 'NASA', gone: true, summary: pastNote(-177) },
+      { slug: 'ladee', name: 'LADEE', wiki: 'Lunar Atmosphere and Dust Environment Explorer', kind: 'orbiter', horizons: -12, agency: 'NASA', gone: true, summary: pastNote(-12) },
     ],
   },
   {

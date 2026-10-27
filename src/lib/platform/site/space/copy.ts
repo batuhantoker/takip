@@ -17,6 +17,10 @@ import { KIND_LABEL } from './roster';
 const TITLE_MAX = 60;
 const CJK = new Set(['zh', 'ja']);
 
+/** How long a title and a description may run in the reader's script. */
+export const titleMax = (t: Translate) => (CJK.has(t.locale) ? 32 : TITLE_MAX);
+export const descriptionMax = (t: Translate) => (CJK.has(t.locale) ? 90 : 160);
+
 /** "Apollo 11 · Tranquility Base" is "Apollo 11" in a title. */
 export const shortName = (name: string) => name.split(' · ')[0];
 
@@ -38,7 +42,7 @@ export function distanceText(t: Translate, km: number): string {
   return au >= 1 ? `${bigKm(t, km)} (${au.toLocaleString(t.intl, { maximumFractionDigits: au < 10 ? 2 : 1 })} AU)` : bigKm(t, km);
 }
 
-function fit(candidates: string[], max: number): string {
+export function fit(candidates: string[], max: number): string {
   return candidates.find(c => [...c].length <= max) ?? candidates[candidates.length - 1];
 }
 

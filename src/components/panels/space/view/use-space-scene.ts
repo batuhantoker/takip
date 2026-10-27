@@ -7,6 +7,7 @@ import { LY_KM } from '@/lib/space/astro';
 import type { CosmosMeta } from '@/lib/space/deep/cosmos';
 import type { NearbyStarCatalog } from '@/lib/space/deep/nearby-stars';
 import type { SpaceSelection } from '@/lib/space/selection';
+import type { Supercluster } from '@/lib/space/scene/deep/cosmic-web';
 import type { SatellitePoint } from '@/lib/space/scene/earth';
 import type { ReplayState } from '@/lib/space/scene/craft/flight-replay';
 import { SpaceScene } from '@/lib/space/scene/space-scene';
@@ -22,12 +23,17 @@ const loadNearby = () => (nearby ??= json<NearbyStarCatalog>('/data/sky/nearby-s
 const binary = (url: string) => fetch(url).then(r => (r.ok ? r.arrayBuffer() : null)).catch(() => null);
 let cosmosMeta: Promise<CosmosMeta | null> | null = null;
 const loadCosmosMeta = () => (cosmosMeta ??= json<CosmosMeta>('/data/cosmos/cosmos.json'));
+let galacticStars: Promise<ArrayBuffer | null> | null = null;
 let localGalaxies: Promise<ArrayBuffer | null> | null = null;
 let deepGalaxies: Promise<ArrayBuffer | null> | null = null;
+let cosmicWeb: Promise<ArrayBuffer | null> | null = null;
+let superclusters: Promise<Supercluster[] | null> | null = null;
+let basins: Promise<ArrayBuffer | null> | null = null;
 
 /** What each deeper layer needs loaded, by camera distance from the Sun; the System view stays as light as before. */
 const OUTER_FROM_KM = 10 * AU_KM;
 const STARS_FROM_KM = 700 * AU_KM;
+const GALACTIC_STARS_FROM_KM = 30 * LY_KM;
 const LOCAL_GALAXIES_FROM_KM = 2e6 * LY_KM;
 const DEEP_GALAXIES_FROM_KM = 80e6 * LY_KM;
 
@@ -85,6 +91,16 @@ export function useSpaceScene(opts: {
     return () => { live = false; };
   }, [scene, reach.stars]);
 
+  // Gaia's mid-scale field, once the camera is out past the nearest stars.
+  const [galacticReached, setGalacticReached] = useState(false);
+  if (!galacticReached && sunKm > GALACTIC_STARS_FROM_KM) setGalacticReached(true);
+  useEffect(() => {
+    if (!scene || !galacticReached || scene.galactic.loaded()) return;
+    let live = true;
+    (galacticStars ??= binary('/data/sky/galactic-stars.bin')).then(b => { if (b && live && !scene.galactic.loaded()) scene.setGalacticStars(b); });
+    return () => { live = false; };
+  }, [scene, galacticReached]);
+
   // Past the Local Group: the galaxy surveys, loaded once each as the camera first gets out to them.
   const cosmosStage = sunKm > DEEP_GALAXIES_FROM_KM ? 2 : sunKm > LOCAL_GALAXIES_FROM_KM ? 1 : 0;
   const [cosmosReached, setCosmosReached] = useState(0);
@@ -97,6 +113,9 @@ export function useSpaceScene(opts: {
       if (!m || !live) return;
       if (!scene.cosmos.meta()) scene.cosmos.setMeta(m);
       if (!local) (localGalaxies ??= binary(`/data/cosmos/${m.local.file}`)).then(b => { if (b && live && !scene.cosmos.loaded().local) scene.cosmos.setLocal(b); });
+      if (!scene.web.loaded()) (cosmicWeb ??= binary('/data/cosmos/web.bin')).then(b => { if (b && live && !scene.web.loaded()) scene.setCosmicWeb(b); });
+      if (!scene.web.superclustersLoaded()) (superclusters ??= json<Supercluster[]>('/data/cosmos/superclusters.json')).then(r => { if (r && live && !scene.web.superclustersLoaded()) scene.setSuperclusters(r); });
+      if (!scene.web.basinsLoaded()) (basins ??= binary('/data/cosmos/basins.bin')).then(b => { if (b && live && !scene.web.basinsLoaded()) scene.setBasins(b); });
       if (cosmosReached >= 2 && !deep) (deepGalaxies ??= binary(`/data/cosmos/${m.deep.file}`)).then(b => { if (b && live && !scene.cosmos.loaded().deep) scene.cosmos.setDeep(b); });
     });
     return () => { live = false; };

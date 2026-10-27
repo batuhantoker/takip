@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { IconButton } from '@/components/ui/button';
 import { Panel } from '@/components/ui/panel';
+import { SpaceHowItWorks } from '@/components/shell/tour/space-tour';
 import { useT } from '@/components/ui/use-t';
 import { AU_KM, C_KM_S } from '@/lib/space/astro';
 import type { ExoplanetPayload } from '@/lib/space/deep/exoplanets';
@@ -57,11 +58,18 @@ export default function SpacePanelLeft({ camera, layers, setLayers, fleet, satel
 
   // Named apart from the sidebar's Layers, which are the map's; where the camera is goes underneath.
   return (
-    <Panel docked={false} bare={folded} className="pointer-events-auto w-[280px] shrink-0" title={t('Space layers')}
-      subtitle={known ? <span title={where} className="tabular-nums">{t('{distance} from {anchor}', { distance: away, anchor })}</span> : t('Placing the camera…')}
-      actions={<IconButton icon={folded ? ChevronDown : ChevronUp} label={folded ? t('Show the layers') : t('Fold away')} tooltipSide="right"
-        aria-expanded={!folded} onClick={() => setFolded(!folded)} />}>
-      {!folded && <SpaceLayerList layers={layers} setLayers={setLayers} counts={counts} deep={deep} />}
-    </Panel>
+    <div data-tour="space-layers" className="contents">
+      <Panel docked={false} bare={folded} className="pointer-events-auto w-[280px] shrink-0" title={t('Space layers')}
+        subtitle={known ? <span title={where} className="tabular-nums">{t('{distance} from {anchor}', { distance: away, anchor })}</span> : t('Placing the camera…')}
+        actions={(
+          <>
+            <SpaceHowItWorks />
+            <IconButton icon={folded ? ChevronDown : ChevronUp} label={folded ? t('Show the layers') : t('Fold away')} tooltipSide="right"
+              aria-expanded={!folded} onClick={() => setFolded(!folded)} />
+          </>
+        )}>
+        {!folded && <SpaceLayerList layers={layers} setLayers={setLayers} counts={counts} deep={deep} />}
+      </Panel>
+    </div>
   );
 }

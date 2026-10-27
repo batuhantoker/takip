@@ -5,7 +5,7 @@ import { DEFAULT_LOCALE, LOCALES, isLocale, type Locale } from '@/lib/core/i18n/
  * the others under a prefix, /tr/map/…. The map itself keeps one URL in every language.
  */
 // /embed, the minimal live map the pages frame, takes the page's language too, though it isn't indexed.
-const READING = /^\/(?:map|about|download|city|town|county|state|country|compare|embed|event|spacecraft|planet|mountain|mountains|ramadan|easter|jewish-holidays)(?:\/|$)/;
+const READING = /^\/(?:map|about|download|city|town|county|state|country|compare|embed|event|spacecraft|planet|deep-sky|mountain|mountains|ramadan|easter|jewish-holidays)(?:\/|$)/;
 
 export const isReadingPath = (path: string) => READING.test(path);
 

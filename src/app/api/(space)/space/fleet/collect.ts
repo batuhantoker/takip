@@ -3,6 +3,7 @@ import { classify, craftName, isCandidate, REGION_FRAME, REGION_ORDER, replayabl
 import { parseMajorBodies, type MajorBody, type StateRow, type Vec3 } from '@/lib/space/horizons';
 import { MISSION_NOTES } from '@/lib/space/craft/mission-notes';
 import { SKY_BODIES } from '@/lib/space/sky';
+import { PAST_MISSIONS } from '@/lib/space/craft/past-missions';
 import { warmHistories } from '../history/store';
 import { coveredVectors, majorBodies } from '../horizons-fetch';
 import { loadSky } from '../sky/load';
@@ -121,7 +122,8 @@ function ensureSweep(): Promise<void> | null {
   if (state.running) return state.running;
   if (state.sweptAt && Date.now() - state.sweptAt < SWEEP_MS) return null;
   state.running = sweep()
-    .then(() => { void warmHistories([...state.craft.values()].filter(replayable)); })
+    // Finished missions are in no sweep; their flights are stored once with the rest, for replays and their pages.
+    .then(() => { void warmHistories([...[...state.craft.values()].filter(replayable), ...PAST_MISSIONS]); })
     .catch(e => console.warn('[TAKIP] fleet sweep failed:', e instanceof Error ? e.message : e))
     .finally(() => { state.running = null; });
   return state.running;

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LY_KM } from '@/lib/space/astro';
+import { DEEP_SKY_PLACED, PICTURED_IN } from '@/lib/space/deep/deep-sky';
 import type { Vec3 } from '@/lib/space/horizons';
 import { SUN_RADIUS_KM } from './bodies/planets';
 import { rotation } from './shared';
@@ -59,8 +60,13 @@ export function fitToDistance(scene: SpaceScene, jd: number, sunDist: number, f:
   scene.outer.update(jd, f.outer, f.belt, !!scene.replay);
   scene.heliosphere.update(f.heliosphere, scene.layers.illustrations);
   scene.oort.update(sunDist, f.oort, scene.layers.illustrations);
+  scene.galactic.update(f.galactic);
   scene.nearby.update(f.stars, f.starFloor, scene.layers.constellations ? f.figures : 0, scene.layers.exoplanets, 0.35 + 0.65 * ramp(sunDist, 2_000 * LY_KM, 300 * LY_KM));
   scene.milkyWay.update(scene.camera, f.milkyWaySky, f.disc, scene.layers.illustrations);
-  scene.localGroup.update(f.localGroup);
-  scene.cosmos.update(f.localGalaxies, f.deepGalaxies, f.cmb, sunDist);
+  scene.localGroup.update(f.localGroup, id => scene.deepSky.shown(PICTURED_IN[id] ?? id));
+  const labelled = scene.layers.labels ? 1 : 0;
+  scene.deepSky.update(scene.camera, heightPx, () => (scene.layers.deepSky ? f.deepSky : 0), i => labelled * (DEEP_SKY_PLACED[i].object.realm === 'milky-way' ? f.deepSkyNear : f.deepSkyFar));
+  scene.cosmos.update(f.localGalaxies, f.deepGalaxies, f.cmb, sunDist, scene.layers.illustrations);
+  const sel = scene.selection;
+  scene.web.update(f.web, f.farVoids, sunDist, scene.camera, sel?.kind === 'feature' ? sel.id : null);
 }

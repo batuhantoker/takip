@@ -3,12 +3,13 @@ import type { Align, Side } from '@/components/ui/position';
 import { msg } from '@/lib/core/i18n/translator';
 
 export type StopId = 'layout' | 'basemap' | 'layers' | 'history' | 'space' | 'recon' | 'ai';
+export type SpaceStopId = 'space-zoom' | 'space-click' | 'space-stops' | 'space-craft' | 'space-layers' | 'space-home';
 
 /** A section the panel can't mark itself, such as the Panel kit's tabs or the timeline under the map. */
 export type StaticPart = { selector: string; title: string; body: string };
 
-export type Stop = {
-  id: StopId;
+export type Stop<Id extends string = StopId> = {
+  id: Id;
   title: string;
   body: string;
   /** One line for TI's How to list. */
@@ -28,7 +29,11 @@ export type Stop = {
    * tourPart(), and these, in the order they sit on screen.
    */
   inside?: StaticPart[];
+  /** Passed over when none of its targets is on screen, such as a bottom-bar button the person has hidden. */
+  onlyWhenSeen?: boolean;
 };
+
+export type AnyStop = Stop<string>;
 
 /** The tour, in the order it plays. The targets are `data-tour` marks on the shell's own pieces. */
 export const STOPS: Stop[] = [
@@ -109,5 +114,62 @@ export const STOPS: Stop[] = [
     targets: ['[data-tour="ai"]'],
     side: 'right',
     kbd: 'T',
+  },
+];
+
+/** The space view's own short tour, offered on arriving in space. Its targets are marks in the space view's shell. */
+export const SPACE_STOPS: Stop<SpaceStopId>[] = [
+  {
+    id: 'space-zoom',
+    title: msg('Zoom through every scale'),
+    body: msg('Scroll or pinch to keep going out: past the planets, the nearest stars and the Milky Way to the edge of the observable universe. Zoom in near the middle to come back toward Earth, or over something off-centre to go to it.'),
+    hint: msg('Out to the edge of the universe and back'),
+    targets: [],
+  },
+  {
+    id: 'space-click',
+    title: msg('Click anything'),
+    body: msg('A planet, spacecraft, star, nebula or galaxy opens a card: where it is now, how far, and a picture. Fly there takes the camera to it.'),
+    hint: msg('Cards for everything in view'),
+    targets: [],
+  },
+  {
+    id: 'space-stops',
+    title: msg('Jump to a stop'),
+    body: msg('Earth, Moon, Mars, Sun, System, Stars, Galaxy and Universe: the camera flies there across the real distances, and each stop lights up as you zoom past it.'),
+    hint: msg('Earth to Universe in one click'),
+    targets: ['[data-tour="space-stops"]'],
+    side: 'top',
+    align: 'start',
+  },
+  {
+    id: 'space-craft',
+    title: msg('Spacecraft and their flights'),
+    body: msg('The Space panel lists every craft JPL Horizons can place right now, by where it is, with its distance and light time. Watch the flight replays a craft’s whole journey from launch.'),
+    hint: msg('Every craft, and replays of their flights'),
+    targets: ['[data-tour="dock"][data-tool="space"]', '[data-tour="space"]', '[data-bottom-bar] [data-tab="space"]'],
+    side: 'right',
+    onlyWhenSeen: true,
+  },
+  {
+    id: 'space-layers',
+    title: msg('What the view draws'),
+    body: msg('Space layers switches satellites, spacecraft, orbits, constellations, stars with planets and the illustrated models on and off, and says how far the camera is from what it looks at.'),
+    hint: msg('Switch what is drawn'),
+    // On a phone, Layers opens the space layers while in space.
+    targets: ['[data-tour="space-layers"]', '[data-bottom-bar] [data-tab="layers"]'],
+    side: 'right',
+    align: 'start',
+    onlyWhenSeen: true,
+  },
+  {
+    id: 'space-home',
+    title: msg('Back to Earth'),
+    body: msg('Map, Esc, or zooming all the way in on Earth flies you home to the map, where you left it.'),
+    hint: msg('Home to the map'),
+    targets: ['[data-tour="space-map"]'],
+    side: 'top',
+    align: 'start',
+    kbd: 'Esc',
   },
 ];

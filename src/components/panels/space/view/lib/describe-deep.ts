@@ -1,13 +1,19 @@
 import type { Translate } from '@/lib/core/i18n/translator';
 import { C_KM_S, LY_KM, norm, sub } from '@/lib/space/astro';
+import { BASINS, NEARBY_VOIDS } from '@/lib/space/deep/basins.generated';
+import { NEARBY_VOID_NAMES } from '@/lib/space/deep/cosmic-web';
+import { deepSkyImage, deepSkyObject, deepSkyUrl, picturedFeature } from '@/lib/space/deep/deep-sky';
 import { DEEP_FEATURES } from '@/lib/space/deep/features';
 import type { ExoHost, PlanetRow } from '@/lib/space/deep/exoplanets';
 import { angleBetween, bodyDirection } from '@/lib/space/frames';
-import { distance, lightTime, magnitude, speed } from '@/lib/space/format';
+import { compact, distance, lightTime, magnitude, speed } from '@/lib/space/format';
 import { jdFromMs, type Vec3 } from '@/lib/space/horizons';
 import { absoluteMag, spectralClass, starLy, temperatureK } from '@/lib/space/deep/nearby-stars';
 import { VISITORS } from '@/lib/space/deep/outer';
 import type { SpaceSelection } from '@/lib/space/selection';
+import { basinColor, SUPERCLUSTER_COLOR, VOID_COLOR } from '@/lib/space/scene/deep/cosmic-web';
+import { superclusterName } from '@/lib/space/scene/hud/deep-targets';
+import { KIND_COLOR } from '@/lib/space/scene/deep/deep-sky';
 import type { SpaceScene } from '@/lib/space/scene/space-scene';
 
 /** Inspect cards for what lies past the planets: stars, planet hosts, dwarf planets and visitors, models and galaxies. */
@@ -25,6 +31,8 @@ export interface CardData {
   link?: { href: string; label: string };
   /** Shown as a tag: the thing is a model, not a measurement. */
   illustration?: boolean;
+  /** The telescope picture the scene hangs there, shown in place of Wikipedia's. */
+  picture?: { src: string; href: string };
 }
 
 function planetLine(p: PlanetRow, t: Translate): string {
@@ -46,6 +54,11 @@ export function hostOf(star: [number, number, number, number, number], hosts: Ex
   const ly = starLy(star);
   const dir: Vec3 = [star[0] / ly, star[1] / ly, star[2] / ly];
   return hosts.find(h => h.ly < ly * 1.3 && h.ly > ly * 0.75 && angleBetween(dir, bodyDirection(h.dec, h.ra)) < 0.1) ?? null;
+}
+
+function archiveName(page: string): string {
+  const host = new URL(page).hostname;
+  return host.includes('esawebb') ? 'ESA/Webb' : host.includes('esahubble') ? 'ESA/Hubble' : host.includes('eso.org') ? 'ESO' : host.includes('noirlab') ? 'NOIRLab' : 'Aladin';
 }
 
 function raDecOf(v: Vec3): string {
@@ -126,6 +139,61 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     };
   }
 
+  if (sel.kind === 'feature' && sel.id.startsWith('scl:')) {
+    const i = Number(sel.id.slice(4));
+    const s = scene.web.superclusters()[i];
+    if (!s) return null;
+    const at = scene.web.superclusterCentre(i);
+    return {
+      title: superclusterName(scene, i) ?? t('Supercluster'), subtitle: t('A wall of galaxy groups and clusters'), color: SUPERCLUSTER_COLOR,
+      fields: [
+        [t('From the Sun'), distance(at.length(), t)], [t('Across'), t('about {size}', { size: `${compact(2 * s[3] * 1e6, t.intl)} ly` })],
+        [t('Galaxies seen'), s[4].toLocaleString(t.intl)], [t('From here'), here(at)], [t('RA / Dec'), raDecOf([s[0], s[1], s[2]])],
+      ],
+      note: t('One of the largest structures in the universe: groups and clusters of galaxies held loosely together along the walls between voids. Its glow is drawn to its size; the galaxies counted are the ones bright enough for the SDSS survey to measure.'),
+      source: t('Liivamägi et al. 2012, SDSS DR7 superclusters'),
+    };
+  }
+
+  if (sel.kind === 'feature' && sel.id.startsWith('void:')) {
+    const i = Number(sel.id.slice(5));
+    const v = scene.web.voids()[i];
+    if (!v) return null;
+    const nearby = v.nearby !== undefined ? NEARBY_VOIDS[v.nearby] : null;
+    const at = scene.web.voidCentre(i);
+    const mly = (n: number) => `${compact(n * 1e6, t.intl)} ly`;
+    const card = {
+      sdss: {
+        title: i === scene.web.bootes() ? t('Boötes Void') : t('Cosmic void'), subtitle: t('A void in the cosmic web'),
+        note: t('A vast region with few galaxies, walled by the filaments around it. Its outline is the ellipsoid fitted to the void found in the SDSS galaxy survey: voids fill most of the universe\'s volume, the galaxies its walls and threads.'),
+        source: t('Douglass et al. 2023, SDSS DR7 voids (V2, VIDE), Planck 2018'),
+      },
+      network: {
+        title: t('Cosmic void'), subtitle: t('Between the superclusters'),
+        note: t('One of the great voids between the rich galaxy clusters that outline the supercluster network, mapped over the whole sky. Drawn as a sphere across its narrowest width, so it is at least this big.'),
+        source: t('Einasto et al. 1994, the supercluster-void network'),
+      },
+      quaia: {
+        title: t('Supervoid'), subtitle: t('Among the quasars, billions of light-years out'),
+        note: t('A huge underdense region found among the quasars of the Gaia Quaia catalogue, which covers the whole sky. Its light left it billions of years ago; it is drawn as the sphere of its volume, at its distance now.'),
+        source: t('Arsenov et al. 2025, voids in Gaia Quaia (ZOBOV)'),
+      },
+      local: {
+        title: nearby ? t(NEARBY_VOID_NAMES[nearby.name]) : t('Cosmic void'), subtitle: t('One of the 25 nearest voids'),
+        note: t('A region with no bright galaxies, one of the 25 voids within 80 million light-years that Pustilnik et al. (2019) mapped over the whole sky, walled by galaxies brighter than absolute K magnitude −22. It is a cluster of overlapping empty spheres, drawn as the ellipsoid spanning its extent along the supergalactic axes.'),
+        source: t('Pustilnik et al. 2019, nearby voids'),
+      },
+    }[v.catalogue];
+    return {
+      ...card, color: VOID_COLOR[v.catalogue],
+      fields: [
+        [t('From the Sun'), distance(at.length(), t)], [t('Across'), t('about {size}', { size: mly(2 * v.reffMly) })],
+        ...(nearby ? [[t('Galaxies inside'), t('{n}, mostly dwarfs', { n: nearby.galaxies })] as [string, string]] : []),
+        [t('From here'), here(at)], [t('RA / Dec'), raDecOf(v.centre)],
+      ],
+    };
+  }
+
   if (sel.kind === 'feature' && sel.id.startsWith('cosmos:')) {
     const m = scene.cosmos.meta();
     const st = m?.structures.find(x => `cosmos:${x.name}` === sel.id);
@@ -144,10 +212,16 @@ export function describeDeep(sel: SpaceSelection, scene: SpaceScene | null, now:
     if (!f) return null;
     const fields: [string, string][] = f.fields?.(t) ?? [];
     if (f.position) fields.push([t('From here'), distance(norm(sub(f.position, [cam.x, cam.y, cam.z])), t)]);
+    const placed = picturedFeature(sel.id);
+    const picture = placed?.image ?? deepSkyImage(sel.id);
+    const pictured = deepSkyObject(sel.id);
+    const basin = BASINS.find(b => b.id === sel.id);
     return {
-      title: t(f.name), subtitle: t(f.subtitle, f.subtitleVars), color: f.illustration ? '#A9B8D6' : '#C9CFFF', fields,
+      title: t(f.name), subtitle: t(f.subtitle, f.subtitleVars), color: pictured && !pictured.feature ? KIND_COLOR[pictured.kind] : basin ? basinColor(basin) : f.illustration ? '#A9B8D6' : '#C9CFFF', fields,
       note: f.footnote ? `${t(f.note)} ${t(f.footnote)}` : t(f.note),
       source: f.credit ? t('Image: {credit}', { credit: f.credit }) : null, illustration: f.illustration,
+      ...(picture ? { link: { href: picture.page, label: archiveName(picture.page) } } : {}),
+      ...(placed ? { picture: { src: deepSkyUrl(placed.object.id), href: placed.image.page } } : {}),
     };
   }
   return null;

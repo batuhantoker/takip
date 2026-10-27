@@ -9,6 +9,7 @@ import { ListRow } from '@/components/ui/list-row';
 import { useT } from '@/components/ui/use-t';
 import type { Translate } from '@/lib/core/i18n/translator';
 import { REGION_LABEL, REGION_ORDER, replayable, type FleetCraft, type FleetPayload, type Region } from '@/lib/space/craft/fleet';
+import { PAST_MISSIONS, type PastMission } from '@/lib/space/craft/past-missions';
 import { lightTime } from '@/lib/space/format';
 import { requestWorld } from '@/lib/space/world-events';
 import { DistanceCell } from './distance-cell';
@@ -52,21 +53,44 @@ function CraftRow({ c }: { c: FleetCraft }) {
   );
 }
 
-/** Every spacecraft JPL Horizons can place right now, grouped by where it is. */
+/** A finished mission: no position now, so the row plays its whole flight back. */
+function PastRow({ m }: { m: PastMission }) {
+  const t = useT();
+  const replay = () => requestWorld({ focus: 'solar', replay: m.id });
+  return (
+    <ListRow
+      title={<span className="text-ink-2">{m.name}</span>}
+      subtitle={<span className="text-ink-3">{`${m.launched === m.ended ? m.launched : `${m.launched}–${m.ended}`} · ${m.agency}`}</span>}
+      aria-label={t('Watch {name}’s flight', { name: m.name })}
+      onClick={replay}
+      trailing={(
+        <span className="opacity-50 transition-opacity duration-150 group-hover/row:opacity-100 focus-within:opacity-100 motion-reduce:transition-none">
+          <IconButton size="sm" icon={History} label={t('Watch {name}’s flight', { name: m.name })} tooltipSide="left" onClick={replay} />
+        </span>
+      )}
+    />
+  );
+}
+
+/** Every spacecraft JPL Horizons can place right now, grouped by where it is, then the finished missions it can replay. */
 export default function CraftList({ fleet, failed, query }: { fleet: FleetPayload | null; failed: boolean; query: string }) {
   const t = useT();
-  const [toggled, setToggled] = useState<Set<Region>>(new Set());
+  const [toggled, setToggled] = useState<Set<Region | 'past'>>(new Set());
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
     const craft = (fleet?.craft ?? []).filter(c => !q || `${c.name} ${c.agency ?? ''} ${c.cospar ?? ''}`.toLowerCase().includes(q));
     return REGION_ORDER.map(r => ({ region: r, craft: craft.filter(c => c.region === r) })).filter(g => g.craft.length);
   }, [fleet, query]);
+  const past = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return PAST_MISSIONS.filter(m => !q || `${m.name} ${m.agency}`.toLowerCase().includes(q));
+  }, [query]);
 
   if (!fleet && failed) return <EmptyState icon={CloudOff} title={t('JPL Horizons did not answer')} body={t('It tries again every minute while this is open.')} />;
   if (!fleet) return <p className="px-4 py-6 text-small text-ink-3">{t('Asking JPL Horizons where everything is…')}</p>;
-  if (!groups.length) return <EmptyState icon={SearchX} title={t('No spacecraft match “{query}”', { query: query.trim() })} body={t('Search by name, agency or COSPAR ID.')} />;
+  if (!groups.length && !past.length) return <EmptyState icon={SearchX} title={t('No spacecraft match “{query}”', { query: query.trim() })} body={t('Search by name, agency or COSPAR ID.')} />;
 
-  const flip = (r: Region) => setToggled(s => {
+  const flip = (r: Region | 'past') => setToggled(s => {
     const n = new Set(s);
     if (n.has(r)) n.delete(r); else n.add(r);
     return n;
@@ -82,6 +106,11 @@ export default function CraftList({ fleet, failed, query }: { fleet: FleetPayloa
           </Disclosure>
         );
       })}
+      {past.length > 0 && (
+        <Disclosure title={t('Past missions')} hint={past.length} open={query ? true : !toggled.has('past')} onOpenChange={() => flip('past')}>
+          {past.map(m => <PastRow key={m.id} m={m} />)}
+        </Disclosure>
+      )}
     </div>
   );
 }

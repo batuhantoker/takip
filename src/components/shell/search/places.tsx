@@ -7,7 +7,7 @@
  */
 import { createElement, type ReactNode } from 'react';
 import {
-  Building2, Clock, Globe2, Home, Landmark, LocateFixed, Map as MapIcon, MapPin, Plane, Signpost, type LucideIcon,
+  Building2, Clock, Globe2, Home, Landmark, LocateFixed, Map as MapIcon, MapPin, Orbit, Plane, Signpost, type LucideIcon,
 } from 'lucide-react';
 import { Kbd } from '@/components/ui/kbd';
 import { cx, TRANSITION } from '@/components/ui/class-names';
@@ -34,6 +34,7 @@ const KIND: Record<string, { icon: LucideIcon; label: string; group: string }> =
   current: { icon: LocateFixed, label: msg('You'), group: msg('You') },
   recent: { icon: Clock, label: msg('Recent'), group: msg('Recent') },
   flight: { icon: Plane, label: msg('Flight'), group: msg('Flights') },
+  space: { icon: Orbit, label: msg('In space'), group: msg('In space') },
 };
 
 export const kindIcon = (kind?: string): LucideIcon => KIND[kind ?? '']?.icon ?? MapPin;
@@ -93,7 +94,7 @@ export function PlaceRow({ place, query = '', on, onPick, onHover, from, trailin
 }) {
   const t = useT();
   const kind = kindOverride ?? place.kind;
-  const far = place.kind === 'current' ? '' : distanceText(from, place, t.intl);
+  const far = place.kind === 'current' || place.kind === 'space' ? '' : distanceText(from, place, t.intl);
   return (
     <div id={id} role="option" aria-selected={on} onMouseMove={onHover}
       className={cx('group/row relative flex min-h-10 items-center gap-3 rounded-control px-2 py-1.5', on ? 'bg-surface-2' : 'hover:bg-surface-2', TRANSITION)}>

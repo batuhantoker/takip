@@ -4,6 +4,7 @@ import { RATES } from '@/lib/space/replay/format';
 import type { ReplayModel } from '@/lib/space/replay/model';
 import { rateCap } from '@/lib/space/replay/pacing';
 import { AbsolutePositions } from '../floating-origin';
+import { dotTexture } from '../shared';
 
 /**
  * A spacecraft's flight played back: its whole path (the part flown so far
@@ -59,7 +60,12 @@ export function createFlightReplay(model: ReplayModel, craftId: number) {
   const head = line(new THREE.BufferGeometry().setAttribute('position', headKm.attribute), FLOWN, 0.95, 2);
   ahead.geometry.setDrawRange(0, hasPrediction ? predictedFrom + 1 : n);
   predicted.geometry.setDrawRange(predictedFrom, hasPrediction ? n - predictedFrom : 0);
-  path.add(ahead, predicted, flown, head);
+  // The craft itself: a past mission is in no fleet to draw its dot, and most have no model.
+  const markerKm = new AbsolutePositions(path, 1);
+  const marker = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', markerKm.attribute), new THREE.PointsMaterial({ color: FLOWN, size: 8, sizeAttenuation: false, map: dotTexture(), transparent: true, depthWrite: false }));
+  marker.frustumCulled = false;
+  marker.renderOrder = 3;
+  path.add(ahead, predicted, flown, head, marker);
   const group = new THREE.Group();
   group.add(path);
   // The orbit a craft is on while it stays with a body, drawn round that body and carried with it.
@@ -149,6 +155,7 @@ export function createFlightReplay(model: ReplayModel, craftId: number) {
     head.visible = !model.staying(state.jd);
     headKm.setXYZ(0, pos[lo * 3], pos[lo * 3 + 1], pos[lo * 3 + 2]);
     headKm.setXYZ(1, p[0], p[1], p[2]);
+    markerKm.setXYZ(0, p[0], p[1], p[2]);
   }
 
   return {
@@ -157,6 +164,7 @@ export function createFlightReplay(model: ReplayModel, craftId: number) {
     rebase(origin: THREE.Vector3) {
       samples.rebase(origin);
       headKm.rebase(origin);
+      markerKm.rebase(origin);
     },
     ms: () => msFromJd(state.jd),
     play() {

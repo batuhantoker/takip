@@ -15,9 +15,11 @@ import type { ReplayEntity } from '@/lib/map/replay/track-sample';
 import { ipLocationUrl } from '@/lib/places/ip-location/browser';
 import { forgetRecent, loadRecent, rememberPlace, type RecentPlace } from '@/lib/places/recent-places';
 import { noteDeviceLocation } from '@/lib/platform/device-location';
+import { requestWorld } from '@/lib/space/world-events';
 import { countAction } from '@/lib/platform/usage-actions';
 import { Key, kindGroup, PlaceRow, type PlaceLike } from './places';
 import { groupHits, type Hit } from './search-groups';
+import { spaceHits } from './space-hits';
 import { FLIGHT_KIND, isFlightQuery, useFlightSearch } from './use-flight-search';
 import { useGeoSearch, ZOOM_BY_KIND } from './use-geo-search';
 
@@ -124,8 +126,13 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
   // Flights lead only when one is exactly what was typed; an airline's fleet goes under the places.
   const flightSection = flightHits.length ? [{ title: kindGroup('flight'), items: flightHits }] : [];
   const placeSections = groupHits(results, flightHits.length > 0);
+  const inSpace: Hit[] = typing ? spaceHits(value, t).map(h => ({ label: h.label, context: h.context, lat: 0, lng: 0, kind: 'space', zoom: 0, space: { focus: h.focus, select: h.select } })) : [];
+  const spaceSection = inSpace.length ? [{ title: kindGroup('space'), items: inSpace }] : [];
+  // "Andromeda" means the galaxy before a street of that name; a word somewhere inside a name waits below the places.
+  const spaceFirst = inSpace[0]?.label.toLowerCase().startsWith(value.trim().toLowerCase());
+  const earthSections = flightHits.some(h => h.flight?.exact || (h.replay != null && h.label.toUpperCase().replace(/\s/g, '') === squashed)) ? [...flightSection, ...placeSections] : [...placeSections, ...flightSection];
   const sections = typing
-    ? (flightHits.some(h => h.flight?.exact || (h.replay != null && h.label.toUpperCase().replace(/\s/g, '') === squashed)) ? [...flightSection, ...placeSections] : [...placeSections, ...flightSection])
+    ? (spaceFirst ? [...spaceSection, ...earthSections] : [...earthSections, ...spaceSection])
     : [{ title: '', items: [you] }, ...(recent.length ? [{ title: 'Recent', items: recentHits }] : [])];
   const items = sections.flatMap(s => s.items);
   const active = Math.min(selected, Math.max(0, items.length - 1));
@@ -170,6 +177,12 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
   const go = (h: Hit) => {
     if (h.kind === 'current') { void locate(); return; }
     countAction('search.pick');
+    if (h.space) {
+      requestWorld({ focus: h.space.focus, select: h.space.select });
+      type('');
+      onClose?.();
+      return;
+    }
     if (h.flight || h.replay != null) {
       if (h.flight) onTrackFlight?.(h.flight);
       else pickReplay(replayEntity(h.replay!), { follow: true });
@@ -184,7 +197,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
   };
 
   const directions = (h: Hit) => {
-    if (!onDirections || h.kind === 'current' || h.kind === 'flight') return;
+    if (!onDirections || h.kind === 'current' || h.kind === 'flight' || h.kind === 'space') return;
     remember(h);
     onDirections({ label: h.label, context: h.context, lat: h.lat, lng: h.lng, kind: h.kind });
   };
@@ -207,7 +220,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
     }
   };
 
-  const noResults = typing && !loading && !flightsPending && answered === value && value.trim().length >= 2 && results.length === 0 && flightHits.length === 0;
+  const noResults = typing && !loading && !flightsPending && answered === value && value.trim().length >= 2 && results.length === 0 && flightHits.length === 0 && inSpace.length === 0;
   let index = 0;
 
   return (
@@ -264,7 +277,7 @@ export default function SearchBar({ onLocate, center = null, open = true, onOpen
                         onPick={() => go(h)} onHover={() => setSelected(i)} from={center} kindOverride={h.recent ? 'recent' : undefined}
                         trailing={h.kind === 'current'
                           ? (locating ? <LoaderCircle aria-label={t('Finding you')} className="mr-1 size-4 animate-spin text-ink-3" strokeWidth={1.75} /> : undefined)
-                          : onDirections && h.kind !== 'flight' && (
+                          : onDirections && h.kind !== 'flight' && h.kind !== 'space' && (
                             <span className={cx(embedded || i === active ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100 focus-within:opacity-100')}>
                               <IconButton label={t('Directions to {place}', { place: h.label })} kbd="⇧↵" icon={Route} size="sm" tooltipSide="left" onClick={() => directions(h)} />
                             </span>

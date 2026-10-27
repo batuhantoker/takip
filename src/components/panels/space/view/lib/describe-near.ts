@@ -5,6 +5,7 @@ import { REGION_LABEL, type FleetPayload } from '@/lib/space/craft/fleet';
 import { age, distance, latLng, lightTime, speed } from '@/lib/space/format';
 import { jdFromMs } from '@/lib/space/horizons';
 import { LANDING_SITES, SITE_KIND_LABEL } from '@/lib/space/craft/landing-sites';
+import { pastMission } from '@/lib/space/craft/past-missions';
 import type { SpaceSelection } from '@/lib/space/selection';
 import { sampleAt, type SkyPayload } from '@/lib/space/sky';
 import { trackAt, type SurfacePayload } from '@/lib/space/bodies/surface';
@@ -53,6 +54,16 @@ export function describeNear(sel: SpaceSelection, now: number, sky: SkyPayload |
   }
   if (sel.kind === 'craft') {
     const c = fleet?.craft.find(x => x.id === sel.id);
+    const past = c ? null : pastMission(sel.id);
+    if (past) {
+      return {
+        title: past.name, subtitle: `${t('Past mission')} · ${past.agency}`, color: REGION_COLOR.interplanetary,
+        fields: [[t('Launched'), String(past.launched)], [t('Mission ended'), String(past.ended)], [t('Horizons ID'), String(past.id)]],
+        note: t(past.note),
+        source: t('Its whole flight, from JPL Horizons'),
+        link: { href: `https://ssd.jpl.nasa.gov/horizons/app.html#/?sstr=${encodeURIComponent(String(past.id))}`, label: 'JPL Horizons' },
+      };
+    }
     if (!c) return null;
     const model = CRAFT_MODELS[c.id];
     return {

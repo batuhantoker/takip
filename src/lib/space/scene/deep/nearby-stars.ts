@@ -45,6 +45,32 @@ void main() {
 }`;
 
 const HOST_COLOR = '#7CF7C4';
+/** Rings mark the planet hosts near the camera; past these light-years they fade out, or thousands crowd the view. */
+const HOST_NEAR_LY = 40, HOST_FAR_LY = 200;
+
+const HOST_VERT = `
+${LOGDEPTH.vertexPars}
+uniform float pixelRatio;
+uniform float opacity;
+varying float vAlpha;
+void main() {
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  float ly = length(mv.xyz) / 9.4607e12;
+  vAlpha = opacity * (1.0 - smoothstep(${HOST_NEAR_LY.toFixed(1)}, ${HOST_FAR_LY.toFixed(1)}, ly));
+  gl_PointSize = 11.0 * pixelRatio * step(0.004, vAlpha);
+  gl_Position = projectionMatrix * mv;
+  ${LOGDEPTH.vertex}
+}`;
+
+const HOST_FRAG = `
+${LOGDEPTH.fragmentPars}
+uniform sampler2D map;
+uniform vec3 color;
+varying float vAlpha;
+void main() {
+  ${LOGDEPTH.fragment}
+  gl_FragColor = vec4(color, texture2D(map, gl_PointCoord).a * vAlpha);
+}`;
 
 function ringTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -77,7 +103,8 @@ export function createNearbyStars() {
   figureLines.frustumCulled = false;
   group.add(figureLines);
 
-  const hostMaterial = new THREE.PointsMaterial({ color: HOST_COLOR, size: 11, sizeAttenuation: false, map: ringTexture(), transparent: true, opacity: 0, depthWrite: false });
+  const hostUniforms = { pixelRatio: { value: 1 }, opacity: { value: 0 }, map: { value: ringTexture() }, color: { value: new THREE.Color(HOST_COLOR) } };
+  const hostMaterial = new THREE.ShaderMaterial({ vertexShader: HOST_VERT, fragmentShader: HOST_FRAG, uniforms: hostUniforms, transparent: true, depthWrite: false });
   const hostPoints = new THREE.Points(new THREE.BufferGeometry(), hostMaterial);
   hostPoints.frustumCulled = false;
   hostPoints.renderOrder = 4;
@@ -133,8 +160,9 @@ export function createNearbyStars() {
     figureMaterial.opacity = 0.35 * figures;
     figureLines.visible = figureMaterial.opacity > 0.005;
     // The rings are a guide near the Sun; from far out the hosts are a crowd, so they thin.
-    hostMaterial.opacity = hostsOn ? 0.75 * k * hostsFade : 0;
-    hostPoints.visible = hostMaterial.opacity > 0.005 && hosts.length > 0;
+    hostUniforms.opacity.value = hostsOn ? 0.75 * k * hostsFade : 0;
+    hostUniforms.pixelRatio.value = uniforms.pixelRatio.value;
+    hostPoints.visible = hostUniforms.opacity.value > 0.005 && hosts.length > 0;
   }
 
   return {

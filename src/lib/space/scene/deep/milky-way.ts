@@ -129,9 +129,9 @@ export function createMilkyWay() {
     sky.matrix.copy(skyRotation).setPosition(camera.position);
     skyUniforms.opacity.value = 0.6 * skyK;
     sky.visible = skyK > 0.005 && !!skyUniforms.map.value;
-    // Close to the plane the low-resolution artwork would fill the screen; it dims until seen from well above.
+    // A flat sheet seen from near its plane is only a wedge across the view; it shows once the camera is well above it.
     const height = Math.abs(camera.position.clone().sub(centre).dot(north)) / LY_KM;
-    const d = illustrations ? discK * (0.35 + 0.65 * THREE.MathUtils.smoothstep(height, 3_000, 25_000)) : 0;
+    const d = illustrations ? discK * THREE.MathUtils.smoothstep(height, 2_500, 25_000) : 0;
     discMaterial.opacity = 0.7 * d;
     disc.visible = d > 0.005 && !!discMaterial.map;
     (core.material as THREE.SpriteMaterial).opacity = 0.55 * d;

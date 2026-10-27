@@ -9,27 +9,28 @@ import { ENTER_FROM, type Side } from '@/components/ui/position';
 import { useT } from '@/components/ui/use-t';
 import { showSettingsTab } from '@/components/shell/settings/open-settings';
 import type { Part } from '../lib/measure';
-import { STOPS } from '../lib/stops';
+import type { AnyStop } from '../lib/stops';
 import { endTour, setTourPart, stepTour } from '../tour-state';
 
 /** The card beside what the tour rings: the stop, or the section of its panel showing. */
 export const TourCard = forwardRef<HTMLDivElement, {
+  stops: AnyStop[];
   at: number;
   part: number | null;
   parts: Part[];
   side?: Side;
   onNext: () => void;
   onBack: () => void;
-}>(function TourCard({ at, part, parts, side, onNext, onBack }, ref) {
+}>(function TourCard({ stops, at, part, parts, side, onNext, onBack }, ref) {
   const t = useT();
   const id = useId();
-  const stop = STOPS[at];
+  const stop = stops[at];
   const inside = part !== null;
   const shown = inside && parts.length ? parts[Math.min(part, parts.length - 1)] : null;
-  const lastStop = at === STOPS.length - 1;
+  const lastStop = at === stops.length - 1;
   const lastPart = !inside || !parts.length || part >= parts.length - 1;
   const text = (s: string, own: boolean) => (own ? s : t(s));
-  const counter = t('{n} of {count}', inside ? { n: Math.min(part, Math.max(parts.length - 1, 0)) + 1, count: parts.length || 1 } : { n: at + 1, count: STOPS.length });
+  const counter = t('{n} of {count}', inside ? { n: Math.min(part, Math.max(parts.length - 1, 0)) + 1, count: parts.length || 1 } : { n: at + 1, count: stops.length });
   // A panel that is open can be scrolled through during the tour; say so.
   const scrollable = !!stop.inside && (inside || !!stop.opens);
 

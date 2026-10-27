@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { useT } from '@/components/ui/use-t';
 import { msg } from '@/lib/core/i18n/translator';
 import type { Region } from '@/lib/space/craft/fleet';
+import { DEEP_SKY_PLACED } from '@/lib/space/deep/deep-sky';
 import type { NearbyStarCatalog } from '@/lib/space/deep/nearby-stars';
 import type { OuterPayload } from '@/lib/space/deep/outer';
 import { REGION_COLOR } from '@/lib/space/scene/craft/layer';
@@ -27,6 +28,7 @@ const TOGGLES: [keyof SpaceLayers, string][] = [
   ['surface', msg('Landing sites and orbiters')],
   ['constellations', msg('Constellation figures')],
   ['exoplanets', msg('Stars with planets')],
+  ['deepSky', msg('Nebulae and galaxies, photographed')],
   ['illustrations', msg('Models, marked as illustrations')],
   ['labels', msg('Labels')],
 ];
@@ -63,6 +65,7 @@ function AboutTheData({ deep }: { deep: { outer: OuterPayload | null; catalog: N
               ? t('Stars: the Yale Bright Star Catalogue, Hipparcos and ESA Gaia DR3 ({n} in 3D); planets from the NASA Exoplanet Archive.', { n: deep.catalog.stars.length })
               : t('Stars: the Yale Bright Star Catalogue, Hipparcos and ESA Gaia DR3; planets from the NASA Exoplanet Archive.'),
             t('Imagery: NASA GIBS, Moon and Mars Trek, SDO; the Milky Way sky from NASA SVS; the face-on Milky Way is NASA/JPL-Caltech/R. Hurt artwork.'),
+            t('Nebulae, clusters and galaxies: pictures from ESA/Webb, ESO, NOIRLab and the Digitized Sky Survey, each placed by its own astrometry.'),
             t('Beyond: the 2MASS Redshift Survey (Huchra et al. 2012), SDSS DR17 galaxies and quasars, and the cosmic microwave background from NASA WMAP.'),
             t('Past positions in a flight replay: JPL Horizons, with the planets from JPL’s mean orbital elements between encounters.'),
             t('Sizes are true; distant things are drawn as dots so they stay visible.'),
@@ -88,7 +91,7 @@ export default function SpaceLayerList({ layers, setLayers, counts = {}, deep = 
     <>
       <PanelSection>
         {TOGGLES.map(([key, label]) => (
-          <ToggleRow key={key} label={t(label)} count={counts[key]} checked={layers[key]} onChange={on => setLayers({ ...layers, [key]: on })} />
+          <ToggleRow key={key} label={t(label)} count={counts[key] ?? (key === 'deepSky' ? String(DEEP_SKY_PLACED.length) : undefined)} checked={layers[key]} onChange={on => setLayers({ ...layers, [key]: on })} />
         ))}
       </PanelSection>
       <PanelSection title={t('Spacecraft, by where they are')}>

@@ -19,6 +19,7 @@ export const USAGE_ACTIONS = [
   'layer.on', 'layer.off', 'basemap.change',
   'account.sign_up_open', 'account.sign_in_open',
   'tour.offer', 'tour.decline', 'tour.start', 'tour.inside', 'tour.skip', 'tour.resume', 'tour.finish',
+  'space_tour.offer', 'space_tour.decline', 'space_tour.start', 'space_tour.skip', 'space_tour.finish',
 ] as const;
 
 export type UsageAction = (typeof USAGE_ACTIONS)[number];

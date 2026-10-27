@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useRef, type Dispatch, type SetStateAction }
 import type { ToolId } from '@/components/shell/sidebar/dock';
 import { STOPS } from './lib/stops';
 import { TourLayer } from './parts/tour-layer';
-import { quitTour, useTourAt, useTourPart } from './tour-state';
+import { quitTour, useTourAt, useTourName, useTourPart } from './tour-state';
 
 /**
  * The map tour (desktop). Each stop shows its panel only where that leaves the map as it was, unless the
@@ -18,7 +18,10 @@ export default function MapTour({ activeTool, setActiveTool, onStart, history }:
   onStart: () => void;
   history: { running: boolean; start: () => void; exit: () => void };
 }) {
-  const at = useTourAt();
+  // The space view runs its own tour on the same layer; this one leaves it alone.
+  const mine = useTourName() === 'map';
+  const tourAt = useTourAt();
+  const at = mine ? tourAt : null;
   const part = useTourPart();
   /** The panel open when the tour began, kept open on its own stop; undefined while the tour is off. */
   const before = useRef<ToolId | null | undefined>(undefined);
@@ -48,7 +51,7 @@ export default function MapTour({ activeTool, setActiveTool, onStart, history }:
   });
   useEffect(() => follow(at, part), [at, part]);
   // Quietly: a window narrowed to a phone's width isn't someone skipping.
-  useEffect(() => quitTour, []);
+  useEffect(() => () => quitTour('map'), []);
 
   return at === null ? null : <TourLayer at={at} />;
 }

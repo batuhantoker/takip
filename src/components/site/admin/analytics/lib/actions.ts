@@ -29,6 +29,14 @@ const GROUPS: { id: string; label: string; actions: Record<string, string> }[] =
     label: 'Tour',
     actions: { 'tour.offer': 'Offered on a first visit', 'tour.decline': 'Offer turned down', 'tour.start': 'Tours started', 'tour.inside': 'Looked inside a panel', 'tour.skip': 'Stopped before the end', 'tour.resume': 'Came back to the tour', 'tour.finish': 'Tours finished' },
   },
+  {
+    id: 'space-tour',
+    label: 'Space tour',
+    actions: {
+      'space_tour.offer': 'Offered on arriving in space', 'space_tour.decline': 'Offer turned down', 'space_tour.start': 'Tours started',
+      'space_tour.skip': 'Stopped before the end', 'space_tour.finish': 'Tours finished',
+    },
+  },
 ];
 
 const OTHER = { id: 'other', label: 'Other' };

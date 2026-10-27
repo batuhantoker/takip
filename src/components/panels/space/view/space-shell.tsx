@@ -23,9 +23,11 @@ import SpaceCard from './space-card';
 import SpacePanelLeft from './space-panel-left';
 import { useNow } from '@/components/panels/space/use-space-data';
 import { useSpaceScene } from './use-space-scene';
+import { pastMission } from '@/lib/space/craft/past-missions';
 import { useEscape } from '@/components/ui/use-escape';
 import { useIsMobile } from '@/components/ui/use-is-mobile';
 import { useT } from '@/components/ui/use-t';
+import { SpaceTour, SpaceTourOffer } from '@/components/shell/tour/space-tour';
 
 /**
  * TAKIP — the space view: the scene, its left panel and its inspect card.
@@ -195,7 +197,7 @@ export default function SpaceShell({ request, layers, setLayers, satellites, map
       s.setAnchor({ kind: 'body', key: world }, { distance: FOCUS_DISTANCE_KM[world] * 0.6, direction: target ? surfaceDirection(s, world, target.lat, target.lng) : undefined });
       onFocus(world);
     } else {
-      const v = deepView(sel, a => s.anchorState(a)?.position);
+      const v = deepView(sel, a => s.anchorState(a)?.position, a => s.anchorState(a)?.radius);
       if (v) s.setAnchor(v.anchor, v);
     }
   }, [scene, fleet, onFocus]);
@@ -317,10 +319,12 @@ export default function SpaceShell({ request, layers, setLayers, satellites, map
         // A phone's sits over Map / Space.
         <div className={`pointer-events-none absolute z-[206] flex justify-center ${isMobile ? 'bottom-[calc(var(--shell-bottom,56px)+var(--switcher-clear)+env(safe-area-inset-bottom))]' : 'bottom-[88px]'}`}
           style={{ left: 'var(--shell-left, 72px)', right: 0 }}>
-          <FlightReplayBar name={fleet?.craft.find(c => c.id === replayId)?.name ?? t('Spacecraft')}
+          <FlightReplayBar name={fleet?.craft.find(c => c.id === replayId)?.name ?? pastMission(replayId)?.name ?? t('Spacecraft')}
             model={scene?.replay?.state.craftId === replayId ? scene.replay.model : null} state={replay} error={flight.error} controls={controls} />
         </div>
       )}
+      <SpaceTourOffer ready={shown && !leaving && replayId === null && !selection} />
+      <SpaceTour />
     </motion.div>
   );
 }
