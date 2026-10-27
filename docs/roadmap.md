@@ -90,7 +90,7 @@ Chosen by the user on 2026-10-15. Details are in [`inspiration-sources/gods-eye-
      - Check EUMETSAT's commercial terms for the MTG GeoColor band.
      - Himawari's band is synthesised: infrared cloud, plus visible cloud by day, over Blue and Black Marble. Cold ground at night (Siberia, Tibet) can read as thin cloud; a real Himawari GeoColor source would fix both.
      - Feather the four seams.
-   - **Replay:** snap to DescribeDomains, because the 10-minute archive has gaps.
+   - **Replay:** snap to DescribeDomains, because the 10-minute archive has gaps. Then publish both imagery layers' spans to the Replay timeline (`setSpans`, as radar does), so they narrow its track and hatch where they hold nothing.
    - **Images of an area:** done 2026-10-15. Right-click → "Satellite images here" (10 km, 50 km, 200 km or the map view, up to 500 km), or "Satellite images" on a shape in Areas (`src/components/map/imagery/`, `src/lib/feeds/imagery/area*.ts`), shows:
      - the last 60 days of Sentinel-2, Sentinel-1 radar and Landsat passes from Planetary Computer, each with how much of the area it covers, drawn on the map when picked;
      - a "clearest mix" when no one pass covers the area: the clearest tiles of several dates;

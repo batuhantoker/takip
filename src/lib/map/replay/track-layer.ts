@@ -32,7 +32,8 @@ out vec2 v_corner;
 out vec4 v_color;
 flat out float v_shape;
 void main() {
-  vec4 clip = projectTileFor3D(a_pos, 0.0);
+  // projectTile, not projectTileFor3D: only it writes the z that clips the globe's far side.
+  vec4 clip = projectTile(a_pos);
   // 0 aircraft, 1 ship arrow, 2 ship dot (below zoom 6, as the live layer).
   float shape = a_kind < 0.5 ? 0.0 : (u_zoom < 6.0 ? 2.0 : 1.0);
   float size = shape > 1.5 ? max(2.5, u_size * 0.3) : u_size;
@@ -74,7 +75,7 @@ in vec3 a_color;
 out float v_dt;
 out vec3 v_color;
 void main() {
-  gl_Position = projectTileFor3D(a_pos, 0.0);
+  gl_Position = projectTile(a_pos);
   v_dt = a_dt;
   v_color = a_color;
 }`;

@@ -8,6 +8,7 @@ import type { AccessEnv } from '../access/middleware';
 import type { ReplayData } from './data';
 import { featuresRoutes } from './features';
 import { historyRoutes } from './history';
+import { recordedSpans } from './recorded';
 import { seriesRoutes } from './series';
 
 /*
@@ -98,6 +99,8 @@ export function replayRoutes(data: ReplayData) {
       coverage: s.catalog.coverage(from, to)
         .filter(cv => sources.some(src => src.code === cv.source))
         .map(cv => ({ source: cv.source, from: cv.tLo / 1000, to: cv.tHi === null ? null : cv.tHi / 1000, status: cv.status })),
+      // Over the whole lookback, not just this window: the timeline's track spans it.
+      recorded: recordedSpans(s.catalog.coverage(s.earliest, now).filter(cv => sources.some(src => src.code === cv.source)), s.earliest),
       versions: s.catalog.layerVersions(),
       attribution: [...new Set(sources.map(src => src.attribution).filter(Boolean))],
     }, 200, { 'Cache-Control': 'private, max-age=30' });

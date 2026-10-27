@@ -2,13 +2,15 @@
 
 import { useEffect, useSyncExternalStore } from 'react';
 import { datedRaster } from '@/lib/feeds/imagery/dated-raster';
+import { msg } from '@/lib/core/i18n/translator';
 import {
-  RADAR_ATTRIBUTION, RADAR_MAX_ZOOM, RADAR_TILE_SIZE, radarFrameAt, radarFrames, radarState, setRadarState, subscribeRadar,
+  RADAR_ATTRIBUTION, RADAR_FRAME_MS, RADAR_MAX_ZOOM, RADAR_TILE_SIZE, radarFrameAt, radarFrames, radarState, setRadarState, subscribeRadar,
   type RadarFrame, type RadarMode,
 } from '@/lib/feeds/weather/radar';
 import { stackGroundRasters } from '@/lib/map/basemap/ground-rasters';
+import { frameSpans } from '@/lib/map/replay/availability';
 import { followClock } from '@/lib/map/replay/follow';
-import type { ReplayClock } from '@/lib/map/replay/clock';
+import type { ReplaySession } from '@/lib/map/replay/session';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 /** A loop step, and the pause on the newest frame before it starts over. */
@@ -20,7 +22,7 @@ interface RadarArgs {
   mapReady: boolean;
   activeLayers: WorldMapProps['activeLayers'];
   mapStyle: string;
-  replay: { clock: ReplayClock } | null;
+  replay: Pick<ReplaySession, 'clock' | 'setSpans'> | null;
 }
 
 /**
@@ -47,6 +49,7 @@ export function useRadarLayer({ mapRef, mapReady, activeLayers, mapStyle, replay
       stop();
       setRadarState({ from: frames[0]?.time ?? null, to: frames.at(-1)?.time ?? null });
       if (replay) {
+        replay.setSpans('radar', { label: msg('radar'), spans: frameSpans(frames.map(f => f.time), RADAR_FRAME_MS) });
         const update = () => show(radarFrameAt(frames, replay.clock.time()), 'replay');
         update();
         stop = followClock(replay.clock, update);
@@ -83,6 +86,7 @@ export function useRadarLayer({ mapRef, mapReady, activeLayers, mapStyle, replay
       clearInterval(refresh);
       stop();
       raster.destroy();
+      replay?.setSpans('radar', null);
       setRadarState({ mode: 'live', frameTime: null });
     };
   }, [mapReady, activeLayers.wx_radar, mapStyle, mapRef, replay, looping]);

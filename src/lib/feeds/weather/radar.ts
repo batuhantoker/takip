@@ -13,7 +13,7 @@ export const RADAR_TILE_SIZE = 512;
 /** RainViewer's free tiles stop at z7 (at either size) and answer deeper zooms with a placeholder image. */
 export const RADAR_MAX_ZOOM = 7;
 /** A frame stands for the 10 minutes after it. */
-const FRAME_SPAN_MS = 10 * 60_000;
+export const RADAR_FRAME_MS = 10 * 60_000;
 
 export interface RadarFrame {
   /** Epoch ms of the scan. */
@@ -41,7 +41,7 @@ export async function radarFrames(signal?: AbortSignal): Promise<RadarFrame[]> {
 /** The frame covering time `t`; null before the first or long after the last. */
 export function radarFrameAt(frames: RadarFrame[], t: number): RadarFrame | null {
   for (let i = frames.length - 1; i >= 0; i--) {
-    if (frames[i].time <= t) return t - frames[i].time <= FRAME_SPAN_MS ? frames[i] : null;
+    if (frames[i].time <= t) return t - frames[i].time <= RADAR_FRAME_MS ? frames[i] : null;
   }
   return null;
 }

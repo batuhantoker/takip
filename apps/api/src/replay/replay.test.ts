@@ -74,6 +74,7 @@ type Manifest = {
   limits: { earliest: number };
   tracks: { lods: { lod: number; buckets: [number, number][] }[] };
   coverage: { source: string; status: string }[];
+  recorded: { vessel: [number, number | null][]; aircraft: [number, number | null][] };
   attribution: string[];
 };
 
@@ -93,6 +94,8 @@ describe('/api/replay', () => {
     // Sealed at H+2:05, so final rather than provisional.
     expect(m.tracks.lods[0].buckets).toEqual([[H / 1000, SEALED_AT, 0]]);
     expect(m.coverage).toEqual([expect.objectContaining({ source: 'aisstream', status: 'ok' })]);
+    // Recorded spans reach past the window, back to the lookback.
+    expect(m.recorded).toEqual({ vessel: [[H / 1000, H / 1000 + 3600]], aircraft: [] });
     expect(m.attribution).toContain('The OpenSky Network, https://opensky-network.org');
     expect(m.token).toMatch(/^[0-9a-f]{12}$/);
   });

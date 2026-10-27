@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect } from 'react';
+import { msg } from '@/lib/core/i18n/translator';
 import { datedRaster } from '@/lib/feeds/imagery/dated-raster';
 import { LIGHTNING_MAX_ZOOM, LIGHTNING_SOURCES, lightningFrameAt, lightningTiles, lightningTimes, type LightningSource } from '@/lib/feeds/weather/lightning';
 import { stackGroundRasters } from '@/lib/map/basemap/ground-rasters';
+import { frameSpans, type Span, unionSpans } from '@/lib/map/replay/availability';
 import { followClock } from '@/lib/map/replay/follow';
-import type { ReplayClock } from '@/lib/map/replay/clock';
+import type { ReplaySession } from '@/lib/map/replay/session';
 import type { MapRef, WorldMapProps } from '@/components/map/types';
 
 interface LightningArgs {
@@ -13,7 +15,7 @@ interface LightningArgs {
   mapReady: boolean;
   activeLayers: WorldMapProps['activeLayers'];
   mapStyle: string;
-  replay: { clock: ReplayClock } | null;
+  replay: Pick<ReplaySession, 'clock' | 'setSpans'> | null;
 }
 
 /**
@@ -25,6 +27,7 @@ export function useLightningLayer({ mapRef, mapReady, activeLayers, mapStyle, re
     const map = mapRef.current;
     if (!mapReady || !map || !activeLayers.wx_lightning) return;
     const ctrl = new AbortController();
+    const spans = new Map<string, Span[]>();
 
     const follow = (source: LightningSource) => {
       const rasters = (source.bounds ?? [undefined]).map((bounds, i) => datedRaster(map, {
@@ -45,6 +48,8 @@ export function useLightningLayer({ mapRef, mapReady, activeLayers, mapStyle, re
           times = next;
           stop();
           if (replay) {
+            spans.set(source.id, frameSpans(times, source.spanMs));
+            replay.setSpans('lightning', { label: msg('lightning'), spans: unionSpans([...spans.values()]) });
             const update = () => show(lightningFrameAt(times, replay.clock.time(), source.spanMs));
             update();
             stop = followClock(replay.clock, update);
@@ -62,6 +67,6 @@ export function useLightningLayer({ mapRef, mapReady, activeLayers, mapStyle, re
     };
 
     const stops = LIGHTNING_SOURCES.map(follow);
-    return () => { ctrl.abort(); stops.forEach(s => s()); };
+    return () => { ctrl.abort(); stops.forEach(s => s()); replay?.setSpans('lightning', null); };
   }, [mapReady, activeLayers.wx_lightning, mapStyle, mapRef, replay]);
 }

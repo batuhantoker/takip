@@ -12,6 +12,15 @@ export type TrackClassName = keyof typeof TrackClass;
 export const trackClassByName = (name: string): TrackClass | undefined =>
   Object.prototype.hasOwnProperty.call(TrackClass, name) ? TrackClass[name as TrackClassName] : undefined;
 
+/** What each track source (meta_source.code) records; the catalogue doesn't store it, the connectors do. */
+export const TRACK_SOURCE_CLASS: Record<string, TrackClassName> = {
+  aisstream: 'vessel',
+  opensky: 'aircraft',
+  adsbfi: 'aircraft',
+  adsblol: 'aircraft',
+  'adsblol-history': 'aircraft',
+};
+
 /** Index = the category code stored in trk_segment.category; names match the live layers' filters. */
 export const VESSEL_CATEGORIES = ['other', 'cargo', 'tanker', 'passenger', 'fishing', 'military', 'service', 'leisure'] as const;
 export const AIRCRAFT_CATEGORIES = ['commercial', 'private', 'jet', 'military'] as const;

@@ -3,28 +3,7 @@
 import { type KeyboardEvent, type PointerEvent, useLayoutEffect, useRef, useState } from 'react';
 import { cx } from '@/components/ui/class-names';
 import { useT } from '@/components/ui/use-t';
-import type { CoverageSpan } from '@/lib/map/replay/session';
 import type { Tick } from '@/lib/map/replay/timeline-ticks';
-
-/**
- * Where no source recorded anything, within the span the coverage describes. One quiet source while
- * another recorded is not a gap in the history, so only the complement of every recorded span is shaded.
- */
-export function coverageGaps(coverage: CoverageSpan[], lo: number, hi: number) {
-  if (!coverage.length) return [];
-  const recorded = coverage
-    .filter(c => c.status === 'ok' || c.status === 'degraded')
-    .map(c => [c.from * 1000, c.to === null ? hi : c.to * 1000] as const)
-    .sort((a, b) => a[0] - b[0]);
-  const out: Span[] = [];
-  let cursor = Math.max(lo, Math.min(...coverage.map(c => c.from * 1000)));
-  for (const [from, to] of recorded) {
-    if (from > cursor) out.push({ from: cursor, to: Math.min(from, hi) });
-    cursor = Math.max(cursor, to);
-  }
-  if (cursor < hi) out.push({ from: cursor, to: hi });
-  return out.filter(g => g.to > g.from);
-}
 
 type Span = { from: number; to: number };
 /** A coloured stretch under the rail, such as a geological period. */
@@ -62,6 +41,8 @@ export type TimelineScrubberProps = {
   provisionalFrom?: number;
   /** What the hover readout adds over a gap or the provisional stretch. */
   notes?: { gap?: string; provisional?: string };
+  /** A note for the time under the pointer, before `notes`; undefined leaves it to them. */
+  noteAt?: (t: number) => string | undefined;
   bands?: Band[];
   /** When the track runs past today: a "Today" line here, and a quiet zone after it. */
   today?: number;
@@ -69,7 +50,7 @@ export type TimelineScrubberProps = {
 
 /** The track both timelines share: ticks, the played stretch, a handle to drag, the time under the pointer, and arrow keys. */
 export default function TimelineScrubber({
-  label, lo, hi, time, step, onSeek, onTogglePlay, format, ticksFor, gaps = [], provisionalFrom, notes, bands, today,
+  label, lo, hi, time, step, onSeek, onTogglePlay, format, ticksFor, gaps = [], provisionalFrom, notes, noteAt, bands, today,
 }: TimelineScrubberProps) {
   const t = useT();
   const root = useRef<HTMLDivElement>(null);
@@ -133,7 +114,7 @@ export default function TimelineScrubber({
   const readoutAt = drag ?? hover;
   const inGap = readoutAt !== null && gaps.some(g => readoutAt >= g.from && readoutAt < g.to);
   const provisional = readoutAt !== null && provisionalFrom !== undefined && readoutAt >= provisionalFrom;
-  const note = inGap ? notes?.gap : provisional ? notes?.provisional : undefined;
+  const note = (readoutAt !== null ? noteAt?.(readoutAt) : undefined) ?? (inGap ? notes?.gap : provisional ? notes?.provisional : undefined);
   /** Centred on its point, unless half of it (`half` px) would hang off an end of the track. */
   const edge = (f: number, half: number) => {
     const x = f * width;

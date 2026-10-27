@@ -1,6 +1,7 @@
 import { type Bbox, tilesForBbox } from '@takip/core/tiles';
 import { LODS, type Lod } from '@takip/core/tracks';
 import { decodeChunk, decodeTrk1, type DecodedTrack } from '@takip/core/trk';
+import type { LayerSpans } from './availability';
 import { createReplayClock, type ReplayClock } from './clock';
 
 /* What the browser keeps while replaying: the clock, the manifest around it, and decoded chunks. */
@@ -19,6 +20,8 @@ export type Manifest = {
     lods: { lod: Lod; bucketS: number; fetchZoom: number; buckets: [number, number, number][] }[];
   };
   coverage: CoverageSpan[];
+  /** Per class, when it was recorded over the caller's whole lookback, in epoch seconds; `to` is null while open. */
+  recorded?: Record<'vessel' | 'aircraft', [number, number | null][]>;
   attribution: string[];
 };
 
@@ -79,7 +82,11 @@ export type ReplaySession = {
   stats(): ReplayStats;
   setStats(stats: ReplayStats): void;
   manifest(): Manifest | null;
-  /** The manifest changed, or a fetch failed. */
+  /** When each time-bound layer that is on has data (availability.ts), as its hook last published it. */
+  spans(): LayerSpans[];
+  /** Null when the layer is off. */
+  setSpans(key: string, layer: LayerSpans | null): void;
+  /** The manifest, the stats or the spans changed, or a fetch failed. */
   subscribe(listener: () => void): () => void;
   error(): string | null;
   /**
@@ -102,6 +109,7 @@ export function createReplaySession(start: number, get: typeof fetch = fetch): R
   let retryAt = 0;
   let disposed = false;
   let stats: ReplayStats = { shown: 0, state: 'loading' };
+  const spans = new Map<string, LayerSpans>();
 
   const loadManifest = async () => {
     const t = clock.time() / 1000;
@@ -173,6 +181,13 @@ export function createReplaySession(start: number, get: typeof fetch = fetch): R
       emit();
     },
     manifest: () => manifest,
+    spans: () => [...spans.values()],
+    setSpans(key, layer) {
+      if (JSON.stringify(spans.get(key) ?? null) === JSON.stringify(layer)) return;
+      if (layer) spans.set(key, layer);
+      else spans.delete(key);
+      emit();
+    },
     error: () => error,
     subscribe(listener) {
       listeners.add(listener);

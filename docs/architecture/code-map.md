@@ -37,7 +37,7 @@ src/lib has nine groups. A group holds domain folders, plus a few single-file mo
 | `layers/` | Layer defaults, saved layers, what past views can show, ArcGIS layers | shell/state, shell/showing, panels/arcgis, lib/platform/workspaces |
 | `popups/` | `kit.ts` (`pop()`) and the layer popups | map/interaction; most feeds/* layer modules, history, space |
 | `camera/`, `terrain/` | Camera verbs, tracking and globe occlusion; terrain tiles and layer order | map/interaction, map/controls, map/basemap |
-| `replay/` | Replay of recorded tracks: clock, sessions, time input, timeline ticks, track maths and layer; `followClock` for dated layers | map/replay, map/layers, panels/history, panels/space, shell/showing |
+| `replay/` | Replay of recorded tracks: clock, sessions, time input, timeline ticks, track maths and layer, what each layer holds over time (`availability`); `followClock` for dated layers | map/replay, map/layers, panels/history, panels/space, shell/showing |
 | `splash/` | The opening globe and its hand-off to the map; `draw/` | shell/splash |
 | `embed/` | The embed spec (`spec.ts`: layers, view or area, track, past window, its query and the embed's layer set) and the layers that can show a past window (`windows.ts`); `docs/architecture/embeds.md` | site/embed; app embed, api/earthquakes (range); lib platform/site |
 | `style/` | The map's paint: `tokens.ts` (`MAP_INK`, `SERIES_INK`), the palette and its CSS pin, hatch patterns, the style studio | map/* components, panels/layers, panels/markets, shell/map-look, shell/showing; lib map/basemap, feeds/*, history |

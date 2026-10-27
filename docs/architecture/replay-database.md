@@ -296,6 +296,7 @@ All jobs run inside the worker, with a lock file guaranteeing a single instance.
   | `not_recording` | Nothing was polled, or the source is switched off (§7.6) |
 - `meta_dataset_gap` holds the gaps that datasets declare: GTD has no 1993, and UCDP's 2025 data is preliminary.
 - The replay manifest returns both. The timeline greys those spans out, and tracks are never interpolated across an outage.
+- The manifest's `coverage` covers only its window. Its `recorded` covers the caller's whole lookback: per track class, the spans its sources recorded (`ok` or `degraded`), merged (`apps/api/src/replay/recorded.ts`, classes from `TRACK_SOURCE_CLASS` in `@takip/core/tracks`). The Replay timeline starts at the oldest data of the layers on, offers only the ranges that reach it, and hatches what none of them holds. Radar and lightning add their frames' spans from the browser (`src/lib/map/replay/availability.ts`).
 
 ### 7.5 Importers
 
@@ -411,7 +412,7 @@ Decided 2026-10-13: granular history is not kept forever. Where the upstream kee
 | Series / choropleth | Binary `/api/replay/series/{metric}` | The whole series once; `feature-state` changes per frame | Immutable per `v` |
 | Documents | JSON `/api/replay/docs?event=` or `?entity=` | On click | Short |
 | Histogram | JSON `/api/replay/histogram?layers=&from=&to=&bins=` | Density bars and gap shading on the scrubber | Per `v` |
-| Manifest | JSON `/api/replay/manifest?from=&to=` | Layers, LODs, coverage, gaps, versions, attributions | Short |
+| Manifest | JSON `/api/replay/manifest?from=&to=` | Layers, LODs, coverage, recorded spans per class, gaps, versions, attributions | Short |
 | Entity at a time | JSON `/api/replay/entity/{id}?at=` | Version, state and last fix at that time | Short |
 
 **Live is replay pinned to now:** the open bucket comes from the worker's memory, so live and replay share one code path.
@@ -668,7 +669,7 @@ Move when **any** of these is true:
   - *Deferred:* the camera catalogue → `catalog.db` cameras, nominatim → `cache.db`, and the remaining seeds, which go with the importers.
 - **1c, partly built:** `apps/ingest` with the worker, connectors' `map()`, L0 sealing, L1 and L2, TLE loading, coverage and the source switches (§7.3, §7.6). Connectors still poll from Next.
 - **2, partly built:** `/api/replay/manifest`, `/tracks/…` and `/tle` in `apps/api`, plus the admin Sources page, and the client.
-  - **Client:** a clock button under the zoom controls; a timeline bar in place of the status bar while replaying, with play, speeds from 1× to 1 year/s, a jump box ("1916", "2003-03-20", "500 BCE"), ranges from 24 h to all of history, and "not recorded" shading; and the WebGL track layer.
+  - **Client:** a clock button under the zoom controls; a timeline bar in place of the status bar while replaying, with play, speeds from 1× to 1 year/s, a jump box ("1916", "2003-03-20", "500 BCE"), ranges from 24 h to all of history (only those the layers on have data for), and "not recorded" shading per layer; and the WebGL track layer.
   - *Not built:* event and feature tiles (the importer session is building the history route and layer), histogram, series, docs, entity-at-time, picking a replayed track, and the nginx rules.
 - **Recording is on (2026-10-12 20:58 UTC)** in development: `TAKIP_ARCHIVE_DIR` and `TAKIP_WEB_URL` are in `.env.local`, and the worker runs beside `npm run dev`. Backfill is built for adsb.lol history, OpenSky and USGS (§7.7). adsb.lol days are indexed, so one aircraft's full trace can be fetched again by range request (§7.8).
 - **Earthquakes recorded since 2026-10-12** (USGS, M2.5+, with the 30 days before filled on first start). They replay through the importer session's history layer, which follows the `earthquakes` toggle; ships and aircraft follow their own toggles.

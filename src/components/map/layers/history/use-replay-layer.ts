@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import type { MapMouseEvent } from 'maplibre-gl';
 import { lodForZoom } from '@takip/core/tracks';
+import { msg } from '@/lib/core/i18n/translator';
+import { trackSpans } from '@/lib/map/replay/availability';
 import { chunkUrls, lodBucketS, type ReplaySession, type ReplayTrack } from '@/lib/map/replay/session';
 import { createReplayTrackLayer, TRAIL_S } from '@/lib/map/replay/track-layer';
 import { BRIDGE_S, HOLD_S, type ReplayEntity } from '@/lib/map/replay/track-sample';
@@ -163,9 +165,19 @@ export function useReplayLayer({ mapRef, mapReady, replay, activeLayers }: {
         load();
       }
     };
+    // For the timeline: when the tracks on were recorded.
+    const publish = () => {
+      const manifest = replay.manifest();
+      const { ships, aircraft } = replayed(layersRef.current);
+      const flights = manifest && aircraft.length ? trackSpans(manifest, 'aircraft') : null;
+      const vessels = manifest && ships ? trackSpans(manifest, 'vessel') : null;
+      replay.setSpans('aircraft', flights && { label: msg('flights'), spans: flights });
+      replay.setSpans('vessel', vessels && { label: msg('ships'), spans: vessels });
+    };
     refilterRef.current = () => {
       layer.setFilter(filterFor(layersRef.current));
       load();
+      publish();
     };
 
     // The timeline shows what is drawn; twice a second is plenty, and keeps the page from re-rendering per frame.
@@ -193,6 +205,8 @@ export function useReplayLayer({ mapRef, mapReady, replay, activeLayers }: {
 
     const unclock = replay.clock.subscribe(onClock);
     const unsession = replay.subscribe(load);
+    const unpublish = replay.subscribe(publish);
+    publish();
     map.on('moveend', load);
     map.on('mousemove', onHover);
     onClock();
@@ -205,6 +219,9 @@ export function useReplayLayer({ mapRef, mapReady, replay, activeLayers }: {
       clearInterval(stats);
       unclock();
       unsession();
+      unpublish();
+      replay.setSpans('aircraft', null);
+      replay.setSpans('vessel', null);
       map.off('moveend', load);
       refilterRef.current = () => {};
       try {

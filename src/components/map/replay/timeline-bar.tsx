@@ -6,12 +6,13 @@ import { cx } from '@/components/ui/class-names';
 import { Dot } from '@/components/ui/tag';
 import { useT } from '@/components/ui/use-t';
 import { msg, type Translate } from '@/lib/core/i18n/translator';
+import { gapsWithin, type LayerSpans, missingAt, rangesFor, unionSpans } from '@/lib/map/replay/availability';
 import type { ReplaySession } from '@/lib/map/replay/session';
 import { formatTime, HISTORY_START, parseJump } from '@/lib/map/replay/time-input';
 import { type GoToExample, GoToPopover } from './go-to-popover';
 import { BackToLive, ChoiceMenu, JumpButton, PlayButton, TimeReadout } from './timeline-controls';
 import { TimelineDock, TimelineRow } from './timeline-dock';
-import TimelineScrubber, { coverageGaps } from './timeline-scrubber';
+import TimelineScrubber from './timeline-scrubber';
 import { calendarTicks } from '@/lib/map/replay/timeline-ticks';
 import { useReplayTick } from './use-replay';
 import { useRemembered } from './use-remembered';
@@ -39,7 +40,9 @@ const RANGES = [
   { id: 'century', label: msg('Last 100 years'), ms: 100 * YEAR_MS },
   { id: 'all', label: msg('All of history'), ms: Number.POSITIVE_INFINITY },
 ] as const;
-type RangeId = (typeof RANGES)[number]['id'];
+/** The last choice when no range above fits the oldest data of the layers on: from there to now. */
+const RECORDED = { id: 'recorded', label: msg('All recorded'), ms: Number.POSITIVE_INFINITY } as const;
+type RangeId = (typeof RANGES)[number]['id'] | typeof RECORDED.id;
 
 const STATE_TEXT = {
   loading: msg('Loading…'),
@@ -51,6 +54,14 @@ const STATE_TEXT = {
 
 /** The smallest range that still shows `t`. */
 const rangeFor = (t: number, now: number): RangeId => RANGES.find(r => now - t <= r.ms)?.id ?? 'all';
+
+/** Over the track: which of the layers on hold nothing at `at`. */
+function missingNote(layers: LayerSpans[], at: number, t: Translate) {
+  const missing = missingAt(layers, at).map(label => t(label));
+  if (!missing.length) return undefined;
+  const note = t('{layers}: not recorded', { layers: new Intl.ListFormat(t.intl, { type: 'conjunction' }).format(missing) });
+  return note.charAt(0).toLocaleUpperCase(t.intl) + note.slice(1);
+}
 
 /** The session's error in words: a browser's "Failed to fetch" means the server didn't answer. */
 function errorText(message: string, t: Translate) {
@@ -95,15 +106,21 @@ export default function TimelineBar({ session, onExit, compact }: { session: Rep
   const t = useT();
   const now = useReplayTick(session);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
-  const [rangeId, setRangeId] = useRemembered<RangeId>('takip.replay.range', 'day', RANGES.map(r => r.id));
+  const [rangeId, setRangeId] = useRemembered<RangeId>('takip.replay.range', 'day', [...RANGES.map(r => r.id), RECORDED.id]);
   const [goTo, setGoTo] = useState(false);
   const { clock } = session;
-  const manifest = session.manifest();
   const stats = session.stats();
   const time = clock.time();
   const hi = now || time;
-  const range = RANGES.find(r => r.id === rangeId)!;
-  const lo = Number.isFinite(range.ms) ? hi - range.ms : HISTORY_START;
+  const layers = session.spans();
+  const recorded = unionSpans(layers.map(l => l.spans));
+  // The track reaches back to the oldest data of the layers on, and no further; a clock set earlier widens it.
+  const oldest = recorded[0]?.from;
+  const fit = rangesFor(RANGES, oldest, hi);
+  const ranges = [...fit.shorter, fit.whole ?? RECORDED];
+  const range = ranges.find(r => r.id === rangeId) ?? ranges.at(-1)!;
+  const from = oldest !== undefined && range === ranges.at(-1) ? oldest : Number.isFinite(range.ms) ? hi - range.ms : HISTORY_START;
+  const lo = Math.min(time, from);
   const span = hi - lo;
   const error = session.error();
   const { primary, secondary } = readout(time, span, t);
@@ -145,8 +162,8 @@ export default function TimelineBar({ session, onExit, compact }: { session: Rep
     <TimelineScrubber label={t('Replay time')} lo={lo} hi={hi} time={time} step={clock.speed() * 1000}
       onSeek={seek} onTogglePlay={toggle} format={ms => pointerText(ms, span, t)}
       ticksFor={max => calendarTicks(lo, hi, max, t)}
-      gaps={coverageGaps(manifest?.coverage ?? [], lo, hi)} provisionalFrom={hi - SEAL_DELAY_MS}
-      notes={{ gap: t('not recorded'), provisional: t('provisional until two hours old') }} />
+      gaps={layers.length ? gapsWithin(recorded, lo, hi) : []} provisionalFrom={hi - SEAL_DELAY_MS}
+      noteAt={at => missingNote(layers, at, t)} notes={{ provisional: t('provisional until two hours old') }} />
   );
   const goToButton = (
     <GoToPopover open={goTo} onOpenChange={setGoTo} onGo={go} placeholder={`${ymd(hi - DAY_MS)} 14:30`}
@@ -175,7 +192,7 @@ export default function TimelineBar({ session, onExit, compact }: { session: Rep
       <p role="status" title={error ?? undefined}
         className={cx('max-w-[220px] shrink-0 truncate text-small', error ? 'text-red' : 'hidden text-ink-3 @6xl/timeline:block')}>{status}</p>
       <div className="flex shrink-0 items-center gap-1">
-        <ChoiceMenu label={t('Range')} value={rangeId} groups={[{ options: RANGES.map(r => ({ value: r.id, label: t(r.label) })) }]} onChange={setRangeId} />
+        <ChoiceMenu label={t('Range')} value={range.id} groups={[{ options: ranges.map(r => ({ value: r.id, label: t(r.label) })) }]} onChange={setRangeId} />
         {goToButton}
         <span className="mx-1 h-5 w-px bg-line" aria-hidden />
         {exit}
