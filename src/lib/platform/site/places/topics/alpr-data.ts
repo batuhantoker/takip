@@ -29,6 +29,8 @@ export interface AlprPick {
   op?: string;
   /** Mapped bearings, degrees from north. */
   dirs?: number[];
+  /** The city or town it is counted in, else its county; on a county's, state's or country's page. */
+  within?: number;
 }
 
 /** One place's row. */
@@ -54,6 +56,10 @@ export interface AlprRow {
   of: number;
   /** The places inside it, [place id, readers], most first: a country's states, a state's counties, a county's cities. */
   areas?: [number, number][];
+  /** A country's or state's cities and towns with the most, [place id, readers]. */
+  cities?: [number, number][];
+  /** A country's states or a state's counties with the most per resident, [place id, readers], most first. */
+  dense?: [number, number][];
   /** A city's nearest its centre; elsewhere the latest added to OpenStreetMap. Indexed pages only. */
   picks?: AlprPick[];
 }

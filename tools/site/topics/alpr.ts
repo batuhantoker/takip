@@ -25,6 +25,9 @@ const OUT = 'data/site/topics/alpr.json';
 const COUNTRIES = new Set(['US', 'CA', 'PR', 'VI']);
 const PICKS = 6;
 const AREAS = 25;
+const DENSE = 10;
+/** Below this a county's few readers make a per-resident figure that says nothing. */
+const DENSE_POP = 50_000;
 
 interface Reader { id: number; at: [number, number]; maker?: string; op?: string; dirs?: number[]; county?: string; place?: string }
 
@@ -41,12 +44,13 @@ function tally(values: (string | undefined)[]): [string, number][] {
   return [...counts].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
-const pick = (r: Reader): AlprPick => ({
+const pick = (r: Reader, within?: number): AlprPick => ({
   id: r.id,
   at: [Number(r.at[0].toFixed(5)), Number(r.at[1].toFixed(5))],
   ...(r.maker ? { maker: r.maker } : {}),
   ...(r.op ? { op: r.op } : {}),
   ...(r.dirs?.length ? { dirs: r.dirs } : {}),
+  ...(within ? { within } : {}),
 });
 
 function readers(): { readers: Reader[]; asOf: string } {
@@ -73,7 +77,7 @@ function readers(): { readers: Reader[]; asOf: string } {
   }
 }
 
-function row(list: Reader[], picks: Reader[] | undefined, extra: Partial<AlprRow>): AlprRow {
+function row(list: Reader[], picks: Reader[] | undefined, extra: Partial<AlprRow>, within?: (r: Reader) => number | undefined): AlprRow {
   return {
     n: list.length,
     flock: list.filter(r => r.maker === FLOCK).length,
@@ -84,7 +88,7 @@ function row(list: Reader[], picks: Reader[] | undefined, extra: Partial<AlprRow
     rank: 0,
     of: 0,
     ...extra,
-    ...(picks ? { picks: picks.slice(0, PICKS).map(pick) } : {}),
+    ...(picks ? { picks: picks.slice(0, PICKS).map(r => pick(r, within?.(r))) } : {}),
   };
 }
 
@@ -165,18 +169,33 @@ function main() {
     const b = bound(id);
     rows[id] = row(list.map(x => x.r), list.length >= ALPR_INDEX[place.kind] ? nearest : undefined, b ? { bound: b } : { r: alprKm(place.pop) });
   }
+  const townOf = (r: Reader) => cityOfReader.get(r.id);
+  const placeOf = (r: Reader) => townOf(r) ?? (r.county && byId.has(countyPlaceId(r.county)) ? countyPlaceId(r.county) : undefined);
+  /** The cities and towns that hold the most of `list`; a city counted by reach can take readers over a state line. */
+  const citiesOf = (list: Reader[], admin1?: string) => {
+    const counts = new Map<number, number>();
+    for (const r of list) {
+      const city = townOf(r);
+      if (city && (!admin1 || byId.get(city)!.admin1 === admin1)) counts.set(city, (counts.get(city) ?? 0) + 1);
+    }
+    return byCount(counts);
+  };
+  const denseOf = (areas: Map<number, number>, floor: number): [number, number][] => [...areas]
+    .filter(([id]) => (byId.get(id)?.pop ?? 0) >= floor)
+    .sort((a, b) => b[1] / byId.get(b[0])!.pop - a[1] / byId.get(a[0])!.pop)
+    .slice(0, DENSE);
   for (const [id, list] of byCounty) {
     const towns = new Map<number, number>();
     for (const r of list) {
-      const city = cityOfReader.get(r.id);
+      const city = townOf(r);
       if (city) towns.set(city, (towns.get(city) ?? 0) + 1);
     }
-    rows[id] = row(list, list.length >= ALPR_INDEX.county ? newestFirst(list) : undefined, { areas: byCount(towns) });
+    rows[id] = row(list, list.length >= ALPR_INDEX.county ? newestFirst(list) : undefined, { areas: byCount(towns) }, townOf);
   }
   for (const [id, list] of byState) {
     const counties = new Map<number, number>();
     for (const r of list) counties.set(countyPlaceId(r.county!), (counties.get(countyPlaceId(r.county!)) ?? 0) + 1);
-    rows[id] = row(list, newestFirst(list), { areas: byCount(counties) });
+    rows[id] = row(list, newestFirst(list), { areas: byCount(counties), cities: citiesOf(list, byId.get(id)!.admin1), dense: denseOf(counties, DENSE_POP) }, placeOf);
   }
   for (const [cc, list] of byCountry) {
     const country = places.find(p => p.kind === 'country' && p.cc === cc);
@@ -186,7 +205,8 @@ function main() {
       const state = r.county && byId.get(statePlaceId(r.county.slice(0, 2)));
       if (state) states.set(state.id, (states.get(state.id) ?? 0) + 1);
     }
-    rows[country.id] = row(list, newestFirst(list), states.size ? { areas: [...states].sort((a, b) => b[1] - a[1]) } : {});
+    const parts = states.size ? { areas: [...states].sort((a, b) => b[1] - a[1]), dense: denseOf(states, 1) } : {};
+    rows[country.id] = row(list, newestFirst(list), { ...parts, cities: citiesOf(list) }, placeOf);
   }
 
   const groupBy = (kind: Place['kind'], key: (p: Place) => string) => {
