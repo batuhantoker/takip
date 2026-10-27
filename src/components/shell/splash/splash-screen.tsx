@@ -7,6 +7,7 @@ import { TakipWordmark } from '@/components/shell/brand/takip-wordmark';
 import { useT } from '@/components/ui/use-t';
 import { GlobeCanvas } from './globe-canvas';
 import { useGlobeHandoff } from './use-globe-handoff';
+import { SPLASH_HOLD_MS } from './use-splash';
 import { usePrefersReducedMotion } from './use-prefers-reduced-motion';
 
 const EASE_OUT = [0.2, 0.8, 0.2, 1] as const;
@@ -33,7 +34,7 @@ export default function SplashScreen({ showSplash, splashStage, setSplashGone }:
         <motion.div
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, pointerEvents: 'none' }}
-          transition={{ duration: still ? 0.2 : 0.35, ease: EASE_OUT }}
+          transition={{ duration: still ? 0.2 : 0.25, ease: EASE_OUT }}
           className="absolute inset-0 z-[999] flex flex-col items-center justify-center overflow-hidden bg-surface-0"
         >
           {/* On exit the globe glides onto the map's opening globe, which faces the same way, and fades into it. */}
@@ -42,7 +43,7 @@ export default function SplashScreen({ showSplash, splashStage, setSplashGone }:
             className="relative aspect-[1.15] w-full max-w-[560px] md:aspect-[1.45] md:w-[min(92vw,calc(62vh*1.45))] md:max-w-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={still ? undefined : { ...handoff, transition: { duration: 0.55, ease: EASE_IN_OUT } }}
+            exit={still ? undefined : { ...handoff, transition: { duration: 0.4, ease: EASE_IN_OUT } }}
             transition={{ duration: 0.6, ease: EASE_OUT }}
           >
             <GlobeCanvas stage={splashStage} still={still} className="absolute inset-0 h-full w-full" />
@@ -62,8 +63,9 @@ export default function SplashScreen({ showSplash, splashStage, setSplashGone }:
             </div>
             <div role="progressbar" aria-label={t('Loading the map')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}
               className="h-px w-40 overflow-hidden bg-line">
+              {/* The last step lands as the splash lifts. */}
               <div className="h-full origin-left bg-ink-2 transition-transform duration-500 ease-out motion-reduce:transition-none"
-                style={{ transform: `scaleX(${progress})` }} />
+                style={{ transform: `scaleX(${progress})`, transitionDuration: progress === 1 ? `${SPLASH_HOLD_MS}ms` : undefined }} />
             </div>
           </motion.div>
         </motion.div>

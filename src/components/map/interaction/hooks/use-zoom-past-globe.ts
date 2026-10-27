@@ -52,14 +52,17 @@ export function useZoomPastGlobe({ mapRef, mapReady, onZoomPastGlobe, onNearGlob
     const map = mapRef.current;
     if (!mapReady || !map) return;
     const el = map.getCanvasContainer();
-    let pushed = 0, last = 0, warmed = false;
+    let pushed = 0, last = 0, warmed = false, drawn = false;
     const onZoom = () => {
-      if (warmed || map.getZoom() > WARM_ZOOM) return;
+      if (warmed || !drawn || map.getZoom() > WARM_ZOOM) return;
       warmed = true;
       warm.current?.();
     };
+    // Not before the opening globe has drawn: space's code and textures would compete with its tiles.
+    const onDrawn = () => { drawn = true; onZoom(); };
     map.on('zoom', onZoom);
-    onZoom();
+    if (map.loaded()) onDrawn();
+    else map.once('idle', onDrawn);
     const onWheel = (e: WheelEvent) => {
       const now = performance.now();
       if (now - last > IDLE_MS) pushed = 0;
@@ -72,6 +75,6 @@ export function useZoomPastGlobe({ mapRef, mapReady, onZoomPastGlobe, onNearGlob
       handler.current(globeView(map));
     };
     el.addEventListener('wheel', onWheel, { passive: true });
-    return () => { el.removeEventListener('wheel', onWheel); map.off('zoom', onZoom); };
+    return () => { el.removeEventListener('wheel', onWheel); map.off('zoom', onZoom); map.off('idle', onDrawn); };
   }, [mapRef, mapReady]);
 }

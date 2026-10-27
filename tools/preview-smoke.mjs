@@ -113,7 +113,7 @@ try {
   if (['imagery', 'buildings', 'terrain-camera'].includes(scenario)) await command('Fetch.enable', { patterns: [{ urlPattern: `${new URL(url).origin}/api/geo*` }] });
   if (scenario === 'satellites') await command('Fetch.enable', { patterns: [{ urlPattern: `${new URL(url).origin}/api/satellites` }] });
   await command('Page.addScriptToEvaluateOnNewDocument', { source: `window.__previewLongTasks = []; new PerformanceObserver(list => { for (const e of list.getEntries()) window.__previewLongTasks.push({start: Math.round(e.startTime), ms: Math.round(e.duration)}); }).observe({type: 'longtask', buffered: true});` });
-  if (scenario === 'recovery') await command('Network.setBlockedURLs', { urls: [`${new URL(url).origin}/dark-matter-style.json*`] });
+  if (scenario === 'recovery') await command('Network.setBlockedURLs', { urls: ['https://tiles.openfreemap.org/planet*'] });
   await command('Emulation.setDeviceMetricsOverride', scenario === 'mobile'
     ? { width: 390, height: 844, deviceScaleFactor: 2, mobile: true }
     : { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
@@ -269,7 +269,7 @@ try {
   const screenshot = await command('Page.captureScreenshot', { format: 'png' });
   await writeFile(join(profile, 'preview.png'), Buffer.from(screenshot.data, 'base64'));
   checks.push({ name: 'No camera or renderer failures', passed: !warnings.some(w => /Projection switch failed|TypeError|Satellite picking unavailable|Map initialization failed/.test(JSON.stringify(w))) });
-  measurements.mapNetwork = [...network.values()].filter(r => /openfreemap|cartocdn|maplibre|dark-matter-style/.test(r.url));
+  measurements.mapNetwork = [...network.values()].filter(r => /openfreemap|cartocdn|maplibre/.test(r.url));
   measurements.visibility = await evaluate(`({hidden: document.hidden, state: document.visibilityState})`);
   const report = { scenario, checks, measurements, page: JSON.parse(result.result.value), errors, warnings, failedRequests: requests, screenshot: join(profile, 'preview.png') };
   await writeFile(join(profile, 'report.json'), JSON.stringify(report, null, 2));

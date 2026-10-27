@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, readFile, rm } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 // MapLibre 6's module worker imports a sibling shared module. Self-host both
 // from the installed version, rather than relying on a CDN or bundler-relative URL.
@@ -8,9 +8,14 @@ const { version } = JSON.parse(await readFile(new URL('package.json', source), '
 const vendor = new URL('public/vendor/maplibre/', root);
 const target = new URL(`${version}/`, vendor);
 await mkdir(target, { recursive: true });
-for (const file of ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs', '../LICENSE.txt']) {
-  await copyFile(new URL(`dist/${file}`, source), new URL(file.split('/').at(-1), target));
-}
+// Served as .js: Cloudflare's edge caches .js but not .mjs, and the map's first tiles wait on this pair.
+const SHARED_IMPORT = '"./maplibre-gl-shared.mjs"';
+const worker = await readFile(new URL('dist/maplibre-gl-worker.mjs', source), 'utf8');
+if (!worker.includes(SHARED_IMPORT)) throw new Error(`prepare-map-worker: the worker no longer imports ${SHARED_IMPORT}`);
+await writeFile(new URL('maplibre-gl-worker.js', target), worker.replace(SHARED_IMPORT, '"./maplibre-gl-shared.js"'));
+await copyFile(new URL('dist/maplibre-gl-shared.mjs', source), new URL('maplibre-gl-shared.js', target));
+await copyFile(new URL('LICENSE.txt', source), new URL('LICENSE.txt', target));
+for (const stale of ['maplibre-gl-worker.mjs', 'maplibre-gl-shared.mjs']) await rm(new URL(stale, target), { force: true });
 
 /* These files are committed, because the map hard-fails without them and a
    build that skips npm lifecycle scripts would otherwise ship none. Committing

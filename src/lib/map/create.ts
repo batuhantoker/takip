@@ -1,13 +1,15 @@
 import * as maplibregl from 'maplibre-gl';
+import darkMatter from './basemap/dark-matter-style.json';
 
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY;
 
 /** `overrides` replace the defaults below; the embed opens at its own view with cooperative gestures. */
 export function createMap(container: HTMLDivElement, overrides: Partial<maplibregl.MapOptions> = {}): maplibregl.Map | undefined {
   // CARTO's Dark Matter look over OpenFreeMap tiles; CARTO's own tiles are the alternative (lib/map/basemap).
-  const styleUrl = '/dark-matter-style.json';
+  // Bundled, not fetched: as a request it queued behind the live feeds on the origin. Each map gets its own copy.
+  const style = structuredClone(darkMatter) as maplibregl.StyleSpecification;
 
-  maplibregl.setWorkerUrl(`/vendor/maplibre/${maplibregl.getVersion()}/maplibre-gl-worker.mjs`);
+  maplibregl.setWorkerUrl(`/vendor/maplibre/${maplibregl.getVersion()}/maplibre-gl-worker.js`);
   // Arabic and Hebrew names need shaping; the plugin loads only once such a label is on screen.
   if (maplibregl.getRTLTextPluginStatus() === 'unavailable') void maplibregl.setRTLTextPlugin('/vendor/rtl-text/mapbox-gl-rtl-text.js', true);
   /* Open on the whole globe, turned to the viewer's side of it. The UTC
@@ -16,7 +18,7 @@ export function createMap(container: HTMLDivElement, overrides: Partial<maplibre
      planet. This used to open on Bulgaria at zoom 6.5 for everyone. */
   const facingLng = Math.max(-180, Math.min(180, -new Date().getTimezoneOffset() / 4));
   const baseOptions = {
-    style: styleUrl,
+    style,
     center: [facingLng, 20] as [number, number], zoom: 1.8, minZoom: 1.5, maxZoom: 18,
     /* The basemap is drawn from OpenStreetMap, and the places on it are searched
        and named through OpenStreetMap too. Both have to be credited on the map

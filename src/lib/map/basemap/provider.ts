@@ -1,6 +1,6 @@
 /**
  * Which server draws the base map's vector tiles. Both serve the OpenMapTiles
- * schema that public/dark-matter-style.json is written for, so switching only
+ * schema that dark-matter-style.json is written for, so switching only
  * swaps the tile source; fonts and symbols always come from OpenFreeMap.
  */
 export type BasemapProvider = 'openfreemap' | 'carto';

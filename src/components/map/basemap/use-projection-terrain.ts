@@ -29,13 +29,18 @@ export function useProjectionTerrain({ mapRef, mapReady, containerRef, projectio
     const map = mapRef.current;
     try {
       const projectionChanged = applyMapProjection(map, projection, terrainEnabled);
-      const configureSky = projectionChanged || !containerRef.current?.dataset.mapProjection;
+      const first = !containerRef.current?.dataset.mapProjection;
+      const configureSky = projectionChanged || first;
       if (containerRef.current) containerRef.current.dataset.mapProjection = projection;
       if (projection === 'globe') {
         // The overview globe's resting tilt, which used to be the initial
         // pitch. Only on a real projection change, so toggling terrain never
-        // re-tilts a camera the user has already placed.
-        if (configureSky && map.getPitch() < 0.5) map.easeTo({ pitch: 20, duration: 1200 });
+        // re-tilts a camera the user has already placed. The first one is set
+        // outright: it happens under the splash, which waits for the camera to stop.
+        if (configureSky && map.getPitch() < 0.5) {
+          if (first) map.setPitch(20);
+          else map.easeTo({ pitch: 20, duration: 1200 });
+        }
         try {
           if (configureSky) map.setSky({
             'sky-color': '#04040A',

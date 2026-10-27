@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { version as maplibreVersion } from 'maplibre-gl/package.json';
 
@@ -12,9 +12,10 @@ const vendorDir = fileURLToPath(new URL('../public/vendor/maplibre/', import.met
    finish loading" — the production failure that forced the revert to fac8d1b. */
 describe('map runtime assets', () => {
   it('ships the worker the bundle actually asks for', () => {
-    expect(existsSync(`${vendorDir}${maplibreVersion}/maplibre-gl-worker.mjs`)).toBe(true);
+    expect(existsSync(`${vendorDir}${maplibreVersion}/maplibre-gl-worker.js`)).toBe(true);
     // The worker is a module that imports this sibling by relative path.
-    expect(existsSync(`${vendorDir}${maplibreVersion}/maplibre-gl-shared.mjs`)).toBe(true);
+    expect(existsSync(`${vendorDir}${maplibreVersion}/maplibre-gl-shared.js`)).toBe(true);
+    expect(readFileSync(`${vendorDir}${maplibreVersion}/maplibre-gl-worker.js`, 'utf8')).toContain('from"./maplibre-gl-shared.js"');
   });
 
   it('keeps exactly one vendored version, so local cannot pass while a clean deploy fails', () => {
