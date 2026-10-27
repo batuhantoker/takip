@@ -3,7 +3,8 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
-import { Badge, Button, ErrorText, Input, Muted, PageTitle, TABLE, TD, TH, day, when } from '@/components/site/admin/parts/admin-parts';
+import { Badge, Button, ErrorText, Input, Muted, TABLE, TD, TH, day, when } from '@/components/site/admin/parts/admin-parts';
+import { Toolbar } from '@/components/site/admin/parts/area-page';
 import type { KeyList, KeyState } from '@/components/site/admin/admin-types';
 import { useAdminAction } from '@/components/site/admin/use-admin-action';
 
@@ -13,7 +14,7 @@ const STATES: [KeyState | '', string][] = [['', 'All'], ['active', 'Active'], ['
 const stateOf = (key: KeyList['keys'][number]): KeyState =>
   key.revokedAt !== null ? 'revoked' : key.expiresAt !== null && key.expiresAt <= Date.now() ? 'expired' : 'active';
 
-export default function KeysPage() {
+export function KeysTab() {
   const [q, setQ] = useState('');
   const [state, setState] = useState<KeyState | ''>('');
   const [offset, setOffset] = useState(0);
@@ -28,12 +29,12 @@ export default function KeysPage() {
 
   return (
     <>
-      <PageTitle title="API keys">
+      <Toolbar>
         <form onSubmit={search} className="flex gap-2">
           <Input name="q" placeholder="Owner, key name or prefix" defaultValue={q} className="w-64" />
           <Button type="submit">Search</Button>
         </form>
-      </PageTitle>
+      </Toolbar>
       <div className="flex flex-wrap gap-1 mb-3">
         {STATES.map(([value, label]) => (
           <Button

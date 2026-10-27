@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StatTile } from '@/components/site/admin/charts/stat-tile';
 import type {
-  AnalyticsApi, AnalyticsAudience, AnalyticsEngagement, AnalyticsPages, AnalyticsStorage, AnalyticsSystem, AnalyticsVisitors,
+  AnalyticsApi, AnalyticsAudience, AnalyticsEngagement, AnalyticsLive, AnalyticsPages, AnalyticsStorage, AnalyticsSystem, AnalyticsVisitors,
 } from './analytics-types';
 import type { Attention } from './lib/attention';
 import { bytes, compact, count, duration, minutes, pct, plural, sinceIndex, sum, weekDelta } from './lib/format';
@@ -17,6 +17,7 @@ type Queries = {
   api: AnalyticsQuery<AnalyticsApi>;
   storage: AnalyticsQuery<AnalyticsStorage>;
   system: AnalyticsQuery<AnalyticsSystem>;
+  live: AnalyticsQuery<AnalyticsLive>;
 };
 
 /** A tile that waits on its own endpoint: '…' while loading, the error under the label if it failed. */
@@ -26,8 +27,8 @@ function Pending<T>({ label, query, children }: { label: string; query: Analytic
 }
 
 /**
- * The first look: what needs attention, six numbers for today, and the top of three lists. Every other number is
- * in its tab, which the attention rows and the lists link to.
+ * The first look: what needs attention, eight numbers for now and today, and the top of three lists. Every other
+ * number is in its tab, which the attention rows and the lists link to.
  */
 export function OverviewSection({ attention, hours, ...q }: Queries & { attention: Attention[]; hours: number | null }) {
   const loading = !q.system.data || !q.storage.data;
@@ -36,7 +37,13 @@ export function OverviewSection({ attention, hours, ...q }: Queries & { attentio
     <>
       <AttentionList items={attention} loading={loading} />
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Pending label="Here now" query={q.live}>
+          {l => {
+            const onMap = l.people.filter(p => p.kind === 'map').length;
+            return <StatTile label="Here now" value={count(l.people.length)} sub={`${count(onMap)} on the map · ${count(l.people.length - onMap)} reading`} />;
+          }}
+        </Pending>
         {hours ? <WindowTiles hours={hours} q={q} /> : <TodayTiles q={q} />}
         <Pending label="API requests today" query={q.api}>
           {p => {
@@ -44,6 +51,9 @@ export function OverviewSection({ attention, hours, ...q }: Queries & { attentio
             return <StatTile label="API requests today" value={compact(today?.requests ?? 0)} sub={`${count(today?.denied ?? 0)} refused · ${plural(today?.callers ?? 0, 'caller')}`}
               trend={p.days.map(d => d.requests)} delta={weekDelta(p.days.map(d => d.requests))} />;
           }}
+        </Pending>
+        <Pending label="Open reports" query={q.system}>
+          {s => <StatTile label="Open reports" value={count(s.reports.open)} sub={`${count(s.reports.resolved)} resolved`} />}
         </Pending>
         <Pending label="System" query={q.system}>
           {s => <StatTile label="System" value={loading ? '…' : problems ? plural(problems, 'issue') : 'OK'}

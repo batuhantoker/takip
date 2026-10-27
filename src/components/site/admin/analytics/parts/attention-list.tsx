@@ -1,12 +1,20 @@
+import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { tabHref } from '@/components/site/admin/lib/areas';
 import type { Attention, AttentionTone } from '../lib/attention';
 
 const DOT: Record<AttentionTone, string> = { problem: 'bg-red', watch: 'bg-amber', news: 'bg-ink-4' };
-const TAB: Record<Attention['tab'], string> = {
-  audience: 'Audience', visitors: 'Visitors', engagement: 'Engagement', api: 'API', data: 'Data & storage', system: 'System',
+const TAB: Record<Attention['tab'], { label: string; href: string }> = {
+  audience: { label: 'Growth', href: tabHref('accounts', 'growth') },
+  visitors: { label: 'Visitors', href: tabHref('traffic', 'visitors') },
+  engagement: { label: 'Engagement', href: tabHref('traffic', 'engagement') },
+  api: { label: 'API', href: tabHref('api', 'traffic') },
+  data: { label: 'Storage', href: tabHref('data', 'storage') },
+  system: { label: 'System', href: tabHref('data', 'system') },
+  reports: { label: 'Reports', href: tabHref('accounts', 'reports') },
 };
 
-/** The Overview's first card: what needs a look, then what's worth knowing, each linking to its tab. */
+/** Home's first card: what needs a look, then what's worth knowing, each linking to its tab. */
 export function AttentionList({ items, loading }: { items: Attention[]; loading: boolean }) {
   const issues = items.filter(i => i.tone !== 'news');
   const news = items.filter(i => i.tone === 'news');
@@ -38,11 +46,11 @@ function Rows({ items }: { items: Attention[] }) {
     <ul className="mt-1.5 flex flex-col">
       {items.map(i => (
         <li key={i.id}>
-          <a href={`#${i.tab}`} className="group flex items-center gap-2 rounded-control py-1 text-[12px] text-ink-2 hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-accent">
+          <Link href={TAB[i.tab].href} className="group flex items-center gap-2 rounded-control py-1 text-[12px] text-ink-2 hover:text-ink-1 focus-visible:outline-2 focus-visible:outline-accent">
             <span aria-hidden className={`size-1.5 shrink-0 rounded-full ${DOT[i.tone]}`} />
             <span className="min-w-0 flex-1 truncate">{i.text}</span>
-            <span className="flex shrink-0 items-center gap-1 text-ink-4 group-hover:text-ink-2">{TAB[i.tab]}<ArrowRight aria-hidden className="size-3" /></span>
-          </a>
+            <span className="flex shrink-0 items-center gap-1 text-ink-4 group-hover:text-ink-2">{TAB[i.tab].label}<ArrowRight aria-hidden className="size-3" /></span>
+          </Link>
         </li>
       ))}
     </ul>

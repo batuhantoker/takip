@@ -1,5 +1,5 @@
-import AnalyticsPage from '@/components/site/admin/pages/analytics-page';
+import { Moved } from '@/components/site/admin/parts/area-page';
 
 export default function Page() {
-  return <AnalyticsPage />;
+  return <Moved />;
 }

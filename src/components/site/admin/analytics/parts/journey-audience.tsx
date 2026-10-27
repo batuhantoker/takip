@@ -27,7 +27,10 @@ export function JourneyAudience({ j, onPick }: { j: PageJourneys; onPick: (filte
         <ChartCard title="On the map" note="The town each visit's address points to; the address itself isn't kept">
           {j.points.length ? (
             <WorldDots label={`Where ${visitsText(sum(j.points.map(p => p.visits)))} came from`} format={visitsText}
-              points={j.points.map(p => ({ latitude: p.latitude, longitude: p.longitude, value: p.visits, title: placeShort(p) }))} />
+              points={j.points.map(p => ({
+                latitude: p.latitude, longitude: p.longitude, value: p.visits, title: placeShort(p),
+                label: p.city ?? (p.country ? countryName(p.country) : undefined),
+              }))} />
           ) : <Muted>No placed visits in this range.</Muted>}
           {j.points.length > 0 && <DbIpCredit />}
         </ChartCard>

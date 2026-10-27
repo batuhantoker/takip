@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { tabHref } from '@/components/site/admin/lib/areas';
 import { BarList } from '@/components/site/admin/charts/bar-list';
 import { ChartCard } from '@/components/site/admin/charts/chart-card';
 import { StackedBars } from '@/components/site/admin/charts/stacked-bars';
@@ -114,7 +115,7 @@ function System({ s }: { s: AnalyticsSystem }) {
             </dl>
           ) : <Muted>Backups aren&apos;t configured (APP_BACKUP_DIR).</Muted>}
         </ChartCard>
-        <ChartCard title="Issue reports" note={`${count(s.reports.open)} open · ${count(s.reports.resolved)} resolved`} actions={<Link href="/admin/reports" className="text-[12px] text-accent hover:underline">Open reports</Link>}>
+        <ChartCard title="Issue reports" note={`${count(s.reports.open)} open · ${count(s.reports.resolved)} resolved`} actions={<Link href={tabHref('accounts', 'reports')} className="text-[12px] text-accent hover:underline">Open reports</Link>}>
           {sum(s.reports.days.map(d => d.created)) ? (
             <StackedBars label="Issue reports filed per day" format={count} height={100}
               columns={s.reports.days.map(d => ({ key: d.day, label: shortDay(d.day) }))}
@@ -125,7 +126,7 @@ function System({ s }: { s: AnalyticsSystem }) {
 
       <More id="system-audit" title="Admin and account changes" holds="Audit events per day and the most common ones">
         <Pair>
-          <ChartCard title="Admin and account changes per day" note="Audit events (kept 30 days)" actions={<Link href="/admin/audit" className="text-[12px] text-accent hover:underline">Audit log</Link>}>
+          <ChartCard title="Admin and account changes per day" note="Audit events (kept 30 days)" actions={<Link href={tabHref('accounts', 'audit')} className="text-[12px] text-accent hover:underline">Audit log</Link>}>
             {sum(s.audit.days.map(d => d.events)) ? (
               <StackedBars label="Audit events per day" format={count} height={100}
                 columns={s.audit.days.map(d => ({ key: d.day, label: shortDay(d.day) }))}

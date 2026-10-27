@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { tabHref } from '@/components/site/admin/lib/areas';
 import { useState, type ReactNode } from 'react';
 import { ChartCard } from '@/components/site/admin/charts/chart-card';
 import { Heatmap } from '@/components/site/admin/charts/heatmap';
@@ -74,7 +75,7 @@ function Engagement({ e }: { e: AnalyticsEngagement }) {
       <ChartCard
         title="Most active accounts"
         note={`By map minutes over the last ${e.days} days`}
-        actions={<Link href="/admin/users" className="text-[12px] text-accent hover:underline">Every account in Users</Link>}
+        actions={<Link href={tabHref('accounts', 'people')} className="text-[12px] text-accent hover:underline">Every account</Link>}
       >
         {e.topUsers.length ? <TopUsersTable users={e.topUsers} label={featureLongLabel} /> : <Muted>No account has map time in this range yet.</Muted>}
       </ChartCard>

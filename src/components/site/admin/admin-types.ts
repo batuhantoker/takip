@@ -76,8 +76,6 @@ export type KeyList = {
 
 type Counts = { requests: number; denied: number };
 
-export type UsageSeries = { today: string; groups: string[]; days: (Counts & { day: string; groups: Record<string, Counts> })[] };
-
 export type UsageTop = {
   day: string;
   consumers: (Counts & {

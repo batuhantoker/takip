@@ -1,7 +1,7 @@
 'use client';
 
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
-import { Button, ErrorText, Muted, PageTitle, TABLE, TD, TH, when } from '@/components/site/admin/parts/admin-parts';
+import { Button, ErrorText, Muted, TABLE, TD, TH, when } from '@/components/site/admin/parts/admin-parts';
 import { Switch } from '@/components/site/admin/parts/admin-switch';
 import { useAdminAction } from '@/components/site/admin/use-admin-action';
 
@@ -18,7 +18,7 @@ type KeyPolicyGroup = {
 
 const count = (n: number) => n.toLocaleString('en');
 
-export default function ApiAccessPage() {
+export function AccessTab() {
   const { data, error, reload } = useAdminData<{ groups: KeyPolicyGroup[] }>('/key-policy');
   const { busy, error: actionError, run } = useAdminAction(reload);
   const setAll = (keyRequired: boolean) => void run(() => adminSend('PUT', '/key-policy', { keyRequired }));
@@ -26,7 +26,6 @@ export default function ApiAccessPage() {
 
   return (
     <>
-      <PageTitle title="API access" />
       <Muted>
         A caller without a key gets <span className="font-mono">401 api_key_required</span> from an endpoint that needs one,
         with a link to make a free account and a key. The map&rsquo;s own requests and signed-in visitors always get through,

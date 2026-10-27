@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { BarList } from '@/components/site/admin/charts/bar-list';
 import { ChartCard } from '@/components/site/admin/charts/chart-card';
+import { tabHref } from '@/components/site/admin/lib/areas';
 import { ErrorText } from '@/components/site/admin/parts/admin-parts';
 import type { AnalyticsEngagement, AnalyticsPages } from '../analytics-types';
 import { featureLabel, onByDefault, splitFeature } from '../lib/features';
@@ -8,7 +10,7 @@ import { MAP_PATH, originLabel, outcomesBy } from '../lib/journeys';
 import type { AnalyticsQuery } from '../lib/use-analytics-data';
 
 const TOP = 5;
-const more = (href: string, text: string) => <a href={href} className="text-[11px] text-ink-3 hover:text-ink-1">{text} →</a>;
+const more = (href: string, text: string) => <Link href={href} className="text-[11px] text-ink-3 hover:text-ink-1">{text} →</Link>;
 
 /** The Overview's three short lists: what was read, what was switched on, and where people came from. */
 /** `hours`: a window of hours, where the pages come from the visit log and the layers, kept by day, from the last 7 days. */
@@ -19,7 +21,7 @@ export function TopLists({ pages, engagement, hours }: {
 }) {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <ChartCard title="Most read pages" actions={more('#visitors', 'All pages')}>
+      <ChartCard title="Most read pages" actions={more(tabHref('traffic', 'visitors'), 'All pages')}>
         {pages.error && !pages.data && <ErrorText message={pages.error} />}
         {pages.data && (hours ? (
           <BarList format={count} share={false} limit={TOP} empty="No page views in this range yet."
@@ -29,7 +31,7 @@ export function TopLists({ pages, engagement, hours }: {
             rows={pages.data.pages.slice(0, TOP).map(p => ({ key: p.path, label: p.path, value: p.views, detail: `${plural(p.readers, 'reader')} · ${count(p.toMap)} went on to the map` }))} />
         ))}
       </ChartCard>
-      <ChartCard title="Layers people turned on" note={hours ? 'In the last 7 days: layer time is kept by day' : 'Not counting the ones the map opens with'} actions={more('#engagement', 'All layers')}>
+      <ChartCard title="Layers people turned on" note={hours ? 'In the last 7 days: layer time is kept by day' : 'Not counting the ones the map opens with'} actions={more(tabHref('traffic', 'engagement'), 'All layers')}>
         {engagement.error && !engagement.data && <ErrorText message={engagement.error} />}
         {engagement.data && (
           <BarList format={minutes} share={false} limit={TOP} empty="Nobody switched on a layer in this range yet."
@@ -40,7 +42,7 @@ export function TopLists({ pages, engagement, hours }: {
               .map(f => ({ key: f.feature, label: featureLabel(f.feature), value: f.minutes, detail: `${plural(f.users, 'account')} · ${plural(f.visitors, 'browser')}` }))} />
         )}
       </ChartCard>
-      <ChartCard title="Where visits came from" actions={more('#visitors', 'Visitors')}>
+      <ChartCard title="Where visits came from" actions={more(tabHref('traffic', 'visitors'), 'Visitors')}>
         {pages.error && !pages.data && <ErrorText message={pages.error} />}
         {pages.data && (
           <BarList format={count} limit={TOP} empty="No visits in this range yet."

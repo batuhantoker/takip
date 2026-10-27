@@ -313,7 +313,7 @@ The per-dataset mapping is in [`dataset-import-map.md`](./dataset-import-map.md)
 
 ### 7.6 Source switches
 
-The admin console's Sources page (`/admin/sources`) turns two switches per source. The CLI has the same: `npm run ingest -- source <code> <record|build> <on|off>`.
+The admin console's Data → Sources tab (`/admin/data#sources`) turns two switches per source. The CLI has the same: `npm run ingest -- source <code> <record|build> <on|off>`.
 
 | Switch | Off means | Undo |
 |---|---|---|

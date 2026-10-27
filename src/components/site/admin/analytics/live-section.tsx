@@ -66,7 +66,8 @@ function Live({ people, crawlers }: { people: Person[]; crawlers: Crawler[] }) {
   const points = [...towns.values()].map(t => {
     const kinds = new Set(t.people.map(p => p.kind));
     return {
-      latitude: t.latitude, longitude: t.longitude, value: t.people.length, title: placeShort(t.people[0].place),
+      latitude: t.latitude, longitude: t.longitude, value: t.people.length,
+      title: placeShort(t.people[0].place), label: t.people[0].place?.city ?? undefined,
       color: kinds.size === 1 ? KIND[t.people[0].kind].color : NEUTRAL,
     };
   });

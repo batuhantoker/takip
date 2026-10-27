@@ -118,7 +118,7 @@ Since 2026-10-19 a shared link previews as what it shows, and there are 66 pages
 4. Earthquake pages (`/quakes/<usgs id>`), only if they add what USGS's own page lacks (cameras, flights and ships near the epicentre); otherwise they are thin copies.
 5. Embeds, next (`architecture/embeds.md`, Scaling out): a place table (admin-0 and admin-1 boxes and names in ten languages, Natural Earth) for place-and-period pages; more windowed layers (FIRMS, IBTrACS, `history.db`'s events); then other sites (`frame-ancestors` on `/embed` only), which earns links back.
 6. Share cards in Arabic: Satori can't lay out Arabic, so `/og` draws them in English.
-7. Outreach: Show HN, r/MapPorn, r/space, r/aurora, r/OSINT, and shorts (§1.9). Measure with the referrers in Admin → Analytics and Search Console's queries.
+7. Outreach: Show HN, r/MapPorn, r/space, r/aurora, r/OSINT, and shorts (§1.9). Measure with the referrers in Admin → Traffic and Search Console's queries.
 8. (you) Visitors from search get the anonymous 15 minutes a day of map time. Decide whether a first visit should get more.
 9. Country names inside sentences: German and French need articles ("in der Schweiz", "au Japon"), Russian a case and Turkish a suffix, which a bare `{place}` can't carry, so some country pages read "in Schweiz". A per-language "in <country>" table for the 237 countries, used by the topics' copy.
 10. Place earthquake pages open History, which draws NOAA's damaging quakes, so the map shows fewer than the page counts (USGS M4.5+). A windowed USGS layer on the full map, as `/embed` has, would match.
@@ -184,7 +184,7 @@ iPhone, Android, Windows, macOS and Linux shells around takip.dev (`architecture
 1. **How long to keep data, and a disk budget.** BT:TBD, I am not sure, for now just record we will get there can geProposed: fine track detail (L0) 3 months, L1 90 days, L2 forever. How long raw files are kept is open.
 2. **History:** whether the plan lookback limit applies to History at all (recommended: no, for personal use); and GDELT history as one entry per story per day, or news intensity per country (`architecture/gdelt.md`).
 3. **Cameras as their own product:** later.
-4. **Consent for the visitor id (2026-10-19):** the map now keeps a random visitor id in localStorage and sends it with each minute tick (`architecture/backend.md` §8; Admin → Analytics → Visitors). Under ePrivacy, an analytics id like this usually needs consent from visitors in the EU and UK; today it is disclosed on `/privacy` ("What we measure") but not asked. Options: ask first in those regions (and fall back to the daily address hash), or keep it as is.
+4. **Consent for the visitor id (2026-10-19):** the map now keeps a random visitor id in localStorage and sends it with each minute tick (`architecture/backend.md` §8; Admin → Traffic → Visitors). Under ePrivacy, an analytics id like this usually needs consent from visitors in the EU and UK; today it is disclosed on `/privacy` ("What we measure") but not asked. Options: ask first in those regions (and fall back to the daily address hash), or keep it as is.
 5. **Long-run country numbers** (researched 2026-10-16; Maddison GDP per person is already in through `owid-longrun`, value for value, and so is OWID's long-run population (HYDE, Gapminder, UN; year 0–2023) on today's countries). Maddison population and total GDP need: whether totals (population, GDP) may be drawn on historical polities like the USSR, which the series API would paint onto each successor's shape (an `apps/api` change); and Maddison's rule to cite its source papers wherever its data is shown.
 6. **Colour of the `events` family** (Wikipedia year pages, 2026-10-20): every categorical token is taken; it uses `MAP_INK.ink2` (#A4AAB2) as a placeholder in `src/lib/history/popup.ts`. Options: keep ink2 (light grey, reads as "general"), slate (#7F8B96, which `slavery` and the fallback already use), or a new categorical token added to `docs/design/README.md` first.
 7. **Ads on the map (2026-10-21, left as is to discuss):** Auto ads have run on every page since 2026-10-19, the map included, but `/privacy` and `/terms` still say ads are never on the map (and `/cookies` says the free plans show them). Either take Auto ads off the map, or change those pages to say where ads appear.
@@ -199,7 +199,7 @@ The fix-it pass (1.2) adds to this list.
 - Rebrand leftovers: the upstream X account (`@soulsimplifai`) in `more-menu.tsx`.
 - Global Incidents (`global_incidents`) reads the GDACS feed (`api/(intel)/gdelt/route.ts`), but `use-sdk-entities.ts` labels it "GDELT Project".
 - Active Fires adds NASA EONET volcanoes to the FIRMS hotspots with made-up readings (brightness 500 K, FRP 100 MW, `api/(feeds)/fires/route.ts`), and the popup presents them as heat detected by satellite. `/map/wildfires` says so until this is fixed.
-- `layer.on` doesn't say which layer (`use-layer-browser.ts`), so Admin → Engagement can only infer which layers people switched on themselves; "came back another day" counts UTC days, so a sitting across midnight counts two.
+- `layer.on` doesn't say which layer (`use-layer-browser.ts`), so Admin → Traffic → Engagement can only infer which layers people switched on themselves; "came back another day" counts UTC days, so a sitting across midnight counts two.
 
 ## 5. Parked until the release decision
 
@@ -236,7 +236,7 @@ Built or designed for other people using TAKIP. Frozen until the release decisio
 - **AI and TI** (`ai/*`, `mcp`): move to the api. Drop the deprecated `Authorization: Bearer <model key>` form one release after the change.
 - **OSINT and recon** (`osint/*`): move to the api.
 - **Platform** (`sdk/ingest`, `sdk/stream`, `github-webhook`, `health`, `stats`, `reference`): move to the api. `sdk/ingest` should take API keys with a `write:entities` scope instead of `SDK_INGEST_KEY`.
-- **Key policy for the legacy feeds:** Admin → API access only switches `/api/v1` and `/api/replay` groups (`apps/api/src/access/key-policy.ts`); `/api/flights`, `/api/maritime` and the other web-app routes stay keyless and unmetered until they move. Gating them earlier needs a Next `proxy.ts` that asks the api, and `stats`, `markets` and `scm-suppliers` fetch their own `/api/*` server-side, so they would need a way past it.
+- **Key policy for the legacy feeds:** Admin → API → Access only switches `/api/v1` and `/api/replay` groups (`apps/api/src/access/key-policy.ts`); `/api/flights`, `/api/maritime` and the other web-app routes stay keyless and unmetered until they move. Gating them earlier needs a Next `proxy.ts` that asks the api, and `stats`, `markets` and `scm-suppliers` fetch their own `/api/*` server-side, so they would need a way past it.
 
 ### Security
 - Review every route that fetches a URL, for SSRF: `cctv/proxy`, `arcgis`, `cctv/resolve`, `cctv/stream-status`, `cctv/frame`, `entity/expand`, `osint/*`. The closed media proxy removes the largest surface.

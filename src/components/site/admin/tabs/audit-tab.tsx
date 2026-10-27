@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useAdminData } from '@/components/site/admin/admin-api';
-import { Button, ErrorText, Muted, PageTitle, Select } from '@/components/site/admin/parts/admin-parts';
+import { Button, ErrorText, Muted, Select } from '@/components/site/admin/parts/admin-parts';
+import { Toolbar } from '@/components/site/admin/parts/area-page';
 import type { AuditEvent } from '@/components/site/admin/admin-types';
 import AuditTable from '@/components/site/admin/tables/audit-table';
 
@@ -20,7 +21,7 @@ const KINDS = [
   ['admin.', 'Console unlocks'],
 ] as const;
 
-export default function AuditPage() {
+export function AuditTab() {
   const [action, setAction] = useState('');
   const [pages, setPages] = useState<number[]>([]);
   const before = pages.at(-1);
@@ -28,8 +29,9 @@ export default function AuditPage() {
 
   return (
     <>
-      <PageTitle title="Audit log">
+      <Toolbar>
         <Select
+          aria-label="Kind of change"
           value={action}
           onChange={e => {
             setAction(e.target.value);
@@ -38,7 +40,7 @@ export default function AuditPage() {
         >
           {KINDS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </Select>
-      </PageTitle>
+      </Toolbar>
       <ErrorText message={error} />
       {data && (
         <div className="border border-line bg-surface-1">

@@ -228,7 +228,7 @@ not wait for `map.loaded()`, which a layer that restyles itself every frame keep
 cap, the run prints what held it.
 
 The browser (`capture/browser.ts`) answers the map-time, usage-action, page-view and report calls itself, so a
-render spends no one's minutes and adds nothing to Admin → Analytics. It uses a throwaway profile, with the UI
+render spends no one's minutes and adds nothing to the admin console's Traffic. It uses a throwaway profile, with the UI
 language set by the `takip-lang` cookie.
 
 Taps are scheduled by frame number. Comparing times in ms put one on both sides of a frame boundary, so it

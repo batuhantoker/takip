@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AnalyticsApi, AnalyticsPages, AnalyticsStorage, AnalyticsSystem } from '../analytics-types';
-import { attention, flaggedTabs } from './attention';
+import { attention } from './attention';
 
 const NOW = Date.parse('2026-10-19T15:00:00Z');
 const UNTIMED = { views: 0, medianMs: null, meanMs: null, short: 0 };
@@ -45,12 +45,11 @@ describe('attention', () => {
     }, NOW);
     expect(items.map(i => [i.tone, i.tab, i.text])).toEqual([
       ['problem', 'system', '2 background jobs failed (email.send): SMTP refused'],
-      ['watch', 'system', '1 issue report waiting'],
+      ['watch', 'reports', '1 issue report waiting'],
       ['news', 'visitors', '2 page views from search engines in the range'],
       ['news', 'visitors', 'Most read: /tr/city/nevsehir/cameras (3 views)'],
       ['news', 'visitors', 'Most visits from another site came from Google (2 visits)'],
     ]);
-    expect([...flaggedTabs(items)]).toEqual(['system']);
   });
 
   it('flags a missed backup and a nearly full disk', () => {

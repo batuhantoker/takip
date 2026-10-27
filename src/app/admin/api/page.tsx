@@ -1,5 +1,5 @@
-import ApiAccessPage from '@/components/site/admin/pages/api-access-page';
+import ApiPage from '@/components/site/admin/pages/api-page';
 
 export default function Page() {
-  return <ApiAccessPage />;
+  return <ApiPage />;
 }

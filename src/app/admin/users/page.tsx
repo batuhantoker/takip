@@ -1,5 +1,5 @@
-import UsersPage from '@/components/site/admin/pages/users-page';
+import { Moved } from '@/components/site/admin/parts/area-page';
 
 export default function Page() {
-  return <UsersPage />;
+  return <Moved />;
 }

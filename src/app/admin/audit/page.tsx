@@ -1,5 +1,5 @@
-import AuditPage from '@/components/site/admin/pages/audit-page';
+import { Moved } from '@/components/site/admin/parts/area-page';
 
 export default function Page() {
-  return <AuditPage />;
+  return <Moved />;
 }

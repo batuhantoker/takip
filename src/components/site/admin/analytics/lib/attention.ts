@@ -4,11 +4,11 @@ import type {
 import { bytes, pct, plural, sum } from './format';
 
 /**
- * What the Overview leads with: problems first, then things worth knowing, each pointing at the tab with the detail.
+ * What Home leads with: problems first, then things worth knowing, each pointing at the tab with the detail.
  * Only what fires is listed, so a quiet day is one line and nothing is missed on a busy one.
  */
 
-export type AttentionTab = 'audience' | 'visitors' | 'engagement' | 'api' | 'data' | 'system';
+export type AttentionTab = 'audience' | 'visitors' | 'engagement' | 'api' | 'data' | 'system' | 'reports';
 export type AttentionTone = 'problem' | 'watch' | 'news';
 export interface Attention { id: string; tone: AttentionTone; tab: AttentionTab; text: string }
 
@@ -54,7 +54,7 @@ export function attention({ audience, visitors, pages, api, data, system, storag
     else if (now - system.backups.latest.at > BACKUP_STALE_MS) add('backup', 'problem', 'system', `Last database backup was ${age(now - system.backups.latest.at)} ago`);
     if (system.memory.rss > API_RSS_HIGH) add('memory', 'watch', 'system', `The api is using ${bytes(system.memory.rss)} of memory`);
     if (system.eventLoopLagMs != null && system.eventLoopLagMs > LAG_HIGH_MS) add('lag', 'watch', 'system', `The api is slow to respond: event-loop lag ${Math.round(system.eventLoopLagMs)} ms`);
-    if (system.reports.open) add('reports', 'watch', 'system', `${plural(system.reports.open, 'issue report')} waiting`);
+    if (system.reports.open) add('reports', 'watch', 'reports', `${plural(system.reports.open, 'issue report')} waiting`);
   }
 
   if (storage?.disk && storage.disk.free / storage.disk.total < DISK_LOW) {
@@ -91,6 +91,3 @@ export function attention({ audience, visitors, pages, api, data, system, storag
 
   return out.sort((a, b) => ORDER[a.tone] - ORDER[b.tone]);
 }
-
-/** Tabs with a problem or something to watch, for the dots on the tab bar. */
-export const flaggedTabs = (items: Attention[]) => new Set(items.filter(i => i.tone !== 'news').map(i => i.tab));

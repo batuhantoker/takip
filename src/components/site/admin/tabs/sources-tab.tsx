@@ -1,7 +1,7 @@
 'use client';
 
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
-import { Badge, ErrorText, Muted, PageTitle, TABLE, TD, TH, when } from '@/components/site/admin/parts/admin-parts';
+import { Badge, ErrorText, Muted, TABLE, TD, TH, when } from '@/components/site/admin/parts/admin-parts';
 import { Switch } from '@/components/site/admin/parts/admin-switch';
 import { useAdminAction } from '@/components/site/admin/use-admin-action';
 
@@ -26,7 +26,7 @@ const STATUS: Record<CoverageStatus, { label: string; tone: 'gold' | 'plain' | '
   not_recording: { label: 'not recording', tone: 'muted' },
 };
 
-export default function SourcesPage() {
+export function SourcesTab() {
   const { data, error, reload } = useAdminData<{ sources: SourceState[] }>('/sources');
   const { busy, error: actionError, run } = useAdminAction(reload);
 
@@ -39,7 +39,6 @@ export default function SourcesPage() {
 
   return (
     <>
-      <PageTitle title="Sources" />
       <Muted>
         Record writes a feed&rsquo;s raw payloads to the archive. Build turns the archive into replay history. With build off the
         archive is kept, and turning it back on followed by <span className="font-mono">npm run ingest -- rebuild</span> fills

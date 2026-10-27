@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { BarList } from '@/components/site/admin/charts/bar-list';
 import { ChartCard } from '@/components/site/admin/charts/chart-card';
 import { CohortTable } from '@/components/site/admin/charts/cohort-table';
@@ -43,7 +42,7 @@ function Audience({ a, hours }: { a: AnalyticsAudience; hours: number | null }) 
   return (
     <>
       <p className="text-[12px] text-ink-3">
-        Totals across accounts. <Link href="/admin/users" className="text-accent hover:underline">See every account&apos;s activity in Users</Link>, or open one for everything it did.
+        Totals across accounts. <a href="#people" className="text-accent hover:underline">See every account&apos;s activity under People</a>, or open one for everything it did.
       </p>
       <Tiles>
         <StatTile label="Accounts" value={count(totals.users)} sub={`${count(sum(signups))} new in ${span}`} trend={signups} delta={signupDelta && { ...signupDelta, what: 'Sign-ups' }} />

@@ -3,14 +3,15 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
-import { Badge, Button, Card, ErrorText, Muted, PageTitle, TABLE, TD, TH, day, when } from '@/components/site/admin/parts/admin-parts';
+import { Badge, Button, Card, ErrorText, Muted, TABLE, TD, TH, day, when } from '@/components/site/admin/parts/admin-parts';
+import { Toolbar } from '@/components/site/admin/parts/area-page';
 import type { BillingOverview } from '@/components/site/admin/admin-types';
 import BillingJobsCard from '@/components/site/admin/parts/billing-jobs-card';
 import { useAdminAction } from '@/components/site/admin/use-admin-action';
 
 const LIVE = new Set(['active', 'trialing', 'past_due']);
 
-export default function BillingPage() {
+export function BillingTab() {
   const { data, error, reload } = useAdminData<BillingOverview>('/billing');
   const reconcile = useAdminAction(reload);
   const [notice, setNotice] = useState<string | null>(null);
@@ -27,9 +28,9 @@ export default function BillingPage() {
 
   return (
     <>
-      <PageTitle title="Billing">
+      <Toolbar>
         <Button tone="gold" disabled={!provider || reconcile.busy} onClick={() => void rerun()}>Re-run reconciliation</Button>
-      </PageTitle>
+      </Toolbar>
       {!provider && (
         <div className="mb-4 rounded-card border border-line bg-surface-2 border-l-2 border-l-amber px-4 py-3 text-[13px] text-ink-2">
           No billing provider is configured (<span className="font-mono">BILLING_PROVIDER</span> is unset). Checkout and the customer portal are off and

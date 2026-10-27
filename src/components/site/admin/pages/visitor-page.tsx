@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { describeDevice, timeAgo } from '@/lib/platform/account/device-label';
+import { tabHref } from '@/components/site/admin/lib/areas';
 import { Card, PageTitle, Select, when } from '@/components/site/admin/parts/admin-parts';
 import { StatTile } from '@/components/site/admin/charts/stat-tile';
 import type { VisitorAnalytics } from '@/components/site/admin/analytics/analytics-types';
@@ -27,7 +28,7 @@ export default function VisitorPage({ id }: { id: string }) {
 
   return (
     <>
-      <Link href="/admin/analytics#visitors" className="mb-3 inline-block text-[12px] text-ink-3 hover:text-ink-1">← Visitors</Link>
+      <Link href={tabHref('traffic', 'visitors')} className="mb-3 inline-block text-[12px] text-ink-3 hover:text-ink-1">← Visitors</Link>
       <PageTitle title={`Visitor ${shortVisitor(id)}`}>
         <Select value={days} onChange={e => setDays(Number(e.target.value))} aria-label="Activity range">
           {RANGES.map(n => <option key={n} value={n}>Last {n} days</option>)}

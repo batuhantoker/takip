@@ -1,5 +1,5 @@
-import SourcesPage from '@/components/site/admin/pages/sources-page';
+import { Moved } from '@/components/site/admin/parts/area-page';
 
 export default function Page() {
-  return <SourcesPage />;
+  return <Moved />;
 }

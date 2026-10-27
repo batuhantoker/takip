@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { tabHref } from '@/components/site/admin/lib/areas';
 import { ChartCard } from '@/components/site/admin/charts/chart-card';
 import { Badge, Muted, when } from '@/components/site/admin/parts/admin-parts';
 import type { UserAnalytics } from '@/components/site/admin/analytics/analytics-types';
@@ -27,7 +28,7 @@ export default function UserBelongings({ u }: { u: UserAnalytics }) {
           </ul>
         ) : <Muted>No workspaces saved.</Muted>}
       </ChartCard>
-      <ChartCard title="Issue reports" note="What they sent from the map" actions={u.reports.length ? <Link href="/admin/reports" className="text-[12px] text-accent hover:underline">Open reports</Link> : undefined}>
+      <ChartCard title="Issue reports" note="What they sent from the map" actions={u.reports.length ? <Link href={tabHref('accounts', 'reports')} className="text-[12px] text-accent hover:underline">Open reports</Link> : undefined}>
         {u.reports.length ? (
           <ul className="flex flex-col gap-2 text-[12px]">
             {u.reports.map(r => (

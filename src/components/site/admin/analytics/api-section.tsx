@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { BarList } from '@/components/site/admin/charts/bar-list';
 import { ChartCard } from '@/components/site/admin/charts/chart-card';
 import { StackedBars } from '@/components/site/admin/charts/stacked-bars';
@@ -28,7 +27,7 @@ function Api({ p }: { p: AnalyticsApi }) {
   return (
     <>
       <p className="text-[12px] text-ink-3">
-        Public API (/api/v1 and /api/replay) traffic by UTC day. Per-caller detail is on the <Link href="/admin/usage" className="text-accent hover:underline">Usage page</Link>.
+        Public API (/api/v1 and /api/replay) traffic by UTC day. Each day&apos;s callers are under the charts.
       </p>
       <Tiles>
         <StatTile label="Requests served" value={compact(served)} sub={`${p.days.length} days · ${compact(today?.requests ?? 0)} today`} trend={requests} delta={weekDelta(requests)} />
@@ -94,7 +93,7 @@ function Api({ p }: { p: AnalyticsApi }) {
               </div>
             ))}
           </dl>
-          <Link href="/admin/keys" className="self-start text-[12px] text-accent hover:underline">All keys</Link>
+          <a href="#keys" className="self-start text-[12px] text-accent hover:underline">All keys</a>
         </ChartCard>
       </Pair>
 

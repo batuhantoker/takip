@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
-import { ErrorText, Input, Muted, PageTitle, Select, TABLE, TD, TH } from '@/components/site/admin/parts/admin-parts';
+import { ErrorText, Input, Muted, Select, TABLE, TD, TH } from '@/components/site/admin/parts/admin-parts';
 import type { PlansResponse } from '@/components/site/admin/admin-types';
 
 type Spec = PlansResponse['catalogue'][number];
 
-export default function PlansPage() {
+export function PlansTab() {
   const { data, error, reload } = useAdminData<PlansResponse>('/plans');
   const [saving, setSaving] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -27,7 +27,6 @@ export default function PlansPage() {
 
   return (
     <>
-      <PageTitle title="Plans" />
       <Muted>
         What each plan includes. Changes apply to everyone on the plan at once and are recorded in the audit log. Visitors get
         &ldquo;anon&rdquo;, signed-in users &ldquo;free&rdquo; unless granted or subscribed to another.

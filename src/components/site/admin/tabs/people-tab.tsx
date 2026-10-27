@@ -1,18 +1,21 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import Link from 'next/link';
 import { useAdminData } from '@/components/site/admin/admin-api';
-import { Button, ErrorText, Input, Muted, PageTitle, Select } from '@/components/site/admin/parts/admin-parts';
-import type { UserList } from '@/components/site/admin/admin-types';
+import { Button, ErrorText, Input, Muted, Select } from '@/components/site/admin/parts/admin-parts';
+import type { Overview, UserList } from '@/components/site/admin/admin-types';
 import type { UserSort } from '@/components/site/admin/analytics/analytics-types';
+import { count } from '@/components/site/admin/analytics/lib/format';
 import { DbIpCredit } from '@/components/site/admin/analytics/parts/place-label';
+import { StatTile } from '@/components/site/admin/charts/stat-tile';
+import { Toolbar } from '@/components/site/admin/parts/area-page';
 import UsersTable from '@/components/site/admin/tables/users-table';
 
 const PAGE = 50;
 const RANGES = [7, 30, 90] as const;
 
-export default function UsersPage() {
+/** Every account, with its activity in the range, under the account totals. */
+export function PeopleTab() {
   const [q, setQ] = useState('');
   const [offset, setOffset] = useState(0);
   const [days, setDays] = useState<number>(30);
@@ -32,7 +35,7 @@ export default function UsersPage() {
 
   return (
     <>
-      <PageTitle title="Users">
+      <Toolbar>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <form onSubmit={search} className="flex gap-2">
             <Input name="q" placeholder="Email or name" defaultValue={q} className="w-64" />
@@ -42,10 +45,11 @@ export default function UsersPage() {
             {RANGES.map(n => <option key={n} value={n}>Last {n} days</option>)}
           </Select>
         </div>
-      </PageTitle>
-      <p className="-mt-3 mb-4 text-[12px] text-ink-3">
-        Activity over the last {data?.days ?? days} days: map time, API requests and sign-ins. Open an account for everything it did, or see the totals in{' '}
-        <Link href="/admin/analytics" className="text-accent hover:underline">Analytics</Link>.
+      </Toolbar>
+      <AccountTiles />
+      <p className="mb-4 text-[12px] text-ink-3">
+        Activity over the last {data?.days ?? days} days: map time, API requests and sign-ins. Open an account for everything it did, or see the trends
+        under <a href="#growth" className="text-accent hover:underline">Growth</a>.
       </p>
       <ErrorText message={error} />
       {data && (
@@ -65,5 +69,19 @@ export default function UsersPage() {
       )}
       {!data && !error && <Muted>Loading…</Muted>}
     </>
+  );
+}
+
+function AccountTiles() {
+  const { data } = useAdminData<Overview>('/overview');
+  if (!data) return null;
+  const tiles: [string, number][] = [
+    ['Accounts', data.users], ['New this week', data.newThisWeek], ['Signed in now', data.signedInNow], ['Unconfirmed email', data.unverified],
+    ['Admins', data.admins], ['Banned', data.banned], ...Object.entries(data.onPaidOrGrantedPlans).map(([plan, n]): [string, number] => [`On ${plan}`, n]),
+  ];
+  return (
+    <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+      {tiles.map(([label, n]) => <StatTile key={label} label={label} value={count(n)} />)}
+    </div>
   );
 }

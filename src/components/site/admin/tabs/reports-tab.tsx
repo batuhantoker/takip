@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { adminSend, useAdminData } from '@/components/site/admin/admin-api';
-import { Button, ErrorText, Muted, PageTitle } from '@/components/site/admin/parts/admin-parts';
+import { Button, ErrorText, Muted } from '@/components/site/admin/parts/admin-parts';
 import ReportsTable from '@/components/site/admin/tables/reports-table';
 import type { ReportList, ReportStatus } from '@/components/site/admin/admin-types';
 import { useAdminAction } from '@/components/site/admin/use-admin-action';
@@ -10,7 +10,7 @@ import { useAdminAction } from '@/components/site/admin/use-admin-action';
 const PAGE = 50;
 const FILTERS: [ReportStatus | '', string][] = [['open', 'Open'], ['resolved', 'Resolved'], ['', 'All']];
 
-export default function ReportsPage() {
+export function ReportsTab() {
   const [status, setStatus] = useState<ReportStatus | ''>('open');
   const [offset, setOffset] = useState(0);
   const { data, error, reload } = useAdminData<ReportList>(`/reports?offset=${offset}&limit=${PAGE}${status ? `&status=${status}` : ''}`);
@@ -18,7 +18,6 @@ export default function ReportsPage() {
 
   return (
     <>
-      <PageTitle title="Reports" />
       <div className="flex flex-wrap gap-1 mb-3">
         {FILTERS.map(([value, label]) => (
           <Button

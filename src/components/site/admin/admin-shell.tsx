@@ -8,24 +8,11 @@ import { stopImpersonating } from '@/lib/platform/account/impersonation';
 import { TakipMark } from '@/components/shell/brand/takip-mark';
 import { TakipWordmark } from '@/components/shell/brand/takip-wordmark';
 import { onLocked } from './admin-api';
+import { AREA_IDS, AREAS, areaOf } from './lib/areas';
 import { Button } from '@/components/site/admin/parts/admin-parts';
 import UnlockForm from '@/components/site/admin/parts/unlock-form';
 
 type GateStatus = { signedIn: boolean; admin: boolean; twoFactor: boolean; impersonating: boolean; unlockedUntil: number | null; retryAfterSeconds: number | null };
-
-const NAV = [
-  { href: '/admin', label: 'Overview' },
-  { href: '/admin/analytics', label: 'Analytics' },
-  { href: '/admin/users', label: 'Users' },
-  { href: '/admin/reports', label: 'Reports' },
-  { href: '/admin/plans', label: 'Plans' },
-  { href: '/admin/keys', label: 'API keys' },
-  { href: '/admin/api', label: 'API access' },
-  { href: '/admin/usage', label: 'Usage' },
-  { href: '/admin/billing', label: 'Billing' },
-  { href: '/admin/sources', label: 'Sources' },
-  { href: '/admin/audit', label: 'Audit log' },
-];
 
 export default function AdminShell({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<GateStatus | null>(null);
@@ -72,12 +59,14 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         </Link>
         {!gate && (
           <nav className="flex items-center gap-1 overflow-x-auto">
-            {NAV.map(item => {
-              const active = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
+            {AREA_IDS.map(id => {
+              const item = AREAS[id];
+              const active = areaOf(pathname) === id;
               return (
                 <Link
-                  key={item.href}
+                  key={id}
                   href={item.href}
+                  aria-current={active ? 'page' : undefined}
                   className={`px-2.5 h-8 inline-flex items-center rounded-md text-[13px] whitespace-nowrap ${active ? 'text-ink-1 bg-surface-3' : 'text-ink-2 hover:text-ink-1 hover:bg-surface-2'}`}
                 >
                   {item.label}
