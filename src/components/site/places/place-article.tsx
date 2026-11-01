@@ -8,7 +8,7 @@ import { localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf, shortHeading } from '@/lib/platform/site/places/copy/format';
 import { countryMap } from '@/lib/platform/site/places/country-live';
-import type { PlacePageRef } from '@/lib/platform/site/places/pages';
+import { searched, type PlacePageRef } from '@/lib/platform/site/places/pages';
 import type { Place } from '@/lib/platform/site/places/place';
 import { placeOpenPath, placePath, placeZoom } from '@/lib/platform/site/places/paths';
 import type { MapLink, PlaceCopy } from '@/lib/platform/site/places/topic';
@@ -103,7 +103,7 @@ export function PlaceArticle({ text, place, copy, pages, places = [], current, l
       {!current && browse.length > 0 && (
         <Section title={t('{city} on the map', { city: nameOf(place, t) })}>
           <PageList items={browse.map(p => ({
-            href: localePath(t.locale, placePath(place, p.page.slug)), rel: crawlRel(p.page.index),
+            href: localePath(t.locale, placePath(place, p.page.slug)), rel: crawlRel(searched(p)),
             title: shortHeading(p.topic.header(place, p.page, t).heading, place, t), line: p.topic.summary(place, p.page, t),
           }))} />
         </Section>

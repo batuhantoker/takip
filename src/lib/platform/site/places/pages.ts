@@ -1,3 +1,4 @@
+import { SEARCH_OVERVIEWS, SEARCH_TOPICS } from '../search-scope';
 import { allPlaces, DERIVED_TTL_MS, nearestPlaces, type Place, type PlaceKind } from './gazetteer';
 import type { PlaceTopic, TopicPage } from './topic';
 import { TOPICS } from './topics/registry';
@@ -24,10 +25,20 @@ export const findPlacePage = (place: Place, slug: string) => placePages(place).f
 export const overviewIndexed = (pages: PlacePageRef[]) =>
   new Set(pages.filter(p => p.page.index && !p.topic.faith).map(p => p.topic.id)).size >= 2;
 
+/** A topic page put forward for search: its data passes the topic's bar, and the topic is in search's scope. */
+export const searchedPage = (topicId: string, page: TopicPage) => page.index && SEARCH_TOPICS.has(topicId);
+export const searched = (ref: PlacePageRef) => searchedPage(ref.topic.id, ref.page);
+
 /** Whether a place's page (its overview without a slug) is put forward for search: what its metadata says. */
 export function placeIndexed(place: Place, slug?: string): boolean {
-  if (slug !== undefined) return !!findPlacePage(place, slug)?.page.index;
-  return overviewIndexed(placePages(place)) || childPlaces(place, 1).length > 0;
+  if (slug !== undefined) {
+    const ref = findPlacePage(place, slug);
+    return !!ref && searched(ref);
+  }
+  if (!SEARCH_OVERVIEWS.has(place.kind)) return false;
+  const pages = placePages(place);
+  if (place.kind === 'city') return overviewIndexed(pages) && pages.some(searched);
+  return overviewIndexed(pages) || childPlaces(place, 1).length > 0;
 }
 
 /** Nearby places of the same kind with an indexed page of this topic (or any but a faith page, for an overview). */
@@ -44,7 +55,7 @@ let listed: { at: number; pages: { place: Place; slug?: string }[] } | null = nu
 export function indexedPages(kind?: PlaceKind): { place: Place; slug?: string }[] {
   if (!listed || Date.now() - listed.at >= DERIVED_TTL_MS) {
     listed = { at: Date.now(), pages: allPlaces().flatMap(place => {
-      const pages = placePages(place).filter(p => p.page.index).map(p => ({ place, slug: p.page.slug as string | undefined }));
+      const pages = placePages(place).filter(searched).map(p => ({ place, slug: p.page.slug as string | undefined }));
       return placeIndexed(place) ? [{ place }, ...pages] : pages;
     }) };
   }

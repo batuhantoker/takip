@@ -9,7 +9,7 @@ import { localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
 import { placeById } from '@/lib/platform/site/places/gazetteer';
-import { placePages } from '@/lib/platform/site/places/pages';
+import { placePages, searched, searchedPage } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { attractionWiki, KIND_LABEL } from '@/lib/platform/site/places/topics/attractions-data';
@@ -69,7 +69,7 @@ function CityPlan({ text, city }: { text: SiteText; city: Place }) {
   const own = placePages(city).find(p => p.topic.id === 'plans' && p.page.slug === ONE_DAY);
   return own ? (
     <p className="-mt-1 mb-2 text-[14px]">
-      <Link href={localePath(t.locale, placePath(city, own.page.slug))} rel={crawlRel(own.page.index)} className={TEXT_LINK}>
+      <Link href={localePath(t.locale, placePath(city, own.page.slug))} rel={crawlRel(searched(own))} className={TEXT_LINK}>
         {own.topic.header(city, own.page, t).heading}
       </Link>
     </p>
@@ -103,7 +103,7 @@ export const PLANS_VIEW: TopicView<PlansData, never, PlanDetail> = {
             <ul className="flex flex-col gap-2">
               {others.map(({ topic, page: other }) => (
                 <li key={other.slug}>
-                  <Link href={localePath(t.locale, placePath(place, other.slug))} rel={crawlRel(other.index)} className={cx(TEXT_LINK, 'text-[15px] font-medium')}>
+                  <Link href={localePath(t.locale, placePath(place, other.slug))} rel={crawlRel(searchedPage(topic.id, other))} className={cx(TEXT_LINK, 'text-[15px] font-medium')}>
                     {topic.header(place, other, t).heading}
                   </Link>
                   <span className="text-[14px] text-ink-3"> · {topic.summary(place, other, t)}</span>

@@ -4,6 +4,7 @@ import type { PlaceCopy } from '../places/topic';
 import { basisOf, formatNumber, formatValue, projectionName } from '../places/topics/indicators-facts';
 import type { IndicatorSeries, IndicatorSpec } from '../places/topics/indicators-data';
 import { PAIR_INDEX, pairFacts, pairMeasures, type Lead, type PairFacts, type PairMeasure } from './compare';
+import { searchScope } from '../search-scope';
 import { pairReasons, type CountryPair } from './pairs';
 
 /**
@@ -184,6 +185,7 @@ export const pairIndexed = (pair: CountryPair, measures: PairMeasure[]) =>
 
 /** Whether a pair's page (its overview without a measure), as it first opens, is put forward for search. */
 export function compareIndexed(pair: CountryPair, measure?: string): boolean {
+  if (!searchScope('/compare')) return false;
   const measures = pairMeasures(pair);
   if (measure === undefined) return pairIndexed(pair, measures);
   const m = measures.find(x => x.spec.slug === measure);

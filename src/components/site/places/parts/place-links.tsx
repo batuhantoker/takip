@@ -5,7 +5,7 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
 import { listOf, nameOf } from '@/lib/platform/site/places/copy/format';
-import { inNavOrder, placeIndexed, placePages, topicPages, type PlacePageRef } from '@/lib/platform/site/places/pages';
+import { inNavOrder, placeIndexed, placePages, searched, topicPages, type PlacePageRef } from '@/lib/platform/site/places/pages';
 import { km } from '@/lib/platform/site/places/gazetteer';
 import { topicShown } from '@/lib/platform/site/places/topics/faith-reach';
 import type { Place } from '@/lib/platform/site/places/place';
@@ -45,7 +45,7 @@ export function TopicNav({ text, place, pages, current }: { text: SiteText; plac
   // A faith page is marked by the Prayers entry where that page lists it.
   const stands = unlisted && listed.find(p => p.topic.id === unlisted.id || (p.topic.faith && topicShown(place, unlisted.id)))?.page.slug;
   const item = (p: PlacePageRef): NavItem => ({
-    href: placePath(place, p.page.slug), label: t(p.page.label ?? p.topic.label), here: p.page.slug === current || p.page.slug === stands, rel: crawlRel(p.page.index),
+    href: placePath(place, p.page.slug), label: t(p.page.label ?? p.topic.label), here: p.page.slug === current || p.page.slug === stands, rel: crawlRel(searched(p)),
   });
   const live = listed.filter(p => LIVE_TOPICS.has(p.topic.id)).map(item);
   const rest = listed.filter(p => !LIVE_TOPICS.has(p.topic.id)).map(item);
@@ -114,7 +114,7 @@ export function NearbyList({ text, places, from, page, summary }: { text: SiteTe
         const fact = summary && same ? same.topic.summary(p, same.page, t) : listOf(labels, t);
         return (
           <li key={p.id} className="border-b border-line">
-            <Link href={localePath(t.locale, placePath(p, same?.page.slug))} rel={crawlRel(!!same || placeIndexed(p))} className={cx('group block py-2.5', FOCUS_RING)}>
+            <Link href={localePath(t.locale, placePath(p, same?.page.slug))} rel={crawlRel(same ? searched(same) : placeIndexed(p))} className={cx('group block py-2.5', FOCUS_RING)}>
               <span className={cx('block text-[14px] leading-5 font-medium text-ink-1 group-hover:text-accent', TRANSITION)}>{nameOf(p, t)}</span>
               <span className="mt-0.5 block text-[12px] leading-[18px] text-ink-3">
                 <WithFigures text={[t('{km, distance} away', { km: km(from.at, p.at) }), fact].filter(Boolean).join(' · ')} />

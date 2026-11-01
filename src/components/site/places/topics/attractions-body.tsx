@@ -10,10 +10,10 @@ import { localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
 import { count, nameOf } from '@/lib/platform/site/places/copy/format';
 import { placeById } from '@/lib/platform/site/places/gazetteer';
-import { placeIndexed, placePages } from '@/lib/platform/site/places/pages';
+import { placeIndexed, placePages, searched, searchedPage } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
-import type { AttractionEntry, AttractionsData } from '@/lib/platform/site/places/topics/attractions';
+import { ATTRACTIONS, type AttractionEntry, type AttractionsData } from '@/lib/platform/site/places/topics/attractions';
 import { attractionName, attractionWiki, groupOf, KIND_GROUPS, KIND_LABEL, type AttractionItem } from '@/lib/platform/site/places/topics/attractions-data';
 import type { SiteText } from '@/lib/platform/site/text';
 import { Notes } from '../parts/notes';
@@ -101,8 +101,8 @@ export const ATTRACTIONS_VIEW: TopicView<AttractionsData, never, Photos> = {
     const { entries } = page.data;
     const plans = placePages(place).filter(p => p.topic.id === 'plans');
     const links = [
-      { href: placePath(place, page.slug), label: t('All {n, plural, one {# place} other {# places}} to see', { n: entries.length }), rel: crawlRel(page.index) },
-      ...plans.map(p => ({ href: placePath(place, p.page.slug), label: p.topic.header(place, p.page, t).heading, rel: crawlRel(p.page.index) })),
+      { href: placePath(place, page.slug), label: t('All {n, plural, one {# place} other {# places}} to see', { n: entries.length }), rel: crawlRel(searchedPage(ATTRACTIONS.id, page)) },
+      ...plans.map(p => ({ href: placePath(place, p.page.slug), label: p.topic.header(place, p.page, t).heading, rel: crawlRel(searched(p)) })),
     ];
     return (
       <Section title={place.kind === 'country' ? t('Things to do in {country}', { country: nameOf(place, t) }) : t('Things to do in {city}', { city: nameOf(place, t) })}>

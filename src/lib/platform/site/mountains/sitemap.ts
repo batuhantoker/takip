@@ -1,11 +1,13 @@
 import { LOCALES, type Locale } from '@/lib/core/i18n/locales';
+import { searchScope } from '../search-scope';
 import { countryOf } from './copy';
 import { mountainPath } from './mountain-page';
 import { countrySummaries, indexedCount, indexedSlugs, mountainsStamp } from './store';
 
 /**
- * The indexed mountain pages for /mountain/sitemap/<n>.xml, every page in every language, 50,000 entries a file as
- * the event and place sitemaps have; numbered in the index (mountain.seq), so a chunk is one range read.
+ * The indexed mountain pages for /mountain/sitemap/<n>.xml, in each language search's scope takes them in (none for
+ * now), 50,000 entries a file as the event and place sitemaps have; numbered in the index (mountain.seq), so a chunk
+ * is one range read.
  */
 const PER_CHUNK = 50_000;
 const PER_FILE = PER_CHUNK / LOCALES.length;
@@ -31,15 +33,15 @@ export const mountainImage = (slug: string, locale: Locale) => `/og?mountain=${e
 /** A list's card: the world's (`cc` left out) or a country's. */
 export const mountainsImage = (cc: string | null, locale: Locale) => `/og?mountains=${cc ?? 'world'}&lang=${locale}`;
 
-export const mountainSitemapIds = () => Array.from({ length: Math.ceil(indexedCount() / PER_FILE) }, (_, id) => ({ id }));
+export const mountainSitemapIds = () => (searchScope('/mountain') ? Array.from({ length: Math.ceil(indexedCount() / PER_FILE) }, (_, id) => ({ id })) : []);
 
 let held: { stamp: string | null; id: number; rows: { path: string; locale: Locale }[] } | null = null;
 
 export function mountainSitemapChunk(id: number): { path: string; locale: Locale }[] {
-  if (!Number.isInteger(id) || id < 0) return [];
+  if (!Number.isInteger(id) || id < 0 || !searchScope('/mountain')) return [];
   const stamp = mountainsStamp();
   if (held && held.stamp === stamp && held.id === id) return held.rows;
-  const rows = indexedSlugs(id * PER_FILE, (id + 1) * PER_FILE).flatMap(slug => LOCALES.map(locale => ({ path: mountainPath(slug), locale })));
+  const rows = indexedSlugs(id * PER_FILE, (id + 1) * PER_FILE).flatMap(slug => LOCALES.filter(locale => searchScope(mountainPath(slug), locale)).map(locale => ({ path: mountainPath(slug), locale })));
   held = { stamp, id, rows };
   return rows;
 }

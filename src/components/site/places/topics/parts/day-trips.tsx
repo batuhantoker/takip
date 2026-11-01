@@ -4,6 +4,7 @@ import { cx, FOCUS_RING, TRANSITION } from '@/components/ui/class-names';
 import { localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
 import { nameOf } from '@/lib/platform/site/places/copy/format';
+import { searched } from '@/lib/platform/site/places/pages';
 import { placePath } from '@/lib/platform/site/places/paths';
 import type { Place } from '@/lib/platform/site/places/place';
 import { attractionName } from '@/lib/platform/site/places/topics/attractions-data';
@@ -23,7 +24,7 @@ export function DayTrips({ text, place }: { text: SiteText; place: Place }) {
           const lead = trip.plan ?? trip.things;
           return (
             <li key={trip.place.id} className="border-b border-line">
-              <Link href={localePath(t.locale, placePath(trip.place, lead.page.slug))} rel={crawlRel(lead.page.index)}
+              <Link href={localePath(t.locale, placePath(trip.place, lead.page.slug))} rel={crawlRel(searched(lead))}
                 className={cx('group flex h-full flex-col gap-0.5 py-3.5', FOCUS_RING)}>
                 <span className="flex items-baseline justify-between gap-3">
                   <span className={cx('text-[15px] leading-6 font-medium text-ink-1 group-hover:text-accent', TRANSITION)}>{nameOf(trip.place, t)}</span>

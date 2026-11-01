@@ -9,6 +9,7 @@ import { appsOut } from '@/lib/platform/native/downloads';
 import { POLICY_LINKS } from '@/lib/platform/site/legal';
 import { isReadingPath, localePath } from '@/lib/platform/site/locale-path';
 import { crawlRel } from '@/lib/platform/site/meta';
+import { searchScope } from '@/lib/platform/site/search-scope';
 
 export { Bullets, LINK_BUTTON, Section, TEXT_LINK } from './site-parts';
 
@@ -69,7 +70,7 @@ export async function SiteFrame({ t, path, trail = [], indexed = true, credits, 
               </summary>
               <nav aria-label={t('This page in other languages')} className="mt-3 flex max-w-[24rem] flex-wrap gap-x-4 gap-y-2">
                 {LOCALES.map(l => (
-                  <a key={l} href={localePath(l, path)} hrefLang={l} lang={l} rel={crawlRel(indexed)} aria-current={l === t.locale ? 'page' : undefined}
+                  <a key={l} href={localePath(l, path)} hrefLang={l} lang={l} rel={crawlRel(indexed && searchScope(path, l))} aria-current={l === t.locale ? 'page' : undefined}
                     className={cx(l === t.locale ? 'text-ink-1' : 'hover:text-ink-1', FOCUS_RING, TRANSITION)}>
                     {LOCALE_NAMES[l]}
                   </a>

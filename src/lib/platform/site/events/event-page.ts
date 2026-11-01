@@ -1,4 +1,5 @@
 import { stmt } from '@/lib/core/read-db';
+import { searchScope } from '../search-scope';
 import { buildStamp, historyDb, pagesDb } from './store';
 
 /**
@@ -91,7 +92,7 @@ const NEARBY_SHOWN = 8;
 const NEAR_DEG = 4;
 
 export const ref = (r: IndexRow): EventRef => ({
-  slug: r.slug, title: r.title, kind: r.kind, family: r.family, t0: r.t_start / 1000, prec: r.prec, magnitude: r.magnitude, indexed: r.indexed === 1,
+  slug: r.slug, title: r.title, kind: r.kind, family: r.family, t0: r.t_start / 1000, prec: r.prec, magnitude: r.magnitude, indexed: r.indexed === 1 && searchScope('/event'),
 });
 
 const yearOf = (ms: number) => new Date(ms).getUTCFullYear();
