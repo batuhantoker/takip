@@ -3,10 +3,9 @@
  * runs its clock and camera there exactly as it does for a reader. The words come from the chapters' text.
  */
 import { CHAPTERS, legMs } from '../../../src/lib/history/paleo/story';
-import { basename } from 'node:path';
-import { backToStart, isLong, loopBeats, shortHold, shortPace } from '../loop';
+import { backToStart, isLong, lengthProblem, saidAs, loopBeats, shortHold, shortPace, wordsFor } from '../loop';
 import { askJson } from '../narrate/llm';
-import { glibIn, STYLE, TODAY } from '../narrate/style';
+import { glibIn, STYLE } from '../narrate/style';
 import type { Beat } from '../scene';
 import type { Maker } from './context';
 
@@ -19,7 +18,7 @@ const SETTLE_MS = { short: 600, long: 1200 };
 const ZOOM_IN = 0.5;
 
 const SYSTEM = `You write voiceover for short vertical videos about Earth's history.
-Use only the facts you are given. One sentence per line, at most 18 words, present tense. ${STYLE}
+Use only the facts you are given. One or two sentences per line, present tense. ${STYLE}
 Reply with JSON only.`;
 
 export const deepTime: Maker = {
@@ -36,15 +35,17 @@ export const deepTime: Maker = {
     const startMa = Math.min(1800, Math.ceil((told[0].ch.ma + 20) / 50) * 50);
     const id = (ma: number) => `ma-${ma}`;
 
-    const lines = await ctx.once('lines', () => askJson<{ today: string; lines: Record<string, string> }>(SYSTEM,
-      `The video covers ${startMa} million years of Earth in a few seconds. Write, every line short (the video is about ${long ? 50 : 22} seconds):\n` +
-      `- ${TODAY};\n- one narration line of at most ${long ? 16 : 10} words for each chapter below, telling only that chapter, from its facts alone.\n\n` +
-      told.map(({ ch }) => `[${id(ch.ma)}] ${ch.title}, ${ch.ma} million years ago: ${ch.body}`).join('\n') +
-      `\n\nReturn {"today": "...", "lines": {${told.map(({ ch }) => `"${id(ch.ma)}": "..."`).join(', ')}}}.`,
-      { check: v => (v.today && told.every(({ ch }) => v.lines?.[id(ch.ma)]?.trim()) ? glibIn([v.today, ...Object.values(v.lines)]) : 'need "today" and a line for every chapter id') }));
-    const { hook, outro } = loopBeats(basename(ctx.dir), lines.today, { variant: ctx.args.variant });
-
     const short = shortPace(ctx.args);
+    const words = short ? wordsFor(shortHold(told.length, 0)) : { lo: 12, hi: 16 };
+    const lines = await ctx.once('lines', () => askJson<{ lines: Record<string, string> }>(SYSTEM,
+      `The video covers ${startMa} million years of Earth in a few seconds. Write (the video is about ${long ? 50 : 22} seconds):\n` +
+      `- one narration line of ${saidAs(words)} for each chapter below, telling only that chapter, from its facts alone.\n\n` +
+      told.map(({ ch }) => `[${id(ch.ma)}] ${ch.title}, ${ch.ma} million years ago: ${ch.body}`).join('\n') +
+      `\n\nReturn {"lines": {${told.map(({ ch }) => `"${id(ch.ma)}": "..."`).join(', ')}}}.`,
+      { check: v => (told.every(({ ch }) => v.lines?.[id(ch.ma)]?.trim()) ? glibIn(Object.values(v.lines)) ?? lengthProblem(v.lines, words) : 'need a line for every chapter id') }));
+    const { hook, outro } = await loopBeats(ctx, { topic: `${startMa} million years of drifting continents`, lines: told.map(({ ch }) => lines.lines[id(ch.ma)]),
+      facts: told.map(({ ch }) => `${ch.title}, ${ch.ma} million years ago`).join('; ') });
+
     const leg = (from: number, to: number) => (short ? Math.min(legMs(from, to), SHORT_LEG_MS) : legMs(from, to));
     const go = (i: number, ms: number) => `__takipHistory.story.go(${i}, ${ms})`;
     let ma = startMa;

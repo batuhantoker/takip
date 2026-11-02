@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { chronicleToll } from './chronicle';
-import { tollIn, undatedIn } from './events';
-import { glibIn } from '../narrate/style';
+import { undatedIn } from './events';
+import { glibIn, tollIn } from '../narrate/style';
 
 describe('tollIn', () => {
   it('refuses a line that tells a toll', () => {

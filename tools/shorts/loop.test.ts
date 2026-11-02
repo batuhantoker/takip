@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { closed, estimateMs, isGrave, plainIfGrave, shortHold, TAGLINE, trimmed } from './loop';
-import { LOOPS, opening } from './narrate/style';
+import { closed, estimateMs, lengthProblem, shortHold, spokenWords, TAGLINE, trimmed, wordsFor } from './loop';
 import type { Scene } from './scene';
 
 const scene = (body: number): Scene => ({
   id: 's', kind: 'story', path: '/', chrome: 'map-only', kicker: 'k', sources: [], post: { title: '', description: '', hashtags: [] },
   beats: [
-    { id: 'hook', say: 'TAKIP has everything, and more. Today: the race to the Pole.', minMs: 2500 },
+    { id: 'hook', say: 'In 1911, two teams raced for the South Pole.', minMs: 2500 },
     ...Array.from({ length: body }, (_, i) => ({ id: `b${i}`, say: 'A line of about twelve words that the narrator says at an even pace.', minMs: 4000 })),
-    { id: 'outro', say: "That's why I keep saying it:", enter: 'back()', minMs: 2200, credits: true, counterWithTitle: true },
+    { id: 'outro', say: 'Follow both routes yourself on TAKIP.', enter: 'back()', minMs: 2200, credits: true, counterWithTitle: true },
   ],
 });
 
@@ -27,7 +26,7 @@ describe('trimmed', () => {
   it('keeps the hook, the opening beats that fit in 25 s, and the loop outro', () => {
     const t = trimmed(scene(5));
     expect(t.beats[0].id).toBe('hook');
-    expect(t.beats[t.beats.length - 1].say).toBe("That's why I keep saying it:");
+    expect(t.beats[t.beats.length - 1].say).toBe('Follow both routes yourself on TAKIP.');
     expect(t.beats.slice(1, -1).map(b => b.id)).toEqual(['b0', 'b1', 'b2']);
     expect(t.beats.reduce((s, b) => s + estimateMs(b), 0)).toBeLessThanOrEqual(25_000);
   });
@@ -45,27 +44,28 @@ describe('shortHold', () => {
   });
 });
 
-describe('plainIfGrave', () => {
-  const story = (kicker: string, title: string, variant: number): Scene => ({
-    ...scene(1), kicker, post: { title, description: 'military flights, quakes', hashtags: [] },
-    beats: [
-      { id: 'hook', say: `${opening(LOOPS[variant].hype)} Today: every nuclear explosion on record.` },
-      { id: 'b0', say: 'A line.' },
-      { id: 'outro', say: LOOPS[variant].bridge },
-    ],
+describe('wordsFor', () => {
+  it("asks for enough words to fill a beat's picture at the narrator's pace", () => {
+    expect(wordsFor(4000)).toEqual({ lo: 8, hi: 10 });
+    expect(wordsFor(13_000)).toEqual({ lo: 26, hi: 35 });
+    expect(wordsFor(500).hi).toBe(6);
   });
-  it('gives a grave story a plain hook and its bridge, the variant taken among the plain loops', () => {
-    const s = plainIfGrave(story('Nuclear age', 'Every nuclear explosion, 1945 to 1998', 7), 'x', '7');
-    expect(s.beats[0].say).toBe(`${opening(LOOPS[2].hype)} Today: every nuclear explosion on record.`);
-    expect(s.beats[2].say).toBe(LOOPS[2].bridge);
+});
+
+describe('spokenWords', () => {
+  it('counts numbers as the narrator says them', () => {
+    expect(spokenWords('In 1954, a Bikini test reaches about 15,000 kilotons.')).toBe(11);
+    expect(spokenWords('2,051 explosions, magnitude 5.3.')).toBe(3 + 1 + 1 + 3);
   });
-  it('leaves a story that is not grave, whatever its description lists', () => {
-    const s = story('Live flight tracker', 'Live flight tracker: planes on a map right now', 7);
-    s.beats[0].say = `${opening(LOOPS[7].hype)} Today: who's over London.`;
-    expect(isGrave(s)).toBe(false);
-    expect(plainIfGrave(s, 'x', '7')).toBe(s);
+});
+
+describe('lengthProblem', () => {
+  const range = { lo: 8, hi: 10 };
+  it('sends back a line too short for its picture, or too long counted as spoken', () => {
+    expect(lengthProblem({ a: 'Patricia hit its peak.' }, range)).toMatch(/"a" says 4 words; write 8–10 words as spoken/);
+    expect(lengthProblem({ a: 'In 1954 and 1961, tests reach 15,000 and 50,000 kilotons.' }, range)).toMatch(/says 14 words; keep it/);
   });
-  it("takes a maker's word for it", () => {
-    expect(isGrave({ ...story('Napoleon', 'Napoleon, from Toulon to Saint Helena', 7), grave: true })).toBe(true);
+  it('lets a line a word or two either side through', () => {
+    expect(lengthProblem({ a: Array(7).fill('word').join(' '), b: Array(12).fill('word').join(' ') }, range)).toBeNull();
   });
 });

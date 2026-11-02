@@ -1,10 +1,12 @@
 /**
  * The two shapes of a short. The short cut loops: the platform replays it, so the outro returns the picture to where the
- * hook began and its line is the first half of a sentence the hook finishes (narrate/style.ts LOOPS). film.ts records the
+ * hook began, and its line (narrate/hook.ts) leads back into the hook. film.ts records the
  * opening camera as `window.__loopStart` once the scene is set up. The long cut ends closed, since X has no replay (the
  * user, 2026-10-22): the tagline over the last shot, wherever it is, then the end card.
  */
-import { loopFor, opening } from './narrate/style';
+import { endsFor } from './narrate/hook';
+import { numberWords } from './narrate/numbers';
+import type { Context } from './stories/context';
 import type { Beat, Scene } from './scene';
 
 /** How long the camera takes to get back to the opening view. */
@@ -22,14 +24,14 @@ export const backToStart = (extra = '') =>
   `(() => { ${closeCards}; ${extra}; ` +
   `const s = window.__loopStart; if (s) __takipMap.flyTo({ ...s, duration: ${RETURN_MS}, essential: true, raw: true }); })()`;
 
-/** The hook and outro of a short, from its folder name (or `--variant`): the hype line opens, the bridge closes into it. */
-export function loopBeats(seed: string, today: string, { variant, back = backToStart(), hookMs = 2500 }: {
-  variant?: string; back?: string; hookMs?: number;
-} = {}): { hook: Beat; outro: Beat } {
-  const loop = loopFor(seed, variant !== undefined && variant !== '' ? Number(variant) : undefined);
+/** The hook and outro of a short, written from its body's lines (narrate/hook.ts): the hook opens, the outro leads back into it. */
+export async function loopBeats(ctx: Context, about: Parameters<typeof endsFor>[1], { back = backToStart(), hookMs = 2500 }: {
+  back?: string; hookMs?: number;
+} = {}): Promise<{ hook: Beat; outro: Beat }> {
+  const ends = await endsFor(ctx, about);
   return {
-    hook: { id: 'hook', say: `${opening(loop.hype)} ${today}`, minMs: hookMs },
-    outro: { id: 'outro', say: loop.bridge, enter: back, minMs: RETURN_MS + 400, credits: true },
+    hook: { id: 'hook', say: ends.hook, minMs: hookMs },
+    outro: { id: 'outro', say: ends.outro, enter: back, minMs: RETURN_MS + 400, credits: true },
   };
 }
 
@@ -50,9 +52,45 @@ export const TAGLINE = 'See the world live or in the past on TAKIP.';
 const END_CARD_MS = 1800;
 
 /** About how long a beat runs: its hold, or its line at the narrator's pace with the quiet around it. */
+// the narrator at TEMPO 1.15, measured over 40 cuts on 2026-11-02: 2.8 words a second
 const MS_PER_WORD = 360;
+const QUIET_MS = 450;
 export const estimateMs = (b: Beat) =>
-  Math.max(b.minMs ?? 0, 450 + b.say.split(/\s+/).filter(Boolean).length * MS_PER_WORD) + (b.card === 'end' ? END_CARD_MS : 0);
+  Math.max(b.minMs ?? 0, QUIET_MS + spokenWords(b.say) * MS_PER_WORD) + (b.card === 'end' ? END_CARD_MS : 0);
+
+/** A line's words as the narrator says them: a year is two, "2,051" three, "5.3" three. */
+export function spokenWords(line: string) {
+  return line.split(/\s+/).filter(Boolean).reduce((n, w) => {
+    const num = w.replace(/[^\d.,]/g, '').replace(/,(?=\d{3})/g, '').replace(/[.,]+$/, '');
+    if (!/\d/.test(num)) return n + 1;
+    const [whole, frac = ''] = num.split('.');
+    const i = Number(whole);
+    const said = /^\d{4}$/.test(whole) && !/\d,\d/.test(w) && i >= 1100 && i < 2100 && !frac ? 2 : i < 1_000_000 ? numberWords(i).split(' ').length : 3;
+    return n + said + (frac ? 1 + frac.length : 0);
+  }, 0);
+}
+
+/**
+ * The words a line needs to fill `ms` of picture. A beat ends with its line or its hold, whichever is later, so a line much
+ * shorter than its hold is silence: the old ≤10-word detail sat under 13 s of picture.
+ */
+export function wordsFor(ms: number) {
+  const hi = Math.max(6, Math.round((ms - QUIET_MS) / MS_PER_WORD));
+  return { lo: Math.round(hi * 0.75), hi };
+}
+
+/** How a writer is told the range: counted as said, since a line full of numbers runs long (a story at 31 s, 2026-11-02). */
+export const saidAs = ({ lo, hi }: { lo: number; hi: number }) => `${lo}–${hi} words as spoken (a number counts as the words it is said in: 1954 is two, 2,051 is three)`;
+
+/** Why a line is too short for its picture or too long for the cut, or null; the writer is asked again. */
+export function lengthProblem(lines: Record<string, string>, { lo, hi }: { lo: number; hi: number }) {
+  for (const [id, line] of Object.entries(lines)) {
+    const n = spokenWords(line);
+    if (n < lo - 1) return `"${id}" says ${n} words; write ${saidAs({ lo, hi })}, or the picture runs on in silence`;
+    if (n > hi + 2) return `"${id}" says ${n} words; keep it to ${saidAs({ lo, hi })}`;
+  }
+  return null;
+}
 
 /** The long cut, closed: its outro gives way to the tagline over the last shot and the end card; nothing flies back. */
 export function closed(scene: Scene): Scene {
@@ -64,29 +102,6 @@ export function closed(scene: Scene): Scene {
       id: 'outro', say: TAGLINE, card: 'end', enter: `(() => { ${closeCards}; })()`,
       ...(outro.counterWithTitle ? { counterWithTitle: true } : {}),
     }],
-  };
-}
-
-/** Words that make a story grave, read in its kicker, post title and "today" (a description lists a page's layers too). */
-const GRAVE = /\b(wars?|warfare|wartime|battles?|military|missiles?|nuclear|atomic|bombs?|bombing|weapons?|explosions?|earthquakes?|quakes?|tsunamis?|eruptions?|volcan\w*|hurricanes?|typhoons?|cyclones?|storms?|tornado\w*|floods?|droughts?|disasters?|hazards?|epidemics?|pandemics?|plagues?|diseases?|outbreaks?|fires?|wildfires?|deaths?|mortality|genocides?|massacres?|conflicts?|coups?|invasions?|sieges?|terror\w*|crusades?|revolutions?|conquests?)\b/i;
-
-/** Whether a story is grave: its maker says so, or its words do. */
-export const isGrave = (scene: Scene) =>
-  scene.grave ?? GRAVE.test([scene.kicker, scene.post.title, scene.beats[0]?.say.split(/(?<=[.!?…])\s+/).at(-1)].join(' '));
-
-/**
- * A grave story's hook and bridge from the plain loops (narrate/style.ts PLAIN), the variant taken among them: "I lose an
- * hour on this map" over every nuclear explosion on record sits wrong (takip-98, 2026-10-22).
- */
-export function plainIfGrave(scene: Scene, seed: string, variant?: string): Scene {
-  const v = variant !== undefined && variant !== '' ? Number(variant) : undefined;
-  const was = loopFor(seed, v), now = loopFor(seed, v, true);
-  if (!isGrave(scene) || was === now) return scene;
-  const hype = opening(was.hype);
-  return {
-    ...scene,
-    beats: scene.beats.map(b => (b.id === 'hook' && b.say.startsWith(hype) ? { ...b, say: opening(now.hype) + b.say.slice(hype.length) }
-      : b.id === 'outro' && b.say === was.bridge ? { ...b, say: now.bridge } : b)),
   };
 }
 

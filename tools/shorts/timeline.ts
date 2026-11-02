@@ -133,6 +133,18 @@ export function layout(beats: Beat[], script: Script, voices: Record<string, Voi
   return { beats: timed, totalMs: at, frames: Math.round(at / FRAME_MS), loop };
 }
 
+/** Longest stretch a beat may run without a word, outside the end card: past it the short sounds empty (the user, 2026-11-02). */
+export const QUIET_MAX_MS = 2500;
+
+/** Each beat that runs on past its line for longer than QUIET_MAX_MS, said for a warning. */
+export function silences(timeline: Timeline): string[] {
+  return timeline.beats.flatMap(b => {
+    const said = b.chunks.at(-1)?.words.at(-1)?.end ?? b.voiceAt;
+    const quiet = b.end - said - (b.card === 'end' ? END_HOLD_MS : 0);
+    return quiet > QUIET_MAX_MS ? [`"${b.id}" runs ${(quiet / 1000).toFixed(1)} s past its line; write it longer (its cache.lines*.json)`] : [];
+  });
+}
+
 /** What the overlay draws at time t; it has no clock of its own, so every frame is exact. */
 export interface OverlayFrame {
   card: 'hook' | 'end' | null;

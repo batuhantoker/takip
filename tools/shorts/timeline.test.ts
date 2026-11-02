@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Beat, Script } from './scene';
-import { FRAME_MS, chunk, frameAt, layout, timeWords, tokens } from './timeline';
+import { FRAME_MS, chunk, frameAt, layout, silences, timeWords, tokens } from './timeline';
 
 const beats: Beat[] = [
   { id: 'hook', say: 'Earth in a minute.', card: 'hook' },
@@ -104,5 +104,15 @@ describe('layout', () => {
     expect(frameAt(held, script, b.counterFrom! + 1).counterIn).toBeLessThan(0.1);
     expect(frameAt(held, script, b.counterFrom! + 2000).counterIn).toBe(1);
     expect(frameAt(tl, script, tl.beats[1].start + 10)).toMatchObject({ counter: true, counterIn: 1 });
+  });
+});
+
+describe('silences', () => {
+  it("names a beat that runs on past its line, but not the end card's hold", () => {
+    const tl = layout(beats, script, { hook: { ms: 1500 }, a: { ms: 3000, speech: [100, 2900] }, outro: { ms: 1200 } });
+    expect(silences(tl)).toEqual([expect.stringMatching(/^"a" runs 2\.9 s past its line/)]);
+  });
+  it('says nothing when the lines fill their beats', () => {
+    expect(silences(layout(beats, script, { hook: { ms: 1500 }, a: { ms: 5800 }, outro: { ms: 1200 } }))).toEqual([]);
   });
 });

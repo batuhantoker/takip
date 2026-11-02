@@ -3,10 +3,9 @@
  * shows as it happens, while the globe turns to what each stretch's line talks about (focus in facts.ts). Every
  * number the narrator says (counts, places, the biggest events) is counted from history.db here.
  */
-import { basename } from 'node:path';
-import { backToStart, isLong, loopBeats, shortHold, shortPace } from '../loop';
+import { backToStart, isLong, lengthProblem, saidAs, loopBeats, shortHold, shortPace, wordsFor } from '../loop';
 import { askJson } from '../narrate/llm';
-import { glibIn, STYLE, TODAY } from '../narrate/style';
+import { glibIn, STYLE, tollIn } from '../narrate/style';
 import type { Beat } from '../scene';
 import type { Maker } from './context';
 import { countBy, decadeOf, focus, namedIn, sampleYears, spanYears, yearsSaid } from './facts';
@@ -14,7 +13,7 @@ import { eventsIn } from './history-db';
 import { EVENT_PRESETS, type EventPreset } from './presets/events';
 
 /** Stretches and their length: the short loop (20–25 s), or `--length long`; a short's legs fill its body (loop.ts shortHold). */
-const CUTS = { short: { legs: 4, legMs: 4000, words: 11, seconds: 22 }, long: { legs: 5, legMs: 6500, words: 16, seconds: 50 } };
+const CUTS = { short: { legs: 4, legMs: 4000, seconds: 22 }, long: { legs: 5, legMs: 6500, seconds: 50 } };
 /** Share of a stretch's beat the clock spends running through it; it then holds at the stretch's end. */
 const RUN = 0.4;
 const FLY_MS = 2500;
@@ -29,15 +28,6 @@ const yearMs = (y: number) => {
 /** A preset's records: of its kinds and years, inside its box, without what it skips. */
 const rowsOf = (p: EventPreset) => eventsIn(p.kinds, p.counted, yearMs(p.from), yearMs(p.to))
   .filter(e => (!p.box || (e.lon >= p.box[0] && e.lat >= p.box[1] && e.lon <= p.box[2] && e.lat <= p.box[3])) && !p.skip?.(e));
-
-/** Words that tell a toll, which no events line says (GUIDELINES § Topics: tragedies stay plain, with no death tolls). */
-export const TOLL = /\b(deaths?|died|dies|dying|killed|killing|kills|dead|lives|victims?|casualt\w*|toll|wounded|injur\w*)\b/i;
-
-/** Why a script tells a toll, or null. */
-export function tollIn(lines: string[]) {
-  const said = lines.map(l => l.match(TOLL)?.[0]).find(Boolean);
-  return said ? `no death tolls, tragedies stay plain: a line says "${said}"; tell the event by its physical size` : null;
-}
 
 /**
  * Why a line can't be placed in time, or null: "Plesetsk launches 724 rockets" means nothing without its span (takip-98,
@@ -95,17 +85,20 @@ export const events: Maker = {
     // the stretches its facts were counted over, which a folder written before the cut's sampling changed still tells
     const years = [...facts.legs.map(l => l.from), facts.legs[facts.legs.length - 1].to + 1];
 
-    const lines = await ctx.once('lines', () => askJson<{ today: string; lines: Record<string, string> }>(SYSTEM,
+    const legMs = shortPace(ctx.args) ? shortHold(facts.legs.length, CUTS.short.legMs) : cut.legMs;
+    const words = wordsFor(legMs);
+    const lines = await ctx.once('lines', () => askJson<{ lines: Record<string, string> }>(SYSTEM,
       `The video shows ${p.topic}. ${p.coverage}${p.tell ? ` ${p.tell}` : ''}\nIn all: ${facts.total} events; most in ${facts.where.join(', ')}; ` +
       `busiest decade ${facts.busiest}.\n\nStretches, in order:\n` +
       facts.legs.map((l, i) => `[${id(i)}] ${l.from}–${l.to}: ${l.count} events; most in ${l.where.join(', ') || 'nowhere'}; ` +
         `biggest: ${l.biggest.join('; ') || 'none recorded'}`).join('\n') +
-      `\n\nWrite, every line short (the video is about ${cut.seconds} seconds):\n- ${TODAY};\n` +
-      `- "lines": for each stretch, one sentence of at most ${cut.words} words, leading with its most striking fact: a named event with its year ("In 1963, …"), or one count with its stretch ("From 1957 to 1979, Plesetsk launches 724 rockets"), and no test or operation codenames.\n` +
-      `Return {"today": "...", "lines": {${facts.legs.map((_, i) => `"${id(i)}": "..."`).join(', ')}}}.`,
-      { check: v => !(v.today && facts.legs.every((_, i) => v.lines?.[id(i)]?.trim())) ? 'need "today" and a line for every stretch id'
-        : undatedIn(facts.legs, v.lines) ?? tollIn([v.today, ...Object.values(v.lines)]) ?? glibIn([v.today, ...Object.values(v.lines)]) }));
-    const { hook, outro } = loopBeats(basename(ctx.dir), lines.today, { variant: ctx.args.variant });
+      `\n\nWrite (the video is about ${cut.seconds} seconds):\n` +
+      `- "lines": for each stretch, one or two sentences of ${saidAs(words)}, leading with its most striking fact: a named event with its year ("In 1963, …"), or one count with its stretch ("From 1957 to 1979, Plesetsk launches 724 rockets"), and no test or operation codenames.\n` +
+      `Return {"lines": {${facts.legs.map((_, i) => `"${id(i)}": "..."`).join(', ')}}}.`,
+      { check: v => !facts.legs.every((_, i) => v.lines?.[id(i)]?.trim()) ? 'need a line for every stretch id'
+        : undatedIn(facts.legs, v.lines) ?? tollIn(Object.values(v.lines)) ?? glibIn(Object.values(v.lines)) ?? lengthProblem(v.lines, words) }));
+    const { hook, outro } = await loopBeats(ctx, { topic: p.topic, lines: facts.legs.map((_, i) => lines.lines[id(i)]),
+      facts: `${facts.total} events in all, ${p.from} to ${facts.legs[facts.legs.length - 1].to}; most in ${facts.where.join(', ')}; busiest decade ${facts.busiest}` });
 
     const camera = await ctx.once('camera', async () => {
       const all = rowsOf(p);
@@ -136,7 +129,6 @@ export const events: Maker = {
     const at = (c: [number, number] | null) => c ?? [20, 0];
     const fly = (c: [number, number] | null) =>
       `__takipMap.flyTo({ center: [${at(c)[1]}, ${at(c)[0]}], zoom: ${p.zoom}, duration: ${FLY_MS}, essential: true })`;
-    const legMs = shortPace(ctx.args) ? shortHold(facts.legs.length, CUTS.short.legMs) : cut.legMs;
     const legs: Beat[] = facts.legs.map((l, i) => ({
       id: id(i),
       say: lines.lines[id(i)],

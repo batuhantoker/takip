@@ -101,8 +101,8 @@ function spokenKnown(dir: string): Map<string, string> {
 const sentences = (s: string) => s.trim().split(/(?<=[.!?…])\s+/);
 
 /**
- * A line's spoken form from those the folder knows: the same line's, or one ending in the same sentences (a hook whose
- * hype changed but whose "today" didn't) when what comes before needs no words of its own.
+ * A line's spoken form from those the folder knows: the same line's, or one ending in the same sentences (a line whose
+ * first sentence changed) when what comes before needs no words of its own.
  */
 export function spokenFrom(say: string, known: Map<string, string>): string | undefined {
   const exact = known.get(say);

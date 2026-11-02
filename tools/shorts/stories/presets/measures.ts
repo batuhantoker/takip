@@ -35,12 +35,12 @@ const UN = 'UN World Population Prospects 2024';
  */
 const LIFE_EXPECTANCY = {
   rule: 'Say it as life expectancy ("In 1920, Russia\'s life expectancy was just 20.5 years"), never as how long people lived or live, and name the year in every line.',
-  wrong: /\b(people|they|everyone|adults?|residents?)\s+(lived|live|living|die|died)\b|\blived\b|\bliving\s+\d/i,
+  wrong: /\b(people|they|everyone|adults?|residents?)\s+(lived|live|living|die|died)\b|\blived\b|\bliving\s+\d|\blive to\b/i,
 };
 
 /** Maddison's dollars are 2011 prices: said once, so 8,038 in 1900 isn't heard as that year's money. */
 const PRICES_2011 = {
-  rule: 'Say once, in "today" or the first line, that the money is "in 2011 dollars" or "adjusted for prices"; never "today\'s dollars".',
+  rule: 'Say once, in the first line, that the money is "in 2011 dollars" or "adjusted for prices"; never "today\'s dollars".',
   wrong: /\btoday'?s dollars\b/i,
   once: /\b(2011 (dollars|prices)|adjusted for (prices|inflation))\b/i,
 };

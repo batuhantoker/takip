@@ -10,13 +10,12 @@ import { BASE_LAYERS, mapHref } from '../../../src/lib/platform/site/map-link';
 import type { SpaceFocus } from '../../../src/lib/space/worlds';
 import { askJson } from '../narrate/llm';
 import { rmSync } from 'node:fs';
-import { basename, join } from 'node:path';
-import { backToStart, closeCards, isLong, loopBeats, shortPace } from '../loop';
-import { glibIn, STYLE, TODAY } from '../narrate/style';
+import { join } from 'node:path';
+import { backToStart, closeCards, isLong, lengthProblem, saidAs, loopBeats, shortPace, wordsFor } from '../loop';
+import { glibIn, STYLE, tollIn } from '../narrate/style';
 import type { Beat } from '../scene';
 import type { Maker } from './context';
 import { historyTour } from './history-tour';
-import { tollIn } from './events';
 import { liveFacts, recount, roundCount } from './live-facts';
 import { retold } from '../narrate/numbers';
 import { TRAIL_ZOOM, trailSpots, type TrailSpot } from './trails';
@@ -93,8 +92,9 @@ const pickOnce = (script: string, key: string, at = FLY_MS + 300) =>
   `{ if (ms >= ${at} && !window.__picked?.['${key}']) { (window.__picked ??= {})['${key}'] = 1; ${script}; } }`;
 /** How long a long cut's spot shows each of its two cards; a short cut from the long's spots shows one. */
 const CARD_MS = 3200;
-/** A short tour's one detail holds this long, with a second card where it opens them, so the loop runs 20–25 s. */
+/** A short tour's one detail runs about this long, so the loop runs 20–25 s: its line is written to fill it. */
 const DETAIL_MS = 13_000;
+const WOW_WORDS = { lo: 18, hi: 26 };
 
 /** Pages whose numbers don't hold (submarine-cables.json counts route segments, not cables): no number is said. */
 const NO_NUMBERS = new Set(['undersea-cables']);
@@ -173,7 +173,7 @@ Reply with JSON only.`;
 /** Lines about the video instead of the place: filler a viewer learns nothing from (takip-98, 2026-10-21). */
 export const FILLER = /\b(camera|lands? on|next|another (site|stop|one|place)|its page|page open|card open|on screen|flies? (to|in)|zooms? (in|out|to))\b/i;
 
-type Lines = { today: string; detail: string; now?: string; title?: string; place?: string };
+type Lines = { detail: string; now?: string; title?: string; place?: string };
 
 export const feature: Maker = {
   id: 'feature',
@@ -259,7 +259,8 @@ export const feature: Maker = {
     // the long cut: the wow, then up to three places each with its card open, every stop in space, or both orbit views
     const long = isLong(ctx.args);
     const cards = shortPace(ctx.args) ? 1 : 2;
-    type LongLines = { today: string; wow: string; spots: Record<string, string>; now?: string; title?: string };
+    const spotMs = FLY_MS + 300 + cards * CARD_MS;
+    type LongLines = { wow: string; spots: Record<string, string>; now?: string; title?: string };
     type Place = { label: string; note?: string; beat: Omit<Beat, 'id' | 'say'> };
     const places: Place[] = !long ? [] : past?.places ? past.places
       : trails?.length ? trails.map((t, i) => ({ label: t.label, note: trailSaid(t), beat: trailBeat(t, `trail-${i}`) })) : stops.length
@@ -267,10 +268,11 @@ export const feature: Maker = {
       : page.track ? FOLLOW_STOPS.map(f => ({ label: f.label, beat: { title: f.label, ...followTo(f), minMs: FLY_MS + 1500 } }))
         : (picking ? offered : [...offered.slice(0, MAX_SPOTS), ...(live.busiest ?? [])].slice(0, LONG_SPOTS)).map(sp => ({ label: sp.label, note: note(sp.label, sp.note) || undefined,
           // two cards a spot, so the long cut stays on each place long enough to read them
-          beat: { title: sp.label, enter: flyOn(sp.view), minMs: FLY_MS + 300 + (pick ? cards * CARD_MS : 2300),
+          beat: { title: sp.label, enter: flyOn(sp.view), minMs: pick ? spotMs : FLY_MS + 2600,
             ...(pick ? { frame: Array.from({ length: cards }, (_, n) => pickOnce(pick, `${sp.label.replace(/['\\]/g, '')}#${n}`, FLY_MS + 300 + n * CARD_MS)).join(' '), captionAt: sheet ? 'top' as const : 'bottom' as const } : {}) } }));
     // a long row that comes out with its wow alone films a short in a long slot
     if (long && !shortPace(ctx.args) && places.length < 2) throw new Error(`${page.slug}: a long cut needs at least two stops, and this page gives ${places.length}`);
+    const detailWords = wordsFor(DETAIL_MS);
     const lines = await ctx.once('lines', () => askJson<Lines>(SYSTEM,
       `The feature: ${page.heading}. ${page.lede}\nWhat you see: ${shows}\n` +
       (live.line ? `Live right now: ${live.line}\n` : '') +
@@ -279,21 +281,24 @@ export const feature: Maker = {
           `${(picking ? spots : spots.slice(0, 1)).map(s => `- ${s.label}${note(s.label, s.note) ? `: ${note(s.label, s.note)}` : ''}`).join('\n')}\n`) +
       (fact ? `Today's situation, which the video leads with: ${fact}\n` : '') +
       (angle ? `The video's angle: ${angle}. Lead with it, and say only what the facts here back up; where they don't, keep the angle light.\n` : '') +
-      `\nWrite, every line short (the video is about 20 seconds):\n- ${TODAY};\n` +
+      `\nWrite (the video is about 20 seconds):\n` +
       (fact ? `- "now": one sentence, at most 18 words, telling today's situation with its numbers exactly as given;\n` +
         `- "title": a post title of at most 70 characters about today's situation;\n` : '') +
-      `- "detail": one sentence, at most 10 words, the most striking thing on screen there, with one live number where given${picking ? '; and "place": the exact name of the place you chose' : ''}.\n` +
-      `Return {"today": "...", ${fact ? '"now": "...", "title": "...", ' : ''}"detail": "..."${picking ? ', "place": "..."' : ''}}.`,
-      { check: v => numbered([v.today, v.detail, v.now]) ?? filler([v.detail]) ?? tollIn([v.today, v.detail, v.now ?? '']) ?? glibIn([v.today, v.detail, v.now]) ?? ([v.today, v.detail, v.now].some(l => l && CLOCK.test(l)) ? 'no clock times or time zones: the video goes out later'
-        : !(v.today && v.detail && (!fact || (v.now && v.title))) ? 'every field is needed'
-          : picking && !spots.some(s => s.label === v.place) ? 'choose one of the places listed, by its exact name' : null) }));
+      `- "detail": two or three short sentences, ${saidAs(detailWords)}: the most striking thing on screen there, with its live numbers where given, ` +
+      `then the next most striking facts about it or about what the map shows${picking ? '; and "place": the exact name of the place you chose' : ''}.\n` +
+      `Return {${fact ? '"now": "...", "title": "...", ' : ''}"detail": "..."${picking ? ', "place": "..."' : ''}}.`,
+      { check: v => numbered([v.detail, v.now]) ?? filler([v.detail]) ?? tollIn([v.detail, v.now ?? '']) ?? glibIn([v.detail, v.now]) ?? ([v.detail, v.now].some(l => l && CLOCK.test(l)) ? 'no clock times or time zones: the video goes out later'
+        : !(v.detail && (!fact || (v.now && v.title))) ? 'every field is needed'
+          : picking && !spots.some(s => s.label === v.place) ? 'choose one of the places listed, by its exact name' : lengthProblem({ detail: v.detail }, detailWords)) }));
     // the spot shown: the one the writer chose with an angle, else the first the day's feed backs
     const spot = !detail.what ? (picking ? spots.find(s => s.label === lines.place) : spots[0]) : undefined;
     const detailBeat: Beat = spot && 'view' in spot
       // a sheet card covers the lower half on a phone, so the words move above it
-      ? { id: 'detail', ...retell(lines.detail, spot.label), title: spot.label, enter: flyOn(spot.view), minMs: DETAIL_MS,
-        ...(pick ? { frame: `${pickOnce(pick, 'detail')} ${pickOnce(pick, 'detail#1', DETAIL_MS / 2)}`, captionAt: sheet ? 'top' as const : 'bottom' as const } : {}) }
-      : { id: 'detail', say: lines.detail, ...detail.beat, minMs: Math.max(detail.beat.minMs ?? 0, DETAIL_MS) };
+      ? { id: 'detail', ...retell(lines.detail, spot.label), title: spot.label, enter: flyOn(spot.view), minMs: pick ? FLY_MS + 300 + 2 * CARD_MS : FLY_MS + 2600,
+        ...(pick ? { frame: `${pickOnce(pick, 'detail')} ${pickOnce(pick, 'detail#1', FLY_MS + 300 + CARD_MS)}`, captionAt: sheet ? 'top' as const : 'bottom' as const } : {}) }
+      : { id: 'detail', say: lines.detail, ...detail.beat };
+    // each place's line fills its longest hold: the camera's flight and its cards
+    const spotWords = wordsFor(Math.max(6000, ...places.map(pl => pl.beat.minMs ?? 0)));
     const longLines = !long ? null : await ctx.once('tour', () => askJson<LongLines>(SYSTEM,
       `The feature: ${page.heading}. ${page.lede}\nWhat you see: ${shows}\n` +
       (live.line ? `Live right now: ${live.line}\n` : '') +
@@ -302,16 +307,17 @@ export const feature: Maker = {
         `${places.map(pl => `- ${pl.label}${pl.note ? `: ${pl.note}` : ''}`).join('\n')}\n` : '') +
       (fact ? `Today's situation, which the video leads with: ${fact}\n` : '') +
       (angle ? `The video's angle: ${angle}. Lead with it, and say only what the facts here back up; where they don't, keep the angle light.\n` : '') +
-      `\nWrite, every line short (the video is about 45 seconds):\n- ${TODAY};\n` +
+      `\nWrite (the video is about 45 seconds):\n` +
       (fact ? `- "now": one sentence, at most 18 words, telling today's situation with its numbers exactly as given;\n- "title": a post title of at most 70 characters about today's situation;\n` : '') +
-      `- "wow": one or two sentences, at most 20 words, ${live.focus && !page.track && !journey.length ? "about the day's strongest quake, whose card is open (its magnitude and where it is)" : 'with the most striking facts about what is on the map'};\n` +
-      `- "spots": ${picking ? 'for up to three of the places listed that fit the angle, in the order to visit them' : 'for each place listed'}, one sentence of at most 14 words about what is on screen there, with its live numbers where given.\n` +
-      `Return {"today": "...", "wow": "...", ${fact ? '"now": "...", "title": "...", ' : ''}"spots": {${(picking ? [] : places).map(pl => `"${pl.label}": "..."`).join(', ')}${picking ? '"<place>": "..."' : ''}}}.`,
-      { check: v => numbered([v.today, v.wow, v.now, ...Object.values(v.spots ?? {})]) ?? filler([v.wow, ...Object.values(v.spots ?? {})])
-        ?? tollIn([v.today, v.wow, v.now ?? '', ...Object.values(v.spots ?? {})]) ?? glibIn([v.today, v.wow, v.now, ...Object.values(v.spots ?? {})]) ?? ([v.today, v.wow, v.now, ...Object.values(v.spots ?? {})].some(l => l && CLOCK.test(l)) ? 'no clock times or time zones: the video goes out later'
-        : !(v.today && v.wow && (!fact || (v.now && v.title))) ? 'every field is needed'
+      `- "wow": two or three short sentences, ${saidAs(WOW_WORDS)}, ${live.focus && !page.track && !journey.length ? "about the day's strongest quake, whose card is open (its magnitude and where it is)" : 'with the most striking facts about what is on the map'};\n` +
+      `- "spots": ${picking ? 'for up to three of the places listed that fit the angle, in the order to visit them' : 'for each place listed'}, one or two sentences of ${saidAs(spotWords)} about what is on screen there, with its live numbers where given.\n` +
+      `Return {"wow": "...", ${fact ? '"now": "...", "title": "...", ' : ''}"spots": {${(picking ? [] : places).map(pl => `"${pl.label}": "..."`).join(', ')}${picking ? '"<place>": "..."' : ''}}}.`,
+      { check: v => numbered([v.wow, v.now, ...Object.values(v.spots ?? {})]) ?? filler([v.wow, ...Object.values(v.spots ?? {})])
+        ?? tollIn([v.wow, v.now ?? '', ...Object.values(v.spots ?? {})]) ?? glibIn([v.wow, v.now, ...Object.values(v.spots ?? {})]) ?? ([v.wow, v.now, ...Object.values(v.spots ?? {})].some(l => l && CLOCK.test(l)) ? 'no clock times or time zones: the video goes out later'
+        : !(v.wow && (!fact || (v.now && v.title))) ? 'every field is needed'
           : picking ? (Object.keys(v.spots ?? {}).length >= 1 && Object.keys(v.spots).length <= MAX_SPOTS && Object.keys(v.spots).every(l => places.some(pl => pl.label === l)) ? null : 'choose up to three of the places listed, by their exact names')
-            : places.every(pl => v.spots?.[pl.label]) ? null : 'every place is needed') }));
+            : places.every(pl => v.spots?.[pl.label]) ? null : 'every place is needed')
+        ?? lengthProblem({ wow: v.wow }, WOW_WORDS) ?? lengthProblem(v.spots, spotWords) }));
     // lines written before the tour's stops changed (a space tour's longer journey) tell fewer of them: the cut keeps those
     const toldPlaces = !longLines ? [] : (picking ? Object.keys(longLines.spots).flatMap(l => places.filter(pl => pl.label === l)) : places)
       .filter(pl => longLines.spots?.[pl.label]);
@@ -334,7 +340,10 @@ export const feature: Maker = {
     const back = startsInSpace ? backToStart(world(journey[0]))
       : page.track ? `(() => { ${backToStart()}; window.__followFrom = { zoom: __takipMap.getZoom(), pitch: __takipMap.getPitch() }; })()`
         : backToStart(past?.back);
-    const { hook, outro } = loopBeats(basename(ctx.dir), (longLines ?? lines).today, { variant: ctx.args.variant, back });
+    const now = fact ? (longLines ?? lines).now : undefined;
+    // the lines as filmed, counts retold, so a hook never says a count the tour no longer shows
+    const { hook, outro } = await loopBeats(ctx, { topic: `${page.heading}. ${page.lede}`, lines: [...(now ? [now] : []), ...(longLines ? longBeats : [detailBeat]).map(b => b.say)],
+      facts: [live.line, fact, shows].filter(Boolean).join('; ') }, { back });
 
     return {
       id: `feature-${page.slug}`,
@@ -349,7 +358,7 @@ export const feature: Maker = {
       // hook, one detail, and a bridge back into the hook: the platforms loop shorts, so this one has no end
       beats: [
         hook,
-        ...(fact && (longLines ?? lines).now ? [{ id: 'now', say: (longLines ?? lines).now!, ...(label ? { title: label } : {}), ...(focus ? { enter: fly(focus), minMs: FLY_MS + 1500 } : {}) }] : []),
+        ...(now ? [{ id: 'now', say: now, ...(label ? { title: label } : {}), ...(focus ? { enter: fly(focus), minMs: FLY_MS + 1500 } : {}) }] : []),
         ...(longLines ? longBeats : [detailBeat]),
         ...(page.track ? [{ ...outro, frame: `{ const f = window.__followFrom, k = Math.min(1, ms / ${FLY_MS}), e = k * k * (3 - 2 * k); __takipMap.jumpTo({ zoom: f.zoom + (${RIDE_BACK.zoom} - f.zoom) * e, pitch: f.pitch + (${RIDE_BACK.pitch} - f.pitch) * e }); }` }] : [outro]),
       ],

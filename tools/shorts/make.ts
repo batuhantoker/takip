@@ -8,9 +8,9 @@ import { scripts } from './narrate/script';
 import { ensureSpeech, voiceLine } from './narrate/voice';
 import { lay, readWav, writeWav } from './narrate/wav';
 import type { Scene, Script } from './scene';
-import { closed, plainIfGrave, trimmed } from './loop';
+import { closed, trimmed } from './loop';
 import { context, type Maker } from './stories/context';
-import { layout, type Voice } from './timeline';
+import { layout, silences, type Voice } from './timeline';
 
 export const ROOT = resolve(import.meta.dirname, '../..');
 
@@ -59,7 +59,7 @@ export async function make(maker: Maker, opts: MakeOptions): Promise<string> {
   // a short whose folder already has the long cut's lines takes that cut's opening at a short's pace: no new writing
   const long = opts.args.length === 'long';
   const fromLong = !long && longWritten(dir, maker);
-  const made = plainIfGrave(await maker.make(context(dir, opts.base, fromLong ? { ...opts.args, length: 'long', pace: 'short' } : opts.args)), slug, opts.args.variant);
+  const made = await maker.make(context(dir, opts.base, fromLong ? { ...opts.args, length: 'long', pace: 'short' } : opts.args));
   const scene = long ? closed(made) : fromLong ? trimmed(made) : made;
   if (fromLong) console.log(`  short from the long cut's lines: ${scene.beats.length - 2} of its ${made.beats.length - 2} beats`);
   writeFileSync(join(dir, 'scene.json'), JSON.stringify(scene, null, 2) + '\n');
@@ -88,6 +88,8 @@ export async function make(maker: Maker, opts: MakeOptions): Promise<string> {
     await mixTrack({ narration, music, out: audio, totalMs: timeline.totalMs, loop: timeline.loop });
     writeFileSync(join(dir, `timeline.${lang}.json`), JSON.stringify(timeline, null, 2) + '\n');
     console.log(`  ${lang}: ${(timeline.totalMs / 1000).toFixed(1)} s, ${timeline.frames} frames`);
+    // lines written before 2026-11-02 (a library folder's, maybe hand-fixed) can be short for their picture: told, not rewritten
+    for (const quiet of silences(timeline)) console.warn(`  ! ${lang}: ${quiet}`);
 
     // a --seconds preview is cut short, so it must never pass for the finished video
     const out = join(dir, opts.limitMs ? `${lang}.preview.mp4` : `${lang}.mp4`);

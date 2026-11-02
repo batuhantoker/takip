@@ -3,10 +3,9 @@
  * stop's date to its own, so the borders change on the way. The words come from each stop's Wikipedia lead alone.
  */
 import { wikiSummary } from '../../../src/lib/core/wikipedia/client';
-import { basename } from 'node:path';
-import { backToStart, isLong, loopBeats, shortHold, shortPace } from '../loop';
+import { backToStart, isLong, lengthProblem, saidAs, loopBeats, shortHold, shortPace, wordsFor } from '../loop';
 import { askJson } from '../narrate/llm';
-import { glibIn, STYLE, TODAY } from '../narrate/style';
+import { glibIn, STYLE } from '../narrate/style';
 import type { Beat } from '../scene';
 import type { Maker } from './context';
 import { keepOutKinds } from './kept-out';
@@ -93,15 +92,19 @@ export const chronicle: Maker = {
       return out;
     });
 
-    const lines = await ctx.once('lines', () => askJson<{ today: string; lines: Record<string, string> }>(SYSTEM,
+    const holdMs = shortPace(ctx.args) ? shortHold(stops.length, FLY_MS + HOLD_MS) : FLY_MS + HOLD_MS;
+    // a long cut's stops hold for the camera alone, so its lines carry the pace
+    const words = shortPace(ctx.args) ? wordsFor(holdMs) : { lo: 11, hi: 15 };
+    const lines = await ctx.once('lines', () => askJson<{ lines: Record<string, string> }>(SYSTEM,
       `The video is about ${preset.topic}. Overview (${facts.overview.title}): ${facts.overview.extract}\n\nStops, in order:\n` +
       stops.map(s => `[${s.id}] ${yearAsWritten(s.date)}${s.date.slice(-6)}, ${facts[s.id].title}: ${facts[s.id].extract}`).join('\n\n') +
-      `\n\nWrite, every line short (the video is about ${long ? 50 : 22} seconds):\n- ${TODAY};\n` +
-      `- "lines": for each stop, one sentence of at most ${long ? 14 : 9} words with the most vivid detail of that stop from its own extract, so the stops ` +
+      `\n\nWrite (the video is about ${long ? 50 : 22} seconds):\n` +
+      `- "lines": for each stop, one or two sentences of ${saidAs(words)} with the most vivid detail of that stop from its own extract, so the stops ` +
       `together tell ${preset.topic}.\n` +
-      `Return {"today": "...", "lines": {${stops.map(s => `"${s.id}": "..."`).join(', ')}}}.`,
-      { check: v => (!(v.today && stops.every(s => v.lines?.[s.id]?.trim())) ? 'need "today" and a line for every stop id' : chronicleToll(Object.values(v.lines)) ?? glibIn([v.today, ...Object.values(v.lines)])) }));
-    const { hook, outro } = loopBeats(basename(ctx.dir), lines.today, { variant: ctx.args.variant });
+      `Return {"lines": {${stops.map(s => `"${s.id}": "..."`).join(', ')}}}.`,
+      { check: v => (!stops.every(s => v.lines?.[s.id]?.trim()) ? 'need a line for every stop id' : chronicleToll(Object.values(v.lines)) ?? glibIn(Object.values(v.lines)) ?? lengthProblem(v.lines, words)) }));
+    const { hook, outro } = await loopBeats(ctx, { topic: preset.topic, lines: stops.map(s => lines.lines[s.id]), ...(preset.grave ? { grave: true } : {}),
+      check: e => chronicleToll([e.hook, e.outro]) });
 
     const start = dayMs(stops[0].date) - LEAD_DAYS * 86_400_000;
     // each stop is pinned and labelled, with the route so far, so a stop at sea or on ice still shows where it is
@@ -126,7 +129,7 @@ export const chronicle: Maker = {
         enter: `(() => { __takipHistory.setLayer('${s.layer}', true); __takipMap.flyTo({ center: [${lon}, ${lat}], zoom: ${zoom}, duration: ${FLY_MS}, essential: true }); ${showPins(i)}; })()`,
         // the clock eases from the last stop's date to this one while the camera flies
         frame: `{ const k = Math.min(1, ms / ${FLY_MS}); const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2; __takipHistory.clock.seek(${from} + ${dayMs(s.date) - from} * e); }`,
-        minMs: shortPace(ctx.args) ? shortHold(stops.length, FLY_MS + HOLD_MS) : FLY_MS + HOLD_MS,
+        minMs: holdMs,
       };
     });
     const [lat0, lon0, zoom0] = stops[0].at;
@@ -143,7 +146,6 @@ export const chronicle: Maker = {
       // the default conflict events would include massacres, which no short draws
       setup: `(() => { const h = __takipHistory; h.clock.pause(); h.setLayer('${stops[0].layer}', true); h.clock.seek(${start}); ${keepOutKinds()} __takipMap.jumpTo({ center: [${lon0}, ${lat0}], zoom: ${zoom0} }); ${ADD_PINS}; })()`,
       kicker: preset.kicker,
-      ...(preset.grave ? { grave: true } : {}),
       // a day shown for a stop known only by its year would be a precision the sources don't have
       counter: stops.some(s => s.approx)
         ? { expr: 'new Date(__takipHistory.clock.time()).getUTCFullYear()', unit: '{n}', kind: 'year' }

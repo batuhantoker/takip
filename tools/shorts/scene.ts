@@ -70,8 +70,6 @@ export interface Scene {
   beats: Beat[];
   /** false for a long cut, which ends on the end card (loop.ts closed); a short loops. */
   loop?: boolean;
-  /** A grave story (war, weapons, disaster, disease) hooks with a plain loop; read from its words when unset (loop.ts isGrave). */
-  grave?: boolean;
   /** Credits, on screen and in the post. */
   sources: string[];
   post: { title: string; description: string; hashtags: string[] };

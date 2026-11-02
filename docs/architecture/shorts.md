@@ -26,27 +26,32 @@ npm run shorts -- remix library/chronicle-preset-cold-war   # new soundtrack (mu
 
 `--no-music` leaves the music out of `make` or `remix`.
 
-## The format (2026-10-21, lengths 2026-10-22)
+## The format (2026-10-21, lengths 2026-10-22, hooks and pace 2026-11-02)
 
 The user's brief, in their words: short ("should be short content mostly not very long"), fun ("not for phd"), with the
 details on screen ("show details"), a hook that hypes the app ("Takip has everything and more"), and endless, looping
 videos ("at the end takip promotion should be connected to entry"). Then, on 2026-10-22: "loops can be slightly longer, it
 is a variation right I dont want full of those", "20-25 secs", and "on X I believe there is no replay, so its posts should
 not be looping". The literal "TAKIP has everything, and more" was the user thinking out loud, not copy ("so cringe",
-2026-10-22): the hooks are ours to write, as cold opens that work on their own.
+2026-10-22): the hooks are ours to write, as cold opens that work on their own. On 2026-11-02 the user heard the result:
+"social media videos are stupid, a lot of silence and hooks are stupid as fuck". Measured, speech covered 33–57% of a
+short tour (a ≤10-word line under a 13 s hold), and every hook was one of eight lines praising the map. So hooks now tell
+each video's own most striking fact, and every line is written long enough to fill its picture.
 
 Two shapes, told apart by `"loop"` in `timeline.<lang>.json`:
 
-- **Short = a 20–25 s loop** (the default): hook, beats, and a bridge back into the hook, as below.
-- **Long = a 40–60 s closed cut** (`--length long`): the same hype hook, more beats, and no bridge. The last line is the
+- **Short = a 20–25 s loop** (the default): hook, beats, and an outro that leads back into the hook, as below.
+- **Long = a 40–60 s closed cut** (`--length long`): the same kind of hook, more beats, and no outro of its own. The last line is the
   tagline "See the world live or in the past on TAKIP." (`loop.ts` `TAGLINE`), captioned over the last shot wherever it
   is, then the takip.dev end card for about 2 s while the music fades out (`narrate/mix.ts`). Nothing flies back to the
-  opening. It needs no new writing, so a long cut whose lines are cached re-films without AWS. For X, the queue cuts a
-  non-looping copy of a short from the hook's word timings in the timeline.
+  opening. For X, the queue takes a short as it is: its outro is a whole sentence (an older cut gets the opening replayed
+  up to the end of its hook's first sentence, which finished its half-sentence outro).
 
-- **Hook** (no card): a hype line from `narrate/style.ts` `LOOPS`, a cold open that works on its own ("Nobody believes
-  this map is free."), then the model's "today" ("Today, life's biggest turning points."). Captioned like every line,
-  over the opening view, from about 0.3 s.
+- **Hook** (no card): written for each short by `narrate/hook.ts` after its body lines, from those lines and the facts
+  behind them: the one fact that makes a stranger stop ("One shot in Sarajevo set off a war across the world.", "A single
+  Soviet test hit about 50,000 kilotons."), 6–12 words, set up so the body pays it off rather than restating line 1.
+  `endsProblem` sends back a hook about the map, the app or the day ("this map", "today", "I found"), hype words, bait,
+  a question, a toll, or a number the video never says. Captioned like every line, over the opening view, from about 0.3 s.
 - **Middle:** a tour shows one detail: today's strongest quake, one counted spot, one space stop or the whole orbit of a
   followed object, with the item's own card or popup opened through the app's click handler (`PICKS` in
   `stories/feature.ts`). A plane's card is always of one in the air (over about 1,000 ft and 60 kt) and a ship's of one
@@ -60,16 +65,22 @@ Two shapes, told apart by `"loop"` in `timeline.<lang>.json`:
   (`stories/kept-out.ts`: tours, chronicles and borders scenes alike), and no borders story tells Tibet or Kosovo (`UNTOLD`), whose comings and goings are contested.
   A story tells three stretches or stops, each with a fact chip under the title: the event the line names (by a year
   among the biggest, else a year and a word of its title, as "2004 … Sumatra"), or the country's biggest change.
-- **Outro** of a short (no end card): the bridge half of the same `LOOPS` pair, a sentence the hook finishes ("It's called
-  TAKIP, and" → "nobody believes this map is free."); most bridges name TAKIP. It closes any open
+- **Outro** of a short (no end card): one whole sentence of 5–10 words naming TAKIP once ("Every storm since 1842 is on
+  TAKIP."), written with the hook; until 2026-11-02 it was half a sentence the hook finished ("Fair warning:"), which sounded
+  broken wherever the loop didn't land. Both are kept in `cache.ends.json` with the lines they were written from, and
+  written anew when those change (a count retold). A grave story's pair stays plain. It closes any open
   card, returns the clock and camera to the opening (`loop.ts`, `window.__loopStart`), and shows takip.dev and the
   sources in a lower third. The music bed's tail is crossfaded into its head (`narrate/mix.ts`), so the seam isn't heard.
-- **Length:** a short runs 20–25 s, tours and stories alike. A story tells four stretches (three where its lines were
-  written for the old ≤20 s short), each held for its share of about 16 s (`loop.ts` `shortHold`); a tour holds its one
-  detail about 13 s, opening a second card where it opens cards. Where the folder already has the long cut's lines, the
+- **Length:** a short runs 20–25 s, tours and stories alike. A beat lasts as long as its line or its camera, whichever is
+  longer, so a line shorter than its picture is dead air: every writer asks for a word range sized to its hold
+  (`loop.ts` `wordsFor`, 2.8 words a second, measured) and `lengthProblem` sends back a line much shorter or longer. A
+  story tells four stretches (three where its lines were written for the old ≤20 s short), each held for its share of
+  about 16 s (`loop.ts` `shortHold`); a tour's one detail is two or three sentences (26–35 words, about 13 s) over the
+  flight and its cards, the hold only the camera's floor. `make` warns about any beat that runs more than 2.5 s past its
+  line (`timeline.ts` `silences`): lines written before 2026-11-02 (a library folder's, maybe hand-fixed) are told, not
+  rewritten. Where the folder already has the long cut's lines, the
   short takes that cut's opening instead: the hook, as many of its beats as fit in 25 s (two at least) at a short's pace
-  (one card a spot), and the loop's outro (`make.ts`, `loop.ts` `trimmed`), so it films without new writing. Hype lines
-  run 6–10 words, "today" at most 6. The narrator is sped to 1.15× (`narrate/voice.ts` `TEMPO`, in the cache key).
+  (one card a spot), and the loop's outro (`make.ts`, `loop.ts` `trimmed`), so it films without new writing. The narrator is sped to 1.15× (`narrate/voice.ts` `TEMPO`, in the cache key).
 - **Clock:** an events stretch runs its clock in the first 40% of the beat and holds at the stretch's end, so the year on
   screen is never behind the event the line names; its chip appears then.
 - **Measures** leave out territories under 250,000 people (they led every "biggest change" by noise), give the year one
@@ -111,8 +122,9 @@ Two shapes, told apart by `"loop"` in `timeline.<lang>.json`:
   it stays out of the folder name.
 - **Chronicle pins:** each stop is pinned and labelled (`place`, `pin` in `presets/chronicles.ts`) with the route from the
   last stop, so a stop at sea or on ice still shows where it is. The globe draws nothing past ±85°.
-- **Rotation:** `LOOPS` holds 8 pairs, picked by a hash of the folder name, or `--variant N` (0–7) when the queue sets
-  one per row so neighbouring posts differ.
+- **Rotation:** the hook writer is given one of four angles (an extreme, a contrast, a count, a place) and one of three
+  outro kinds (`narrate/hook.ts`), picked by `--variant N` when the queue sets one per row, else a hash of the folder
+  name, so neighbouring posts don't open alike.
 
 ## What it makes
 
@@ -153,7 +165,7 @@ Nothing is posted anywhere: uploading is by hand.
 
 **Voice.** Every writer adds `narrate/style.ts`: the user's brief (2026-10-21) is entertainment, "not for phd". Lead with
 the striking part, short punchy lines, no how-it-works, spec lists, refresh rates or spoken sources; every fact still comes
-from the data. Tours run hook → one or two wow facts → the spots → "go try it", about 30 s.
+from the data. Tours run hook → the detail's facts → the outro, about 20–25 s.
 
 ## How a short is made
 

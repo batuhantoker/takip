@@ -5,17 +5,16 @@
  */
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { basename } from 'node:path';
-import { backToStart, isLong, loopBeats, shortHold, shortPace } from '../loop';
+import { backToStart, isLong, lengthProblem, saidAs, loopBeats, shortHold, shortPace, wordsFor } from '../loop';
 import { askJson } from '../narrate/llm';
-import { STYLE, TODAY } from '../narrate/style';
+import { STYLE } from '../narrate/style';
 import type { Beat } from '../scene';
 import type { Maker } from './context';
 import { sampleYears, spokenNumber, valuesAt, type Ranked } from './facts';
 import { MEASURE_PRESETS, type MeasurePreset } from './presets/measures';
 
 /** Stretches and their length: the short loop (20–25 s), or `--length long`; a short's legs fill its body (loop.ts shortHold). */
-const CUTS = { short: { legs: 4, legMs: 4000, words: 9, seconds: 22 }, long: { legs: 5, legMs: 6500, words: 14, seconds: 50 } };
+const CUTS = { short: { legs: 4, legMs: 4000, seconds: 22 }, long: { legs: 5, legMs: 6500, seconds: 50 } };
 /** Share of a leg spent travelling; the line describes where it arrives. */
 const ARRIVE = 0.5;
 const FLY_MS = 2500;
@@ -182,22 +181,29 @@ export const measure: Maker = {
     });
     const id = (y: number) => `y${y}`;
 
-    const lines = await ctx.once('lines', () => askJson<{ today: string; lines: Record<string, string> }>(SYSTEM,
+    const legMs = shortPace(ctx.args) ? shortHold(f.legs.length, CUTS.short.legMs) : cut.legMs;
+    const words = wordsFor(legMs);
+    const lines = await ctx.once('lines', () => askJson<{ lines: Record<string, string> }>(SYSTEM,
       `The video shows ${p.topic}. Estimates run to ${f.last}${p.projection ? `; later years are the ${p.projection.label}` : ''}.\n` +
       `Start, ${f.start.year}: ${JSON.stringify(f.start)}\n\nStretches, in order:\n` +
       f.legs.map(l => `[${id(l.year)}] ${l.from}–${l.year}: ${JSON.stringify({ ...l, focus: undefined })}`).join('\n') +
-      // the hook comes before any "UN projection" title, so it can't lean on the label
-      `\n\nWrite, every line short (the video is about ${cut.seconds} seconds):\n- ${TODAY}; it is said before any label, so a year after ${f.last} in it is said as projected;\n` +
-      `- "lines": for each stretch, one sentence of at most ${cut.words} words, leading with the most striking change by its end year, naming that year ("By 2000, …"), with one number and no year ranges.${p.phrasing ? ` ${p.phrasing.rule}` : ''}\n` +
-      `Return {"today": "...", "lines": {${f.legs.map(l => `"${id(l.year)}": "..."`).join(', ')}}}.`,
-      { check: v => (!(v.today && f.legs.every(l => v.lines?.[id(l.year)]?.trim())) ? 'need "today" and a line for every year id'
-        : (v.today.match(/\b\d{4}\b/g) ?? []).some(y => +y > f.last) && !/project/i.test(v.today) ? `"today" names a year after ${f.last} without saying projected`
+      `\n\nWrite (the video is about ${cut.seconds} seconds):\n` +
+      `- "lines": for each stretch, one or two sentences of ${saidAs(words)}, leading with the most striking change by its end year, naming that year ("By 2000, …"), with one number and no year ranges.${p.phrasing ? ` ${p.phrasing.rule}` : ''}\n` +
+      `Return {"lines": {${f.legs.map(l => `"${id(l.year)}": "..."`).join(', ')}}}.`,
+      { check: v => (!f.legs.every(l => v.lines?.[id(l.year)]?.trim()) ? 'need a line for every year id'
           : f.legs.filter(l => l.projected && !/project/i.test(v.lines[id(l.year)])).map(l => `"${id(l.year)}" is about projected years: say it is a projection ("the UN projects", "is projected to")`)[0]
             ?? undated(f.legs, v.lines)
-            ?? contestedIn([v.today, ...Object.values(v.lines)], names)
-            ?? (p.phrasing?.wrong && [v.today, ...Object.values(v.lines)].some(l => p.phrasing!.wrong!.test(l)) ? p.phrasing.rule : null)
-            ?? (p.phrasing?.once && ![v.today, ...Object.values(v.lines)].some(l => p.phrasing!.once!.test(l)) ? p.phrasing.rule : null)) }));
-    const { hook, outro } = loopBeats(basename(ctx.dir), lines.today, { variant: ctx.args.variant });
+            ?? contestedIn(Object.values(v.lines), names)
+            ?? (p.phrasing?.wrong && Object.values(v.lines).some(l => p.phrasing!.wrong!.test(l)) ? p.phrasing.rule : null)
+            ?? (p.phrasing?.once && !Object.values(v.lines).some(l => p.phrasing!.once!.test(l)) ? p.phrasing.rule : null)
+            ?? lengthProblem(v.lines, words)) }));
+    // the hook comes before any "UN projection" title, so it can't lean on the label
+    const projected = new Set(f.legs.filter(l => l.projected).flatMap(l => lines.lines[id(l.year)].match(/\d+(\.\d+)?/g) ?? []));
+    const { hook, outro } = await loopBeats(ctx, { topic: p.topic, lines: f.legs.map(l => lines.lines[id(l.year)]), facts: `estimates run to ${f.last}`,
+      rules: `${p.phrasing?.rule ?? ''} A value after ${f.last} is a projection: the hook says "projected".`.trim(),
+      check: e => ((e.hook.match(/\b\d{4}\b/g) ?? []).some(y => +y > f.last) || (e.hook.match(/\d+(\.\d+)?/g) ?? []).some(n => projected.has(n))) && !/project/i.test(e.hook)
+        ? `the hook tells a projected value without saying projected`
+        : contestedIn([e.hook, e.outro], names) ?? (p.phrasing?.wrong && [e.hook, e.outro].some(l => p.phrasing!.wrong!.test(l)) ? p.phrasing.rule : null) });
 
     // the line is about the year a leg ends on, so the clock gets there by mid-leg and waits
     const seek = (y0: number, y1: number) =>
@@ -233,7 +239,7 @@ export const measure: Maker = {
       ...(fly(told[i].key) ? { enter: fly(told[i].key) } : {}),
       frame: seek(l.from, l.year),
       ...(told[i].chip ? { chip: told[i].chip! } : {}),
-      minMs: shortPace(ctx.args) ? shortHold(f.legs.length, CUTS.short.legMs) : cut.legMs,
+      minMs: legMs,
     }));
 
     return {

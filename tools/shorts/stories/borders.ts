@@ -4,10 +4,9 @@
  * which are new and which are gone. No sizes or rankings, which read as territorial claims, so the narration says
  * nothing the map doesn't show.
  */
-import { basename } from 'node:path';
-import { backToStart, isLong, loopBeats, shortHold, shortPace } from '../loop';
+import { backToStart, isLong, lengthProblem, saidAs, loopBeats, shortHold, shortPace, wordsFor } from '../loop';
 import { askJson } from '../narrate/llm';
-import { STYLE, TODAY } from '../narrate/style';
+import { STYLE } from '../narrate/style';
 import type { Beat } from '../scene';
 import type { Maker } from './context';
 import { keepOutKinds } from './kept-out';
@@ -65,7 +64,7 @@ const PRESETS: Record<string, { from: number; to: number; at: [number, number, n
   'west-africa': { from: 700, to: 1600, at: [14, -5, 3.6], label: 'West Africa', region: 'west-africa' },
 };
 /** Sampled years and their length: the short loop (20–25 s), or `--length long`; a short's legs fill its body (loop.ts shortHold). */
-const CUTS = { short: { samples: 5, legMs: 4000, words: 11, seconds: 22 }, long: { samples: 6, legMs: 6500, words: 18, seconds: 50 } };
+const CUTS = { short: { samples: 5, legMs: 4000, seconds: 22 }, long: { samples: 6, legMs: 6500, seconds: 50 } };
 /** Share of a leg spent travelling; the line describes where it arrives. */
 const ARRIVE = 0.45;
 
@@ -371,19 +370,21 @@ export const borders: Maker = {
       (l.entered.length ? `; reaching ${region} since ${l.since}, on the map elsewhere before: ${l.entered.join(', ')}` : '') +
       (l.renamed.length ? `; renamed since ${l.since} (the same state under a new name): ${l.renamed.map(([a, b]) => `${a} is now ${b}`).join(', ')}` : ''))].join('\n');
 
-    const lines = await ctx.once('lines', () => askJson<{ today: string; lines: Record<string, string> }>(SYSTEM,
+    const legMs = shortPace(ctx.args) ? shortHold(years.length - 1, CUTS.short.legMs) : cut.legMs;
+    const words = wordsFor(legMs);
+    const lines = await ctx.once('lines', () => askJson<{ lines: Record<string, string> }>(SYSTEM,
       `The map shows ${region} from ${yearText(from)} to ${yearText(to)}, a span of ${to - from} years. States on the map, alphabetical:\n${facts}\n\n` +
-      `Write, every line short (the video is about ${cut.seconds} seconds):\n- ${TODAY};\n` +
-      `- "lines": for each year after the first, one short sentence (at most ${cut.words} words) naming that year and leading with its ` +
+      `Write (the video is about ${cut.seconds} seconds):\n` +
+      `- "lines": for each year after the first, one or two short sentences of ${saidAs(words)}, naming that year and leading with its ` +
       `most striking change, which states are new or gone; call a state gone only if it is listed as gone.\n` +
-      `Return {"today": "...", "lines": {${years.slice(1).map(y => `"${id(y)}": "..."`).join(', ')}}}.`,
-      { check: v => (v.today && legs.every(l => v.lines?.[l.id]?.trim()) ? bordersProblem({ hook: v.today, lines: v.lines, outro: '' }, legs) : 'need "today" and a line for every year id') }));
-    const { hook, outro } = loopBeats(basename(ctx.dir), lines.today, { variant: ctx.args.variant });
+      `Return {"lines": {${years.slice(1).map(y => `"${id(y)}": "..."`).join(', ')}}}.`,
+      { check: v => (legs.every(l => v.lines?.[l.id]?.trim()) ? bordersProblem({ hook: '', lines: v.lines, outro: '' }, legs) ?? lengthProblem(v.lines, words) : 'need a line for every year id') }));
+    const { hook, outro } = await loopBeats(ctx, { topic: `the borders of ${region} from ${yearText(from)} to ${yearText(to)}`, lines: years.slice(1).map(y => lines.lines[id(y)]),
+      check: e => bordersProblem({ hook: e.hook, lines: {}, outro: e.outro }, []) });
 
     // each leg eases the clock to its year in the first part, then holds there while the line about that year ends
     const seek = (y0: number, y1: number) =>
       `{ const k = Math.min(1, p / ${ARRIVE}); const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2; const d = new Date(0); d.setUTCFullYear(Math.round(${y0} + (${y1 - y0}) * e), 6, 1); __takipHistory.clock.seek(d.getTime()); }`;
-    const legMs = shortPace(ctx.args) ? shortHold(years.length - 1, CUTS.short.legMs) : cut.legMs;
     const beats: Beat[] = years.slice(1).map((y, i) => ({ id: id(y), say: lines.lines[id(y)], minMs: legMs, frame: seek(years[i], y) }));
 
     return {

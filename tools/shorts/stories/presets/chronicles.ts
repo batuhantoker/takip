@@ -24,7 +24,7 @@ export type Chronicle = {
   kicker: string; topic: string; overview: string; postTitle: string; stops: Stop[];
   /** The stops a short tells, by id; the rest are kept for longer cuts. */
   short?: string[];
-  /** A story of conquest whose words don't say war (Napoleon, the Mongols): its hook is a plain one (loop.ts isGrave). */
+  /** A story of conquest whose words don't say war (Napoleon, the Mongols): its hook and outro stay plain (narrate/hook.ts). */
   grave?: boolean;
   sources: string[]; hashtags: string[];
 };
