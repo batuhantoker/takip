@@ -18,7 +18,8 @@ const REPO = path.resolve(import.meta.dirname, '../..');
 const OUT = path.join(REPO, 'data/downloads');
 const nucFile = path.join(os.homedir(), '.config/takip/nuc');
 const NUC = process.env.NUC ?? (existsSync(nucFile) ? readFileSync(nucFile, 'utf8').trim() : undefined);
-const GH_REPO = 'batuhantoker/takip';
+// Signed builds and their releases run on the private repo, which holds the signing secrets.
+const GH_REPO = 'batuhantoker/takip-private';
 
 const [command, ...args] = process.argv.slice(2);
 const flag = name => {

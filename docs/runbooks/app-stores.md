@@ -161,7 +161,8 @@ No deploy is needed.
 
 ## 5. CI secrets
 
-`gh secret set <NAME> --repo batuhantoker/takip` (the repo is private; bare `gh` points at the public upstream).
+`gh secret set <NAME> --repo batuhantoker/takip-private`. The signing secrets, the signed builds and their releases
+live on the private repo; the public `batuhantoker/takip` has none.
 Missing secrets just mean unsigned builds, except that an Android release needs its key.
 
 | Secret | Value |
