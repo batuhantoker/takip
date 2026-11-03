@@ -9,7 +9,8 @@
 # The site is down while the services are stopped: about a minute.
 set -euo pipefail
 
-NUC=${NUC:-user@nuc}
+NUC=${NUC:-$(cat ~/.config/takip/nuc 2>/dev/null || true)}
+: "${NUC:?Set NUC to the ssh target of the NUC (user@host), or write it to ~/.config/takip/nuc}"
 REPO=$(git rev-parse --show-toplevel)
 STAGE=.cache/deploy-data
 SNAP=$(mktemp -d)

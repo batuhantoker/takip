@@ -11,7 +11,11 @@
 
 **A live map of the world's public data: flights, ships, cameras, earthquakes, fires, weather, news and more, in one GPU-accelerated interface.**
 
-[Report Bug](https://github.com/batuhantoker/takip/issues) · [Request Feature](https://github.com/batuhantoker/takip/issues)
+### [Open the map at takip.dev →](https://takip.dev)
+
+Nothing to install and no account needed. Also on iPhone, Android, Windows, macOS and Linux: [takip.dev/download](https://takip.dev/download).
+
+[Report a bug](https://github.com/batuhantoker/takip/issues) · [Request a feature](https://github.com/batuhantoker/takip/issues)
 
 </div>
 
@@ -250,4 +254,5 @@ feeds and globe; no MiroFish code is used.
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+The code is MIT; see [LICENSE](LICENSE). The data, pictures and models keep their own licences, some of them
+share-alike, and some data takip.dev serves isn't in the repository: see [docs/data-licenses.md](docs/data-licenses.md).

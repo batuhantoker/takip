@@ -56,6 +56,7 @@ scripts/
 
 # AI agent config files
 AGENTS.md
+CLAUDE.md
 
 # Internal dev notes
 DO_NOT_PUSH.md
@@ -94,3 +95,24 @@ scanner_backend_backup.js
 .claude/worktrees/
 # App downloads served at /download (tools/native/publish.mjs)
 /data/downloads/
+
+# Served on takip.dev but not redistributable, so kept out of git; tools/deploy-nuc.sh copies them (docs/data-licenses.md)
+/data/private/
+/data/site/topics/indicators.json
+/public/data/submarine-cables.json
+/public/data/sky/deep/lmc*.jpg
+/public/data/sky/deep/smc*.jpg
+/public/data/sky/deep/m31*.jpg
+/public/data/sky/deep/m33*.jpg
+/public/data/sky/deep/m87*.jpg
+# Scrapers and harvests of sites whose terms rule out copying their lists
+/scratch/scrape_openwebcamdb.js
+/scratch/openwebcamdb-*.json
+/scratch/scrape_italy.js
+/scratch/scrape_germany.js
+/scratch/get_italy.js
+
+# Local only
+/TEST-USER.md
+/runs/
+__pycache__/

@@ -11,6 +11,7 @@ import { SeriesBatch } from '../series';
 const f = (...p: string[]) => join(RAW, ...p);
 const LE = (n: string) => f('life-expectancy', n);
 const EDU = (n: string) => f('global education', n);
+// A Kaggle repackaging, not OWID's own: the series match IHME GBD 2017, whose terms are non-commercial.
 const MENTAL = f('global-trends-mental-disorder.zip Mental health Depression disorder Data.csv');
 
 /** '1990' or '10000 BCE' (astronomical: 1 BCE is year 0). */

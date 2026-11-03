@@ -9,8 +9,13 @@
 # the swap and the restart (and npm ci, when the lockfile changed).
 set -euo pipefail
 
-NUC=${NUC:-user@nuc}
+NUC=${NUC:-$(cat ~/.config/takip/nuc 2>/dev/null || true)}
+: "${NUC:?Set NUC to the ssh target of the NUC (user@host), or write it to ~/.config/takip/nuc}"
 REPO=$(git rev-parse --show-toplevel)
+# Served but kept out of git: their terms rule out redistribution (docs/data-licenses.md).
+PRIVATE=(data/private data/site/topics/indicators.json public/data/submarine-cables.json
+  public/data/sky/deep/{lmc,smc,m31,m33,m87}{,.small}.jpg)
+for f in "${PRIVATE[@]}"; do [ -e "$REPO/$f" ] || { echo "Missing private file $f; not deploying." >&2; exit 1; }; done
 
 git -C "$REPO" fetch -q origin
 SHA=$(git -C "$REPO" rev-parse origin/dev)
@@ -22,6 +27,7 @@ trap cleanup EXIT
 echo "Building ${SHA:0:7} in $WORK"
 git -C "$REPO" worktree add -q --detach "$WORK" "$SHA"
 scp -q "$NUC:takip/.env.local" "$NUC:takip/.env.production.local" "$WORK/"
+(cd "$REPO" && rsync -aR "${PRIVATE[@]}" "$WORK/")
 (cd "$WORK" && nice npm ci --no-audit --no-fund --loglevel=error && nice npx next build)
 # A path from this machine in the server code would break on the NUC.
 if grep -rqF -e "$HOME" -e "$WORK" -e /var/folders -e /private/tmp "$WORK/.next/server"; then
@@ -33,6 +39,8 @@ fi
 OLD=$(ssh "$NUC" 'cd ~/takip && git rev-parse HEAD')
 ssh "$NUC" "cd ~/takip && git pull -q --ff-only && test \"\$(git rev-parse HEAD)\" = $SHA" \
   || { echo "The NUC's checkout didn't land on ${SHA:0:7}; not deploying." >&2; exit 1; }
+# A pull past the commit that untracked them deletes them from the checkout, so they go over after it.
+(cd "$REPO" && rsync -aR "${PRIVATE[@]}" "$NUC:takip/")
 
 # Files unchanged since the running build are hard-linked from it; the rest use it as the basis for their delta.
 rsync -a --delete --exclude cache --exclude standalone --link-dest=../.next "$WORK/.next/" "$NUC:takip/.next-new/"

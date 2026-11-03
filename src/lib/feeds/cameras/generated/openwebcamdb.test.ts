@@ -1,11 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { CctvCamera } from '@/lib/feeds/cameras/types';
 import { isYouTubeUrl, parseYouTubeUrl } from '@/lib/feeds/cameras/youtube';
-import {
-  OWDB_AMERICAS, OWDB_AMERICAS_BOUNDS,
-  OWDB_EMEA, OWDB_EMEA_BOUNDS,
-  OWDB_APAC, OWDB_APAC_BOUNDS,
-} from './openwebcamdb.generated';
+import { OWDB_BOUNDS } from '@/lib/feeds/cameras/catalog/feeds';
+import { hasPrivateCameras, privateCameras } from '@/lib/feeds/cameras/catalog/private-lists';
 import {
   NETHERLANDS_PUBLIC_WEBCAMS,
   EUROPE_PUBLIC_WEBCAMS,
@@ -13,16 +10,13 @@ import {
   REST_PUBLIC_WEBCAMS,
 } from './public-webcams.generated';
 
-const GROUPS = [
-  { cams: OWDB_AMERICAS, bounds: OWDB_AMERICAS_BOUNDS },
-  { cams: OWDB_EMEA, bounds: OWDB_EMEA_BOUNDS },
-  { cams: OWDB_APAC, bounds: OWDB_APAC_BOUNDS },
-];
+const GROUPS = (['americas', 'emea', 'apac'] as const).map((g) => ({ cams: privateCameras('openwebcamdb', g), bounds: OWDB_BOUNDS[g] }));
 const ALL: CctvCamera[] = GROUPS.flatMap((g) => g.cams);
 const urls = (c: CctvCamera) => [c.feed_url, c.stream_url, c.external_url].filter((u): u is string => Boolean(u));
 
 // Guards the generator in scratch/scrape_openwebcamdb.js, not the upstream site.
-describe('OpenWebcamDB set', () => {
+// The list is private (data/private/cameras), so a checkout without it has nothing to check.
+describe.skipIf(!hasPrivateCameras('openwebcamdb'))('OpenWebcamDB set', () => {
   it('has a unique, prefixed id for every camera', () => {
     for (const g of GROUPS) expect(g.cams.length).toBeGreaterThan(0);
     const ids = ALL.map((c) => c.id);

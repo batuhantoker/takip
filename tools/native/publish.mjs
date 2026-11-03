@@ -10,13 +10,14 @@
 // published under the same name with other contents is refused (caches keep it an hour): bump the version.
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import os, { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describeFile, newestOnly, sha256 } from './manifest.mjs';
 
 const REPO = path.resolve(import.meta.dirname, '../..');
 const OUT = path.join(REPO, 'data/downloads');
-const NUC = process.env.NUC ?? 'user@nuc';
+const nucFile = path.join(os.homedir(), '.config/takip/nuc');
+const NUC = process.env.NUC ?? (existsSync(nucFile) ? readFileSync(nucFile, 'utf8').trim() : undefined);
 const GH_REPO = 'batuhantoker/takip';
 
 const [command, ...args] = process.argv.slice(2);
@@ -79,6 +80,7 @@ async function collect() {
 
 function push() {
   if (!existsSync(path.join(OUT, 'latest.json'))) throw new Error('nothing collected; run collect first');
+  if (!NUC) throw new Error(`set NUC, or write the NUC's ssh target (user@host) to ${nucFile}`);
   execFileSync('ssh', [NUC, 'mkdir -p ~/takip/data/downloads'], { stdio: 'inherit' });
   // The files first and the manifest last, so the page never lists a file that isn't there yet.
   execFileSync('rsync', ['-av', '--exclude', 'latest.json', `${OUT}/`, `${NUC}:takip/data/downloads/`], { stdio: 'inherit' });

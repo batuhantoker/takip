@@ -8,6 +8,10 @@ import { pairAnswer, pairHighlights, pairIndexed, pairMeasureCopy, pairMeasureIn
 import { nextMeasures, nextPairs } from './next';
 import { listedPairs, pairReasons } from './pairs';
 import { worldCopy, worldMeasure, worldSlugs } from './world';
+import { topicTable } from '../places/tables';
+
+// indicators.json is private (docs/data-licenses.md); a checkout without it has no measures to check.
+const HAS_INDICATORS = topicTable('indicators').generated !== '';
 
 const series = (from: number, values: (number | null)[]): IndicatorSeries =>
   ({ e: [from, values], f: { n: 0, first: [from, 0], last: [from, 0], max: [from, 0], min: [from, 0] } });
@@ -109,7 +113,7 @@ describe('a real pair', () => {
     expect(turns.map(turn => turn.slug)).not.toContain('gdp-growth');
   });
 
-  it('leads on to listed pairs sharing a country, and the pair’s other measures', () => {
+  it.skipIf(!HAS_INDICATORS)('leads on to listed pairs sharing a country, and the pair’s other measures', () => {
     if (!greece || !turkey) return;
     const pair = { a: greece, b: turkey };
     const next = nextPairs(pair, 'population');

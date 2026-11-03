@@ -4,6 +4,10 @@ import { placeBySlug } from '../gazetteer';
 import { overviewCopy } from '../overview';
 import { indexedPages, placePages } from '../pages';
 import { TOPICS } from './registry';
+import { topicTable } from '../tables';
+
+// indicators.json is private (docs/data-licenses.md); a checkout without it has shorter country descriptions.
+const HAS_INDICATORS = topicTable('indicators').generated !== '';
 
 // Every page search engines are told about, with the copy it would show.
 const pages = indexedPages().map(({ place, slug }) => {
@@ -21,7 +25,7 @@ describe('place topics', () => {
     expect(pages.filter(p => p.copy.title.length > 60).map(p => p.copy.title)).toEqual([]);
   });
 
-  it('keep every indexed description between 110 and 160 characters', () => {
+  it.skipIf(!HAS_INDICATORS)('keep every indexed description between 110 and 160 characters', () => {
     expect(pages.filter(p => p.copy.description.length < 110 || p.copy.description.length > 160).map(p => p.copy.description)).toEqual([]);
   });
 

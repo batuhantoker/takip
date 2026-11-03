@@ -70,10 +70,15 @@ import { ACT_PR_BOUNDS, fetchActPrCameras } from '@/lib/feeds/cameras/sources/la
 import { TRAFFIC_SCOTLAND_BOUNDS, fetchTrafficScotlandCameras } from '@/lib/feeds/cameras/sources/europe/traffic-scotland';
 import { BIHAMK_BOUNDS, fetchBihamkCameras } from '@/lib/feeds/cameras/sources/europe/bihamk';
 import { MUP_SERBIA_BOUNDS, fetchMupSerbiaCameras } from '@/lib/feeds/cameras/sources/europe/mup-serbia';
-import {
-  OWDB_AMERICAS, OWDB_AMERICAS_BOUNDS, OWDB_EMEA, OWDB_EMEA_BOUNDS, OWDB_APAC, OWDB_APAC_BOUNDS,
-} from '@/lib/feeds/cameras/generated/openwebcamdb.generated';
+import { privateCameras } from '@/lib/feeds/cameras/catalog/private-lists';
 import { markOfflineEmbeds } from '@/lib/feeds/cameras/liveness';
+
+/** The boxes the OpenWebcamDB regions load for; their cameras are in data/private/cameras/openwebcamdb.json. */
+export const OWDB_BOUNDS = {
+  americas: { minLat: -37.3, maxLat: 66.1, minLng: -158.4, maxLng: -25.2 },
+  emea: { minLat: -2, maxLat: 71.6, minLng: -23.4, maxLng: 59.1 },
+  apac: { minLat: -45.6, maxLat: 65.2, minLng: 76.1, maxLng: 176.7 },
+};
 
 /**
  * TAKIP — camera sources with their own adapter. As with STATE_FEEDS, an entry here is the whole wiring:
@@ -213,8 +218,8 @@ export const FEEDS: StateFeed[] = [
   // No licence stated by the Serbian Interior Ministry; permission not yet asked.
   { region: 'serbia-borders', idPrefix: 'mup', bounds: MUP_SERBIA_BOUNDS, fetch: fetchMupSerbiaCameras },
   // OpenWebcamDB's terms are non-commercial and exclude aggregators; permission not yet asked for.
-  { region: 'owdb-americas', idPrefix: 'owdb', bounds: OWDB_AMERICAS_BOUNDS, fetch: async () => OWDB_AMERICAS },
+  { region: 'owdb-americas', idPrefix: 'owdb', bounds: OWDB_BOUNDS.americas, fetch: async () => privateCameras('openwebcamdb', 'americas') },
   // Konya's and Ankara's municipal embeds are off air; flagged until their player is live again.
-  { region: 'owdb-emea', idPrefix: 'owdb', bounds: OWDB_EMEA_BOUNDS, fetch: () => markOfflineEmbeds(OWDB_EMEA) },
-  { region: 'owdb-apac', idPrefix: 'owdb', bounds: OWDB_APAC_BOUNDS, fetch: async () => OWDB_APAC },
+  { region: 'owdb-emea', idPrefix: 'owdb', bounds: OWDB_BOUNDS.emea, fetch: () => markOfflineEmbeds(privateCameras('openwebcamdb', 'emea')) },
+  { region: 'owdb-apac', idPrefix: 'owdb', bounds: OWDB_BOUNDS.apac, fetch: async () => privateCameras('openwebcamdb', 'apac') },
 ];

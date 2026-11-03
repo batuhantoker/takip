@@ -22,7 +22,7 @@ import {
 const OUT = 'data/site/topics/hiking.json';
 const GAZETTEER = 'data/site/gazetteer.json';
 const COUNTRY_INFO = 'https://download.geonames.org/export/dump/countryInfo.txt';
-const UA = 'TAKIP-site-pages/0.1 (https://takip.example; hello@takip.dev)';
+const UA = 'TAKIP-site-pages/0.1 (https://takip.dev; hello@takip.dev)';
 const MIN_POP = 50_000;
 const SPACING_MS = 1000;
 /** by_area's own maximum. A full listing is cut short, alphabetically among local routes; its box is split in four once. */

@@ -1,9 +1,5 @@
 import type { CctvCamera } from '@/lib/feeds/cameras/types';
-import {
-  LATAM_SKYLINE_CAMERAS,
-  AFRICA_SKYLINE_CAMERAS,
-  EUROPE_SKYLINE_CAMERAS,
-} from '@/lib/feeds/cameras/generated/world-skyline.generated';
+import { privateCameras } from '@/lib/feeds/cameras/catalog/private-lists';
 
 /**
  * TAKIP — public live webcams outside Asia.
@@ -14,13 +10,13 @@ import {
  */
 
 export async function fetchLatamLiveCameras(): Promise<CctvCamera[]> {
-  return LATAM_SKYLINE_CAMERAS;
+  return privateCameras('skyline', 'latam');
 }
 
 export async function fetchAfricaLiveCameras(): Promise<CctvCamera[]> {
-  return AFRICA_SKYLINE_CAMERAS;
+  return privateCameras('skyline', 'africa');
 }
 
 export async function fetchEuropeLiveCameras(): Promise<CctvCamera[]> {
-  return EUROPE_SKYLINE_CAMERAS;
+  return privateCameras('skyline', 'europe');
 }

@@ -25,16 +25,16 @@
 
 | Path | What | Records | Size | Source, licence |
 |---|---|---:|---:|---|
-| `src/lib/feeds/cameras/generated/*.generated.ts` | Camera lists scraped once (generators in `scratch/scrape_*.js`) | ~8,800 across 9 files | 0.9 MB | OpenWebcamDB 1,372 (**API terms are non-commercial**), SkylineWebcams 609, public operator webcams 300, Japan MLIT rivers 4,312, SANRAL 1,239, Fintraffic 764 (CC BY 4.0), WYDOT 172; most licences unknown |
+| `src/lib/feeds/cameras/generated/*.generated.ts` | Camera lists scraped once (generators in `scratch/scrape_*.js`); OpenWebcamDB and SkylineWebcams are in gitignored `data/private/cameras/` instead (`docs/data-licenses.md`) | ~8,800 across 9 files | 0.9 MB | OpenWebcamDB 1,372 (**API terms are non-commercial**), SkylineWebcams 609, public operator webcams 300, Japan MLIT rivers 4,312, SANRAL 1,239, Fintraffic 764 (CC BY 4.0), WYDOT 172; most licences unknown |
 | `src/lib/feeds/cameras/sources/**` | Hand-coded camera lists (Poland, Spain, France, Japan, Italy) | ~200 | small | per operator |
 | `public/data/boundaries/` | Countries (50m) and states/provinces (10m) | 242 + 4,580 | 8.3 MB | Natural Earth, public domain |
-| `public/data/submarine-cables.json` | Submarine cables | 717 | 0.6 MB | TeleGeography; **verify, may be non-commercial**. `submarine-cables-filtered.json` is a byte-identical copy |
+| `public/data/submarine-cables.json` | Submarine cables | 717 | 0.6 MB | TeleGeography, CC BY-NC-SA; gitignored and deployed by `tools/deploy-nuc.sh` |
 | `public/data/sky/bright-stars.json` | Stars to magnitude 5.5 | 2,887 | 80 KB | Yale Bright Star Catalogue |
 | `public/data/sky/nearby-stars.json`, `milky-way-*.jpg` | 3D nearby stars, Milky Way sky and face-on images | 12,807 stars | 1.4 MB | Gaia DR3 + Hipparcos (credit), NASA SVS (PD), NASA/JPL-Caltech (credit) |
-| `public/data/cosmos/` | Galaxies and quasars in 3D, CMB map | 43,463 + 299,001 | 6 MB | 2MASS Redshift Survey, SDSS DR17 (acknowledgement required), WMAP (PD) |
-| `public/data/paleo/` | Plate rotations 1.8 Ga → now; temperature and CO₂ per stage | 1,212 plates, 85 rows | 0.9 MB | Müller et al. 2025 (CC BY 4.0); PhanDA (no licence stated) |
+| `public/data/cosmos/` | Galaxies and quasars in 3D, CMB map | 43,463 + 299,001 | 6 MB | 2MASS Redshift Survey, SDSS DR17 (acknowledgement required), Planck 2015 SMICA (ESA, acknowledgement) |
+| `public/data/paleo/` | Plate rotations 1.8 Ga → now; temperature and CO₂ per stage | 1,212 plates, 85 rows | 0.9 MB | Cao et al. 2024 (CC BY 4.0); PhanDA (no licence stated) |
 
-The sky, cosmos and Milky Way files are not committed yet. Mission notes (71 craft), landing sites (38) and deep-time chapters (14) are hand-written TypeScript.
+The sky, cosmos and Milky Way files are committed, except five DSS2 deep-sky pictures (non-commercial), which are gitignored. Mission notes (71 craft), landing sites (38) and deep-time chapters (14) are hand-written TypeScript.
 
 ## 2. Data model
 

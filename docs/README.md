@@ -20,6 +20,7 @@
 | [`architecture/compare-pages.md`](architecture/compare-pages.md) | Two countries side by side (`/compare/greece-vs-turkey/life-expectancy`) and each History measure around the world (`/map/life-expectancy`): what they say and what gets indexed |
 | [`space-view.md`](space-view.md) | The space view: what is built, decisions, where the code is, what is left |
 | [`data-sources.md`](data-sources.md) | Candidate public data sources, and how to choose one |
+| [`data-licenses.md`](data-licenses.md) | The licences of the data in the repo, and what is kept out of it |
 | [`inspiration-sources/`](inspiration-sources/README.md) | Sources and features surveyed in World Monitor, Provenance, Argus, God's Eye View and NASA Worldview |
 | [`architecture/native-apps.md`](architecture/native-apps.md) | The iOS, Android, Windows, macOS and Linux apps: shells around takip.dev, sign-in through the system browser, downloads, CI |
 | [`runbooks/app-stores.md`](runbooks/app-stores.md) | Publishing the apps: Google Play, the App Store, desktop signing, takip.dev/download, each release |

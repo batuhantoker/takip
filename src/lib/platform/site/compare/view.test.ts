@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { placeBySlug } from '../places/gazetteer';
 import { indicatorSpec, type IndicatorSeries } from '../places/topics/indicators-data';
 import { addedView, chartView, isPlainView, parseView, PLAIN_VIEW, viewQuery, withoutCountry } from './view';
+import { topicTable } from '../places/tables';
+
+// indicators.json is private (docs/data-licenses.md); a checkout without it has no measures to check.
+const HAS_INDICATORS = topicTable('indicators').generated !== '';
 
 const series = (from: number, values: (number | null)[], p?: [number, (number | null)[]]): IndicatorSeries =>
   ({ e: [from, values], ...(p && { p }), f: { n: 0, first: [from, 0], last: [from, 0], max: [from, 0], min: [from, 0] } });
@@ -51,7 +55,7 @@ describe('chartView', () => {
 describe('the view in the query', () => {
   const [greece, turkey, germany, cyprus] = ['greece', 'turkey', 'germany', 'cyprus'].map(s => placeBySlug('country', s));
 
-  it('reads what it can and writes it back the same', () => {
+  it.skipIf(!HAS_INDICATORS)('reads what it can and writes it back the same', () => {
     if (!greece || !turkey || !germany || !cyprus) return;
     const pair = { a: greece, b: turkey };
     const v = parseView({ with: 'germany,greece,nowhere,cyprus,germany', from: '1990', log: '1', world: '0' }, pair);

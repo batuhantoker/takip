@@ -114,7 +114,7 @@ describe('mapRecord', () => {
     expect(mapRecord({ ...still, feed_url: 'https://notwindy.com/cam.jpg' })).not.toBeNull();
   });
 
-  it('leaves OpenWebcamDB rows to openwebcamdb.generated.ts', () => {
+  it('leaves OpenWebcamDB rows to its own list', () => {
     const yt = { ...sampleRow, feed_type: 'iframe', feed_url: 'https://www.youtube.com/embed/eJs-IowPqxM' };
     expect(mapRecord({ ...yt, source: 'openwebcamdb' })).toBeNull();
     expect(mapRecord({ ...yt, source: 'seoul-its' })).not.toBeNull();

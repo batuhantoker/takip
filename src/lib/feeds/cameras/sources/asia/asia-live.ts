@@ -1,5 +1,5 @@
 import type { CctvCamera } from '@/lib/feeds/cameras/types';
-import { ASIA_SKYLINE_CAMERAS } from '@/lib/feeds/cameras/generated/asia-skyline.generated';
+import { privateCameras } from '@/lib/feeds/cameras/catalog/private-lists';
 
 /**
  * TAKIP — Asia live public webcams.
@@ -9,5 +9,5 @@ import { ASIA_SKYLINE_CAMERAS } from '@/lib/feeds/cameras/generated/asia-skyline
  * webcams in countries that publish no machine-readable CCTV feed of their own.
  */
 export async function fetchAsiaLiveCameras(): Promise<CctvCamera[]> {
-  return ASIA_SKYLINE_CAMERAS;
+  return privateCameras('skyline', 'asia');
 }
