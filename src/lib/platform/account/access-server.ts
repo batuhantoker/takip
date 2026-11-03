@@ -1,5 +1,5 @@
 import type { Access, BoolEntitlement } from '@takip/core/entitlements';
-import { getClientIp } from '@/lib/core/net/ssrf-guard';
+import { clientAddress } from '@/lib/core/net/ssrf-guard';
 
 const API = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4100';
 
@@ -14,8 +14,8 @@ const unavailable = () => Response.json({ error: 'access_unavailable' }, { statu
 async function askApi(request: Request): Promise<Response | null> {
   const headers: Record<string, string> = { cookie: request.headers.get('cookie') ?? '' };
   // Without it the api sees every visitor as this server and limits them all as one client.
-  const ip = getClientIp(request);
-  if (ip !== 'unknown') headers['x-forwarded-for'] = ip;
+  const ip = clientAddress(request);
+  if (ip) headers['x-forwarded-for'] = ip;
   // The same header may carry a model key (lib/ai/service.ts), which must never reach the api.
   const authorization = request.headers.get('authorization')?.trim();
   if (authorization && /^Bearer\s+tk_/i.test(authorization)) headers.authorization = authorization;

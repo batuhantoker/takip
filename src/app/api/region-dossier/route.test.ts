@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const httpJson = vi.fn();
 vi.mock('@/lib/core/net/http-json', () => ({ httpJson: (...args: unknown[]) => httpJson(...args), TAKIP_UA: 'test' }));
 
-import { current, stillHolding, itemId, amountOf, placeAt, type WdStatement } from './route';
+import { GET, current, stillHolding, itemId, amountOf, placeAt, type WdStatement } from './route';
 
 /* Wikidata keeps every officeholder a country ever had on the same property,
    so picking the right statement is the whole job. Shapes below are trimmed
@@ -103,5 +103,19 @@ describe('naming the clicked place, from Photon', () => {
     httpJson.mockResolvedValue({ features: [] });
     expect(await placeAt(0, -30)).toBeNull();
     expect(httpJson).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the per-address budget', () => {
+  beforeEach(() => { httpJson.mockReset().mockResolvedValue({ features: [] }); });
+  const ask = (ip: string) => GET(new Request('http://localhost/api/region-dossier?lat=0&lng=-30', { headers: { 'x-forwarded-for': ip } }));
+
+  it('answers 429 with a Retry-After once a client is past 30 a minute', async () => {
+    for (let i = 0; i < 30; i++) expect((await ask('198.51.100.77')).status).toBe(200);
+    const refused = await ask('198.51.100.77');
+    expect(refused.status).toBe(429);
+    expect(Number(refused.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect(Number(refused.headers.get('retry-after'))).toBeLessThanOrEqual(60);
+    expect((await ask('198.51.100.78')).status).toBe(200);
   });
 });

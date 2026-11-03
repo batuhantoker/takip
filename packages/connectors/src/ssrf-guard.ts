@@ -1,5 +1,6 @@
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
+import { pinnedAgent } from './pinned-agent';
 
 /**
  * SSRF guard shared by route handlers that take a user-controlled host / IP
@@ -9,10 +10,9 @@ import { isIP } from 'node:net';
  *   1. Canonicalise the input. Reject non-dotted-quad IPv4 forms and any
  *      IPv6 address that falls inside a reserved range.
  *   2. For hostnames, resolve A + AAAA records and reject if *any* answer
- *      lands in a reserved range. Total Time-Of-Check / Time-Of-Use defence
- *      requires IP pinning at the socket layer, but rejecting at lookup time
- *      blocks every non-rebinding attack and forces a rebinder to win a
- *      TTL=0 race against the downstream consumer.
+ *      lands in a reserved range. safeFetch then connects to those checked
+ *      answers only (./pinned-agent), so a rebinding DNS server can't swap
+ *      in another address between the check and the connection.
  */
 
 const IPV4_BLOCKS_TEXT: Array<[string, number]> = [
@@ -189,6 +189,8 @@ export async function validateHost(host: string): Promise<ValidationResult> {
 /**
  * Wrap a fetch call so that:
  *   - the URL's host is validated before the request (block private targets)
+ *   - the connection goes to the addresses that were validated, not a fresh
+ *     DNS answer (block DNS rebinding)
  *   - redirects are followed manually, with each hop re-validated (block a
  *     redirect to a private host from a public-looking original)
  */
@@ -212,7 +214,9 @@ export async function safeFetch(
     if (!check.ok) {
       throw new Error(`safeFetch: blocked target — ${check.reason}`);
     }
-    const res = await fetch(currentUrl, { ...passInit, redirect: 'manual' });
+    // `dispatcher` is undici's own option; the DOM RequestInit type doesn't know it.
+    const pinned = { ...passInit, redirect: 'manual', dispatcher: pinnedAgent(check.resolved ?? []) } as RequestInit;
+    const res = await fetch(currentUrl, pinned);
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get('location');
       if (!loc) return res;
@@ -228,19 +232,77 @@ export async function safeFetch(
 // ── SHARED RATE LIMITER ──
 // In-memory rate limiting per-isolate for basic proxy abuse prevention
 const rateMap = new Map<string, { count: number; resetAt: number }>();
+const SWEEP_EVERY_MS = 30_000;
+const MAX_KEYS = 100_000;
+let nextSweepAt = 0;
 
-export function isRateLimited(ip: string, limit: number = 20, windowMs: number = 60_000): boolean {
-  const now = Date.now();
-  for (const [key, entry] of rateMap) {
-    if (now > entry.resetAt) rateMap.delete(key);
+/** Expired entries go every half minute, not on every call; past the cap the oldest go first. */
+function makeRoom(now: number) {
+  if (now >= nextSweepAt) {
+    nextSweepAt = now + SWEEP_EVERY_MS;
+    for (const [key, entry] of rateMap) {
+      if (now > entry.resetAt) rateMap.delete(key);
+    }
   }
-  const entry = rateMap.get(ip);
+  while (rateMap.size >= MAX_KEYS) rateMap.delete(rateMap.keys().next().value!);
+}
+
+/** Counts one request against `key`: the seconds to wait when that puts it over `limit` in the window, else 0. */
+export function rateLimitWait(key: string, limit: number = 20, windowMs: number = 60_000): number {
+  const now = Date.now();
+  const id = isIP(key) ? addressBlock(key) : key;
+  const entry = rateMap.get(id);
   if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + windowMs });
-    return false;
+    rateMap.delete(id);
+    makeRoom(now);
+    rateMap.set(id, { count: 1, resetAt: now + windowMs });
+    return 0;
   }
   entry.count++;
-  return entry.count > limit;
+  return entry.count > limit ? Math.max(1, Math.ceil((entry.resetAt - now) / 1000)) : 0;
+}
+
+export function isRateLimited(key: string, limit: number = 20, windowMs: number = 60_000): boolean {
+  return rateLimitWait(key, limit, windowMs) > 0;
+}
+
+/** The eight groups of an IPv6 address, `::` expanded; null when it isn't one. */
+function ipv6Groups(ip: string): string[] | null {
+  const short = canonicalIPv6(ip);
+  if (short === null) return null;
+  const [head, tail] = short.split('::');
+  const front = head ? head.split(':') : [];
+  if (tail === undefined) return front;
+  const back = tail ? tail.split(':') : [];
+  return [...front, ...Array<string>(8 - front.length - back.length).fill('0'), ...back];
+}
+
+/** `[2001:db8::1]`, `fe80::1%en0` and `::ffff:1.2.3.4` (or `::ffff:102:304`) as a bare canonical address; null when it isn't one. */
+export function canonicalIp(value: string): string | null {
+  let ip = value.trim();
+  if (ip.startsWith('[')) ip = ip.slice(1, ip.indexOf(']'));
+  ip = ip.split('%')[0];
+  const v4 = parseIPv4(ip);
+  if (v4) return v4;
+  const groups = isIP(ip) === 6 ? ipv6Groups(ip) : null;
+  if (!groups) return null;
+  if (groups.slice(0, 5).every(g => g === '0') && groups[5] === 'ffff') {
+    const [hi, lo] = [parseInt(groups[6], 16), parseInt(groups[7], 16)];
+    return [hi >> 8, hi & 255, lo >> 8, lo & 255].join('.');
+  }
+  return canonicalIPv6(ip);
+}
+
+/**
+ * The unit one visitor controls, as apps/api counts it (access/client-ip.ts): an IPv4 address, or
+ * the IPv6 /64 around one, since a host is handed the whole /64 and can rotate through it.
+ * Anything that isn't an address comes back unchanged.
+ */
+export function addressBlock(value: string): string {
+  const ip = canonicalIp(value);
+  if (!ip) return value;
+  if (!ip.includes(':')) return ip;
+  return `${canonicalIPv6(`${ipv6Groups(ip)!.slice(0, 4).join(':')}::`)}/64`;
 }
 
 /** `[2a00::1]` → `2a00::1`, and `::ffff:81.2.69.142` (how a dual-stack

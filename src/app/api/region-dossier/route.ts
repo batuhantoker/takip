@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ATTRIBUTION } from '@/lib/places/nominatim';
 import { httpJson } from '@/lib/core/net/http-json';
+import { getClientIp, rateLimitWait } from '@/lib/core/net/ssrf-guard';
 import { cachedSource } from '@/lib/core/net/source-cache';
 import { advisoriesFor } from '../(intel)/advisories/lookup';
 import type { Advisory } from '../(intel)/advisories/types';
@@ -180,7 +181,14 @@ async function readCountry(countryName: string): Promise<CountryFacts[]> {
   }];
 }
 
+// Each dossier asks Photon, Wikipedia and Wikidata from this server's address.
+const DOSSIERS_PER_MINUTE = 30;
+
 export async function GET(request: Request) {
+  const wait = rateLimitWait(`region-dossier:${getClientIp(request)}`, DOSSIERS_PER_MINUTE, 60_000);
+  if (wait) {
+    return NextResponse.json({ error: 'rate_limited', retry_after: wait }, { status: 429, headers: { 'Retry-After': String(wait), 'Cache-Control': 'no-store' } });
+  }
   const { searchParams } = new URL(request.url);
   const lat = parseFloat(searchParams.get('lat') || '0');
   const lng = parseFloat(searchParams.get('lng') || '0');

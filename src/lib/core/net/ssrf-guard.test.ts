@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import { getClientIp, isRateLimited, isPublicIp, validateHost, visitorIp } from './ssrf-guard';
+import { clientAddress, getClientIp, isRateLimited, isPublicIp, validateHost, visitorIp } from './ssrf-guard';
 
 const req = (headers: Record<string, string>) => new Request('https://takip.test/api/scanner', { headers });
 
@@ -52,10 +52,20 @@ describe('getClientIp', () => {
     expect(getClientIp(req({}))).toBe('unknown');
   });
 
-  it('accepts IPv6, bracketed or bare', () => {
-    expect(getClientIp(req({ 'x-forwarded-for': '2001:db8::1' }))).toBe('2001:db8::1');
+  it('accepts IPv6, bracketed or bare, and keys it by its /64', () => {
+    expect(getClientIp(req({ 'x-forwarded-for': '2001:db8::1' }))).toBe('2001:db8::/64');
     vi.stubEnv('CLIENT_IP_HEADER', 'x-real-ip');
-    expect(getClientIp(req({ 'x-real-ip': '[2001:db8::1]' }))).toBe('[2001:db8::1]');
+    expect(getClientIp(req({ 'x-real-ip': '[2001:db8::1]' }))).toBe('2001:db8::/64');
+  });
+
+  it('reads an IPv4-mapped address as its IPv4', () => {
+    expect(getClientIp(req({ 'x-forwarded-for': '::ffff:203.0.113.9' }))).toBe('203.0.113.9');
+  });
+
+  it('still hands on the exact address for the api, which keys it itself', () => {
+    expect(clientAddress(req({ 'x-forwarded-for': '1.1.1.1, 2001:db8:1:2::abcd' }))).toBe('2001:db8:1:2::abcd');
+    expect(clientAddress(req({ 'x-forwarded-for': '::ffff:203.0.113.9' }))).toBe('203.0.113.9');
+    expect(clientAddress(req({ 'x-forwarded-for': 'dead:beef' }))).toBeNull();
   });
 });
 
@@ -69,6 +79,16 @@ describe('scanner throttle under a spoofed header', () => {
     }
     // 20 requests, 5 allowed: the rotation buys nothing.
     expect(blocked).toBe(15);
+  });
+
+  it('still binds when an IPv6 client rotates through its /64', () => {
+    let blocked = 0;
+    for (let i = 1; i <= 20; i++) {
+      const ip = getClientIp(req({ 'x-forwarded-for': `2001:db8:77:1:${i.toString(16)}::${i.toString(16)}` }));
+      if (isRateLimited(`scan:${ip}`, 5, 60_000)) blocked++;
+    }
+    expect(blocked).toBe(15);
+    expect(isRateLimited(`scan:${getClientIp(req({ 'x-forwarded-for': '2001:db8:77:2::1' }))}`, 5, 60_000)).toBe(false);
   });
 });
 

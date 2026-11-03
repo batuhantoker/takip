@@ -1,11 +1,12 @@
-import { bareIp, isPublicIp, parseIPv4 } from '@takip/connectors/ssrf-guard';
+import { addressBlock, bareIp, canonicalIp, isPublicIp } from '@takip/connectors/ssrf-guard';
 
 export * from '@takip/connectors/ssrf-guard';
 
 // Header-reading helpers stay in the web app; the api resolves client IPs itself (apps/api/src/access/client-ip.ts).
 
 /**
- * Best available identity for the caller, for rate-limiting purposes.
+ * Best available identity for the caller, for rate-limiting purposes: their
+ * address, with IPv6 cut to its /64 (addressBlock).
  *
  * A route handler can't see the socket peer, and Next passes on whatever
  * `X-Forwarded-For` the client sent, so which header to believe is deployment
@@ -22,16 +23,22 @@ export * from '@takip/connectors/ssrf-guard';
  * than exempting them.
  */
 export function getClientIp(req: Request): string {
+  const ip = clientAddress(req);
+  return ip ? addressBlock(ip) : 'unknown';
+}
+
+/** The caller's own address, read as getClientIp reads it, or null. For handing on to the api, which keys it itself. */
+export function clientAddress(req: Request): string | null {
   const h = (name: string) => req.headers.get(name)?.trim() || '';
 
   const edgeHeader = process.env.CLIENT_IP_HEADER?.trim();
-  const edge = edgeHeader ? h(edgeHeader) : '';
-  if (edge && isIpLike(edge)) return edge;
+  const edge = edgeHeader ? canonicalIp(h(edgeHeader)) : null;
+  if (edge) return edge;
 
   const chain = h('x-forwarded-for').split(',').map(s => s.trim()).filter(Boolean);
   const hops = trustedProxyHops();
   const client = hops > 0 ? chain[chain.length - hops] : undefined;
-  return client && isIpLike(client) ? client : 'unknown';
+  return client ? canonicalIp(client) : null;
 }
 
 function trustedProxyHops(): number {
@@ -54,11 +61,4 @@ export function visitorIp(req: Request): string | null {
     .filter(Boolean);
   const found = candidates.find(isPublicIp);
   return found ? bareIp(found) : null;
-}
-
-/** Cheap shape check — rejects the arbitrary strings a spoofed header carries. */
-function isIpLike(value: string): boolean {
-  const bare = value.startsWith('[') ? value.slice(1, value.indexOf(']')) : value.split('%')[0];
-  if (parseIPv4(bare)) return true;
-  return /^[0-9a-f:]+$/i.test(bare) && bare.includes(':');
 }
