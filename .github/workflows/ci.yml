@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    # main is the public mirror's branch (batuhantoker/takip); the Docker image still publishes from master only.
+    branches: [master, main]
     tags: ["v*.*.*"]
   pull_request:
   workflow_dispatch:
